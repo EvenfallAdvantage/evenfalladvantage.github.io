@@ -321,13 +321,13 @@ section:nth-child(even) {
 .cta h3 {
     font-size: 2.4rem;
     margin-bottom: 0.5rem;
-    color: white;
+    color: #253646;
 }
 
 .cta p {
     font-size: 1.8rem;
     margin-bottom: 2.5rem;
-    opacity: 0.9;
+    color: #253646;
 }
 
 .cta-button {
