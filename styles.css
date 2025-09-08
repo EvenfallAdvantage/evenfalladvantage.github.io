@@ -339,6 +339,12 @@ section:nth-child(even) {
     margin-bottom: 1rem;
 }
 
+.expanded-content p[align="right"] {
+    margin-top: 1.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(231, 76, 60, 0.2);
+}
+
 .expanded-content p:last-child {
     margin-bottom: 0;
 }
@@ -389,6 +395,12 @@ section:nth-child(even) {
     flex-wrap: wrap;
     justify-content: center;
     gap: 2rem;
+    align-items: stretch;
+}
+
+.badges-container .badge {
+    flex: 0 1 calc(50% - 1rem);
+    max-width: 300px;
 }
 
 .badge {
@@ -400,6 +412,129 @@ section:nth-child(even) {
     align-items: center;
     gap: 1rem;
     min-width: 200px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: visible;
+}
+
+.badge.service-card {
+    flex-direction: row;
+    cursor: pointer;
+    width: auto;
+}
+
+.badge.service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    border: 2px solid #e74c3c;
+    border-radius: calc(var(--border-radius) - 2px);
+    animation: border-pulse 2s infinite;
+}
+
+.badge-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+}
+
+.badge.service-card:hover .badge-icon i {
+    color: #e74c3c;
+    transform: scale(1.1);
+}
+
+.centered-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+}
+
+.centered-badge .badge-icon {
+    margin-bottom: 0.8rem;
+}
+
+.badge-content {
+    flex: 1;
+}
+
+.badge-title {
+    font-weight: 600;
+    color: var(--primary);
+    font-family: var(--font-primary);
+    transition: color 0.3s ease;
+}
+
+.badge.service-card:hover .badge-title {
+    color: #e74c3c;
+}
+
+.badge .expanded-content {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.6s cubic-bezier(0, 1, 0, 1),
+                opacity 0.4s ease-in-out,
+                margin 0.3s ease;
+    margin: 0;
+    padding: 0;
+    transform: translateY(-10px);
+    width: 100%;
+    background: white;
+    position: relative;
+}
+
+.badge.service-card:hover .expanded-content {
+    max-height: 500px;
+    opacity: 1;
+    margin-top: 1rem;
+    padding: 1.5rem;
+    transform: translateY(0);
+    transition: max-height 0.6s ease-in-out,
+                opacity 0.5s ease,
+                transform 0.4s ease,
+                margin 0.3s ease,
+                padding 0.3s ease;
+}
+
+.credentials-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 0 0;
+    text-align: left;
+}
+
+.credentials-list li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.3rem;
+    color: var(--gray);
+    line-height: 1.4;
+}
+
+.credentials-list li:before {
+    content: '✓';
+    color: var(--secondary);
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-weight: bold;
+}
+
+.badge .expanded-content h4 {
+    color: var(--primary);
+    font-size: 1.6rem;
+    margin-bottom: 1rem;
+    text-align: left;
+    transition: color 0.3s ease;
+}
+
+.badge.service-card:hover .expanded-content h4 {
+    color: var(--secondary);
 }
 
 .badge i {
@@ -549,11 +684,30 @@ footer {
     .badges-container {
         flex-direction: column;
         align-items: center;
+        width: 100%;
     }
     
     .badge {
         width: 100%;
         justify-content: center;
+        max-width: none;
+        box-sizing: border-box;
+    }
+    
+    .badges-container .badge {
+        flex: 1 0 100%;
+        max-width: none;
+        width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    #veteran-owned, #compliant-tactical-proven {
+        width: 100%;
+    }
+    
+    .badge .expanded-content {
+        position: static;
     }
 }
 
