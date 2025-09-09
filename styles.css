@@ -205,7 +205,7 @@ section {
 }
 
 section:nth-child(even) {
-    background-color: #f5f7fa;
+    background-color: #f9f9f9;
 }
 
 .intro {
@@ -546,6 +546,430 @@ section:nth-child(even) {
     font-weight: 600;
     color: var(--primary);
     font-family: var(--font-primary);
+}
+
+/* Organizational Structure Section */
+.org-structure {
+    padding: 5rem 0;
+    background-color: #f9f9f9;
+}
+
+.org-structure h3 {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 3rem;
+    color: var(--primary);
+}
+
+.org-intro {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 3rem;
+    font-size: 1.8rem;
+    color: var(--primary);
+}
+
+.division-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.division-card {
+    flex: 1 0 calc(50% - 1rem);
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    position: relative;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    border: 2px solid transparent;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+}
+
+.division-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    border: 2px solid #e74c3c;
+    border-radius: calc(var(--border-radius) - 2px);
+    animation: border-pulse 2s infinite;
+}
+
+#pathfinder:hover, #vanguard:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    border: 2px solid var(--secondary);
+    animation: border-pulse 2s infinite;
+}
+
+.division-header {
+    display: flex;
+    align-items: center;
+    padding: 2rem;
+    background-color: var(--primary);
+    color: white;
+    gap: 1.5rem;
+}
+
+#pathfinder .division-header {
+    background-color: var(--primary);
+}
+
+#vanguard .division-header {
+    background-color: var(--secondary);
+}
+
+.division-icon {
+    font-size: 2.6rem;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(231, 76, 60, 0.1);
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+}
+
+.division-card:hover .division-icon i {
+    color: #e74c3c;
+    transform: scale(1.1);
+}
+
+.division-card:hover .division-icon {
+    box-shadow: 0 0 12px rgba(231, 76, 60, 0.7);
+    animation: icon-pulse 2s infinite;
+}
+
+#pathfinder .division-icon {
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+#pathfinder .division-icon i {
+    color: #e74c3c;
+}
+
+#pathfinder:hover .division-icon i {
+    color: #e74c3c;
+}
+
+#vanguard .division-icon {
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+#vanguard .division-icon i {
+    color: #e74c3c;
+}
+
+#vanguard:hover .division-icon i {
+    color: #e74c3c;
+}
+
+.division-header h4 {
+    font-size: 2.2rem;
+    margin: 0;
+    font-weight: 700;
+}
+
+.division-motto {
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 1.8rem;
+    font-style: italic;
+    font-weight: 500;
+    color: var(--gray);
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.division-content {
+    flex: 1;
+}
+
+.division-card .expanded-content {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.6s cubic-bezier(0, 1, 0, 1),
+                opacity 0.4s ease-in-out,
+                padding-top 0.3s ease;
+    margin-top: 0.5rem;
+    padding-top: 0;
+    transform: translateY(-10px);
+}
+
+.division-card:hover .expanded-content {
+    max-height: 500px;
+    opacity: 1;
+    padding-top: 1rem;
+    transform: translateY(0);
+    transition: max-height 0.6s ease-in-out,
+                opacity 0.5s ease,
+                transform 0.4s ease,
+                padding-top 0.3s ease;
+}
+
+.division-content h4 {
+    font-size: 2.2rem;
+    margin: 0;
+    font-weight: 700;
+    color: var(--primary);
+    transition: color 0.3s ease;
+}
+
+.division-content p {
+    font-size: 1.5rem;
+    line-height: 1.5;
+    color: var(--gray);
+    margin-bottom: 0.5rem;
+}
+
+.division-card:hover .division-content h4 {
+    color: var(--secondary);
+}
+
+.division-content h5 {
+    font-size: 1.6rem;
+    margin: 1.5rem 0 0.8rem;
+    color: var(--primary);
+}
+
+.division-card .expanded-content p {
+    margin-bottom: 1.5rem;
+}
+
+.division-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 1.5rem;
+}
+
+.division-list li {
+    position: relative;
+    padding-left: 2rem;
+    margin-bottom: 0.8rem;
+    font-size: 1.4rem;
+    color: var(--gray);
+    line-height: 1.4;
+}
+
+.division-list li:before {
+    content: '\2713';
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-weight: bold;
+    color: var(--secondary);
+}
+
+#pathfinder .division-list li:before {
+    color: var(--secondary);
+}
+
+#vanguard .division-list li:before {
+    color: var(--secondary);
+}
+
+.division-symbol {
+    display: flex;
+    align-items: center;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background-color: #f9f9f9;
+    border-radius: 0.5rem;
+    gap: 1.5rem;
+}
+
+.symbol-icon {
+    font-size: 2.4rem;
+    color: var(--secondary);
+}
+
+.symbol-text {
+    font-size: 1.4rem;
+    color: var(--gray);
+    font-style: italic;
+}
+
+.division-comparison {
+    display: flex;
+    justify-content: space-between;
+    gap: 4rem;
+    padding: 3rem;
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.comparison-column {
+    flex: 1;
+    text-align: center;
+}
+
+.comparison-column h4 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid;
+}
+
+.comparison-column:first-child h4 {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.comparison-column:last-child h4 {
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+
+.comparison-column ul {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+}
+
+.comparison-column li {
+    padding: 1rem 0;
+    font-size: 1.5rem;
+    color: var(--gray);
+    border-bottom: 1px solid #f0f0f0;
+}
+
+@media (max-width: 992px) {
+    .division-cards {
+        flex-direction: column;
+    }
+    
+    .division-card {
+        flex: 1 0 100%;
+    }
+    
+    .division-comparison {
+        flex-direction: column;
+        gap: 2rem;
+        padding: 2rem;
+    }
+    
+    .comparison-column:first-child {
+        margin-bottom: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .org-structure {
+        padding: 3rem 0;
+    }
+    
+    .org-structure h3 {
+        font-size: 2.4rem;
+    }
+    
+    .org-intro {
+        font-size: 1.6rem;
+    }
+    
+    .division-card {
+        padding: 2rem;
+        flex-direction: column;
+    }
+    
+    .division-icon {
+        margin-bottom: 1.5rem;
+        align-self: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .division-content {
+        text-align: center;
+        width: 100%;
+    }
+    
+    .division-symbol {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .symbol-icon {
+        margin-bottom: 1rem;
+    }
+    
+    .division-card .expanded-content {
+        text-align: left;
+    }
+}
+
+/* Founder Quote Section */
+.founder-quote {
+    background-color: #f9f9f9;
+    color: var(--primary);
+    padding: 4rem 0;
+    text-align: center;
+}
+
+.founder-quote blockquote {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    padding: 0 2rem;
+}
+
+.founder-quote p {
+    font-family: var(--font-secondary);
+    font-size: 2.4rem;
+    font-style: italic;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.founder-quote cite {
+    font-family: var(--font-primary);
+    font-size: 1.6rem;
+    font-weight: 600;
+    font-style: normal;
+    color: var(--secondary);
+    display: block;
+}
+
+.founder-quote blockquote:before,
+.founder-quote blockquote:after {
+    content: '\201C';
+    font-family: Georgia, serif;
+    font-size: 6rem;
+    position: absolute;
+    color: rgba(37, 54, 70, 0.3);
+    line-height: 1;
+}
+
+.founder-quote blockquote:before {
+    left: 0;
+    top: -1rem;
+}
+
+.founder-quote blockquote:after {
+    content: '\201D';
+    right: 0;
+    bottom: -3rem;
+}
+
+@media (max-width: 768px) {
+    .founder-quote p {
+        font-size: 2rem;
+    }
+    
+    .founder-quote blockquote {
+        padding: 0 1.5rem;
+    }
+    
+    .founder-quote blockquote:before,
+    .founder-quote blockquote:after {
+        font-size: 4rem;
+    }
 }
 
 /* CTA Section */
