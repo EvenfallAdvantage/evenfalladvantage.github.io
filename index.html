@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Evenfall Advantage - Security, Training & Emergency Consulting">
     <title>Evenfall Advantage - Security, Training & Emergency Consulting</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -16,11 +16,17 @@
         <div class="container">
             <div class="header-flex-container">
                 <div class="logo-container">
-                    <img src="logo.png" alt="Evenfall Advantage Logo" class="site-logo">
+                    <img src="images/logo.png" alt="Evenfall Advantage Logo" class="site-logo">
                 </div>
                 <div class="header-content">
                     <h2 class="header-tagline">Security, Training & Emergency Consulting</h2>
-                    <a href="mailto:contact@evenfalladvantage.com" class="header-badge">Coming Soon!</a>
+                    <div class="nav-container">
+                        <a href="mailto:contact@evenfalladvantage.com" class="header-badge">COMING SOON!</a>
+                        <div class="nav-links header-nav-links">
+                            <a href="index.html" class="active">Home</a>
+                            <a href="about.html">About Us</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -43,75 +49,10 @@
             </div>
         </section>
 
-        <section class="org-structure">
-            <div class="container">
-                <h3>Structured Like a Mission. Built to Operate.</h3>
-                <p class="org-intro">At Evenfall Advantage, we divide responsibilities into two tactical divisions: Pathfinder, who plans the route, and Vanguard, who leads the way forward.</p>
-                
-                <div class="division-cards">
-                    <div class="division-card service-card" id="pathfinder">
-                        <div class="division-icon"><i class="fas fa-location-arrow"></i></div>
-                        <div class="division-content">
-                            <h4>Pathfinder Division</h4>
-                            <p>"Plan with purpose."</p>
-                            <div class="expanded-content">
-                                <h5>Purpose:</h5>
-                                <p>Strategic leadership, risk planning, client advisory, and doctrine development.</p>
-                                
-                                <h5>What Pathfinder Does:</h5>
-                                <ul class="division-list">
-                                    <li>Leads initial site assessments, security audits, and contingency plan development</li>
-                                    <li>Designs Standard Operating Procedures (SOPs) and emergency response frameworks</li>
-                                    <li>Oversees training program structure, compliance validation, and curriculum</li>
-                                    <li>Serves as liaison with client leadership teams and external stakeholders</li>
-                                    <li>Advises on regulatory integration (fire codes, state guard licensing, FEMA alignment, etc.)</li>
-                                </ul>
-                                
-                                <h5>Who They Are:</h5>
-                                <p>Military-trained planners, senior consultants, and certified instructors with field and leadership backgrounds.</p>
-                                
-                            </div>
-                            <div style="text-align: center; margin-top: 2rem; padding: 1rem 0; font-style: italic; color: var(--gray); border-top: 1px solid #f0f0f0;">
-                                <span style="display: inline-block;"><i class="fas fa-location-arrow" style="color: #e74c3c; margin-right: 0.5rem;"></i> Arrowhead → clarity of direction, long-range visibility, intentional movement.</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="division-card service-card" id="vanguard">
-                        <div class="division-icon"><i class="fas fa-shield-alt"></i></div>
-                        <div class="division-content">
-                            <h4>Vanguard Division</h4>
-                            <p>"Execute without hesitation."</p>
-                            <div class="expanded-content">
-                                <h5>Purpose:</h5>
-                                <p>Tactical field implementation, onsite security coordination, training delivery, and rapid response.</p>
-                                
-                                <h5>What Vanguard Does:</h5>
-                                <ul class="division-list">
-                                    <li>Operates on the ground at live events, festivals, venues, and client facilities</li>
-                                    <li>Delivers live instruction for security teams, guards, or volunteers</li>
-                                    <li>Coordinates crowd management, ingress/egress logistics, and Sanctuary Ops</li>
-                                    <li>Supports harm reduction and wellness space integration</li>
-                                    <li>Executes site safety plans developed by Pathfinder — ensures it works in the real world</li>
-                                </ul>
-                                
-                                <h5>Who They Are:</h5>
-                                <p>Field-proven operators, safety leads, rapid deployment consultants, instructors, and responders.</p>
-                                
-                            </div>
-                            <div style="text-align: center; margin-top: 2rem; padding: 1rem 0; font-style: italic; color: var(--gray); border-top: 1px solid #f0f0f0;">
-                                <span style="display: inline-block;"><i class="fas fa-shield-alt" style="color: #e74c3c; margin-right: 0.5rem;"></i> Shield → close protection, frontline stability, mission execution.</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-        </section>
 
         <section class="services">
             <div class="container">
-                <h3>Our Services Include:</h3>
+                <h3>Our Services:</h3>
                 <div class="service-card" id="security-consulting">
                     <div class="service-icon"><i class="fas fa-check-circle"></i></div>
                     <div class="service-content">
@@ -119,10 +60,13 @@
                         <p>Threat assessments, SOP development, CPTED analysis</p>
                         <div class="expanded-content">
                             <div class="card-image-container">
-                                <img src="consulting.jpg" alt="Security Consulting" class="card-image">
+                                <img src="images/consulting.jpg" alt="Security Consulting" class="card-image">
                             </div>
                             <p><b>We deliver field-proven security consulting rooted in tactical experience and compliance-driven planning. From full-site threat assessments to SOP development and CPTED evaluations, our approach brings clarity and control to high-risk environments.</b></p>
                             <p align="right", style="color: #e74c3c;"><i>No guesswork. Just structured, professional security insight.</i></p>
+                            <div class="button-container">
+                                <a href="mailto:contact@evenfalladvantage.com?subject=Security%20Consulting%20-%20Estimate%20Request&body=SECURITY%20CONSULTING%20ESTIMATE%20REQUEST%0A%0APlease%20fill%20out%20the%20information%20below%20to%20help%20us%20provide%20an%20accurate%20estimate%3A%0A%0AFacility%20Information%0A---------------------%0AFacility%20size%3A%20%0AFacility%20type%20(office%2C%20retail%2C%20warehouse%2C%20etc.)%3A%20%0ALocation%3A%20%0A%0ACurrent%20Security%0A-----------------%0AExisting%20measures%20in%20place%3A%20%0AAccess%20control%20systems%3A%20%0ASurveillance%20coverage%3A%20%0A%0AProject%20Scope%0A-------------%0ASpecific%20security%20concerns%3A%20%0AServices%20needed%20(CPTED%2C%20threat%20assessment%2C%20SOP%20development)%3A%20%0APreferred%20timeline%3A%20%0A%0AContact%20Information%0A--------------------%0AName%3A%20%0APhone%3A%20%0ABest%20time%20to%20contact%3A%20%0A%0AThank%20you%20for%20choosing%20Evenfall%20Advantage.%20We%20will%20respond%20promptly%20to%20your%20request." class="estimate-button">GET ESTIMATE</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -133,10 +77,13 @@
                         <p>Security guard licensing, ICS/NIMS, STOP THE BLEED®</p>
                         <div class="expanded-content">
                             <div class="card-image-container">
-                                <img src="training.jpg" alt="Training & Certification" class="card-image">
+                                <img src="images/training.jpg" alt="Training & Certification" class="card-image">
                             </div>
                             <p><b>Our certified training programs prepare individuals and teams for real-world demands. We offer state-compliant guard licensing (Modified State Courses), ICS/NIMS instruction, STOP THE BLEED®, and custom instructor-led modules tailored to your operational needs.</b></p>
                             <p align="right" style="color: #e74c3c;"><i>We don't teach theory. We train for the moment it matters.</i></p>
+                            <div class="button-container">
+                                <a href="mailto:contact@evenfalladvantage.com?subject=Training%20%26%20Certification%20-%20Estimate%20Request&body=TRAINING%20%26%20CERTIFICATION%20ESTIMATE%20REQUEST%0A%0APlease%20fill%20out%20the%20information%20below%20to%20help%20us%20provide%20an%20accurate%20estimate%3A%0A%0ATraining%20Requirements%0A--------------------%0AType%20of%20training%20needed%20(select%20all%20that%20apply)%3A%0A%E2%98%90%20Security%20guard%20licensing%0A%E2%98%90%20ICS%2FNIMS%0A%E2%98%90%20STOP%20THE%20BLEED%C2%AE%0A%E2%98%90%20Custom%20training%20modules%20(please%20specify%3A%20)%0A%0ATraining%20Participants%0A-------------------%0ANumber%20of%20participants%3A%20%0ACurrent%20certification%20levels%20(if%20any)%3A%20%0AExperience%20level%20of%20team%3A%20%0A%0ALogistics%0A---------%0APreferred%20training%20location%3A%20%0ADesired%20start%20date%3A%20%0ATraining%20duration%20needed%3A%20%0A%0AOrganization%20Details%0A--------------------%0ACompany%2FOrganization%20name%3A%20%0AIndustry%3A%20%0ASpecific%20compliance%20requirements%3A%20%0A%0AContact%20Information%0A--------------------%0AName%3A%20%0APhone%3A%20%0ABest%20time%20to%20contact%3A%20%0A%0AThank%20you%20for%20choosing%20Evenfall%20Advantage.%20We%20will%20respond%20promptly%20to%20your%20request." class="estimate-button">GET ESTIMATE</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -147,10 +94,13 @@
                         <p>Crowd control planning, Sanctuary Ops, harm reduction protocols</p>
                         <div class="expanded-content">
                             <div class="card-image-container">
-                                <img src="festival.jpg" alt="Festival & Venue Safety" class="card-image">
+                                <img src="images/festival.jpg" alt="Festival & Venue Safety" class="card-image">
                             </div>
                             <p><b>We specialize in high-density crowd environments, offering comprehensive planning and on-site solutions for festivals, live events, and venue operations. From crowd management and perimeter planning to Sanctuary Ops and harm reduction coordination — we bring order to chaos.</b></p>
                             <p align="right" style="color: #e74c3c;"><i>Our team moves where the pressure is highest — and clarity is critical.</i></p>
+                            <div class="button-container">
+                                <a href="mailto:contact@evenfalladvantage.com?subject=Festival%20%26%20Venue%20Safety%20-%20Estimate%20Request&body=FESTIVAL%20%26%20VENUE%20SAFETY%20ESTIMATE%20REQUEST%0A%0APlease%20fill%20out%20the%20information%20below%20to%20help%20us%20provide%20an%20accurate%20estimate%3A%0A%0AEvent%20Details%0A-------------%0AEvent%20name%3A%20%0AEvent%20type%20(festival%2C%20concert%2C%20convention%2C%20etc.)%3A%20%0AExpected%20attendance%3A%20%0AEvent%20date(s)%3A%20%0ADaily%20hours%20of%20operation%3A%20%0A%0AVenue%20Information%0A------------------%0AVenue%20name%3A%20%0ASize%20(sq%20ft%20or%20acres)%3A%20%0AIndoor%2FOutdoor%2FBoth%3A%20%0ANumber%20of%20entrances%2Fexits%3A%20%0A%0ASecurity%20Needs%0A---------------%0A%E2%98%90%20Crowd%20management%0A%E2%98%90%20Perimeter%20security%0A%E2%98%90%20Access%20control%0A%E2%98%90%20Harm%20reduction%20services%0A%E2%98%90%20Sanctuary%20operations%0A%E2%98%90%20Emergency%20response%20planning%0A%E2%98%90%20Other%3A%20%0A%0AExisting%20Safety%20Measures%0A--------------------------%0ACurrently%20have%20security%20staff%3F%20%0AEvacuation%20plans%20in%20place%3F%20%0AFirst%20aid%20services%20arranged%3F%20%0A%0AContact%20Information%0A--------------------%0AName%3A%20%0ARole%20in%20event%3A%20%0APhone%3A%20%0AEmail%3A%20%0A%0AThank%20you%20for%20choosing%20Evenfall%20Advantage.%20We%20will%20respond%20promptly%20to%20your%20request." class="estimate-button">GET ESTIMATE</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -161,69 +111,35 @@
                         <p>Workplace violence mitigation, school safety, contingency strategy</p>
                         <div class="expanded-content">
                             <div class="card-image-container">
-                                <img src="response.jpg" alt="Emergency Response Planning" class="card-image">
+                                <img src="images/response.jpg" alt="Emergency Response Planning" class="card-image">
                             </div>
                             <p><b>Evenfall Advantage provides emergency response planning for schools, businesses, nonprofits, and municipalities. We design actionable contingency plans, conduct drills, and deliver workplace violence and safety protocol training built for your environment.</b></p>
                             <p align="right" style="color: #e74c3c;"><i>Readiness isn't what you claim. It's what you build before it's needed.</i></p>
+                            <div class="button-container">
+                                <a href="mailto:contact@evenfalladvantage.com?subject=Emergency%20Response%20Planning%20-%20Estimate%20Request&body=EMERGENCY%20RESPONSE%20PLANNING%20ESTIMATE%20REQUEST%0A%0APlease%20fill%20out%20the%20information%20below%20to%20help%20us%20provide%20an%20accurate%20estimate%3A%0A%0AOrganization%20Information%0A-------------------------%0AOrganization%20name%3A%20%0AType%20(school%2C%20business%2C%20nonprofit%2C%20etc.)%3A%20%0ANumber%20of%20employees%2Fstudents%2Fusers%3A%20%0ANumber%20of%20locations%3A%20%0A%0AFacility%20Details%0A----------------%0ATotal%20square%20footage%3A%20%0ANumber%20of%20floors%3A%20%0ANumber%20of%20entry%2Fexit%20points%3A%20%0AFloor%20plans%20available%3F%20Yes%2FNo%0A%0ACurrent%20Safety%20Status%0A----------------------%0A%E2%98%90%20Existing%20emergency%20protocols%0A%E2%98%90%20Previous%20safety%20assessments%0A%E2%98%90%20Regular%20drills%20conducted%0A%E2%98%90%20Security%20personnel%20on%20site%0A%E2%98%90%20Access%20control%20systems%0A%0AServices%20Needed%0A---------------%0A%E2%98%90%20Workplace%20violence%20mitigation%0A%E2%98%90%20Active%20threat%20response%20planning%0A%E2%98%90%20Evacuation%20planning%0A%E2%98%90%20Staff%20training%0A%E2%98%90%20Policy%20development%0A%E2%98%90%20Other%3A%20%0A%0ACompliance%20Requirements%0A-----------------------%0AIndustry%20standards%3A%20%0ARegulatory%20requirements%3A%20%0A%0ATimeline%20%26%20Contact%0A-----------------%0ADesired%20implementation%20timeframe%3A%20%0AName%3A%20%0APosition%3A%20%0APhone%3A%20%0AEmail%3A%20%0A%0AThank%20you%20for%20choosing%20Evenfall%20Advantage.%20We%20will%20respond%20promptly%20to%20your%20request." class="estimate-button">GET ESTIMATE</a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="value-prop">
-            <div class="container">
-                <p>Whether you're a venue, private security firm, school, or local government partner — we're here to deliver ethical, field-proven solutions that protect people and strengthen preparedness.</p>
-                
-                <div class="badges-container">
-                    <div class="badge service-card" id="veteran-owned">
-                        <div class="badge-content centered-badge">
-                            <div class="badge-icon"><i class="fas fa-medal"></i></div>
-                            <span class="badge-title">Veteran-Owned</span>
-                            <div class="expanded-content">
-                                <h4>Credentials That Back the Mission</h4>
-                                <ul class="credentials-list">
-                                    <li>ICS 100, 200, 700, 800, 2200 certified</li>
-                                    <li>CPR / First Aid trained</li>
-                                    <li>Crowd Management compliant (Fire Marshal standards)</li>
-                                    <li>State-licensed instructor (Modified State Courses: CA, MD, AZ)</li>
-                                    <li>U.S. Army Veterans – Cavalry Scout & All-source Intelligence Analyst (ABN RSTA)</li>
-                                    <li>Federal Wildland Firefighting – Hotshot, Helitack, Engine</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="badge service-card" id="compliant-tactical-proven">
-                        <div class="badge-content centered-badge">
-                            <div class="badge-icon"><i class="fas fa-check-circle"></i></div>
-                            <span class="badge-title">Compliant. Tactical. Proven.</span>
-                            <div class="expanded-content">
-                                <h4>Our Operational Standards</h4>
-                                <ul class="credentials-list">
-                                    <li>OSHA Compliant Safety Protocols</li>
-                                    <li>Tactical Response Training for High-Risk Scenarios</li>
-                                    <li>Proven Track Record in Event Security</li>
-                                    <li>Risk Management Certified</li>
-                                    <li>Documentation Standards for Legal Compliance</li>
-                                    <li>Third-Party Liability Coverage</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+
+    </main>
 
         <section class="cta">
             <div class="container">
                 <div class="cta-box">
+                    <div class="cta-nav-links">
+                        <a href="index.html" class="active">Home</a>
+                        <a href="about.html">About Us</a>
+                    </div>
                     <h3>Now accepting clients nationwide</h3>
                     <p>For Q4 and early 2026</p>
                     <a href="mailto:contact@evenfalladvantage.com" class="cta-button">Contact Us</a>
                 </div>
             </div>
         </section>
-    </main>
 
     <footer>
         <div class="container">
@@ -249,6 +165,6 @@
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    <script src="js/script.js"></script>
 </body>
 </html>

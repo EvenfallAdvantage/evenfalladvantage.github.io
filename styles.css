@@ -72,7 +72,7 @@ img {
 .site-header {
     background: var(--primary);
     color: white;
-    padding: 1rem 0;
+    padding: 0;
     position: relative;
     overflow: hidden;
 }
@@ -104,9 +104,9 @@ img {
 .site-logo {
     width: auto;
     height: auto;
-    min-width: 260px;
+    min-width: 286px;
     max-width: 100%;
-    max-height: 140px;
+    max-height: 154px;
     display: block;
     border-radius: 12px;
     filter: blur(0.6px);
@@ -120,8 +120,8 @@ img {
     }
     
     .site-logo {
-        min-width: 200px;
-        max-height: 110px;
+        min-width: 220px;
+        max-height: 121px;
         margin: 0 auto;
     }
     
@@ -132,6 +132,28 @@ img {
     .header-content {
         align-items: center;
         text-align: center;
+    }
+    
+    .header-tagline {
+        text-align: center;
+    }
+    
+    .nav-container, .cta .nav-container {
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .nav-links, .cta-nav-links, .header-nav-links {
+        display: flex;
+        flex-direction: row;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 2rem;
+        margin-top: 1rem;
+        margin-bottom: 1.5rem;
+        width: 100% !important;
+        text-align: center !important;
     }
     
     .header-badge {
@@ -160,6 +182,50 @@ img {
     font-weight: 400;
     opacity: 0.9;
     margin: 0;
+    text-align: right;
+}
+
+.nav-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2rem;
+    margin-bottom: 1rem;
+}
+
+.nav-links a:not(.header-badge) {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.6rem;
+    transition: color 0.3s ease;
+    position: relative;
+}
+
+.nav-links a:not(.header-badge):hover {
+    color: var(--secondary);
+}
+
+.nav-links a.active {
+    color: var(--secondary);
+}
+
+.nav-links a.active:after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: var(--secondary);
+    left: 0;
+    bottom: -5px;
 }
 
 .header-badge {
@@ -174,17 +240,17 @@ img {
     letter-spacing: 1px;
     box-shadow: var(--shadow);
     animation: pulse 2s infinite;
-    margin-bottom: 1rem;
+    margin-bottom: 1.2rem;
     text-decoration: none;
     display: inline-block;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.header-badge:hover, .header-badge:focus {
+.header-badge:hover, .header-badge:focus, .header-badge.active {
     transform: translateY(-2px);
     box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
-    color: white;
+    color: white !important;
 }
 
 @keyframes pulse {
@@ -228,6 +294,42 @@ section:nth-child(even) {
     font-weight: 600;
 }
 
+/* Service Card Buttons */
+.estimate-button {
+    display: inline-block;
+    background-color: var(--secondary);
+    color: white;
+    padding: 0.8rem 2rem;
+    border-radius: 3rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    font-size: 1.4rem;
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    margin-top: 2rem;
+    margin-bottom: 10px;
+    animation: pulse 2s infinite;
+    position: relative;
+    z-index: 1;
+}
+
+.estimate-button:hover {
+    background-color: #e74c3c;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+}
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1.5rem;
+    padding-bottom: 15px;
+}
+
 /* Services Section */
 .services h3 {
     text-align: center;
@@ -264,8 +366,6 @@ section:nth-child(even) {
 .service-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
-    border: 2px solid #e74c3c;
-    border-radius: calc(var(--border-radius) - 2px);
     animation: border-pulse 2s infinite;
 }
 
@@ -427,8 +527,6 @@ section:nth-child(even) {
 .badge.service-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
-    border: 2px solid #e74c3c;
-    border-radius: calc(var(--border-radius) - 2px);
     animation: border-pulse 2s infinite;
 }
 
@@ -596,14 +694,11 @@ section:nth-child(even) {
 .division-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
-    border: 2px solid #e74c3c;
-    border-radius: calc(var(--border-radius) - 2px);
     animation: border-pulse 2s infinite;
 }
 
 #pathfinder:hover, #vanguard:hover {
     box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
-    border: 2px solid var(--secondary);
     animation: border-pulse 2s infinite;
 }
 
@@ -980,19 +1075,54 @@ section:nth-child(even) {
 
 .cta-box {
     text-align: center;
-    padding: 3rem;
+    padding: 0 3rem 0.6rem;
+}
+
+.cta-nav-links {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    padding-top: 0.5rem;
+}
+
+.cta-nav-links a {
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.6rem;
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+.cta-nav-links a:hover {
+    color: var(--secondary);
+}
+
+.cta-nav-links a.active {
+    color: var(--secondary);
+}
+
+.cta-nav-links a.active:after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: var(--secondary);
+    left: 0;
+    bottom: -5px;
 }
 
 .cta h3 {
     font-size: 2.4rem;
     margin-bottom: 0.5rem;
-    color: #253646;
+    color: white;
 }
 
 .cta p {
     font-size: 1.8rem;
-    margin-bottom: 2.5rem;
-    color: #253646;
+    margin-bottom: 1.5rem;
+    color: white;
 }
 
 .cta-button {
@@ -1008,6 +1138,7 @@ section:nth-child(even) {
     font-size: 1.6rem;
     box-shadow: var(--shadow);
     animation: pulse 2s infinite;
+    margin-bottom: 0;
 }
 
 .cta-button:hover {
