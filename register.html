@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Evenfall Advantage - Security, Training & Emergency Consulting">
+    <title>Create Account | Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-flex-container">
+                <div class="logo-container">
+                    <img src="images/logo.png" alt="Evenfall Advantage Logo" class="site-logo">
+                </div>
+                <div class="header-content">
+                    <h2 class="header-tagline">Security, Training & Emergency Consulting</h2>
+                    <div class="nav-container">
+                        <a href="mailto:contact@evenfalladvantage.com" class="header-badge">COMING SOON!</a>
+                        <div class="nav-links header-nav-links">
+                            <a href="index.html">Home</a>
+                            <a href="about.html">About Us</a>
+                            <a href="login.html">Log In</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="register-section">
+            <div class="container">
+                <h2>Create Your Client Account</h2>
+                <p class="register-intro">Join Evenfall Advantage's client portal to manage your security and consulting services.</p>
+                
+                <div class="register-container">
+                    <div class="registration-process">
+                        <div class="process-step active">
+                            <div class="step-number">1</div>
+                            <div class="step-info">
+                                <h4>Account Details</h4>
+                                <p>Create your login credentials</p>
+                            </div>
+                        </div>
+                        <div class="process-step">
+                            <div class="step-number">2</div>
+                            <div class="step-info">
+                                <h4>Company Information</h4>
+                                <p>Tell us about your organization</p>
+                            </div>
+                        </div>
+                        <div class="process-step">
+                            <div class="step-number">3</div>
+                            <div class="step-info">
+                                <h4>Verification</h4>
+                                <p>Confirm your information</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="register-form-container">
+                        <!-- Step 1: Account Details -->
+                        <form id="step1" class="register-form active-step">
+                            <h3>Account Details</h3>
+                            <div class="form-group">
+                                <label for="email">Email Address*</label>
+                                <input type="email" id="email" name="email" required>
+                                <small>This will be your username for logging in</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="password">Password*</label>
+                                <input type="password" id="password" name="password" required>
+                                <small>Must be at least 8 characters with a number and special character</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="confirm-password">Confirm Password*</label>
+                                <input type="password" id="confirm-password" name="confirm-password" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="first-name">First Name*</label>
+                                <input type="text" id="first-name" name="first-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="last-name">Last Name*</label>
+                                <input type="text" id="last-name" name="last-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone Number*</label>
+                                <input type="tel" id="phone" name="phone" required>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="next-button" data-next="step2">Continue</button>
+                            </div>
+                        </form>
+
+                        <!-- Step 2: Company Information -->
+                        <form id="step2" class="register-form">
+                            <h3>Company Information</h3>
+                            <div class="form-group">
+                                <label for="company-name">Company/Organization Name*</label>
+                                <input type="text" id="company-name" name="company-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="job-title">Your Job Title*</label>
+                                <input type="text" id="job-title" name="job-title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="company-size">Organization Size</label>
+                                <select id="company-size" name="company-size">
+                                    <option value="">Select size</option>
+                                    <option value="1-10">1-10 employees</option>
+                                    <option value="11-50">11-50 employees</option>
+                                    <option value="51-200">51-200 employees</option>
+                                    <option value="201-500">201-500 employees</option>
+                                    <option value="500+">500+ employees</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="industry">Industry*</label>
+                                <select id="industry" name="industry" required>
+                                    <option value="">Select industry</option>
+                                    <option value="education">Education</option>
+                                    <option value="healthcare">Healthcare</option>
+                                    <option value="finance">Finance & Banking</option>
+                                    <option value="retail">Retail</option>
+                                    <option value="manufacturing">Manufacturing</option>
+                                    <option value="technology">Technology</option>
+                                    <option value="government">Government</option>
+                                    <option value="non-profit">Non-Profit</option>
+                                    <option value="events">Events & Entertainment</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="address">Address*</label>
+                                <input type="text" id="address" name="address" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label for="city">City*</label>
+                                    <input type="text" id="city" name="city" required>
+                                </div>
+                                <div class="form-group quarter">
+                                    <label for="state">State*</label>
+                                    <input type="text" id="state" name="state" required>
+                                </div>
+                                <div class="form-group quarter">
+                                    <label for="zip">ZIP Code*</label>
+                                    <input type="text" id="zip" name="zip" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Services Interested In (select all that apply)</label>
+                                <div class="checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="services" value="security-consulting">
+                                        Security Consulting
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="services" value="training">
+                                        Training & Certification
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="services" value="festival-safety">
+                                        Festival & Venue Safety
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="services" value="emergency-planning">
+                                        Emergency Response Planning
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="back-button" data-back="step1">Back</button>
+                                <button type="button" class="next-button" data-next="step3">Continue</button>
+                            </div>
+                        </form>
+
+                        <!-- Step 3: Verification -->
+                        <form id="step3" class="register-form">
+                            <h3>Verify Your Information</h3>
+                            <div class="verification-notice">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Please review your information before submitting. Once submitted, your account request will be reviewed by our team.</p>
+                            </div>
+
+                            <div class="verification-section">
+                                <h4>Account Information</h4>
+                                <div class="verification-data">
+                                    <div class="data-row">
+                                        <div class="data-label">Email:</div>
+                                        <div class="data-value" id="verify-email"></div>
+                                    </div>
+                                    <div class="data-row">
+                                        <div class="data-label">Name:</div>
+                                        <div class="data-value" id="verify-name"></div>
+                                    </div>
+                                    <div class="data-row">
+                                        <div class="data-label">Phone:</div>
+                                        <div class="data-value" id="verify-phone"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="verification-section">
+                                <h4>Company Information</h4>
+                                <div class="verification-data">
+                                    <div class="data-row">
+                                        <div class="data-label">Company:</div>
+                                        <div class="data-value" id="verify-company"></div>
+                                    </div>
+                                    <div class="data-row">
+                                        <div class="data-label">Job Title:</div>
+                                        <div class="data-value" id="verify-job"></div>
+                                    </div>
+                                    <div class="data-row">
+                                        <div class="data-label">Industry:</div>
+                                        <div class="data-value" id="verify-industry"></div>
+                                    </div>
+                                    <div class="data-row">
+                                        <div class="data-label">Address:</div>
+                                        <div class="data-value" id="verify-address"></div>
+                                    </div>
+                                    <div class="data-row">
+                                        <div class="data-label">Services:</div>
+                                        <div class="data-value" id="verify-services"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group terms">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="terms" required>
+                                    I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="privacy-link">Privacy Policy</a>
+                                </label>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="captcha-container">
+                                    <div class="captcha-placeholder">
+                                        [CAPTCHA verification would be here]
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="back-button" data-back="step2">Back</button>
+                                <button type="submit" class="submit-button">Submit Registration</button>
+                            </div>
+                        </form>
+
+                        <div id="success-message" class="register-success">
+                            <div class="success-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h3>Registration Submitted Successfully!</h3>
+                            <p>Thank you for registering with Evenfall Advantage. Our team will review your account request and contact you within 1-2 business days to activate your account.</p>
+                            <p>An email confirmation has been sent to your inbox.</p>
+                            <a href="login.html" class="return-login">Return to Login</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="login-redirect">
+                    <p>Already have an account? <a href="login.html">Log in here</a></p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <section class="cta">
+        <div class="container">
+            <div class="cta-box">
+                <div class="cta-nav-links">
+                    <a href="index.html">Home</a>
+                    <a href="about.html">About Us</a>
+                    <a href="login.html">Log In</a>
+                </div>
+                <h3>Now accepting clients nationwide</h3>
+                <p>For Q4 and early 2026</p>
+                <a href="mailto:contact@evenfalladvantage.com" class="cta-button">Contact Us</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="social-icons">
+                <a href="#" class="social-icon"><i class="fab fa-linkedin"></i></a>
+                <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+            </div>
+            <p class="copyright">&copy; 2025 Evenfall Advantage LLC. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/register.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Registration form steps navigation
+            const nextButtons = document.querySelectorAll('.next-button');
+            const backButtons = document.querySelectorAll('.back-button');
+            const forms = document.querySelectorAll('.register-form');
+            const processSteps = document.querySelectorAll('.process-step');
+            const submitButton = document.querySelector('.submit-button');
+            
+            // Next button functionality
+            nextButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const currentForm = this.closest('.register-form');
+                    const nextStepId = this.getAttribute('data-next');
+                    const nextStep = document.getElementById(nextStepId);
+                    const currentStepNumber = parseInt(currentForm.id.replace('step', ''));
+                    const nextStepNumber = parseInt(nextStepId.replace('step', ''));
+                    
+                    // Simple validation (could be enhanced)
+                    const requiredFields = currentForm.querySelectorAll('[required]');
+                    let isValid = true;
+                    
+                    requiredFields.forEach(field => {
+                        if (!field.value.trim()) {
+                            isValid = false;
+                            field.classList.add('error');
+                        } else {
+                            field.classList.remove('error');
+                        }
+                    });
+                    
+                    if (!isValid) {
+                        alert('Please fill in all required fields.');
+                        return;
+                    }
+                    
+                    // Update process steps indicator
+                    processSteps.forEach((step, index) => {
+                        if (index + 1 === nextStepNumber) {
+                            step.classList.add('active');
+                        }
+                    });
+                    
+                    // If moving to verification step, populate the summary
+                    if (nextStepId === 'step3') {
+                        document.getElementById('verify-email').textContent = document.getElementById('email').value;
+                        document.getElementById('verify-name').textContent = 
+                            document.getElementById('first-name').value + ' ' + 
+                            document.getElementById('last-name').value;
+                        document.getElementById('verify-phone').textContent = document.getElementById('phone').value;
+                        document.getElementById('verify-company').textContent = document.getElementById('company-name').value;
+                        document.getElementById('verify-job').textContent = document.getElementById('job-title').value;
+                        
+                        const industrySelect = document.getElementById('industry');
+                        document.getElementById('verify-industry').textContent = 
+                            industrySelect.options[industrySelect.selectedIndex].text;
+                            
+                        document.getElementById('verify-address').textContent = 
+                            document.getElementById('address').value + ', ' +
+                            document.getElementById('city').value + ', ' +
+                            document.getElementById('state').value + ' ' +
+                            document.getElementById('zip').value;
+                            
+                        const selectedServices = [];
+                        document.querySelectorAll('input[name="services"]:checked').forEach(checkbox => {
+                            selectedServices.push(checkbox.parentNode.textContent.trim());
+                        });
+                        document.getElementById('verify-services').textContent = 
+                            selectedServices.length > 0 ? selectedServices.join(', ') : 'None selected';
+                    }
+                    
+                    // Hide current form, show next form
+                    currentForm.classList.remove('active-step');
+                    nextStep.classList.add('active-step');
+                });
+            });
+            
+            // Back button functionality
+            backButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const currentForm = this.closest('.register-form');
+                    const prevStepId = this.getAttribute('data-back');
+                    const prevStep = document.getElementById(prevStepId);
+                    const currentStepNumber = parseInt(currentForm.id.replace('step', ''));
+                    
+                    // Update process steps indicator
+                    processSteps.forEach((step, index) => {
+                        if (index + 1 === currentStepNumber) {
+                            step.classList.remove('active');
+                        }
+                    });
+                    
+                    // Hide current form, show previous form
+                    currentForm.classList.remove('active-step');
+                    prevStep.classList.add('active-step');
+                });
+            });
+            
+            // Form submission
+            if (submitButton) {
+                submitButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Check terms acceptance
+                    const termsCheckbox = document.querySelector('input[name="terms"]');
+                    if (!termsCheckbox.checked) {
+                        alert('Please accept the Terms of Service and Privacy Policy.');
+                        return;
+                    }
+                    
+                    // Hide the form and show success message
+                    const currentForm = this.closest('.register-form');
+                    currentForm.classList.remove('active-step');
+                    document.getElementById('success-message').classList.add('active-step');
+                    
+                    // In a real implementation, you would submit the form data to a server here
+                });
+            }
+        });
+    </script>
+</body>
+</html>

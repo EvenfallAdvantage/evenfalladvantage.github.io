@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Evenfall Advantage - Security, Training & Emergency Consulting">
+    <title>Client Login | Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-flex-container">
+                <div class="logo-container">
+                    <img src="images/logo.png" alt="Evenfall Advantage Logo" class="site-logo">
+                </div>
+                <div class="header-content">
+                    <h2 class="header-tagline">Security, Training & Emergency Consulting</h2>
+                    <div class="nav-container">
+                        <a href="mailto:contact@evenfalladvantage.com" class="header-badge">COMING SOON!</a>
+                        <div class="nav-links header-nav-links">
+                            <a href="index.html">Home</a>
+                            <a href="blog.html">Blog</a>
+                            <a href="about.html">About Us</a>
+                            <a href="login.html" class="active">Log In</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="login-section">
+            <div class="container">
+                <h2>Client Portal</h2>
+                <p class="login-intro">Access your contracts, upload documents, and manage your Evenfall Advantage services.</p>
+                
+                <div class="login-container">
+                    <div class="login-box">
+                        <h3>Log In</h3>
+                        <form class="login-form" action="#" method="post">
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                            </div>
+                            <div class="form-group remember-forgot">
+                                <div class="remember-me">
+                                    <input type="checkbox" id="remember" name="remember">
+                                    <label for="remember">Remember me</label>
+                                </div>
+                                <a href="#" class="forgot-password">Forgot password?</a>
+                            </div>
+                            <button type="submit" class="login-button">Log In</button>
+                        </form>
+                        <div class="register-link-container">
+                            <p>Don't have an account? <a href="register.html" class="register-link">Register here</a></p>
+                        </div>
+                    </div>
+                    <div class="login-info">
+                        <h3>Client Dashboard Features</h3>
+                        <ul class="features-list">
+                            <li><i class="fas fa-file-contract"></i> Access your service contracts</li>
+                            <li><i class="fas fa-upload"></i> Upload documents and site maps</li>
+                            <li><i class="fas fa-tasks"></i> Track project milestones</li>
+                            <li><i class="fas fa-comments"></i> Secure messaging with your Evenfall team</li>
+                            <li><i class="fas fa-calendar-alt"></i> Schedule service appointments</li>
+                        </ul>
+                        <p>Don't have an account? <br>Contact your Evenfall Advantage representative for access.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <section class="cta">
+        <div class="container">
+            <div class="cta-box">
+                <div class="cta-nav-links">
+                    <a href="index.html">Home</a>
+                    <a href="about.html">About Us</a>
+                    <a href="login.html" class="active">Log In</a>
+                </div>
+                <h3>Now accepting clients nationwide</h3>
+                <p>For Q4 and early 2026</p>
+                <a href="mailto:contact@evenfalladvantage.com" class="cta-button">Contact Us</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="social-icons">
+                <a href="#" class="social-icon"><i class="fab fa-linkedin"></i></a>
+                <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+            </div>
+            <p class="copyright">&copy; 2025 Evenfall Advantage LLC. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>

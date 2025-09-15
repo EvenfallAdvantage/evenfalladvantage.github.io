@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Evenfall Advantage - Security, Training & Emergency Consulting">
+    <title>Client Dashboard | Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/message-styles.css">
+    <link rel="stylesheet" href="css/dashboard-charts.css">
+    <link rel="stylesheet" href="css/search-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <div class="header-flex-container">
+                <div class="logo-container">
+                    <img src="images/logo.png" alt="Evenfall Advantage Logo" class="site-logo">
+                </div>
+                <div class="header-content">
+                    <h2 class="header-tagline">Security, Training & Emergency Consulting</h2>
+                    <div class="nav-container">
+                        <a href="mailto:contact@evenfalladvantage.com" class="header-badge">COMING SOON!</a>
+                        <div class="nav-links header-nav-links">
+                            <a href="index.html">Home</a>
+                            <a href="about.html">About Us</a>
+                            <a href="dashboard.html" class="active">Dashboard</a>
+                            <a href="#" id="logout-button" class="logout-link"><i class="fas fa-sign-out-alt"></i> Log Out</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="dashboard-section">
+            <div class="container">
+                <div class="dashboard-header">
+                    <h1>Client Dashboard</h1>
+                    <div class="user-info">
+                        <span class="welcome-text">Welcome, <strong>John Doe</strong></span>
+                        <span class="company-name">Acme Corporation</span>
+                    </div>
+                </div>
+
+                <div class="dashboard-tabs">
+                    <button class="tab-button active" data-tab="overview">Overview</button>
+                    <button class="tab-button" data-tab="contracts">Contracts</button>
+                    <button class="tab-button" data-tab="documents">Documents</button>
+                    <button class="tab-button" data-tab="messages">Messages</button>
+                    <button class="tab-button" data-tab="profile">Profile</button>
+                </div>
+
+                <div class="dashboard-content">
+                    <!-- Overview Tab -->
+                    <div class="tab-content active" id="overview">
+                        <div class="dashboard-cards">
+                            <div class="dashboard-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-file-contract"></i>
+                                </div>
+                                <div class="card-content">
+                                    <h3>Active Contracts</h3>
+                                    <p class="card-number">3</p>
+                                    <a href="#" class="card-link">View All</a>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <div class="card-content">
+                                    <h3>Project Milestones</h3>
+                                    <p class="card-number">8</p>
+                                    <a href="#" class="card-link">View All</a>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="card-content">
+                                    <h3>Upcoming Appointments</h3>
+                                    <p class="card-number">2</p>
+                                    <a href="#" class="card-link">View All</a>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-card">
+                                <div class="card-icon">
+                                    <i class="fas fa-comments"></i>
+                                </div>
+                                <div class="card-content">
+                                    <h3>Unread Messages</h3>
+                                    <p class="card-number">5</p>
+                                    <a href="#" class="card-link">View All</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="recent-activity">
+                            <h3>Recent Activity</h3>
+                            <ul class="activity-list">
+                                <li>
+                                    <span class="activity-icon"><i class="fas fa-upload"></i></span>
+                                    <div class="activity-details">
+                                        <p class="activity-title">Site Map Uploaded</p>
+                                        <p class="activity-meta">2 hours ago</p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <span class="activity-icon"><i class="fas fa-comment"></i></span>
+                                    <div class="activity-details">
+                                        <p class="activity-title">New Message from Alex Carter</p>
+                                        <p class="activity-meta">Yesterday at 3:45 PM</p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <span class="activity-icon"><i class="fas fa-file-signature"></i></span>
+                                    <div class="activity-details">
+                                        <p class="activity-title">Contract #EA-2025-089 Signed</p>
+                                        <p class="activity-meta">Sep 10, 2025</p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <span class="activity-icon"><i class="fas fa-calendar-check"></i></span>
+                                    <div class="activity-details">
+                                        <p class="activity-title">Site Assessment Scheduled</p>
+                                        <p class="activity-meta">Sep 8, 2025</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Charts removed for simplicity -->
+
+                        <div class="upcoming-events">
+                            <h3>Upcoming Events</h3>
+                            <div class="event-cards">
+                                <div class="event-card">
+                                    <div class="event-date">
+                                        <span class="event-month">Sep</span>
+                                        <span class="event-day">15</span>
+                                    </div>
+                                    <div class="event-details">
+                                        <h4>Security Assessment</h4>
+                                        <p>10:00 AM - 3:00 PM</p>
+                                        <p>On-site at headquarters</p>
+                                    </div>
+                                </div>
+
+                                <div class="event-card">
+                                    <div class="event-date">
+                                        <span class="event-month">Sep</span>
+                                        <span class="event-day">22</span>
+                                    </div>
+                                    <div class="event-details">
+                                        <h4>Staff Training Session</h4>
+                                        <p>9:00 AM - 12:00 PM</p>
+                                        <p>Virtual Meeting</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contracts Tab -->
+                    <div class="tab-content" id="contracts">
+                        <div class="contracts-header">
+                            <h3>Your Contracts</h3>
+                            <div class="search-bar">
+                                <input type="text" id="contracts-search" placeholder="Search contracts...">
+                            </div>
+                            <div class="contracts-filter">
+                                <select id="contract-status-filter">
+                                    <option value="all">All Statuses</option>
+                                    <option value="active">Active</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                                <select id="contract-type-filter">
+                                    <option value="all">All Services</option>
+                                    <option value="security">Security Consulting</option>
+                                    <option value="training">Staff Training</option>
+                                    <option value="emergency">Emergency Planning</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="contracts-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Contract ID</th>
+                                        <th>Service Type</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>EA-2025-089</td>
+                                        <td>Security Consulting</td>
+                                        <td>Aug 15, 2025</td>
+                                        <td>Nov 15, 2025</td>
+                                        <td><span class="status active">Active</span></td>
+                                        <td>
+                                            <button class="action-button"><i class="fas fa-eye"></i></button>
+                                            <button class="action-button"><i class="fas fa-download"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>EA-2025-076</td>
+                                        <td>Staff Training</td>
+                                        <td>Jul 01, 2025</td>
+                                        <td>Oct 01, 2025</td>
+                                        <td><span class="status active">Active</span></td>
+                                        <td>
+                                            <button class="action-button"><i class="fas fa-eye"></i></button>
+                                            <button class="action-button"><i class="fas fa-download"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>EA-2025-055</td>
+                                        <td>Emergency Response Planning</td>
+                                        <td>Jun 15, 2025</td>
+                                        <td>Sep 15, 2025</td>
+                                        <td><span class="status active">Active</span></td>
+                                        <td>
+                                            <button class="action-button"><i class="fas fa-eye"></i></button>
+                                            <button class="action-button"><i class="fas fa-download"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>EA-2025-032</td>
+                                        <td>Security Consulting</td>
+                                        <td>Mar 10, 2025</td>
+                                        <td>Jun 10, 2025</td>
+                                        <td><span class="status completed">Completed</span></td>
+                                        <td>
+                                            <button class="action-button"><i class="fas fa-eye"></i></button>
+                                            <button class="action-button"><i class="fas fa-download"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Documents Tab -->
+                    <div class="tab-content" id="documents">
+                        <div class="documents-header">
+                            <h3>Your Documents</h3>
+                            <div class="search-bar">
+                                <input type="text" id="documents-search" placeholder="Search documents...">
+                            </div>
+                            <button class="upload-button"><i class="fas fa-upload"></i> Upload Document</button>
+                        </div>
+
+                        <div class="document-categories">
+                            <button class="category-button active" data-category="all">All</button>
+                            <button class="category-button" data-category="site-maps">Site Maps</button>
+                            <button class="category-button" data-category="reports">Reports</button>
+                            <button class="category-button" data-category="certifications">Certifications</button>
+                            <button class="category-button" data-category="contracts">Contracts</button>
+                        </div>
+
+                        <div class="document-upload-area" id="document-upload-area" style="display: none;">
+                            <form class="upload-form">
+                                <div class="upload-dropzone">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Drag and drop files here or <span class="browse-link">browse</span></p>
+                                    <input type="file" id="file-upload" multiple hidden>
+                                </div>
+                                <div class="upload-options">
+                                    <div class="form-group">
+                                        <label for="document-type">Document Type</label>
+                                        <select id="document-type">
+                                            <option value="">Select document type</option>
+                                            <option value="site-map">Site Map</option>
+                                            <option value="floor-plan">Floor Plan</option>
+                                            <option value="report">Report</option>
+                                            <option value="certification">Certification</option>
+                                            <option value="contract">Contract</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="document-description">Description</label>
+                                        <textarea id="document-description" placeholder="Add a brief description"></textarea>
+                                    </div>
+                                    <div class="form-actions">
+                                        <button type="button" class="cancel-upload">Cancel</button>
+                                        <button type="submit" class="submit-upload">Upload</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="documents-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Date Added</th>
+                                        <th>Size</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div class="document-info">
+                                                <span class="document-icon"><i class="fas fa-file-pdf"></i></span>
+                                                <span>Main Office Floor Plan.pdf</span>
+                                            </div>
+                                        </td>
+                                        <td>Site Map</td>
+                                        <td>Sep 11, 2025</td>
+                                        <td>4.2 MB</td>
+                                        <td>
+                                            <button class="action-button"><i class="fas fa-eye"></i></button>
+                                            <button class="action-button"><i class="fas fa-download"></i></button>
+                                            <button class="action-button delete"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="document-info">
+                                                <span class="document-icon"><i class="fas fa-file-image"></i></span>
+                                                <span>Security Camera Placement.jpg</span>
+                                            </div>
+                                        </td>
+                                        <td>Site Map</td>
+                                        <td>Sep 9, 2025</td>
+                                        <td>2.8 MB</td>
+                                        <td>
+                                            <button class="action-button"><i class="fas fa-eye"></i></button>
+                                            <button class="action-button"><i class="fas fa-download"></i></button>
+                                            <button class="action-button delete"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="document-info">
+                                                <span class="document-icon"><i class="fas fa-file-word"></i></span>
+                                                <span>Security Assessment Report.docx</span>
+                                            </div>
+                                        </td>
+                                        <td>Report</td>
+                                        <td>Aug 28, 2025</td>
+                                        <td>1.5 MB</td>
+                                        <td>
+                                            <button class="action-button"><i class="fas fa-eye"></i></button>
+                                            <button class="action-button"><i class="fas fa-download"></i></button>
+                                            <button class="action-button delete"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <div class="document-info">
+                                                <span class="document-icon"><i class="fas fa-file-pdf"></i></span>
+                                                <span>Staff Training Completion Certificate.pdf</span>
+                                            </div>
+                                        </td>
+                                        <td>Certification</td>
+                                        <td>Aug 15, 2025</td>
+                                        <td>0.8 MB</td>
+                                        <td>
+                                            <button class="action-button"><i class="fas fa-eye"></i></button>
+                                            <button class="action-button"><i class="fas fa-download"></i></button>
+                                            <button class="action-button delete"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Messages Tab -->
+                    <div class="tab-content" id="messages">
+                        <div class="messages-container">
+                            <div class="messages-sidebar">
+                                <div class="messages-header">
+                                    <h3>Conversations</h3>
+                                    <button class="new-message-button"><i class="fas fa-plus"></i> New</button>
+                                </div>
+                                <div class="messages-search">
+                                    <input type="text" placeholder="Search messages...">
+                                </div>
+                                <div class="message-threads">
+                                    <div class="message-thread active">
+                                        <div class="thread-avatar">
+                                            <img src="https://via.placeholder.com/40" alt="Alex Carter">
+                                        </div>
+                                        <div class="thread-info">
+                                            <div class="thread-name">Alex Carter</div>
+                                            <div class="thread-preview">Site assessment scheduled for...</div>
+                                        </div>
+                                        <div class="thread-meta">
+                                            <div class="thread-time">2h ago</div>
+                                            <div class="thread-unread">3</div>
+                                        </div>
+                                    </div>
+                                    <div class="message-thread">
+                                        <div class="thread-avatar">
+                                            <img src="https://via.placeholder.com/40" alt="Sarah Johnson">
+                                        </div>
+                                        <div class="thread-info">
+                                            <div class="thread-name">Sarah Johnson</div>
+                                            <div class="thread-preview">Thanks for sending those documents</div>
+                                        </div>
+                                        <div class="thread-meta">
+                                            <div class="thread-time">Yesterday</div>
+                                        </div>
+                                    </div>
+                                    <div class="message-thread">
+                                        <div class="thread-avatar">
+                                            <img src="https://via.placeholder.com/40" alt="Michael Smith">
+                                        </div>
+                                        <div class="thread-info">
+                                            <div class="thread-name">Michael Smith</div>
+                                            <div class="thread-preview">I've reviewed the emergency plan...</div>
+                                        </div>
+                                        <div class="thread-meta">
+                                            <div class="thread-time">Sep 9</div>
+                                            <div class="thread-unread">1</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="messages-main">
+                                <div class="conversation-header">
+                                    <div class="conversation-contact">
+                                        <div class="contact-avatar">
+                                            <img src="https://via.placeholder.com/40" alt="Alex Carter">
+                                        </div>
+                                        <div class="contact-info">
+                                            <div class="contact-name">Alex Carter</div>
+                                            <div class="contact-status">Security Consultant • Online</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="conversation-messages">
+                                    <div class="message-date">
+                                        <span>Yesterday, Sep 10</span>
+                                    </div>
+                                    <div class="message received">
+                                        <div class="message-content">
+                                            <p>Hi John, I wanted to confirm the site assessment scheduled for September 22nd. Will the facilities team be available that day?</p>
+                                        </div>
+                                        <div class="message-time">10:32 AM</div>
+                                    </div>
+                                    <div class="message sent">
+                                        <div class="message-content">
+                                            <p>Hi Alex, yes, they'll be available. I've notified the team already.</p>
+                                        </div>
+                                        <div class="message-time">11:15 AM</div>
+                                    </div>
+                                    <div class="message received">
+                                        <div class="message-content">
+                                            <p>Great! Do you also have the updated floor plans for the east wing?</p>
+                                        </div>
+                                        <div class="message-time">11:17 AM</div>
+                                    </div>
+                                    <div class="message-date">
+                                        <span>Today, Sep 11</span>
+                                    </div>
+                                    <div class="message sent">
+                                        <div class="message-content">
+                                            <p>I've just uploaded them to the documents section. You should have access now.</p>
+                                        </div>
+                                        <div class="message-time">9:03 AM</div>
+                                    </div>
+                                    <div class="message received">
+                                        <div class="message-content">
+                                            <p>Perfect, I see them now. I'll review them before our meeting.</p>
+                                        </div>
+                                        <div class="message-time">9:45 AM</div>
+                                    </div>
+                                    <div class="message received">
+                                        <div class="message-content">
+                                            <p>Also, would it be possible to start the assessment at 10:30 AM instead of 10:00 AM? One of our team members has a conflict.</p>
+                                        </div>
+                                        <div class="message-time">9:46 AM</div>
+                                    </div>
+                                </div>
+                                <div class="conversation-input">
+                                    <textarea placeholder="Type your message..."></textarea>
+                                    <div class="input-actions">
+                                        <button class="input-action"><i class="fas fa-paperclip"></i></button>
+                                        <button class="send-message"><i class="fas fa-paper-plane"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Tab -->
+                    <div class="tab-content" id="profile">
+                        <div class="profile-section">
+                            <h3>Profile Information</h3>
+                            <div class="profile-container">
+                                <div class="profile-sidebar">
+                                    <div class="profile-avatar">
+                                        <img src="https://via.placeholder.com/150" alt="John Doe">
+                                        <button class="change-avatar"><i class="fas fa-camera"></i></button>
+                                    </div>
+                                    <div class="profile-info">
+                                        <h4>John Doe</h4>
+                                        <p>Acme Corporation</p>
+                                        <p class="profile-role">Client</p>
+                                    </div>
+                                </div>
+                                <div class="profile-main">
+                                    <form class="profile-form">
+                                        <div class="form-section">
+                                            <h4>Personal Information</h4>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="first-name">First Name</label>
+                                                    <input type="text" id="first-name" value="John">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="last-name">Last Name</label>
+                                                    <input type="text" id="last-name" value="Doe">
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="email">Email</label>
+                                                    <input type="email" id="email" value="john.doe@acmecorp.com">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="phone">Phone</label>
+                                                    <input type="tel" id="phone" value="(555) 123-4567">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-section">
+                                            <h4>Company Information</h4>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="company">Company Name</label>
+                                                    <input type="text" id="company" value="Acme Corporation">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="job-title">Job Title</label>
+                                                    <input type="text" id="job-title" value="Security Director">
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group full-width">
+                                                    <label for="address">Address</label>
+                                                    <input type="text" id="address" value="123 Corporate Drive, Suite 500">
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="city">City</label>
+                                                    <input type="text" id="city" value="Chicago">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="state">State</label>
+                                                    <input type="text" id="state" value="IL">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="zip">ZIP Code</label>
+                                                    <input type="text" id="zip" value="60601">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-section">
+                                            <h4>Password</h4>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="current-password">Current Password</label>
+                                                    <input type="password" id="current-password" placeholder="••••••••">
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="new-password">New Password</label>
+                                                    <input type="password" id="new-password" placeholder="••••••••">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="confirm-password">Confirm Password</label>
+                                                    <input type="password" id="confirm-password" placeholder="••••••••">
+                                                </div>
+                                            </div>
+                                            <button type="button" id="change-password" class="save-button">Change Password</button>
+                                        </div>
+
+                                        <div class="form-actions">
+                                            <button type="reset" class="reset-button">Cancel</button>
+                                            <button type="submit" class="save-button">Save Changes</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="social-icons">
+                <a href="#" class="social-icon"><i class="fab fa-linkedin"></i></a>
+                <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+            </div>
+            <p class="copyright">&copy; 2025 Evenfall Advantage LLC. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/script.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/dashboard-filters.js"></script>
+    <script src="js/profile-manager.js"></script>
+    <script src="js/dashboard-charts.js"></script>
+    <script src="js/table-search.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Direct logout button handler
+            const logoutButton = document.getElementById('logout-button');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Logout clicked');
+                    localStorage.removeItem('evenfallAdvantageAuth');
+                    window.location.href = 'login.html';
+                });
+            }
+
+            // Document upload functionality
+            const uploadButton = document.querySelector('.upload-button');
+            const uploadArea = document.getElementById('upload-area');
+            const cancelUpload = document.querySelector('.cancel-upload');
+            const browseLink = document.querySelector('.browse-link');
+            const fileInput = document.getElementById('file-upload');
+
+            if (uploadButton && uploadArea && cancelUpload) {
+                uploadButton.addEventListener('click', function() {
+                    uploadArea.style.display = 'block';
+                });
+
+                cancelUpload.addEventListener('click', function() {
+                    uploadArea.style.display = 'none';
+                });
+                
+                if (browseLink && fileInput) {
+                    browseLink.addEventListener('click', function() {
+                        fileInput.click();
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
