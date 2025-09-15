@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Evenfall Advantage - Training & Certification Estimate Request Form">
-    <title>Training Estimate | Evenfall Advantage</title>
+    <meta name="description" content="Evenfall Advantage - Security Consulting Estimate Request Form">
+    <title>Security Consulting Estimate | Evenfall Advantage</title>
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="../css/form-styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,77 +39,43 @@
         <section class="form-section">
             <div class="container">
                 <div class="form-container">
-                    <h1>Training Estimate Request</h1>
-                    <p class="form-intro">Tell us about your training needs, and we'll prepare a tailored program for your team.</p>
+                    <h1>Security Consulting Estimate Request</h1>
+                    <p class="form-intro">Tell us about your security goals, and we'll create a tailored proposal to help you achieve them.</p>
                     
-                    <form id="training-form" class="estimate-form">
+                    <form id="security-consulting-form" class="estimate-form">
                         <div class="form-group-container">
-                            <h2>Training Needs</h2>
-                            <div class="form-group checkbox-group">
-                                <p class="group-label">Which trainings are you interested in?</p>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="security-licensing" name="training-type" value="Security Licensing">
-                                    <label for="security-licensing">Security Licensing</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="ics-nims" name="training-type" value="ICS/NIMS">
-                                    <label for="ics-nims">ICS/NIMS</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="stop-the-bleed" name="training-type" value="STOP THE BLEED®">
-                                    <label for="stop-the-bleed">STOP THE BLEED®</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="other-training" name="training-type" value="Other">
-                                    <label for="other-training">Other</label>
-                                </div>
+                            <h2>Project Info</h2>
+                            <div class="form-group">
+                                <label for="facility-type">Facility type (e.g., office, venue, warehouse):</label>
+                                <input type="text" id="facility-type" name="facility-type" required>
                             </div>
                             
                             <div class="form-group">
-                                <label for="other-description">Other (briefly describe):</label>
-                                <input type="text" id="other-description" name="other-description">
+                                <label for="size">Approximate size (sq ft, optional):</label>
+                                <input type="text" id="size" name="size">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="location">City / Site Location (optional):</label>
+                                <input type="text" id="location" name="location">
                             </div>
                         </div>
                         
                         <div class="form-group-container">
-                            <h2>Team Info</h2>
+                            <h2>Security Goals</h2>
                             <div class="form-group">
-                                <label for="participants">Number of participants (approximate):</label>
-                                <input type="text" id="participants" name="participants" required>
-                            </div>
-                            
-                            <div class="form-group radio-group">
-                                <p class="group-label">Preferred delivery:</p>
-                                <div class="radio-item">
-                                    <input type="radio" id="onsite" name="delivery" value="Onsite" checked>
-                                    <label for="onsite">Onsite</label>
-                                </div>
-                                <div class="radio-item">
-                                    <input type="radio" id="virtual" name="delivery" value="Virtual">
-                                    <label for="virtual">Virtual</label>
-                                </div>
-                                <div class="radio-item">
-                                    <input type="radio" id="hybrid" name="delivery" value="Hybrid">
-                                    <label for="hybrid">Hybrid</label>
-                                </div>
+                                <label for="concerns">What concerns or issues are you hoping to solve?</label>
+                                <textarea id="concerns" name="concerns" required></textarea>
                             </div>
                             
                             <div class="form-group">
-                                <label for="experience">General experience level (optional):</label>
-                                <input type="text" id="experience" name="experience">
-                            </div>
-                        </div>
-                        
-                        <div class="form-group-container">
-                            <h2>Schedule</h2>
-                            <div class="form-group">
-                                <label for="timeframe">Desired timeframe or urgency:</label>
-                                <input type="text" id="timeframe" name="timeframe" required>
+                                <label for="services">Are there particular services you're interested in? (e.g., CPTED, SOP creation, threat review)</label>
+                                <textarea id="services" name="services"></textarea>
                             </div>
                             
                             <div class="form-group">
-                                <label for="training-location">Location (city or region):</label>
-                                <input type="text" id="training-location" name="training-location" required>
+                                <label for="timeline">Preferred start date or general timeframe?</label>
+                                <input type="text" id="timeline" name="timeline">
                             </div>
                         </div>
                         
@@ -128,6 +94,11 @@
                             <div class="form-group">
                                 <label for="phone">Phone (optional):</label>
                                 <input type="tel" id="phone" name="phone">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="best-time">Best time to reach you (optional):</label>
+                                <input type="text" id="best-time" name="best-time">
                             </div>
                         </div>
                         
