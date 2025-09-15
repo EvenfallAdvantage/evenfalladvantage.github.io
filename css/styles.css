@@ -1324,7 +1324,7 @@ section:nth-child(even) {
 
 /* Footer */
 footer {
-    background-color: var(--dark);
+    background-color: var(--primary);
     color: white;
     padding: 4rem 0;
     text-align: center;

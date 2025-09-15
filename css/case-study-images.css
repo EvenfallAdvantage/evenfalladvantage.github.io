@@ -29,11 +29,11 @@
 }
 
 .sxsw-image {
-    background-image: url('../images/festival.jpg') !important;
+    background-image: url('../images/sxsw.jpg') !important;
 }
 
 .woodstock-image {
-    background-image: url('../images/consulting.jpg') !important;
+    background-image: url('../images/woodstock_99.jpg') !important;
 }
 
 /* When we have actual event-specific images, we can update the URLs above */
