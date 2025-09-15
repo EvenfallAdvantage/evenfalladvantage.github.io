@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Evenfall Advantage - Festival & Venue Safety Estimate Request Form">
-    <title>Festival & Venue Estimate | Evenfall Advantage</title>
+    <meta name="description" content="Evenfall Advantage - Festival & Venue Safety Request Form">
+    <title>Festival & Venue Safety Request | Evenfall Advantage</title>
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="../css/form-styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,159 +13,234 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <header class="site-header">
-        <div class="container">
-            <div class="header-flex-container">
-                <div class="logo-container">
-                    <img src="../images/logo.png" alt="Evenfall Advantage Logo" class="site-logo">
-                </div>
-                <div class="header-content">
-                    <h2 class="header-tagline">Security, Training & Emergency Consulting</h2>
-                    <div class="nav-container">
-                        <a href="mailto:contact@evenfalladvantage.com" class="header-badge">COMING SOON!</a>
-                        <div class="nav-links header-nav-links">
-                            <a href="../index.html">Home</a>
-                            <a href="../blog.html">Blog</a>
-                            <a href="../about.html">About Us</a>
-                            <a href="../login.html">Log In</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+    <div id="header-placeholder"></div>
 
     <main>
+        <section class="form-hero">
+            <div class="container">
+                <h1 class="form-title">Festival & Venue Safety Request</h1>
+                <p class="form-subtitle">Create a secure environment for your event or venue</p>
+            </div>
+        </section>
+
         <section class="form-section">
             <div class="container">
                 <div class="form-container">
-                    <h1>Festival & Venue Estimate Request</h1>
-                    <p class="form-intro">Let us help make your event safer and more successful with our expert guidance and planning.</p>
+                    <div class="form-sidebar">
+                        <div class="sidebar-content">
+                            <h3>Our Festival & Venue Services</h3>
+                            <ul class="service-list">
+                                <li><i class="fas fa-users"></i> Crowd Management Planning</li>
+                                <li><i class="fas fa-map-marked-alt"></i> Venue Security Layout</li>
+                                <li><i class="fas fa-hand-holding-medical"></i> Sanctuary Operations</li>
+                                <li><i class="fas fa-medkit"></i> Harm Reduction Protocols</li>
+                                <li><i class="fas fa-id-badge"></i> Staff Training & Certification</li>
+                                <li><i class="fas fa-clipboard-check"></i> Day-of Event Security</li>
+                            </ul>
+                            <div class="sidebar-cta">
+                                <p>Need immediate assistance?</p>
+                                <a href="mailto:contact@evenfalladvantage.com" class="sidebar-button">Contact Us Directly</a>
+                            </div>
+                        </div>
+                    </div>
                     
-                    <form id="festival-venue-form" class="estimate-form">
-                        <div class="form-group-container">
-                            <h2>Event Details</h2>
+                    <div class="form-main">
+                        <form id="venue-safety-form" class="estimate-form">
                             <div class="form-group">
-                                <label for="event-name">Event name or description:</label>
-                                <input type="text" id="event-name" name="event-name" required>
-                            </div>
-                            
-                            <div class="form-group radio-group">
-                                <p class="group-label">Event type:</p>
-                                <div class="radio-item">
-                                    <input type="radio" id="festival" name="event-type" value="Festival" checked>
-                                    <label for="festival">Festival</label>
+                                <h3>Contact Information</h3>
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="full-name">Full Name *</label>
+                                        <input type="text" id="full-name" name="full-name" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="position">Position/Title *</label>
+                                        <input type="text" id="position" name="position" required>
+                                    </div>
                                 </div>
-                                <div class="radio-item">
-                                    <input type="radio" id="show" name="event-type" value="Show">
-                                    <label for="show">Show</label>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="email">Email Address *</label>
+                                        <input type="email" id="email" name="email" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="phone">Phone Number *</label>
+                                        <input type="tel" id="phone" name="phone" required>
+                                    </div>
                                 </div>
-                                <div class="radio-item">
-                                    <input type="radio" id="convention" name="event-type" value="Convention">
-                                    <label for="convention">Convention</label>
+                                
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="company">Company/Organization *</label>
+                                        <input type="text" id="company" name="company" required>
+                                    </div>
                                 </div>
-                                <div class="radio-item">
-                                    <input type="radio" id="other-event" name="event-type" value="Other">
-                                    <label for="other-event">Other</label>
-                                    <input type="text" id="other-event-type" name="other-event-type" placeholder="Please specify" class="inline-input">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="event-location">Location (city or venue name):</label>
-                                <input type="text" id="event-location" name="event-location" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="attendance">Estimated attendance:</label>
-                                <input type="text" id="attendance" name="attendance" required>
                             </div>
                             
                             <div class="form-group">
-                                <label for="event-dates">Date(s) or general schedule:</label>
-                                <input type="text" id="event-dates" name="event-dates" required>
+                                <h3>Event/Venue Details</h3>
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="venue-type">Type of Event/Venue *</label>
+                                        <select id="venue-type" name="venue-type" required>
+                                            <option value="">Select an option</option>
+                                            <option value="music-festival">Music Festival</option>
+                                            <option value="concert">Concert</option>
+                                            <option value="conference">Conference/Convention</option>
+                                            <option value="sports">Sporting Event</option>
+                                            <option value="theater">Theater/Performance Venue</option>
+                                            <option value="nightclub">Nightclub/Bar</option>
+                                            <option value="other">Other (Please specify below)</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="attendance">Expected Attendance *</label>
+                                        <select id="attendance" name="attendance" required>
+                                            <option value="">Select an option</option>
+                                            <option value="under-500">Under 500</option>
+                                            <option value="500-2000">500-2,000</option>
+                                            <option value="2000-5000">2,000-5,000</option>
+                                            <option value="5000-10000">5,000-10,000</option>
+                                            <option value="10000-25000">10,000-25,000</option>
+                                            <option value="25000+">25,000+</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="event-date">Event Date(s) *</label>
+                                        <input type="text" id="event-date" name="event-date" placeholder="e.g., July 15-17, 2026" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="location">Location *</label>
+                                        <input type="text" id="location" name="location" placeholder="City, State" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="venue-description">Venue Description *</label>
+                                        <textarea id="venue-description" name="venue-description" rows="3" placeholder="Brief description of the venue (indoors/outdoors, size, layout, etc.)" required></textarea>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                            
+                            <div class="form-group">
+                                <h3>Security Requirements</h3>
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label>Services Needed (Select all that apply) *</label>
+                                        <div class="checkbox-group">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="services" value="crowd-management"> Crowd Management Planning
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="services" value="security-layout"> Venue Security Layout
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="services" value="sanctuary-ops"> Sanctuary Operations
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="services" value="harm-reduction"> Harm Reduction Protocols
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="services" value="staff-training"> Staff Training & Certification
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="services" value="day-of-security"> Day-of Event Security
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="services" value="other"> Other (Please specify below)
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="security-personnel">Estimated Security Personnel Needs</label>
+                                        <select id="security-personnel" name="security-personnel">
+                                            <option value="">Select an option</option>
+                                            <option value="1-10">1-10 staff</option>
+                                            <option value="11-25">11-25 staff</option>
+                                            <option value="26-50">26-50 staff</option>
+                                            <option value="51-100">51-100 staff</option>
+                                            <option value="100+">100+ staff</option>
+                                            <option value="unsure">Unsure (need consultation)</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="alcohol-served">Will Alcohol Be Served? *</label>
+                                        <select id="alcohol-served" name="alcohol-served" required>
+                                            <option value="">Select an option</option>
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                            <option value="undecided">Undecided</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <h3>Additional Information</h3>
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="specific-concerns">Specific Security Concerns or Special Requirements *</label>
+                                        <textarea id="specific-concerns" name="specific-concerns" rows="5" required></textarea>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="budget">Budget Range (Optional)</label>
+                                        <select id="budget" name="budget">
+                                            <option value="">Select an option</option>
+                                            <option value="under-10k">Under $10,000</option>
+                                            <option value="10k-25k">$10,000 - $25,000</option>
+                                            <option value="25k-50k">$25,000 - $50,000</option>
+                                            <option value="50k-100k">$50,000 - $100,000</option>
+                                            <option value="100k+">$100,000+</option>
+                                            <option value="undetermined">Undetermined</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="timeline">When do you need a proposal by? *</label>
+                                        <select id="timeline" name="timeline" required>
+                                            <option value="">Select an option</option>
+                                            <option value="1-week">Within 1 week</option>
+                                            <option value="2-weeks">Within 2 weeks</option>
+                                            <option value="1-month">Within 1 month</option>
+                                            <option value="3-months">Within 3 months</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="submit-button">Request Estimate</button>
+                            </div>
+                        </form>
                         
-                        <div class="form-group-container">
-                            <h2>What support are you looking for?</h2>
-                            <div class="form-group checkbox-group">
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="crowd-planning" name="support-type" value="Crowd & ingress planning">
-                                    <label for="crowd-planning">Crowd & ingress planning</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="security-overlays" name="support-type" value="Security overlays & site safety">
-                                    <label for="security-overlays">Security overlays & site safety</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="emergency-coordination" name="support-type" value="Emergency response coordination">
-                                    <label for="emergency-coordination">Emergency response coordination</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="harm-reduction" name="support-type" value="Harm reduction & wellness zones">
-                                    <label for="harm-reduction">Harm reduction & wellness zones</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="something-else" name="support-type" value="Something else">
-                                    <label for="something-else">Something else</label>
-                                </div>
+                        <div class="form-success" style="display: none;">
+                            <div class="success-icon">
+                                <i class="fas fa-check-circle"></i>
                             </div>
-                            
-                            <div class="form-group">
-                                <label for="support-description">If "Something else" or additional details:</label>
-                                <textarea id="support-description" name="support-description"></textarea>
-                            </div>
+                            <h3>Request Submitted Successfully!</h3>
+                            <p>Thank you for your interest in Evenfall Advantage's festival and venue safety services. One of our event security specialists will contact you within 24-48 business hours to discuss your needs in detail.</p>
+                            <a href="../index.html" class="return-button">Return to Homepage</a>
                         </div>
-                        
-                        <div class="form-group-container">
-                            <h2>Contact Info</h2>
-                            <div class="form-group">
-                                <label for="name">Name:</label>
-                                <input type="text" id="name" name="name" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="role">Role (e.g., organizer, ops lead):</label>
-                                <input type="text" id="role" name="role" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="email">Email:</label>
-                                <input type="email" id="email" name="email" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="phone">Phone (optional):</label>
-                                <input type="tel" id="phone" name="phone">
-                            </div>
-                        </div>
-                        
-                        <div class="privacy-note">
-                            <p>Evenfall Advantage respects your confidentiality. Information is used solely to prepare your estimate.</p>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="submit-button">Request Estimate</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <footer>
-        <div class="container">
-            <div class="social-icons">
-                <a href="#" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
-                <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
-            </div>
-            <p class="copyright">&copy; 2025 Evenfall Advantage LLC. All rights reserved.</p>
-        </div>
-    </footer>
+    <div id="footer-placeholder"></div>
 
     <script src="../js/script.js"></script>
+    <script src="../js/include-html.js"></script>
     <script src="../js/form-validation.js"></script>
 </body>
 </html>

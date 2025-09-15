@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Evenfall Advantage - Training & Certification Estimate Request Form">
-    <title>Training Estimate | Evenfall Advantage</title>
+    <meta name="description" content="Evenfall Advantage - Training & Certification Request Form">
+    <title>Training & Certification Request | Evenfall Advantage</title>
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="../css/form-styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,149 +13,213 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <header class="site-header">
-        <div class="container">
-            <div class="header-flex-container">
-                <div class="logo-container">
-                    <img src="../images/logo.png" alt="Evenfall Advantage Logo" class="site-logo">
-                </div>
-                <div class="header-content">
-                    <h2 class="header-tagline">Security, Training & Emergency Consulting</h2>
-                    <div class="nav-container">
-                        <a href="mailto:contact@evenfalladvantage.com" class="header-badge">COMING SOON!</a>
-                        <div class="nav-links header-nav-links">
-                            <a href="../index.html">Home</a>
-                            <a href="../blog.html">Blog</a>
-                            <a href="../about.html">About Us</a>
-                            <a href="../login.html">Log In</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+    <div id="header-placeholder"></div>
 
     <main>
+        <section class="form-hero">
+            <div class="container">
+                <h1 class="form-title">Training & Certification Request</h1>
+                <p class="form-subtitle">Build a professional development program for your team</p>
+            </div>
+        </section>
+
         <section class="form-section">
             <div class="container">
                 <div class="form-container">
-                    <h1>Training Estimate Request</h1>
-                    <p class="form-intro">Tell us about your training needs, and we'll prepare a tailored program for your team.</p>
+                    <div class="form-sidebar">
+                        <div class="sidebar-content">
+                            <h3>Our Training Programs</h3>
+                            <ul class="service-list">
+                                <li><i class="fas fa-id-badge"></i> Security Guard Licensing</li>
+                                <li><i class="fas fa-sitemap"></i> ICS/NIMS Certification</li>
+                                <li><i class="fas fa-heartbeat"></i> STOP THE BLEED® Training</li>
+                                <li><i class="fas fa-building"></i> CPTED Fundamentals</li>
+                                <li><i class="fas fa-users"></i> De-escalation Techniques</li>
+                                <li><i class="fas fa-clipboard-check"></i> Custom Training Solutions</li>
+                            </ul>
+                            <div class="sidebar-cta">
+                                <p>Need immediate assistance?</p>
+                                <a href="mailto:contact@evenfalladvantage.com" class="sidebar-button">Contact Us Directly</a>
+                            </div>
+                        </div>
+                    </div>
                     
-                    <form id="training-form" class="estimate-form">
-                        <div class="form-group-container">
-                            <h2>Training Needs</h2>
-                            <div class="form-group checkbox-group">
-                                <p class="group-label">Which trainings are you interested in?</p>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="security-licensing" name="training-type" value="Security Licensing">
-                                    <label for="security-licensing">Security Licensing</label>
+                    <div class="form-main">
+                        <form id="training-form" class="estimate-form">
+                            <div class="form-group">
+                                <h3>Contact Information</h3>
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="full-name">Full Name *</label>
+                                        <input type="text" id="full-name" name="full-name" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="position">Position/Title *</label>
+                                        <input type="text" id="position" name="position" required>
+                                    </div>
                                 </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="ics-nims" name="training-type" value="ICS/NIMS">
-                                    <label for="ics-nims">ICS/NIMS</label>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="email">Email Address *</label>
+                                        <input type="email" id="email" name="email" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="phone">Phone Number *</label>
+                                        <input type="tel" id="phone" name="phone" required>
+                                    </div>
                                 </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="stop-the-bleed" name="training-type" value="STOP THE BLEED®">
-                                    <label for="stop-the-bleed">STOP THE BLEED®</label>
-                                </div>
-                                <div class="checkbox-item">
-                                    <input type="checkbox" id="other-training" name="training-type" value="Other">
-                                    <label for="other-training">Other</label>
+                                
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="company">Company/Organization *</label>
+                                        <input type="text" id="company" name="company" required>
+                                    </div>
                                 </div>
                             </div>
                             
                             <div class="form-group">
-                                <label for="other-description">Other (briefly describe):</label>
-                                <input type="text" id="other-description" name="other-description">
+                                <h3>Training Requirements</h3>
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label>Type of Training Needed (Select all that apply) *</label>
+                                        <div class="checkbox-group">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="training-type" value="security-licensing"> Security Guard Licensing
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="training-type" value="ics-nims"> ICS/NIMS Certification
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="training-type" value="stop-bleed"> STOP THE BLEED® Training
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="training-type" value="cpted"> CPTED Fundamentals
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="training-type" value="de-escalation"> De-escalation Techniques
+                                            </label>
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" name="training-type" value="custom"> Custom Training Program
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="participants">Number of Participants *</label>
+                                        <select id="participants" name="participants" required>
+                                            <option value="">Select an option</option>
+                                            <option value="1-5">1-5 people</option>
+                                            <option value="6-15">6-15 people</option>
+                                            <option value="16-30">16-30 people</option>
+                                            <option value="31-50">31-50 people</option>
+                                            <option value="50+">50+ people</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="training-location">Preferred Training Location *</label>
+                                        <select id="training-location" name="training-location" required>
+                                            <option value="">Select an option</option>
+                                            <option value="on-site">On-site at our facility</option>
+                                            <option value="evenfall">At Evenfall training center</option>
+                                            <option value="virtual">Virtual training</option>
+                                            <option value="hybrid">Hybrid (both in-person and virtual)</option>
+                                            <option value="undecided">Undecided/Flexible</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="preferred-date">Preferred Training Date</label>
+                                        <input type="date" id="preferred-date" name="preferred-date">
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="training-duration">Preferred Training Duration *</label>
+                                        <select id="training-duration" name="training-duration" required>
+                                            <option value="">Select an option</option>
+                                            <option value="half-day">Half day (4 hours)</option>
+                                            <option value="full-day">Full day (8 hours)</option>
+                                            <option value="two-day">Two days</option>
+                                            <option value="three-day">Three days</option>
+                                            <option value="week">One week</option>
+                                            <option value="custom">Custom duration</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                            
+                            <div class="form-group">
+                                <h3>Additional Information</h3>
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="experience-level">Current Experience Level of Participants</label>
+                                        <select id="experience-level" name="experience-level">
+                                            <option value="">Select an option</option>
+                                            <option value="beginner">Beginner (No prior training)</option>
+                                            <option value="intermediate">Intermediate (Some training/experience)</option>
+                                            <option value="advanced">Advanced (Experienced, seeking refresher)</option>
+                                            <option value="mixed">Mixed levels</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="specific-goals">Specific Training Goals or Requirements *</label>
+                                        <textarea id="specific-goals" name="specific-goals" rows="5" required></textarea>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="budget">Budget Range (Optional)</label>
+                                        <select id="budget" name="budget">
+                                            <option value="">Select an option</option>
+                                            <option value="under-5k">Under $5,000</option>
+                                            <option value="5k-10k">$5,000 - $10,000</option>
+                                            <option value="10k-25k">$10,000 - $25,000</option>
+                                            <option value="25k-plus">$25,000+</option>
+                                            <option value="undetermined">Undetermined</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="certification-required">Certification Required?</label>
+                                        <select id="certification-required" name="certification-required">
+                                            <option value="">Select an option</option>
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                            <option value="unsure">Unsure</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="submit-button">Request Estimate</button>
+                            </div>
+                        </form>
                         
-                        <div class="form-group-container">
-                            <h2>Team Info</h2>
-                            <div class="form-group">
-                                <label for="participants">Number of participants (approximate):</label>
-                                <input type="text" id="participants" name="participants" required>
+                        <div class="form-success" style="display: none;">
+                            <div class="success-icon">
+                                <i class="fas fa-check-circle"></i>
                             </div>
-                            
-                            <div class="form-group radio-group">
-                                <p class="group-label">Preferred delivery:</p>
-                                <div class="radio-item">
-                                    <input type="radio" id="onsite" name="delivery" value="Onsite" checked>
-                                    <label for="onsite">Onsite</label>
-                                </div>
-                                <div class="radio-item">
-                                    <input type="radio" id="virtual" name="delivery" value="Virtual">
-                                    <label for="virtual">Virtual</label>
-                                </div>
-                                <div class="radio-item">
-                                    <input type="radio" id="hybrid" name="delivery" value="Hybrid">
-                                    <label for="hybrid">Hybrid</label>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="experience">General experience level (optional):</label>
-                                <input type="text" id="experience" name="experience">
-                            </div>
+                            <h3>Request Submitted Successfully!</h3>
+                            <p>Thank you for your interest in Evenfall Advantage's training programs. One of our training coordinators will contact you within 24-48 business hours to discuss your requirements and provide a customized quote.</p>
+                            <a href="../index.html" class="return-button">Return to Homepage</a>
                         </div>
-                        
-                        <div class="form-group-container">
-                            <h2>Schedule</h2>
-                            <div class="form-group">
-                                <label for="timeframe">Desired timeframe or urgency:</label>
-                                <input type="text" id="timeframe" name="timeframe" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="training-location">Location (city or region):</label>
-                                <input type="text" id="training-location" name="training-location" required>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group-container">
-                            <h2>Contact Info</h2>
-                            <div class="form-group">
-                                <label for="name">Name:</label>
-                                <input type="text" id="name" name="name" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="email">Email:</label>
-                                <input type="email" id="email" name="email" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="phone">Phone (optional):</label>
-                                <input type="tel" id="phone" name="phone">
-                            </div>
-                        </div>
-                        
-                        <div class="privacy-note">
-                            <p>Evenfall Advantage respects your confidentiality. Information is used solely to prepare your estimate.</p>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button type="submit" class="submit-button">Request Estimate</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <footer>
-        <div class="container">
-            <div class="social-icons">
-                <a href="#" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
-                <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
-                <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
-            </div>
-            <p class="copyright">&copy; 2025 Evenfall Advantage LLC. All rights reserved.</p>
-        </div>
-    </footer>
+    <div id="footer-placeholder"></div>
 
     <script src="../js/script.js"></script>
+    <script src="../js/include-html.js"></script>
     <script src="../js/form-validation.js"></script>
 </body>
 </html>
