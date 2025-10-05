@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Portal | Evenfall Advantage</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="css/student-portal.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>Evenfall Advantage - Student Portal</span>
+            </div>
+            <a href="../login.html" class="nav-logout">
+                <i class="fas fa-sign-out-alt"></i> Exit Portal
+            </a>
+            <div class="nav-links">
+                <a href="#home" class="nav-link active" data-section="home">
+                    <i class="fas fa-home"></i> Home
+                </a>
+                <a href="#training" class="nav-link" data-section="training">
+                    <i class="fas fa-graduation-cap"></i> Training
+                </a>
+                <a href="#sandtable" class="nav-link" data-section="sandtable">
+                    <i class="fas fa-chess-board"></i> Sand Table
+                </a>
+                <a href="#assessment" class="nav-link" data-section="assessment">
+                    <i class="fas fa-clipboard-check"></i> Assessment
+                </a>
+                <a href="#progress" class="nav-link" data-section="progress">
+                    <i class="fas fa-chart-line"></i> Progress
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Home Section -->
+        <section id="home" class="section active">
+            <div class="hero">
+                <h1>Evenfall Advantage Student Portal</h1>
+                <p class="hero-subtitle">Interactive Scenario Planning & Knowledge Assessments</p>
+                <div class="hero-cards">
+                    <div class="hero-card">
+                        <i class="fas fa-book-open"></i>
+                        <h3>Learn</h3>
+                        <p>Essential event security procedures and protocols</p>
+                    </div>
+                    <div class="hero-card">
+                        <i class="fas fa-hands-helping"></i>
+                        <h3>Practice</h3>
+                        <p>Interactive event layout and security planning</p>
+                    </div>
+                    <div class="hero-card">
+                        <i class="fas fa-trophy"></i>
+                        <h3>Assess</h3>
+                        <p>Validate your security guard knowledge</p>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-large" onclick="navigateToSection('training')">
+                    Start Training <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Training Section -->
+        <section id="training" class="section">
+            <div class="section-header">
+                <h2>Training Modules</h2>
+                <p>Select a module to begin your training</p>
+            </div>
+            <div class="training-modules">
+                <!-- Module 1 -->
+                <div class="module-card" data-module="communication-protocols">
+                    <div class="module-icon">
+                        <i class="fas fa-walkie-talkie"></i>
+                    </div>
+                    <h3>Module 1: Security Radio Communications</h3>
+                    <p>Radio procedures, protocols, and professional communication</p>
+                    <div class="module-meta">
+                        <span><i class="fas fa-clock"></i> 90 min</span>
+                        <span><i class="fas fa-signal"></i> Critical</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="startModule('communication-protocols')">Start Module</button>
+                </div>
+                <!-- Module 2 -->
+                <div class="module-card" data-module="stop-the-bleed">
+                    <div class="module-icon">
+                        <i class="fas fa-hand-holding-medical"></i>
+                    </div>
+                    <h3>Module 2: STOP THE BLEED® Emergency Medical Response</h3>
+                    <p>Life-saving hemorrhage control and emergency medical procedures</p>
+                    <div class="module-meta">
+                        <span><i class="fas fa-clock"></i> 120 min</span>
+                        <span><i class="fas fa-signal"></i> Critical</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="startModule('stop-the-bleed')">Start Module</button>
+                </div>
+                <!-- Module 3 -->
+                <div class="module-card" data-module="threat-assessment">
+                    <div class="module-icon">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <h3>Module 3: Threat Assessment & Situational Awareness</h3>
+                    <p>Identifying threats, de-escalation, and maintaining awareness</p>
+                    <div class="module-meta">
+                        <span><i class="fas fa-clock"></i> 90 min</span>
+                        <span><i class="fas fa-signal"></i> Critical</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="startModule('threat-assessment')">Start Module</button>
+                </div>
+                <!-- Module 4 -->
+                <div class="module-card" data-module="ics-100">
+                    <div class="module-icon">
+                        <i class="fas fa-sitemap"></i>
+                    </div>
+                    <h3>Module 4: Introduction to Incident Command System (ICS-100)</h3>
+                    <p>NIMS/ICS fundamentals, command structure, and emergency coordination</p>
+                    <div class="module-meta">
+                        <span><i class="fas fa-clock"></i> 90 min</span>
+                        <span><i class="fas fa-signal"></i> Critical</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="startModule('ics-100')">Start Module</button>
+                </div>
+                <!-- Module 5 -->
+                <div class="module-card" data-module="diverse-population">
+                    <div class="module-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>Module 5: Interacting with Diverse Populations</h3>
+                    <p>Cultural competency, accessibility, and inclusive security practices</p>
+                    <div class="module-meta">
+                        <span><i class="fas fa-clock"></i> 60 min</span>
+                        <span><i class="fas fa-signal"></i> Essential</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="startModule('diverse-population')">Start Module</button>
+                </div>
+                <!-- Module 6 -->
+                <div class="module-card" data-module="crowd-management">
+                    <div class="module-icon">
+                        <i class="fas fa-users-cog"></i>
+                    </div>
+                    <h3>Module 6: Crowd Management & Public Safety</h3>
+                    <p>Crowd control techniques and mass gathering safety</p>
+                    <div class="module-meta">
+                        <span><i class="fas fa-clock"></i> 120 min</span>
+                        <span><i class="fas fa-signal"></i> Critical</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="startModule('crowd-management')">Start Module</button>
+                </div>
+                <!-- Module 7 -->
+                <div class="module-card" data-module="use-of-force">
+                    <div class="module-icon">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                    <h3>Module 7: Legal Aspects & Use of Force</h3>
+                    <p>Legal authority, force continuum, and liability</p>
+                    <div class="module-meta">
+                        <span><i class="fas fa-clock"></i> 90 min</span>
+                        <span><i class="fas fa-signal"></i> Critical</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="startModule('use-of-force')">Start Module</button>
+                </div>
+            </div>
+
+            <!-- Module Content Modal -->
+            <div id="moduleModal" class="modal">
+                <div class="modal-content slideshow-modal">
+                    <div class="modal-header">
+                        <div class="slideshow-header-content">
+                            <h2 id="moduleTitle"></h2>
+                            <div class="slide-progress">
+                                <span id="slideCounter">Slide 1 of 10</span>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar-fill" id="slideProgressBar"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="close-btn" onclick="closeModule()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body slideshow-body" id="moduleContent">
+                        <!-- Dynamic slideshow content loaded here -->
+                    </div>
+                    <div class="modal-footer slideshow-footer">
+                        <button class="btn btn-secondary" onclick="previousSlide()" id="prevSlideBtn">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <div class="slide-dots" id="slideDots"></div>
+                        <button class="btn btn-primary" onclick="nextSlide()" id="nextSlideBtn">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button class="btn btn-primary hidden" onclick="completeModule()" id="completeModuleBtn">
+                            Complete Module <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sand Table Section -->
+        <section id="sandtable" class="section">
+            <div class="section-header">
+                <h2>Interactive Event Planning</h2>
+                <p>Design security layouts and position personnel for various event scenarios</p>
+            </div>
+            
+            <div class="sandtable-container">
+                <!-- Scenario Selector -->
+                <div class="scenario-selector">
+                    <h3>Select Scenario</h3>
+                    <select id="scenarioSelect" onchange="loadScenario(this.value)">
+                        <option value="">Choose a scenario...</option>
+                        <option value="concert-venue">Outdoor Concert Security</option>
+                        <option value="sports-event">Stadium Sports Event</option>
+                        <option value="conference-center">Conference/Convention Security</option>
+                        <option value="festival-grounds">Multi-Day Festival</option>
+                    </select>
+                </div>
+
+                <div class="sandtable-workspace">
+                    <!-- Toolbox -->
+                    <div class="toolbox">
+                        <h3>Security Resources</h3>
+                        <div class="toolbox-category">
+                            <h4>Personnel</h4>
+                            <div class="tool-items" id="personnelTools">
+                                <div class="tool-item" draggable="true" data-type="guard">
+                                    <i class="fas fa-user-shield"></i>
+                                    <span>Security Guard</span>
+                                </div>
+                                <div class="tool-item" draggable="true" data-type="supervisor">
+                                    <i class="fas fa-user-tie"></i>
+                                    <span>Supervisor</span>
+                                </div>
+                                <div class="tool-item" draggable="true" data-type="medic">
+                                    <i class="fas fa-user-md"></i>
+                                    <span>Medical Staff</span>
+                                </div>
+                                <div class="tool-item" draggable="true" data-type="usher">
+                                    <i class="fas fa-user"></i>
+                                    <span>Usher</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="toolbox-category">
+                            <h4>Barriers & Checkpoints</h4>
+                            <div class="tool-items" id="barrierTools">
+                                <div class="tool-item" draggable="true" data-type="barrier">
+                                    <i class="fas fa-road"></i>
+                                    <span>Barrier</span>
+                                </div>
+                                <div class="tool-item" draggable="true" data-type="checkpoint">
+                                    <i class="fas fa-clipboard-check"></i>
+                                    <span>Checkpoint</span>
+                                </div>
+                                <div class="tool-item" draggable="true" data-type="metal-detector">
+                                    <i class="fas fa-magnet"></i>
+                                    <span>Metal Detector</span>
+                                </div>
+                                <div class="tool-item" draggable="true" data-type="gate">
+                                    <i class="fas fa-door-open"></i>
+                                    <span>Entry Gate</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="toolbox-category">
+                            <h4>Equipment & Zones</h4>
+                            <div class="tool-items" id="equipmentTools">
+                                <div class="tool-item" draggable="true" data-type="camera">
+                                    <i class="fas fa-video"></i>
+                                    <span>Camera</span>
+                                </div>
+                                <div class="tool-item" draggable="true" data-type="command-post">
+                                    <i class="fas fa-broadcast-tower"></i>
+                                    <span>Command Post</span>
+                                </div>
+                                <div class="tool-item" draggable="true" data-type="emergency-exit">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span>Emergency Exit</span>
+                                </div>
+                                <div class="tool-item" draggable="true" data-type="first-aid">
+                                    <i class="fas fa-first-aid"></i>
+                                    <span>First Aid Station</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canvas -->
+                    <div class="canvas-area">
+                        <div class="canvas-header">
+                            <h3 id="scenarioTitle">Select a scenario to begin</h3>
+                            <div class="canvas-controls">
+                                <button class="btn btn-small" onclick="clearCanvas()">
+                                    <i class="fas fa-trash"></i> Clear
+                                </button>
+                                <button class="btn btn-small btn-primary" onclick="validateSolution()">
+                                    <i class="fas fa-check"></i> Validate
+                                </button>
+                            </div>
+                        </div>
+                        <div id="canvas" class="canvas">
+                            <div class="canvas-placeholder">
+                                <i class="fas fa-hand-pointer"></i>
+                                <p>Drag security resources to the event layout to create your security plan</p>
+                            </div>
+                        </div>
+                        <div class="scenario-description" id="scenarioDescription">
+                            <!-- Scenario description will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback Panel -->
+                <div id="feedbackPanel" class="feedback-panel hidden">
+                    <div class="feedback-content">
+                        <div class="feedback-icon" id="feedbackIcon"></div>
+                        <h3 id="feedbackTitle"></h3>
+                        <p id="feedbackMessage"></p>
+                        <div id="feedbackDetails"></div>
+                        <button class="btn btn-primary" onclick="closeFeedback()">Continue</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Assessment Section -->
+        <section id="assessment" class="section">
+            <div class="section-header">
+                <h2>Knowledge Assessment</h2>
+                <p>Test your knowledge of event security guard procedures and protocols</p>
+            </div>
+
+            <div class="assessment-container">
+                <div class="assessment-selector">
+                    <h3>Available Assessments</h3>
+                    <div class="assessment-list">
+                        <div class="assessment-item" onclick="startAssessment('communication-protocols')">
+                            <i class="fas fa-walkie-talkie"></i>
+                            <div>
+                                <h4>Module 1: Security Radio Communications</h4>
+                                <p>10 questions • 15 minutes</p>
+                            </div>
+                            <button class="btn btn-small btn-primary">Start</button>
+                        </div>
+                        <div class="assessment-item" onclick="startAssessment('stop-the-bleed')">
+                            <i class="fas fa-hand-holding-medical"></i>
+                            <div>
+                                <h4>Module 2: STOP THE BLEED® Emergency Medical Response</h4>
+                                <p>15 questions • 20 minutes</p>
+                            </div>
+                            <button class="btn btn-small btn-primary">Start</button>
+                        </div>
+                        <div class="assessment-item" onclick="startAssessment('threat-assessment')">
+                            <i class="fas fa-eye"></i>
+                            <div>
+                                <h4>Module 3: Threat Assessment & Situational Awareness</h4>
+                                <p>12 questions • 15 minutes</p>
+                            </div>
+                            <button class="btn btn-small btn-primary">Start</button>
+                        </div>
+                        <div class="assessment-item" onclick="startAssessment('ics-100')">
+                            <i class="fas fa-sitemap"></i>
+                            <div>
+                                <h4>Module 4: Introduction to ICS-100</h4>
+                                <p>12 questions • 15 minutes</p>
+                            </div>
+                            <button class="btn btn-small btn-primary">Start</button>
+                        </div>
+                        <div class="assessment-item" onclick="startAssessment('diverse-population')">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <h4>Module 5: Interacting with Diverse Populations</h4>
+                                <p>12 questions • 15 minutes</p>
+                            </div>
+                            <button class="btn btn-small btn-primary">Start</button>
+                        </div>
+                        <div class="assessment-item" onclick="startAssessment('crowd-management')">
+                            <i class="fas fa-users-cog"></i>
+                            <div>
+                                <h4>Module 6: Crowd Management & Public Safety</h4>
+                                <p>12 questions • 20 minutes</p>
+                            </div>
+                            <button class="btn btn-small btn-primary">Start</button>
+                        </div>
+                        <div class="assessment-item" onclick="startAssessment('use-of-force')">
+                            <i class="fas fa-balance-scale"></i>
+                            <div>
+                                <h4>Module 7: Legal Aspects & Use of Force</h4>
+                                <p>12 questions • 20 minutes</p>
+                            </div>
+                            <button class="btn btn-small btn-primary">Start</button>
+                        </div>
+                        <div class="assessment-item" onclick="startAssessment('comprehensive')">
+                            <i class="fas fa-certificate"></i>
+                            <div>
+                                <h4>Comprehensive Guard Certification</h4>
+                                <p>50 questions • 75 minutes</p>
+                            </div>
+                            <button class="btn btn-small btn-primary">Start</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Assessment Quiz -->
+                <div id="assessmentQuiz" class="assessment-quiz hidden">
+                    <div class="quiz-header">
+                        <h3 id="quizTitle"></h3>
+                        <div class="quiz-meta">
+                            <span id="quizProgress">Question 1 of 10</span>
+                            <span id="quizTimer">15:00</span>
+                        </div>
+                    </div>
+                    <div class="quiz-body">
+                        <div class="question-container" id="questionContainer">
+                            <!-- Questions loaded dynamically -->
+                        </div>
+                    </div>
+                    <div class="quiz-footer">
+                        <button class="btn btn-secondary" onclick="previousQuestion()" id="prevBtn">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button class="btn btn-primary" onclick="nextQuestion()" id="nextBtn">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button class="btn btn-primary hidden" onclick="submitAssessment()" id="submitBtn">
+                            Submit Assessment
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="assessmentResults" class="assessment-results hidden">
+                    <div class="results-header">
+                        <i class="fas fa-trophy"></i>
+                        <h2>Assessment Complete!</h2>
+                    </div>
+                    <div class="results-score">
+                        <div class="score-circle">
+                            <svg width="200" height="200">
+                                <circle cx="100" cy="100" r="90" fill="none" stroke="#e0e0e0" stroke-width="10"/>
+                                <circle id="scoreCircle" cx="100" cy="100" r="90" fill="none" stroke="#4CAF50" 
+                                        stroke-width="10" stroke-dasharray="565.48" stroke-dashoffset="565.48"
+                                        transform="rotate(-90 100 100)"/>
+                            </svg>
+                            <div class="score-text">
+                                <span id="scorePercentage">0%</span>
+                                <span id="scoreLabel">Score</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="results-details">
+                        <div class="result-stat">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="correctAnswers">0</span>
+                            <span>Correct</span>
+                        </div>
+                        <div class="result-stat">
+                            <i class="fas fa-times-circle"></i>
+                            <span id="incorrectAnswers">0</span>
+                            <span>Incorrect</span>
+                        </div>
+                        <div class="result-stat">
+                            <i class="fas fa-clock"></i>
+                            <span id="timeTaken">0:00</span>
+                            <span>Time</span>
+                        </div>
+                    </div>
+                    <div class="results-feedback" id="resultsFeedback">
+                        <!-- Detailed feedback -->
+                    </div>
+                    <div class="results-actions">
+                        <button class="btn btn-secondary" onclick="reviewAnswers()">Review Answers</button>
+                        <button class="btn btn-primary" onclick="closeAssessment()">Continue</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress Section -->
+        <section id="progress" class="section">
+            <div class="section-header">
+                <h2>Your Progress</h2>
+                <p>Track your learning journey</p>
+            </div>
+
+            <div class="progress-dashboard">
+                <div class="progress-stats">
+                    <div class="stat-card">
+                        <i class="fas fa-graduation-cap"></i>
+                        <div class="stat-content">
+                            <h3 id="completedModules">0</h3>
+                            <p>Modules Completed</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-chess-board"></i>
+                        <div class="stat-content">
+                            <h3 id="completedScenarios">0</h3>
+                            <p>Scenarios Completed</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-clipboard-check"></i>
+                        <div class="stat-content">
+                            <h3 id="completedAssessments">0</h3>
+                            <p>Assessments Passed</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-star"></i>
+                        <div class="stat-content">
+                            <h3 id="averageScore">0%</h3>
+                            <p>Average Score</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-details">
+                    <div class="progress-section">
+                        <h3>Module Progress</h3>
+                        <div class="progress-items" id="moduleProgress">
+                            <!-- Dynamic progress bars -->
+                        </div>
+                    </div>
+
+                    <div class="progress-section">
+                        <h3>Assessment History</h3>
+                        <div class="assessment-history" id="assessmentHistory">
+                            <div class="activity-item">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Complete assessments to see your history here</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-section">
+                        <h3>Recent Activity</h3>
+                        <div class="activity-list" id="activityList">
+                            <div class="activity-item">
+                                <i class="fas fa-info-circle"></i>
+                                <p>Complete training modules and assessments to see your progress here</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="progress-section">
+                        <h3>Achievements</h3>
+                        <div class="achievements-grid" id="achievementsGrid">
+                            <div class="achievement-badge locked">
+                                <i class="fas fa-medal"></i>
+                                <span>First Module</span>
+                            </div>
+                            <div class="achievement-badge locked">
+                                <i class="fas fa-trophy"></i>
+                                <span>Perfect Score</span>
+                            </div>
+                            <div class="achievement-badge locked">
+                                <i class="fas fa-fire"></i>
+                                <span>5 Day Streak</span>
+                            </div>
+                            <div class="achievement-badge locked">
+                                <i class="fas fa-crown"></i>
+                                <span>All Modules</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/student-portal.js"></script>
+    <script src="js/slideshow.js"></script>
+    <script src="js/state-laws.js"></script>
+</body>
+</html>
