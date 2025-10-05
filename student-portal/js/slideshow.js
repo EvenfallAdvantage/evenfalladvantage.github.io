@@ -1653,9 +1653,34 @@ function completeModule() {
         saveProgress();
     }
     
-    // Close modal and navigate to sand table
+    // Close modal and navigate to appropriate assessment
     closeModule();
-    navigateToSection('sandtable');
+    
+    // Map modules to their corresponding assessments
+    const moduleToAssessment = {
+        'communication-protocols': 'communication',
+        'stop-the-bleed': 'emergency-response',
+        'threat-assessment': 'threat-assessment',
+        'ics-100': 'emergency-response',
+        'diverse-population': 'crowd-management',
+        'crowd-management': 'crowd-management',
+        'use-of-force': 'access-control'
+    };
+    
+    const assessmentId = moduleToAssessment[currentModuleId];
+    
+    if (assessmentId) {
+        navigateToSection('assessment');
+        // Small delay to ensure section is visible before starting assessment
+        setTimeout(() => {
+            if (typeof startAssessment === 'function') {
+                startAssessment(assessmentId);
+            }
+        }, 100);
+    } else {
+        // Default to assessment section if no specific mapping
+        navigateToSection('assessment');
+    }
 }
 
 function closeModule() {

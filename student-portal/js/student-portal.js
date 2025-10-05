@@ -33,6 +33,7 @@ function loadProgress() {
 function saveProgress() {
     localStorage.setItem('securityTrainingProgress', JSON.stringify(progressData));
     updateProgressDisplay();
+    updateAssessmentAvailability();
 }
 
 // Navigation
@@ -57,17 +58,87 @@ function navigateToSection(sectionId) {
 // Event Listeners for Navigation
 document.addEventListener('DOMContentLoaded', () => {
     loadProgress();
+    updateAssessmentAvailability();
 
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const section = link.dataset.section;
             navigateToSection(section);
+            
+            // Update assessment availability when navigating to assessment section
+            if (section === 'assessment') {
+                updateAssessmentAvailability();
+            }
         });
     });
 
     initializeDragAndDrop();
 });
+
+// Update assessment availability based on completed modules
+function updateAssessmentAvailability() {
+    const assessmentItems = document.querySelectorAll('.assessment-item');
+    
+    assessmentItems.forEach(item => {
+        const requiredModule = item.dataset.requiredModule;
+        const requiresAll = item.dataset.requiredAll === 'true';
+        
+        if (requiresAll) {
+            // Comprehensive assessment requires all modules
+            const allModules = ['communication-protocols', 'stop-the-bleed', 'threat-assessment', 
+                               'ics-100', 'diverse-population', 'crowd-management', 'use-of-force'];
+            const allCompleted = allModules.every(module => 
+                progressData.completedModules.includes(module)
+            );
+            
+            if (allCompleted) {
+                item.classList.remove('locked');
+                item.onclick = () => startAssessment(item.dataset.assessment);
+            } else {
+                item.classList.add('locked');
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    showLockedMessage('Complete all modules to unlock the Comprehensive Certification');
+                };
+            }
+        } else if (requiredModule) {
+            // Individual assessments require their corresponding module
+            if (progressData.completedModules.includes(requiredModule)) {
+                item.classList.remove('locked');
+                item.onclick = () => startAssessment(item.dataset.assessment);
+            } else {
+                item.classList.add('locked');
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    const moduleName = moduleContent[requiredModule]?.title || 'the required module';
+                    showLockedMessage(`Complete ${moduleName} to unlock this assessment`);
+                };
+            }
+        }
+    });
+}
+
+// Show locked message
+function showLockedMessage(message) {
+    // Create a simple alert or notification
+    const notification = document.createElement('div');
+    notification.className = 'locked-notification';
+    notification.innerHTML = `
+        <i class="fas fa-lock"></i>
+        <p>${message}</p>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
 
 // ============= TRAINING MODULES =============
 
