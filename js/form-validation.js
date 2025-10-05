@@ -137,8 +137,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // Get form data
         const formData = new FormData(form);
         const formValues = {};
+        
+        // Handle form data entries, properly collecting multiple values for checkboxes
         for (const [key, value] of formData.entries()) {
-            formValues[key] = value;
+            // If this is a checkbox (we're checking if the same key appears multiple times)
+            if (formValues.hasOwnProperty(key)) {
+                // If it's the first duplicate, convert to array
+                if (!Array.isArray(formValues[key])) {
+                    formValues[key] = [formValues[key]];
+                }
+                // Add the new value to the array
+                formValues[key].push(value);
+            } else {
+                // First time seeing this key
+                formValues[key] = value;
+            }
         }
         
         // Determine which form was submitted to create appropriate subject line
@@ -168,7 +181,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Format the field name for readability
                 const fieldName = key.replace(/-/g, ' ')
                     .replace(/(^|\s)\S/g, function(t) { return t.toUpperCase(); });
-                emailBody += `${fieldName}: ${value}\n`;
+                
+                // Handle arrays (multiple checkbox selections)
+                if (Array.isArray(value)) {
+                    emailBody += `${fieldName}: ${value.join(', ')}\n`;
+                } else {
+                    emailBody += `${fieldName}: ${value}\n`;
+                }
             }
         }
         
