@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Evenfall Advantage - Client Portal Login">
-    <title>Client Login | Evenfall Advantage</title>
+    <meta name="description" content="Evenfall Advantage - Portal Login">
+    <title>Portal Login | Evenfall Advantage</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/form-styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +18,55 @@
     <main>
         <section class="login-section">
             <div class="container">
-                <div class="login-container">
+                <div class="portal-selection-header">
+                    <h1>Welcome to Evenfall Advantage</h1>
+                    <p>Select your portal to continue</p>
+                </div>
+                
+                <div class="portal-cards">
+                    <!-- Student Portal Card -->
+                    <div class="portal-card">
+                        <div class="portal-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <h2>Student Portal</h2>
+                        <p>Access your training modules, assessments, and track your progress</p>
+                        <ul class="portal-features">
+                            <li><i class="fas fa-book-open"></i> Training Modules</li>
+                            <li><i class="fas fa-chess-board"></i> Interactive Sand Table</li>
+                            <li><i class="fas fa-clipboard-check"></i> Assessments</li>
+                            <li><i class="fas fa-chart-line"></i> Progress Tracking</li>
+                        </ul>
+                        <a href="student-portal/index.html" class="portal-button student-button">
+                            Enter Student Portal <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                    
+                    <!-- Client Portal Card -->
+                    <div class="portal-card">
+                        <div class="portal-icon">
+                            <i class="fas fa-briefcase"></i>
+                        </div>
+                        <h2>Client Dashboard</h2>
+                        <p>Manage your security services, documents, and communications</p>
+                        <ul class="portal-features">
+                            <li><i class="fas fa-lock"></i> Security Plans</li>
+                            <li><i class="fas fa-file-alt"></i> Training Materials</li>
+                            <li><i class="fas fa-calendar-check"></i> Certifications</li>
+                            <li><i class="fas fa-comments"></i> Secure Messaging</li>
+                        </ul>
+                        <button class="portal-button client-button" onclick="showClientLogin()">
+                            Enter Client Dashboard <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Client Login Form (Hidden by default) -->
+                <div class="login-container" id="client-login-container" style="display: none;">
+                    <button class="back-button" onclick="hideClientLogin()">
+                        <i class="fas fa-arrow-left"></i> Back to Portal Selection
+                    </button>
+                    
                     <div class="login-form-container">
                         <h2>Client Portal Login</h2>
                         <form class="login-form" id="login-form">
@@ -42,18 +90,8 @@
                             
                             <button type="submit" class="login-button">Log In</button>
                         </form>
-                    </div>
-                    
-                    <div class="login-info">
-                        <h3>Welcome to your secure client portal</h3>
-                        <ul class="features-list">
-                            <li><i class="fas fa-lock"></i> Access your custom security plans</li>
-                            <li><i class="fas fa-file-alt"></i> View and download training materials</li>
-                            <li><i class="fas fa-calendar-check"></i> Track certification expiration dates</li>
-                            <li><i class="fas fa-comments"></i> Secure messaging with your Evenfall team</li>
-                            <li><i class="fas fa-calendar-alt"></i> Schedule service appointments</li>
-                        </ul>
-                        <p>Don't have an account? <br>Contact your Evenfall Advantage representative for access.</p>
+                        
+                        <p class="login-help">Don't have an account? <br>Contact your Evenfall Advantage representative for access.</p>
                     </div>
                 </div>
             </div>
@@ -66,5 +104,18 @@
     <script src="js/include-html.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/login.js"></script>
+    <script>
+        function showClientLogin() {
+            document.querySelector('.portal-selection-header').style.display = 'none';
+            document.querySelector('.portal-cards').style.display = 'none';
+            document.getElementById('client-login-container').style.display = 'block';
+        }
+        
+        function hideClientLogin() {
+            document.querySelector('.portal-selection-header').style.display = 'block';
+            document.querySelector('.portal-cards').style.display = 'grid';
+            document.getElementById('client-login-container').style.display = 'none';
+        }
+    </script>
 </body>
 </html>
