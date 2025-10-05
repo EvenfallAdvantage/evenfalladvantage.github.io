@@ -259,16 +259,16 @@ body {
 }
 
 .btn-secondary {
-    background: var(--accent-color);
+    background: var(--secondary-color);
     color: white;
     font-weight: 600;
     font-family: var(--font-primary);
 }
 
 .btn-secondary:hover {
-    background: #2980b9;
+    background: #e74c3c;
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
 }
 
 .btn-large {
@@ -1001,6 +1001,70 @@ body {
 .assessment-item p {
     color: var(--text-secondary);
     font-size: 0.875rem;
+}
+
+/* Locked Assessment Styles */
+.assessment-item.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+    position: relative;
+}
+
+.assessment-item.locked::after {
+    content: '\f023';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+}
+
+.assessment-item.locked:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.assessment-item.locked .btn {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* Locked Notification */
+.locked-notification {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: var(--primary-color);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 10000;
+    opacity: 0;
+    transform: translateX(400px);
+    transition: all 0.3s ease;
+}
+
+.locked-notification.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.locked-notification i {
+    font-size: 1.5rem;
+    color: var(--secondary-color);
+}
+
+.locked-notification p {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 /* Quiz */
