@@ -346,15 +346,19 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
             
+            console.log('Starting signup process...');
             const result = await Auth.signUp(email, password, firstName, lastName);
+            console.log('Signup result:', result);
             
             if (result.success) {
-                showAlert('Account created! Please check your email to verify your account.', 'success');
+                console.log('Signup successful!', result.data);
+                showAlert('Account created successfully! You can now login.', 'success');
                 setTimeout(() => {
                     switchTab('login');
                     document.getElementById('login-email').value = email;
-                }, 3000);
+                }, 2000);
             } else {
+                console.error('Signup failed:', result.error);
                 showAlert('Signup failed: ' + result.error, 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
