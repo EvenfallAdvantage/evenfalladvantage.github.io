@@ -3850,7 +3850,14 @@ function startAssessment(assessmentId) {
     userAnswers = [];
     assessmentStartTime = Date.now();
 
-    const questions = assessmentQuestions[assessmentId];
+    // Check for state-specific questions (Module 7)
+    let questions = assessmentQuestions[assessmentId];
+    if (window.getStateSpecificQuestions) {
+        const stateQuestions = window.getStateSpecificQuestions(assessmentId);
+        if (stateQuestions) {
+            questions = stateQuestions;
+        }
+    }
     
     // Shuffle answer options for each question
     shuffledQuestions = questions.map(q => {
@@ -3892,7 +3899,18 @@ function startAssessment(assessmentId) {
         'use-of-force': 'Module 7: Legal Aspects & Use of Force Assessment',
         'comprehensive': 'Comprehensive Guard Certification Exam'
     };
-    document.getElementById('quizTitle').textContent = titles[assessmentId];
+    
+    let assessmentTitle = titles[assessmentId];
+    
+    // Add state name for Module 7
+    if (assessmentId === 'use-of-force') {
+        const selectedState = localStorage.getItem('selectedState');
+        if (selectedState && window.stateLaws && window.stateLaws[selectedState]) {
+            assessmentTitle = `Module 7: Legal Aspects & Use of Force Assessment (${window.stateLaws[selectedState].name})`;
+        }
+    }
+    
+    document.getElementById('quizTitle').textContent = assessmentTitle;
 
     // Start timer
     const duration = assessmentId === 'comprehensive' ? 75 : 
