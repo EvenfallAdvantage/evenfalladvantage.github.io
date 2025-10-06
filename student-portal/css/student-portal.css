@@ -68,19 +68,34 @@ body {
 .nav-container {
     max-width: 1400px;
     margin: 0 auto;
+    padding: 1rem 2rem;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .nav-brand {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: center;
+    width: 100%;
+}
+
+.nav-logo {
+    height: 90px;
+    width: auto;
+    object-fit: contain;
+    position: absolute;
+    left: 2rem;
+}
+
+.portal-title {
     font-family: var(--font-primary);
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 3rem;
+    font-weight: 600;
     color: white;
+    white-space: nowrap;
+    text-align: center;
 }
 
 .brand i {
@@ -90,16 +105,21 @@ body {
 
 .nav-links {
     display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
 }
 
 .nav-link {
-    padding: 0.75rem 1.25rem;
+    padding: 0.5rem 0.75rem;
     text-decoration: none;
     color: rgba(255, 255, 255, 0.8);
     border-radius: var(--border-radius);
     transition: var(--transition);
     font-weight: 500;
     font-family: var(--font-primary);
+    font-size: 1.4rem;
 }
 
 .nav-link:hover {
@@ -113,7 +133,7 @@ body {
 }
 
 .nav-logout {
-    padding: 0.75rem 1.5rem;
+    padding: 0.5rem 1rem;
     text-decoration: none;
     color: white;
     background-color: var(--secondary-color);
@@ -124,6 +144,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    font-size: 1.4rem;
 }
 
 .nav-logout:hover {
