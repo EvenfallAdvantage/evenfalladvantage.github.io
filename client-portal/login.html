@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Portal Login | Evenfall Advantage</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .login-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+        }
+
+        .login-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .login-tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .login-tab {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .login-tab.active {
+            color: var(--secondary-color);
+            border-bottom-color: var(--secondary-color);
+        }
+
+        .login-content {
+            padding: 2rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .back-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-link a:hover {
+            color: var(--secondary-color);
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1><i class="fas fa-building"></i> Client Portal</h1>
+            <p>Find qualified security professionals</p>
+        </div>
+
+        <div class="login-tabs">
+            <button class="login-tab active" onclick="switchTab('login')">Login</button>
+            <button class="login-tab" onclick="switchTab('signup')">Sign Up</button>
+        </div>
+
+        <div class="login-content">
+            <div id="alert" class="alert"></div>
+
+            <!-- Login Tab -->
+            <div id="login-content" class="tab-content active">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="login-email">Email Address</label>
+                        <input type="email" id="login-email" required placeholder="your@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required placeholder="Enter your password">
+                    </div>
+                    <button type="submit" class="btn">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+            </div>
+
+            <!-- Signup Tab -->
+            <div id="signup-content" class="tab-content">
+                <form id="signupForm">
+                    <div class="form-group">
+                        <label for="company-name">Company Name</label>
+                        <input type="text" id="company-name" required placeholder="Your Company LLC">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="first-name">First Name</label>
+                            <input type="text" id="first-name" required placeholder="John">
+                        </div>
+                        <div class="form-group">
+                            <label for="last-name">Last Name</label>
+                            <input type="text" id="last-name" required placeholder="Doe">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email">Email Address</label>
+                        <input type="email" id="signup-email" required placeholder="your@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" required placeholder="(555) 123-4567">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" required placeholder="Minimum 8 characters">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm Password</label>
+                        <input type="password" id="confirm-password" required placeholder="Re-enter password">
+                    </div>
+                    <button type="submit" class="btn">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+            </div>
+
+            <div class="back-link">
+                <a href="../login.html"><i class="fas fa-arrow-left"></i> Back to Portal Selection</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/client-auth.js"></script>
+</body>
+</html>
