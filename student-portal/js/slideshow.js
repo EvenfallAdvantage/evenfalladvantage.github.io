@@ -3297,13 +3297,13 @@ function completeModule() {
     
     // Map modules to their corresponding assessments
     const moduleToAssessment = {
-        'communication-protocols': 'communication',
-        'stop-the-bleed': 'emergency-response',
+        'communication-protocols': 'communication-protocols',
+        'stop-the-bleed': 'stop-the-bleed',
         'threat-assessment': 'threat-assessment',
-        'ics-100': 'emergency-response',
-        'diverse-population': 'crowd-management',
+        'ics-100': 'ics-100',
+        'diverse-population': 'diverse-population',
         'crowd-management': 'crowd-management',
-        'use-of-force': 'access-control'
+        'use-of-force': 'use-of-force'
     };
     
     const assessmentId = moduleToAssessment[currentModuleId];
