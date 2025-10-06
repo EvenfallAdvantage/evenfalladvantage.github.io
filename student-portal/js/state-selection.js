@@ -532,17 +532,9 @@ let originalStartModuleFromSlideshow = null;
                 
                 if (moduleId === 'use-of-force') {
                     console.log('Module 7 detected - checking for state selection');
-                    // Check if state is already selected
-                    const savedState = localStorage.getItem('selectedState');
-                    if (savedState && stateLaws[savedState]) {
-                        console.log('Using saved state:', savedState);
-                        // Use saved state
-                        startModuleWithState(moduleId, savedState);
-                    } else {
-                        console.log('No saved state - showing selection modal');
-                        // Show state selection modal
-                        showStateSelectionModal();
-                    }
+                    // Always show state selection modal (user can change their state)
+                    console.log('Showing state selection modal');
+                    showStateSelectionModal();
                 } else {
                     console.log('Other module - calling original function');
                     // Call original function for other modules
