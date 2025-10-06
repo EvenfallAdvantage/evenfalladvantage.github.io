@@ -468,54 +468,349 @@ const moduleSlidesData = {
     ],
     'communication-protocols': [
         {
-            title: 'Communication & Protocols',
+            title: 'Security Radio Communications',
             content: `
-                <h3>Professional Communication</h3>
-                <p>Clear, professional communication is essential for coordinating security operations at events.</p>
+                <h3>Security Radio Communications</h3>
+                <p class="hero-subtitle">Clear, Safe, and Effective Communications in the Field</p>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-walkie-talkie"></i> What You'll Learn</h4>
+                    <h4><i class="fas fa-walkie-talkie"></i> Module Overview</h4>
+                    <p>Radios are the lifeline of event and private security work. This module will teach you how to communicate effectively, professionally, and safely in any security environment.</p>
+                    <p><strong>Duration:</strong> 1.5 Hours | <strong>Slides:</strong> 21</p>
+                </div>
+            `
+        },
+        {
+            title: 'Learning Objectives',
+            content: `
+                <h3>What You'll Learn</h3>
+                <ul>
+                    <li><strong>Proper radio operation and etiquette</strong></li>
+                    <li><strong>Key radio codes and terminology</strong></li>
+                    <li><strong>Real-world call-ins and emergency reports</strong></li>
+                    <li><strong>Chain of command in radio communication</strong></li>
+                    <li><strong>How interpersonal communication influences radio use</strong></li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Discussion Question:</h4>
+                    <p><strong>Who's used radios before? What went wrong or right?</strong></p>
+                    <p>Think about your experiences as we go through this module.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Why Radios Matter in Security',
+            content: `
+                <h3>The Critical Role of Radio Communications</h3>
+                <ul>
+                    <li><strong>Direct link to safety:</strong> Instant communication in emergencies</li>
+                    <li><strong>Enables coordination under stress:</strong> Team synchronization</li>
+                    <li><strong>Supports legal documentation & reporting:</strong> Creates record of events</li>
+                    <li><strong>Speeds up emergency response:</strong> Seconds matter</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Real-World Example</h4>
+                    <p>The Astroworld tragedy showed how lack of clear communications contributed to chaos. When no one's talking effectively, situations deteriorate rapidly.</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Think About It:</h4>
+                    <p><strong>How fast can things go bad when no one's talking?</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Types of Radios',
+            content: `
+                <h3>Radio Equipment Overview</h3>
+                <h4>Radio Types:</h4>
+                <ul>
+                    <li><strong>Analog vs. Digital:</strong> Different technologies, similar operation</li>
+                    <li><strong>Handhelds (HTs) vs. Base Stations:</strong> Portable vs. fixed location</li>
+                </ul>
+                <h4>Best Practices:</h4>
+                <ul>
+                    <li><strong>Battery life & charging:</strong> Always start shift with full charge</li>
+                    <li><strong>Push-to-Talk (PTT) mechanics:</strong> Press, pause, speak, release</li>
+                    <li><strong>Volume control:</strong> Loud enough to hear, not disturbing</li>
+                    <li><strong>Earpiece use:</strong> Maintains professionalism and privacy</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-battery-full"></i> Remember</h4>
+                    <p>Know your radio before it matters. A dead battery or unfamiliar controls can cost lives.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Radio Terminology Basics',
+            content: `
+                <h3>Essential Radio Language</h3>
+                <h4>10-Codes vs. Plain English:</h4>
+                <p>Many agencies use plain English for clarity. Know what your employer prefers.</p>
+                <h4>Key Terms:</h4>
+                <ul>
+                    <li><strong>Copy:</strong> I understand / Message received</li>
+                    <li><strong>Standby:</strong> Wait, I'll get back to you</li>
+                    <li><strong>Go ahead:</strong> Proceed with your transmission</li>
+                    <li><strong>Affirmative:</strong> Yes</li>
+                    <li><strong>Negative:</strong> No</li>
+                    <li><strong>Say again:</strong> Please repeat (NEVER use "repeat")</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Practice Example:</h4>
+                    <p><em>"Dispatch, this is Post 1. Standby for update."</em></p>
+                    <p><em>"Post 1, this is Dispatch. Go ahead."</em></p>
+                </div>
+            `
+        },
+        {
+            title: 'Voice Tone and Clarity',
+            content: `
+                <h3>How You Sound Matters</h3>
+                <h4>Communication Best Practices:</h4>
+                <ul>
+                    <li><strong>Speak slow, clear, and direct</strong></li>
+                    <li><strong>Avoid emotion in voice:</strong> Stay calm and professional</li>
+                    <li><strong>Use short, complete phrases:</strong> No rambling</li>
+                    <li><strong>Don't shout:</strong> Radios amplify your voice</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-microphone"></i> The Pause-Press-Speak Formula</h4>
+                    <ol>
+                        <li><strong>Pause:</strong> Think about what you need to say</li>
+                        <li><strong>Press:</strong> Hold PTT button, wait 1 second</li>
+                        <li><strong>Speak:</strong> Deliver your message clearly</li>
+                    </ol>
+                </div>
+                <p><strong>Confidence, not panic.</strong> Your voice sets the tone for the entire response.</p>
+            `
+        },
+        {
+            title: 'Order of Transmission',
+            content: `
+                <h3>Proper Transmission Protocol</h3>
+                <h4>The Four Steps:</h4>
+                <ol>
+                    <li><strong>Think before keying:</strong> Know what you'll say</li>
+                    <li><strong>Identify self and location:</strong> "Post 3 to Base"</li>
+                    <li><strong>Wait for acknowledgment:</strong> Don't transmit until cleared</li>
+                    <li><strong>Keep it brief, relevant, professional:</strong> No unnecessary details</li>
+                </ol>
+                <div class="slide-interactive">
+                    <h4>Good Example:</h4>
+                    <p><em>"Post 3 to Base."</em></p>
+                    <p><em>"Base, go ahead Post 3."</em></p>
+                    <p><em>"Post 3, requesting relief for 10-7 break."</em></p>
+                    <p><em>"Copy Post 3, relief en route."</em></p>
+                </div>
+            `
+        },
+        {
+            title: 'Sample Script – Normal Check-In',
+            content: `
+                <h3>Routine Radio Check</h3>
+                <p>Regular check-ins maintain communication readiness and confirm all posts are operational.</p>
+                <div class="slide-interactive">
+                    <h4>Standard Check-In Format:</h4>
+                    <p><strong>Guard:</strong> <em>"Post 1 to Base, radio check."</em></p>
+                    <p><strong>Base:</strong> <em>"Base to Post 1, I read you loud and clear."</em></p>
+                    <p><strong>Guard:</strong> <em>"Post 1 to Base, nothing to report at this time."</em></p>
+                    <p><strong>Base:</strong> <em>"Copy Post 1, continue monitoring."</em></p>
+                </div>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-question-circle"></i> Why This Matters</h4>
+                    <p>Regular check-ins during downtime ensure your radio is working and your team knows you're alert. It's not just busy work—it's operational readiness.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Chain of Command Overview',
+            content: `
+                <h3>Understanding Chain of Command</h3>
+                <h4>Who You Report To:</h4>
+                <ol>
+                    <li><strong>Security Guards:</strong> You (front-line)</li>
+                    <li><strong>Team Leader/Supervisor:</strong> Your immediate supervisor</li>
+                    <li><strong>Security Manager:</strong> Overall security operations</li>
+                    <li><strong>Event Manager:</strong> Final authority</li>
+                </ol>
+                <h4>Key Principles:</h4>
+                <ul>
+                    <li><strong>When to escalate:</strong> Issues beyond your authority</li>
+                    <li><strong>When NOT to jump the chain:</strong> Routine matters</li>
+                    <li><strong>Reporting through Supervisor vs. directly to Command:</strong> Follow protocol unless emergency</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-sitemap"></i> Reducing Radio Clutter</h4>
+                    <p>Following chain of command keeps the radio clear for critical communications. Don't tie up the channel with issues your supervisor can handle.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Reporting Critical Incidents',
+            content: `
+                <h3>When to Report Immediately</h3>
+                <h4>Critical Situations:</h4>
+                <ul>
+                    <li><strong>Medical emergency:</strong> Injury, illness, unconscious person</li>
+                    <li><strong>Fight/disturbance:</strong> Physical altercation or escalating conflict</li>
+                    <li><strong>Suspicious person or package:</strong> Potential threat</li>
+                    <li><strong>Lost child / Missing person:</strong> Immediate response required</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clipboard-list"></i> SITREP Format</h4>
+                    <p>Use the SITREP (Situation Report) format for critical incidents. This ensures all essential information is communicated clearly and quickly.</p>
+                </div>
+                <p><strong>Remember:</strong> Calm tone, clear data, repeat back confirmations.</p>
+            `
+        },
+        {
+            title: 'SITREP Format',
+            content: `
+                <h3>Situation Report (SITREP) Structure</h3>
+                <h4>The Five W's:</h4>
+                <ul>
+                    <li><strong>WHO:</strong> You + subject (your ID and who's involved)</li>
+                    <li><strong>WHAT:</strong> Nature of incident (medical, fight, suspicious activity)</li>
+                    <li><strong>WHERE:</strong> Exact location (post number, section, landmark)</li>
+                    <li><strong>WHEN:</strong> Time reported (usually "now" but note if delayed)</li>
+                    <li><strong>WHAT'S NEEDED:</strong> Supervisor, EMS, police?</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Example SITREP:</h4>
+                    <p><em>"Post 2 to Supervisor, SITREP follows. Male subject, approximately 30 years old, unconscious near Section B restrooms. Occurred approximately 5 minutes ago. Requesting EMS immediately."</em></p>
+                </div>
+            `
+        },
+        {
+            title: 'Radio Failures & Troubleshooting',
+            content: `
+                <h3>When Technology Fails</h3>
+                <h4>Common Issues:</h4>
+                <ul>
+                    <li><strong>Dead battery:</strong> Always carry spare or know charging locations</li>
+                    <li><strong>Cross-talk:</strong> Multiple transmissions interfering</li>
+                    <li><strong>Environmental interference:</strong> Buildings, crowds, weather</li>
+                    <li><strong>Lost comms protocols:</strong> What to do when radio fails</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Critical Question:</h4>
+                    <p><strong>What do you do if your radio dies mid-incident?</strong></p>
+                    <p><strong>Answer:</strong> Use backup communication methods:</p>
                     <ul>
-                        <li>Radio communication basics</li>
-                        <li>Standard radio procedures and codes</li>
-                        <li>Incident reporting</li>
-                        <li>Professional communication skills</li>
-                        <li>Chain of command</li>
+                        <li>Send a runner to supervisor</li>
+                        <li>Use personal cell phone if authorized</li>
+                        <li>Use visual signals if established</li>
+                        <li>Move to nearest post with working radio</li>
                     </ul>
                 </div>
             `
         },
         {
-            title: 'Radio Communication Basics',
+            title: 'Face-to-Face vs. Radio',
             content: `
-                <h3>Using Your Radio Effectively</h3>
-                <p>Your radio is your lifeline for communication with your team.</p>
-                <h4>The 5 Principles:</h4>
-                <ol>
-                    <li><strong>Think Before Speaking:</strong> Know what you'll say before pressing PTT</li>
-                    <li><strong>Be Clear and Concise:</strong> Use simple, direct language</li>
-                    <li><strong>Speak Clearly:</strong> Moderate pace, clear pronunciation</li>
-                    <li><strong>Wait for Clear Channel:</strong> Don't interrupt ongoing transmissions</li>
-                    <li><strong>Identify Yourself:</strong> State your position/ID when transmitting</li>
-                </ol>
-                <h4>Standard Radio Procedure:</h4>
-                <ol>
-                    <li>Press and hold PTT (Push-To-Talk) button</li>
-                    <li>Wait one second before speaking</li>
-                    <li>State your call sign/position</li>
-                    <li>Deliver your message</li>
-                    <li>Release PTT and listen for response</li>
-                    <li>Acknowledge with "Copy" or "10-4"</li>
-                </ol>
+                <h3>Choosing the Right Communication Method</h3>
+                <h4>When to Use Radio:</h4>
+                <ul>
+                    <li>Alerting team to incidents</li>
+                    <li>Requesting assistance</li>
+                    <li>Status updates</li>
+                    <li>Emergency communications</li>
+                </ul>
+                <h4>When to Use Face-to-Face:</h4>
+                <ul>
+                    <li>Delivering sensitive information</li>
+                    <li>Resolving conflicts with attendees</li>
+                    <li>Detailed briefings</li>
+                    <li>De-escalation conversations</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-comments"></i> Key Principle</h4>
+                    <p><strong>Use radio for alerting, face-to-face for resolving.</strong> Radio is a tool, not your only communication method.</p>
+                </div>
+                <p>Emphasize professionalism in both channels.</p>
             `
         },
         {
-            title: 'Radio Codes',
+            title: 'Working Your Post – Routine Use',
             content: `
-                <h3>Common Radio Codes</h3>
-                <p>Radio codes allow quick, clear communication. Learn these essential codes:</p>
-                <h4>10-Codes:</h4>
+                <h3>Radio Use During Normal Operations</h3>
+                <h4>Regular Communications:</h4>
                 <ul>
-                    <li><strong>10-4:</strong> Message received/understood ("Copy that")</li>
+                    <li><strong>Regular check-ins:</strong> Hourly or as directed</li>
+                    <li><strong>Relief rotation procedures:</strong> Coordinate breaks</li>
+                    <li><strong>Observational updates:</strong> Report unusual activity</li>
+                    <li><strong>Notifying supervisor when stepping away:</strong> Never go dark</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clock"></i> Important</h4>
+                    <p><strong>"Being bored doesn't mean going dark."</strong></p>
+                    <p>Maintain regular communication even during quiet periods. Your team needs to know you're alert and operational.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Scenario 1 – Suspicious Person',
+            content: `
+                <h3>Practice Scenario: Suspicious Activity</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-user-secret"></i> Scenario</h4>
+                    <p>You observe a male subject loitering near the stage entrance for 15 minutes. He's wearing a large backpack and keeps looking around nervously. He's not engaging with the event.</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Your Radio Call:</h4>
+                    <p><strong>Example Response:</strong></p>
+                    <p><em>"Post 3 to Base, I have a SITREP. Male subject, approximately 25-30 years old, wearing dark hoodie and large backpack, loitering near stage entrance for past 15 minutes. Subject appears nervous and not engaging with event. Requesting supervisor assessment."</em></p>
+                </div>
+                <p><strong>What did this call include?</strong> WHO, WHAT, WHERE, behavior description, and request for assistance.</p>
+            `
+        },
+        {
+            title: 'Scenario 2 – Medical Emergency',
+            content: `
+                <h3>Practice Scenario: Medical Emergency</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-ambulance"></i> Scenario</h4>
+                    <p>A female attendee has collapsed near the exit gate. She is conscious but appears disoriented and is having difficulty breathing.</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Your Radio Call:</h4>
+                    <p><strong>Example Response:</strong></p>
+                    <p><em>"Post 5 to Base, Code 3 medical emergency. Female subject, approximately 20s, collapsed near Exit Gate 2. Subject is conscious but disoriented with difficulty breathing. Requesting EMS immediately. I am staying with subject."</em></p>
+                </div>
+                <h4>Follow-Up Communication:</h4>
+                <p><em>"Post 5 to Base, update. EMS has arrived and is treating subject. Gate 2 partially blocked, directing crowd to Gate 3."</em></p>
+            `
+        },
+        {
+            title: 'Scenario 3 – Command Confusion',
+            content: `
+                <h3>Practice Scenario: Radio Chaos</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Scenario</h4>
+                    <p>Three units are trying to respond at once. Cross-talk is making it impossible to understand anyone. An emergency is in progress but no one can communicate effectively.</p>
+                </div>
+                <h4>What Went Wrong:</h4>
+                <ul>
+                    <li>Multiple people transmitting simultaneously</li>
+                    <li>No one waiting for channel to clear</li>
+                    <li>Panic causing rushed, unclear speech</li>
+                    <li>No supervisor taking control of channel</li>
+                </ul>
+                <h4>How to Fix This:</h4>
+                <ul>
+                    <li><strong>Supervisor:</strong> "All units standby, Command has the channel"</li>
+                    <li><strong>Priority:</strong> Emergency traffic goes first</li>
+                    <li><strong>One at a time:</strong> Wait for acknowledgment</li>
+                    <li><strong>Stay calm:</strong> Clear head, clear communication</li>
+                </ul>
+            `
+        },
+        {
+            title: 'Common Radio Codes',
+            content: `
+                <h3>Essential 10-Codes</h3>
+                <h4>Status Codes:</h4>
+                <ul>
+                    <li><strong>10-4:</strong> Message received/understood</li>
                     <li><strong>10-7:</strong> Out of service/on break</li>
                     <li><strong>10-8:</strong> In service/available</li>
                     <li><strong>10-20:</strong> What is your location?</li>
@@ -528,116 +823,262 @@ const moduleSlidesData = {
                     <li><strong>Code 2:</strong> Urgent but not emergency</li>
                     <li><strong>Code 3:</strong> Emergency - immediate response needed</li>
                 </ul>
-                <div class="slide-interactive">
-                    <h4>Example Transmission:</h4>
-                    <p><em>"Command, this is Gate 2. 10-97 at my post. 10-8 and ready."</em></p>
-                    <p>Translation: "Command, this is Gate 2. I've arrived at my post. I'm in service and ready."</p>
+            `
+        },
+        {
+            title: 'Professional Radio Etiquette',
+            content: `
+                <h3>Radio Professionalism</h3>
+                <h4>Always Remember:</h4>
+                <ul>
+                    <li><strong>Never use profanity or slang</strong></li>
+                    <li><strong>Avoid personal conversations</strong></li>
+                    <li><strong>Keep transmissions brief</strong></li>
+                    <li><strong>Use proper titles for supervisors</strong></li>
+                    <li><strong>Maintain confidentiality</strong></li>
+                    <li><strong>Don't eat, drink, or chew while transmitting</strong></li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-record-vinyl"></i> Everything is Recorded</h4>
+                    <p>Everything you say on the radio can be heard by the entire team and <strong>may be recorded</strong>. These recordings can be used in legal proceedings, investigations, and performance reviews.</p>
                 </div>
             `
         },
         {
-            title: 'Incident Reporting',
+            title: 'Incident Reporting Details',
             content: `
-                <h3>Reporting Incidents via Radio</h3>
-                <p>When reporting incidents, provide clear, factual information.</p>
+                <h3>Comprehensive Incident Reports</h3>
                 <h4>What to Include:</h4>
                 <ul>
-                    <li><strong>Your Location:</strong> Be specific (Gate 3, Section B, etc.)</li>
+                    <li><strong>Your Location:</strong> Be specific (Gate 3, Section B, Row 15)</li>
                     <li><strong>Nature of Incident:</strong> Brief, factual description</li>
                     <li><strong>Number of People Involved:</strong> Approximate count</li>
                     <li><strong>Injuries:</strong> Any medical concerns</li>
-                    <li><strong>Assistance Needed:</strong> What help do you require</li>
+                    <li><strong>Assistance Needed:</strong> Supervisor, EMS, police, backup</li>
                     <li><strong>Updates:</strong> Inform of any changes in situation</li>
                 </ul>
-                <h4>Example Reports:</h4>
-                <p><strong>Medical:</strong> <em>"Command, Gate 5. Code 3 medical. Female, approximately 25, conscious but injured. Requesting EMS."</em></p>
-                <p><strong>Disturbance:</strong> <em>"Command, Section C. Code 2. Two males arguing, situation escalating. Requesting backup."</em></p>
-                <p><strong>Resolved:</strong> <em>"Command, Section C. Situation resolved. Individuals separated and calm. 10-8."</em></p>
-            `
-        },
-        {
-            title: 'Professional Communication',
-            content: `
-                <h3>Face-to-Face Communication</h3>
-                <p>Your verbal communication skills are just as important as radio skills.</p>
-                <h4>With Attendees:</h4>
-                <ul>
-                    <li><strong>Be Respectful:</strong> Use "sir" or "ma'am"</li>
-                    <li><strong>Stay Professional:</strong> Don't take things personally</li>
-                    <li><strong>Listen Actively:</strong> Let people express concerns</li>
-                    <li><strong>Explain Clearly:</strong> Help them understand policies</li>
-                    <li><strong>Offer Solutions:</strong> Be helpful when possible</li>
-                </ul>
-                <h4>Radio Etiquette:</h4>
-                <ul>
-                    <li>Never use profanity or slang</li>
-                    <li>Avoid personal conversations</li>
-                    <li>Keep transmissions brief</li>
-                    <li>Use proper titles for supervisors</li>
-                    <li>Maintain confidentiality</li>
-                </ul>
-                <div class="slide-callout">
-                    <h4><i class="fas fa-info-circle"></i> Remember</h4>
-                    <p>Everything you say on the radio can be heard by the entire team and may be recorded. Always maintain professionalism.</p>
+                <div class="slide-interactive">
+                    <h4>Example Reports:</h4>
+                    <p><strong>Medical:</strong> <em>"Command, Gate 5. Code 3 medical. Female, approximately 25, conscious but injured. Requesting EMS."</em></p>
+                    <p><strong>Disturbance:</strong> <em>"Command, Section C. Code 2. Two males arguing, situation escalating. Requesting backup."</em></p>
+                    <p><strong>Resolved:</strong> <em>"Command, Section C. Situation resolved. Individuals separated and calm. 10-8."</em></p>
                 </div>
             `
         },
         {
-            title: 'Chain of Command',
+            title: 'Summary – Key Takeaways',
             content: `
-                <h3>Understanding Chain of Command</h3>
-                <p>Following proper reporting structure ensures efficient operations.</p>
-                <h4>Typical Structure:</h4>
-                <ol>
-                    <li><strong>Security Guards:</strong> Front-line personnel at posts</li>
-                    <li><strong>Team Leaders:</strong> Supervise small groups of guards</li>
-                    <li><strong>Shift Supervisors:</strong> Oversee entire shift operations</li>
-                    <li><strong>Security Manager:</strong> Overall security operations</li>
-                    <li><strong>Event Manager:</strong> Overall event operations</li>
-                </ol>
-                <h4>Key Principles:</h4>
+                <h3>Radio Communications Summary</h3>
+                <h4>Essential Points to Remember:</h4>
                 <ul>
-                    <li><strong>Know Your Supervisor:</strong> Who do you report to?</li>
-                    <li><strong>Report Up:</strong> Always report to your immediate supervisor</li>
-                    <li><strong>Follow Directives:</strong> Follow instructions from supervisors</li>
-                    <li><strong>Escalate Issues:</strong> Pass problems you can't solve up the chain</li>
-                    <li><strong>Emergency Exception:</strong> In life-threatening situations, act immediately and report after</li>
+                    <li><strong>Radios = safety:</strong> Your lifeline in emergencies</li>
+                    <li><strong>Chain of command matters:</strong> Report through proper channels</li>
+                    <li><strong>Calm, clear, correct:</strong> Professional communication always</li>
+                    <li><strong>Report early, report often:</strong> Don't wait until it's too late</li>
+                    <li><strong>Practice makes permanent:</strong> Train like you'll operate</li>
                 </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-shield-alt"></i> Your Safety Net</h4>
+                    <p>Your radio is your safety net at all times. Master it, maintain it, and use it professionally.</p>
+                </div>
             `
         },
         {
-            title: 'Knowledge Check',
+            title: 'Group Practice Exercise',
             content: `
-                <h3>Test Your Understanding</h3>
-                <div class="slide-quiz" data-quiz-id="comm-1">
-                    <p class="slide-quiz-question">What does "10-4" mean on the radio?</p>
+                <h3>Verbal Relay Drill</h3>
+                <p>Now it's time to practice what you've learned!</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-users"></i> Exercise Instructions</h4>
+                    <p>Practice the following scenarios with proper radio protocol:</p>
+                    <ol>
+                        <li><strong>Check-in:</strong> Routine radio check with Base</li>
+                        <li><strong>Incident Report:</strong> Report a suspicious person</li>
+                        <li><strong>SITREP:</strong> Medical emergency with full details</li>
+                        <li><strong>Update:</strong> Situation resolved, return to normal</li>
+                    </ol>
+                </div>
+                <p><strong>Remember:</strong> Think before you key. Use proper format. Stay calm and clear.</p>
+                <p>This is your live "exit ticket" before the assessment!</p>
+            `
+        },
+        {
+            title: 'Knowledge Check 1',
+            content: `
+                <h3>Quick Quiz Question 1</h3>
+                <div class="slide-quiz" data-quiz-id="comm-q1">
+                    <p class="slide-quiz-question">What is the proper order of a SITREP?</p>
                     <div class="slide-quiz-options">
-                        <div class="slide-quiz-option" data-answer="0">Emergency</div>
-                        <div class="slide-quiz-option" data-answer="1" data-correct="true">Message received/understood</div>
-                        <div class="slide-quiz-option" data-answer="2">Out of service</div>
-                        <div class="slide-quiz-option" data-answer="3">Need backup</div>
+                        <div class="slide-quiz-option" data-answer="0">What, Where, Who, When, What's Needed</div>
+                        <div class="slide-quiz-option" data-answer="1" data-correct="true">Who, What, Where, When, What's Needed</div>
+                        <div class="slide-quiz-option" data-answer="2">Where, What, Who, What's Needed, When</div>
+                        <div class="slide-quiz-option" data-answer="3">When, Where, What, Who, What's Needed</div>
                     </div>
                     <div class="slide-quiz-feedback"></div>
                 </div>
             `
         },
         {
+            title: 'Knowledge Check 2',
+            content: `
+                <h3>Quick Quiz Question 2</h3>
+                <div class="slide-quiz" data-quiz-id="comm-q2">
+                    <p class="slide-quiz-question">What should you say instead of "Repeat" on the radio?</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">Again</div>
+                        <div class="slide-quiz-option" data-answer="1" data-correct="true">Say again</div>
+                        <div class="slide-quiz-option" data-answer="2">Repeat that</div>
+                        <div class="slide-quiz-option" data-answer="3">Come back</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
+                </div>
+                <p><strong>Why?</strong> "Repeat" is a military term meaning "fire again" and should never be used in radio communications.</p>
+            `
+        },
+        {
+            title: 'Knowledge Check 3',
+            content: `
+                <h3>Quick Quiz Question 3</h3>
+                <div class="slide-quiz" data-quiz-id="comm-q3">
+                    <p class="slide-quiz-question">Who should you report to first in a non-emergency situation?</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">Event Manager</div>
+                        <div class="slide-quiz-option" data-answer="1">Security Manager</div>
+                        <div class="slide-quiz-option" data-answer="2" data-correct="true">Your immediate supervisor</div>
+                        <div class="slide-quiz-option" data-answer="3">Any available supervisor</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
+                </div>
+                <p><strong>Remember:</strong> Follow the chain of command to reduce radio clutter and ensure efficient operations.</p>
+            `
+        },
+        {
+            title: 'Knowledge Check 4',
+            content: `
+                <h3>Quick Quiz Question 4</h3>
+                <div class="slide-quiz" data-quiz-id="comm-q4">
+                    <p class="slide-quiz-question">An attendee is yelling at you about a policy. What should you do?</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">Yell back to establish authority</div>
+                        <div class="slide-quiz-option" data-answer="1">Immediately call for backup on radio</div>
+                        <div class="slide-quiz-option" data-answer="2" data-correct="true">Stay calm, listen, and explain the policy professionally</div>
+                        <div class="slide-quiz-option" data-answer="3">Walk away and ignore them</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
+                </div>
+                <p><strong>Key Point:</strong> De-escalation and professional communication can resolve most conflicts without backup.</p>
+            `
+        },
+        {
+            title: 'Knowledge Check 5',
+            content: `
+                <h3>Quick Quiz Question 5</h3>
+                <div class="slide-quiz" data-quiz-id="comm-q5">
+                    <p class="slide-quiz-question">What should you do if your radio dies during your shift?</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">Continue working and report it at end of shift</div>
+                        <div class="slide-quiz-option" data-answer="1" data-correct="true">Immediately notify supervisor using backup communication method</div>
+                        <div class="slide-quiz-option" data-answer="2">Go home since you can't communicate</div>
+                        <div class="slide-quiz-option" data-answer="3">Borrow another guard's radio</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
+                </div>
+                <p><strong>Remember:</strong> A working radio is essential for safety. Never operate without communication capability.</p>
+            `
+        },
+        {
+            title: 'Advanced: Radio Discipline',
+            content: `
+                <h3>Maintaining Radio Discipline</h3>
+                <h4>What is Radio Discipline?</h4>
+                <p>The practice of keeping radio channels clear and professional for operational effectiveness.</p>
+                <h4>Best Practices:</h4>
+                <ul>
+                    <li><strong>Listen before transmitting:</strong> Don't interrupt ongoing traffic</li>
+                    <li><strong>Keep messages brief:</strong> 30 seconds or less when possible</li>
+                    <li><strong>Avoid unnecessary chatter:</strong> Save channel for important comms</li>
+                    <li><strong>Use proper priority:</strong> Emergency traffic always goes first</li>
+                    <li><strong>Acknowledge quickly:</strong> "Copy" is sufficient</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-volume-mute"></i> When to Stay Silent</h4>
+                    <p>If you hear "10-33" or "Emergency traffic," immediately stop transmitting and keep the channel clear until the emergency is resolved.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Advanced: Multi-Channel Operations',
+            content: `
+                <h3>Working with Multiple Channels</h3>
+                <p>Larger events may use multiple radio channels for different purposes.</p>
+                <h4>Common Channel Setup:</h4>
+                <ul>
+                    <li><strong>Channel 1:</strong> Command/Operations (main channel)</li>
+                    <li><strong>Channel 2:</strong> Tactical/Response teams</li>
+                    <li><strong>Channel 3:</strong> Medical/EMS coordination</li>
+                    <li><strong>Channel 4:</strong> Logistics/Support</li>
+                </ul>
+                <h4>Best Practices:</h4>
+                <ul>
+                    <li>Know which channel to use for what purpose</li>
+                    <li>Monitor your assigned channel at all times</li>
+                    <li>Switch channels only when directed</li>
+                    <li>Announce when changing channels if required</li>
+                </ul>
+            `
+        },
+        {
+            title: 'Real-World Application',
+            content: `
+                <h3>Putting It All Together</h3>
+                <h4>A Complete Shift Timeline:</h4>
+                <p><strong>Start of Shift:</strong> <em>"Post 1 to Base, 10-8 and ready at main entrance."</em></p>
+                <p><strong>Hourly Check:</strong> <em>"Post 1 to Base, radio check. Nothing to report."</em></p>
+                <p><strong>Incident:</strong> <em>"Post 1 to Base, SITREP. Two males fighting near concessions. Requesting backup."</em></p>
+                <p><strong>Update:</strong> <em>"Post 1 to Base, situation under control. Subjects separated and escorted out."</em></p>
+                <p><strong>Break:</strong> <em>"Post 1 to Base, requesting 10-7 for 15 minutes."</em></p>
+                <p><strong>Return:</strong> <em>"Post 1 to Base, 10-8 and back at post."</em></p>
+                <p><strong>End of Shift:</strong> <em>"Post 1 to Base, 10-7 end of shift. Post secured and clear."</em></p>
+            `
+        },
+        {
             title: 'Module Summary',
             content: `
-                <h3>Communication Summary</h3>
-                <p>You've learned essential communication skills for event security.</p>
-                <h4>Key Takeaways:</h4>
+                <h3>Security Radio Communications - Complete</h3>
+                <p>You've completed comprehensive training in security radio communications!</p>
+                <h4>What You've Mastered:</h4>
                 <ul>
-                    <li><strong>Radio Basics:</strong> Think before speaking, be clear and concise</li>
-                    <li><strong>Know Your Codes:</strong> 10-4, 10-20, Code 3, etc.</li>
-                    <li><strong>Report Effectively:</strong> Location, situation, assistance needed</li>
-                    <li><strong>Stay Professional:</strong> On radio and face-to-face</li>
-                    <li><strong>Follow Chain of Command:</strong> Report to your supervisor</li>
+                    <li><strong>Radio operation and etiquette</strong></li>
+                    <li><strong>Essential codes and terminology</strong></li>
+                    <li><strong>SITREP format for incident reporting</strong></li>
+                    <li><strong>Chain of command protocols</strong></li>
+                    <li><strong>Professional communication skills</strong></li>
+                    <li><strong>Real-world scenario responses</strong></li>
                 </ul>
                 <div class="slide-callout">
                     <h4><i class="fas fa-check-circle"></i> Module Complete!</h4>
-                    <p>You're now ready to communicate effectively as part of a security team. Practice coordinating in the sand table exercise.</p>
+                    <p><strong>"Radios keep you alive. Know yours."</strong></p>
+                    <p>You're now ready to take the Module 1 Assessment to validate your knowledge.</p>
                 </div>
+            `
+        },
+        {
+            title: 'Next Steps',
+            content: `
+                <h3>Ready for Assessment</h3>
+                <p>You've completed all 21 slides of Security Radio Communications training.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clipboard-check"></i> What's Next</h4>
+                    <p>You'll now be directed to the <strong>Module 1 Assessment</strong> to test your knowledge of radio communications.</p>
+                    <ul>
+                        <li>10 questions covering all material</li>
+                        <li>15 minutes to complete</li>
+                        <li>70% required to pass</li>
+                        <li>You can retake if needed</li>
+                    </ul>
+                </div>
+                <p><strong>Preview of Module 2:</strong> STOP THE BLEED® Emergency Medical Response</p>
+                <p class="hero-subtitle">You're cleared to switch channels—see you in Module 2!</p>
             `
         }
     ],
@@ -901,55 +1342,113 @@ const moduleSlidesData = {
     ],
     'stop-the-bleed': [
         {
-            title: 'STOP THE BLEED® Emergency Medical Response',
+            title: 'STOP THE BLEED® – Emergency Medical Response',
             content: `
-                <h3>STOP THE BLEED® - Save a Life</h3>
-                <p>Welcome to STOP THE BLEED® training. This life-saving program empowers you to control severe bleeding until professional medical help arrives.</p>
+                <h3>STOP THE BLEED® – Emergency Medical Response</h3>
+                <p class="hero-subtitle">You don't need to be a medic to save a life</p>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-heart"></i> Critical Facts</h4>
-                    <ul>
-                        <li>Severe bleeding can cause death in <strong>5 minutes or less</strong></li>
-                        <li>Immediate action by bystanders/security can save lives</li>
-                        <li>You don't need medical training - just knowledge and action</li>
-                        <li>Based on lessons from military combat medicine</li>
-                    </ul>
+                    <h4><i class="fas fa-hand-holding-medical"></i> Module Overview</h4>
+                    <p>Welcome to the most life-saving module in this course. This training empowers you to control severe bleeding and save lives in the critical minutes before EMS arrives.</p>
+                    <p><strong>Duration:</strong> 2 Hours | <strong>Slides:</strong> 20</p>
+                    <p><strong>Certification:</strong> STOP THE BLEED® Completion Certificate</p>
                 </div>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-exclamation-triangle"></i> Your Role</h4>
-                    <p>As security personnel, you are often first on scene. Your quick action in the first critical minutes can mean the difference between life and death.</p>
+                    <h4><i class="fas fa-exclamation-triangle"></i> Critical Importance</h4>
+                    <p>You may be the only responder until EMS arrives. This module makes you capable of saving a life.</p>
                 </div>
             `
         },
         {
-            title: 'The Three Steps',
+            title: 'Learning Objectives',
             content: `
-                <h3>STOP THE BLEED® - Three Simple Steps</h3>
-                <p>Remember these three steps to save a life:</p>
-                <h4>1. IDENTIFY the Bleeding</h4>
-                <p>Remove or cut clothing to locate the source of bleeding. You can't treat what you can't see.</p>
-                <h4>2. APPLY Pressure</h4>
-                <p>Use your hands, dressings, or tourniquets to stop the bleeding. Direct pressure is your first tool.</p>
-                <h4>3. GET Help</h4>
-                <p>Call 911 immediately and continue care until EMS arrives. Don't stop treatment.</p>
+                <h3>What You'll Learn</h3>
+                <ul>
+                    <li><strong>Recognize life-threatening bleeding</strong></li>
+                    <li><strong>Apply pressure, pack wounds, and use tourniquets</strong></li>
+                    <li><strong>Act with confidence in chaotic environments</strong></li>
+                    <li><strong>Understand when and how to call for help</strong></li>
+                </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-lightbulb"></i> Key Principle</h4>
-                    <p><strong>Time is critical.</strong> Every second counts when someone is bleeding severely. Don't hesitate - immediate action saves lives.</p>
+                    <h4><i class="fas fa-heartbeat"></i> Your Critical Role</h4>
+                    <p>You may be the only responder until EMS arrives. This module makes you capable of being the difference between someone bleeding out—or surviving.</p>
                 </div>
             `
         },
         {
-            title: 'Types of Bleeding',
+            title: 'Why We Train',
             content: `
-                <h3>Recognizing Types of Bleeding</h3>
-                <h4><i class="fas fa-exclamation-circle"></i> Arterial (Life-Threatening)</h4>
-                <p><strong>Bright red, spurting blood</strong> - Requires immediate tourniquet application. This is the most dangerous type.</p>
-                <h4><i class="fas fa-exclamation-triangle"></i> Venous (Serious)</h4>
-                <p><strong>Dark red, steady flow</strong> - Apply direct pressure with dressings. Serious but controllable.</p>
-                <h4><i class="fas fa-info-circle"></i> Capillary (Minor)</h4>
-                <p><strong>Slow oozing</strong> - Standard first aid is sufficient. Not immediately life-threatening.</p>
+                <h3>The Critical Need for STOP THE BLEED®</h3>
+                <h4>Life-Threatening Statistics:</h4>
+                <ul>
+                    <li><strong>Bleeding is the #1 preventable cause of death in trauma</strong></li>
+                    <li><strong>Victims can die in under 5 minutes</strong></li>
+                    <li><strong>EMS may take 10+ minutes to arrive</strong> in crowded events</li>
+                </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-hand-paper"></i> Recognition is Key</h4>
-                    <p>Quickly identifying the type of bleeding helps you choose the right intervention. Arterial bleeding = tourniquet NOW.</p>
+                    <h4><i class="fas fa-exclamation-triangle"></i> Real-World Examples</h4>
+                    <p>Las Vegas shooting, Astroworld tragedy, and countless other incidents show that immediate bystander intervention saves lives. Professional help takes time—you are the first line of defense.</p>
+                </div>
+                <p><strong>You are the difference between someone bleeding out—or surviving.</strong></p>
+            `
+        },
+        {
+            title: 'Identify Life-Threatening Bleeding',
+            content: `
+                <h3>Recognizing Life-Threatening Bleeding</h3>
+                <h4>Critical Signs (ABC):</h4>
+                <ul>
+                    <li><strong>Alert:</strong> Spurting or pooling blood</li>
+                    <li><strong>Bleeding:</strong> Soaked clothing</li>
+                    <li><strong>Compress:</strong> Bandages ineffective</li>
+                </ul>
+                <h4>Additional Warning Signs:</h4>
+                <ul>
+                    <li>Loss of limb or deep laceration</li>
+                    <li>Victim is pale, confused, or unconscious</li>
+                    <li>Blood won't stop with basic pressure</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-eye"></i> Remember ABC</h4>
+                    <p><strong>Alert, Bleeding, Compress</strong> - This acronym helps you quickly assess and act on life-threatening bleeding.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Scene Safety & Personal Protection',
+            content: `
+                <h3>Protect Yourself First</h3>
+                <h4>Scene Safety:</h4>
+                <ul>
+                    <li><strong>Ensure scene is safe before approaching</strong></li>
+                    <li>Look for ongoing threats, weapons, hazards</li>
+                    <li>Assess for fire, structural damage, or active danger</li>
+                </ul>
+                <h4>Personal Protection:</h4>
+                <ul>
+                    <li><strong>Wear gloves if available</strong> (nitrile or latex)</li>
+                    <li><strong>Use barriers or clothing</strong> if gloves not available</li>
+                    <li>Avoid direct contact with blood</li>
+                    <li>Wash hands thoroughly after care</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-shield-alt"></i> Critical Rule</h4>
+                    <p><strong>"Do not become a second victim."</strong> If the scene is unsafe, wait for law enforcement. You can't help anyone if you're injured.</p>
+                </div>
+            `
+        },
+        {
+            title: 'The 3-Step Response',
+            content: `
+                <h3>Three Steps to Stop Bleeding</h3>
+                <h4>Step 1: Apply Pressure</h4>
+                <p>Direct pressure is your first and most important tool</p>
+                <h4>Step 2: Pack the Wound (if needed)</h4>
+                <p>For deep wounds where tourniquets can't be used</p>
+                <h4>Step 3: Apply a Tourniquet (if bleeding continues)</h4>
+                <p>For arterial bleeding from limbs that won't stop</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-hand-holding-medical"></i> Today's Training</h4>
+                    <p>We'll practice all three techniques. By the end of this module, you'll be confident in your ability to save a life.</p>
                 </div>
             `
         },
@@ -957,150 +1456,274 @@ const moduleSlidesData = {
             title: 'Direct Pressure',
             content: `
                 <h3>Direct Pressure Technique</h3>
-                <p>Your first and most important tool for controlling bleeding:</p>
-                <ol>
-                    <li><strong>Expose the wound</strong> - Remove or cut clothing away</li>
-                    <li><strong>Place gauze/cloth</strong> - Directly on the wound</li>
-                    <li><strong>Apply firm pressure</strong> - Use both hands, push hard</li>
-                    <li><strong>Maintain for 3+ minutes</strong> - Don't release to "check"</li>
-                    <li><strong>Add more dressings</strong> - If blood soaks through, DON'T remove original</li>
-                </ol>
-                <div class="slide-callout">
-                    <h4><i class="fas fa-hand-rock"></i> Push Hard, Don't Stop</h4>
-                    <p>You can't hurt them more by pushing too hard. The real danger is not pushing hard enough or releasing pressure too soon.</p>
-                </div>
-            `
-        },
-        {
-            title: 'Tourniquet Application',
-            content: `
-                <h3>Tourniquet - When Life is on the Line</h3>
-                <h4>When to Use:</h4>
-                <p>Arterial bleeding from arm or leg that won't stop with direct pressure. Don't wait - if it's spurting, apply tourniquet immediately.</p>
                 <h4>How to Apply:</h4>
                 <ul>
-                    <li><strong>Placement:</strong> 2-3 inches ABOVE wound, never on a joint</li>
-                    <li><strong>Tighten:</strong> Until bleeding stops completely - it will hurt, that's normal</li>
-                    <li><strong>Document time:</strong> Write exact time on tourniquet or victim's forehead</li>
-                    <li><strong>Never remove:</strong> Only medical professionals can remove it</li>
+                    <li><strong>Use hands or knee</strong> - Whatever provides firm pressure</li>
+                    <li><strong>Apply firmly and don't let up</strong> - Maintain constant pressure</li>
+                    <li><strong>Maintain until EMS arrives</strong> or you can transition to next step</li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-times-circle"></i> Myth Busted</h4>
-                    <p><strong>FALSE:</strong> "Tourniquets always cause limb loss." Modern tourniquets are safe and effective. Limb loss is rare; death from bleeding is not.</p>
+                    <h4><i class="fas fa-hand-rock"></i> Key Principle</h4>
+                    <p><strong>"Direct pressure buys time."</strong> You can't push too hard—the real danger is not pushing hard enough or releasing too soon.</p>
                 </div>
+                <p><strong>Instructor Demo:</strong> Use props or pillows to demonstrate proper pressure application.</p>
             `
         },
         {
             title: 'Wound Packing',
             content: `
-                <h3>Wound Packing for Junctional Bleeding</h3>
-                <p>Used when tourniquets can't be applied: neck, groin, armpit, or very deep wounds.</p>
+                <h3>Wound Packing for Deep Injuries</h3>
+                <h4>When to Use:</h4>
+                <p>Deep wounds, junctional areas (neck, groin, armpit) where tourniquets can't be applied</p>
                 <h4>Technique:</h4>
+                <ul>
+                    <li><strong>Insert gauze or cloth into deep wounds</strong></li>
+                    <li><strong>Fill until no more can fit</strong> - Pack it completely</li>
+                    <li><strong>Apply pressure on top</strong> - Maintain firm pressure</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-hand-holding-medical"></i> Get Over the Discomfort</h4>
+                    <p><strong>"You're filling the cavity."</strong> This will be uncomfortable for the victim, but it's saving their life. Don't be gentle—be effective.</p>
+                </div>
+                <p><strong>Practice:</strong> Use simulated wounds or pool noodles to practice packing technique.</p>
+            `
+        },
+        {
+            title: 'Tourniquet Application',
+            content: `
+                <h3>Tourniquet - The Life-Saver</h3>
+                <h4>When to Use:</h4>
+                <p>Arterial bleeding from arm or leg that won't stop with pressure. If it's spurting—apply tourniquet immediately.</p>
+                <h4>How to Apply:</h4>
+                <ul>
+                    <li><strong>High and tight:</strong> 2–3 inches above wound</li>
+                    <li><strong>Never on a joint</strong> - Must be on solid bone</li>
+                    <li><strong>Tighten until bleeding stops</strong>, not just slows</li>
+                    <li><strong>Time-mark the application</strong> - Write time on tourniquet or forehead</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Critical Points</h4>
+                    <p>It WILL hurt—that's normal. Tighten until bleeding completely stops. Never remove once applied—only trained medics can remove it.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Improvised Tools',
+            content: `
+                <h3>Improvised Bleeding Control</h3>
+                <h4>What Works:</h4>
+                <ul>
+                    <li><strong>T-shirt:</strong> Can be used for wound packing</li>
+                    <li><strong>Wooden spoon or stick:</strong> Windlass substitute (last resort)</li>
+                    <li><strong>Clean cloth:</strong> Better than nothing for pressure</li>
+                </ul>
+                <h4>What DOESN'T Work:</h4>
+                <ul>
+                    <li><strong>Belt = NOT a tourniquet</strong> - Too wide, won't provide enough pressure</li>
+                    <li>Shoelaces, rope - Not effective</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-tools"></i> Remember</h4>
+                    <p><strong>"MacGyver is not better than medical-grade."</strong> Use real equipment when possible. Improvised tools are last resort only.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Calling for Help',
+            content: `
+                <h3>Activating Emergency Response</h3>
+                <h4>How to Call for Help:</h4>
+                <ul>
+                    <li><strong>Activate 911 or venue EMS immediately</strong></li>
+                    <li><strong>Say:</strong> "Life-threatening bleeding at [specific location]"</li>
+                    <li><strong>Assign someone to meet first responders</strong></li>
+                    <li>Provide updates as situation changes</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-phone-alt"></i> Critical Rule</h4>
+                    <p><strong>"Don't assume someone else called. Delegate out loud."</strong> Point to a specific person and say "You—call 911 now."</p>
+                </div>
+            `
+        },
+        {
+            title: 'EMS Transition',
+            content: `
+                <h3>Handing Off to Professionals</h3>
+                <h4>When EMS Arrives:</h4>
+                <ul>
+                    <li><strong>Leave tourniquet in place</strong> - Never remove it</li>
+                    <li><strong>Give exact time it was applied</strong> - This is critical information</li>
+                    <li><strong>Do NOT remove unless trained medic directs you</strong></li>
+                    <li>Provide brief report of what you did</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Life-Threatening Warning</h4>
+                    <p><strong>"Removing a tourniquet can kill someone."</strong> Only trained medical professionals should remove tourniquets. Your job is to apply and document—not remove.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Hands-On: Gloving & Pressure',
+            content: `
+                <h3>Practice Session 1: Gloving & Direct Pressure</h3>
+                <h4>Exercise Instructions:</h4>
                 <ol>
-                    <li>Use hemostatic gauze (QuikClot, Celox) if available</li>
-                    <li>Pack gauze deep into the wound cavity - fill it completely</li>
-                    <li>Apply direct pressure over the packed wound</li>
-                    <li>Maintain pressure for 3+ minutes minimum</li>
-                    <li>Keep pressure until EMS arrives</li>
+                    <li><strong>Practice putting on gloves fast</strong> - Speed matters in emergencies</li>
+                    <li><strong>Apply pressure to mock wounds</strong> - Use training aids or pillows</li>
+                    <li><strong>Maintain pressure for 3 minutes</strong> - Build endurance</li>
                 </ol>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-hand-holding-medical"></i> Don't Be Gentle</h4>
-                    <p>Pack the wound firmly and deeply. This is not comfortable for the victim, but it saves their life.</p>
+                    <h4><i class="fas fa-hands"></i> Training Focus</h4>
+                    <p>Encourage realism, speed, and communication. Practice like you'll perform. Talk through your actions as you work.</p>
+                </div>
+                <p><strong>Equipment:</strong> Gloves, rags or dummy limbs, timer</p>
+            `
+        },
+        {
+            title: 'Hands-On: Wound Packing',
+            content: `
+                <h3>Practice Session 2: Wound Packing</h3>
+                <h4>Exercise Instructions:</h4>
+                <ol>
+                    <li><strong>Use gauze + pool noodle or foam blocks</strong></li>
+                    <li><strong>Practice insertion, packing, and pressure</strong></li>
+                    <li><strong>Fill the wound completely</strong> - Don't leave gaps</li>
+                    <li>Apply pressure over packed wound</li>
+                </ol>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-hand-holding-medical"></i> Key Concept</h4>
+                    <p><strong>"Think: plug the leak."</strong> You're filling the cavity to stop internal bleeding. Pack firmly and deeply.</p>
+                </div>
+                <p><strong>Instructor:</strong> Circle class to assess technique and provide feedback.</p>
+            `
+        },
+        {
+            title: 'Hands-On: Tourniquet Application',
+            content: `
+                <h3>Practice Session 3: Tourniquet Application</h3>
+                <h4>Exercise Instructions:</h4>
+                <ol>
+                    <li><strong>Instructor demonstrates first</strong> - Show proper placement and tightening</li>
+                    <li><strong>Students apply to dummy limbs or partners</strong></li>
+                    <li><strong>Must verbalize:</strong> "Tight, bleeding stopped, mark time"</li>
+                    <li>Practice time-marking technique</li>
+                </ol>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-check-circle"></i> Success Criteria</h4>
+                    <p>Confirm proper tightness and placement. Walk to each student pair individually if needed. This is the most critical skill.</p>
                 </div>
             `
         },
         {
-            title: 'Scene Safety & Protection',
+            title: 'Scenario 1 – Crowd Incident',
             content: `
-                <h3>Protect Yourself First</h3>
-                <p><strong>Scene Safety is Priority #1</strong> - You can't help if you become a victim.</p>
-                <h4>Before Approaching:</h4>
+                <h3>Practice Scenario: Festival Bleeding Injury</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-user-injured"></i> Scenario</h4>
+                    <p>You're working security at an outdoor festival. A patron has suffered a severe leg injury from broken glass. Blood is spurting from their thigh. The crowd is panicking and pushing.</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Discussion Questions:</h4>
+                    <p><strong>Who steps in? What's your first action?</strong></p>
+                    <p><strong>What do you say to the crowd?</strong></p>
+                    <p><strong>What bleeding control technique do you use?</strong></p>
+                </div>
+                <p><strong>Practice:</strong> Verbal commands and action sequence. Work through the scenario as a class.</p>
+            `
+        },
+        {
+            title: 'Scenario 2 – Armed Subject Aftermath',
+            content: `
+                <h3>Practice Scenario: Post-Incident Victim</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-ambulance"></i> Scenario</h4>
+                    <p>An active threat has been neutralized. You find a victim collapsed near the exit gate with severe bleeding from the arm. People are yelling, sirens are approaching, and you're experiencing sensory overload.</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Challenge:</h4>
+                    <p><strong>How do you act fast under extreme stress?</strong></p>
+                    <p><strong>What's your priority sequence?</strong></p>
+                    <p><strong>How do you manage the chaos around you?</strong></p>
+                </div>
+                <p><strong>Instructor:</strong> Simulate sensory overload—bleeding, confusion, yelling. Test students' ability to focus and act.</p>
+            `
+        },
+        {
+            title: 'Psychological First Aid',
+            content: `
+                <h3>Communicating with the Victim</h3>
+                <h4>How to Provide Psychological Support:</h4>
                 <ul>
-                    <li>Ensure area is safe (no active threat, fire, hazards)</li>
-                    <li>Look for weapons, broken glass, sharp objects</li>
-                    <li>Assess for ongoing danger</li>
-                </ul>
-                <h4>Body Substance Isolation (BSI):</h4>
-                <ul>
-                    <li><strong>Gloves:</strong> Always wear if available (nitrile or latex)</li>
-                    <li><strong>Eye protection:</strong> Protect from blood splatter</li>
-                    <li><strong>Avoid contact:</strong> Don't touch blood with bare hands</li>
-                    <li><strong>Wash thoroughly:</strong> After care, even if you wore gloves</li>
+                    <li><strong>Stay calm, be direct</strong> - Your composure calms them</li>
+                    <li><strong>Reassure the victim:</strong> "I'm here. Help is on the way."</li>
+                    <li><strong>Give short, clear instructions</strong> - "Hold still. I'm stopping the bleeding."</li>
+                    <li>Maintain eye contact when possible</li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-shield-alt"></i> Your Safety Matters</h4>
-                    <p>If the scene is unsafe, wait for law enforcement. A dead rescuer helps no one.</p>
+                    <h4><i class="fas fa-comments"></i> Your Tone Matters</h4>
+                    <p><strong>"Your tone becomes their lifeline."</strong> Say less. Do more. Confidence and calmness are contagious.</p>
                 </div>
             `
         },
         {
-            title: 'Calling for Help & Shock',
+            title: 'STOP THE BLEED® Quiz',
             content: `
-                <h3>Get Help & Prevent Shock</h3>
-                <h4>Calling 911:</h4>
-                <ul>
-                    <li>Call immediately or designate someone specific</li>
-                    <li>Provide: Location, number of victims, injuries, what you're doing</li>
-                    <li>Use radio: Code Red (medical emergency)</li>
-                    <li>Continue care while help is coming</li>
-                </ul>
-                <h4>Shock Management:</h4>
-                <p><strong>Signs:</strong> Pale/cold/clammy skin, rapid pulse, confusion, weakness</p>
-                <p><strong>Treatment:</strong></p>
-                <ul>
-                    <li>Lay victim flat</li>
-                    <li>Elevate legs 12 inches (if no spinal injury)</li>
-                    <li>Keep warm with blanket/jacket</li>
-                    <li>Reassure and keep calm</li>
-                </ul>
-            `
-        },
-        {
-            title: 'Legal Protection',
-            content: `
-                <h3>Good Samaritan Laws Protect You</h3>
-                <p>All 50 states have Good Samaritan laws protecting those who provide emergency care.</p>
-                <h4>You Are Protected When:</h4>
-                <ul>
-                    <li>Acting in good faith to help</li>
-                    <li>Not acting with gross negligence</li>
-                    <li>Providing care within your training level</li>
-                    <li>Not expecting payment for care</li>
-                </ul>
-                <h4>Consent:</h4>
-                <ul>
-                    <li><strong>Conscious victims:</strong> Ask permission before helping</li>
-                    <li><strong>Unconscious victims:</strong> Implied consent - help immediately</li>
-                    <li><strong>Minors:</strong> Implied consent if parent not present</li>
-                </ul>
-                <div class="slide-callout">
-                    <h4><i class="fas fa-gavel"></i> You're Protected</h4>
-                    <p>Don't hesitate to help because of legal fears. Good Samaritan laws are designed to encourage people to save lives.</p>
+                <h3>Knowledge Check</h3>
+                <div class="slide-quiz" data-quiz-id="stb-q1">
+                    <p class="slide-quiz-question">What are the 3 ways to stop bleeding?</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">Call 911, wait, and watch</div>
+                        <div class="slide-quiz-option" data-answer="1" data-correct="true">Apply pressure, pack the wound, apply tourniquet</div>
+                        <div class="slide-quiz-option" data-answer="2">Elevate, ice, and bandage</div>
+                        <div class="slide-quiz-option" data-answer="3">Clean, cover, and transport</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
                 </div>
             `
         },
         {
-            title: 'Module Complete',
+            title: 'Module Summary',
             content: `
                 <h3>STOP THE BLEED® Training Complete</h3>
-                <p>You now have the knowledge to save a life by controlling severe bleeding.</p>
-                <h4>Key Takeaways:</h4>
+                <p><strong>"Bleeding control is leadership under pressure."</strong></p>
+                <h4>What You've Mastered:</h4>
                 <ul>
-                    <li><strong>Time is critical:</strong> Severe bleeding can kill in 5 minutes</li>
-                    <li><strong>Three steps:</strong> Identify, Apply pressure, Get help</li>
-                    <li><strong>Direct pressure first:</strong> Your primary tool</li>
-                    <li><strong>Tourniquets save lives:</strong> Don't hesitate on arterial bleeding</li>
-                    <li><strong>Scene safety first:</strong> Protect yourself</li>
-                    <li><strong>You're protected:</strong> Good Samaritan laws in all states</li>
+                    <li><strong>Recognize life-threatening bleeding</strong> - ABC method</li>
+                    <li><strong>Apply direct pressure</strong> - Your first tool</li>
+                    <li><strong>Pack wounds effectively</strong> - For deep injuries</li>
+                    <li><strong>Apply tourniquets correctly</strong> - High, tight, and time-marked</li>
+                    <li><strong>Scene safety and personal protection</strong></li>
+                    <li><strong>Call for help effectively</strong></li>
+                    <li><strong>Act with confidence under pressure</strong></li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-check-circle"></i> Module Complete!</h4>
-                    <p>You are now prepared to STOP THE BLEED and save lives. Remember: doing something is always better than doing nothing.</p>
+                    <h4><i class="fas fa-certificate"></i> Certification Earned</h4>
+                    <p>You're now trained to stop the #1 preventable trauma death. You have the knowledge and skills to save a life.</p>
                 </div>
+            `
+        },
+        {
+            title: 'Next Steps & Certification',
+            content: `
+                <h3>Your STOP THE BLEED® Certification</h3>
+                <p>Congratulations! You've completed STOP THE BLEED® training.</p>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-hands-helping"></i> Next Steps</h4>
-                    <p>Practice tourniquet application monthly. Know where STOP THE BLEED® kits are located at your venue. Be ready to act when seconds count.</p>
+                    <h4><i class="fas fa-award"></i> Certification Details</h4>
+                    <ul>
+                        <li>STOP THE BLEED® Completion Certificate awarded</li>
+                        <li>Included in all Modified State Courses (MSC)</li>
+                        <li>Valid for employment and documentation</li>
+                        <li>Practice monthly to maintain proficiency</li>
+                    </ul>
                 </div>
+                <h4>Ongoing Practice:</h4>
+                <ul>
+                    <li>Practice tourniquet application monthly</li>
+                    <li>Know where STOP THE BLEED® kits are located at your venue</li>
+                    <li>Review techniques before each shift</li>
+                    <li>Be ready to act when seconds count</li>
+                </ul>
+                <p><strong>Next Module:</strong> Module 3 - Threat Assessment & Situational Awareness</p>
             `
         }
     ],
@@ -1266,147 +1889,374 @@ const moduleSlidesData = {
     ],
     'ics-100': [
         {
-            title: 'Introduction to Incident Command System (ICS-100)',
+            title: 'Emergency Response & ICS',
             content: `
-                <h3>What is ICS?</h3>
-                <p>The Incident Command System (ICS) is a standardized approach to command, control, and coordination of emergency response.</p>
+                <h3>Emergency Response & ICS</h3>
+                <p class="hero-subtitle">Sand Table Simulation: Festival Incident Response</p>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-sitemap"></i> Why ICS Matters</h4>
-                    <ul>
-                        <li>Used by ALL emergency responders nationwide</li>
-                        <li>Provides common organizational structure</li>
-                        <li>Enables different agencies to work together</li>
-                        <li>Required knowledge for security professionals</li>
-                    </ul>
+                    <h4><i class="fas fa-sitemap"></i> Module Overview</h4>
+                    <p>Welcome to the capstone module. This is where your training becomes real through applied response, role coordination, and decision-making under pressure.</p>
+                    <p><strong>Duration:</strong> 2 Hours | <strong>Slides:</strong> 20</p>
+                    <p><strong>Based on:</strong> ICS-100 principles and real-world event response</p>
                 </div>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-info-circle"></i> Origin</h4>
-                    <p>Developed after 1970s California wildfires when agencies couldn't coordinate effectively. Now mandated by Homeland Security Presidential Directive (HSPD-5).</p>
+                    <h4><i class="fas fa-exclamation-triangle"></i> Prerequisite</h4>
+                    <p>Students should have completed FEMA IS-100.C or taken a review of ICS basics.</p>
                 </div>
             `
         },
         {
-            title: 'ICS Organizational Structure',
+            title: 'Learning Objectives',
             content: `
-                <h3>ICS Organization</h3>
+                <h3>What You'll Practice</h3>
+                <ul>
+                    <li><strong>Apply ICS roles in a simulated event</strong></li>
+                    <li><strong>Understand span of control and command structure</strong></li>
+                    <li><strong>Practice decision-making under pressure</strong></li>
+                    <li><strong>Coordinate resources during chaotic incidents</strong></li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-fire"></i> This Is Where Training Becomes Real</h4>
+                    <p>You'll experience a live simulation based on real crowd surge events. This is not about getting it perfect—it's about thinking under pressure.</p>
+                </div>
+            `
+        },
+        {
+            title: 'ICS Recap',
+            content: `
+                <h3>Quick ICS Review</h3>
+                <h4>What is ICS?</h4>
+                <p>Incident Command System - standardized approach to emergency response coordination</p>
+                <h4>Key Concepts:</h4>
+                <ul>
+                    <li><strong>Chain of Command:</strong> Clear reporting relationships</li>
+                    <li><strong>Span of Control:</strong> 3-7 people per supervisor (ideal: 5)</li>
+                    <li><strong>Unity of Command:</strong> Report to ONE supervisor only</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Discussion Question:</h4>
+                    <p><strong>"Why is ICS better than winging it in chaos?"</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Key ICS Roles',
+            content: `
+                <h3>ICS Positions for Today's Simulation</h3>
                 <h4>Command Staff:</h4>
                 <ul>
-                    <li><strong>Incident Commander (IC):</strong> Overall authority</li>
-                    <li><strong>Public Information Officer (PIO):</strong> Media liaison</li>
-                    <li><strong>Safety Officer (SO):</strong> Monitors safety</li>
-                    <li><strong>Liaison Officer (LNO):</strong> Agency coordination</li>
+                    <li><strong>Incident Commander:</strong> Overall authority and decision-making</li>
+                    <li><strong>Safety Officer:</strong> Monitors personnel and scene safety</li>
+                    <li><strong>Public Information Officer (PIO):</strong> Media and public communications</li>
                 </ul>
-                <h4>General Staff (Section Chiefs):</h4>
+                <h4>Operations:</h4>
                 <ul>
-                    <li><strong>Operations:</strong> Tactical operations</li>
-                    <li><strong>Planning:</strong> Information and planning</li>
-                    <li><strong>Logistics:</strong> Resources and support</li>
-                    <li><strong>Finance/Admin:</strong> Cost tracking</li>
+                    <li><strong>Operations Section Chief:</strong> Tactical operations coordination</li>
+                    <li><strong>Security Branch:</strong> Perimeter control, crowd management</li>
+                    <li><strong>Medical Unit Leader:</strong> Triage and EMS coordination</li>
+                    <li><strong>Staging Area Manager:</strong> Resource staging and deployment</li>
+                    <li><strong>Transport Unit Leader:</strong> Vehicle and route coordination</li>
                 </ul>
-                <div class="slide-callout">
-                    <h4><i class="fas fa-shield-alt"></i> Security's Role</h4>
-                    <p>Security typically works in the <strong>Operations Section</strong> performing perimeter control, crowd management, and facility protection.</p>
+                <div class="slide-interactive">
+                    <h4>Your Role Selection:</h4>
+                    <p>Choose one role to focus on as you go through this simulation. Think about how YOU would respond in each scenario from that perspective.</p>
                 </div>
             `
         },
         {
-            title: 'Core ICS Principles',
+            title: 'Event Map Overview',
             content: `
-                <h3>Key ICS Principles</h3>
+                <h3>Your Event Ground</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-map-marked-alt"></i> Venue Layout</h4>
+                    <p>Memorize this event ground:</p>
+                    <ul>
+                        <li><strong>Entry Points:</strong> Main Gate (North), East Entrance, South Gate</li>
+                        <li><strong>Stage:</strong> Main Stage (Center), Stage A (West)</li>
+                        <li><strong>First Aid:</strong> Medical tent near VIP area</li>
+                        <li><strong>Exits:</strong> Emergency exits at all perimeter points</li>
+                        <li><strong>Command Post:</strong> Behind Main Stage</li>
+                    </ul>
+                </div>
+                <p><strong>Visualize this layout</strong> as you work through the scenarios. Understanding the venue is critical to effective response.</p>
+            `
+        },
+        {
+            title: 'Communications Structure',
+            content: `
+                <h3>Radio Discipline in ICS</h3>
+                <h4>Chain of Radio Calls:</h4>
+                <p><strong>Example:</strong> Stage right security calls Staging Manager, NOT the Incident Commander directly</p>
+                <h4>Key Principles:</h4>
                 <ul>
-                    <li><strong>Common Terminology:</strong> Everyone uses same terms</li>
-                    <li><strong>Modular Organization:</strong> Expand/contract as needed</li>
-                    <li><strong>Management by Objectives:</strong> Clear goals</li>
-                    <li><strong>Span of Control:</strong> 3-7 people per supervisor (ideal: 5)</li>
-                    <li><strong>Chain of Command:</strong> Clear reporting relationships</li>
-                    <li><strong>Unified Command:</strong> Multiple agencies, one plan</li>
-                    <li><strong>Accountability:</strong> Everyone has assignment and supervisor</li>
+                    <li><strong>Follow reporting channels</strong></li>
+                    <li><strong>No cross-talk</strong> - wait for clear channel</li>
+                    <li><strong>Document decisions</strong> - all major calls get logged</li>
+                    <li><strong>Use proper radio protocol</strong> from Module 1</li>
+                </ul>
+                <p><strong>Remember:</strong> In real incidents, radio discipline prevents chaos. Think about how you would communicate clearly under pressure.</p>
+            `
+        },
+        {
+            title: 'ICS Forms & Reports',
+            content: `
+                <h3>Simplified Documentation</h3>
+                <h4>Forms You'll Use:</h4>
+                <ul>
+                    <li><strong>ICS 201:</strong> Briefing form (situation summary)</li>
+                    <li><strong>ICS 214:</strong> Activity Log (simplified version)</li>
+                    <li><strong>Verbal Reports:</strong> Become log entries</li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-exclamation-triangle"></i> Critical Rule</h4>
-                    <p>Report to <strong>ONE</strong> supervisor only. Receive assignments from <strong>ONE</strong> supervisor only. Don't skip levels in the chain of command.</p>
+                    <h4><i class="fas fa-clipboard-list"></i> During Exercise</h4>
+                    <p>"You'll be verbally updating your logs during this exercise. Focus on key decisions and actions."</p>
                 </div>
             `
         },
         {
-            title: 'Resource Management',
+            title: 'Scenario Orientation',
             content: `
-                <h3>Managing Resources in ICS</h3>
-                <h4>Resource Types:</h4>
-                <ul>
-                    <li><strong>Single Resource:</strong> Individual person or equipment</li>
-                    <li><strong>Strike Team:</strong> Same type of resources (5 security officers)</li>
-                    <li><strong>Task Force:</strong> Different resources (security + medical + fire)</li>
-                </ul>
-                <h4>Resource Status:</h4>
-                <ul>
-                    <li><strong>Assigned:</strong> Working on tactical assignment</li>
-                    <li><strong>Available:</strong> Ready for assignment</li>
-                    <li><strong>Out of Service:</strong> Rest, repair, unavailable</li>
-                </ul>
-                <h4>Check-In Process:</h4>
-                <p><strong>ALWAYS check in</strong> when arriving at an incident. Provide: Name, agency, qualifications, resources.</p>
+                <h3>Simulation Setup</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-users"></i> Based on Real Events</h4>
+                    <p>This simulation is based on a real crowd surge event (Astroworld-style incident). Students must act in role using ICS structure. Decisions will be made live.</p>
+                </div>
+                <p><strong>Remember:</strong> This is not about getting it perfect. It's about thinking under pressure and working as a team.</p>
             `
         },
         {
-            title: 'Incident Action Plan (IAP)',
+            title: 'Ground Rules',
             content: `
-                <h3>The Incident Action Plan</h3>
-                <p>A plan for managing an incident during an operational period (usually 12-24 hours).</p>
-                <h4>IAP Components:</h4>
+                <h3>Simulation Rules</h3>
+                <h4>During the Exercise:</h4>
                 <ul>
-                    <li><strong>Objectives:</strong> What we want to accomplish</li>
-                    <li><strong>Strategies:</strong> How we'll accomplish objectives</li>
-                    <li><strong>Tactics:</strong> Specific actions</li>
-                    <li><strong>Resource Assignments:</strong> Who does what</li>
-                    <li><strong>Safety Considerations:</strong> Hazards and precautions</li>
-                    <li><strong>Communications Plan:</strong> Radio frequencies, phone numbers</li>
+                    <li><strong>Stay in character</strong></li>
+                    <li><strong>Use ICS titles</strong> when addressing others</li>
+                    <li><strong>Use radio phrases:</strong> "Copy," "Stand by," "I need confirmation"</li>
+                    <li><strong>Speak clearly and concisely</strong></li>
+                    <li><strong>No overlapping chatter</strong></li>
                 </ul>
+                <div class="slide-interactive">
+                    <h4>Practice Example:</h4>
+                    <p><em>"Dispatch, this is Safety Officer, request EMS to Zone 3"</em></p>
+                </div>
+                <p><strong>As you read each scenario:</strong> Put yourself in the role and think through your response before moving to the next slide.</p>
+            `
+        },
+        {
+            title: 'SIMULATION: Initial Report',
+            content: `
+                <h3>Incident Begins</h3>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-clipboard-list"></i> Your Responsibility</h4>
-                    <p>Follow the IAP. If you don't understand your assignment, ask questions before starting work.</p>
+                    <h4><i class="fas fa-broadcast-tower"></i> Radio Report</h4>
+                    <p><strong>"Large crowd gathering unexpectedly at Stage A. Minor pushing."</strong></p>
+                    <ul>
+                        <li>No injuries reported yet</li>
+                        <li>Attendees shouting for water</li>
+                        <li>Crowd density increasing</li>
+                    </ul>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Your Response:</h4>
+                    <p><strong>If you're the Incident Commander:</strong> What roles do you activate? Who do you contact first?</p>
+                    <p><strong>If you're the Safety Officer:</strong> What's your first move? What hazards do you assess?</p>
+                    <p><strong>Take a moment to think through your response before continuing.</strong></p>
                 </div>
             `
         },
         {
-            title: 'Security Guard Responsibilities',
+            title: 'SIMULATION: Escalation',
             content: `
-                <h3>Your Role in ICS</h3>
-                <h4>What You Must Do:</h4>
+                <h3>Situation Worsens</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Radio Report</h4>
+                    <p><strong>"Security reports fence breach at East Entrance."</strong></p>
+                    <ul>
+                        <li>Estimated 200 people entering unscreened</li>
+                        <li>Conflicting radio traffic</li>
+                        <li>Gate security requesting backup</li>
+                    </ul>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Decision Point:</h4>
+                    <p><strong>As Incident Commander:</strong> Do you assign a Staging Area manager? Activate more security? How do you handle conflicting radio traffic?</p>
+                    <p><strong>Challenge:</strong> Multiple units are calling at once. How do you prioritize and maintain control?</p>
+                </div>
+            `
+        },
+        {
+            title: 'SIMULATION: Injury Report',
+            content: `
+                <h3>First Casualty</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-ambulance"></i> Radio Report</h4>
+                    <p><strong>"One unconscious attendee reported near VIP area. Bleeding from head."</strong></p>
+                    <ul>
+                        <li>EMS requested</li>
+                        <li>Witnesses are filming on phones</li>
+                        <li>Crowd gathering around victim</li>
+                    </ul>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Multiple Response Needs:</h4>
+                    <p><strong>As Medical Unit Leader:</strong> What's your triage plan? How do you coordinate with EMS?</p>
+                    <p><strong>As Public Information Officer:</strong> What do you tell press if they arrive? How do you manage witnesses filming?</p>
+                </div>
+            `
+        },
+        {
+            title: 'SIMULATION: Partial Collapse',
+            content: `
+                <h3>Major Incident</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-circle"></i> Radio Report</h4>
+                    <p><strong>"Barricade near Main Stage collapses—several injured in front row."</strong></p>
+                    <ul>
+                        <li>Audio cuts out on stage</li>
+                        <li>People are climbing stage barriers</li>
+                        <li>Multiple injuries reported</li>
+                    </ul>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Critical Decision:</h4>
+                    <p><strong>As Operations Section Chief:</strong> Do you order evacuation or containment? What factors influence your decision?</p>
+                    <p><strong>Consider:</strong> Stage safety, crowd density, injury severity, available resources</p>
+                </div>
+            `
+        },
+        {
+            title: 'SIMULATION: Mass Panic Begins',
+            content: `
+                <h3>Critical Point</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-running"></i> Radio Report</h4>
+                    <p><strong>"Stampede forming at South Exit. Attendees trapped against fence."</strong></p>
+                    <ul>
+                        <li>Multiple radio calls, all units talking over each other</li>
+                        <li>Fire units are arriving outside gate</li>
+                        <li>Screaming audible in background</li>
+                    </ul>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Chaos Management:</h4>
+                    <p><strong>As Incident Commander:</strong> How do you regain control of radio traffic? What command do you give?</p>
+                    <p><strong>As Logistics:</strong> Which emergency exit points do you open? How do you coordinate with security?</p>
+                </div>
+            `
+        },
+        {
+            title: 'SIMULATION: Mutual Aid Requested',
+            content: `
+                <h3>External Resources Arrive</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-fire-extinguisher"></i> Radio Report</h4>
+                    <p><strong>"Local Fire requesting Incident Commander at Gate 3 for staging"</strong></p>
+                    <ul>
+                        <li>EMS forming triage</li>
+                        <li>Airlift request initiated</li>
+                        <li>Multiple agencies on scene</li>
+                    </ul>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Resource Coordination:</h4>
+                    <p><strong>As Transport Officer:</strong> How are you clearing routes for EMS? What obstacles need removal?</p>
+                    <p><strong>As Safety Officer:</strong> Can you reassign personnel? What safety concerns take priority?</p>
+                </div>
+            `
+        },
+        {
+            title: 'SIMULATION: Law Enforcement Conflict',
+            content: `
+                <h3>Authority Confusion</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-shield-alt"></i> Radio Report</h4>
+                    <p><strong>"Police on scene overriding Security orders"</strong></p>
+                    <ul>
+                        <li>Asking for perimeter lockdown</li>
+                        <li>Confusion over ICS authority</li>
+                        <li>Security personnel receiving conflicting orders</li>
+                    </ul>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Authority Challenge:</h4>
+                    <p><strong>As Incident Commander:</strong> How do you assert ICS control while respecting law enforcement authority?</p>
+                    <p><strong>As Liaison Officer:</strong> What do you say to law enforcement to coordinate rather than conflict?</p>
+                </div>
+            `
+        },
+        {
+            title: 'SIMULATION: Stabilization Point',
+            content: `
+                <h3>Situation Stabilizing</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-check-circle"></i> Radio Report</h4>
+                    <p><strong>"Crowd thinning, perimeter secure, injured being transported."</strong></p>
+                    <ul>
+                        <li>Event may resume partial operations</li>
+                        <li>Triage complete</li>
+                        <li>All exits now clear</li>
+                    </ul>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Stabilization Phase:</h4>
+                    <p><strong>Consider:</strong> What resources are needed now? What's the transition plan? How do you document what happened?</p>
+                    <p><strong>Prepare to reflect:</strong> Think about your decisions throughout this simulation.</p>
+                </div>
+            `
+        },
+        {
+            title: 'After Action Review (AAR) Framework',
+            content: `
+                <h3>Debrief: What Happened?</h3>
+                <h4>AAR Questions:</h4>
                 <ol>
-                    <li><strong>Check In:</strong> First thing upon arrival</li>
-                    <li><strong>Get Assignment:</strong> Clear instructions from supervisor</li>
-                    <li><strong>Follow Chain of Command:</strong> Report to assigned supervisor only</li>
-                    <li><strong>Maintain Accountability:</strong> Know your location and assignment</li>
-                    <li><strong>Communicate:</strong> Report status and problems</li>
-                    <li><strong>Document:</strong> Keep activity log (ICS 214)</li>
-                    <li><strong>Safety First:</strong> Report hazards immediately</li>
+                    <li><strong>What went well?</strong></li>
+                    <li><strong>What failed or got missed?</strong></li>
+                    <li><strong>What will you do differently next time?</strong></li>
                 </ol>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-tasks"></i> Common Security Assignments</h4>
-                    <p>Perimeter security, access control, traffic control, crowd management, facility protection, evidence preservation.</p>
+                    <h4><i class="fas fa-users"></i> Self-Assessment</h4>
+                    <p>Reflect on your responses throughout the simulation. Consider each decision you made from your chosen role's perspective.</p>
+                </div>
+                <p><strong>Self-Reflection:</strong> Be honest with yourself about what worked and what didn't in your decision-making.</p>
+            `
+        },
+        {
+            title: 'Leadership Themes',
+            content: `
+                <h3>Lessons from the Simulation</h3>
+                <h4>Key Themes:</h4>
+                <ul>
+                    <li><strong>Accountability in chaos:</strong> Did everyone know their role?</li>
+                    <li><strong>Delegation vs. micromanagement:</strong> Did IC trust their team?</li>
+                    <li><strong>Clear communications and span of control:</strong> Was radio discipline maintained?</li>
+                    <li><strong>Role boundaries and trust:</strong> Did people stay in their lane?</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Discussion Questions:</h4>
+                    <p><strong>"What surprised you about your role?"</strong></p>
+                    <p><strong>"Who did you rely on most?"</strong></p>
                 </div>
             `
         },
         {
             title: 'Module Complete',
             content: `
-                <h3>ICS-100 Training Complete</h3>
-                <p>You now understand the basics of the Incident Command System and your role in emergency response.</p>
+                <h3>Emergency Response & ICS - Complete</h3>
+                <p><strong>"Your job: Keep it from becoming a headline."</strong></p>
                 <h4>Key Takeaways:</h4>
                 <ul>
-                    <li>ICS provides common structure for ALL incidents</li>
-                    <li>Security typically works in Operations Section</li>
-                    <li>Always check in upon arrival</li>
-                    <li>Follow chain of command - one supervisor only</li>
-                    <li>Use common terminology and plain language</li>
-                    <li>Maintain accountability at all times</li>
-                    <li>Document your activities (ICS 214)</li>
+                    <li><strong>Every security officer should understand ICS basics</strong></li>
+                    <li><strong>In real life, you'll be first on scene, not last</strong></li>
+                    <li><strong>Decision-making under pressure is a skill</strong></li>
+                    <li><strong>Communication and coordination save lives</strong></li>
+                    <li><strong>Chain of command prevents chaos</strong></li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-check-circle"></i> Module Complete!</h4>
-                    <p>ICS knowledge makes you a professional asset. Consider taking the free FEMA ICS-100 online course for official certification.</p>
+                    <h4><i class="fas fa-check-circle"></i> Simulation Complete!</h4>
+                    <p>You've experienced real-world incident response. Consider taking the free FEMA ICS-100 online course for official certification.</p>
                 </div>
+                <p><strong>Next Step:</strong> Take the Module 4 Assessment to test your understanding of ICS principles and decision-making under pressure.</p>
             `
         }
     ],
@@ -1414,132 +2264,477 @@ const moduleSlidesData = {
         {
             title: 'Threat Assessment & Situational Awareness',
             content: `
-                <h3>Situational Awareness</h3>
-                <p>The ability to identify, process, and comprehend critical information about your environment.</p>
+                <h3>Threat Assessment & Situational Awareness</h3>
+                <p class="hero-subtitle">Real-Time Decision-Making for Security Professionals</p>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-eye"></i> Cooper's Color Codes</h4>
+                    <h4><i class="fas fa-eye"></i> Module Overview</h4>
+                    <p>This is a "thinking" module—every professional should treat this as a tactical edge, not just soft skills. Your awareness and decision-making can prevent incidents before they happen.</p>
+                    <p><strong>Duration:</strong> 1.5 Hours | <strong>Slides:</strong> 22</p>
+                </div>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-shield-alt"></i> Critical Importance</h4>
+                    <p>Directly ties to officer safety, public protection, and personal liability. This module sharpens everything else you'll learn.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Learning Objectives',
+            content: `
+                <h3>What You'll Master</h3>
+                <ul>
+                    <li><strong>Understand threat assessment basics</strong></li>
+                    <li><strong>Recognize baseline behavior vs. anomalies</strong></li>
+                    <li><strong>Apply situational awareness tools</strong></li>
+                    <li><strong>Define and use de-escalation techniques</strong></li>
+                    <li><strong>Integrate "Time, Distance, and Cover" principles</strong></li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Discussion Question:</h4>
+                    <p><strong>Have you ever felt unsafe, but didn't know why?</strong></p>
+                    <p>That's what we're training today—recognizing and acting on those instincts.</p>
+                </div>
+            `
+        },
+        {
+            title: 'What is a Threat?',
+            content: `
+                <h3>Understanding Threats</h3>
+                <h4>Threat Definition:</h4>
+                <p><strong>A threat = Intent + Capability</strong></p>
+                <h4>Key Distinctions:</h4>
+                <ul>
+                    <li><strong>Risk:</strong> Potential for harm (general)</li>
+                    <li><strong>Threat:</strong> Specific intent and ability to cause harm</li>
+                    <li><strong>Hazard:</strong> Dangerous condition without intent</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Remember</h4>
+                    <p><strong>Not all dangers are threats—but all threats carry danger.</strong> Understanding this distinction helps you prioritize response.</p>
+                </div>
+            `
+        },
+        {
+            title: 'What is Threat Assessment?',
+            content: `
+                <h3>The Threat Assessment Process</h3>
+                <p><strong>Definition:</strong> The process of identifying, analyzing, and monitoring potential harm</p>
+                <h4>3-Stage Cycle:</h4>
+                <ol>
+                    <li><strong>Detection:</strong> Identify potential threats</li>
+                    <li><strong>Evaluation:</strong> Analyze severity and likelihood</li>
+                    <li><strong>Response:</strong> Take appropriate action</li>
+                </ol>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-brain"></i> Proactive, Not Reactive</h4>
+                    <p>This is the "intelligence" of security work. Refer to common failures where red flags were ignored—your job is to catch them early.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Key Behavioral Indicators',
+            content: `
+                <h3>Recognizing Suspicious Behavior</h3>
+                <h4>Warning Signs:</h4>
+                <ul>
+                    <li><strong>Agitation:</strong> Nervous energy, pacing, fidgeting</li>
+                    <li><strong>Avoidance or loitering:</strong> Hanging around without purpose</li>
+                    <li><strong>Fixation on exit points:</strong> Studying escape routes</li>
+                    <li><strong>Inappropriate clothing:</strong> Heavy coat in summer, bulky clothing</li>
+                    <li><strong>Repetitive scanning or pacing:</strong> Surveillance behavior</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-list-check"></i> Critical Point</h4>
+                    <p><strong>Look for clusters, not individual behaviors.</strong> One sign might be nothing—multiple signs together demand attention.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Pre-Event Awareness',
+            content: `
+                <h3>Know Your Environment</h3>
+                <h4>Before Your Shift:</h4>
+                <ul>
+                    <li><strong>Understand the venue:</strong> Layout, capacity, event type</li>
+                    <li><strong>Know entrances/exits:</strong> Primary and emergency</li>
+                    <li><strong>Identify choke points:</strong> Where crowds bottleneck</li>
+                    <li><strong>Know your post and adjacent posts:</strong> Who's around you</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-map-marked-alt"></i> The 25-50-100 Rule</h4>
+                    <p><strong>"You should know your 25, 50, and 100-foot environment."</strong> What's immediately around you, nearby, and in your general area?</p>
+                </div>
+                <p><strong>Instructor:</strong> Use venue maps if available for visual reference.</p>
+            `
+        },
+        {
+            title: 'Indicators of Escalation',
+            content: `
+                <h3>Recognizing When Things Are Getting Worse</h3>
+                <h4>Escalation Warning Signs:</h4>
+                <ul>
+                    <li><strong>Raised voice, clenched fists:</strong> Physical tension building</li>
+                    <li><strong>Invading space:</strong> Getting too close aggressively</li>
+                    <li><strong>Verbal threats or challenges:</strong> "What are you going to do?"</li>
+                    <li><strong>Weapon pre-indicators:</strong> Blading body, adjusting waistband, hand near pocket</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>What Would You Do?</h4>
+                    <p>After each example, ask yourself: What's my next move? Call for backup? Create distance? Start de-escalation?</p>
+                </div>
+                <p><strong>Remember:</strong> De-escalation doesn't guarantee success, but it buys time.</p>
+            `
+        },
+        {
+            title: 'The OODA Loop',
+            content: `
+                <h3>Decision-Making Under Pressure</h3>
+                <h4>OODA Loop Process:</h4>
+                <ol>
+                    <li><strong>Observe:</strong> What's happening?</li>
+                    <li><strong>Orient:</strong> What does it mean?</li>
+                    <li><strong>Decide:</strong> What should I do?</li>
+                    <li><strong>Act:</strong> Execute your decision</li>
+                </ol>
+                <p>Used by military, law enforcement, and security professionals worldwide.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-sync"></i> Stay Ahead</h4>
+                    <p><strong>Staying "ahead" of the attacker's decision cycle</strong> gives you the advantage. Continuous loop—never stop observing.</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Quick Exercise:</h4>
+                    <p><strong>"You see a guy yelling at staff. What's your OODA cycle in 5 seconds?"</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Situational Awareness Levels',
+            content: `
+                <h3>Cooper's Color Code</h3>
+                <h4>Awareness Levels:</h4>
+                <ul>
+                    <li><strong>Condition White:</strong> Unaware, distracted - <strong>AVOID THIS</strong></li>
+                    <li><strong>Condition Yellow:</strong> Relaxed alert, scanning - <strong>NORMAL for security</strong></li>
+                    <li><strong>Condition Orange:</strong> Specific threat identified, focused attention</li>
+                    <li><strong>Condition Red:</strong> Immediate threat, taking action</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Self-Assessment:</h4>
+                    <p><strong>"What level were you in walking into this room?"</strong></p>
+                </div>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Important</h4>
+                    <p><strong>Don't stay in Condition Red—it burns out awareness.</strong> Transition between levels with context.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Baseline vs. Anomaly',
+            content: `
+                <h3>Know Normal to Spot Abnormal</h3>
+                <h4>Baseline Behavior:</h4>
+                <p>The normal pattern of behavior for a specific environment, time, and population.</p>
+                <h4>Anomaly:</h4>
+                <p>Behavior that deviates from the baseline—this is what you're looking for.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-users"></i> Every Crowd Has a Rhythm</h4>
+                    <p><strong>Baselines change with time/location</strong> (e.g., morning vs. evening, concert vs. 5K race)</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Discussion:</h4>
+                    <p><strong>"What's your baseline at a rock concert vs. a 5K race?"</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Risk = Threat × Vulnerability × Consequence',
+            content: `
+                <h3>Understanding the Risk Matrix</h3>
+                <h4>Risk Formula:</h4>
+                <p><strong>Risk = Threat × Vulnerability × Consequence</strong></p>
+                <ul>
+                    <li><strong>Threat:</strong> What could happen?</li>
+                    <li><strong>Vulnerability:</strong> How exposed are we?</li>
+                    <li><strong>Consequence:</strong> How bad would it be?</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-chart-line"></i> Key Principle</h4>
+                    <p><strong>"We reduce risk by reducing any one of these three."</strong> Can't eliminate the threat? Reduce vulnerability or minimize consequences.</p>
+                </div>
+                <p>Tie this to festival work and real venue mapping—visualize the math behind prevention.</p>
+            `
+        },
+        {
+            title: 'Introduce De-escalation',
+            content: `
+                <h3>De-escalation Fundamentals</h3>
+                <p><strong>Definition:</strong> Verbal, spatial, and behavioral tools to prevent violence</p>
+                <h4>Goal:</h4>
+                <p><strong>Disrupt emotional momentum</strong> and gain voluntary compliance</p>
+                <h4>Core Concept:</h4>
+                <p><strong>It's not losing—it's winning control.</strong> De-escalation is tactical, not weakness.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-brain"></i> The Science</h4>
+                    <p><strong>"The brain needs time to catch up with adrenaline—your job is to slow the moment down."</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Time, Distance, and Cover',
+            content: `
+                <h3>Tactical De-escalation Framework</h3>
+                <h4>Time:</h4>
+                <p><strong>Delay decision-making.</strong> Let emotions cool, wait for backup, give them space to think.</p>
+                <h4>Distance:</h4>
+                <p><strong>Create space between aggressor and target.</strong> 6-10 feet minimum. Distance = reaction time.</p>
+                <h4>Cover:</h4>
+                <p><strong>Use physical protection or concealment.</strong> Barrier between you and threat.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-shield-alt"></i> The Mantra</h4>
+                    <p><strong>"Step back, take a breath, barrier between."</strong></p>
+                </div>
+                <p><strong>Instructor:</strong> Walk through a real incident where these three saved lives.</p>
+            `
+        },
+        {
+            title: 'Verbal De-escalation Tools',
+            content: `
+                <h3>Communication Techniques</h3>
+                <h4>The Progression:</h4>
+                <ul>
+                    <li><strong>Ask:</strong> "Can you help me understand what's wrong?"</li>
+                    <li><strong>Tell:</strong> "I need you to step back please"</li>
+                    <li><strong>Command:</strong> "Step back now"</li>
+                </ul>
+                <h4>Key Principles:</h4>
+                <p><strong>Tone > Words</strong> - How you say it matters more than what you say</p>
+                <p><strong>Tactical Empathy:</strong> "I hear you..." acknowledges without agreeing</p>
+                <h4>Avoid Escalation Traps:</h4>
+                <ul>
+                    <li>Don't insult or belittle</li>
+                    <li>Don't say "Calm down"</li>
+                    <li>Don't make it personal</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Practice Line:</h4>
+                    <p><strong>"What can I do to help right now?"</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Scene Assessment – What Are You Missing?',
+            content: `
+                <h3>Visual Scenario Exercise</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-search"></i> Scan for Threats</h4>
+                    <p>Look at your environment right now. What do you see?</p>
                     <ul>
-                        <li><strong>White:</strong> Unaware - AVOID THIS</li>
-                        <li><strong>Yellow:</strong> Relaxed alert - NORMAL for security</li>
-                        <li><strong>Orange:</strong> Specific threat identified</li>
-                        <li><strong>Red:</strong> Immediate threat, taking action</li>
+                        <li>Where are the exits?</li>
+                        <li>Who's acting differently from the baseline?</li>
+                        <li>What's your escape route?</li>
+                        <li>Where would you position yourself?</li>
                     </ul>
                 </div>
+                <div class="slide-interactive">
+                    <h4>Group Discussion:</h4>
+                    <p><strong>What's off? What behaviors stand out? What would you report?</strong></p>
+                </div>
+                <p><strong>Instructor:</strong> Pause here. Let students point out behaviors, exits, isolation, etc.</p>
+            `
+        },
+        {
+            title: 'Scenario 1 – Crowd Aggression',
+            content: `
+                <h3>Practice Scenario: Gate Incident</h3>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-sync"></i> OODA Loop</h4>
-                    <p><strong>Observe → Orient → Decide → Act</strong> - Continuously repeat this process to stay ahead of threats.</p>
+                    <h4><i class="fas fa-users"></i> Scenario</h4>
+                    <p>Pushing at a gate after a delay. Crowd is getting agitated. Someone yells "Let us in!" Others start pushing forward.</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Pair Exercise:</h4>
+                    <p><strong>How would you:</strong></p>
+                    <ul>
+                        <li>Report this situation?</li>
+                        <li>Respond to the crowd?</li>
+                        <li>Position yourself?</li>
+                        <li>Use Time, Distance, Cover?</li>
+                    </ul>
+                </div>
+                <p><strong>Instructor:</strong> Break class into pairs for discussion.</p>
+            `
+        },
+        {
+            title: 'Scenario 2 – Lone Subject Near Staff Tent',
+            content: `
+                <h3>Practice Scenario: Suspicious Loitering</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-user-secret"></i> Scenario</h4>
+                    <p>Individual loitering near a restricted staff area. Not engaging with event. Keeps looking around. Heavy jacket on a warm day.</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Exercise:</h4>
+                    <p><strong>Use OODA + Baseline/Anomaly tools</strong></p>
+                    <p>Have a student give SITREP with threat indicators:</p>
+                    <ul>
+                        <li>What did you observe?</li>
+                        <li>What's the baseline here?</li>
+                        <li>What's the anomaly?</li>
+                        <li>What's your action?</li>
+                    </ul>
                 </div>
             `
         },
         {
-            title: 'Threat Recognition',
+            title: 'Body Language & Proximity',
             content: `
-                <h3>Pre-Attack Indicators</h3>
-                <h4>Behavioral Cues:</h4>
+                <h3>Reading Physical Cues</h3>
+                <h4>What to Watch:</h4>
                 <ul>
-                    <li><strong>Surveillance:</strong> Watching security, taking photos</li>
-                    <li><strong>Elicitation:</strong> Asking unusual questions</li>
-                    <li><strong>Testing Security:</strong> Probing for weaknesses</li>
-                    <li><strong>Suspicious Behavior:</strong> Nervous, sweating, avoiding eye contact</li>
-                    <li><strong>Inappropriate Dress:</strong> Heavy clothing in warm weather</li>
+                    <li><strong>Hands visible?</strong> Hidden hands = potential weapon</li>
+                    <li><strong>Distance respected?</strong> Invasion of space = aggression</li>
+                    <li><strong>Open vs. closed posture:</strong> Arms crossed, turned away, or facing you?</li>
+                    <li><strong>Context-specific behavior:</strong> Normal for venue or out of place?</li>
                 </ul>
-                <h4>Physical Threat Indicators:</h4>
-                <ul>
-                    <li>Aggressive posture, clenched fists</li>
-                    <li>Target glancing (looking where they'll strike)</li>
-                    <li>Blade stance (sideways fighting position)</li>
-                    <li>Facial flushing, rapid breathing</li>
-                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-hand-paper"></i> Scanning Habit</h4>
+                    <p><strong>"Hands and eyes"</strong> - Always watch hands (for weapons) and eyes (for intent)</p>
+                </div>
+                <p><strong>Instructor:</strong> Demo confrontation vs. approach stances</p>
             `
         },
         {
-            title: 'De-escalation Defined (SG-9)',
+            title: 'Incident Avoidance: Your Role',
             content: `
-                <h3>What is De-escalation?</h3>
-                <p><strong>Definition:</strong> Techniques used to prevent a situation from escalating to violence.</p>
-                <h4>Core Principles:</h4>
+                <h3>Prevention is Your Job</h3>
+                <h4>Your Responsibilities:</h4>
                 <ul>
-                    <li><strong>Respect:</strong> Treat with dignity</li>
-                    <li><strong>Empathy:</strong> Understand their perspective</li>
-                    <li><strong>Patience:</strong> Allow time for emotions to decrease</li>
-                    <li><strong>Calm Presence:</strong> Your composure influences them</li>
-                    <li><strong>Active Listening:</strong> Hear what they're really saying</li>
+                    <li><strong>Spot it early:</strong> Catch problems before they escalate</li>
+                    <li><strong>Communicate with your team:</strong> Share what you see</li>
+                    <li><strong>Trust your gut—but verify:</strong> Instincts + evidence</li>
+                    <li><strong>Don't delay reporting:</strong> Better to be wrong than late</li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-comments"></i> Goal</h4>
-                    <p>Gain voluntary compliance without use of force. Resolve conflicts through communication rather than confrontation.</p>
+                    <h4><i class="fas fa-comments"></i> Critical Mindset</h4>
+                    <p><strong>"You don't have to be right—you just have to speak up."</strong> False alarms are better than missed threats.</p>
                 </div>
             `
         },
         {
-            title: 'Time, Distance, Cover (SG-10)',
+            title: 'Summary – You Are the Sensor',
             content: `
-                <h3>Tactical De-escalation Tools</h3>
-                <h4>Time:</h4>
+                <h3>Your Role in Threat Detection</h3>
+                <h4>Key Takeaways:</h4>
                 <ul>
-                    <li>Slow the situation - let emotions cool</li>
-                    <li>Give person time to think and respond</li>
-                    <li>Wait for backup if needed</li>
-                    <li>Anger is exhausting - time works in your favor</li>
+                    <li><strong>You are the first line of intelligence</strong></li>
+                    <li><strong>Good instincts + good tools = reduced risk</strong></li>
+                    <li><strong>Don't wait for a supervisor to notice</strong></li>
+                    <li><strong>Everyone's job is threat detection</strong></li>
                 </ul>
-                <h4>Distance:</h4>
-                <ul>
-                    <li>Maintain 6-10 feet when possible</li>
-                    <li>21-Foot Rule: Person with knife can close 21 feet in 1.5 seconds</li>
-                    <li>Stand at 45-degree angle, not directly facing</li>
-                    <li>Always know your escape route</li>
-                </ul>
-                <h4>Cover vs. Concealment:</h4>
-                <ul>
-                    <li><strong>Cover:</strong> Stops bullets (concrete, engine blocks)</li>
-                    <li><strong>Concealment:</strong> Hides you (bushes, drywall)</li>
-                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Remember</h4>
+                    <p><strong>"No one dies from a false alarm. They die from no warning."</strong></p>
+                </div>
             `
         },
         {
-            title: 'Communication in De-escalation (SG-11)',
+            title: 'Knowledge Check 1',
             content: `
-                <h3>Verbal De-escalation</h3>
-                <h4>The LEAPS Model:</h4>
-                <ul>
-                    <li><strong>L - Listen:</strong> Actively hear their concerns</li>
-                    <li><strong>E - Empathize:</strong> Show you understand feelings</li>
-                    <li><strong>A - Ask:</strong> Questions to understand situation</li>
-                    <li><strong>P - Paraphrase:</strong> Repeat back what you heard</li>
-                    <li><strong>S - Summarize:</strong> Recap and propose solutions</li>
-                </ul>
-                <h4>Phrases to Use:</h4>
-                <ul>
-                    <li>"I want to help you, can you tell me what's wrong?"</li>
-                    <li>"I understand this is frustrating for you"</li>
-                    <li>"Let's work together to find a solution"</li>
-                </ul>
-                <h4>Phrases to AVOID:</h4>
-                <ul>
-                    <li>"Calm down" or "Relax" (dismissive)</li>
-                    <li>"You need to..." (commanding)</li>
-                    <li>"That's not my problem" (uncaring)</li>
-                </ul>
+                <h3>Quiz Question 1</h3>
+                <div class="slide-quiz" data-quiz-id="threat-q1">
+                    <p class="slide-quiz-question">What does OODA stand for?</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">Order, Organize, Deploy, Act</div>
+                        <div class="slide-quiz-option" data-answer="1" data-correct="true">Observe, Orient, Decide, Act</div>
+                        <div class="slide-quiz-option" data-answer="2">Observe, Operate, Defend, Assess</div>
+                        <div class="slide-quiz-option" data-answer="3">Organize, Orient, Direct, Activate</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
+                </div>
+            `
+        },
+        {
+            title: 'Knowledge Check 2',
+            content: `
+                <h3>Quiz Question 2</h3>
+                <div class="slide-quiz" data-quiz-id="threat-q2">
+                    <p class="slide-quiz-question">Name two signs of escalation:</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">Smiling and waving</div>
+                        <div class="slide-quiz-option" data-answer="1" data-correct="true">Raised voice and clenched fists</div>
+                        <div class="slide-quiz-option" data-answer="2">Sitting quietly and waiting</div>
+                        <div class="slide-quiz-option" data-answer="3">Walking away calmly</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
+                </div>
+            `
+        },
+        {
+            title: 'Knowledge Check 3',
+            content: `
+                <h3>Quiz Question 3</h3>
+                <div class="slide-quiz" data-quiz-id="threat-q3">
+                    <p class="slide-quiz-question">What's the difference between risk and threat?</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">They mean the same thing</div>
+                        <div class="slide-quiz-option" data-answer="1" data-correct="true">Threat = intent + capability; Risk = potential for harm</div>
+                        <div class="slide-quiz-option" data-answer="2">Risk is more dangerous than threat</div>
+                        <div class="slide-quiz-option" data-answer="3">Threat is imaginary, risk is real</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
+                </div>
+            `
+        },
+        {
+            title: 'Knowledge Check 4',
+            content: `
+                <h3>Quiz Question 4</h3>
+                <div class="slide-quiz" data-quiz-id="threat-q4">
+                    <p class="slide-quiz-question">What's the purpose of de-escalation?</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">To show you're in charge</div>
+                        <div class="slide-quiz-option" data-answer="1" data-correct="true">To disrupt emotional momentum and prevent violence</div>
+                        <div class="slide-quiz-option" data-answer="2">To make friends with everyone</div>
+                        <div class="slide-quiz-option" data-answer="3">To delay calling for backup</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
+                </div>
+            `
+        },
+        {
+            title: 'Knowledge Check 5',
+            content: `
+                <h3>Quiz Question 5</h3>
+                <div class="slide-quiz" data-quiz-id="threat-q5">
+                    <p class="slide-quiz-question">What are the 3 components of the tactical de-escalation framework?</p>
+                    <div class="slide-quiz-options">
+                        <div class="slide-quiz-option" data-answer="0">Talk, Listen, Act</div>
+                        <div class="slide-quiz-option" data-answer="1" data-correct="true">Time, Distance, and Cover</div>
+                        <div class="slide-quiz-option" data-answer="2">Observe, Report, Respond</div>
+                        <div class="slide-quiz-option" data-answer="3">Assess, Engage, Retreat</div>
+                    </div>
+                    <div class="slide-quiz-feedback"></div>
+                </div>
             `
         },
         {
             title: 'Module Complete',
             content: `
-                <h3>Threat Assessment Training Complete</h3>
-                <p>You now have the skills to identify threats and de-escalate potentially violent situations.</p>
-                <h4>Key Takeaways:</h4>
+                <h3>Threat Assessment & Situational Awareness - Complete</h3>
+                <p><strong>"Stay aware. Stay alive."</strong></p>
+                <h4>What You've Mastered:</h4>
                 <ul>
-                    <li>Maintain yellow level awareness at all times</li>
-                    <li>Trust your instincts - if something feels wrong, it probably is</li>
-                    <li>Use time and distance as your best de-escalation tools</li>
-                    <li>Communication is key - LEAPS model</li>
-                    <li>Know when de-escalation won't work</li>
-                    <li>Retreat is not failure, it's tactics</li>
+                    <li><strong>Threat assessment basics</strong> - Detection, Evaluation, Response</li>
+                    <li><strong>Baseline vs. anomaly recognition</strong></li>
+                    <li><strong>OODA Loop</strong> for decision-making</li>
+                    <li><strong>Cooper's Color Code</strong> awareness levels</li>
+                    <li><strong>De-escalation techniques</strong></li>
+                    <li><strong>Time, Distance, and Cover</strong></li>
+                    <li><strong>Behavioral indicators and body language</strong></li>
                 </ul>
                 <div class="slide-callout">
                     <h4><i class="fas fa-check-circle"></i> Module Complete!</h4>
-                    <p>Your ability to assess threats and de-escalate situations will prevent violence and save lives.</p>
+                    <p>This module sharpens everything else you'll learn. You're now equipped to be the first line of intelligence and prevention.</p>
                 </div>
+                <p><strong>Next Module:</strong> Module 4 - Emergency Response & ICS</p>
             `
         }
     ]

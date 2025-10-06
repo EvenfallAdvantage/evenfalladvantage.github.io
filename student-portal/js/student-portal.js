@@ -2259,102 +2259,202 @@ const assessmentQuestions = {
     ],
     'communication-protocols': [
         {
+            question: 'What is the proper order of a SITREP (Situation Report)?',
+            options: [
+                'What, Where, Who, When, What\'s Needed',
+                'Who, What, Where, When, What\'s Needed',
+                'Where, What, Who, What\'s Needed, When',
+                'When, Where, What, Who, What\'s Needed'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What should you say instead of "Repeat" on the radio?',
+            options: [
+                'Again',
+                'Say again',
+                'Repeat that',
+                'Come back'
+            ],
+            correct: 1
+        },
+        {
+            question: 'Who should you report to first in a non-emergency situation?',
+            options: [
+                'Event Manager',
+                'Security Manager',
+                'Your immediate supervisor',
+                'Any available supervisor'
+            ],
+            correct: 2
+        },
+        {
             question: 'What does "10-4" mean on the radio?',
             options: [
-                'Emergency situation requiring all units to respond immediately',
-                'Message received and understood clearly by the recipient',
-                'Out of service and unavailable for any assignments',
-                'Need backup assistance at your current location now'
+                'Emergency situation',
+                'Message received and understood',
+                'Out of service',
+                'Need backup'
             ],
             correct: 1
         },
         {
-            question: 'When using the radio, you should:',
+            question: 'The Pause-Press-Speak formula means:',
             options: [
-                'Talk immediately after pressing the transmit button',
-                'Wait one second after pressing PTT before speaking',
-                'Hold the button down while listening to responses',
-                'Press and release quickly for each word spoken'
+                'Press PTT, pause, then speak immediately',
+                'Think before keying, press PTT and wait 1 second, then speak',
+                'Pause between each word while speaking',
+                'Press PTT multiple times before speaking'
             ],
             correct: 1
         },
         {
-            question: 'What does "10-20" mean?',
+            question: 'What should you do if your radio dies during your shift?',
             options: [
-                'Take a 20-minute break from your duties',
-                'What is your location or current position?',
-                'Respond to Gate 20 for an assignment',
-                'Twenty people are involved in the incident'
+                'Continue working and report it at end of shift',
+                'Immediately notify supervisor using backup communication method',
+                'Go home since you can\'t communicate',
+                'Borrow another guard\'s radio'
             ],
             correct: 1
         },
         {
-            question: 'Code 3 typically indicates:',
+            question: 'What does "10-33" mean?',
             options: [
-                'Third shift is starting their work period',
-                'Emergency requiring immediate response and assistance',
-                'Three guards needed at a specific location',
-                'Routine patrol check at checkpoint three'
+                'Arrived on scene',
+                'Emergency traffic - clear the channel',
+                'Out of service',
+                'What is your location?'
             ],
             correct: 1
         },
         {
-            question: 'When reporting an incident on the radio, you should:',
+            question: 'When should you use face-to-face communication instead of radio?',
             options: [
-                'Give your opinion about what probably happened',
-                'State location, situation objectively, and assistance needed',
-                'Wait until the end of your shift to report',
-                'Only report if someone specifically asks you'
+                'For all communications to be more personal',
+                'For delivering sensitive information and resolving conflicts',
+                'Never - radio is always preferred',
+                'Only when your radio is broken'
             ],
             correct: 1
         },
         {
-            question: 'Radio communication should be:',
+            question: 'What is the primary reason for regular radio check-ins during quiet periods?',
             options: [
-                'Detailed with every possible piece of information',
-                'Clear, concise, and professional at all times',
-                'Casual and friendly to build team rapport',
-                'Minimal to avoid cluttering the radio channel'
+                'To keep yourself entertained',
+                'To ensure your radio is working and team knows you\'re alert',
+                'To practice your radio skills',
+                'Because it\'s required by law'
             ],
             correct: 1
         },
         {
-            question: 'The chain of command means:',
+            question: 'Code 3 indicates:',
             options: [
-                'Everyone has equal authority to make decisions',
-                'Following proper reporting structure and authority levels',
-                'Only the top supervisor can give any orders',
-                'Guards can skip levels if they disagree'
+                'Non-emergency situation',
+                'Urgent but not emergency',
+                'Emergency - immediate response needed',
+                'End of shift'
+            ],
+            correct: 2
+        },
+        {
+            question: 'What should you include in a radio incident report?',
+            options: [
+                'Your personal opinions about what happened',
+                'Location, nature of incident, people involved, injuries, assistance needed',
+                'Only the most dramatic details',
+                'Wait and include everything in written report later'
             ],
             correct: 1
         },
         {
-            question: 'If you need to leave your post, you must:',
+            question: 'Why should you never use profanity on the radio?',
             options: [
-                'Just leave and come back as soon as possible',
-                'Get supervisor approval and ensure post is covered',
-                'Tell another guard and switch positions with them',
-                'Radio that you are leaving and walk away'
+                'It might hurt someone\'s feelings',
+                'Everything is recorded and can be used in legal proceedings',
+                'Your supervisor might hear it',
+                'It\'s just a suggestion, not a rule'
             ],
             correct: 1
         },
         {
-            question: 'Professional radio etiquette includes:',
+            question: 'What does "10-7" mean?',
             options: [
-                'Interrupting others if your message is important',
-                'Waiting for clear channel and being concise',
-                'Using humor and jokes to lighten the mood',
-                'Speaking loudly to ensure everyone hears you'
+                'In service and available',
+                'Out of service / on break',
+                'Emergency',
+                'Arrived on scene'
             ],
             correct: 1
         },
         {
-            question: 'When writing an incident report, you should:',
+            question: 'When three units are trying to transmit at once causing confusion, what should happen?',
             options: [
-                'Include your personal opinions and assumptions clearly',
-                'Be factual, objective, and include all relevant information',
-                'Exaggerate details to emphasize the seriousness',
-                'Only write what makes you look good'
+                'Everyone keeps trying until someone gets through',
+                'The loudest person wins',
+                'Supervisor takes control: "All units standby, Command has the channel"',
+                'Switch to a different channel'
+            ],
+            correct: 2
+        },
+        {
+            question: 'The chain of command helps to:',
+            options: [
+                'Make sure everyone knows who the boss is',
+                'Reduce radio clutter and ensure efficient operations',
+                'Prevent guards from talking to each other',
+                'Slow down emergency response'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What is radio discipline?',
+            options: [
+                'Punishing people who misuse radios',
+                'Keeping radio channels clear and professional for operational effectiveness',
+                'Only using radio during emergencies',
+                'Speaking in a military tone'
+            ],
+            correct: 1
+        },
+        {
+            question: 'An attendee is yelling at you about a policy. What should you do?',
+            options: [
+                'Yell back to establish authority',
+                'Immediately call for backup on radio',
+                'Stay calm, listen, and explain the policy professionally',
+                'Walk away and ignore them'
+            ],
+            correct: 2
+        },
+        {
+            question: 'What does "10-8" mean?',
+            options: [
+                'Out of service',
+                'In service and available',
+                'Emergency',
+                'Need backup'
+            ],
+            correct: 1
+        },
+        {
+            question: 'When should you report an incident?',
+            options: [
+                'Only if it\'s a major emergency',
+                'Report early and report often',
+                'Wait until you have all the details',
+                'Only if someone asks you'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What is the main purpose of your radio in security work?',
+            options: [
+                'To look professional',
+                'Your lifeline for safety and coordination',
+                'To communicate with friends',
+                'Required equipment but rarely used'
             ],
             correct: 1
         }
@@ -2381,7 +2481,7 @@ const assessmentQuestions = {
             correct: 1
         },
         {
-            question: 'What is de-escalation? (SG-9)',
+            question: 'What is de-escalation?',
             options: [
                 'Using force to control a situation',
                 'Techniques used to prevent a situation from escalating to violence',
@@ -2477,6 +2577,86 @@ const assessmentQuestions = {
                 'Disengage if possible, call law enforcement, use only necessary force to protect life',
                 'Immediately use maximum force',
                 'Wait for the person to calm down on their own'
+            ],
+            correct: 1
+        },
+        {
+            question: 'A threat is defined as:',
+            options: [
+                'Any dangerous situation',
+                'Intent + Capability',
+                'Only physical violence',
+                'Something that scares you'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What are the 3 stages of the threat assessment cycle?',
+            options: [
+                'See, Report, Act',
+                'Detection, Evaluation, Response',
+                'Observe, Decide, Execute',
+                'Identify, Contain, Resolve'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What does "baseline vs. anomaly" mean?',
+            options: [
+                'Comparing different security posts',
+                'Knowing normal behavior to spot abnormal behavior',
+                'Measuring crowd sizes',
+                'Checking equipment standards'
+            ],
+            correct: 1
+        },
+        {
+            question: 'The risk formula is:',
+            options: [
+                'Risk = Threat + Vulnerability',
+                'Risk = Threat × Vulnerability × Consequence',
+                'Risk = Threat - Protection',
+                'Risk = Danger × Time'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What is the "25-50-100 Rule"?',
+            options: [
+                'Maximum crowd capacity limits',
+                'Know your 25, 50, and 100-foot environment',
+                'Response time standards',
+                'Radio check intervals'
+            ],
+            correct: 1
+        },
+        {
+            question: 'Weapon pre-indicators include:',
+            options: [
+                'Smiling and waving',
+                'Blading body, adjusting waistband, hand near pocket',
+                'Walking slowly',
+                'Making eye contact'
+            ],
+            correct: 1
+        },
+        {
+            question: 'The Ask-Tell-Command progression means:',
+            options: [
+                'Always command first to show authority',
+                'Start with asking, escalate to telling, then commanding if needed',
+                'Never ask, only tell and command',
+                'Ask three times before giving up'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What critical mindset should you have about reporting threats?',
+            options: [
+                'Only report if you\'re 100% certain',
+                'You don\'t have to be right—you just have to speak up',
+                'Wait for someone else to report it',
+                'Never report unless supervisor asks'
             ],
             correct: 1
         }
@@ -2593,14 +2773,44 @@ const assessmentQuestions = {
             correct: 1
         },
         {
-            question: 'Common security assignments in ICS include all EXCEPT:',
+            question: 'During a crowd surge simulation, who should the Incident Commander contact first when law enforcement arrives and starts overriding security orders?',
             options: [
-                'Perimeter security and access control',
-                'Medical triage and treatment',
-                'Crowd control and traffic management',
-                'Protection of incident facilities'
+                'The media',
+                'The Liaison Officer to coordinate with law enforcement',
+                'All security personnel directly',
+                'The venue owner'
             ],
             correct: 1
+        },
+        {
+            question: 'In the simulation, when multiple radio calls are happening at once during mass panic, what should the IC do?',
+            options: [
+                'Let everyone talk until they finish',
+                'Turn off the radio',
+                'Regain control by asserting command of the channel',
+                'Switch to a different frequency'
+            ],
+            correct: 2
+        },
+        {
+            question: 'What is the primary purpose of the After Action Review (AAR)?',
+            options: [
+                'To assign blame for mistakes',
+                'To identify what went well, what failed, and what to do differently',
+                'To write reports for management',
+                'To determine who gets promoted'
+            ],
+            correct: 1
+        },
+        {
+            question: 'During the simulation, when should security personnel document their activities?',
+            options: [
+                'Only at the end of the incident',
+                'Never - that\'s someone else\'s job',
+                'Throughout the incident using ICS 214 activity logs',
+                'Only if something goes wrong'
+            ],
+            correct: 2
         }
     ],
     'diverse-population': [
@@ -2727,152 +2937,202 @@ const assessmentQuestions = {
     ],
     'stop-the-bleed': [
         {
+            question: 'What are the 3 steps to stop bleeding?',
+            options: [
+                'Call 911, wait, and watch',
+                'Apply pressure, pack the wound, apply tourniquet',
+                'Elevate, ice, and bandage',
+                'Clean, cover, and transport'
+            ],
+            correct: 1
+        },
+        {
             question: 'How quickly can severe bleeding cause death?',
             options: [
-                'Within 30 minutes if left untreated',
-                'Within 5 minutes or less without intervention',
-                'Within 15-20 minutes in most cases',
-                'It depends on the person\'s overall health'
+                'Within 30 minutes',
+                'Within 5 minutes or less',
+                'Within 15-20 minutes',
+                'Within 1 hour'
             ],
             correct: 1
         },
         {
-            question: 'What are the three steps of STOP THE BLEED®?',
+            question: 'What does the ABC acronym stand for in identifying life-threatening bleeding?',
             options: [
-                'Call 911, apply bandage, wait for help',
-                'Identify the bleeding, apply pressure, get help',
-                'Assess scene, treat shock, call for backup',
-                'Remove clothing, elevate limb, apply tourniquet'
+                'Airway, Breathing, Circulation',
+                'Alert, Bleeding, Compress',
+                'Assess, Bandage, Call',
+                'Arterial, Blood, Capillary'
             ],
             correct: 1
         },
         {
-            question: 'What type of bleeding is characterized by bright red, spurting blood?',
+            question: 'What is the FIRST priority before providing bleeding control?',
             options: [
-                'Venous bleeding requiring immediate pressure application',
-                'Arterial bleeding requiring immediate tourniquet',
-                'Capillary bleeding that can be treated with standard first aid',
-                'Internal bleeding that requires immediate hospital transport'
+                'Call 911',
+                'Ensure scene safety',
+                'Put on gloves',
+                'Locate the bleeding'
             ],
             correct: 1
         },
         {
-            question: 'When applying direct pressure to a wound, how long should you maintain pressure?',
+            question: 'What is the primary tool for stopping bleeding?',
             options: [
-                'For 30 seconds then check if bleeding has stopped',
-                'For at least 3 minutes without releasing pressure',
-                'Until the victim says the pain has decreased',
-                'For 1 minute then apply a tourniquet instead'
+                'Tourniquet',
+                'Direct pressure',
+                'Wound packing',
+                'Elevation'
             ],
             correct: 1
         },
         {
-            question: 'If blood soaks through the first dressing, what should you do?',
+            question: 'When should you pack a wound?',
             options: [
-                'Remove the soaked dressing and replace with a clean one',
-                'Add more dressings on top without removing the original',
-                'Apply a tourniquet immediately above the wound',
-                'Elevate the limb and wait for EMS to arrive'
+                'For all bleeding wounds',
+                'For deep wounds in junctional areas (neck, groin, armpit)',
+                'Only for arm and leg wounds',
+                'Never - always use tourniquets'
             ],
             correct: 1
         },
         {
-            question: 'Where should a tourniquet be placed on a limb?',
+            question: 'Where should a tourniquet be placed?',
             options: [
-                'Directly on the wound for maximum pressure',
+                'Directly on the wound',
                 '2-3 inches above the wound, never on a joint',
-                'As close to the body (proximal) as possible',
-                'On the joint closest to the wound location'
+                'On the nearest joint',
+                'As close to the body as possible'
+            ],
+            correct: 1
+        },
+        {
+            question: 'How tight should a tourniquet be?',
+            options: [
+                'Tight enough to slow bleeding',
+                'Tight enough to stop bleeding completely',
+                'Just snug, not too tight',
+                'As tight as possible regardless of bleeding'
             ],
             correct: 1
         },
         {
             question: 'What should you do after applying a tourniquet?',
             options: [
-                'Loosen it every 5 minutes to restore blood flow',
-                'Note the exact time applied and write it on the tourniquet',
-                'Remove it once bleeding stops to prevent tissue damage',
-                'Apply a second tourniquet for extra security'
+                'Loosen it every 5 minutes',
+                'Write the exact time on the tourniquet or victim\'s forehead',
+                'Remove it once bleeding stops',
+                'Apply a second one for safety'
             ],
             correct: 1
         },
         {
-            question: 'Wound packing is used for bleeding in which areas?',
+            question: 'Can you remove a tourniquet once applied?',
             options: [
-                'Any wound that is bleeding heavily regardless of location',
-                'Junctional areas where tourniquets cannot be applied (neck, groin, armpit)',
-                'Only for wounds on the arms and legs',
-                'Wounds on the torso and chest area only'
+                'Yes, after 10 minutes',
+                'No, only trained medical professionals can remove it',
+                'Yes, once bleeding stops',
+                'Yes, if the victim complains of pain'
             ],
             correct: 1
         },
         {
-            question: 'What is the FIRST priority before providing medical care?',
+            question: 'Why is a belt NOT a good tourniquet?',
             options: [
-                'Call 911 and get professional help on the way',
-                'Ensure scene safety for yourself and others',
-                'Put on gloves and other personal protective equipment',
-                'Locate the source of bleeding on the victim'
+                'It\'s too short',
+                'It\'s too wide and won\'t provide enough pressure',
+                'It\'s too expensive',
+                'It\'s too uncomfortable'
             ],
             correct: 1
         },
         {
-            question: 'What are signs of shock in a bleeding victim?',
+            question: 'When calling for help, what should you say?',
             options: [
-                'Flushed red skin, slow pulse, and increased energy',
-                'Pale/cold/clammy skin, rapid pulse, confusion, weakness',
-                'Elevated body temperature and profuse sweating',
-                'Slow breathing and decreased heart rate'
+                'Someone is hurt',
+                'Life-threatening bleeding at [specific location]',
+                'Send an ambulance',
+                'We need help now'
             ],
             correct: 1
         },
         {
-            question: 'What should be included in a STOP THE BLEED® kit?',
+            question: 'What critical rule applies when calling for help?',
             options: [
-                'Bandages, aspirin, ice packs, and elastic wraps',
-                'CAT tourniquet, hemostatic gauze, trauma shears, gloves',
-                'Antiseptic wipes, adhesive bandages, and antibiotic ointment',
-                'Splints, cervical collars, and oxygen masks'
+                'Call quietly so you don\'t panic the victim',
+                'Don\'t assume someone else called - delegate out loud',
+                'Wait until you\'ve stopped the bleeding',
+                'Only call if the victim asks you to'
             ],
             correct: 1
         },
         {
-            question: 'Who can remove a tourniquet once it has been applied?',
+            question: 'What happens if you remove a tourniquet prematurely?',
             options: [
-                'Anyone trained in STOP THE BLEED® procedures',
-                'Only medical professionals (EMS, doctors, nurses)',
-                'The person who applied it if bleeding has stopped',
-                'A supervisor or security team leader on scene'
+                'Nothing serious',
+                'It can kill the victim',
+                'The victim will feel better',
+                'Blood flow will gradually return'
             ],
             correct: 1
         },
         {
-            question: 'What legal protection exists for those who provide emergency medical care?',
+            question: 'What should you do if blood soaks through the first dressing?',
             options: [
-                'No legal protection exists for non-medical personnel',
-                'Good Samaritan laws in all 50 states protect those acting in good faith',
-                'Protection only if you have formal medical certification',
-                'Legal immunity only if the victim survives'
+                'Remove it and apply a new one',
+                'Add more dressings on top without removing the original',
+                'Switch to a tourniquet immediately',
+                'Stop and wait for EMS'
             ],
             correct: 1
         },
         {
-            question: 'When should you use hemostatic gauze (QuikClot)?',
+            question: 'What is the key principle of direct pressure?',
             options: [
-                'For all bleeding wounds as the first treatment option',
-                'For wound packing in junctional areas or deep wounds',
-                'Only after a tourniquet has failed to stop bleeding',
-                'For minor cuts and scrapes to speed up clotting'
+                'Be gentle to avoid pain',
+                'Direct pressure buys time - push hard and don\'t let up',
+                'Apply for 30 seconds then check',
+                'Use one hand only'
             ],
             correct: 1
         },
         {
-            question: 'What is a common myth about tourniquets that is FALSE?',
+            question: 'What does "Do not become a second victim" mean?',
             options: [
-                'Tourniquets should be tightened until bleeding stops',
-                'Tourniquets always cause limb loss and should be avoided',
-                'Tourniquets are used for life-threatening limb bleeding',
-                'The time of tourniquet application should be documented'
+                'Don\'t help if you\'re scared',
+                'Ensure scene safety before approaching',
+                'Let professionals handle it',
+                'Only help people you know'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What should you say to reassure a bleeding victim?',
+            options: [
+                'Everything will be fine',
+                'I\'m here. Help is on the way.',
+                'Don\'t worry about it',
+                'This happens all the time'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What is the #1 preventable cause of death in trauma?',
+            options: [
+                'Head injuries',
+                'Bleeding',
+                'Broken bones',
+                'Burns'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What does "MacGyver is not better than medical-grade" mean?',
+            options: [
+                'Always improvise tools',
+                'Use real equipment when possible - improvised tools are last resort',
+                'Never use improvised tools',
+                'Medical equipment is too expensive'
             ],
             correct: 1
         }
