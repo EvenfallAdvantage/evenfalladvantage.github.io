@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login | Evenfall Advantage</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="css/student-portal.css">
+    <link rel="stylesheet" href="../css/form-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase JavaScript Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #253646 0%, #1a252f 100%);
+            padding: 2rem;
+        }
+        
+        .auth-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 450px;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .auth-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .auth-header img {
+            max-width: 200px;
+            margin-bottom: 1rem;
+        }
+        
+        .auth-header h1 {
+            font-size: 2rem;
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .auth-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        
+        .auth-body {
+            padding: 2rem;
+        }
+        
+        .auth-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .auth-tab.active {
+            color: var(--secondary-color);
+            border-bottom-color: var(--secondary-color);
+        }
+        
+        .auth-form {
+            display: none;
+        }
+        
+        .auth-form.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .submit-btn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+        }
+        
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        
+        .alert.show {
+            display: block;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .back-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .back-link a:hover {
+            color: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <img src="../images/logo.png" alt="Evenfall Advantage">
+                <h1>Student Portal</h1>
+                <p>Security Training & Assessment Platform</p>
+            </div>
+            
+            <div class="auth-body">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" onclick="switchTab('login')">Login</button>
+                    <button class="auth-tab" onclick="switchTab('signup')">Sign Up</button>
+                </div>
+                
+                <div id="alert" class="alert"></div>
+                
+                <!-- Login Form -->
+                <form id="login-form" class="auth-form active">
+                    <div class="form-group">
+                        <label for="login-email">Email Address</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+                
+                <!-- Signup Form -->
+                <form id="signup-form" class="auth-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="signup-firstname">First Name</label>
+                            <input type="text" id="signup-firstname" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="signup-lastname">Last Name</label>
+                            <input type="text" id="signup-lastname" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="signup-email">Email Address</label>
+                        <input type="email" id="signup-email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" minlength="6" required>
+                        <small style="color: #666;">Minimum 6 characters</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="signup-confirm">Confirm Password</label>
+                        <input type="password" id="signup-confirm" required>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+                
+                <div class="back-link">
+                    <a href="../login.html">
+                        <i class="fas fa-arrow-left"></i> Back to Portal Selection
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/supabase-config.js"></script>
+    <script>
+        // Switch between login and signup tabs
+        function switchTab(tab) {
+            const tabs = document.querySelectorAll('.auth-tab');
+            const forms = document.querySelectorAll('.auth-form');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'login') {
+                tabs[0].classList.add('active');
+                document.getElementById('login-form').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('signup-form').classList.add('active');
+            }
+            
+            hideAlert();
+        }
+        
+        // Show alert message
+        function showAlert(message, type) {
+            const alert = document.getElementById('alert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type} show`;
+        }
+        
+        // Hide alert message
+        function hideAlert() {
+            const alert = document.getElementById('alert');
+            alert.className = 'alert';
+        }
+        
+        // Handle Login
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const submitBtn = e.target.querySelector('.submit-btn');
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            
+            const result = await Auth.signIn(email, password);
+            
+            if (result.success) {
+                showAlert('Login successful! Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            } else {
+                showAlert('Login failed: ' + result.error, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            }
+        });
+        
+        // Handle Signup
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('signup-firstname').value;
+            const lastName = document.getElementById('signup-lastname').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            const submitBtn = e.target.querySelector('.submit-btn');
+            
+            // Validate passwords match
+            if (password !== confirm) {
+                showAlert('Passwords do not match!', 'error');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
+            
+            const result = await Auth.signUp(email, password, firstName, lastName);
+            
+            if (result.success) {
+                showAlert('Account created! Please check your email to verify your account.', 'success');
+                setTimeout(() => {
+                    switchTab('login');
+                    document.getElementById('login-email').value = email;
+                }, 3000);
+            } else {
+                showAlert('Signup failed: ' + result.error, 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+            }
+        });
+    </script>
+</body>
+</html>

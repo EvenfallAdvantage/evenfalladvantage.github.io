@@ -13,6 +13,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase JavaScript Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body style="margin:0;padding:0;">
     <!-- Navigation -->
@@ -33,6 +36,9 @@
                             <a href="#sandtable" class="nav-link" data-section="sandtable">Practice</a>
                             <a href="#assessment" class="nav-link" data-section="assessment">Assess</a>
                             <a href="#progress" class="nav-link" data-section="progress">Progress</a>
+                            <a href="javascript:void(0)" class="nav-link" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -581,8 +587,12 @@
         </section>
     </main>
 
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth-check.js"></script>
     <script src="js/student-portal.js"></script>
+    <script src="js/supabase-integration.js"></script>
     <script src="js/slideshow.js"></script>
     <script src="js/state-laws.js"></script>
+
 </body>
 </html>
