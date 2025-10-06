@@ -724,6 +724,8 @@ body {
     border-radius: 0.5rem;
     cursor: pointer;
     transition: all 0.3s ease;
+    color: var(--text-primary);
+    font-weight: 500;
 }
 
 .slide-quiz-option:hover {
@@ -734,19 +736,31 @@ body {
 .slide-quiz-option.selected {
     border-color: var(--primary-color) !important;
     background: var(--primary-color) !important;
-    color: white !important;
+    color: #ffffff !important;
+}
+
+.slide-quiz-option.selected * {
+    color: #ffffff !important;
 }
 
 .slide-quiz-option.correct {
     border-color: var(--success-color) !important;
     background: var(--success-color) !important;
-    color: white !important;
+    color: #ffffff !important;
+}
+
+.slide-quiz-option.correct * {
+    color: #ffffff !important;
 }
 
 .slide-quiz-option.incorrect {
     border-color: var(--danger-color) !important;
     background: var(--danger-color) !important;
-    color: white !important;
+    color: #ffffff !important;
+}
+
+.slide-quiz-option.incorrect * {
+    color: #ffffff !important;
 }
 
 .slide-quiz-feedback {
