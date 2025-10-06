@@ -199,19 +199,39 @@ const StudentData = {
     // Update module progress
     async updateModuleProgress(studentId, moduleId, progressData) {
         try {
-            const { data, error } = await supabase
+            // First, try to check if record exists
+            const { data: existing } = await supabase
                 .from('student_module_progress')
-                .upsert({
-                    student_id: studentId,
-                    module_id: moduleId,
-                    ...progressData,
-                    status: progressData.progress_percentage === 100 ? 'completed' : 'in_progress'
-                }, {
-                    onConflict: 'student_id,module_id'
-                })
+                .select('id')
+                .eq('student_id', studentId)
+                .eq('module_id', moduleId)
+                .single();
             
-            if (error) throw error
-            return { success: true, data }
+            let result;
+            if (existing) {
+                // Update existing record
+                result = await supabase
+                    .from('student_module_progress')
+                    .update({
+                        ...progressData,
+                        status: progressData.progress_percentage === 100 ? 'completed' : 'in_progress'
+                    })
+                    .eq('student_id', studentId)
+                    .eq('module_id', moduleId);
+            } else {
+                // Insert new record
+                result = await supabase
+                    .from('student_module_progress')
+                    .insert({
+                        student_id: studentId,
+                        module_id: moduleId,
+                        ...progressData,
+                        status: progressData.progress_percentage === 100 ? 'completed' : 'in_progress'
+                    });
+            }
+            
+            if (result.error) throw result.error;
+            return { success: true, data: result.data }
         } catch (error) {
             console.error('Update progress error:', error)
             return { success: false, error: error.message }
