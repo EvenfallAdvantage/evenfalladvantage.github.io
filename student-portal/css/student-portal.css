@@ -8,18 +8,42 @@
     box-sizing: border-box;
 }
 
-/* Override any default spacing */
-html, body {
+/* Override any default spacing - CRITICAL FIX */
+html {
     margin: 0 !important;
     padding: 0 !important;
+}
+
+body {
+    margin: 0 !important;
+    padding: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }
 
 body::before, body::after, html::before, html::after {
     display: none !important;
 }
 
-.navbar {
+nav, .navbar {
+    margin: 0 !important;
+    padding: 0 !important;
     margin-top: 0 !important;
+}
+
+.navbar .container {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+/* Force navbar to absolute top */
+body > nav:first-of-type,
+body > .navbar:first-child,
+body > nav:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    position: relative;
+    top: 0 !important;
 }
 
 :root {
@@ -67,11 +91,11 @@ body {
 .navbar {
     background: var(--primary-color);
     box-shadow: var(--shadow);
-    position: sticky;
-    top: 0;
+    position: relative;
     z-index: 1000;
-    margin: 0;
-    padding: 0;
+    margin: -8px 0 0 0 !important;
+    padding: 0 !important;
+    top: 0 !important;
 }
 
 .navbar::after {
@@ -88,7 +112,10 @@ body {
 .navbar .container {
     max-width: 1200px;
     padding: 0 2rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     margin: 0 auto !important;
+    margin-top: 0 !important;
 }
 
 .nav-container {
