@@ -10,6 +10,8 @@ const Auth = {
     // Sign up new student
     async signUp(email, password, firstName, lastName) {
         try {
+            console.log('Attempting signup for:', email);
+            
             const { data, error } = await supabase.auth.signUp({
                 email: email,
                 password: password,
@@ -21,16 +23,21 @@ const Auth = {
                 }
             })
             
+            console.log('Auth signup response:', { data, error });
+            
             if (error) throw error
             
             // Create student profile
             if (data.user) {
-                await this.createStudentProfile(data.user.id, firstName, lastName, email)
+                console.log('Creating student profile for user:', data.user.id);
+                const profileResult = await this.createStudentProfile(data.user.id, firstName, lastName, email);
+                console.log('Profile creation result:', profileResult);
             }
             
             return { success: true, data }
         } catch (error) {
-            console.error('Sign up error:', error)
+            console.error('Sign up error:', error);
+            console.error('Error details:', error.message, error.code);
             return { success: false, error: error.message }
         }
     },
@@ -38,6 +45,8 @@ const Auth = {
     // Create student profile in database
     async createStudentProfile(userId, firstName, lastName, email) {
         try {
+            console.log('Inserting into students table:', { userId, email, firstName, lastName });
+            
             const { data, error } = await supabase
                 .from('students')
                 .insert({
@@ -47,18 +56,31 @@ const Auth = {
                     last_name: lastName
                 })
             
-            if (error) throw error
+            console.log('Students table insert result:', { data, error });
+            
+            if (error) {
+                console.error('Students table error:', error);
+                throw error;
+            }
             
             // Create empty profile
-            await supabase
+            console.log('Inserting into student_profiles table');
+            const profileResult = await supabase
                 .from('student_profiles')
                 .insert({
                     student_id: userId
                 })
             
+            console.log('Student_profiles insert result:', profileResult);
+            
+            if (profileResult.error) {
+                console.error('Profile table error:', profileResult.error);
+            }
+            
             return { success: true, data }
         } catch (error) {
-            console.error('Profile creation error:', error)
+            console.error('Profile creation error:', error);
+            console.error('Error details:', error.message, error.hint, error.details);
             return { success: false, error: error.message }
         }
     },
