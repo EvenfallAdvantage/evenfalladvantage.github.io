@@ -5,83 +5,83 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Client Portal Login | Evenfall Advantage</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/form-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+        .auth-container {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: linear-gradient(135deg, #253646 0%, #1a252f 100%);
             padding: 2rem;
         }
-
-        .login-container {
+        
+        .auth-card {
             background: white;
             border-radius: 1rem;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             max-width: 500px;
             width: 100%;
             overflow: hidden;
         }
-
-        .login-header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        
+        .auth-header {
+            background: var(--primary-color);
             color: white;
             padding: 2rem;
             text-align: center;
         }
-
-        .login-header h1 {
-            margin: 0 0 0.5rem 0;
+        
+        .auth-header h1 {
             font-size: 2rem;
+            margin: 0 0 0.5rem 0;
         }
-
-        .login-header p {
+        
+        .auth-header p {
             margin: 0;
             opacity: 0.9;
         }
-
-        .login-tabs {
+        
+        .auth-body {
+            padding: 2rem;
+        }
+        
+        .auth-tabs {
             display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
             border-bottom: 2px solid #e0e0e0;
         }
-
-        .login-tab {
+        
+        .auth-tab {
             flex: 1;
             padding: 1rem;
             background: none;
             border: none;
+            border-bottom: 3px solid transparent;
             font-size: 1.1rem;
             font-weight: 600;
             color: #666;
             cursor: pointer;
             transition: all 0.3s ease;
-            border-bottom: 3px solid transparent;
         }
-
-        .login-tab.active {
+        
+        .auth-tab.active {
             color: var(--secondary-color);
             border-bottom-color: var(--secondary-color);
         }
-
-        .login-content {
-            padding: 2rem;
-        }
-
-        .tab-content {
+        
+        .auth-form {
             display: none;
         }
-
-        .tab-content.active {
+        
+        .auth-form.active {
             display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .form-group {
@@ -194,23 +194,23 @@
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <h1><i class="fas fa-building"></i> Client Portal</h1>
-            <p>Find qualified security professionals</p>
-        </div>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1><i class="fas fa-building"></i> Client Portal</h1>
+                <p>Find qualified security professionals</p>
+            </div>
 
-        <div class="login-tabs">
-            <button class="login-tab active" onclick="switchTab('login')">Login</button>
-            <button class="login-tab" onclick="switchTab('signup')">Sign Up</button>
-        </div>
+            <div class="auth-body">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Login</button>
+                    <button class="auth-tab" data-tab="signup">Sign Up</button>
+                </div>
 
-        <div class="login-content">
-            <div id="alert" class="alert"></div>
+                <div id="alert" class="alert"></div>
 
-            <!-- Login Tab -->
-            <div id="login-content" class="tab-content active">
-                <form id="loginForm">
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form active">
                     <div class="form-group">
                         <label for="login-email">Email Address</label>
                         <input type="email" id="login-email" required placeholder="your@company.com">
@@ -223,11 +223,9 @@
                         <i class="fas fa-sign-in-alt"></i> Login
                     </button>
                 </form>
-            </div>
 
-            <!-- Signup Tab -->
-            <div id="signup-content" class="tab-content">
-                <form id="signupForm">
+                <!-- Signup Form -->
+                <form id="signupForm" class="auth-form">
                     <div class="form-group">
                         <label for="company-name">Company Name</label>
                         <input type="text" id="company-name" required placeholder="Your Company LLC">
@@ -262,10 +260,10 @@
                         <i class="fas fa-user-plus"></i> Create Account
                     </button>
                 </form>
-            </div>
 
-            <div class="back-link">
-                <a href="../login.html"><i class="fas fa-arrow-left"></i> Back to Portal Selection</a>
+                <div class="back-link">
+                    <a href="../login.html"><i class="fas fa-arrow-left"></i> Back to Portal Selection</a>
+                </div>
             </div>
         </div>
     </div>
