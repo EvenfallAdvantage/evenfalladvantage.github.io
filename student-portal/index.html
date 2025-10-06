@@ -14,30 +14,25 @@
 <body>
     <!-- Navigation -->
     <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <img src="../images/logo.png" alt="Evenfall Advantage Logo" class="nav-logo">
-                <span class="portal-title">Student Portal</span>
-            </div>
-            <div class="nav-links">
-                <a href="#home" class="nav-link active" data-section="home">
-                    <i class="fas fa-home"></i> Home
-                </a>
-                <a href="#training" class="nav-link" data-section="training">
-                    <i class="fas fa-graduation-cap"></i> Training
-                </a>
-                <a href="#sandtable" class="nav-link" data-section="sandtable">
-                    <i class="fas fa-chess-board"></i> Sand Table
-                </a>
-                <a href="#assessment" class="nav-link" data-section="assessment">
-                    <i class="fas fa-clipboard-check"></i> Assessment
-                </a>
-                <a href="#progress" class="nav-link" data-section="progress">
-                    <i class="fas fa-chart-line"></i> Progress
-                </a>
-                <a href="../login.html" class="nav-logout">
-                    <i class="fas fa-sign-out-alt"></i> Exit Portal
-                </a>
+        <div class="container">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <a href="../index.html" class="logo-link">
+                        <img src="../images/logo.png" alt="Evenfall Advantage Logo" class="nav-logo">
+                    </a>
+                </div>
+                <div class="portal-content">
+                    <h2 class="portal-title">Student Portal</h2>
+                    <div class="portal-nav-container">
+                        <div class="nav-links">
+                            <a href="#home" class="nav-link active" data-section="home">Home</a>
+                            <a href="#training" class="nav-link" data-section="training">Training</a>
+                            <a href="#sandtable" class="nav-link" data-section="sandtable">Sand Table</a>
+                            <a href="#assessment" class="nav-link" data-section="assessment">Assessment</a>
+                            <a href="#progress" class="nav-link" data-section="progress">Progress</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
@@ -47,28 +42,30 @@
         <!-- Home Section -->
         <section id="home" class="section active">
             <div class="hero">
-                <h1>Evenfall Advantage Student Portal</h1>
+                <div class="hero-quote">
+                    <blockquote>
+                        <p>The more you sweat in training, the less you bleed in battle.</p>
+                        <cite>— Sun Tzu</cite>
+                    </blockquote>
+                </div>
                 <p class="hero-subtitle">Interactive Scenario Planning & Knowledge Assessments</p>
                 <div class="hero-cards">
-                    <div class="hero-card">
+                    <div class="hero-card" onclick="navigateToSection('training')" style="cursor: pointer;">
                         <i class="fas fa-book-open"></i>
                         <h3>Learn</h3>
                         <p>Essential event security procedures and protocols</p>
                     </div>
-                    <div class="hero-card">
+                    <div class="hero-card" onclick="navigateToSection('sandtable')" style="cursor: pointer;">
                         <i class="fas fa-hands-helping"></i>
                         <h3>Practice</h3>
                         <p>Interactive event layout and security planning</p>
                     </div>
-                    <div class="hero-card">
+                    <div class="hero-card" onclick="navigateToSection('assessment')" style="cursor: pointer;">
                         <i class="fas fa-trophy"></i>
                         <h3>Assess</h3>
                         <p>Validate your security guard knowledge</p>
                     </div>
                 </div>
-                <button class="btn btn-primary btn-large" onclick="navigateToSection('training')">
-                    Start Training <i class="fas fa-arrow-right"></i>
-                </button>
             </div>
         </section>
 
