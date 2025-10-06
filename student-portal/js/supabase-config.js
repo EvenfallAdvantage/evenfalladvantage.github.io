@@ -270,10 +270,13 @@ const StudentData = {
                     activity_description: description
                 })
             
-            if (error) throw error
+            if (error) {
+                console.warn('Activity logging failed (non-critical):', error.message);
+                return { success: false, error: error.message };
+            }
             return { success: true, data }
         } catch (error) {
-            console.error('Log activity error:', error)
+            console.warn('Activity logging error (non-critical):', error.message);
             return { success: false, error: error.message }
         }
     }

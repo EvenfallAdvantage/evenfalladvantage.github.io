@@ -24,12 +24,12 @@
             userNameElement.textContent = user.user_metadata.first_name || user.email;
         }
         
-        // Log activity
-        await StudentData.logActivity(
-            user.id,
-            'page_view',
-            `Viewed ${document.title}`
-        );
+        // Log activity (temporarily disabled due to 409 error)
+        // StudentData.logActivity(
+        //     user.id,
+        //     'page_view',
+        //     `Viewed ${document.title}`
+        // ).catch(err => console.warn('Activity logging failed:', err));
     }
 })();
 
