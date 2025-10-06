@@ -9,6 +9,7 @@
     </style>
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="css/student-portal.css">
+    <link rel="stylesheet" href="css/profile.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -35,7 +36,7 @@
                             <a href="#training" class="nav-link" data-section="training">Learn</a>
                             <a href="#sandtable" class="nav-link" data-section="sandtable">Practice</a>
                             <a href="#assessment" class="nav-link" data-section="assessment">Assess</a>
-                            <a href="#progress" class="nav-link" data-section="progress">Progress</a>
+                            <a href="#profile" class="nav-link" data-section="profile">Profile</a>
                             <a href="javascript:void(0)" class="nav-link" onclick="logout()">
                                 <i class="fas fa-sign-out-alt"></i> Logout
                             </a>
@@ -494,92 +495,260 @@
             </div>
         </section>
 
-        <!-- Progress Section -->
-        <section id="progress" class="section">
+        <!-- Profile Section -->
+        <section id="profile" class="section">
             <div class="section-header">
-                <h2>Your Progress</h2>
-                <p>Track your learning journey</p>
+                <h2>Your Profile</h2>
+                <p>Manage your professional identity</p>
             </div>
 
-            <div class="progress-dashboard">
-                <div class="progress-stats">
-                    <div class="stat-card">
-                        <i class="fas fa-graduation-cap"></i>
-                        <div class="stat-content">
-                            <h3 id="completedModules">0</h3>
-                            <p>Modules Completed</p>
+            <!-- Profile Tabs -->
+            <div class="profile-tabs">
+                <button class="profile-tab active" data-tab="about">
+                    <i class="fas fa-user"></i> About
+                </button>
+                <button class="profile-tab" data-tab="progress">
+                    <i class="fas fa-chart-line"></i> Progress
+                </button>
+                <button class="profile-tab" data-tab="certifications">
+                    <i class="fas fa-certificate"></i> Certifications
+                </button>
+                <button class="profile-tab" data-tab="network">
+                    <i class="fas fa-users"></i> Network
+                </button>
+            </div>
+
+            <!-- About Tab -->
+            <div class="profile-tab-content active" id="about-tab">
+                <div class="profile-about">
+                    <!-- Profile Header -->
+                    <div class="profile-header-card">
+                        <div class="profile-avatar-section">
+                            <div class="profile-avatar" id="profileAvatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <button class="btn btn-small btn-secondary" onclick="uploadProfilePicture()">
+                                <i class="fas fa-camera"></i> Change Photo
+                            </button>
+                            <input type="file" id="profilePictureInput" accept="image/*" style="display: none;">
+                        </div>
+                        <div class="profile-header-info">
+                            <h2 id="profileName">Loading...</h2>
+                            <p class="profile-email" id="profileEmail">Loading...</p>
+                            <p class="profile-joined" id="profileJoined">Member since: Loading...</p>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <i class="fas fa-chess-board"></i>
-                        <div class="stat-content">
-                            <h3 id="completedScenarios">0</h3>
-                            <p>Scenarios Completed</p>
+
+                    <!-- Editable Profile Form -->
+                    <div class="profile-form-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-edit"></i> Personal Information</h3>
+                            <button class="btn btn-small btn-secondary" id="editProfileBtn" onclick="toggleEditMode()">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        
+                        <form id="profileForm" class="profile-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>First Name</label>
+                                    <input type="text" id="firstName" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label>Last Name</label>
+                                    <input type="text" id="lastName" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Phone Number</label>
+                                    <input type="tel" id="phone" placeholder="(555) 123-4567" disabled>
+                                </div>
+                                <div class="form-group">
+                                    <label>Location</label>
+                                    <input type="text" id="location" placeholder="City, State" disabled>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Professional Bio</label>
+                                <textarea id="bio" rows="4" placeholder="Tell employers about yourself..." disabled></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>LinkedIn Profile</label>
+                                <input type="url" id="linkedin" placeholder="https://linkedin.com/in/yourprofile" disabled>
+                            </div>
+
+                            <div class="form-actions" style="display: none;">
+                                <button type="button" class="btn btn-secondary" onclick="cancelEdit()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Skills & Certifications -->
+                    <div class="profile-form-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-tools"></i> Skills & Expertise</h3>
+                            <button class="btn btn-small btn-secondary" onclick="addSkill()">
+                                <i class="fas fa-plus"></i> Add Skill
+                            </button>
+                        </div>
+                        <div class="skills-container" id="skillsContainer">
+                            <!-- Skills will be loaded here -->
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <i class="fas fa-clipboard-check"></i>
-                        <div class="stat-content">
-                            <h3 id="completedAssessments">0</h3>
-                            <p>Assessments Passed</p>
+
+                    <!-- Work Experience -->
+                    <div class="profile-form-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-briefcase"></i> Work Experience</h3>
+                            <button class="btn btn-small btn-secondary" onclick="addExperience()">
+                                <i class="fas fa-plus"></i> Add Experience
+                            </button>
                         </div>
-                    </div>
-                    <div class="stat-card">
-                        <i class="fas fa-star"></i>
-                        <div class="stat-content">
-                            <h3 id="averageScore">0%</h3>
-                            <p>Average Score</p>
+                        <div class="experience-container" id="experienceContainer">
+                            <!-- Experience will be loaded here -->
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="progress-details">
-                    <div class="progress-section">
-                        <h3>Module Progress</h3>
-                        <div class="progress-items" id="moduleProgress">
-                            <!-- Dynamic progress bars -->
+            <!-- Progress Tab -->
+            <div class="profile-tab-content" id="progress-tab">
+                <div class="progress-dashboard">
+                    <div class="progress-stats">
+                        <div class="stat-card">
+                            <i class="fas fa-graduation-cap"></i>
+                            <div class="stat-content">
+                                <h3 id="completedModules">0</h3>
+                                <p>Modules Completed</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-chess-board"></i>
+                            <div class="stat-content">
+                                <h3 id="completedScenarios">0</h3>
+                                <p>Scenarios Completed</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-clipboard-check"></i>
+                            <div class="stat-content">
+                                <h3 id="completedAssessments">0</h3>
+                                <p>Assessments Passed</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-star"></i>
+                            <div class="stat-content">
+                                <h3 id="averageScore">0%</h3>
+                                <p>Average Score</p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="progress-section">
-                        <h3>Assessment History</h3>
-                        <div class="assessment-history" id="assessmentHistory">
-                            <div class="activity-item">
-                                <i class="fas fa-info-circle"></i>
-                                <p>Complete assessments to see your history here</p>
+                    <div class="progress-details">
+                        <div class="progress-section">
+                            <h3>Module Progress</h3>
+                            <div class="progress-items" id="moduleProgress">
+                                <!-- Dynamic progress bars -->
+                            </div>
+                        </div>
+
+                        <div class="progress-section">
+                            <h3>Assessment History</h3>
+                            <div class="assessment-history" id="assessmentHistory">
+                                <div class="activity-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>Complete assessments to see your history here</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="progress-section">
+                            <h3>Recent Activity</h3>
+                            <div class="activity-list" id="activityList">
+                                <div class="activity-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>Complete training modules and assessments to see your progress here</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="progress-section">
+                            <h3>Achievements</h3>
+                            <div class="achievements-grid" id="achievementsGrid">
+                                <div class="achievement-badge locked">
+                                    <i class="fas fa-medal"></i>
+                                    <span>First Module</span>
+                                </div>
+                                <div class="achievement-badge locked">
+                                    <i class="fas fa-trophy"></i>
+                                    <span>Perfect Score</span>
+                                </div>
+                                <div class="achievement-badge locked">
+                                    <i class="fas fa-fire"></i>
+                                    <span>5 Day Streak</span>
+                                </div>
+                                <div class="achievement-badge locked">
+                                    <i class="fas fa-crown"></i>
+                                    <span>All Modules</span>
+                                </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="progress-section">
-                        <h3>Recent Activity</h3>
-                        <div class="activity-list" id="activityList">
-                            <div class="activity-item">
-                                <i class="fas fa-info-circle"></i>
-                                <p>Complete training modules and assessments to see your progress here</p>
-                            </div>
+            <!-- Certifications Tab -->
+            <div class="profile-tab-content" id="certifications-tab">
+                <div class="certifications-grid" id="certificationsGrid">
+                    <div class="cert-card">
+                        <i class="fas fa-certificate"></i>
+                        <h4>Complete modules to earn certifications</h4>
+                        <p>Certifications will appear here as you complete training</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Tab -->
+            <div class="profile-tab-content" id="network-tab">
+                <div class="network-section">
+                    <div class="network-stats">
+                        <div class="network-stat">
+                            <h3 id="networkConnections">0</h3>
+                            <p>Connections</p>
+                        </div>
+                        <div class="network-stat">
+                            <h3 id="networkViews">0</h3>
+                            <p>Profile Views</p>
+                        </div>
+                        <div class="network-stat">
+                            <h3 id="networkEndorsements">0</h3>
+                            <p>Endorsements</p>
                         </div>
                     </div>
+                    
+                    <div class="network-visibility">
+                        <h3><i class="fas fa-eye"></i> Profile Visibility</h3>
+                        <p>Make your profile visible to potential employers</p>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="profileVisibility">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <p class="visibility-status">Your profile is currently <strong id="visibilityStatus">private</strong></p>
+                    </div>
 
-                    <div class="progress-section">
-                        <h3>Achievements</h3>
-                        <div class="achievements-grid" id="achievementsGrid">
-                            <div class="achievement-badge locked">
-                                <i class="fas fa-medal"></i>
-                                <span>First Module</span>
-                            </div>
-                            <div class="achievement-badge locked">
-                                <i class="fas fa-trophy"></i>
-                                <span>Perfect Score</span>
-                            </div>
-                            <div class="achievement-badge locked">
-                                <i class="fas fa-fire"></i>
-                                <span>5 Day Streak</span>
-                            </div>
-                            <div class="achievement-badge locked">
-                                <i class="fas fa-crown"></i>
-                                <span>All Modules</span>
-                            </div>
+                    <div class="network-recommendations">
+                        <h3><i class="fas fa-user-friends"></i> Recommended Connections</h3>
+                        <p>Connect with other security professionals</p>
+                        <div class="recommendations-list" id="recommendationsList">
+                            <p class="text-muted">Coming soon: Connect with employers and fellow students</p>
                         </div>
                     </div>
                 </div>
@@ -594,6 +763,7 @@
     <script src="js/slideshow.js"></script>
     <script src="js/state-laws.js"></script>
     <script src="js/state-selection.js"></script>
+    <script src="js/profile.js"></script>
 
 </body>
 </html>
