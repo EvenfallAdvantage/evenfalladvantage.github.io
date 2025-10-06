@@ -20,45 +20,64 @@ window.saveProgress = async function() {
 
 // Save progress to Supabase database
 async function saveProgressToDatabase(studentId) {
-    const progressData = JSON.parse(localStorage.getItem('securityTrainingProgress') || '{}');
-    
-    // Save completed modules
-    if (progressData.completedModules) {
-        for (const moduleCode of progressData.completedModules) {
-            // Get module ID from code
-            const moduleResult = await TrainingData.getModuleByCode(moduleCode);
-            if (moduleResult.success && moduleResult.data) {
-                await StudentData.updateModuleProgress(studentId, moduleResult.data.id, {
-                    progress_percentage: 100,
-                    completed_at: new Date().toISOString()
-                });
-            }
-        }
-    }
-    
-    // Save assessment results
-    if (progressData.assessmentResults) {
-        for (const result of progressData.assessmentResults) {
-            // Find assessment by module code
-            const moduleResult = await TrainingData.getModuleByCode(result.module);
-            if (moduleResult.success && moduleResult.data) {
-                // Get assessment for this module
-                const { data: assessments } = await supabase
-                    .from('assessments')
-                    .select('*')
-                    .eq('module_id', moduleResult.data.id)
-                    .limit(1);
-                
-                if (assessments && assessments.length > 0) {
-                    await StudentData.saveAssessmentResult(studentId, assessments[0].id, {
-                        score: result.score,
-                        passed: result.passed,
-                        time_taken_minutes: result.timeTaken || 0,
-                        answers_json: result.answers || {}
-                    });
+    try {
+        const progressData = JSON.parse(localStorage.getItem('securityTrainingProgress') || '{}');
+        
+        console.log('Syncing progress to database...');
+        
+        // Save completed modules
+        if (progressData.completedModules && progressData.completedModules.length > 0) {
+            for (const moduleCode of progressData.completedModules) {
+                try {
+                    // Get module ID from code
+                    const moduleResult = await TrainingData.getModuleByCode(moduleCode);
+                    if (moduleResult.success && moduleResult.data) {
+                        await StudentData.updateModuleProgress(studentId, moduleResult.data.id, {
+                            progress_percentage: 100,
+                            completed_at: new Date().toISOString()
+                        });
+                        console.log(`Saved module progress: ${moduleCode}`);
+                    }
+                } catch (err) {
+                    console.warn(`Failed to save module ${moduleCode}:`, err.message);
                 }
             }
         }
+        
+        // Save assessment results
+        if (progressData.assessmentResults && progressData.assessmentResults.length > 0) {
+            for (const result of progressData.assessmentResults) {
+                try {
+                    // Find assessment by module code
+                    const moduleResult = await TrainingData.getModuleByCode(result.module);
+                    if (moduleResult.success && moduleResult.data) {
+                        // Get assessment for this module
+                        const { data: assessments } = await supabase
+                            .from('assessments')
+                            .select('*')
+                            .eq('module_id', moduleResult.data.id)
+                            .limit(1);
+                        
+                        if (assessments && assessments.length > 0) {
+                            await StudentData.saveAssessmentResult(studentId, assessments[0].id, {
+                                score: result.score,
+                                passed: result.passed,
+                                time_taken_minutes: result.timeTaken || 0,
+                                answers_json: result.answers || {}
+                            });
+                            console.log(`Saved assessment result: ${result.module}`);
+                        }
+                    }
+                } catch (err) {
+                    console.warn(`Failed to save assessment ${result.module}:`, err.message);
+                }
+            }
+        }
+        
+        console.log('Database sync complete!');
+    } catch (error) {
+        console.error('Database sync error:', error.message);
+        throw error; // Propagate error so user knows sync failed
     }
 }
 
@@ -68,14 +87,17 @@ async function loadProgressFromDatabase() {
         const user = await Auth.getCurrentUser();
         if (!user) return;
         
-        // Initialize localStorage if it doesn't exist
-        let localProgress = JSON.parse(localStorage.getItem('securityTrainingProgress') || '{}');
-        if (!localProgress.completedModules) localProgress.completedModules = [];
-        if (!localProgress.completedScenarios) localProgress.completedScenarios = [];
-        if (!localProgress.assessmentResults) localProgress.assessmentResults = [];
-        if (!localProgress.activities) localProgress.activities = [];
+        console.log('Loading progress from database...');
         
-        // Get module progress
+        // Initialize localStorage structure
+        let localProgress = {
+            completedModules: [],
+            completedScenarios: [],
+            assessmentResults: [],
+            activities: []
+        };
+        
+        // Get module progress from database
         const progressResult = await StudentData.getModuleProgress(user.id);
         if (progressResult.success && progressResult.data && progressResult.data.length > 0) {
             const completedModules = progressResult.data
@@ -83,15 +105,16 @@ async function loadProgressFromDatabase() {
                 .map(p => p.training_modules.module_code);
             
             localProgress.completedModules = completedModules;
+            console.log('Loaded completed modules:', completedModules);
         }
         
-        // Get assessment results
+        // Get assessment results from database
         const resultsResult = await StudentData.getAssessmentResults(user.id);
         if (resultsResult.success && resultsResult.data && resultsResult.data.length > 0) {
             const assessmentResults = resultsResult.data
                 .filter(r => r.assessments)
                 .map(r => ({
-                    module: r.assessments.assessment_name,
+                    module: r.assessments.assessment_name.replace(' Assessment', ''),
                     score: r.score,
                     passed: r.passed,
                     date: r.completed_at,
@@ -99,18 +122,28 @@ async function loadProgressFromDatabase() {
                 }));
             
             localProgress.assessmentResults = assessmentResults;
+            console.log('Loaded assessment results:', assessmentResults.length);
         }
         
-        // Save to localStorage
+        // Save to localStorage (as cache)
         localStorage.setItem('securityTrainingProgress', JSON.stringify(localProgress));
         
         // Refresh the display
         if (window.updateProgressDisplay) {
             window.updateProgressDisplay();
         }
+        
+        console.log('Progress loaded from database successfully!');
     } catch (error) {
         console.error('Error loading progress from database:', error);
-        // Don't fail - just use local data
+        // Initialize empty progress if load fails
+        const emptyProgress = {
+            completedModules: [],
+            completedScenarios: [],
+            assessmentResults: [],
+            activities: []
+        };
+        localStorage.setItem('securityTrainingProgress', JSON.stringify(emptyProgress));
     }
 }
 
