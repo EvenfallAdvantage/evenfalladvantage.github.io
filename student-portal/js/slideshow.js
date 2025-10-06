@@ -9,26 +9,105 @@ let currentModuleId = null;
 const moduleSlidesData = {
     'crowd-management': [
         {
-            title: 'Welcome to Crowd Management',
+            title: 'Crowd Management & Public Safety',
             content: `
-                <h3>Crowd Management for Event Security</h3>
-                <p>Welcome to this interactive training module on crowd management. You'll learn essential techniques for maintaining safety and order at events with large gatherings.</p>
+                <h3>Crowd Management & Public Safety</h3>
+                <p class="hero-subtitle">Maryland Fire Marshal Certified</p>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-lightbulb"></i> What You'll Learn</h4>
-                    <ul>
-                        <li>Key principles of crowd management</li>
-                        <li>Crowd control techniques and strategies</li>
-                        <li>Warning signs and risk assessment</li>
-                        <li>Best practices for event security</li>
-                    </ul>
+                    <h4><i class="fas fa-users-cog"></i> Module Overview</h4>
+                    <p>This module meets Fire Marshal certification requirements and has been field-tested at real events. This is a crucial part of your role as security personnel at large-scale gatherings.</p>
+                    <p><strong>Duration:</strong> 2 Hours | <strong>Slides:</strong> 16</p>
+                </div>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Critical Importance</h4>
+                    <p>Crowd management failures have led to tragic deaths at events worldwide. Your knowledge and vigilance can prevent disasters.</p>
                 </div>
             `
         },
         {
-            title: 'Understanding Crowd Density',
+            title: 'Module Objectives',
             content: `
-                <h3>Crowd Density Management</h3>
-                <p><strong>Crowd density</strong> refers to the number of people per square meter in a given area. Managing density is crucial for preventing dangerous situations.</p>
+                <h3>What You'll Learn</h3>
+                <ul>
+                    <li><strong>Define "crowd management" and "crowd control"</strong></li>
+                    <li><strong>Identify common risks and hazards in crowd settings</strong></li>
+                    <li><strong>Understand crowd behavior and response</strong></li>
+                    <li><strong>Apply safety protocols for ingress/egress, density, and emergency movement</strong></li>
+                    <li><strong>Coordinate with public safety officials and EMS</strong></li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-shield-alt"></i> Key Distinction</h4>
+                    <p><strong>Management</strong> is proactive. <strong>Control</strong> is reactive. This course prepares you to plan ahead, not just respond in crisis.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Understanding Crowd Dynamics',
+            content: `
+                <h3>Crowd Dynamics Fundamentals</h3>
+                <h4>Types of Crowds:</h4>
+                <ul>
+                    <li><strong>Casual:</strong> Loose gathering, easy to manage</li>
+                    <li><strong>Expressive:</strong> Emotional (concerts, sports) - energy can shift quickly</li>
+                    <li><strong>Aggressive:</strong> Hostile intent, requires immediate response</li>
+                    <li><strong>Organized:</strong> Planned gathering with structure</li>
+                </ul>
+                <h4>Phases of Crowd Development:</h4>
+                <ul>
+                    <li><strong>Arrival:</strong> Entry and initial gathering</li>
+                    <li><strong>Occupation:</strong> Event duration, peak density</li>
+                    <li><strong>Dispersal:</strong> Exit phase - often most dangerous</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Discussion:</h4>
+                    <p><strong>Have you witnessed different types of crowds?</strong> Start building a mental model of behaviors.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Crowd Behavior and Panic Triggers',
+            content: `
+                <h3>Understanding Panic</h3>
+                <h4>How Panic Spreads:</h4>
+                <ul>
+                    <li><strong>Sound:</strong> Screaming, loud noises trigger fear</li>
+                    <li><strong>Visibility:</strong> Seeing others panic creates contagion</li>
+                    <li><strong>Miscommunication:</strong> Rumors spread faster than facts</li>
+                </ul>
+                <h4>Contributing Factors:</h4>
+                <ul>
+                    <li><strong>Heat:</strong> Increases irritability and medical emergencies</li>
+                    <li><strong>Loud noise:</strong> Makes communication difficult</li>
+                    <li><strong>Intoxication:</strong> Impairs judgment and increases aggression</li>
+                    <li><strong>Lack of space:</strong> Claustrophobia triggers panic</li>
+                </ul>
+                <h4>Recognizing Signs of Agitation:</h4>
+                <p>Tie this back to Module 3 (Threat Assessment). Link behavior observation to early intervention.</p>
+            `
+        },
+        {
+            title: 'Fire Marshal Requirements: Ingress/Egress & Flow',
+            content: `
+                <h3>Legal Requirements for Crowd Safety</h3>
+                <h4>Mandatory Compliance:</h4>
+                <ul>
+                    <li><strong>Maintain open paths of egress</strong> - Never block exits</li>
+                    <li><strong>Understand egress time standards</strong> - Know evacuation capacity</li>
+                    <li><strong>Monitor bottlenecks and barriers</strong> - Prevent choke points</li>
+                    <li><strong>Signage, lighting, and ADA compliance</strong> - Legal requirements</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-balance-scale"></i> Critical Compliance</h4>
+                    <p><strong>Blocked egress = liability.</strong> Review local and state codes. This is mandatory compliance education.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Capacity, Density, and Monitoring Tools',
+            content: `
+                <h3>Managing Occupancy</h3>
+                <h4>Calculating Safe Occupancy:</h4>
+                <p>Venue capacity is determined by Fire Marshal based on square footage and egress capacity.</p>
                 <h4>Density Levels:</h4>
                 <ul>
                     <li><strong>Low (< 2 people/m²):</strong> Comfortable, free movement</li>
@@ -36,108 +115,228 @@ const moduleSlidesData = {
                     <li><strong>High (4-6 people/m²):</strong> Very restricted, potential danger</li>
                     <li><strong>Critical (> 6 people/m²):</strong> Dangerous, risk of crushing</li>
                 </ul>
-                <div class="slide-callout">
-                    <h4><i class="fas fa-exclamation-triangle"></i> Critical Point</h4>
-                    <p>At densities above 6 people per square meter, crowd crushes can occur. Immediate action is required to reduce density.</p>
-                </div>
-            `
-        },
-        {
-            title: 'Crowd Flow Management',
-            content: `
-                <h3>Managing Crowd Movement</h3>
-                <p>Effective crowd flow prevents bottlenecks, congestion, and dangerous situations.</p>
-                <h4>Key Techniques:</h4>
+                <h4>Monitoring Tools:</h4>
                 <ul>
-                    <li><strong>Use Barriers:</strong> Channel crowd movement along safe pathways</li>
-                    <li><strong>Clear Signage:</strong> Direct people to entries, exits, and facilities</li>
-                    <li><strong>Multiple Entry Points:</strong> Distribute crowd arrival evenly</li>
-                    <li><strong>One-Way Systems:</strong> Prevent opposing flows from colliding</li>
-                    <li><strong>Strategic Positioning:</strong> Place guards at choke points</li>
-                </ul>
-                <p>Always maintain clear emergency exit routes that are never blocked by crowds or equipment.</p>
-            `
-        },
-        {
-            title: 'Warning Signs',
-            content: `
-                <h3>Recognizing Danger Signs</h3>
-                <p>Early detection of problems allows you to take preventive action before situations escalate.</p>
-                <h4>Visual Indicators:</h4>
-                <ul>
-                    <li><strong>Overcrowding:</strong> People packed tightly with no personal space</li>
-                    <li><strong>Pushing/Shoving:</strong> Aggressive movement in the crowd</li>
-                    <li><strong>Distressed Individuals:</strong> People looking panicked or trapped</li>
-                    <li><strong>Crowd Surges:</strong> Sudden wave-like movements</li>
-                    <li><strong>Blocked Exits:</strong> Emergency routes becoming inaccessible</li>
+                    <li><strong>Clickers and counters:</strong> Manual counting at entrances</li>
+                    <li><strong>Drones:</strong> Aerial density assessment</li>
+                    <li><strong>Patrols:</strong> Visual monitoring and reporting</li>
                 </ul>
                 <div class="slide-interactive">
-                    <h4>Quick Check:</h4>
-                    <p><strong>Question:</strong> What should you do if you notice overcrowding in a specific area?</p>
-                    <p><strong>Answer:</strong> Immediately alert your supervisor via radio, help redirect crowd flow away from the area, and if necessary, temporarily stop additional people from entering that zone.</p>
+                    <h4>Question:</h4>
+                    <p><strong>"What tools have you used in the field?"</strong> Explain practical methods to maintain count.</p>
                 </div>
             `
         },
         {
-            title: 'De-escalation Techniques',
+            title: 'Pre-Event Planning: Key Coordination Partners',
             content: `
-                <h3>De-escalating Crowd Tensions</h3>
-                <p>Your ability to calm situations verbally can prevent physical confrontations.</p>
-                <h4>Effective De-escalation:</h4>
+                <h3>Planning for Success</h3>
+                <h4>Coordination Partners:</h4>
                 <ul>
-                    <li><strong>Stay Calm:</strong> Your demeanor sets the tone</li>
-                    <li><strong>Use Calm Voice:</strong> Speak clearly and at moderate volume</li>
-                    <li><strong>Active Listening:</strong> Let people express concerns</li>
-                    <li><strong>Show Empathy:</strong> Acknowledge their feelings</li>
-                    <li><strong>Offer Solutions:</strong> Provide alternatives when possible</li>
-                    <li><strong>Maintain Distance:</strong> Respect personal space</li>
+                    <li><strong>Fire Marshal:</strong> Capacity and egress approval</li>
+                    <li><strong>EMS:</strong> Medical response planning</li>
+                    <li><strong>Law Enforcement:</strong> Security and emergency response</li>
+                    <li><strong>Security Supervisor:</strong> Team coordination</li>
+                </ul>
+                <h4>Pre-Event Briefing Should Include:</h4>
+                <ul>
+                    <li><strong>Site map review:</strong> Know the layout</li>
+                    <li><strong>Hazard overlays:</strong> Identify risk areas</li>
+                    <li><strong>Rally points:</strong> Where to meet in emergency</li>
+                    <li><strong>Zone assignments:</strong> Who covers what area</li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-user-shield"></i> Remember</h4>
-                    <p>Your goal is to resolve situations peacefully. Call for backup if you feel unsafe or the situation is escalating despite your efforts.</p>
+                    <h4><i class="fas fa-clipboard-list"></i> Examples</h4>
+                    <p>Give examples of successful and failed pre-planning. Offer a template for students to visualize what should be in a briefing.</p>
                 </div>
             `
         },
         {
-            title: 'Knowledge Check',
+            title: 'Role of the Security Officer During Crowd Events',
             content: `
-                <h3>Test Your Understanding</h3>
-                <div class="slide-quiz" data-quiz-id="crowd-1">
-                    <p class="slide-quiz-question">At what crowd density level does the situation become critically dangerous?</p>
-                    <div class="slide-quiz-options">
-                        <div class="slide-quiz-option" data-answer="0">Less than 2 people per square meter</div>
-                        <div class="slide-quiz-option" data-answer="1">2-4 people per square meter</div>
-                        <div class="slide-quiz-option" data-answer="2">4-6 people per square meter</div>
-                        <div class="slide-quiz-option" data-answer="3" data-correct="true">More than 6 people per square meter</div>
-                    </div>
-                    <div class="slide-quiz-feedback"></div>
-                </div>
-            `
-        },
-        {
-            title: 'Best Practices Summary',
-            content: `
-                <h3>Crowd Management Best Practices</h3>
-                <p>Let's review the key takeaways from this module:</p>
-                <h4>Before the Event:</h4>
+                <h3>Your Role in Crowd Management</h3>
+                <h4>Key Responsibilities:</h4>
                 <ul>
-                    <li>Conduct venue assessment and identify potential bottlenecks</li>
-                    <li>Calculate and understand venue capacity limits</li>
-                    <li>Plan guard positioning at strategic locations</li>
-                    <li>Ensure all emergency exits are clearly marked and accessible</li>
-                </ul>
-                <h4>During the Event:</h4>
-                <ul>
-                    <li>Continuously monitor crowd density in all areas</li>
-                    <li>Maintain radio communication with team</li>
-                    <li>Watch for warning signs and report immediately</li>
-                    <li>Use de-escalation techniques when needed</li>
-                    <li>Keep emergency routes clear at all times</li>
+                    <li><strong>Visual deterrence, not physical force</strong> - Presence prevents problems</li>
+                    <li><strong>Radio observed problems</strong> - Don't confront mobs alone</li>
+                    <li><strong>Manage lines, exits, and first aid points</strong> - Flow control</li>
+                    <li><strong>Assist, don't command</strong> - Work with authorities</li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-check-circle"></i> Module Complete!</h4>
-                    <p>You've completed the Crowd Management module. You're now ready to practice these skills in the interactive sand table exercise.</p>
+                    <h4><i class="fas fa-user-shield"></i> Key Phrase</h4>
+                    <p><strong>"Show presence, not pressure."</strong> Emphasize non-aggressive posture and chain of command.</p>
                 </div>
+            `
+        },
+        {
+            title: 'Evacuation Protocols and Emergency Movement',
+            content: `
+                <h3>Emergency Evacuation</h3>
+                <h4>Trigger Points for Evacuation:</h4>
+                <ul>
+                    <li>Fire or smoke</li>
+                    <li>Structural damage</li>
+                    <li>Active threat</li>
+                    <li>Severe weather</li>
+                    <li>Hazardous materials</li>
+                </ul>
+                <h4>Sector-Based Clearing:</h4>
+                <p>Evacuate by zones to prevent bottlenecks. Clear nearest exits first, then expand outward.</p>
+                <h4>Assisting Persons with Disabilities:</h4>
+                <ul>
+                    <li>Identify accessible routes</li>
+                    <li>Assign personnel to assist</li>
+                    <li>Never leave anyone behind</li>
+                </ul>
+                <h4>Communication During Evacuation:</h4>
+                <p>Reinforce ICS terminology. Show how security integrates with Incident Command during evacuations.</p>
+            `
+        },
+        {
+            title: 'Real-World Failures: Lessons from Past Events',
+            content: `
+                <h3>Learning from Tragedy</h3>
+                <h4>Case Studies:</h4>
+                <ul>
+                    <li><strong>Astroworld 2021:</strong> Crushing, delayed medical response - 10 deaths</li>
+                    <li><strong>The Station Nightclub Fire 2003:</strong> Egress failure - 100 deaths</li>
+                    <li><strong>Love Parade 2010:</strong> Crowd surge in tunnel - 21 deaths</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Discussion:</h4>
+                    <p><strong>"What failed here? What would you have done?"</strong> Draw lessons that lead to prevention, not blame.</p>
+                </div>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Critical Lesson</h4>
+                    <p>These weren't accidents—they were preventable failures in crowd management. Your vigilance matters.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Crowd Management at Festivals & Live Events',
+            content: `
+                <h3>Festival-Specific Challenges</h3>
+                <h4>Flow vs Choke Points:</h4>
+                <ul>
+                    <li><strong>Bathrooms:</strong> Always create bottlenecks</li>
+                    <li><strong>Bars:</strong> High-traffic, high-emotion areas</li>
+                    <li><strong>Stages:</strong> Surge points during popular acts</li>
+                </ul>
+                <h4>Pulse Patrols:</h4>
+                <p><strong>Moving with the crowd rhythm</strong> - Don't fight the flow, guide it</p>
+                <h4>High-Risk Behaviors:</h4>
+                <ul>
+                    <li><strong>Crowd surfing:</strong> Risk of falls and injuries</li>
+                    <li><strong>Fence jumping:</strong> Capacity violations and injuries</li>
+                    <li><strong>Mosh pits:</strong> Require monitoring for injuries</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Field Experience:</h4>
+                    <p><strong>"This isn't theory, this is boots on the ground. Where do YOU post guards?"</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Situational Awareness & Real-Time Monitoring',
+            content: `
+                <h3>Continuous Vigilance</h3>
+                <h4>Keeping Your Head on a Swivel:</h4>
+                <ul>
+                    <li>Scan your zone constantly</li>
+                    <li>Look for density changes</li>
+                    <li>Watch for distressed individuals</li>
+                    <li>Monitor exit accessibility</li>
+                </ul>
+                <h4>Working with Technology:</h4>
+                <ul>
+                    <li><strong>Camera feeds:</strong> Remote monitoring</li>
+                    <li><strong>Drones:</strong> Aerial perspective</li>
+                    <li><strong>Radio coordination:</strong> Real-time updates</li>
+                </ul>
+                <p>Reinforce Module 1 (Radio Comms). Show how tech and personnel combine for coverage. Use a sample site map for group discussion.</p>
+            `
+        },
+        {
+            title: 'Interacting with the Public: De-escalation & Communication',
+            content: `
+                <h3>Professional Public Interaction</h3>
+                <h4>Communication Principles:</h4>
+                <ul>
+                    <li><strong>Calm, clear, consistent:</strong> Your tone sets the mood</li>
+                    <li><strong>Handle upset guests professionally:</strong> Empathy without compromise</li>
+                    <li><strong>Don't give false information:</strong> Or make promises you can't keep</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Practice Scripts:</h4>
+                    <p><strong>"What would you say if..."</strong> a guest is angry about wait times? Someone wants to bring in prohibited items?</p>
+                </div>
+                <p>Refer back to Module 3's de-escalation principles. Practice scripts aloud with volunteers.</p>
+            `
+        },
+        {
+            title: 'Working Alongside EMS and Law Enforcement',
+            content: `
+                <h3>Multi-Agency Coordination</h3>
+                <h4>Your Role vs Theirs:</h4>
+                <ul>
+                    <li><strong>Security:</strong> Prevention, observation, first response</li>
+                    <li><strong>EMS:</strong> Medical treatment and transport</li>
+                    <li><strong>Law Enforcement:</strong> Criminal matters, arrests</li>
+                </ul>
+                <h4>How to Support EMS:</h4>
+                <ul>
+                    <li><strong>Direct EMS to victims:</strong> Clear pathways</li>
+                    <li><strong>Provide scene information:</strong> What happened, how many injured</li>
+                    <li><strong>Control crowds:</strong> Keep bystanders back</li>
+                    <li><strong>Preserve evidence:</strong> If criminal activity involved</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-handshake"></i> Remember</h4>
+                    <p>Security does not "take over." Teach them how to be part of the chain, not break it.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Quick Situational Quiz',
+            content: `
+                <h3>Scenario Practice</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clipboard-check"></i> Scenario 1: Gate Crash Attempt</h4>
+                    <p>Group of 20 people rush the gate trying to enter without tickets. What do you do?</p>
+                </div>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clipboard-check"></i> Scenario 2: Overcrowded VIP Area</h4>
+                    <p>VIP section is at 150% capacity. People are complaining. What's your action?</p>
+                </div>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clipboard-check"></i> Scenario 3: Injury at the Fence Line</h4>
+                    <p>Someone collapses at the front barrier during a concert. Crowd is pressing forward. What do you do?</p>
+                </div>
+                <p><strong>Think through each scenario before continuing.</strong> Consider field-based reasoning.</p>
+            `
+        },
+        {
+            title: 'Module Summary & Fire Marshal Certification',
+            content: `
+                <h3>Crowd Management Complete</h3>
+                <h4>Key Takeaways - The 3 B's:</h4>
+                <ul>
+                    <li><strong>Behavior:</strong> Understand crowd dynamics and psychology</li>
+                    <li><strong>Bottlenecks:</strong> Identify and manage choke points</li>
+                    <li><strong>Briefings:</strong> Pre-event planning prevents disasters</li>
+                </ul>
+                <h4>Legal and Safety Responsibilities:</h4>
+                <ul>
+                    <li>Maintain egress at all times</li>
+                    <li>Monitor density and capacity</li>
+                    <li>Coordinate with public safety</li>
+                    <li>Document incidents thoroughly</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-certificate"></i> Certification</h4>
+                    <p>This training meets Maryland Fire Marshal requirements for crowd management certification.</p>
+                </div>
+                <p><strong>Next Step:</strong> Take the Module 6 Assessment to test your knowledge.</p>
             `
         }
     ],
@@ -1084,259 +1283,275 @@ const moduleSlidesData = {
     ],
     'use-of-force': [
         {
-            title: 'Use of Force & Legal Responsibilities',
+            title: 'Legal Aspects & Use of Force',
             content: `
-                <h3>Legal Authority and Use of Force</h3>
-                <p>Welcome to this critical training module on use of force and legal responsibilities for unarmed security guards.</p>
+                <h3>Legal Aspects & Use of Force</h3>
+                <p class="hero-subtitle">Maryland State Compliance – Title 19 & COMAR 12.07.01</p>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-balance-scale"></i> What You'll Learn</h4>
-                    <ul>
-                        <li>Your legal status and authority as a security guard</li>
-                        <li>The use of force continuum</li>
-                        <li>When force may and may not be used</li>
-                        <li>Legal liability and consequences</li>
-                        <li>State-specific requirements</li>
-                    </ul>
+                    <h4><i class="fas fa-balance-scale"></i> Module Overview</h4>
+                    <p>Every action as a security guard must comply with state law. What you don't know CAN land you in court.</p>
+                    <p><strong>Duration:</strong> 1.5 Hours | <strong>Slides:</strong> 15</p>
                 </div>
                 <div class="slide-callout">
                     <h4><i class="fas fa-exclamation-triangle"></i> Critical Importance</h4>
-                    <p>Understanding these concepts is essential to avoid criminal charges, civil lawsuits, and license revocation. When in doubt, always observe and report rather than intervene physically.</p>
+                    <p>This is both a protection and accountability module. Know the rules, avoid the courtroom.</p>
                 </div>
             `
         },
         {
-            title: 'Your Legal Status',
+            title: 'Module Objectives',
             content: `
-                <h3>Legal Authority of Security Guards</h3>
-                <p>It's crucial to understand that as a security guard, you are <strong>NOT a police officer</strong>.</p>
-                <h4>Key Facts:</h4>
+                <h3>What You'll Learn</h3>
                 <ul>
-                    <li><strong>Private Citizen Status:</strong> You have the same legal authority as any other private citizen</li>
-                    <li><strong>No Police Powers:</strong> You cannot arrest, search, or detain people like police can</li>
-                    <li><strong>Property Rights Based:</strong> Your authority comes from the property owner's rights to control their property</li>
-                    <li><strong>State Licensed:</strong> You must comply with your state's security guard regulations</li>
+                    <li><strong>Understand Maryland law governing unarmed security officers</strong></li>
+                    <li><strong>Define use of force and legal limits for unarmed personnel</strong></li>
+                    <li><strong>Recognize civil liability, including §1983 awareness</strong></li>
+                    <li><strong>Learn proper documentation and reporting practices</strong></li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-gavel"></i> Important Distinction</h4>
-                    <p>Security guards act as the "eyes and ears" of law enforcement. Your primary role is to <strong>observe and report</strong>, not to enforce laws.</p>
+                    <h4><i class="fas fa-shield-alt"></i> Key Message</h4>
+                    <p><strong>"Know the rules, avoid the courtroom."</strong> This module protects you legally and professionally.</p>
                 </div>
+            `
+        },
+        {
+            title: 'Maryland Public Safety Article §19',
+            content: `
+                <h3>Maryland Law Governing Security Guards</h3>
+                <h4>Title 19 - Private Detectives and Security Guards:</h4>
+                <ul>
+                    <li><strong>Defines licensing, conduct, training</strong></li>
+                    <li><strong>Authority boundaries:</strong> No detainment or arrest powers unless contracted LEO</li>
+                    <li><strong>Revocation of license:</strong> For excessive force or misconduct</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-gavel"></i> Critical Distinction</h4>
+                    <p><strong>"You are NOT police."</strong> You have the same legal authority as any private citizen.</p>
+                </div>
+                <p>Pull up or distribute a one-page excerpt of Title 19 for quick reading. Summarize key limits.</p>
+            `
+        },
+        {
+            title: 'COMAR 12.07.01 – Administrative Code for Guards',
+            content: `
+                <h3>Maryland Administrative Regulations</h3>
+                <h4>COMAR 12.07.01 Defines:</h4>
+                <ul>
+                    <li><strong>Responsibilities of licensed agencies and guards</strong></li>
+                    <li><strong>Training and certification tracking</strong></li>
+                    <li><strong>Prohibited conduct and complaint procedures</strong></li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clipboard-check"></i> Recordkeeping</h4>
+                    <p><strong>"If it's not documented, it didn't happen."</strong> Stress recordkeeping. Tie this back to compliance modules and certification.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Defining Use of Force (UOF)',
+            content: `
+                <h3>What is Use of Force?</h3>
+                <h4>Definition:</h4>
+                <p><strong>Force = any physical interaction to control behavior</strong></p>
+                <h4>Only legally acceptable when:</h4>
+                <ul>
+                    <li><strong>Proportionate</strong> to the threat</li>
+                    <li><strong>Necessary</strong> for safety</li>
+                    <li><strong>Within job scope</strong> and training</li>
+                </ul>
+                <h4>Maryland uses "reasonable person standard":</h4>
+                <p>Would a reasonable person in the same situation believe force was necessary?</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-video"></i> Learning Tool</h4>
+                    <p>Play short real-world video (if permitted) showing escalating behavior and debrief the decision-making process. Don't glamorize force.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Levels of Force (UOF Continuum)',
+            content: `
+                <h3>Use of Force Continuum - Visual Guide</h3>
+                <h4>Authorized Levels for Unarmed Security:</h4>
+                <ul>
+                    <li><strong>Presence:</strong> Uniformed, professional appearance</li>
+                    <li><strong>Verbal:</strong> Commands, directions, de-escalation</li>
+                    <li><strong>Passive Control:</strong> Guiding, escorting without resistance</li>
+                    <li><strong>Escort Techniques:</strong> Minimal contact, cooperative movement</li>
+                </ul>
+                <h4>NOT Authorized:</h4>
+                <ul>
+                    <li><strong>NO weapons</strong> (unless specially licensed)</li>
+                    <li><strong>NO strikes</strong> (punches, kicks)</li>
+                    <li><strong>NO takedowns</strong> (unless trained & authorized)</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Key Principle</h4>
+                    <p><strong>"Force begins before contact—it starts with presence."</strong> Walk through each level.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Civil Liability & Title 42 §1983 Awareness',
+            content: `
+                <h3>Federal Civil Rights Liability</h3>
+                <h4>Title 42 U.S.C. §1983:</h4>
+                <p>Private officers can be sued under §1983 for acting "under color of law"</p>
                 <h4>What This Means:</h4>
                 <ul>
-                    <li>You can ask people to leave property</li>
-                    <li>You can refuse entry to unauthorized persons</li>
-                    <li>You can call police for violations</li>
-                    <li>You CANNOT force compliance beyond self-defense</li>
+                    <li><strong>Civil rights violations = federal lawsuits</strong></li>
+                    <li><strong>Most common triggers:</strong> Excessive force, unlawful detainment</li>
+                    <li><strong>You can be personally liable</strong> - not just your employer</li>
                 </ul>
-            `
-        },
-        {
-            title: 'Use of Force Continuum',
-            content: `
-                <h3>The Force Continuum</h3>
-                <p>The use of force continuum guides your response based on the level of resistance or threat.</p>
-                <h4>Level 1: Presence</h4>
-                <p>Your uniformed, professional presence deters problems. This is your most effective tool.</p>
-                <h4>Level 2: Verbal Communication</h4>
-                <p>Clear, calm directions and de-escalation techniques. Always try this first.</p>
-                <h4>Level 3: Empty Hand Control</h4>
-                <p>Guiding or escorting someone without strikes. Minimal physical contact.</p>
-                <h4>Level 4: Defensive Tactics</h4>
-                <p>Physical defense ONLY when you or others face imminent harm. Must be proportional to threat.</p>
-                <h4>Level 5: Deadly Force</h4>
-                <p><strong style="color: var(--danger-color);">NEVER AUTHORIZED</strong> for unarmed security guards.</p>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-chart-line"></i> Escalation Principle</h4>
-                    <p>Always use the <strong>minimum</strong> level of force necessary. Start low and only escalate if the threat escalates.</p>
+                    <h4><i class="fas fa-gavel"></i> Critical Warning</h4>
+                    <p><strong>"If you act like a cop without authority, the law will treat you like one—including consequences."</strong> This is awareness-only. Emphasize the risk.</p>
                 </div>
             `
         },
         {
-            title: 'When Force May Be Used',
+            title: 'Detainment, Search, and Seizure Boundaries',
             content: `
-                <h3>Lawful Use of Force</h3>
-                <p>Force may ONLY be used in very limited circumstances:</p>
-                <h4>1. Self-Defense</h4>
-                <p>To protect yourself from <strong>imminent</strong> physical harm. The threat must be immediate and real.</p>
-                <h4>2. Defense of Others</h4>
-                <p>To protect another person from imminent physical harm. Same rules as self-defense apply.</p>
-                <h4>3. Reasonable Force Only</h4>
-                <p>The force used must be <strong>proportional</strong> to the threat. You cannot use excessive force.</p>
+                <h3>What You CANNOT Do</h3>
+                <h4>No Arrest Powers:</h4>
+                <p>You cannot arrest or detain people like police can</p>
+                <h4>Detainment Must Be:</h4>
+                <ul>
+                    <li><strong>Short:</strong> Only until police arrive</li>
+                    <li><strong>Specific:</strong> Clear reason (witnessed felony)</li>
+                    <li><strong>Documented:</strong> Written report immediately</li>
+                </ul>
+                <h4>Search Restrictions:</h4>
+                <ul>
+                    <li><strong>NEVER search personal property</strong> unless policy allows</li>
+                    <li><strong>Bag checks require consent</strong> - voluntary compliance only</li>
+                    <li><strong>No pat-downs</strong> without specific authorization</li>
+                </ul>
                 <div class="slide-interactive">
-                    <h4>Example Scenarios:</h4>
-                    <p><strong>Lawful:</strong> Someone swings a punch at you, you block and create distance.</p>
-                    <p><strong>Unlawful:</strong> Someone insults you verbally, you push them.</p>
-                    <p><strong>Lawful:</strong> Someone is choking another person, you intervene to stop the attack.</p>
-                    <p><strong>Unlawful:</strong> Someone refuses to leave, you physically drag them out.</p>
-                </div>
-                <div class="slide-callout">
-                    <h4><i class="fas fa-running"></i> Duty to Retreat</h4>
-                    <p>In many states, you have a duty to retreat or avoid confrontation if you can do so safely. Your safety comes first.</p>
+                    <h4>Scenario Example:</h4>
+                    <p><strong>"What if someone shoplifts?"</strong> Walk them through correct response: observation, reporting, not confrontation.</p>
                 </div>
             `
         },
         {
-            title: 'What You CANNOT Do',
+            title: 'When Force is NEVER Justified',
             content: `
-                <h3>Prohibited Actions</h3>
-                <p>These actions can result in criminal charges and civil lawsuits:</p>
-                <h4>❌ Use Force to Detain</h4>
-                <p>You cannot physically restrain someone for shoplifting, trespassing, or other violations (in most states).</p>
-                <h4>❌ Chase Suspects</h4>
-                <p>Do not pursue suspects off property. Observe, report, and let police handle it.</p>
-                <h4>❌ Search People</h4>
-                <p>You cannot search people without their consent. Bag checks require voluntary compliance.</p>
-                <h4>❌ Use Weapons</h4>
-                <p>Firearms, batons, pepper spray, tasers are prohibited unless you have specific licensing and authorization.</p>
-                <h4>❌ Make Arrests</h4>
-                <p>You cannot arrest people (except limited citizen's arrest in some states - not recommended).</p>
-                <h4>❌ Eject by Force</h4>
-                <p>Call police to remove trespassers. Do not physically remove them yourself.</p>
-                <div class="slide-callout">
-                    <h4><i class="fas fa-phone"></i> When in Doubt</h4>
-                    <p><strong>Call the police.</strong> It's always better to wait for law enforcement than to risk liability.</p>
-                </div>
-            `
-        },
-        {
-            title: 'Citizen\'s Arrest - High Risk',
-            content: `
-                <h3>Citizen's Arrest (Not Recommended)</h3>
-                <p>While some states allow citizen's arrest, it carries <strong>extreme liability risks</strong>.</p>
-                <h4>General Requirements (Vary by State):</h4>
+                <h3>Prohibited Uses of Force</h3>
+                <h4>Force is NEVER justified for:</h4>
                 <ul>
-                    <li>Only for <strong>felonies</strong> committed in your presence</li>
-                    <li>Must immediately turn person over to police</li>
-                    <li>Cannot use excessive force</li>
-                    <li>High risk of false arrest lawsuit</li>
+                    <li><strong>Verbal disrespect:</strong> Insults, cursing, rude behavior</li>
+                    <li><strong>Someone recording you:</strong> They have the right to film</li>
+                    <li><strong>Non-violent refusal to comply:</strong> Call police instead</li>
+                    <li><strong>Property damage alone:</strong> Without threat to people</li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-exclamation-triangle"></i> Strong Warning</h4>
-                    <p>Citizen's arrest is <strong>NOT recommended</strong> for security guards. The legal risks far outweigh any benefits. Always call police instead.</p>
+                    <h4><i class="fas fa-exclamation-circle"></i> Remember</h4>
+                    <p><strong>"It's not illegal to insult you."</strong> Calmly emphasize that hurt feelings do not justify physical action.</p>
                 </div>
-                <h4>Why It's Risky:</h4>
-                <ul>
-                    <li>You must be 100% certain a felony occurred</li>
-                    <li>Misidentification = false arrest lawsuit</li>
-                    <li>Any injury = assault and battery charges</li>
-                    <li>Company policy usually prohibits it</li>
-                    <li>You can be personally sued</li>
-                </ul>
-                <p><strong>Best Practice:</strong> Observe, report, and be a good witness for police.</p>
             `
         },
         {
-            title: 'Legal Consequences',
+            title: 'Documentation: Incident & Use of Force Reports',
             content: `
-                <h3>Liability and Legal Consequences</h3>
-                <p>Improper use of force can destroy your career and life. Consequences include:</p>
-                <h4>Criminal Charges:</h4>
+                <h3>Proper Documentation</h3>
+                <h4>What to Include:</h4>
                 <ul>
-                    <li><strong>Assault:</strong> Threatening or attempting to harm someone</li>
-                    <li><strong>Battery:</strong> Unlawful physical contact or harm</li>
-                    <li><strong>False Imprisonment:</strong> Unlawfully restraining someone</li>
-                    <li><strong>Kidnapping:</strong> Moving someone against their will</li>
+                    <li><strong>Time, location, witnesses</strong></li>
+                    <li><strong>Subject's behavior:</strong> Specific actions observed</li>
+                    <li><strong>Verbal warnings given:</strong> What you said</li>
+                    <li><strong>Exact force used & timeline:</strong> Step-by-step</li>
                 </ul>
-                <h4>Civil Lawsuits:</h4>
-                <ul>
-                    <li>Personal injury claims</li>
-                    <li>Violation of civil rights</li>
-                    <li>Emotional distress</li>
-                    <li>You can be personally sued and lose everything</li>
-                </ul>
-                <h4>Professional Consequences:</h4>
-                <ul>
-                    <li><strong>License Revocation:</strong> Permanent loss of security guard license</li>
-                    <li><strong>Immediate Termination:</strong> Fired from your job</li>
-                    <li><strong>Industry Blacklist:</strong> Unable to work in security again</li>
-                </ul>
-                <h4>Employer Liability:</h4>
-                <p>Your employer can also be sued for your actions, which is why companies have strict policies.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clipboard-list"></i> Practice Exercise</h4>
+                    <p>Provide example of a UOF report. Make students rewrite a sample poorly-written one using proper language.</p>
+                </div>
             `
         },
         {
-            title: 'State-Specific Laws',
+            title: 'Working With Law Enforcement Post-Incident',
             content: `
-                <h3>Your State Requirements</h3>
-                <p>Security guard laws vary <strong>significantly</strong> by state. Select your state below to view specific requirements:</p>
+                <h3>Cooperating with Police</h3>
+                <h4>Best Practices:</h4>
+                <ul>
+                    <li><strong>Be honest, concise</strong></li>
+                    <li><strong>Only speak to what you directly observed</strong></li>
+                    <li><strong>Provide written report immediately if required</strong></li>
+                    <li><strong>Don't embellish or speculate</strong></li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-pen"></i> Key Instruction</h4>
+                    <p><strong>"Don't try to be a hero in your report. Just state what happened."</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'False Imprisonment and Overreach',
+            content: `
+                <h3>Avoiding False Imprisonment</h3>
+                <h4>False Imprisonment Defined:</h4>
+                <p>Holding someone without authority = criminal and civil liability</p>
+                <h4>Rules:</h4>
+                <ul>
+                    <li><strong>Always call law enforcement</strong> for detainment beyond a few minutes</li>
+                    <li><strong>Security should never transport detainees</strong></li>
+                    <li><strong>Document everything</strong> if you must briefly detain</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-handcuffs"></i> The Line</h4>
+                    <p><strong>"If you put someone in cuffs, you better have called someone with a badge."</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Case Study: Use of Force Gone Wrong',
+            content: `
+                <h3>Real-World Lawsuit Example</h3>
+                <h4>Case Study:</h4>
+                <p>Real-world lawsuit example (e.g., mall security overreach)</p>
+                <h4>Outcome:</h4>
+                <ul>
+                    <li>Officer fired</li>
+                    <li>Company sued for $500,000+</li>
+                    <li>Victim hospitalized</li>
+                    <li>Officer personally liable</li>
+                </ul>
                 <div class="slide-interactive">
-                    <label for="stateSelector" style="display: block; margin-bottom: 0.5rem; font-weight: 600;"><i class="fas fa-map-marker-alt"></i> Select Your State:</label>
-                    <select id="stateSelector" onchange="updateStateInfo(this.value)" style="width: 100%; padding: 0.75rem; margin-bottom: 1.5rem; font-size: 1rem; border: 2px solid var(--border-color); border-radius: 0.5rem; background: var(--surface);">
-                        <option value="">-- Choose a State --</option>
-                        <option value="AL">Alabama</option>
-                        <option value="AK">Alaska</option>
-                        <option value="AZ">Arizona</option>
-                        <option value="CA">California</option>
-                        <option value="FL">Florida</option>
-                        <option value="GA">Georgia</option>
-                        <option value="IL">Illinois</option>
-                        <option value="MI">Michigan</option>
-                        <option value="NY">New York</option>
-                        <option value="NC">North Carolina</option>
-                        <option value="OH">Ohio</option>
-                        <option value="PA">Pennsylvania</option>
-                        <option value="TX">Texas</option>
-                        <option value="VA">Virginia</option>
-                        <option value="WA">Washington</option>
-                    </select>
-                </div>
-                <div id="stateInfoDisplay">
-                    <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Select a state above to view specific requirements, use of force laws, and licensing information.</p>
+                    <h4>Discussion:</h4>
+                    <p><strong>"What would you have done differently?"</strong> Open this up for discussion, but guide it firmly.</p>
                 </div>
             `
         },
         {
-            title: 'Best Practices Summary',
+            title: 'Scenario Practice: Write a Report',
             content: `
-                <h3>Use of Force Best Practices</h3>
-                <p>Follow these guidelines to protect yourself and others:</p>
-                <h4>✓ DO:</h4>
-                <ul>
-                    <li>Use verbal de-escalation as your first tool</li>
-                    <li>Call police for situations requiring force</li>
-                    <li>Document everything thoroughly in reports</li>
-                    <li>Know and follow your company's use of force policy</li>
-                    <li>Understand your state's specific laws</li>
-                    <li>Retreat if you can do so safely</li>
-                    <li>Use only reasonable, proportional force in self-defense</li>
-                    <li>Stop using force when the threat ends</li>
-                </ul>
-                <h4>✗ DON'T:</h4>
-                <ul>
-                    <li>Use force to enforce rules or eject people</li>
-                    <li>Chase suspects or pursue off property</li>
-                    <li>Touch people unless absolutely necessary for safety</li>
-                    <li>Exceed your legal authority</li>
-                    <li>Act like a police officer</li>
-                    <li>Use weapons without proper licensing</li>
-                </ul>
+                <h3>Practice Exercise</h3>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-lightbulb"></i> Golden Rule</h4>
-                    <p><strong>When in doubt, observe and report.</strong> Your role is to be the eyes and ears, not to be a hero.</p>
+                    <h4><i class="fas fa-file-alt"></i> Scenario Provided:</h4>
+                    <p>Patron refuses to leave, gets agitated</p>
                 </div>
+                <h4>Write a short report:</h4>
+                <ul>
+                    <li>What did you see?</li>
+                    <li>What did you do?</li>
+                    <li>How did you resolve it?</li>
+                </ul>
+                <p><strong>Think through your response:</strong> Split the class into groups or individuals and have them write a brief narrative. Collect and review or walk through a sample live.</p>
             `
         },
         {
-            title: 'Module Complete',
+            title: 'Final Slide: Legal Reminder & Duty of Care',
             content: `
-                <h3>Use of Force Training Complete</h3>
-                <p>You've completed this critical training on use of force and legal responsibilities.</p>
-                <h4>Key Takeaways:</h4>
+                <h3>Your Professional Duty</h3>
+                <h4>Remember:</h4>
                 <ul>
-                    <li><strong>Legal Status:</strong> You're a private citizen, not a police officer</li>
-                    <li><strong>Force Continuum:</strong> Start with presence and verbal, escalate only if necessary</li>
-                    <li><strong>Limited Authority:</strong> Force only for self-defense or defense of others</li>
-                    <li><strong>High Liability:</strong> Improper force = criminal charges and lawsuits</li>
-                    <li><strong>State Laws:</strong> Know your specific state's requirements</li>
-                    <li><strong>Best Practice:</strong> Observe, report, and call police</li>
+                    <li><strong>You are a guardian, not a warrior</strong></li>
+                    <li><strong>The law protects professionalism</strong></li>
+                    <li><strong>Your job: Observe, Report, Protect—Not Punish</strong></li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-check-circle"></i> Module Complete!</h4>
-                    <p>You now understand the legal boundaries of your authority. Remember: your safety and legal protection come from knowing when NOT to use force.</p>
+                    <h4><i class="fas fa-shield-alt"></i> Evenfall Advantage Ethos</h4>
+                    <p>End with strong affirmation of what it means to be professional. Tie it into the Evenfall Advantage ethos.</p>
                 </div>
-                <div class="slide-callout">
-                    <h4><i class="fas fa-exclamation-circle"></i> Next Steps</h4>
-                    <p>Consult your state's security guard licensing board for specific requirements. Complete any required state-mandated training before working.</p>
-                </div>
+                <p><strong>Next Step:</strong> Take the Module 7 Assessment to test your understanding of legal boundaries and use of force.</p>
             `
         }
     ],
@@ -1729,22 +1944,110 @@ const moduleSlidesData = {
     ],
     'diverse-population': [
         {
-            title: 'Interacting with a Diverse Population',
+            title: 'Interacting with Diverse Populations',
             content: `
-                <h3>Cultural Competency and Inclusive Security</h3>
-                <p>Welcome to training on interacting with diverse populations. Professional security means serving everyone with respect and dignity.</p>
+                <h3>Interacting with Diverse Populations</h3>
+                <p class="hero-subtitle">Maryland Compliance Focus</p>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-users"></i> Why This Matters</h4>
-                    <ul>
-                        <li>Events attract people from all backgrounds, cultures, and abilities</li>
-                        <li>Professional service requires understanding differences</li>
-                        <li>Legal requirements under ADA and civil rights laws</li>
-                        <li>Your actions represent your employer and the profession</li>
-                    </ul>
+                    <h4><i class="fas fa-users"></i> Module Overview</h4>
+                    <p>This training reflects MD state law and POST-required learning objectives. Professional security means serving everyone with respect and dignity.</p>
+                    <p><strong>Duration:</strong> 1 Hour | <strong>Slides:</strong> 14</p>
                 </div>
                 <div class="slide-callout">
                     <h4><i class="fas fa-handshake"></i> Core Principle</h4>
                     <p><strong>Respect, Awareness, Accessibility, Communication, Fairness</strong> - These are the foundations of inclusive security.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Learning Objectives',
+            content: `
+                <h3>What You'll Learn</h3>
+                <ul>
+                    <li><strong>Define bias and prejudice</strong></li>
+                    <li><strong>Identify appropriate methods of communication and de-escalation</strong></li>
+                    <li><strong>Identify how to interact with a diverse population</strong></li>
+                    <li><strong>Identify the importance of treating others with respect</strong></li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-balance-scale"></i> Legal and Professional Standards</h4>
+                    <p>These objectives relate directly to Maryland state requirements and professional security standards.</p>
+                </div>
+            `
+        },
+        {
+            title: 'What is a Diverse Population?',
+            content: `
+                <h3>Understanding Diversity</h3>
+                <h4>Definition:</h4>
+                <p>A diverse population includes people of different:</p>
+                <ul>
+                    <li><strong>Race and ethnicity</strong></li>
+                    <li><strong>Religion and belief systems</strong></li>
+                    <li><strong>Gender identity and sexual orientation</strong></li>
+                    <li><strong>Age and generational differences</strong></li>
+                    <li><strong>Physical and cognitive abilities</strong></li>
+                    <li><strong>Language and cultural backgrounds</strong></li>
+                    <li><strong>Socioeconomic status</strong></li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-map-marked-alt"></i> Maryland Demographics</h4>
+                    <p>Maryland is one of the most diverse states. You will encounter people from all backgrounds on your shift.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Respect in the Security Role',
+            content: `
+                <h3>Treating All Persons with Dignity</h3>
+                <h4>Why Respect Matters:</h4>
+                <ul>
+                    <li><strong>Respect is operational</strong> - It's how we gain compliance without conflict</li>
+                    <li><strong>Non-escalatory posture</strong> - Respect prevents situations from escalating</li>
+                    <li><strong>Legal requirement</strong> - Discrimination violates civil rights laws</li>
+                    <li><strong>Professional standard</strong> - Your actions represent your employer</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-handshake"></i> Core Principle</h4>
+                    <p><strong>"Security isn't about sameness—it's about skill in difference."</strong> Professional service means adapting your approach while maintaining standards.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Defining Bias & Prejudice',
+            content: `
+                <h3>Understanding Bias and Prejudice</h3>
+                <h4>Unconscious Bias:</h4>
+                <p>Automatic, unconscious attitudes that affect our decisions without us realizing it. Everyone has biases.</p>
+                <h4>Prejudice:</h4>
+                <p>Preconceived negative judgment about a person or group based on characteristics like race, religion, or gender.</p>
+                <h4>Impact on Security Decisions:</h4>
+                <ul>
+                    <li><strong>Use of force:</strong> Bias can lead to excessive force against certain groups</li>
+                    <li><strong>Perception of threat:</strong> Seeing danger where none exists</li>
+                    <li><strong>Unequal treatment:</strong> Applying different standards to different people</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Self-Reflection:</h4>
+                    <p><strong>"Have you ever made an assumption that turned out wrong?"</strong> Recognizing our biases is the first step to overcoming them.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Bias in Real Situations',
+            content: `
+                <h3>How Bias Escalates Situations</h3>
+                <h4>Real-World Consequences:</h4>
+                <ul>
+                    <li><strong>Job loss:</strong> Discriminatory actions lead to termination</li>
+                    <li><strong>Lawsuits:</strong> Civil rights violations result in costly litigation</li>
+                    <li><strong>Criminal charges:</strong> Assault, false imprisonment, civil rights violations</li>
+                    <li><strong>Reputation damage:</strong> To you, your employer, and the profession</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Critical Question</h4>
+                    <p><strong>"How fast can bias escalate a situation—and cost you your job?"</strong></p>
+                    <p>One biased decision can end your career and harm innocent people.</p>
                 </div>
             `
         },
@@ -1775,15 +2078,60 @@ const moduleSlidesData = {
             `
         },
         {
-            title: 'Cultural Competency',
+            title: 'Communication Across Differences',
             content: `
-                <h3>Understanding Cultural Differences</h3>
-                <h4>Key Principles:</h4>
+                <h3>Effective Communication Across Cultures</h3>
+                <h4>Verbal Communication:</h4>
                 <ul>
-                    <li><strong>Avoid Stereotypes:</strong> Treat people as individuals</li>
-                    <li><strong>Personal Space:</strong> Norms vary by culture - be mindful</li>
-                    <li><strong>Eye Contact:</strong> Some cultures view direct eye contact as disrespectful</li>
-                    <li><strong>Language Barriers:</strong> Use simple language, gestures, translation apps</li>
+                    <li><strong>Clear, neutral tone:</strong> Speak slowly and evenly</li>
+                    <li><strong>Avoid slang or assumptions:</strong> Use plain language</li>
+                    <li><strong>Simple language:</strong> Especially with non-English speakers</li>
+                    <li><strong>Be patient:</strong> Allow time for understanding</li>
+                </ul>
+                <h4>Non-Verbal Communication:</h4>
+                <ul>
+                    <li><strong>Personal space:</strong> Norms vary by culture</li>
+                    <li><strong>Eye contact:</strong> Some cultures view it as disrespectful</li>
+                    <li><strong>Gestures:</strong> Can have different meanings across cultures</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-comments"></i> Key Principle</h4>
+                    <p><strong>"Security's job is to be heard and respected—not necessarily liked."</strong> Professional communication achieves compliance without conflict.</p>
+                </div>
+            `
+        },
+        {
+            title: 'De-Escalation Tools Across Cultures',
+            content: `
+                <h3>Culturally Sensitive De-Escalation</h3>
+                <h4>Time, Distance, Cover:</h4>
+                <ul>
+                    <li><strong>Time:</strong> Allow emotions to cool - some cultures process conflict differently</li>
+                    <li><strong>Distance:</strong> Respect personal space boundaries</li>
+                    <li><strong>Cover:</strong> Use barriers to reduce tension</li>
+                </ul>
+                <h4>Cultural Considerations:</h4>
+                <ul>
+                    <li><strong>Respecting silence:</strong> Not everyone responds immediately</li>
+                    <li><strong>Volume:</strong> Loud voices may be cultural, not aggressive</li>
+                    <li><strong>Gestures:</strong> What seems threatening may be normal expression</li>
+                </ul>
+                <div class="slide-interactive">
+                    <h4>Discussion:</h4>
+                    <p><strong>"What's your go-to move to de-escalate someone heated?"</strong> Consider how cultural differences might affect your approach.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Respecting Differences in Practice',
+            content: `
+                <h3>Practical Application</h3>
+                <h4>Best Practices:</h4>
+                <ul>
+                    <li><strong>Don't interrupt or mock:</strong> Listen actively and respectfully</li>
+                    <li><strong>Understand context:</strong> Mental health, culture, language barriers</li>
+                    <li><strong>Ask, don't assume:</strong> When unsure, respectfully inquire</li>
+                    <li><strong>Adapt your approach:</strong> One size doesn't fit all</li>
                 </ul>
                 <h4>Religious and Cultural Dress:</h4>
                 <ul>
@@ -1793,8 +2141,103 @@ const moduleSlidesData = {
                     <li>Never mock or comment on religious dress</li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-globe"></i> Remember</h4>
-                    <p>Different doesn't mean wrong. Cultural diversity enriches our events and communities.</p>
+                    <h4><i class="fas fa-shield-alt"></i> Remember</h4>
+                    <p><strong>"Security doesn't mean control—it means protection, even from misunderstanding."</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Interacting With Persons in Crisis',
+            content: `
+                <h3>Special Considerations</h3>
+                <h4>People in Mental Distress:</h4>
+                <ul>
+                    <li><strong>Stay calm:</strong> Your composure influences theirs</li>
+                    <li><strong>Don't argue with delusions:</strong> Redirect gently</li>
+                    <li><strong>Give space:</strong> Don't crowd or corner</li>
+                    <li><strong>Call for mental health professionals:</strong> When available</li>
+                </ul>
+                <h4>People with Physical Disabilities:</h4>
+                <ul>
+                    <li><strong>Speak directly to them:</strong> Not their companion</li>
+                    <li><strong>Never touch mobility devices:</strong> Without permission</li>
+                    <li><strong>Offer assistance:</strong> Don't assume they need it</li>
+                    <li><strong>Be patient:</strong> Communication may take longer</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Critical Point</h4>
+                    <p><strong>"What you say can either calm or inflame. Be careful."</strong> Your words have power in crisis situations.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Scenario: Non-English Speaker at Exit Gate',
+            content: `
+                <h3>Practice Scenario</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-user"></i> Scenario</h4>
+                    <p>A person who doesn't speak English is trying to exit through a restricted gate. They seem confused and frustrated. You need to redirect them to the proper exit.</p>
+                </div>
+                <div class="slide-interactive">
+                    <h4>Your Response:</h4>
+                    <p><strong>What's your next step?</strong></p>
+                    <ul>
+                        <li>How do you communicate without a shared language?</li>
+                        <li>What tone and body language do you use?</li>
+                        <li>How do you show respect while enforcing the rule?</li>
+                        <li>What tools can help (gestures, translation app, another staff member)?</li>
+                    </ul>
+                    <p><strong>Think through your approach before continuing.</strong></p>
+                </div>
+            `
+        },
+        {
+            title: 'Debrief: What Did You See or Miss?',
+            content: `
+                <h3>Scenario Analysis</h3>
+                <h4>Effective Approaches:</h4>
+                <ul>
+                    <li><strong>Use gestures and pointing:</strong> Universal communication</li>
+                    <li><strong>Stay calm and patient:</strong> Frustration escalates situations</li>
+                    <li><strong>Find someone who speaks their language:</strong> If possible</li>
+                    <li><strong>Use translation app:</strong> Technology can bridge gaps</li>
+                    <li><strong>Show, don't just tell:</strong> Walk them to the correct exit</li>
+                </ul>
+                <h4>What to Avoid:</h4>
+                <ul>
+                    <li>Raising your voice (they're not deaf, they don't speak English)</li>
+                    <li>Getting frustrated or impatient</li>
+                    <li>Making them feel stupid or unwelcome</li>
+                    <li>Using force when communication would work</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-lightbulb"></i> Key Lesson</h4>
+                    <p>Patience and creativity solve problems that force cannot.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Reporting Without Bias',
+            content: `
+                <h3>Professional Documentation</h3>
+                <h4>What to Include:</h4>
+                <ul>
+                    <li><strong>Objective facts:</strong> What you saw and heard</li>
+                    <li><strong>Specific behaviors:</strong> Actions, not assumptions</li>
+                    <li><strong>Relevant descriptions:</strong> Only when necessary for identification</li>
+                    <li><strong>Timeline:</strong> When events occurred</li>
+                </ul>
+                <h4>What NOT to Include:</h4>
+                <ul>
+                    <li><strong>Commentary:</strong> "He looked suspicious"</li>
+                    <li><strong>Speculation:</strong> "I think he was going to..."</li>
+                    <li><strong>Stereotypes:</strong> References to race, religion without relevance</li>
+                    <li><strong>Personal opinions:</strong> Your feelings about the person</li>
+                </ul>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clipboard-check"></i> Sample Comparison</h4>
+                    <p><strong>Bad:</strong> "Suspicious Middle Eastern male loitering"</p>
+                    <p><strong>Good:</strong> "Male, approximately 30s, pacing near entrance for 15 minutes, repeatedly checking phone, avoiding eye contact with security"</p>
                 </div>
             `
         },
@@ -1867,23 +2310,24 @@ const moduleSlidesData = {
             `
         },
         {
-            title: 'Module Complete',
+            title: 'Summary & Assessment Reminder',
             content: `
-                <h3>Diversity Training Complete</h3>
-                <p>You now have the knowledge to provide inclusive, professional security services to all people.</p>
+                <h3>Module Summary</h3>
                 <h4>Key Takeaways:</h4>
                 <ul>
                     <li><strong>Everyone deserves respect</strong> - No exceptions</li>
-                    <li><strong>ADA compliance is required</strong> - Know service animal rules</li>
+                    <li><strong>Define bias and prejudice</strong> - Recognize unconscious attitudes</li>
+                    <li><strong>Communication and de-escalation</strong> - Adapt to cultural differences</li>
+                    <li><strong>Interact professionally</strong> - With all diverse populations</li>
                     <li><strong>Behavior, not appearance</strong> - Focus on actions</li>
                     <li><strong>Racial profiling is illegal</strong> - And morally wrong</li>
-                    <li><strong>Ask, don't assume</strong> - When unsure, respectfully inquire</li>
-                    <li><strong>Intervene against discrimination</strong> - Zero tolerance</li>
+                    <li><strong>Report without bias</strong> - Objective facts only</li>
                 </ul>
                 <div class="slide-callout">
-                    <h4><i class="fas fa-check-circle"></i> Module Complete!</h4>
-                    <p>Professional security means protecting and serving everyone equally. Diversity makes our events and communities stronger.</p>
+                    <h4><i class="fas fa-quote-left"></i> Final Thought</h4>
+                    <p><strong>"Security isn't about sameness—it's about skill in difference."</strong></p>
                 </div>
+                <p><strong>Next Step:</strong> Take the Module 5 Assessment to test your understanding.</p>
             `
         }
     ],

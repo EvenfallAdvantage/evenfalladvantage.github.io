@@ -2031,6 +2031,56 @@ const assessmentQuestions = {
                 'Avoiding problem areas and staying in comfortable zones'
             ],
             correct: 1
+        },
+        {
+            question: 'At what crowd density level does the situation become critically dangerous?',
+            options: [
+                'Less than 2 people per square meter',
+                'More than 6 people per square meter',
+                '2-4 people per square meter',
+                '4-6 people per square meter'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What are the "3 B\'s" of crowd management?',
+            options: [
+                'Barriers, Badges, Backup',
+                'Behavior, Bottlenecks, Briefings',
+                'Buildings, Boundaries, Broadcasts',
+                'Balance, Bravery, Boldness'
+            ],
+            correct: 1
+        },
+        {
+            question: 'Which phase of crowd development is often the most dangerous?',
+            options: [
+                'Arrival',
+                'Dispersal (exit phase)',
+                'Occupation',
+                'Pre-event setup'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What does "Show presence, not pressure" mean?',
+            options: [
+                'Hide from the crowd to avoid confrontation',
+                'Visual deterrence through non-aggressive posture prevents problems',
+                'Use maximum force to show authority',
+                'Pressure crowds to move faster'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What is the difference between crowd management and crowd control?',
+            options: [
+                'They mean the same thing',
+                'Management is proactive, control is reactive',
+                'Control is easier than management',
+                'Management requires law enforcement'
+            ],
+            correct: 1
         }
     ],
     'emergency-response': [
@@ -2933,6 +2983,36 @@ const assessmentQuestions = {
                 'Only screening people who look nervous or anxious'
             ],
             correct: 1
+        },
+        {
+            question: 'What does "Security isn\'t about sameness—it\'s about skill in difference" mean?',
+            options: [
+                'Everyone should be treated exactly the same way',
+                'Professional service means adapting your approach while maintaining standards',
+                'Different groups require different security standards',
+                'Security should focus only on similarities'
+            ],
+            correct: 1
+        },
+        {
+            question: 'When writing a report, which description is appropriate?',
+            options: [
+                '"Suspicious Middle Eastern male loitering"',
+                '"Male, approximately 30s, pacing near entrance for 15 minutes, repeatedly checking phone"',
+                '"He looked like he was up to something"',
+                '"Typical troublemaker from that neighborhood"'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What is the best way to communicate with someone who doesn\'t speak English?',
+            options: [
+                'Speak louder until they understand',
+                'Use gestures, simple language, translation apps, or find someone who speaks their language',
+                'Give up and call law enforcement',
+                'Refuse to help them'
+            ],
+            correct: 1
         }
     ],
     'stop-the-bleed': [
@@ -3255,6 +3335,36 @@ const assessmentQuestions = {
                 'Observe, report, and call police to handle the situation',
                 'Use minimal force and document it thoroughly later',
                 'Consult with coworkers before taking any action'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What does Maryland Public Safety Article §19 define?',
+            options: [
+                'Police officer training requirements',
+                'Licensing, conduct, and training for security guards',
+                'Building security codes and standards',
+                'Emergency response protocols'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What is Title 42 U.S.C. §1983?',
+            options: [
+                'Federal law about security guard licensing',
+                'Law allowing lawsuits against those acting "under color of law" for civil rights violations',
+                'Regulation about use of force training',
+                'State law about false imprisonment'
+            ],
+            correct: 1
+        },
+        {
+            question: 'What does "You are a guardian, not a warrior" mean?',
+            options: [
+                'Security guards should avoid all confrontation',
+                'Your job is to observe, report, and protect—not punish',
+                'Only warriors can use force legally',
+                'Guardians have more authority than warriors'
             ],
             correct: 1
         }
