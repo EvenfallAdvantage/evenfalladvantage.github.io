@@ -206,6 +206,8 @@ const StudentData = {
                     module_id: moduleId,
                     ...progressData,
                     status: progressData.progress_percentage === 100 ? 'completed' : 'in_progress'
+                }, {
+                    onConflict: 'student_id,module_id'
                 })
             
             if (error) throw error

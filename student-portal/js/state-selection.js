@@ -512,39 +512,54 @@ function generateStateSpecificSlides(stateInfo, stateCode) {
 // Store reference to original startModule from slideshow.js
 let originalStartModuleFromSlideshow = null;
 
-// Override startModule after page loads
-document.addEventListener('DOMContentLoaded', () => {
-    // Wait a bit for slideshow.js to fully load
-    setTimeout(() => {
-        if (window.startModule) {
+// Override startModule - run immediately, not waiting for DOMContentLoaded
+(function() {
+    // Check repeatedly until startModule is available
+    let attempts = 0;
+    const maxAttempts = 20;
+    
+    const checkAndOverride = setInterval(() => {
+        attempts++;
+        
+        if (window.startModule && typeof window.startModule === 'function') {
             // Save the original function
             originalStartModuleFromSlideshow = window.startModule;
+            console.log('Original startModule saved:', typeof originalStartModuleFromSlideshow);
             
             // Override with our custom logic
             window.startModule = function(moduleId) {
+                console.log('startModule called with:', moduleId);
+                
                 if (moduleId === 'use-of-force') {
+                    console.log('Module 7 detected - checking for state selection');
                     // Check if state is already selected
                     const savedState = localStorage.getItem('selectedState');
                     if (savedState && stateLaws[savedState]) {
+                        console.log('Using saved state:', savedState);
                         // Use saved state
                         startModuleWithState(moduleId, savedState);
                     } else {
+                        console.log('No saved state - showing selection modal');
                         // Show state selection modal
                         showStateSelectionModal();
                     }
                 } else {
+                    console.log('Other module - calling original function');
                     // Call original function for other modules
                     if (originalStartModuleFromSlideshow) {
                         originalStartModuleFromSlideshow(moduleId);
                     }
                 }
             };
-            console.log('Module 7 state selection initialized');
-        } else {
-            console.error('startModule function not found in window');
+            
+            console.log('✅ Module 7 state selection initialized successfully');
+            clearInterval(checkAndOverride);
+        } else if (attempts >= maxAttempts) {
+            console.error('❌ Failed to find startModule function after', maxAttempts, 'attempts');
+            clearInterval(checkAndOverride);
         }
-    }, 200);
-});
+    }, 100);
+})();
 
 // Generate state-specific assessment questions
 function generateStateSpecificAssessment(stateInfo, stateCode) {
