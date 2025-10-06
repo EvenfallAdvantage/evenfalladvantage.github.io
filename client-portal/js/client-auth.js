@@ -7,18 +7,21 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Tab switching
-function switchTab(tab) {
-    const tabs = document.querySelectorAll('.login-tab');
-    const contents = document.querySelectorAll('.tab-content');
-    
-    tabs.forEach(t => t.classList.remove('active'));
-    contents.forEach(c => c.classList.remove('active'));
-    
-    document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
-    document.getElementById(`${tab}-content`).classList.add('active');
-    
-    hideAlert();
-}
+document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        
+        // Remove active class from all tabs and forms
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding form
+        tab.classList.add('active');
+        document.getElementById(`${tabName}Form`).classList.add('active');
+        
+        hideAlert();
+    });
+});
 
 // Show alert
 function showAlert(message, type) {
@@ -135,7 +138,11 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
         
         showAlert('Account created successfully! You can now login.', 'success');
         setTimeout(() => {
-            switchTab('login');
+            // Switch to login tab
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            document.querySelector('[data-tab="login"]').classList.add('active');
+            document.getElementById('loginForm').classList.add('active');
             document.getElementById('login-email').value = email;
         }, 2000);
         
@@ -148,4 +155,3 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
 
 // Export for use in other files
 window.supabase = supabase;
-window.switchTab = switchTab;
