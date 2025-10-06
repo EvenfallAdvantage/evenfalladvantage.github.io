@@ -3292,10 +3292,18 @@ function completeModule() {
         saveProgress();
     }
     
-    // Close modal and navigate to appropriate assessment
+    // Close modal and return to training section
     closeModule();
     
-    // Map modules to their corresponding assessments
+    // Navigate back to training section (don't auto-start assessment)
+    navigateToSection('training');
+    
+    // Show completion message
+    setTimeout(() => {
+        alert('Module completed! You can now take the assessment from the Assessment section.');
+    }, 300);
+    
+    /* Disabled auto-launch of assessment
     const moduleToAssessment = {
         'communication-protocols': 'communication-protocols',
         'stop-the-bleed': 'stop-the-bleed',
@@ -3310,7 +3318,6 @@ function completeModule() {
     
     if (assessmentId) {
         navigateToSection('assessment');
-        // Small delay to ensure section is visible before starting assessment
         setTimeout(() => {
             if (typeof startAssessment === 'function') {
                 startAssessment(assessmentId);
@@ -3320,6 +3327,7 @@ function completeModule() {
         // Default to assessment section if no specific mapping
         navigateToSection('assessment');
     }
+    */
 }
 
 function closeModule() {

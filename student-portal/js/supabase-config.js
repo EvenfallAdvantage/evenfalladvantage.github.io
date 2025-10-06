@@ -199,6 +199,8 @@ const StudentData = {
     // Update module progress
     async updateModuleProgress(studentId, moduleId, progressData) {
         try {
+            console.log('Updating module progress:', { studentId, moduleId, progressData });
+            
             // First, try to check if record exists
             const { data: existing, error: checkError } = await supabase
                 .from('student_module_progress')
@@ -206,6 +208,8 @@ const StudentData = {
                 .eq('student_id', studentId)
                 .eq('module_id', moduleId)
                 .maybeSingle(); // Use maybeSingle instead of single
+            
+            console.log('Existing record check:', { existing, checkError });
             
             // Ignore "no rows" errors
             if (checkError && checkError.code !== 'PGRST116') {
