@@ -25,8 +25,15 @@ function loadProgress() {
     const saved = localStorage.getItem('securityTrainingProgress');
     if (saved) {
         progressData = JSON.parse(saved);
-        updateProgressDisplay();
     }
+    
+    // Ensure all arrays exist
+    if (!progressData.completedModules) progressData.completedModules = [];
+    if (!progressData.completedScenarios) progressData.completedScenarios = [];
+    if (!progressData.assessmentResults) progressData.assessmentResults = [];
+    if (!progressData.activities) progressData.activities = [];
+    
+    updateProgressDisplay();
 }
 
 // Save progress to localStorage
@@ -4269,6 +4276,12 @@ function addActivity(description) {
 }
 
 function updateProgressDisplay() {
+    // Ensure progressData has all required properties
+    if (!progressData.completedModules) progressData.completedModules = [];
+    if (!progressData.completedScenarios) progressData.completedScenarios = [];
+    if (!progressData.assessmentResults) progressData.assessmentResults = [];
+    if (!progressData.activities) progressData.activities = [];
+    
     // Update stats
     document.getElementById('completedModules').textContent = progressData.completedModules.length;
     document.getElementById('completedScenarios').textContent = progressData.completedScenarios.length;
