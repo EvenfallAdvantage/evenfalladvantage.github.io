@@ -88,11 +88,18 @@ function startModuleWithState(moduleId, stateCode) {
     const stateSlides = generateStateSpecificSlides(stateInfo, stateCode);
     
     // Replace the use-of-force slides with state-specific ones
-    slideshowContent['use-of-force'] = stateSlides;
+    if (window.moduleSlidesData) {
+        window.moduleSlidesData['use-of-force'] = stateSlides;
+    } else {
+        console.error('moduleSlidesData not found. Make sure slideshow.js is loaded.');
+        return;
+    }
     
     // Start the slideshow
     if (window.startSlideshow) {
         window.startSlideshow(moduleId);
+    } else {
+        console.error('startSlideshow function not found.');
     }
 }
 

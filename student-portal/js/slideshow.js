@@ -3388,3 +3388,6 @@ function initializeStateSelector() {
         }
     }, 100);
 }
+
+// Expose moduleSlidesData globally for state-selection.js
+window.moduleSlidesData = moduleSlidesData;
