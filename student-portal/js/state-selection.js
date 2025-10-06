@@ -95,11 +95,23 @@ function startModuleWithState(moduleId, stateCode) {
         return;
     }
     
-    // Start the slideshow
-    if (window.startSlideshow) {
-        window.startSlideshow(moduleId);
+    // Start the slideshow - directly access the saved original or call from slideshow.js
+    if (originalStartModuleFromSlideshow) {
+        originalStartModuleFromSlideshow(moduleId);
+    } else if (window.startModule && window.startModule.toString().includes('currentModuleId')) {
+        // Call the original function directly if it hasn't been overridden yet
+        window.startModule(moduleId);
     } else {
-        console.error('startSlideshow function not found.');
+        console.error('startModule function not available. Trying direct initialization...');
+        // Fallback: manually initialize slideshow
+        if (window.moduleSlidesData) {
+            window.currentModuleId = moduleId;
+            window.currentModuleSlides = window.moduleSlidesData[moduleId];
+            window.currentSlideIndex = 0;
+            if (window.showSlide && typeof window.showSlide === 'function') {
+                window.showSlide(0);
+            }
+        }
     }
 }
 
@@ -497,26 +509,42 @@ function generateStateSpecificSlides(stateInfo, stateCode) {
     ];
 }
 
-// Override the startModule function for use-of-force
-const originalStartModule = window.startModule;
-window.startModule = function(moduleId) {
-    if (moduleId === 'use-of-force') {
-        // Check if state is already selected
-        const savedState = localStorage.getItem('selectedState');
-        if (savedState && stateLaws[savedState]) {
-            // Use saved state
-            startModuleWithState(moduleId, savedState);
+// Store reference to original startModule from slideshow.js
+let originalStartModuleFromSlideshow = null;
+
+// Override startModule after page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Wait a bit for slideshow.js to fully load
+    setTimeout(() => {
+        if (window.startModule) {
+            // Save the original function
+            originalStartModuleFromSlideshow = window.startModule;
+            
+            // Override with our custom logic
+            window.startModule = function(moduleId) {
+                if (moduleId === 'use-of-force') {
+                    // Check if state is already selected
+                    const savedState = localStorage.getItem('selectedState');
+                    if (savedState && stateLaws[savedState]) {
+                        // Use saved state
+                        startModuleWithState(moduleId, savedState);
+                    } else {
+                        // Show state selection modal
+                        showStateSelectionModal();
+                    }
+                } else {
+                    // Call original function for other modules
+                    if (originalStartModuleFromSlideshow) {
+                        originalStartModuleFromSlideshow(moduleId);
+                    }
+                }
+            };
+            console.log('Module 7 state selection initialized');
         } else {
-            // Show state selection modal
-            showStateSelectionModal();
+            console.error('startModule function not found in window');
         }
-    } else {
-        // Call original function for other modules
-        if (originalStartModule) {
-            originalStartModule(moduleId);
-        }
-    }
-};
+    }, 200);
+});
 
 // Generate state-specific assessment questions
 function generateStateSpecificAssessment(stateInfo, stateCode) {

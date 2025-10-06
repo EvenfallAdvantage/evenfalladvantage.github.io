@@ -3389,5 +3389,6 @@ function initializeStateSelector() {
     }, 100);
 }
 
-// Expose moduleSlidesData globally for state-selection.js
+// Expose slideshow functions and data globally for state-selection.js
 window.moduleSlidesData = moduleSlidesData;
+window.startModule = startModule;
