@@ -1607,14 +1607,50 @@ body {
 }
 
 @media (max-width: 768px) {
+    /* Mobile Header Layout - Match Main Page */
     .nav-container {
-        flex-direction: column;
+        flex-direction: column !important;
+        align-items: center !important;
         gap: 1rem;
+    }
+
+    .nav-brand {
+        order: 1;
+        width: 100%;
+        justify-content: center !important;
+    }
+
+    .nav-logo {
+        position: static !important;
+        left: auto !important;
+        min-width: 220px !important;
+        max-height: 121px !important;
+    }
+
+    .portal-content {
+        order: 2;
+        align-items: center !important;
+        width: 100%;
+    }
+
+    .portal-title {
+        text-align: center !important;
+        width: 100%;
+    }
+
+    .portal-nav-container {
+        align-items: center !important;
+        width: 100%;
     }
 
     .nav-links {
         flex-wrap: wrap;
-        justify-content: center;
+        justify-content: center !important;
+        width: 100%;
+    }
+
+    .nav-link {
+        font-size: 1.4rem;
     }
 
     .hero h1 {
