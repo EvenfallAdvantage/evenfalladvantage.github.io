@@ -1411,11 +1411,12 @@ section:nth-child(even) {
 
 .student-button {
     background-color: var(--secondary);
-    color: white;
+    color: white !important;
 }
 
 .student-button:hover {
     background-color: #e74c3c;
+    color: white !important;
     transform: translateY(-3px);
     box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
 }
