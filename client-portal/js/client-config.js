@@ -1,0 +1,175 @@
+// Client Portal - Supabase Configuration
+
+// Initialize Supabase
+const SUPABASE_URL = 'https://vaagvairvwmgyzsmymhs.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhYWd2YWlydndtZ3l6c215bWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY3MjA5NTMsImV4cCI6MjA1MjI5Njk1M30.s_xtN8vJCmQnKfLMqUKJGLdvVJaGjGqQGGLzLqmqBYs';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Authentication functions
+const ClientAuth = {
+    async getCurrentUser() {
+        try {
+            const { data: { user }, error } = await supabase.auth.getUser();
+            if (error) throw error;
+            return user;
+        } catch (error) {
+            console.error('Get user error:', error);
+            return null;
+        }
+    },
+
+    async signOut() {
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            window.location.href = 'login.html';
+        } catch (error) {
+            console.error('Sign out error:', error);
+        }
+    }
+};
+
+// Client data functions
+const ClientData = {
+    async getProfile(clientId) {
+        try {
+            const { data, error } = await supabase
+                .from('clients')
+                .select('*')
+                .eq('id', clientId)
+                .single();
+            
+            if (error) throw error;
+            return { success: true, data };
+        } catch (error) {
+            console.error('Get profile error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async updateProfile(clientId, profileData) {
+        try {
+            const { data, error } = await supabase
+                .from('clients')
+                .update(profileData)
+                .eq('id', clientId);
+            
+            if (error) throw error;
+            return { success: true, data };
+        } catch (error) {
+            console.error('Update profile error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async getJobPostings(clientId) {
+        try {
+            const { data, error } = await supabase
+                .from('job_postings')
+                .select('*')
+                .eq('client_id', clientId)
+                .order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            return { success: true, data };
+        } catch (error) {
+            console.error('Get jobs error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async createJobPosting(clientId, jobData) {
+        try {
+            const { data, error } = await supabase
+                .from('job_postings')
+                .insert({
+                    client_id: clientId,
+                    ...jobData
+                });
+            
+            if (error) throw error;
+            return { success: true, data };
+        } catch (error) {
+            console.error('Create job error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async updateJobPosting(jobId, jobData) {
+        try {
+            const { data, error } = await supabase
+                .from('job_postings')
+                .update(jobData)
+                .eq('id', jobId);
+            
+            if (error) throw error;
+            return { success: true, data };
+        } catch (error) {
+            console.error('Update job error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async deleteJobPosting(jobId) {
+        try {
+            const { error } = await supabase
+                .from('job_postings')
+                .delete()
+                .eq('id', jobId);
+            
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            console.error('Delete job error:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    async searchCandidates(filters = {}) {
+        try {
+            let query = supabase
+                .from('students')
+                .select(`
+                    id,
+                    first_name,
+                    last_name,
+                    email,
+                    student_profiles (
+                        location,
+                        bio,
+                        skills,
+                        profile_visible,
+                        profile_picture_url
+                    ),
+                    student_module_progress (
+                        status,
+                        completed_at
+                    )
+                `)
+                .eq('student_profiles.profile_visible', true);
+            
+            if (filters.location) {
+                query = query.ilike('student_profiles.location', `%${filters.location}%`);
+            }
+            
+            const { data, error } = await query;
+            
+            if (error) throw error;
+            return { success: true, data };
+        } catch (error) {
+            console.error('Search candidates error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+};
+
+// Logout function
+function logout() {
+    ClientAuth.signOut();
+}
+
+// Export
+window.ClientAuth = ClientAuth;
+window.ClientData = ClientData;
+window.logout = logout;
