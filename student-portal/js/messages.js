@@ -117,20 +117,21 @@ async function loadMessages() {
     }));
     
     // Build conversations HTML
-    const conversationsHTML = threadMessages.map(({ thread, lastMessage, unreadCount }) => {
+    let conversationsHTML = '';
+    threadMessages.forEach(({ thread, lastMessage, unreadCount }) => {
         const otherUserId = thread.participant_1 === currentUser.id ? thread.participant_2 : thread.participant_1;
         const participant = participants?.find(p => p.id === otherUserId);
         
         if (!participant) {
             console.log('No participant found for user:', otherUserId);
-            return '';
+            return;
         }
         
         const preview = lastMessage ? lastMessage.message.substring(0, 60) + '...' : 'No messages yet';
         const timeAgo = lastMessage ? getTimeAgo(new Date(lastMessage.created_at)) : '';
         const isActive = currentConversationUserId === otherUserId ? 'active' : '';
         
-        return `
+        conversationsHTML += `
             <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''} ${isActive}" onclick="viewConversation('${otherUserId}', '${participant.company_name}')">
                 <div class="conversation-avatar">
                     <i class="fas fa-building"></i>
@@ -145,7 +146,15 @@ async function loadMessages() {
                 </div>
             </div>
         `;
-    }).join('');
+        
+        // In mobile view, inject message view right after active conversation
+        if (isActive && window.innerWidth <= 968) {
+            const messageViewContent = document.querySelector('.message-view')?.innerHTML || '';
+            if (messageViewContent) {
+                conversationsHTML += `<div class="mobile-message-view">${messageViewContent}</div>`;
+            }
+        }
+    });
     
     document.getElementById('conversationsList').innerHTML = conversationsHTML || '<p class="empty-state">No messages yet</p>';
 }
