@@ -47,8 +47,8 @@ body {
 .nav-container {
     display: flex;
     align-items: center;
-    gap: 3rem;
-    padding: 0.75rem 0;
+    gap: 2rem;
+    padding: 0.5rem 0;
 }
 
 .nav-brand {
@@ -57,10 +57,11 @@ body {
 
 .logo-link {
     display: block;
+    line-height: 0;
 }
 
 .nav-logo {
-    height: 70px;
+    height: 80px;
     display: block;
 }
 
@@ -69,6 +70,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    text-align: right;
 }
 
 .portal-title {
@@ -78,6 +80,7 @@ body {
     font-weight: 400;
     opacity: 0.9;
     font-family: 'Raleway', sans-serif;
+    line-height: 1.2;
 }
 
 .portal-nav-container {
