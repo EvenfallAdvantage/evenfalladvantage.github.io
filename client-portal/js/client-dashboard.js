@@ -808,6 +808,9 @@ async function viewConversation(userId, userName) {
                 </div>
                 <h3>${userName}</h3>
             </div>
+            <button class="close-conversation-btn" onclick="closeConversation()">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
         <div class="messages-list" id="messagesList">
             ${messagesHTML || '<p class="empty-state">No messages yet. Start the conversation!</p>'}
@@ -830,6 +833,20 @@ async function viewConversation(userId, userName) {
     
     // Refresh conversations list to update unread counts
     await loadMessages();
+}
+
+// Close conversation and return to placeholder
+function closeConversation() {
+    currentConversationUserId = null;
+    currentConversationUserName = null;
+    
+    const messageView = document.querySelector('.message-view');
+    messageView.innerHTML = `
+        <div class="message-placeholder">
+            <i class="fas fa-comments"></i>
+            <p>Select a conversation to view messages</p>
+        </div>
+    `;
 }
 
 // Helper function to get time ago
@@ -861,6 +878,7 @@ window.contactCandidate = contactCandidate;
 window.sendMessageInline = sendMessageInline;
 window.loadMessages = loadMessages;
 window.viewConversation = viewConversation;
+window.closeConversation = closeConversation;
 window.toggleJobStatus = toggleJobStatus;
 window.deleteJob = deleteJob;
 window.editJob = editJob;
