@@ -293,6 +293,47 @@ body {
     border-bottom: none;
 }
 
+.experience-item {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.experience-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.experience-item h5 {
+    margin: 0 0 0.5rem 0;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.experience-item .company-name {
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+    color: #333;
+}
+
+.experience-item .date-range {
+    margin: 0 0 0.5rem 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.experience-item .date-range i {
+    margin-right: 0.5rem;
+    color: var(--secondary-color);
+}
+
+.experience-item .experience-description {
+    margin: 0.5rem 0 0 0;
+    color: #666;
+    line-height: 1.6;
+}
+
 .modal-footer {
     padding: 1.5rem;
     border-top: 1px solid #e0e0e0;
