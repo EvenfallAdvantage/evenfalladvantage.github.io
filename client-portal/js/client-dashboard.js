@@ -326,9 +326,11 @@ async function loadCandidates() {
 async function applyFilters() {
     const searchTerm = document.getElementById('candidateSearch').value;
     const location = document.getElementById('locationFilter').value;
+    const certification = document.getElementById('certificationFilter').value;
     
     const filters = {};
     if (location) filters.location = location;
+    if (certification) filters.certification = certification;
     
     const result = await ClientData.searchCandidates(filters);
     

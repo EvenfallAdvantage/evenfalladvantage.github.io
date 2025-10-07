@@ -141,7 +141,11 @@ const ClientData = {
                         bio,
                         skills,
                         profile_visible,
-                        profile_picture_url
+                        profile_picture_url,
+                        certifications_completed,
+                        certifications_in_progress,
+                        phone,
+                        linkedin_url
                     ),
                     student_module_progress (
                         status,
@@ -168,12 +172,25 @@ const ClientData = {
             
             if (error) throw error;
             
-            // Filter for visible profiles in JavaScript if needed
-            const visibleData = data?.filter(student => {
+            // Filter for visible profiles and certifications in JavaScript
+            let visibleData = data?.filter(student => {
                 return student.student_profiles && 
                        (student.student_profiles.profile_visible === true || 
                         student.student_profiles.profile_visible === null);
             }) || [];
+            
+            // Apply certification filter
+            if (filters.certification === 'completed') {
+                visibleData = visibleData.filter(student => {
+                    const certs = student.student_profiles?.certifications_completed || [];
+                    return certs.length > 0;
+                });
+            } else if (filters.certification === 'in-progress') {
+                visibleData = visibleData.filter(student => {
+                    const certs = student.student_profiles?.certifications_in_progress || [];
+                    return certs.length > 0;
+                });
+            }
             
             return { success: true, data: visibleData };
         } catch (error) {
