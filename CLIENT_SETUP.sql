@@ -1,5 +1,15 @@
 -- Client Portal Database Setup
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Clients can view own profile" ON clients;
+DROP POLICY IF EXISTS "Clients can insert own profile" ON clients;
+DROP POLICY IF EXISTS "Clients can update own profile" ON clients;
+DROP POLICY IF EXISTS "Clients can view own jobs" ON job_postings;
+DROP POLICY IF EXISTS "Clients can create jobs" ON job_postings;
+DROP POLICY IF EXISTS "Clients can update own jobs" ON job_postings;
+DROP POLICY IF EXISTS "Clients can delete own jobs" ON job_postings;
+DROP POLICY IF EXISTS "Public can view active jobs" ON job_postings;
+
 -- Create clients table
 CREATE TABLE IF NOT EXISTS clients (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -40,6 +50,9 @@ ALTER TABLE job_postings ENABLE ROW LEVEL SECURITY;
 -- Policies for clients
 CREATE POLICY "Clients can view own profile" ON clients
     FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Clients can insert own profile" ON clients
+    FOR INSERT WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Clients can update own profile" ON clients
     FOR UPDATE USING (auth.uid() = id);

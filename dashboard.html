@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Evenfall Advantage - Client Dashboard">
+    <title>Dashboard | Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard-charts.css">
+    <link rel="stylesheet" href="css/message-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <main class="dashboard-main">
+        <section class="dashboard-sidebar">
+            <div class="user-profile">
+                <div class="user-avatar">
+                    <img src="images/avatar.jpg" alt="User Avatar">
+                </div>
+                <h3 class="user-name">Sarah Johnson</h3>
+                <p class="user-role">Event Director</p>
+                <p class="user-company">Horizon Festivals</p>
+            </div>
+            
+            <nav class="dashboard-nav">
+                <ul>
+                    <li class="active"><a href="#"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="#"><i class="fas fa-file-alt"></i> Documents</a></li>
+                    <li><a href="#"><i class="fas fa-calendar-alt"></i> Schedule</a></li>
+                    <li><a href="#"><i class="fas fa-comments"></i> Messages</a></li>
+                    <li><a href="#"><i class="fas fa-certificate"></i> Training</a></li>
+                    <li><a href="#"><i class="fas fa-user-cog"></i> Profile</a></li>
+                    <li class="logout"><a href="#"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                </ul>
+            </nav>
+        </section>
+        
+        <section class="dashboard-content">
+            <div class="dashboard-header">
+                <div class="page-title">
+                    <h1>Client Dashboard</h1>
+                    <p class="last-login">Last login: September 12, 2025, 10:23 AM</p>
+                </div>
+                <div class="dashboard-actions">
+                    <div class="notifications">
+                        <button class="notification-button"><i class="fas fa-bell"></i><span class="notification-badge">3</span></button>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" placeholder="Search...">
+                        <button><i class="fas fa-search"></i></button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-overview">
+                <div class="cards-container">
+                    <div class="dashboard-card">
+                        <div class="card-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Active Documents</h3>
+                            <div class="card-number">12</div>
+                            <a href="#" class="card-link">View All</a>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Upcoming Events</h3>
+                            <div class="card-number">3</div>
+                            <a href="#" class="card-link">View Calendar</a>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon">
+                            <i class="fas fa-certificate"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Training Modules</h3>
+                            <div class="card-number">5</div>
+                            <a href="#" class="card-link">Continue Learning</a>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="card-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>New Messages</h3>
+                            <div class="card-number">7</div>
+                            <a href="#" class="card-link">Open Inbox</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-sections">
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2>Recent Activity</h2>
+                        <a href="#" class="view-all">View All</a>
+                    </div>
+                    <div class="recent-activity">
+                        <ul class="activity-list">
+                            <li>
+                                <div class="activity-icon">
+                                    <i class="fas fa-file-upload"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <div class="activity-title">Emergency Response Plan Updated</div>
+                                    <div class="activity-meta">
+                                        <span class="activity-time">Today, 9:45 AM</span>
+                                        <span class="activity-user">by James Ferguson</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="activity-icon">
+                                    <i class="fas fa-comment-alt"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <div class="activity-title">New comment on "Venue Assessment Report"</div>
+                                    <div class="activity-meta">
+                                        <span class="activity-time">Yesterday, 3:20 PM</span>
+                                        <span class="activity-user">by Elena Santiago</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="activity-icon">
+                                    <i class="fas fa-calendar-plus"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <div class="activity-title">Site Visit Scheduled: Downtown Venue</div>
+                                    <div class="activity-meta">
+                                        <span class="activity-time">Sep 10, 2025</span>
+                                        <span class="activity-user">by Josiah Newell</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="activity-icon">
+                                    <i class="fas fa-certificate"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <div class="activity-title">Training Module Completed: CPTED Basics</div>
+                                    <div class="activity-meta">
+                                        <span class="activity-time">Sep 8, 2025</span>
+                                        <span class="activity-user">by Sarah Johnson</span>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2>Upcoming Events</h2>
+                        <a href="#" class="view-all">View Calendar</a>
+                    </div>
+                    <div class="upcoming-events">
+                        <ul class="activity-list">
+                            <li>
+                                <div class="activity-icon">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <div class="activity-title">Site Assessment: Riverfront Festival Grounds</div>
+                                    <div class="activity-meta">
+                                        <span class="activity-time">Sep 18, 2025, 9:00 AM</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="activity-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <div class="activity-title">Staff Training: Emergency Response</div>
+                                    <div class="activity-meta">
+                                        <span class="activity-time">Sep 22, 2025, 1:00 PM</span>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="activity-icon">
+                                    <i class="fas fa-video"></i>
+                                </div>
+                                <div class="activity-details">
+                                    <div class="activity-title">Virtual Meeting: Festival Security Plan</div>
+                                    <div class="activity-meta">
+                                        <span class="activity-time">Sep 24, 2025, 10:30 AM</span>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-charts">
+                <div class="chart-row">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3>Security Incident Types (2025)</h3>
+                            <div class="chart-actions">
+                                <button class="chart-action"><i class="fas fa-download"></i></button>
+                                <button class="chart-action"><i class="fas fa-expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart" id="incident-types-chart">
+                            <!-- Chart will be rendered here by JS -->
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3>Staff Certification Status</h3>
+                            <div class="chart-actions">
+                                <button class="chart-action"><i class="fas fa-download"></i></button>
+                                <button class="chart-action"><i class="fas fa-expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart" id="certification-chart">
+                            <!-- Chart will be rendered here by JS -->
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-row">
+                    <div class="chart-container full-width">
+                        <div class="chart-header">
+                            <h3>Monthly Risk Assessment Scores</h3>
+                            <div class="chart-actions">
+                                <button class="chart-action"><i class="fas fa-download"></i></button>
+                                <button class="chart-action"><i class="fas fa-expand"></i></button>
+                            </div>
+                        </div>
+                        <div class="chart" id="risk-assessment-chart">
+                            <!-- Chart will be rendered here by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="js/script.js"></script>
+    <script src="js/include-html.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/dashboard-filters.js"></script>
+    <script src="js/profile-manager.js"></script>
+</body>
+</html>
