@@ -48,6 +48,9 @@ async function loadDashboardData() {
     
     // Load candidates
     await loadCandidates();
+    
+    // Load messages
+    await loadMessages();
 }
 
 // Load statistics
@@ -666,6 +669,184 @@ async function sendMessage(event, toUserId) {
     }
 }
 
+// Load messages and conversations
+async function loadMessages() {
+    const currentUser = await ClientAuth.getCurrentUser();
+    if (!currentUser) return;
+    
+    // Get all message threads for current user
+    const { data: threads, error } = await supabase
+        .from('message_threads')
+        .select('*')
+        .or(`participant_1.eq.${currentUser.id},participant_2.eq.${currentUser.id}`)
+        .order('last_message_at', { ascending: false });
+    
+    if (error) {
+        console.error('Error loading threads:', error);
+        return;
+    }
+    
+    if (!threads || threads.length === 0) {
+        document.getElementById('conversationsList').innerHTML = '<p class="empty-state">No messages yet</p>';
+        return;
+    }
+    
+    // Get user info for all participants
+    const participantIds = new Set();
+    threads.forEach(thread => {
+        participantIds.add(thread.participant_1);
+        participantIds.add(thread.participant_2);
+    });
+    participantIds.delete(currentUser.id); // Remove current user
+    
+    // Get student info for participants
+    const { data: students } = await supabase
+        .from('students')
+        .select('id, first_name, last_name, email')
+        .in('id', Array.from(participantIds));
+    
+    // Get student profiles for avatars
+    const { data: profiles } = await supabase
+        .from('student_profiles')
+        .select('student_id, profile_picture_url')
+        .in('student_id', Array.from(participantIds));
+    
+    // Get last message for each thread
+    const threadMessages = await Promise.all(threads.map(async (thread) => {
+        const { data: lastMessage } = await supabase
+            .from('messages')
+            .select('*')
+            .or(`and(from_user_id.eq.${thread.participant_1},to_user_id.eq.${thread.participant_2}),and(from_user_id.eq.${thread.participant_2},to_user_id.eq.${thread.participant_1})`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+        
+        // Get unread count
+        const { count: unreadCount } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('to_user_id', currentUser.id)
+            .eq('read', false)
+            .or(`from_user_id.eq.${thread.participant_1},from_user_id.eq.${thread.participant_2}`);
+        
+        return { thread, lastMessage, unreadCount };
+    }));
+    
+    // Build conversations HTML
+    const conversationsHTML = threadMessages.map(({ thread, lastMessage, unreadCount }) => {
+        const otherUserId = thread.participant_1 === currentUser.id ? thread.participant_2 : thread.participant_1;
+        const student = students?.find(s => s.id === otherUserId);
+        const profile = profiles?.find(p => p.student_id === otherUserId);
+        
+        if (!student) return '';
+        
+        const preview = lastMessage ? lastMessage.message.substring(0, 60) + '...' : 'No messages yet';
+        const timeAgo = lastMessage ? getTimeAgo(new Date(lastMessage.created_at)) : '';
+        
+        return `
+            <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''}" onclick="viewConversation('${otherUserId}', '${student.first_name} ${student.last_name}')">
+                <div class="conversation-avatar">
+                    ${profile?.profile_picture_url ? 
+                        `<img src="${profile.profile_picture_url}" alt="${student.first_name}">` : 
+                        `<i class="fas fa-user"></i>`
+                    }
+                </div>
+                <div class="conversation-info">
+                    <div class="conversation-header">
+                        <h4>${student.first_name} ${student.last_name}</h4>
+                        ${unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : ''}
+                    </div>
+                    <p class="conversation-preview">${preview}</p>
+                    <span class="conversation-time">${timeAgo}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('conversationsList').innerHTML = conversationsHTML || '<p class="empty-state">No messages yet</p>';
+    
+    // Update unread messages count in stats
+    const totalUnread = threadMessages.reduce((sum, { unreadCount }) => sum + (unreadCount || 0), 0);
+    document.getElementById('unreadMessages').textContent = totalUnread;
+}
+
+// View conversation with a specific user
+async function viewConversation(userId, userName) {
+    const currentUser = await ClientAuth.getCurrentUser();
+    if (!currentUser) return;
+    
+    // Get all messages in this conversation
+    const { data: messages, error } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${currentUser.id})`)
+        .order('created_at', { ascending: true });
+    
+    if (error) {
+        console.error('Error loading messages:', error);
+        return;
+    }
+    
+    // Mark messages as read
+    await supabase
+        .from('messages')
+        .update({ read: true })
+        .eq('to_user_id', currentUser.id)
+        .eq('from_user_id', userId);
+    
+    // Build messages HTML
+    const messagesHTML = messages.map(msg => {
+        const isFromMe = msg.from_user_id === currentUser.id;
+        const time = new Date(msg.created_at).toLocaleString();
+        
+        return `
+            <div class="message ${isFromMe ? 'message-sent' : 'message-received'}">
+                <div class="message-content">
+                    <div class="message-header">
+                        <strong>${isFromMe ? 'You' : userName}</strong>
+                        <span class="message-time">${time}</span>
+                    </div>
+                    ${msg.subject ? `<div class="message-subject">${msg.subject}</div>` : ''}
+                    <p>${msg.message}</p>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Update message view
+    const messageView = document.querySelector('.message-view');
+    messageView.innerHTML = `
+        <div class="conversation-header">
+            <h3>${userName}</h3>
+            <button class="btn btn-small btn-primary" onclick="replyToUser('${userId}', '${userName}')">
+                <i class="fas fa-reply"></i> Reply
+            </button>
+        </div>
+        <div class="messages-list">
+            ${messagesHTML}
+        </div>
+    `;
+    
+    // Refresh conversations list to update unread counts
+    await loadMessages();
+}
+
+// Reply to a user
+function replyToUser(userId, userName) {
+    contactCandidate(userId);
+}
+
+// Helper function to get time ago
+function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+    if (seconds < 604800) return Math.floor(seconds / 86400) + 'd ago';
+    return date.toLocaleDateString();
+}
+
 // Edit job
 function editJob(jobId) {
     alert('Edit job feature coming soon! Job ID: ' + jobId);
@@ -683,6 +864,9 @@ window.closeCandidateModal = closeCandidateModal;
 window.contactCandidate = contactCandidate;
 window.closeMessageModal = closeMessageModal;
 window.sendMessage = sendMessage;
+window.loadMessages = loadMessages;
+window.viewConversation = viewConversation;
+window.replyToUser = replyToUser;
 window.editJob = editJob;
 window.toggleJobStatus = toggleJobStatus;
 window.deleteJob = deleteJob;
