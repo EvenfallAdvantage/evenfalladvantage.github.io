@@ -65,6 +65,23 @@ async function loadMessages() {
         return;
     }
     
+    // If no clients found, they might be students (shouldn't happen but handle it)
+    if (!clients || clients.length === 0) {
+        console.log('No clients found - checking if participants are students');
+        const { data: students } = await supabase
+            .from('students')
+            .select('id, first_name, last_name, email')
+            .in('id', Array.from(participantIds));
+        
+        console.log('Students found:', students);
+        
+        if (!students || students.length === 0) {
+            console.log('No participants found at all');
+            document.getElementById('conversationsList').innerHTML = '<p class="empty-state">No messages yet</p>';
+            return;
+        }
+    }
+    
     // Get last message for each thread
     const threadMessages = await Promise.all(threads.map(async (thread) => {
         const { data: messages } = await supabase
