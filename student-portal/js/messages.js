@@ -52,7 +52,7 @@ async function loadMessages() {
     
     // Get client info for participants
     console.log('Fetching client info for:', Array.from(participantIds));
-    const { data: clients, error: clientsError } = await supabase
+    let { data: clients, error: clientsError } = await supabase
         .from('clients')
         .select('id, company_name, contact_name, email')
         .in('id', Array.from(participantIds));
@@ -65,7 +65,8 @@ async function loadMessages() {
         return;
     }
     
-    // If no clients found, they might be students (shouldn't happen but handle it)
+    // If no clients found, check if they're students (for testing/debugging)
+    let participants = clients || [];
     if (!clients || clients.length === 0) {
         console.log('No clients found - checking if participants are students');
         const { data: students } = await supabase
@@ -75,12 +76,22 @@ async function loadMessages() {
         
         console.log('Students found:', students);
         
-        if (!students || students.length === 0) {
-            console.log('No participants found at all');
-            document.getElementById('conversationsList').innerHTML = '<p class="empty-state">No messages yet</p>';
-            return;
-        }
+        // Convert students to client-like format
+        participants = students?.map(s => ({
+            id: s.id,
+            company_name: `${s.first_name} ${s.last_name}`,
+            contact_name: `${s.first_name} ${s.last_name}`,
+            email: s.email
+        })) || [];
     }
+    
+    if (participants.length === 0) {
+        console.log('No participants found at all');
+        document.getElementById('conversationsList').innerHTML = '<p class="empty-state">No messages yet</p>';
+        return;
+    }
+    
+    console.log('Final participants:', participants);
     
     // Get last message for each thread
     const threadMessages = await Promise.all(threads.map(async (thread) => {
@@ -107,21 +118,24 @@ async function loadMessages() {
     // Build conversations HTML
     const conversationsHTML = threadMessages.map(({ thread, lastMessage, unreadCount }) => {
         const otherUserId = thread.participant_1 === currentUser.id ? thread.participant_2 : thread.participant_1;
-        const client = clients?.find(c => c.id === otherUserId);
+        const participant = participants?.find(p => p.id === otherUserId);
         
-        if (!client) return '';
+        if (!participant) {
+            console.log('No participant found for user:', otherUserId);
+            return '';
+        }
         
         const preview = lastMessage ? lastMessage.message.substring(0, 60) + '...' : 'No messages yet';
         const timeAgo = lastMessage ? getTimeAgo(new Date(lastMessage.created_at)) : '';
         
         return `
-            <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''}" onclick="viewConversation('${otherUserId}', '${client.company_name}')">
+            <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''}" onclick="viewConversation('${otherUserId}', '${participant.company_name}')">
                 <div class="conversation-avatar">
                     <i class="fas fa-building"></i>
                 </div>
                 <div class="conversation-info">
                     <div class="conversation-header">
-                        <h4>${client.company_name}</h4>
+                        <h4>${participant.company_name}</h4>
                         ${unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : ''}
                     </div>
                     <p class="conversation-preview">${preview}</p>
