@@ -1,12 +1,15 @@
 // Student Portal - Messaging System
 
-// Load messages when page loads
-(async function() {
-    const messagesSection = document.getElementById('messages');
-    if (messagesSection) {
-        await loadMessages();
-    }
-})();
+// Load messages when DOM is ready
+document.addEventListener('DOMContentLoaded', async function() {
+    // Wait a bit for other scripts to initialize
+    setTimeout(async () => {
+        const messagesSection = document.getElementById('messages');
+        if (messagesSection) {
+            await loadMessages();
+        }
+    }, 500);
+});
 
 // Load messages and conversations
 async function loadMessages() {
@@ -131,7 +134,6 @@ async function viewConversation(userId, companyName) {
                         <strong>${isFromMe ? 'You' : companyName}</strong>
                         <span class="message-time">${time}</span>
                     </div>
-                    ${msg.subject ? `<div class="message-subject">${msg.subject}</div>` : ''}
                     <p>${msg.message}</p>
                 </div>
             </div>
