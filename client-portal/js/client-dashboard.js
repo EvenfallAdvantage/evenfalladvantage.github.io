@@ -806,7 +806,6 @@ async function viewConversation(userId, userName) {
                         <strong>${isFromMe ? 'You' : userName}</strong>
                         <span class="message-time">${time}</span>
                     </div>
-                    ${msg.subject ? `<div class="message-subject">${msg.subject}</div>` : ''}
                     <p>${msg.message}</p>
                 </div>
             </div>
