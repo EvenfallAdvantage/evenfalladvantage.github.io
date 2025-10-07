@@ -87,6 +87,11 @@ body {
     padding: 0;
 }
 
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
 /* Navigation */
 .navbar {
     background: var(--primary-color);
