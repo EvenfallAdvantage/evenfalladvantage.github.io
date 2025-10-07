@@ -421,9 +421,113 @@ function displayFilteredCandidates(candidates) {
 }
 
 // View candidate details
-function viewCandidate(studentId) {
-    alert('Candidate profile view coming soon! Student ID: ' + studentId);
-    // TODO: Show detailed candidate modal
+async function viewCandidate(studentId) {
+    // Get student data
+    const { data: student, error: studentError } = await supabase
+        .from('students')
+        .select('id, first_name, last_name, email')
+        .eq('id', studentId)
+        .single();
+    
+    if (studentError) {
+        alert('Error loading candidate profile');
+        return;
+    }
+    
+    // Get profile data
+    const { data: profile, error: profileError } = await supabase
+        .from('student_profiles')
+        .select('*')
+        .eq('student_id', studentId)
+        .single();
+    
+    if (profileError) {
+        alert('Error loading candidate profile');
+        return;
+    }
+    
+    // Get module progress
+    const { data: progress } = await supabase
+        .from('student_module_progress')
+        .select('*')
+        .eq('student_id', studentId);
+    
+    const completedModules = progress?.filter(p => p.status === 'completed').length || 0;
+    
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal-overlay" id="candidateModal" onclick="closeCandidateModal()">
+            <div class="modal-content candidate-modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h2>Candidate Profile</h2>
+                    <button class="close-btn" onclick="closeCandidateModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="candidate-profile-header">
+                        <div class="candidate-avatar-large">
+                            ${profile.profile_picture_url ? 
+                                `<img src="${profile.profile_picture_url}" alt="${student.first_name}">` : 
+                                `<i class="fas fa-user"></i>`
+                            }
+                        </div>
+                        <div class="candidate-profile-info">
+                            <h3>${student.first_name} ${student.last_name}</h3>
+                            <p><i class="fas fa-map-marker-alt"></i> ${profile.location || 'Location not specified'}</p>
+                            <p><i class="fas fa-envelope"></i> ${student.email}</p>
+                            ${profile.phone ? `<p><i class="fas fa-phone"></i> ${profile.phone}</p>` : ''}
+                            ${profile.linkedin_url ? `<p><i class="fab fa-linkedin"></i> <a href="${profile.linkedin_url}" target="_blank">LinkedIn Profile</a></p>` : ''}
+                        </div>
+                    </div>
+                    
+                    ${profile.bio ? `
+                        <div class="profile-section">
+                            <h4>About</h4>
+                            <p>${profile.bio}</p>
+                        </div>
+                    ` : ''}
+                    
+                    ${profile.skills && profile.skills.length > 0 ? `
+                        <div class="profile-section">
+                            <h4>Skills</h4>
+                            <div class="skills-list">
+                                ${profile.skills.map(skill => `<span class="skill-badge">${skill}</span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="profile-section">
+                        <h4>Training Progress</h4>
+                        <p><strong>${completedModules}/7</strong> modules completed</p>
+                    </div>
+                    
+                    ${profile.certifications_completed && profile.certifications_completed.length > 0 ? `
+                        <div class="profile-section">
+                            <h4>Certifications</h4>
+                            <ul>
+                                ${profile.certifications_completed.map(cert => `<li>${cert}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeCandidateModal()">Close</button>
+                    <button class="btn btn-primary" onclick="contactCandidate('${studentId}')">
+                        <i class="fas fa-envelope"></i> Contact Candidate
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function closeCandidateModal() {
+    const modal = document.getElementById('candidateModal');
+    if (modal) modal.remove();
 }
 
 // Contact candidate
@@ -445,6 +549,7 @@ window.toggleEditCompany = toggleEditCompany;
 window.cancelEditCompany = cancelEditCompany;
 window.applyFilters = applyFilters;
 window.viewCandidate = viewCandidate;
+window.closeCandidateModal = closeCandidateModal;
 window.contactCandidate = contactCandidate;
 window.editJob = editJob;
 window.toggleJobStatus = toggleJobStatus;
