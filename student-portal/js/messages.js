@@ -172,20 +172,22 @@ async function viewConversation(userId, companyName) {
         .eq('to_user_id', currentUser.id)
         .eq('from_user_id', userId);
     
+    // Store current conversation
+    currentConversationUserId = userId;
+    currentConversationUserName = companyName;
+    
     // Build messages HTML
     const messagesHTML = messages.map(msg => {
         const isFromMe = msg.from_user_id === currentUser.id;
-        const time = new Date(msg.created_at).toLocaleString();
+        const time = new Date(msg.created_at);
+        const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
         return `
-            <div class="message ${isFromMe ? 'message-sent' : 'message-received'}">
-                <div class="message-content">
-                    <div class="message-header">
-                        <strong>${isFromMe ? 'You' : companyName}</strong>
-                        <span class="message-time">${time}</span>
-                    </div>
-                    <p>${msg.message}</p>
+            <div class="message-bubble ${isFromMe ? 'sent' : 'received'}">
+                <div class="bubble-content">
+                    ${msg.message}
                 </div>
+                <div class="bubble-time">${timeStr}</div>
             </div>
         `;
     }).join('');
@@ -194,80 +196,70 @@ async function viewConversation(userId, companyName) {
     const messageView = document.querySelector('.message-view');
     messageView.innerHTML = `
         <div class="conversation-header">
-            <h3>${companyName}</h3>
-            <button class="btn btn-small btn-primary" onclick="replyToClient('${userId}', '${companyName}')">
-                <i class="fas fa-reply"></i> Reply
+            <div class="conversation-header-info">
+                <div class="conversation-avatar">
+                    <i class="fas fa-building"></i>
+                </div>
+                <h3>${companyName}</h3>
+            </div>
+            <button class="close-conversation-btn" onclick="closeConversation()">
+                <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="messages-list">
-            ${messagesHTML}
+        <div class="messages-list" id="messagesList">
+            ${messagesHTML || '<p class="empty-state">No messages yet. Start the conversation!</p>'}
+        </div>
+        <div class="message-input-container">
+            <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendMessageInline()">
+            <button class="btn btn-primary send-btn" onclick="sendMessageInline()">
+                <i class="fas fa-paper-plane"></i>
+            </button>
         </div>
     `;
+    
+    // Scroll to bottom
+    setTimeout(() => {
+        const messagesList = document.getElementById('messagesList');
+        if (messagesList) {
+            messagesList.scrollTop = messagesList.scrollHeight;
+        }
+    }, 100);
     
     // Refresh conversations list to update unread counts
     await loadMessages();
 }
 
-// Reply to a client
+// Store current conversation
+let currentConversationUserId = null;
+let currentConversationUserName = null;
+
+// Reply to a client (now just opens the conversation)
 async function replyToClient(clientId, companyName) {
-    // Show compose message modal
-    const modalHTML = `
-        <div class="modal-overlay" id="messageModal" onclick="closeMessageModal()">
-            <div class="modal-content message-modal" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h2>Send Message to ${companyName}</h2>
-                    <button class="close-btn" onclick="closeMessageModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="messageForm" onsubmit="sendMessage(event, '${clientId}')">
-                        <div class="form-group">
-                            <label for="messageSubject">Subject</label>
-                            <input type="text" id="messageSubject" required placeholder="Enter subject...">
-                        </div>
-                        <div class="form-group">
-                            <label for="messageContent">Message</label>
-                            <textarea id="messageContent" rows="8" required placeholder="Type your message here..."></textarea>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" onclick="closeMessageModal()">Cancel</button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane"></i> Send Message
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    await viewConversation(clientId, companyName);
 }
 
-function closeMessageModal() {
-    const modal = document.getElementById('messageModal');
-    if (modal) modal.remove();
-}
-
-async function sendMessage(event, toUserId) {
-    event.preventDefault();
+// Send message from inline input
+async function sendMessageInline() {
+    const messageInput = document.getElementById('messageInput');
+    const message = messageInput.value.trim();
     
-    const subject = document.getElementById('messageSubject').value;
-    const message = document.getElementById('messageContent').value;
+    if (!message || !currentConversationUserId) return;
+    
     const currentUser = await Auth.getCurrentUser();
-    
     if (!currentUser) {
         alert('You must be logged in to send messages');
         return;
     }
     
+    // Disable input while sending
+    messageInput.disabled = true;
+    
     // Create or get thread
     const { data: existingThread } = await supabase
         .from('message_threads')
         .select('id')
-        .or(`and(participant_1.eq.${currentUser.id},participant_2.eq.${toUserId}),and(participant_1.eq.${toUserId},participant_2.eq.${currentUser.id})`)
-        .single();
+        .or(`and(participant_1.eq.${currentUser.id},participant_2.eq.${currentConversationUserId}),and(participant_1.eq.${currentConversationUserId},participant_2.eq.${currentUser.id})`)
+        .maybeSingle();
     
     if (!existingThread) {
         // Create new thread
@@ -275,7 +267,7 @@ async function sendMessage(event, toUserId) {
             .from('message_threads')
             .insert({
                 participant_1: currentUser.id,
-                participant_2: toUserId
+                participant_2: currentConversationUserId
             });
     }
     
@@ -284,21 +276,41 @@ async function sendMessage(event, toUserId) {
         .from('messages')
         .insert({
             from_user_id: currentUser.id,
-            to_user_id: toUserId,
-            subject: subject,
+            to_user_id: currentConversationUserId,
+            subject: 'Direct Message',
             message: message
         });
     
     if (error) {
         alert('Error sending message: ' + error.message);
+        messageInput.disabled = false;
         return;
     }
     
-    alert('Message sent successfully!');
-    closeMessageModal();
+    // Clear input
+    messageInput.value = '';
+    messageInput.disabled = false;
+    messageInput.focus();
     
-    // Refresh messages
+    // Reload conversation to show new message
+    await viewConversation(currentConversationUserId, currentConversationUserName);
+    
+    // Refresh conversations list
     await loadMessages();
+}
+
+// Close conversation and return to placeholder
+function closeConversation() {
+    currentConversationUserId = null;
+    currentConversationUserName = null;
+    
+    const messageView = document.querySelector('.message-view');
+    messageView.innerHTML = `
+        <div class="message-placeholder">
+            <i class="fas fa-comments"></i>
+            <p>Select a conversation to view messages</p>
+        </div>
+    `;
 }
 
 // Helper function to get time ago
@@ -316,5 +328,5 @@ function getTimeAgo(date) {
 window.loadMessages = loadMessages;
 window.viewConversation = viewConversation;
 window.replyToClient = replyToClient;
-window.closeMessageModal = closeMessageModal;
-window.sendMessage = sendMessage;
+window.sendMessageInline = sendMessageInline;
+window.closeConversation = closeConversation;
