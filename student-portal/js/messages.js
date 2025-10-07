@@ -20,8 +20,9 @@ async function loadMessages() {
     }
     
     console.log('Loading messages for student:', currentUser.id);
+    console.log('Current user email:', currentUser.email);
     
-    // Get all message threads for current user
+    // Get all message threads for current user ONLY
     const { data: threads, error } = await supabase
         .from('message_threads')
         .select('*')
@@ -153,12 +154,16 @@ async function viewConversation(userId, companyName) {
     const currentUser = await Auth.getCurrentUser();
     if (!currentUser) return;
     
-    // Get all messages in this conversation
+    console.log('Viewing conversation - Current user:', currentUser.id, 'Other user:', userId);
+    
+    // Get all messages in this conversation between ONLY current user and the other user
     const { data: messages, error } = await supabase
         .from('messages')
         .select('*')
         .or(`and(from_user_id.eq.${currentUser.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${currentUser.id})`)
         .order('created_at', { ascending: true });
+    
+    console.log('Messages loaded:', messages?.length, 'messages');
     
     if (error) {
         console.error('Error loading messages:', error);
