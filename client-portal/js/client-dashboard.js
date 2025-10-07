@@ -454,6 +454,13 @@ async function viewCandidate(studentId) {
     
     const completedModules = progress?.filter(p => p.status === 'completed').length || 0;
     
+    // Get work experience
+    const { data: experience } = await supabase
+        .from('work_experience')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('start_date', { ascending: false });
+    
     // Create modal HTML
     const modalHTML = `
         <div class="modal-overlay" id="candidateModal" onclick="closeCandidateModal()">
@@ -494,6 +501,24 @@ async function viewCandidate(studentId) {
                             <div class="skills-list">
                                 ${profile.skills.map(skill => `<span class="skill-badge">${skill}</span>`).join('')}
                             </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${experience && experience.length > 0 ? `
+                        <div class="profile-section">
+                            <h4>Work Experience</h4>
+                            ${experience.map(exp => `
+                                <div class="experience-item">
+                                    <h5>${exp.job_title}</h5>
+                                    <p class="company-name">${exp.company_name}</p>
+                                    <p class="date-range">
+                                        <i class="fas fa-calendar"></i>
+                                        ${new Date(exp.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} - 
+                                        ${exp.end_date ? new Date(exp.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Present'}
+                                    </p>
+                                    ${exp.description ? `<p class="experience-description">${exp.description}</p>` : ''}
+                                </div>
+                            `).join('')}
                         </div>
                     ` : ''}
                     
