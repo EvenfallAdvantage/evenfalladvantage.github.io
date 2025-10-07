@@ -130,7 +130,7 @@ const ClientData = {
         try {
             console.log('searchCandidates called with filters:', filters);
             
-            // First get all students
+            // First get all students with their profiles
             let query = supabase
                 .from('students')
                 .select(`
@@ -138,7 +138,7 @@ const ClientData = {
                     first_name,
                     last_name,
                     email,
-                    student_profiles (
+                    student_profiles!student_id (
                         location,
                         bio,
                         skills,
