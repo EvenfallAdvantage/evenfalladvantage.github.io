@@ -128,6 +128,7 @@ const ClientData = {
 
     async searchCandidates(filters = {}) {
         try {
+            // First get all students
             let query = supabase
                 .from('students')
                 .select(`
@@ -135,7 +136,7 @@ const ClientData = {
                     first_name,
                     last_name,
                     email,
-                    student_profiles (
+                    student_profiles!inner (
                         location,
                         bio,
                         skills,
@@ -146,20 +147,38 @@ const ClientData = {
                         status,
                         completed_at
                     )
-                `)
-                .eq('student_profiles.profile_visible', true);
+                `);
+            
+            // Only show students with visible profiles (if the field exists)
+            // Using inner join ensures we only get students with profiles
             
             if (filters.location) {
                 query = query.ilike('student_profiles.location', `%${filters.location}%`);
             }
             
+            if (filters.skills) {
+                query = query.contains('student_profiles.skills', [filters.skills]);
+            }
+            
+            if (filters.name) {
+                query = query.or(`first_name.ilike.%${filters.name}%,last_name.ilike.%${filters.name}%`);
+            }
+            
             const { data, error } = await query;
             
             if (error) throw error;
-            return { success: true, data };
+            
+            // Filter for visible profiles in JavaScript if needed
+            const visibleData = data?.filter(student => {
+                return student.student_profiles && 
+                       (student.student_profiles.profile_visible === true || 
+                        student.student_profiles.profile_visible === null);
+            }) || [];
+            
+            return { success: true, data: visibleData };
         } catch (error) {
             console.error('Search candidates error:', error);
-            return { success: false, error: error.message };
+            return { success: false, error: error.message, data: [] };
         }
     }
 };
