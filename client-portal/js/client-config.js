@@ -128,6 +128,8 @@ const ClientData = {
 
     async searchCandidates(filters = {}) {
         try {
+            console.log('searchCandidates called with filters:', filters);
+            
             // First get all students
             let query = supabase
                 .from('students')
@@ -170,6 +172,8 @@ const ClientData = {
             
             const { data, error } = await query;
             
+            console.log('Raw query result:', { data, error, count: data?.length });
+            
             if (error) throw error;
             
             // Filter for visible profiles and certifications in JavaScript
@@ -179,17 +183,21 @@ const ClientData = {
                         student.student_profiles.profile_visible === null);
             }) || [];
             
+            console.log(`After visibility filter: ${visibleData.length} students`);
+            
             // Apply certification filter
             if (filters.certification === 'completed') {
                 visibleData = visibleData.filter(student => {
                     const certs = student.student_profiles?.certifications_completed || [];
                     return certs.length > 0;
                 });
+                console.log(`After completed cert filter: ${visibleData.length} students`);
             } else if (filters.certification === 'in-progress') {
                 visibleData = visibleData.filter(student => {
                     const certs = student.student_profiles?.certifications_in_progress || [];
                     return certs.length > 0;
                 });
+                console.log(`After in-progress cert filter: ${visibleData.length} students`);
             }
             
             return { success: true, data: visibleData };

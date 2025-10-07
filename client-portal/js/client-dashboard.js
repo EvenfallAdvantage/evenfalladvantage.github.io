@@ -266,12 +266,23 @@ async function deleteJob(jobId) {
 
 // Load candidates
 async function loadCandidates() {
+    console.log('Loading candidates...');
     const result = await ClientData.searchCandidates();
+    console.log('Search result:', result);
     
-    if (!result.success || !result.data || result.data.length === 0) {
+    if (!result.success) {
+        console.error('Search failed:', result.error);
+        document.getElementById('candidatesGrid').innerHTML = `<p class="empty-state">Error loading candidates: ${result.error || 'Unknown error'}</p>`;
+        return;
+    }
+    
+    if (!result.data || result.data.length === 0) {
+        console.log('No candidates found');
         document.getElementById('candidatesGrid').innerHTML = '<p class="empty-state">No candidates available yet</p>';
         return;
     }
+    
+    console.log(`Found ${result.data.length} candidates`);
     
     const candidatesHTML = result.data.map(student => {
         const profile = student.student_profiles || {};
