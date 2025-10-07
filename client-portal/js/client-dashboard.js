@@ -769,6 +769,12 @@ async function viewConversation(userId, userName) {
     const currentUser = await ClientAuth.getCurrentUser();
     if (!currentUser) return;
     
+    // Toggle conversation on mobile - close if clicking the same one
+    if (window.innerWidth <= 968 && currentConversationUserId === userId) {
+        closeConversation();
+        return;
+    }
+    
     // Get all messages in this conversation
     const { data: messages, error } = await supabase
         .from('messages')
@@ -858,6 +864,11 @@ function closeConversation() {
             <p>Select a conversation to view messages</p>
         </div>
     `;
+    
+    // Reload conversations list to remove mobile message view
+    if (window.innerWidth <= 968) {
+        loadMessages();
+    }
 }
 
 // Helper function to get time ago
