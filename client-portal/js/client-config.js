@@ -178,19 +178,22 @@ const ClientData = {
             
             // Filter for students with profiles and visible profiles
             let visibleData = data?.filter(student => {
+                // Get profile (might be array or object)
+                const profile = Array.isArray(student.student_profiles) 
+                    ? student.student_profiles[0] 
+                    : student.student_profiles;
+                
                 // Must have a profile
-                if (!student.student_profiles) {
+                if (!profile) {
                     console.log(`Student ${student.first_name} ${student.last_name} has no profile`);
                     return false;
                 }
                 
-                // Check visibility (true or null counts as visible)
-                const isVisible = student.student_profiles.profile_visible === true || 
-                                 student.student_profiles.profile_visible === null ||
-                                 student.student_profiles.profile_visible === undefined;
+                // Check visibility - ONLY true is visible, false/null/undefined are hidden
+                const isVisible = profile.profile_visible === true;
                 
                 if (!isVisible) {
-                    console.log(`Student ${student.first_name} ${student.last_name} profile is not visible`);
+                    console.log(`Student ${student.first_name} ${student.last_name} profile is not visible (value: ${profile.profile_visible})`);
                 }
                 
                 return isVisible;
