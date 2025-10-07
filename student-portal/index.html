@@ -36,6 +36,7 @@
                             <a href="#training" class="nav-link" data-section="training">Learn</a>
                             <a href="#sandtable" class="nav-link" data-section="sandtable">Practice</a>
                             <a href="#assessment" class="nav-link" data-section="assessment">Assess</a>
+                            <a href="#messages" class="nav-link" data-section="messages">Messages</a>
                             <a href="#profile" class="nav-link" data-section="profile">Profile</a>
                             <a href="javascript:void(0)" class="nav-link" onclick="logout()">
                                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -495,6 +496,31 @@
             </div>
         </section>
 
+        <!-- Messages Section -->
+        <section id="messages" class="section">
+            <div class="section-header">
+                <h2>Messages</h2>
+                <p>Communicate with potential employers</p>
+            </div>
+
+            <div class="messages-container">
+                <div class="conversations-list">
+                    <div class="conversations-header">
+                        <h3>Conversations</h3>
+                    </div>
+                    <div id="conversationsList">
+                        <p class="empty-state">No messages yet</p>
+                    </div>
+                </div>
+                <div class="message-view">
+                    <div class="message-placeholder">
+                        <i class="fas fa-comments"></i>
+                        <p>Select a conversation to view messages</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Profile Section -->
         <section id="profile" class="section">
             <div class="section-header">
@@ -764,6 +790,7 @@
     <script src="js/state-laws.js"></script>
     <script src="js/state-selection.js"></script>
     <script src="js/profile.js"></script>
+    <script src="js/messages.js"></script>
 
 </body>
 </html>
