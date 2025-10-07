@@ -556,9 +556,114 @@ function closeCandidateModal() {
 }
 
 // Contact candidate
-function contactCandidate(studentId) {
-    alert('Messaging feature coming soon! Student ID: ' + studentId);
-    // TODO: Open messaging interface
+async function contactCandidate(studentId) {
+    // Close candidate modal if open
+    closeCandidateModal();
+    
+    // Get student info
+    const { data: student } = await supabase
+        .from('students')
+        .select('first_name, last_name, email')
+        .eq('id', studentId)
+        .single();
+    
+    if (!student) {
+        alert('Error loading candidate information');
+        return;
+    }
+    
+    // Show compose message modal
+    const modalHTML = `
+        <div class="modal-overlay" id="messageModal" onclick="closeMessageModal()">
+            <div class="modal-content message-modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h2>Send Message to ${student.first_name} ${student.last_name}</h2>
+                    <button class="close-btn" onclick="closeMessageModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="messageForm" onsubmit="sendMessage(event, '${studentId}')">
+                        <div class="form-group">
+                            <label for="messageSubject">Subject</label>
+                            <input type="text" id="messageSubject" required placeholder="Enter subject...">
+                        </div>
+                        <div class="form-group">
+                            <label for="messageContent">Message</label>
+                            <textarea id="messageContent" rows="8" required placeholder="Type your message here..."></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeMessageModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function closeMessageModal() {
+    const modal = document.getElementById('messageModal');
+    if (modal) modal.remove();
+}
+
+async function sendMessage(event, toUserId) {
+    event.preventDefault();
+    
+    const subject = document.getElementById('messageSubject').value;
+    const message = document.getElementById('messageContent').value;
+    const currentUser = await ClientAuth.getCurrentUser();
+    
+    if (!currentUser) {
+        alert('You must be logged in to send messages');
+        return;
+    }
+    
+    // Create or get thread
+    const { data: existingThread } = await supabase
+        .from('message_threads')
+        .select('id')
+        .or(`and(participant_1.eq.${currentUser.id},participant_2.eq.${toUserId}),and(participant_1.eq.${toUserId},participant_2.eq.${currentUser.id})`)
+        .single();
+    
+    if (!existingThread) {
+        // Create new thread
+        await supabase
+            .from('message_threads')
+            .insert({
+                participant_1: currentUser.id,
+                participant_2: toUserId
+            });
+    }
+    
+    // Send message
+    const { error } = await supabase
+        .from('messages')
+        .insert({
+            from_user_id: currentUser.id,
+            to_user_id: toUserId,
+            subject: subject,
+            message: message
+        });
+    
+    if (error) {
+        alert('Error sending message: ' + error.message);
+        return;
+    }
+    
+    alert('Message sent successfully!');
+    closeMessageModal();
+    
+    // Refresh messages section if on that tab
+    const messagesSection = document.getElementById('messages');
+    if (messagesSection && messagesSection.classList.contains('active')) {
+        loadMessages();
+    }
 }
 
 // Edit job
@@ -576,6 +681,8 @@ window.applyFilters = applyFilters;
 window.viewCandidate = viewCandidate;
 window.closeCandidateModal = closeCandidateModal;
 window.contactCandidate = contactCandidate;
+window.closeMessageModal = closeMessageModal;
+window.sendMessage = sendMessage;
 window.editJob = editJob;
 window.toggleJobStatus = toggleJobStatus;
 window.deleteJob = deleteJob;
