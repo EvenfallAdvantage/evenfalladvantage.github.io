@@ -51,10 +51,19 @@ async function loadMessages() {
     participantIds.delete(currentUser.id); // Remove current user
     
     // Get client info for participants
-    const { data: clients } = await supabase
+    console.log('Fetching client info for:', Array.from(participantIds));
+    const { data: clients, error: clientsError } = await supabase
         .from('clients')
         .select('id, company_name, contact_name, email')
         .in('id', Array.from(participantIds));
+    
+    console.log('Clients query result:', { clients, clientsError });
+    
+    if (clientsError) {
+        console.error('Error loading clients:', clientsError);
+        document.getElementById('conversationsList').innerHTML = '<p class="empty-state">Error loading client information</p>';
+        return;
+    }
     
     // Get last message for each thread
     const threadMessages = await Promise.all(threads.map(async (thread) => {
