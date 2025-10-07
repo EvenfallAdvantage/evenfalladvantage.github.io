@@ -771,6 +771,18 @@ async function viewConversation(userId, userName) {
         return;
     }
     
+    // Get student profile picture
+    const { data: studentProfile } = await supabase
+        .from('student_profiles')
+        .select('profile_picture_url')
+        .eq('student_id', userId)
+        .single();
+    
+    // Build avatar HTML - use profile picture if available, otherwise use icon
+    const avatarHTML = studentProfile?.profile_picture_url 
+        ? `<img src="${studentProfile.profile_picture_url}" alt="${userName}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` 
+        : `<i class="fas fa-user"></i>`;
+    
     // Mark messages as read
     await supabase
         .from('messages')
@@ -804,7 +816,7 @@ async function viewConversation(userId, userName) {
         <div class="conversation-header">
             <div class="conversation-header-info">
                 <div class="conversation-avatar">
-                    <i class="fas fa-user"></i>
+                    ${avatarHTML}
                 </div>
                 <h3>${userName}</h3>
             </div>
