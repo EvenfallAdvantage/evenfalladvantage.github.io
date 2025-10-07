@@ -14,7 +14,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Load messages and conversations
 async function loadMessages() {
     const currentUser = await Auth.getCurrentUser();
-    if (!currentUser) return;
+    if (!currentUser) {
+        console.log('No current user');
+        return;
+    }
+    
+    console.log('Loading messages for student:', currentUser.id);
     
     // Get all message threads for current user
     const { data: threads, error } = await supabase
@@ -23,12 +28,16 @@ async function loadMessages() {
         .or(`participant_1.eq.${currentUser.id},participant_2.eq.${currentUser.id}`)
         .order('last_message_at', { ascending: false });
     
+    console.log('Threads query result:', { threads, error });
+    
     if (error) {
         console.error('Error loading threads:', error);
+        document.getElementById('conversationsList').innerHTML = '<p class="empty-state">Error loading messages</p>';
         return;
     }
     
     if (!threads || threads.length === 0) {
+        console.log('No threads found');
         document.getElementById('conversationsList').innerHTML = '<p class="empty-state">No messages yet</p>';
         return;
     }
@@ -49,13 +58,14 @@ async function loadMessages() {
     
     // Get last message for each thread
     const threadMessages = await Promise.all(threads.map(async (thread) => {
-        const { data: lastMessage } = await supabase
+        const { data: messages } = await supabase
             .from('messages')
             .select('*')
             .or(`and(from_user_id.eq.${thread.participant_1},to_user_id.eq.${thread.participant_2}),and(from_user_id.eq.${thread.participant_2},to_user_id.eq.${thread.participant_1})`)
             .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+            .limit(1);
+        
+        const lastMessage = messages && messages.length > 0 ? messages[0] : null;
         
         // Get unread count
         const { count: unreadCount } = await supabase
