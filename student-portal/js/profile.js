@@ -47,6 +47,11 @@ async function loadProfileData() {
         // Load profile visibility
         document.getElementById('profileVisibility').checked = profile.profile_visible || false;
         updateVisibilityStatus(profile.profile_visible || false);
+        
+        // Load profile picture
+        if (profile.profile_picture_url) {
+            document.getElementById('profileAvatar').innerHTML = `<img src="${profile.profile_picture_url}" alt="Profile">`;
+        }
     }
 }
 
