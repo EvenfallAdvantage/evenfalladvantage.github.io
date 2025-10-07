@@ -130,49 +130,36 @@ const ClientData = {
         try {
             console.log('searchCandidates called with filters:', filters);
             
-            // First get all students with their profiles
-            let query = supabase
+            // Get all students
+            const { data: students, error: studentsError } = await supabase
                 .from('students')
-                .select(`
-                    id,
-                    first_name,
-                    last_name,
-                    email,
-                    student_profiles!student_id (
-                        location,
-                        bio,
-                        skills,
-                        profile_visible,
-                        profile_picture_url,
-                        certifications_completed,
-                        certifications_in_progress,
-                        phone,
-                        linkedin_url
-                    ),
-                    student_module_progress (
-                        status,
-                        completed_at
-                    )
-                `);
+                .select('id, first_name, last_name, email');
             
-            // Only show students with visible profiles (if the field exists)
-            // Using inner join ensures we only get students with profiles
+            if (studentsError) throw studentsError;
             
-            if (filters.location) {
-                query = query.ilike('student_profiles.location', `%${filters.location}%`);
-            }
+            console.log('Students found:', students?.length);
             
-            if (filters.skills) {
-                query = query.contains('student_profiles.skills', [filters.skills]);
-            }
+            // Get all profiles
+            const { data: profiles, error: profilesError } = await supabase
+                .from('student_profiles')
+                .select('*');
             
-            if (filters.name) {
-                query = query.or(`first_name.ilike.%${filters.name}%,last_name.ilike.%${filters.name}%`);
-            }
+            if (profilesError) throw profilesError;
             
-            const { data, error } = await query;
+            console.log('Profiles found:', profiles?.length);
             
-            console.log('Raw query result:', { data, error, count: data?.length });
+            // Manually join students with their profiles
+            const data = students?.map(student => {
+                const profile = profiles?.find(p => p.student_id === student.id);
+                return {
+                    ...student,
+                    student_profiles: profile || null
+                };
+            }) || [];
+            
+            console.log('Joined data:', data.length);
+            
+            const error = null;
             
             if (error) throw error;
             
