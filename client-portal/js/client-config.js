@@ -138,7 +138,7 @@ const ClientData = {
                     first_name,
                     last_name,
                     email,
-                    student_profiles!inner (
+                    student_profiles (
                         location,
                         bio,
                         skills,
@@ -176,11 +176,24 @@ const ClientData = {
             
             if (error) throw error;
             
-            // Filter for visible profiles and certifications in JavaScript
+            // Filter for students with profiles and visible profiles
             let visibleData = data?.filter(student => {
-                return student.student_profiles && 
-                       (student.student_profiles.profile_visible === true || 
-                        student.student_profiles.profile_visible === null);
+                // Must have a profile
+                if (!student.student_profiles) {
+                    console.log(`Student ${student.first_name} ${student.last_name} has no profile`);
+                    return false;
+                }
+                
+                // Check visibility (true or null counts as visible)
+                const isVisible = student.student_profiles.profile_visible === true || 
+                                 student.student_profiles.profile_visible === null ||
+                                 student.student_profiles.profile_visible === undefined;
+                
+                if (!isVisible) {
+                    console.log(`Student ${student.first_name} ${student.last_name} profile is not visible`);
+                }
+                
+                return isVisible;
             }) || [];
             
             console.log(`After visibility filter: ${visibleData.length} students`);
