@@ -717,18 +717,19 @@ async function loadMessages() {
     }));
     
     // Build conversations HTML
-    const conversationsHTML = threadMessages.map(({ thread, lastMessage, unreadCount }) => {
+    let conversationsHTML = '';
+    threadMessages.forEach(({ thread, lastMessage, unreadCount }) => {
         const otherUserId = thread.participant_1 === currentUser.id ? thread.participant_2 : thread.participant_1;
         const student = students?.find(s => s.id === otherUserId);
         const profile = profiles?.find(p => p.student_id === otherUserId);
         
-        if (!student) return '';
+        if (!student) return;
         
         const preview = lastMessage ? lastMessage.message.substring(0, 60) + '...' : 'No messages yet';
         const timeAgo = lastMessage ? getTimeAgo(new Date(lastMessage.created_at)) : '';
         const isActive = currentConversationUserId === otherUserId ? 'active' : '';
         
-        return `
+        conversationsHTML += `
             <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''} ${isActive}" onclick="viewConversation('${otherUserId}', '${student.first_name} ${student.last_name}')">
                 <div class="conversation-avatar">
                     ${profile?.profile_picture_url ? 
@@ -746,7 +747,15 @@ async function loadMessages() {
                 </div>
             </div>
         `;
-    }).join('');
+        
+        // In mobile view, inject message view right after active conversation
+        if (isActive && window.innerWidth <= 968) {
+            const messageViewContent = document.querySelector('.message-view')?.innerHTML || '';
+            if (messageViewContent) {
+                conversationsHTML += `<div class="mobile-message-view">${messageViewContent}</div>`;
+            }
+        }
+    });
     
     document.getElementById('conversationsList').innerHTML = conversationsHTML || '<p class="empty-state">No messages yet</p>';
     
