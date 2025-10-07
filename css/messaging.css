@@ -16,20 +16,42 @@
 
 @media (max-width: 968px) {
     .messages-container {
-        grid-template-columns: 1fr;
-        height: calc(100vh - 200px);
+        display: block;
+        height: auto;
+        max-height: none;
     }
     
     .conversations-list {
-        display: none;
+        border-right: none;
+        height: auto;
+        width: 100%;
     }
     
-    .messages-container.show-conversations .conversations-list {
+    #conversationsList {
+        max-height: none;
+        overflow-y: visible;
+    }
+    
+    .message-view {
+        display: none;
+        width: 100%;
+        min-height: 400px;
+        border-top: 3px solid var(--secondary-color, #e74c3c);
+    }
+    
+    /* Mobile message view - shown inline */
+    .mobile-message-view {
         display: flex;
+        flex-direction: column;
+        background: white;
+        border-top: 3px solid var(--secondary-color, #e74c3c);
+        border-bottom: 1px solid var(--border-color, #dee2e6);
+        min-height: 400px;
+        max-height: 500px;
     }
     
-    .messages-container.show-conversations .message-view {
-        display: none;
+    .mobile-message-view .messages-list {
+        background: white;
     }
 }
 
