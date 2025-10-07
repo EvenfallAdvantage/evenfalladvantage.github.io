@@ -164,6 +164,12 @@ async function viewConversation(userId, companyName) {
     const currentUser = await Auth.getCurrentUser();
     if (!currentUser) return;
     
+    // Toggle conversation on mobile - close if clicking the same one
+    if (window.innerWidth <= 968 && currentConversationUserId === userId) {
+        closeConversation();
+        return;
+    }
+    
     console.log('Viewing conversation - Current user:', currentUser.id, 'Other user:', userId);
     
     // Get all messages in this conversation between ONLY current user and the other user
@@ -326,6 +332,11 @@ function closeConversation() {
             <p>Select a conversation to view messages</p>
         </div>
     `;
+    
+    // Reload conversations list to remove mobile message view
+    if (window.innerWidth <= 968) {
+        loadMessages();
+    }
 }
 
 // Helper function to get time ago
