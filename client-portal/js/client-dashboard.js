@@ -726,12 +726,13 @@ async function loadMessages() {
         
         const preview = lastMessage ? lastMessage.message.substring(0, 60) + '...' : 'No messages yet';
         const timeAgo = lastMessage ? getTimeAgo(new Date(lastMessage.created_at)) : '';
+        const isActive = currentConversationUserId === otherUserId ? 'active' : '';
         
         return `
-            <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''}" onclick="viewConversation('${otherUserId}', '${student.first_name} ${student.last_name}')">
+            <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''} ${isActive}" onclick="viewConversation('${otherUserId}', '${student.first_name} ${student.last_name}')">
                 <div class="conversation-avatar">
                     ${profile?.profile_picture_url ? 
-                        `<img src="${profile.profile_picture_url}" alt="${student.first_name}">` : 
+                        `<img src="${profile.profile_picture_url}" alt="${student.first_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">` : 
                         `<i class="fas fa-user"></i>`
                     }
                 </div>
@@ -810,20 +811,9 @@ async function viewConversation(userId, userName) {
         `;
     }).join('');
     
-    // Update message view
+    // Update message view (no header - shown in conversation list)
     const messageView = document.querySelector('.message-view');
     messageView.innerHTML = `
-        <div class="conversation-header">
-            <div class="conversation-header-info">
-                <div class="conversation-avatar">
-                    ${avatarHTML}
-                </div>
-                <h3>${userName}</h3>
-            </div>
-            <button class="close-conversation-btn" onclick="closeConversation()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
         <div class="messages-list" id="messagesList">
             ${messagesHTML || '<p class="empty-state">No messages yet. Start the conversation!</p>'}
         </div>
