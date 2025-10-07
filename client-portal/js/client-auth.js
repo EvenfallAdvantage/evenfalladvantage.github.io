@@ -108,7 +108,7 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
     
     try {
-        // Create auth user
+        // Create auth user - trigger will create client profile automatically
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: email,
             password: password,
@@ -116,25 +116,14 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
                 data: {
                     first_name: firstName,
                     last_name: lastName,
+                    company_name: companyName,
+                    phone: phone,
                     user_type: 'client'
                 }
             }
         });
         
         if (authError) throw authError;
-        
-        // Create client profile
-        const { error: clientError } = await supabase
-            .from('clients')
-            .insert({
-                id: authData.user.id,
-                company_name: companyName,
-                contact_name: `${firstName} ${lastName}`,
-                email: email,
-                phone: phone
-            });
-        
-        if (clientError) throw clientError;
         
         showAlert('Account created successfully! You can now login.', 'success');
         setTimeout(() => {
