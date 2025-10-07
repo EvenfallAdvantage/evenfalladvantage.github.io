@@ -165,6 +165,17 @@ async function viewConversation(userId, companyName) {
         return;
     }
     
+    // Get client profile picture
+    const { data: clientData } = await supabase
+        .from('clients')
+        .select('company_name')
+        .eq('id', userId)
+        .single();
+    
+    // For now, clients don't have profile pictures, so we'll use the icon
+    // But this structure is ready for when they do
+    const avatarHTML = `<i class="fas fa-building"></i>`;
+    
     // Mark messages as read
     await supabase
         .from('messages')
