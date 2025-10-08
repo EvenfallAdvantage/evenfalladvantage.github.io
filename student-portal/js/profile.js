@@ -237,21 +237,90 @@ function displayExperience(experiences) {
     `).join('');
 }
 
-async function addExperience() {
-    const jobTitle = prompt('Job Title:');
-    if (!jobTitle) return;
+function addExperience() {
+    // Show modal form
+    const modalHTML = `
+        <div class="modal-overlay" id="experienceModal" onclick="closeExperienceModal()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2>Add Work Experience</h2>
+                    <button class="close-btn" onclick="closeExperienceModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="experienceForm" onsubmit="submitExperience(event)">
+                        <div class="form-group">
+                            <label for="jobTitle">Job Title *</label>
+                            <input type="text" id="jobTitle" required placeholder="e.g., Security Officer">
+                        </div>
+                        <div class="form-group">
+                            <label for="companyName">Company Name *</label>
+                            <input type="text" id="companyName" required placeholder="e.g., ABC Security Services">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="startDate">Start Date *</label>
+                                <input type="date" id="startDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="endDate">End Date</label>
+                                <input type="date" id="endDate">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="currentJob" onchange="toggleEndDate()">
+                                I currently work here
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="expDescription">Description</label>
+                            <textarea id="expDescription" rows="4" placeholder="Describe your responsibilities and achievements..."></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeExperienceModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Experience
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
     
-    const companyName = prompt('Company Name:');
-    if (!companyName) return;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function closeExperienceModal() {
+    const modal = document.getElementById('experienceModal');
+    if (modal) modal.remove();
+}
+
+function toggleEndDate() {
+    const endDateInput = document.getElementById('endDate');
+    const currentJobCheckbox = document.getElementById('currentJob');
     
-    const startDate = prompt('Start Date (YYYY-MM-DD):');
-    if (!startDate) return;
-    
-    const endDate = prompt('End Date (YYYY-MM-DD) or leave empty if current:');
-    const description = prompt('Description (optional):');
+    if (currentJobCheckbox.checked) {
+        endDateInput.value = '';
+        endDateInput.disabled = true;
+    } else {
+        endDateInput.disabled = false;
+    }
+}
+
+async function submitExperience(event) {
+    event.preventDefault();
     
     const user = await Auth.getCurrentUser();
     if (!user) return;
+    
+    const jobTitle = document.getElementById('jobTitle').value;
+    const companyName = document.getElementById('companyName').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const description = document.getElementById('expDescription').value;
     
     const { data, error } = await supabase
         .from('work_experience')
@@ -267,6 +336,7 @@ async function addExperience() {
     if (error) {
         alert('Failed to add experience: ' + error.message);
     } else {
+        closeExperienceModal();
         const experiences = await loadWorkExperience(user.id);
         displayExperience(experiences);
     }
@@ -364,4 +434,7 @@ window.addSkill = addSkill;
 window.removeSkill = removeSkill;
 window.addExperience = addExperience;
 window.removeExperience = removeExperience;
+window.closeExperienceModal = closeExperienceModal;
+window.toggleEndDate = toggleEndDate;
+window.submitExperience = submitExperience;
 window.uploadProfilePicture = uploadProfilePicture;
