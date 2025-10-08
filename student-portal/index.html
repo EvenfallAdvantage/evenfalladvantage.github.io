@@ -533,9 +533,6 @@
                 <button class="profile-tab" data-tab="progress">
                     <i class="fas fa-chart-line"></i> Progress
                 </button>
-                <button class="profile-tab" data-tab="certifications">
-                    <i class="fas fa-certificate"></i> Certifications
-                </button>
                 <button class="profile-tab" data-tab="network">
                     <i class="fas fa-users"></i> Network
                 </button>
@@ -613,7 +610,7 @@
                         </form>
                     </div>
 
-                    <!-- Skills & Certifications -->
+                    <!-- Skills & Expertise -->
                     <div class="profile-form-card">
                         <div class="card-header">
                             <h3><i class="fas fa-tools"></i> Skills & Expertise</h3>
@@ -623,6 +620,19 @@
                         </div>
                         <div class="skills-container" id="skillsContainer">
                             <!-- Skills will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Certifications -->
+                    <div class="profile-form-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-certificate"></i> Certifications</h3>
+                            <button class="btn btn-small btn-secondary" onclick="addCertification()">
+                                <i class="fas fa-plus"></i> Add Certification
+                            </button>
+                        </div>
+                        <div class="certifications-container" id="certificationsContainer">
+                            <!-- Certifications will be loaded here -->
                         </div>
                     </div>
 
@@ -728,16 +738,6 @@
                 </div>
             </div>
 
-            <!-- Certifications Tab -->
-            <div class="profile-tab-content" id="certifications-tab">
-                <div class="certifications-grid" id="certificationsGrid">
-                    <div class="cert-card">
-                        <i class="fas fa-certificate"></i>
-                        <h4>Complete modules to earn certifications</h4>
-                        <p>Certifications will appear here as you complete training</p>
-                    </div>
-                </div>
-            </div>
 
             <!-- Network Tab -->
             <div class="profile-tab-content" id="network-tab">
