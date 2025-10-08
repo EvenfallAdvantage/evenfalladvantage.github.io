@@ -519,6 +519,8 @@
 
 .form-group input[type="text"],
 .form-group input[type="date"],
+.form-group input[type="file"],
+.form-group select,
 .form-group textarea {
     width: 100%;
     padding: 1rem 1.5rem;
@@ -529,8 +531,14 @@
     transition: all 0.3s ease;
 }
 
+.form-group select {
+    cursor: pointer;
+    background-color: white;
+}
+
 .form-group input[type="text"]:focus,
 .form-group input[type="date"]:focus,
+.form-group select:focus,
 .form-group textarea:focus {
     outline: none;
     border-color: var(--secondary-color, #e74c3c);
@@ -556,4 +564,112 @@
     margin-top: 2rem;
     padding-top: 2rem;
     border-top: 1px solid #dee2e6;
+}
+
+/* Certifications Display */
+.certifications-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.cert-category {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.cert-category-title {
+    color: var(--primary-color, #253646);
+    font-size: 1.6rem;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cert-category-title i {
+    color: var(--secondary-color, #e74c3c);
+}
+
+.cert-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cert-item {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--secondary-color, #e74c3c);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.cert-info {
+    flex: 1;
+}
+
+.cert-info h5 {
+    margin: 0 0 0.5rem 0;
+    color: var(--primary-color, #253646);
+    font-size: 1.6rem;
+}
+
+.cert-issuer {
+    color: var(--text-secondary, #6c757d);
+    font-size: 1.4rem;
+    margin: 0.25rem 0;
+}
+
+.cert-date {
+    color: var(--text-secondary, #6c757d);
+    font-size: 1.3rem;
+    margin: 0.25rem 0;
+}
+
+.cert-credential {
+    color: var(--text-secondary, #6c757d);
+    font-size: 1.3rem;
+    margin: 0.25rem 0;
+    font-family: monospace;
+}
+
+.cert-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--secondary-color, #e74c3c);
+    text-decoration: none;
+    font-size: 1.4rem;
+    margin-top: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.cert-link:hover {
+    color: var(--primary-color, #253646);
+}
+
+.btn-icon-danger {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1.6rem;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.btn-icon-danger:hover {
+    background: #dc3545;
+    color: white;
 }
