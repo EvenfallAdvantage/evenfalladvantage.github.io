@@ -194,33 +194,33 @@
 .skill-tag {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color, #3498db));
-    color: white;
-    border-radius: 20px;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    background: #f8f9fa;
+    color: var(--text-primary, #212529);
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
     font-size: 1.4rem;
     font-weight: 500;
 }
 
 .skill-tag button {
-    background: rgba(255, 255, 255, 0.2);
+    background: none;
     border: none;
-    color: white;
+    color: #dc3545;
     cursor: pointer;
-    padding: 0.2rem 0.4rem;
-    font-size: 1.2rem;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
+    padding: 0.25rem;
+    font-size: 1.4rem;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    border-radius: 4px;
 }
 
 .skill-tag button:hover {
-    background: var(--secondary-color, #e74c3c);
+    background: #dc3545;
+    color: white;
     transform: scale(1.1);
 }
 
