@@ -155,8 +155,8 @@ function displaySkills(skills) {
     container.innerHTML = skills.map(skill => `
         <div class="skill-tag">
             ${skill}
-            <button onclick="removeSkill('${skill}')">
-                <i class="fas fa-times"></i>
+            <button onclick="removeSkill('${skill}')" title="Remove skill">
+                <i class="fas fa-trash"></i>
             </button>
         </div>
     `).join('');
