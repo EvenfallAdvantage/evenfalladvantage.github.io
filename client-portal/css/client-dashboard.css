@@ -293,6 +293,78 @@ body {
     border-bottom: none;
 }
 
+/* Certifications Display in Client View */
+.certifications-display {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.cert-category-client {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.cert-category-client h5 {
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cert-category-client h5 i {
+    color: var(--secondary-color);
+}
+
+.cert-item-client {
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    border-left: 3px solid var(--secondary-color);
+}
+
+.cert-item-client:last-child {
+    margin-bottom: 0;
+}
+
+.cert-item-client strong {
+    color: var(--primary-color);
+    font-size: 1.4rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.cert-issuer-client {
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    margin: 0.25rem 0;
+}
+
+.cert-date-client {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin: 0.25rem 0;
+}
+
+.cert-link-client {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--secondary-color);
+    text-decoration: none;
+    font-size: 1.2rem;
+    margin-top: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.cert-link-client:hover {
+    color: var(--primary-color);
+}
+
 .experience-item {
     margin-bottom: 1.5rem;
     padding-bottom: 1.5rem;
