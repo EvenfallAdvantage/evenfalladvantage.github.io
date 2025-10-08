@@ -457,6 +457,13 @@ async function viewCandidate(studentId) {
     
     const completedModules = progress?.filter(p => p.status === 'completed').length || 0;
     
+    // Get certifications
+    const { data: certifications } = await supabase
+        .from('certifications')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('issue_date', { ascending: false });
+    
     // Get work experience
     const { data: experience } = await supabase
         .from('work_experience')
@@ -504,6 +511,13 @@ async function viewCandidate(studentId) {
                             <div class="skills-list">
                                 ${profile.skills.map(skill => `<span class="skill-badge">${skill}</span>`).join('')}
                             </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${certifications && certifications.length > 0 ? `
+                        <div class="profile-section">
+                            <h4><i class="fas fa-certificate"></i> Certifications</h4>
+                            ${getCertificationsByCategory(certifications)}
                         </div>
                     ` : ''}
                     
@@ -556,6 +570,58 @@ async function viewCandidate(studentId) {
 function closeCandidateModal() {
     const modal = document.getElementById('candidateModal');
     if (modal) modal.remove();
+}
+
+// Helper function to format certifications by category
+function getCertificationsByCategory(certifications) {
+    const grouped = {
+        'Fire': [],
+        'Medical': [],
+        'LEO': [],
+        'Military': [],
+        'Security': []
+    };
+    
+    certifications.forEach(cert => {
+        if (grouped[cert.category]) {
+            grouped[cert.category].push(cert);
+        }
+    });
+    
+    const icons = {
+        'Fire': 'fire',
+        'Medical': 'heartbeat',
+        'LEO': 'shield-alt',
+        'Military': 'star',
+        'Security': 'lock'
+    };
+    
+    let html = '<div class="certifications-display">';
+    Object.keys(grouped).forEach(category => {
+        if (grouped[category].length > 0) {
+            html += `
+                <div class="cert-category-client">
+                    <h5><i class="fas fa-${icons[category]}"></i> ${category}</h5>
+                    ${grouped[category].map(cert => `
+                        <div class="cert-item-client">
+                            <div>
+                                <strong>${cert.name}</strong>
+                                <p class="cert-issuer-client">${cert.issuing_organization}</p>
+                                <p class="cert-date-client">
+                                    Issued: ${new Date(cert.issue_date).toLocaleDateString()}
+                                    ${cert.expiry_date ? ` | Expires: ${new Date(cert.expiry_date).toLocaleDateString()}` : ''}
+                                </p>
+                                ${cert.file_url ? `<a href="${cert.file_url}" target="_blank" class="cert-link-client"><i class="fas fa-file-pdf"></i> View Certificate</a>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    });
+    html += '</div>';
+    
+    return html;
 }
 
 // Store current conversation
