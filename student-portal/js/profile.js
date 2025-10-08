@@ -38,6 +38,12 @@ async function loadProfileData() {
             displaySkills(profile.skills);
         }
         
+        // Load certifications
+        const certificationsResult = await loadCertifications(user.id);
+        if (certificationsResult) {
+            displayCertifications(certificationsResult);
+        }
+        
         // Load work experience
         const experienceResult = await loadWorkExperience(user.id);
         if (experienceResult) {
@@ -359,6 +365,240 @@ async function removeExperience(expId) {
     }
 }
 
+// Certifications management
+async function loadCertifications(studentId) {
+    const { data, error } = await supabase
+        .from('certifications')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('issue_date', { ascending: false});
+    
+    if (error) {
+        console.error('Error loading certifications:', error);
+        return null;
+    }
+    
+    return data;
+}
+
+function displayCertifications(certifications) {
+    const container = document.getElementById('certificationsContainer');
+    
+    if (!certifications || certifications.length === 0) {
+        container.innerHTML = '<p class="text-muted">No certifications added yet</p>';
+        return;
+    }
+    
+    // Group by category
+    const grouped = {
+        'Fire': [],
+        'Medical': [],
+        'LEO': [],
+        'Military': [],
+        'Security': []
+    };
+    
+    certifications.forEach(cert => {
+        if (grouped[cert.category]) {
+            grouped[cert.category].push(cert);
+        }
+    });
+    
+    let html = '';
+    Object.keys(grouped).forEach(category => {
+        if (grouped[category].length > 0) {
+            html += `
+                <div class="cert-category">
+                    <h4 class="cert-category-title">
+                        <i class="fas fa-${getCategoryIcon(category)}"></i> ${category}
+                    </h4>
+                    <div class="cert-items">
+                        ${grouped[category].map(cert => `
+                            <div class="cert-item">
+                                <div class="cert-info">
+                                    <h5>${cert.name}</h5>
+                                    <p class="cert-issuer">${cert.issuing_organization}</p>
+                                    <p class="cert-date">
+                                        Issued: ${new Date(cert.issue_date).toLocaleDateString()}
+                                        ${cert.expiry_date ? ` | Expires: ${new Date(cert.expiry_date).toLocaleDateString()}` : ''}
+                                    </p>
+                                    ${cert.credential_id ? `<p class="cert-credential">ID: ${cert.credential_id}</p>` : ''}
+                                    ${cert.file_url ? `<a href="${cert.file_url}" target="_blank" class="cert-link"><i class="fas fa-file-pdf"></i> View Certificate</a>` : ''}
+                                </div>
+                                <button class="btn-icon-danger" onclick="removeCertification('${cert.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    container.innerHTML = html || '<p class="text-muted">No certifications added yet</p>';
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        'Fire': 'fire',
+        'Medical': 'heartbeat',
+        'LEO': 'shield-alt',
+        'Military': 'star',
+        'Security': 'lock'
+    };
+    return icons[category] || 'certificate';
+}
+
+function addCertification() {
+    const modalHTML = `
+        <div class="modal-overlay" id="certModal" onclick="closeCertModal()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2>Add Certification</h2>
+                    <button class="close-btn" onclick="closeCertModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="certForm" onsubmit="submitCertification(event)">
+                        <div class="form-group">
+                            <label for="certName">Certification Name *</label>
+                            <input type="text" id="certName" required placeholder="e.g., CPR/AED Certification">
+                        </div>
+                        <div class="form-group">
+                            <label for="certCategory">Category *</label>
+                            <select id="certCategory" required>
+                                <option value="">Select a category...</option>
+                                <option value="Fire">Fire</option>
+                                <option value="Medical">Medical</option>
+                                <option value="LEO">Law Enforcement</option>
+                                <option value="Military">Military</option>
+                                <option value="Security">Security</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="certIssuer">Issuing Organization *</label>
+                            <input type="text" id="certIssuer" required placeholder="e.g., American Red Cross">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="certIssueDate">Issue Date *</label>
+                                <input type="date" id="certIssueDate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="certExpiryDate">Expiry Date</label>
+                                <input type="date" id="certExpiryDate">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="certCredentialId">Credential ID</label>
+                            <input type="text" id="certCredentialId" placeholder="Optional">
+                        </div>
+                        <div class="form-group">
+                            <label for="certFile">Upload Certificate (PDF, JPG, PNG)</label>
+                            <input type="file" id="certFile" accept=".pdf,.jpg,.jpeg,.png">
+                            <small style="color: var(--text-secondary, #6c757d); display: block; margin-top: 0.5rem;">
+                                Max file size: 5MB
+                            </small>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeCertModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Add Certification
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function closeCertModal() {
+    const modal = document.getElementById('certModal');
+    if (modal) modal.remove();
+}
+
+async function submitCertification(event) {
+    event.preventDefault();
+    
+    const user = await Auth.getCurrentUser();
+    if (!user) return;
+    
+    const certName = document.getElementById('certName').value;
+    const category = document.getElementById('certCategory').value;
+    const issuer = document.getElementById('certIssuer').value;
+    const issueDate = document.getElementById('certIssueDate').value;
+    const expiryDate = document.getElementById('certExpiryDate').value;
+    const credentialId = document.getElementById('certCredentialId').value;
+    const fileInput = document.getElementById('certFile');
+    
+    let fileUrl = null;
+    
+    // Upload file if provided
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('certifications')
+            .upload(fileName, file);
+        
+        if (uploadError) {
+            alert('Failed to upload file: ' + uploadError.message);
+            return;
+        }
+        
+        const { data: urlData } = supabase.storage
+            .from('certifications')
+            .getPublicUrl(fileName);
+        
+        fileUrl = urlData.publicUrl;
+    }
+    
+    const { data, error } = await supabase
+        .from('certifications')
+        .insert({
+            student_id: user.id,
+            name: certName,
+            category: category,
+            issuing_organization: issuer,
+            issue_date: issueDate,
+            expiry_date: expiryDate || null,
+            credential_id: credentialId || null,
+            file_url: fileUrl
+        });
+    
+    if (error) {
+        alert('Failed to add certification: ' + error.message);
+    } else {
+        closeCertModal();
+        const certifications = await loadCertifications(user.id);
+        displayCertifications(certifications);
+    }
+}
+
+async function removeCertification(certId) {
+    if (!confirm('Remove this certification?')) return;
+    
+    const { error } = await supabase
+        .from('certifications')
+        .delete()
+        .eq('id', certId);
+    
+    if (error) {
+        alert('Failed to remove certification: ' + error.message);
+    } else {
+        const user = await Auth.getCurrentUser();
+        const certifications = await loadCertifications(user.id);
+        displayCertifications(certifications);
+    }
+}
+
 // Profile visibility
 function setupProfileVisibility() {
     const toggle = document.getElementById('profileVisibility');
@@ -437,4 +677,8 @@ window.removeExperience = removeExperience;
 window.closeExperienceModal = closeExperienceModal;
 window.toggleEndDate = toggleEndDate;
 window.submitExperience = submitExperience;
+window.addCertification = addCertification;
+window.removeCertification = removeCertification;
+window.closeCertModal = closeCertModal;
+window.submitCertification = submitCertification;
 window.uploadProfilePicture = uploadProfilePicture;
