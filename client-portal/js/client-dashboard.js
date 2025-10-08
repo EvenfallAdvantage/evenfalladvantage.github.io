@@ -826,9 +826,8 @@ async function viewConversation(userId, userName) {
         `;
     }).join('');
     
-    // Update message view (no header - shown in conversation list)
-    const messageView = document.querySelector('.message-view');
-    messageView.innerHTML = `
+    // Build message view HTML
+    const messageViewHTML = `
         <div class="messages-list" id="messagesList">
             ${messagesHTML || '<p class="empty-state">No messages yet. Start the conversation!</p>'}
         </div>
@@ -840,6 +839,10 @@ async function viewConversation(userId, userName) {
         </div>
     `;
     
+    // Update main message view (desktop only)
+    const messageView = document.querySelector('.message-view');
+    messageView.innerHTML = messageViewHTML;
+    
     // Scroll to bottom
     setTimeout(() => {
         const messagesList = document.getElementById('messagesList');
@@ -848,7 +851,7 @@ async function viewConversation(userId, userName) {
         }
     }, 100);
     
-    // Refresh conversations list to update unread counts
+    // Refresh conversations list to update unread counts and inject mobile view
     await loadMessages();
 }
 
