@@ -70,12 +70,21 @@
     padding: 1.5rem;
     border-bottom: 1px solid var(--border-color, #dee2e6);
     background: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
 }
 
 .conversations-header h3 {
     margin: 0;
     font-size: 1.8rem;
     color: var(--primary-color, #253646);
+    flex-shrink: 0;
+}
+
+.conversations-header p {
+    text-align: right;
 }
 
 #conversationsList {
