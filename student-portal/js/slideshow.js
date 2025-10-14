@@ -3290,7 +3290,7 @@ function loadSlide(index) {
         `;
     }
     
-    // Add video if exists
+    // Add video if exists (from video_url field - uploaded videos)
     if (slide.video_url) {
         // Check if it's a YouTube URL
         const youtubeMatch = slide.video_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
@@ -3298,6 +3298,7 @@ function loadSlide(index) {
             const videoId = youtubeMatch[1];
             slideHTML += `
                 <div class="slide-media">
+                    <h4 style="margin-top: 2rem; margin-bottom: 0.5rem;">Additional Video:</h4>
                     <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; margin: 1.5rem 0;">
                         <iframe 
                             style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
@@ -3310,10 +3311,11 @@ function loadSlide(index) {
                 </div>
             `;
         } else {
-            // Direct video file
+            // Direct video file (uploaded)
             slideHTML += `
                 <div class="slide-media">
-                    <video controls style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0;">
+                    <h4 style="margin-top: 2rem; margin-bottom: 0.5rem;">Uploaded Video:</h4>
+                    <video controls style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; display: block;">
                         <source src="${slide.video_url}" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
