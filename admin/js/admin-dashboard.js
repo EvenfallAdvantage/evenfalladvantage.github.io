@@ -191,9 +191,9 @@ async function loadOverviewStats() {
             console.error('Error loading certificate count:', certError);
         }
 
-        // Get active courses (assuming you have a courses table)
+        // Get active courses from training_modules
         const { count: courseCount, error: courseError } = await supabase
-            .from('modules')
+            .from('training_modules')
             .select('*', { count: 'exact', head: true });
 
         if (courseError) {
@@ -407,9 +407,9 @@ async function loadRosters() {
 async function loadCourses() {
     try {
         const { data: modules, error } = await supabase
-            .from('modules')
+            .from('training_modules')
             .select('*')
-            .order('module_order');
+            .order('module_code');
 
         if (error) throw error;
 
@@ -432,16 +432,17 @@ function displayCourses(courses) {
     grid.innerHTML = courses.map(course => `
         <div class="course-card">
             <div class="course-card-header">
-                <h3>${course.title}</h3>
+                <h3>${course.module_name}</h3>
+                <span class="badge badge-primary">${course.module_code}</span>
             </div>
             <div class="course-card-body">
                 <p>${course.description || 'No description available'}</p>
                 <div class="course-meta">
-                    <span><i class="fas fa-clock"></i> ${course.estimated_time || 'N/A'}</span>
-                    <span><i class="fas fa-users"></i> 0 enrolled</span>
+                    <span><i class="fas fa-book"></i> Module</span>
+                    <span><i class="fas fa-users"></i> Active</span>
                 </div>
                 <button class="btn btn-secondary btn-small" onclick="editCourse('${course.id}')">
-                    <i class="fas fa-edit"></i> Edit
+                    <i class="fas fa-edit"></i> Edit Module
                 </button>
             </div>
         </div>
