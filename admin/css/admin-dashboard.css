@@ -239,12 +239,12 @@ body {
 }
 
 .btn-secondary {
-    background: var(--admin-accent);
+    background: var(--admin-primary);
     color: white;
 }
 
 .btn-secondary:hover {
-    background: #2980b9;
+    background: #1a2832;
 }
 
 .btn-success {
