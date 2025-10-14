@@ -243,7 +243,15 @@
         console.log('=== ADMIN DASHBOARD LOADING ===');
         console.log('Supabase available:', typeof supabase !== 'undefined');
         console.log('Window.supabase available:', typeof window.supabase !== 'undefined');
+        
+        // Add error handler to catch any script errors
+        window.addEventListener('error', function(e) {
+            console.error('SCRIPT ERROR:', e.message, 'at', e.filename, 'line', e.lineno);
+        });
     </script>
     <script src="js/admin-dashboard.js"></script>
+    <script>
+        console.log('Admin dashboard script loaded');
+    </script>
 </body>
 </html>
