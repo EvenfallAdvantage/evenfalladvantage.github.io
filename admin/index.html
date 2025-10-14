@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client Dashboard | Evenfall Advantage</title>
+    <title>Admin Dashboard | Evenfall Advantage</title>
     <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="css/client-dashboard.css">
-    <link rel="stylesheet" href="../css/messaging.css">
+    <link rel="stylesheet" href="css/admin-dashboard.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -14,315 +13,230 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="container">
-            <div class="nav-container">
-                <div class="nav-brand">
-                    <a href="../index.html" class="logo-link">
-                        <img src="../images/logo.png" alt="Evenfall Advantage Logo" class="nav-logo">
-                    </a>
-                </div>
-                <div class="portal-content">
-                    <h2 class="portal-title">Client Dashboard</h2>
-                    <div class="portal-nav-container">
-                        <div class="nav-links">
-                            <a href="#dashboard" class="nav-link active" data-section="dashboard">Dashboard</a>
-                            <a href="#browse" class="nav-link" data-section="browse">Browse Candidates</a>
-                            <a href="#jobs" class="nav-link" data-section="jobs">Job Postings</a>
-                            <a href="#messages" class="nav-link" data-section="messages">Messages</a>
-                            <a href="#company" class="nav-link" data-section="company">Company Profile</a>
-                            <a href="javascript:void(0)" class="nav-link" onclick="logout()">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </div>
-                    </div>
-                </div>
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+                <span>Admin Dashboard</span>
             </div>
-        </div>
-    </nav>
-
-    <main>
-        <!-- Dashboard Section -->
-        <section id="dashboard" class="section active">
-            <div class="section-header">
-                <h2>Dashboard Overview</h2>
-                <p>Welcome back, <span id="companyName">Loading...</span></p>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-briefcase"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="activeJobs">0</h3>
-                        <p>Active Job Postings</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="totalApplicants">0</h3>
-                        <p>Total Applicants</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-user-check"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="hiredCandidates">0</h3>
-                        <p>Hired This Month</p>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-envelope"></i>
-                    </div>
-                    <div class="stat-content">
-                        <h3 id="unreadMessages">0</h3>
-                        <p>Unread Messages</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-grid">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-clock"></i> Recent Applications</h3>
-                        <a href="#browse" class="view-all">View All</a>
-                    </div>
-                    <div class="applications-list" id="recentApplications">
-                        <p class="empty-state">No recent applications</p>
-                    </div>
-                </div>
-
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h3><i class="fas fa-star"></i> Top Candidates</h3>
-                        <a href="#browse" class="view-all">View All</a>
-                    </div>
-                    <div class="candidates-list" id="topCandidates">
-                        <p class="empty-state">No candidates available</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Browse Candidates Section -->
-        <section id="browse" class="section">
-            <div class="section-header">
-                <h2>Browse Candidates</h2>
-                <p>Find qualified security professionals</p>
-            </div>
-
-            <div class="search-filters">
-                <div class="search-bar">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="candidateSearch" placeholder="Search by name, skills, or location...">
-                </div>
-                <div class="filter-group">
-                    <select id="certificationFilter">
-                        <option value="">All Certifications</option>
-                        <option value="completed">Fully Certified</option>
-                        <option value="in-progress">In Progress</option>
-                    </select>
-                    <select id="locationFilter">
-                        <option value="">All Locations</option>
-                    </select>
-                    <button class="btn btn-secondary" onclick="applyFilters()">
-                        <i class="fas fa-filter"></i> Apply Filters
-                    </button>
-                </div>
-            </div>
-
-            <div class="candidates-grid" id="candidatesGrid">
-                <!-- Candidates will be loaded here -->
-            </div>
-        </section>
-
-        <!-- Job Postings Section -->
-        <section id="jobs" class="section">
-            <div class="section-header">
-                <h2>Job Postings</h2>
-                <button class="btn btn-primary" onclick="showCreateJobModal()">
-                    <i class="fas fa-plus"></i> Post New Job
+            <div class="header-actions">
+                <span class="admin-name" id="adminName">Administrator</span>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
             </div>
-
-            <div class="jobs-list" id="jobsList">
-                <!-- Jobs will be loaded here -->
-            </div>
-        </section>
-
-        <!-- Messages Section -->
-        <section id="messages" class="section">
-            <div class="section-header">
-                <h2>Messages</h2>
-                <p>Communicate with candidates</p>
-            </div>
-
-            <div class="messages-container">
-                <div class="conversations-list">
-                    <div class="conversations-header">
-                        <h3>Conversations</h3>
-                    </div>
-                    <div id="conversationsList">
-                        <p class="empty-state">No messages yet</p>
-                    </div>
-                </div>
-                <div class="message-view">
-                    <div class="message-placeholder">
-                        <i class="fas fa-comments"></i>
-                        <p>Select a conversation to view messages</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Company Profile Section -->
-        <section id="company" class="section">
-            <div class="section-header">
-                <h2>Company Profile</h2>
-                <p>Manage your company information</p>
-            </div>
-
-            <div class="profile-card">
-                <div class="card-header">
-                    <h3><i class="fas fa-building"></i> Company Information</h3>
-                    <button class="btn btn-secondary" id="editCompanyBtn" onclick="toggleEditCompany()">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                </div>
-                
-                <form id="companyForm" class="company-form">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Company Name</label>
-                            <input type="text" id="companyNameInput" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label>Industry</label>
-                            <input type="text" id="industry" placeholder="e.g., Retail, Healthcare" disabled>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Contact Name</label>
-                            <input type="text" id="contactName" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label>Phone</label>
-                            <input type="tel" id="companyPhone" disabled>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="companyEmail" disabled>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Address</label>
-                        <input type="text" id="address" placeholder="Street Address" disabled>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>City</label>
-                            <input type="text" id="city" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label>State</label>
-                            <input type="text" id="state" disabled>
-                        </div>
-                        <div class="form-group">
-                            <label>ZIP Code</label>
-                            <input type="text" id="zipCode" disabled>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Company Description</label>
-                        <textarea id="companyDescription" rows="4" placeholder="Tell candidates about your company..." disabled></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Website</label>
-                        <input type="url" id="website" placeholder="https://yourcompany.com" disabled>
-                    </div>
-
-                    <div class="form-actions" style="display: none;">
-                        <button type="button" class="btn btn-secondary" onclick="cancelEditCompany()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Save Changes
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </section>
-    </main>
-
-    <!-- Create Job Modal -->
-    <div id="createJobModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2><i class="fas fa-briefcase"></i> Post New Job</h2>
-                <button class="close-btn" onclick="closeCreateJobModal()">&times;</button>
-            </div>
-            <form id="createJobForm">
-                <div class="form-group">
-                    <label>Job Title</label>
-                    <input type="text" id="jobTitle" required placeholder="e.g., Security Guard">
-                </div>
-                <div class="form-group">
-                    <label>Location</label>
-                    <input type="text" id="jobLocation" required placeholder="City, State">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Employment Type</label>
-                        <select id="employmentType" required>
-                            <option value="">Select Type</option>
-                            <option value="full-time">Full-Time</option>
-                            <option value="part-time">Part-Time</option>
-                            <option value="contract">Contract</option>
-                            <option value="temporary">Temporary</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Salary Range</label>
-                        <input type="text" id="salaryRange" placeholder="e.g., $15-20/hour">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Job Description</label>
-                    <textarea id="jobDescription" rows="6" required placeholder="Describe the position, responsibilities, and requirements..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Required Certifications</label>
-                    <div class="checkbox-group">
-                        <label><input type="checkbox" value="stop-the-bleed"> STOP THE BLEED®</label>
-                        <label><input type="checkbox" value="ics-100"> ICS-100</label>
-                        <label><input type="checkbox" value="use-of-force"> Use of Force Training</label>
-                        <label><input type="checkbox" value="crowd-management"> Crowd Management</label>
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeCreateJobModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-paper-plane"></i> Post Job
-                    </button>
-                </div>
-            </form>
         </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <nav class="admin-nav">
+                <button class="nav-item active" data-section="overview">
+                    <i class="fas fa-chart-line"></i> Overview
+                </button>
+                <button class="nav-item" data-section="students">
+                    <i class="fas fa-user-graduate"></i> Students
+                </button>
+                <button class="nav-item" data-section="clients">
+                    <i class="fas fa-building"></i> Clients
+                </button>
+                <button class="nav-item" data-section="certificates">
+                    <i class="fas fa-certificate"></i> Certificates
+                </button>
+                <button class="nav-item" data-section="attendance">
+                    <i class="fas fa-clipboard-check"></i> Attendance
+                </button>
+                <button class="nav-item" data-section="courses">
+                    <i class="fas fa-book"></i> Courses
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Overview Section -->
+            <section class="admin-section active" id="overview-section">
+                <h1>Dashboard Overview</h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-user-graduate"></i>
+                        <div class="stat-content">
+                            <h3 id="totalStudents">0</h3>
+                            <p>Total Students</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-building"></i>
+                        <div class="stat-content">
+                            <h3 id="totalClients">0</h3>
+                            <p>Total Clients</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-certificate"></i>
+                        <div class="stat-content">
+                            <h3 id="totalCertificates">0</h3>
+                            <p>Certificates Issued</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-book"></i>
+                        <div class="stat-content">
+                            <h3 id="activeCourses">0</h3>
+                            <p>Active Courses</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h2>Recent Activity</h2>
+                    <div id="recentActivityList" class="activity-list">
+                        <!-- Activity items will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Students Section -->
+            <section class="admin-section" id="students-section">
+                <div class="section-header">
+                    <h1>Student Management</h1>
+                    <button class="btn btn-primary" onclick="showCreateStudentModal()">
+                        <i class="fas fa-plus"></i> Add Student
+                    </button>
+                </div>
+
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="studentSearch" placeholder="Search students by name or email...">
+                </div>
+
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Enrolled</th>
+                                <th>Progress</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <!-- Student rows will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Clients Section -->
+            <section class="admin-section" id="clients-section">
+                <div class="section-header">
+                    <h1>Client Management</h1>
+                    <button class="btn btn-primary" onclick="showCreateClientModal()">
+                        <i class="fas fa-plus"></i> Add Client
+                    </button>
+                </div>
+
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="clientSearch" placeholder="Search clients by company name or email...">
+                </div>
+
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientsTableBody">
+                            <!-- Client rows will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Certificates Section -->
+            <section class="admin-section" id="certificates-section">
+                <div class="section-header">
+                    <h1>Certificate Management</h1>
+                    <button class="btn btn-primary" onclick="showIssueCertificateModal()">
+                        <i class="fas fa-award"></i> Issue Certificate
+                    </button>
+                </div>
+
+                <div class="filter-bar">
+                    <select id="certCategoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="Fire">Fire</option>
+                        <option value="Medical">Medical</option>
+                        <option value="LEO">Law Enforcement</option>
+                        <option value="Military">Military</option>
+                        <option value="Security">Security</option>
+                    </select>
+                    <input type="text" id="certSearch" placeholder="Search by student name...">
+                </div>
+
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Certificate</th>
+                                <th>Category</th>
+                                <th>Issue Date</th>
+                                <th>Expiry Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="certificatesTableBody">
+                            <!-- Certificate rows will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Attendance Section -->
+            <section class="admin-section" id="attendance-section">
+                <div class="section-header">
+                    <h1>Class Attendance</h1>
+                    <button class="btn btn-primary" onclick="showCreateRosterModal()">
+                        <i class="fas fa-plus"></i> New Roster
+                    </button>
+                </div>
+
+                <div class="roster-list" id="rosterList">
+                    <!-- Roster cards will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Courses Section -->
+            <section class="admin-section" id="courses-section">
+                <div class="section-header">
+                    <h1>Course Management</h1>
+                    <button class="btn btn-primary" onclick="showCreateCourseModal()">
+                        <i class="fas fa-plus"></i> Add Course
+                    </button>
+                </div>
+
+                <div class="courses-grid" id="coursesGrid">
+                    <!-- Course cards will be loaded here -->
+                </div>
+            </section>
+        </main>
     </div>
 
-    <script src="js/client-config.js"></script>
-    <script src="js/client-dashboard.js"></script>
+    <script src="../student-portal/js/supabase-config.js"></script>
+    <script src="js/admin-dashboard.js"></script>
 </body>
 </html>
