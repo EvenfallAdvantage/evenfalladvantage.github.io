@@ -2013,12 +2013,23 @@ body {
     }
 
     .slideshow-footer {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
         gap: 1rem;
     }
 
+    .slideshow-footer .btn:first-child {
+        order: 1;
+        margin-right: auto;
+    }
+
+    .slideshow-footer .btn:last-child {
+        order: 3;
+        margin-left: auto;
+    }
+
     .slide-dots {
-        order: -1;
+        order: 2;
         width: 100%;
         justify-content: center;
     }
