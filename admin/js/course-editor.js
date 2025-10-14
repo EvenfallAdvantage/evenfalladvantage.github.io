@@ -31,7 +31,7 @@ async function editCourse(id) {
 // Show course editor modal
 function showCourseEditorModal(module = null, slides = []) {
     const isEdit = module !== null;
-    const title = isEdit ? 'Edit Course' : 'Create New Course';
+    const title = isEdit ? 'Edit Module' : 'Create New Module';
     
     const modalHTML = `
         <div class="modal-overlay" onclick="closeModal(event)">
@@ -44,9 +44,9 @@ function showCourseEditorModal(module = null, slides = []) {
                 </div>
                 <div class="modal-body">
                     <form id="courseEditorForm" onsubmit="${isEdit ? `updateCourse(event, '${module.id}')` : 'createCourse(event)'}">
-                        <!-- Course Details -->
+                        <!-- Module Details -->
                         <div class="course-details-section">
-                            <h3>Course Details</h3>
+                            <h3>Module Details</h3>
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Module Name *</label>
@@ -97,7 +97,7 @@ function showCourseEditorModal(module = null, slides = []) {
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> ${isEdit ? 'Update Course' : 'Create Course'}
+                                <i class="fas fa-save"></i> ${isEdit ? 'Update Module' : 'Create Module'}
                             </button>
                         </div>
                     </form>

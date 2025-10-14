@@ -666,8 +666,8 @@ body {
 }
 
 .badge-primary {
-    background: #cce5ff;
-    color: #004085;
+    background: var(--admin-primary);
+    color: white;
 }
 
 .badge-secondary {
