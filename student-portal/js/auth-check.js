@@ -2,6 +2,20 @@
 // This script runs on every page load to ensure user is logged in
 
 (async function() {
+    // Handle email verification callback
+    // When users click verification link, Supabase adds auth tokens to URL hash
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const type = hashParams.get('type');
+    
+    if (accessToken && type === 'signup') {
+        console.log('Email verification successful! Logging you in...');
+        // Clean up the URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+        // Show success message
+        alert('Email verified successfully! Welcome to Evenfall Advantage.');
+    }
+    
     // Check if user is logged in
     const isLoggedIn = await Auth.isLoggedIn();
     
