@@ -87,97 +87,11 @@
                 <h2>Training Modules</h2>
                 <p>Select a module to begin your training</p>
             </div>
-            <div class="training-modules">
-                <!-- Module 1 -->
-                <div class="module-card" data-module="communication-protocols">
-                    <div class="module-icon">
-                        <i class="fas fa-walkie-talkie"></i>
-                    </div>
-                    <h3>Module 1: Security Radio Communications</h3>
-                    <p>Radio procedures, protocols, and professional communication</p>
-                    <div class="module-meta">
-                        <span><i class="fas fa-clock"></i> 90 min</span>
-                        <span><i class="fas fa-signal"></i> Critical</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="startModule('communication-protocols')">Start Module</button>
-                </div>
-                <!-- Module 2 -->
-                <div class="module-card" data-module="stop-the-bleed">
-                    <div class="module-icon">
-                        <i class="fas fa-hand-holding-medical"></i>
-                    </div>
-                    <h3>Module 2: STOP THE BLEED® Emergency Medical Response</h3>
-                    <p>Life-saving hemorrhage control and emergency medical procedures</p>
-                    <div class="module-meta">
-                        <span><i class="fas fa-clock"></i> 120 min</span>
-                        <span><i class="fas fa-signal"></i> Critical</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="startModule('stop-the-bleed')">Start Module</button>
-                </div>
-                <!-- Module 3 -->
-                <div class="module-card" data-module="threat-assessment">
-                    <div class="module-icon">
-                        <i class="fas fa-eye"></i>
-                    </div>
-                    <h3>Module 3: Threat Assessment & Situational Awareness</h3>
-                    <p>Identifying threats, de-escalation, and maintaining awareness</p>
-                    <div class="module-meta">
-                        <span><i class="fas fa-clock"></i> 90 min</span>
-                        <span><i class="fas fa-signal"></i> Critical</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="startModule('threat-assessment')">Start Module</button>
-                </div>
-                <!-- Module 4 -->
-                <div class="module-card" data-module="ics-100">
-                    <div class="module-icon">
-                        <i class="fas fa-sitemap"></i>
-                    </div>
-                    <h3>Module 4: Introduction to Incident Command System (ICS-100)</h3>
-                    <p>NIMS/ICS fundamentals, command structure, and emergency coordination</p>
-                    <div class="module-meta">
-                        <span><i class="fas fa-clock"></i> 90 min</span>
-                        <span><i class="fas fa-signal"></i> Critical</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="startModule('ics-100')">Start Module</button>
-                </div>
-                <!-- Module 5 -->
-                <div class="module-card" data-module="diverse-population">
-                    <div class="module-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3>Module 5: Interacting with Diverse Populations</h3>
-                    <p>Cultural competency, accessibility, and inclusive security practices</p>
-                    <div class="module-meta">
-                        <span><i class="fas fa-clock"></i> 60 min</span>
-                        <span><i class="fas fa-signal"></i> Essential</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="startModule('diverse-population')">Start Module</button>
-                </div>
-                <!-- Module 6 -->
-                <div class="module-card" data-module="crowd-management">
-                    <div class="module-icon">
-                        <i class="fas fa-users-cog"></i>
-                    </div>
-                    <h3>Module 6: Crowd Management & Public Safety</h3>
-                    <p>Crowd control techniques and mass gathering safety</p>
-                    <div class="module-meta">
-                        <span><i class="fas fa-clock"></i> 120 min</span>
-                        <span><i class="fas fa-signal"></i> Critical</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="startModule('crowd-management')">Start Module</button>
-                </div>
-                <!-- Module 7 -->
-                <div class="module-card" data-module="use-of-force">
-                    <div class="module-icon">
-                        <i class="fas fa-balance-scale"></i>
-                    </div>
-                    <h3>Module 7: Legal Aspects & Use of Force</h3>
-                    <p>Legal authority, force continuum, and liability</p>
-                    <div class="module-meta">
-                        <span><i class="fas fa-clock"></i> 90 min</span>
-                        <span><i class="fas fa-signal"></i> Critical</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="startModule('use-of-force')">Start Module</button>
+            <div class="training-modules" id="trainingModulesContainer">
+                <!-- Modules will be loaded dynamically from database -->
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--secondary);"></i>
+                    <p>Loading training modules...</p>
                 </div>
             </div>
 
