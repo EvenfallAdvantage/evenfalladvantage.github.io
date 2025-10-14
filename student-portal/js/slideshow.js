@@ -3268,11 +3268,63 @@ function loadSlide(index) {
     const slide = currentModuleSlides[index];
     const container = document.getElementById('moduleContent');
     
-    container.innerHTML = `
-        <div class="slide active">
-            ${slide.content}
-        </div>
-    `;
+    // Build slide HTML with title, content, and media
+    let slideHTML = '<div class="slide active">';
+    
+    // Add title if exists
+    if (slide.title) {
+        slideHTML += `<h2 class="slide-title">${slide.title}</h2>`;
+    }
+    
+    // Add content
+    if (slide.content) {
+        slideHTML += `<div class="slide-content">${slide.content}</div>`;
+    }
+    
+    // Add image if exists
+    if (slide.image_url) {
+        slideHTML += `
+            <div class="slide-media">
+                <img src="${slide.image_url}" alt="${slide.title || 'Slide image'}" style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0;">
+            </div>
+        `;
+    }
+    
+    // Add video if exists
+    if (slide.video_url) {
+        // Check if it's a YouTube URL
+        const youtubeMatch = slide.video_url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+        if (youtubeMatch) {
+            const videoId = youtubeMatch[1];
+            slideHTML += `
+                <div class="slide-media">
+                    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; margin: 1.5rem 0;">
+                        <iframe 
+                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+                            src="https://www.youtube.com/embed/${videoId}" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Direct video file
+            slideHTML += `
+                <div class="slide-media">
+                    <video controls style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0;">
+                        <source src="${slide.video_url}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+            `;
+        }
+    }
+    
+    slideHTML += '</div>';
+    
+    container.innerHTML = slideHTML;
     
     // Update progress
     updateSlideProgress();
