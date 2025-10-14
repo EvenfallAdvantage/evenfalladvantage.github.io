@@ -236,7 +236,14 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../student-portal/js/supabase-config.js"></script>
+    <script>
+        // Quick test to see if scripts are loading
+        console.log('=== ADMIN DASHBOARD LOADING ===');
+        console.log('Supabase available:', typeof supabase !== 'undefined');
+        console.log('Window.supabase available:', typeof window.supabase !== 'undefined');
+    </script>
     <script src="js/admin-dashboard.js"></script>
 </body>
 </html>
