@@ -7,6 +7,29 @@ window.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
 });
 
+// Show alert message
+function showAlert(message, type = 'info') {
+    // Remove existing alerts
+    document.querySelectorAll('.alert-message').forEach(el => el.remove());
+    
+    const alertHTML = `
+        <div class="alert-message ${type}">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    const activeSection = document.querySelector('.admin-section.active');
+    if (activeSection) {
+        activeSection.insertAdjacentHTML('afterbegin', alertHTML);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            document.querySelector('.alert-message')?.remove();
+        }, 5000);
+    }
+}
+
 // Check if user is authenticated admin
 async function checkAuth() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -616,44 +639,48 @@ async function createStudent(event) {
     const form = event.target;
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> Creating...';
 
     try {
-        // Create auth user
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        // Note: Since we can't use admin API from frontend, we'll use regular signup
+        // The user will need to confirm their email or you can manually confirm in Supabase
+        const { data: authData, error: authError } = await supabase.auth.signUp({
             email: data.email,
             password: data.password,
-            email_confirm: true
+            options: {
+                data: {
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    user_type: 'student'
+                }
+            }
         });
 
         if (authError) throw authError;
 
-        // Create student record
-        const { error: studentError } = await supabase
-            .from('students')
-            .insert({
-                id: authData.user.id,
-                first_name: data.first_name,
-                last_name: data.last_name,
-                email: data.email
-            });
+        // The students table should auto-populate via database trigger
+        // But we'll also create the profile
+        if (authData.user) {
+            await supabase
+                .from('student_profiles')
+                .insert({
+                    student_id: authData.user.id,
+                    phone: data.phone || null
+                });
+        }
 
-        if (studentError) throw studentError;
-
-        // Create profile
-        await supabase
-            .from('student_profiles')
-            .insert({
-                student_id: authData.user.id,
-                phone: data.phone
-            });
-
-        alert('Student created successfully!');
+        showAlert('Student created successfully! They will need to confirm their email.', 'success');
         closeModal();
-        loadStudents();
+        setTimeout(() => loadStudents(), 1000);
 
     } catch (error) {
         console.error('Error creating student:', error);
-        alert('Error creating student: ' + error.message);
+        showAlert('Error creating student: ' + error.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Create Student';
     }
 }
 
@@ -662,38 +689,37 @@ async function createClient(event) {
     const form = event.target;
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> Creating...';
 
     try {
-        // Create auth user
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        const { data: authData, error: authError } = await supabase.auth.signUp({
             email: data.email,
             password: data.password,
-            email_confirm: true
+            options: {
+                data: {
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    company_name: data.company_name,
+                    user_type: 'client'
+                }
+            }
         });
 
         if (authError) throw authError;
 
-        // Create client record
-        const { error: clientError } = await supabase
-            .from('clients')
-            .insert({
-                id: authData.user.id,
-                company_name: data.company_name,
-                first_name: data.first_name,
-                last_name: data.last_name,
-                email: data.email,
-                phone: data.phone
-            });
-
-        if (clientError) throw clientError;
-
-        alert('Client created successfully!');
+        // The clients table should auto-populate via database trigger
+        showAlert('Client created successfully! They will need to confirm their email.', 'success');
         closeModal();
-        loadClients();
+        setTimeout(() => loadClients(), 1000);
 
     } catch (error) {
         console.error('Error creating client:', error);
-        alert('Error creating client: ' + error.message);
+        showAlert('Error creating client: ' + error.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Create Client';
     }
 }
 
@@ -702,6 +728,10 @@ async function issueCertificate(event) {
     const form = event.target;
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> Issuing...';
 
     try {
         const { error } = await supabase
@@ -718,27 +748,152 @@ async function issueCertificate(event) {
 
         if (error) throw error;
 
-        alert('Certificate issued successfully!');
+        showAlert('Certificate issued successfully!', 'success');
         closeModal();
         loadCertificates();
 
     } catch (error) {
         console.error('Error issuing certificate:', error);
-        alert('Error issuing certificate: ' + error.message);
+        showAlert('Error issuing certificate: ' + error.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-award"></i> Issue Certificate';
     }
 }
 
-// Placeholder functions for other operations
-function viewStudent(id) {
-    alert('View student: ' + id);
+// View and edit functions
+async function viewStudent(id) {
+    try {
+        const { data: student, error } = await supabase
+            .from('students')
+            .select(`
+                *,
+                student_profiles(*),
+                certifications(*)
+            `)
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+
+        const profile = student.student_profiles?.[0] || {};
+        const certs = student.certifications || [];
+
+        const modalHTML = `
+            <div class="modal-overlay" onclick="closeModal(event)">
+                <div class="modal-content" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h2>${student.first_name} ${student.last_name}</h2>
+                        <button class="close-btn" onclick="closeModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                            <div><strong>Email:</strong><br>${student.email}</div>
+                            <div><strong>Phone:</strong><br>${profile.phone || 'N/A'}</div>
+                            <div><strong>Location:</strong><br>${profile.location || 'N/A'}</div>
+                            <div><strong>Enrolled:</strong><br>${new Date(student.created_at).toLocaleDateString()}</div>
+                        </div>
+                        ${profile.bio ? `<div style="margin-bottom: 1.5rem;"><strong>Bio:</strong><p style="margin-top: 0.5rem;">${profile.bio}</p></div>` : ''}
+                        ${certs.length > 0 ? `
+                            <div><strong>Certifications (${certs.length}):</strong>
+                                <ul style="margin-top: 0.5rem; list-style: none; padding: 0;">
+                                    ${certs.map(cert => `<li style="padding: 0.5rem; background: #f8f9fa; margin-bottom: 0.5rem; border-radius: 0.25rem;"><strong>${cert.name}</strong> - ${cert.category}<br><small>Issued: ${new Date(cert.issue_date).toLocaleDateString()}</small></li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : '<p>No certifications yet.</p>'}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                        <button class="btn btn-primary" onclick="editStudent('${id}')"><i class="fas fa-edit"></i> Edit</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    } catch (error) {
+        console.error('Error viewing student:', error);
+        showAlert('Error loading student details: ' + error.message, 'error');
+    }
 }
 
-function editStudent(id) {
-    alert('Edit student: ' + id);
+async function editStudent(id) {
+    closeModal();
+    try {
+        const { data: student, error } = await supabase
+            .from('students')
+            .select(`*, student_profiles(*)`)
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        const profile = student.student_profiles?.[0] || {};
+
+        const modalHTML = `
+            <div class="modal-overlay" onclick="closeModal(event)">
+                <div class="modal-content" onclick="event.stopPropagation()">
+                    <div class="modal-header">
+                        <h2>Edit Student</h2>
+                        <button class="close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editStudentForm" onsubmit="updateStudent(event, '${id}')">
+                            <div class="form-group"><label>First Name *</label><input type="text" name="first_name" value="${student.first_name}" required></div>
+                            <div class="form-group"><label>Last Name *</label><input type="text" name="last_name" value="${student.last_name}" required></div>
+                            <div class="form-group"><label>Email *</label><input type="email" name="email" value="${student.email}" required></div>
+                            <div class="form-group"><label>Phone</label><input type="tel" name="phone" value="${profile.phone || ''}"></div>
+                            <div class="form-group"><label>Location</label><input type="text" name="location" value="${profile.location || ''}"></div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    } catch (error) {
+        console.error('Error loading student:', error);
+        showAlert('Error loading student: ' + error.message, 'error');
+    }
+}
+
+async function updateStudent(event, id) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+
+    try {
+        await supabase.from('students').update({
+            first_name: data.first_name,
+            last_name: data.last_name,
+            email: data.email
+        }).eq('id', id);
+
+        await supabase.from('student_profiles').upsert({
+            student_id: id,
+            phone: data.phone || null,
+            location: data.location || null
+        });
+
+        showAlert('Student updated successfully!', 'success');
+        closeModal();
+        loadStudents();
+    } catch (error) {
+        console.error('Error updating student:', error);
+        showAlert('Error updating student: ' + error.message, 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+    }
 }
 
 async function deleteStudent(id) {
-    if (!confirm('Are you sure you want to delete this student?')) return;
+    if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) return;
     
     try {
         const { error } = await supabase
@@ -748,11 +903,11 @@ async function deleteStudent(id) {
 
         if (error) throw error;
 
-        alert('Student deleted successfully');
+        showAlert('Student deleted successfully', 'success');
         loadStudents();
     } catch (error) {
         console.error('Error deleting student:', error);
-        alert('Error deleting student: ' + error.message);
+        showAlert('Error deleting student: ' + error.message, 'error');
     }
 }
 
@@ -835,6 +990,7 @@ window.createClient = createClient;
 window.issueCertificate = issueCertificate;
 window.viewStudent = viewStudent;
 window.editStudent = editStudent;
+window.updateStudent = updateStudent;
 window.deleteStudent = deleteStudent;
 window.viewClient = viewClient;
 window.editClient = editClient;
