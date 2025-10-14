@@ -515,7 +515,7 @@ body {
 
 .course-card-header {
     padding: 1.5rem;
-    background: linear-gradient(135deg, var(--admin-primary), var(--admin-accent));
+    background: linear-gradient(135deg, var(--admin-secondary), #f39c12);
     color: white;
 }
 
