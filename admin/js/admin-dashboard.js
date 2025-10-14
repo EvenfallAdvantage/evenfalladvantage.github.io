@@ -64,10 +64,16 @@ async function logout() {
 
 // Setup event listeners
 function setupEventListeners() {
+    console.log('Setting up event listeners...');
+    
     // Navigation
-    document.querySelectorAll('.nav-item').forEach(item => {
+    const navItems = document.querySelectorAll('.nav-item');
+    console.log('Found nav items:', navItems.length);
+    
+    navItems.forEach(item => {
         item.addEventListener('click', () => {
             const section = item.dataset.section;
+            console.log('Nav clicked:', section);
             switchSection(section);
         });
     });
@@ -88,6 +94,8 @@ function setupEventListeners() {
     document.getElementById('certCategoryFilter')?.addEventListener('change', (e) => {
         filterCertificatesByCategory(e.target.value);
     });
+    
+    console.log('Event listeners setup complete');
 }
 
 // Switch between sections
@@ -126,24 +134,40 @@ async function loadDashboardData() {
 async function loadOverviewStats() {
     try {
         // Get total students
-        const { count: studentCount } = await supabase
+        const { count: studentCount, error: studentError } = await supabase
             .from('students')
             .select('*', { count: 'exact', head: true });
 
+        if (studentError) {
+            console.error('Error loading student count:', studentError);
+        }
+
         // Get total clients
-        const { count: clientCount } = await supabase
+        const { count: clientCount, error: clientError } = await supabase
             .from('clients')
             .select('*', { count: 'exact', head: true });
 
+        if (clientError) {
+            console.error('Error loading client count:', clientError);
+        }
+
         // Get total certificates
-        const { count: certCount } = await supabase
+        const { count: certCount, error: certError } = await supabase
             .from('certifications')
             .select('*', { count: 'exact', head: true });
 
+        if (certError) {
+            console.error('Error loading certificate count:', certError);
+        }
+
         // Get active courses (assuming you have a courses table)
-        const { count: courseCount } = await supabase
+        const { count: courseCount, error: courseError } = await supabase
             .from('modules')
             .select('*', { count: 'exact', head: true });
+
+        if (courseError) {
+            console.error('Error loading course count:', courseError);
+        }
 
         document.getElementById('totalStudents').textContent = studentCount || 0;
         document.getElementById('totalClients').textContent = clientCount || 0;
