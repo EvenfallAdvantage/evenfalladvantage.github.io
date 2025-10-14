@@ -12,6 +12,47 @@ let assessmentStartTime = null;
 let timerInterval = null;
 let assessmentAttempts = {}; // Track attempts per assessment
 
+// Load training modules from database
+async function loadTrainingModules() {
+    const container = document.getElementById('trainingModulesContainer');
+    
+    try {
+        const { data: modules, error } = await supabase
+            .from('training_modules')
+            .select('*')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true });
+        
+        if (error) throw error;
+        
+        if (!modules || modules.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 2rem;">No training modules available yet.</p>';
+            return;
+        }
+        
+        // Generate module cards
+        container.innerHTML = modules.map((module, index) => `
+            <div class="module-card" data-module="${module.module_code}">
+                <div class="module-icon">
+                    <i class="fas ${module.icon || 'fa-book'}"></i>
+                </div>
+                <h3>Module ${index + 1}: ${module.module_name}</h3>
+                <p>${module.description || 'No description available'}</p>
+                <div class="module-meta">
+                    <span><i class="fas fa-clock"></i> ${module.estimated_time || 'TBD'}</span>
+                    <span><i class="fas fa-signal"></i> ${module.difficulty_level || 'Essential'}</span>
+                </div>
+                <button class="btn btn-secondary" onclick="startModule('${module.module_code}')">Start Module</button>
+            </div>
+        `).join('');
+        
+        console.log(`Loaded ${modules.length} training modules`);
+    } catch (error) {
+        console.error('Error loading training modules:', error);
+        container.innerHTML = '<p style="text-align: center; padding: 2rem; color: red;">Error loading modules. Please refresh the page.</p>';
+    }
+}
+
 // Progress State
 let progressData = {
     completedModules: [],
@@ -65,6 +106,7 @@ function navigateToSection(sectionId) {
 // Event Listeners for Navigation
 document.addEventListener('DOMContentLoaded', () => {
     loadProgress();
+    loadTrainingModules(); // Load modules from database
     updateAssessmentAvailability();
 
     document.querySelectorAll('.nav-link').forEach(link => {
