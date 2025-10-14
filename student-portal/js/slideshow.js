@@ -3185,22 +3185,70 @@ const moduleSlidesData = {
 };
 
 // Initialize slideshow for a module
-function startModule(moduleId) {
+async function startModule(moduleId) {
     currentModuleId = moduleId;
-    currentModuleSlides = moduleSlidesData[moduleId];
     currentSlideIndex = 0;
     
-    const module = moduleContent[moduleId];
-    document.getElementById('moduleTitle').textContent = module.title;
-    
-    // Generate slide dots
-    generateSlideDots();
-    
-    // Load first slide
-    loadSlide(0);
-    
-    // Show modal
-    document.getElementById('moduleModal').classList.add('active');
+    try {
+        // First, try to load slides from database
+        const { data: module, error: moduleError } = await supabase
+            .from('training_modules')
+            .select('*')
+            .eq('module_code', moduleId)
+            .single();
+        
+        if (moduleError) throw moduleError;
+        
+        // Load slides from database
+        const { data: slides, error: slidesError } = await supabase
+            .from('module_slides')
+            .select('*')
+            .eq('module_id', module.id)
+            .order('slide_number');
+        
+        if (slidesError) throw slidesError;
+        
+        // If slides exist in database, use them
+        if (slides && slides.length > 0) {
+            currentModuleSlides = slides;
+            document.getElementById('moduleTitle').textContent = module.module_name;
+        } else {
+            // Fallback to hardcoded slides if no database slides
+            currentModuleSlides = moduleSlidesData[moduleId];
+            const fallbackModule = moduleContent[moduleId];
+            if (!currentModuleSlides || !fallbackModule) {
+                alert('This module has no content yet. Please contact your administrator.');
+                return;
+            }
+            document.getElementById('moduleTitle').textContent = fallbackModule.title;
+        }
+        
+        // Generate slide dots
+        generateSlideDots();
+        
+        // Load first slide
+        loadSlide(0);
+        
+        // Show modal
+        document.getElementById('moduleModal').classList.add('active');
+        
+    } catch (error) {
+        console.error('Error loading module:', error);
+        
+        // Fallback to hardcoded slides
+        currentModuleSlides = moduleSlidesData[moduleId];
+        const fallbackModule = moduleContent[moduleId];
+        
+        if (!currentModuleSlides || !fallbackModule) {
+            alert('Error loading module. Please try again or contact your administrator.');
+            return;
+        }
+        
+        document.getElementById('moduleTitle').textContent = fallbackModule.title;
+        generateSlideDots();
+        loadSlide(0);
+        document.getElementById('moduleModal').classList.add('active');
+    }
 }
 
 function generateSlideDots() {
