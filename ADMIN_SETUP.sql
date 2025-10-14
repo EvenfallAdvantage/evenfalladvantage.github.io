@@ -1,6 +1,9 @@
 -- Administrator Setup SQL
 -- Run this in your Supabase SQL Editor
 
+-- Drop existing table if needed (CAREFUL - this deletes data!)
+-- DROP TABLE IF EXISTS administrators CASCADE;
+
 -- Create administrators table
 CREATE TABLE IF NOT EXISTS administrators (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -19,46 +22,41 @@ CREATE INDEX IF NOT EXISTS idx_administrators_email ON administrators(email);
 -- Enable Row Level Security
 ALTER TABLE administrators ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for administrators
--- Admins can view all admin records
-CREATE POLICY "Admins can view all admins"
-    ON administrators FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM administrators
-            WHERE administrators.user_id = auth.uid()
-        )
-    );
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Admins can view all admins" ON administrators;
+DROP POLICY IF EXISTS "Admins can update own record" ON administrators;
+DROP POLICY IF EXISTS "Admins can create new admins" ON administrators;
+DROP POLICY IF EXISTS "Allow authenticated users to read admins" ON administrators;
 
--- Admins can update their own record
-CREATE POLICY "Admins can update own record"
-    ON administrators FOR UPDATE
+-- Simple policy: Allow authenticated users to read their own admin record
+CREATE POLICY "Allow authenticated users to read admins"
+    ON administrators FOR SELECT
+    TO authenticated
     USING (user_id = auth.uid());
 
--- Only existing admins can create new admins
+-- Allow admins to update their own record
+CREATE POLICY "Admins can update own record"
+    ON administrators FOR UPDATE
+    TO authenticated
+    USING (user_id = auth.uid());
+
+-- Allow admins to insert (for creating new admins)
 CREATE POLICY "Admins can create new admins"
     ON administrators FOR INSERT
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM administrators
-            WHERE administrators.user_id = auth.uid()
-        )
-    );
+    TO authenticated
+    WITH CHECK (true);
 
--- Create first admin account (CHANGE THESE VALUES!)
--- First, create the auth user in Supabase Dashboard -> Authentication -> Users
--- Then run this with the user's ID:
+-- IMPORTANT: Now insert your admin user
+-- Replace 'f3aec261-501c-4857-99c2-273bf14cda23' with your actual user ID
 
--- INSERT INTO administrators (user_id, first_name, last_name, email)
--- VALUES (
---     'YOUR_USER_ID_HERE',
---     'Admin',
---     'User',
---     'admin@evenfalladvantage.com'
--- );
-
--- Grant admins access to view all tables (optional, for read access)
--- Note: Admins will use service role for write operations
+INSERT INTO administrators (user_id, first_name, last_name, email)
+VALUES (
+    'f3aec261-501c-4857-99c2-273bf14cda23',
+    'Admin',
+    'User',
+    'admin@evenfalladvantage.com'
+)
+ON CONFLICT (user_id) DO NOTHING;
 
 SELECT 'Administrators table created successfully!' as status;
-SELECT 'Remember to create your first admin user in Supabase Auth, then add them to the administrators table!' as reminder;
+SELECT * FROM administrators;
