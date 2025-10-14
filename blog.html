@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Evenfall Advantage - Case Studies and Industry Insights">
+    <title>Blog - Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Blog-specific styles */
+        .blog-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+        
+        .blog-title {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: var(--primary);
+        }
+        
+        .blog-title:after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: var(--secondary);
+            margin: 1rem auto 0;
+        }
+        
+        .case-studies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2.5rem;
+            margin-top: 2rem;
+        }
+        
+        .case-study-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .case-study-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15), 0 0 15px rgba(231, 76, 60, 0.5);
+        }
+        
+        .case-study-card:hover .case-study-title {
+            color: var(--secondary);
+        }
+        
+        .case-study-image {
+            width: 100%;
+            height: 180px;
+            background-color: #f5f5f5;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .case-study-content {
+            padding: 2rem;
+        }
+        
+        .case-study-title {
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        
+        .case-study-year {
+            display: inline-block;
+            background-color: var(--secondary);
+            color: white;
+            font-size: 1.2rem;
+            padding: 0.3rem 1rem;
+            border-radius: 20px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .case-study-excerpt {
+            color: var(--gray);
+            font-size: 1.4rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .case-study-link {
+            color: var(--secondary);
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 1.4rem;
+            display: inline-flex;
+            align-items: center;
+            transition: color 0.3s ease;
+        }
+        
+        .case-study-link:hover {
+            color: var(--primary);
+        }
+        
+        .case-study-link i {
+            margin-left: 5px;
+        }
+        
+        .intro-text {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 4rem;
+            font-size: 1.7rem;
+            color: var(--gray);
+            line-height: 1.6;
+        }
+        
+        .card-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        
+        .card-link:hover,
+        .card-link:hover *,
+        .card-link:hover .case-study-title,
+        .card-link:hover .case-study-excerpt,
+        .card-link:hover .case-study-link {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <main>
+        <div class="blog-container">
+            <h1 class="blog-title">Case Studies & Insights</h1>
+            
+            <p class="intro-text">
+                At Evenfall Advantage, we study past incidents to derive actionable insights for future safety. 
+                These case studies represent our analysis of significant events and the lessons they offer for safety professionals.
+            </p>
+            
+            <div class="case-studies-grid">
+                <!-- Astroworld Tragedy Case Study -->
+                <a href="case-studies/astroworld-tragedy.html" class="card-link">
+                    <article class="case-study-card">
+                        <div class="case-study-image" style="background-image: url('images/astroworld.jpg');"></div>
+                        <div class="case-study-content">
+                            <h2 class="case-study-title">Astroworld Tragedy</h2>
+                            <span class="case-study-year">2021</span>
+                            <p class="case-study-excerpt">
+                                Analysis of crowd management failures during the Astroworld Festival that resulted in multiple fatalities and injuries.
+                            </p>
+                            <span class="case-study-link">Read Case Study <i class="fas fa-chevron-right"></i></span>
+                        </div>
+                    </article>
+                </a>
+                
+                <!-- Beyond Wonderland Tragedy Case Study -->
+                <a href="case-studies/beyond-wonderland-tragedy.html" class="card-link">
+                    <article class="case-study-card">
+                        <div class="case-study-image" style="background-image: url('images/wonderland.jpg');"></div>
+                        <div class="case-study-content">
+                            <h2 class="case-study-title">Beyond Wonderland Tragedy</h2>
+                            <span class="case-study-year">2023</span>
+                            <p class="case-study-excerpt">
+                                Examination of security protocols and response to an active threat situation at a major music festival.
+                            </p>
+                            <span class="case-study-link">Read Case Study <i class="fas fa-chevron-right"></i></span>
+                        </div>
+                    </article>
+                </a>
+                
+                <!-- Faster Horses Country Music Festival Case Study -->
+                <a href="case-studies/faster-horses-tragedy.html" class="card-link">
+                    <article class="case-study-card">
+                        <div class="case-study-image" style="background-image: url('images/faster_horses.jpg');"></div>
+                        <div class="case-study-content">
+                            <h2 class="case-study-title">Faster Horses Country Music Festival</h2>
+                            <span class="case-study-year">2021</span>
+                            <p class="case-study-excerpt">
+                                Investigation into carbon monoxide poisoning incidents at festival camping grounds and safety recommendations.
+                            </p>
+                            <span class="case-study-link">Read Case Study <i class="fas fa-chevron-right"></i></span>
+                        </div>
+                    </article>
+                </a>
+                
+                <!-- Indiana State Fair Stage Collapse Case Study -->
+                <a href="case-studies/indiana-state-fair-tragedy.html" class="card-link">
+                    <article class="case-study-card">
+                        <div class="case-study-image" style="background-image: url('images/indiana_state_fair.jpg');"></div>
+                        <div class="case-study-content">
+                            <h2 class="case-study-title">Indiana State Fair Stage Collapse</h2>
+                            <span class="case-study-year">2011</span>
+                            <p class="case-study-excerpt">
+                                Analysis of weather monitoring failures, structural integrity issues, and emergency response deficiencies.
+                            </p>
+                            <span class="case-study-link">Read Case Study <i class="fas fa-chevron-right"></i></span>
+                        </div>
+                    </article>
+                </a>
+                
+                <!-- Love Parade Tragedy Case Study -->
+                <a href="case-studies/love-parade-tragedy.html" class="card-link">
+                    <article class="case-study-card">
+                        <div class="case-study-image" style="background-image: url('images/love_parade.jpg');"></div>
+                        <div class="case-study-content">
+                            <h2 class="case-study-title">Love Parade Tragedy</h2>
+                            <span class="case-study-year">2010</span>
+                            <p class="case-study-excerpt">
+                                Review of crowd control failures that led to a crowd crush at a German music festival, resulting in 21 fatalities.
+                            </p>
+                            <span class="case-study-link">Read Case Study <i class="fas fa-chevron-right"></i></span>
+                        </div>
+                    </article>
+                </a>
+                
+                <!-- Nova Music Festival Tragedy Case Study -->
+                <a href="case-studies/nova-music-festival-tragedy.html" class="card-link">
+                    <article class="case-study-card">
+                        <div class="case-study-image" style="background-image: url('images/nova.jpg');"></div>
+                        <div class="case-study-content">
+                            <h2 class="case-study-title">Nova Music Festival Tragedy</h2>
+                            <span class="case-study-year">2023</span>
+                            <p class="case-study-excerpt">
+                                Analysis of the attack during the Nova Music Festival and evaluation of perimeter security considerations.
+                            </p>
+                            <span class="case-study-link">Read Case Study <i class="fas fa-chevron-right"></i></span>
+                        </div>
+                    </article>
+                </a>
+                
+                <!-- Route 91 Harvest Festival Tragedy Case Study -->
+                <a href="case-studies/route-91-harvest-tragedy.html" class="card-link">
+                    <article class="case-study-card">
+                        <div class="case-study-image" style="background-image: url('images/route_91_harvest.jpg');"></div>
+                        <div class="case-study-content">
+                            <h2 class="case-study-title">Route 91 Harvest Festival Tragedy</h2>
+                            <span class="case-study-year">2017</span>
+                            <p class="case-study-excerpt">
+                                Examination of active threat response and considerations for perimeter security at urban open-air events.
+                            </p>
+                            <span class="case-study-link">Read Case Study <i class="fas fa-chevron-right"></i></span>
+                        </div>
+                    </article>
+                </a>
+                
+                <!-- SXSW Tragedy Case Study -->
+                <a href="case-studies/sxsw-tragedy.html" class="card-link">
+                    <article class="case-study-card">
+                        <div class="case-study-image" style="background-image: url('images/sxsw.jpg');"></div>
+                        <div class="case-study-content">
+                            <h2 class="case-study-title">SXSW Tragedy</h2>
+                            <span class="case-study-year">2014</span>
+                            <p class="case-study-excerpt">
+                                Analysis of vehicle intrusion incident and recommendations for enhanced street closure security.
+                            </p>
+                            <span class="case-study-link">Read Case Study <i class="fas fa-chevron-right"></i></span>
+                        </div>
+                    </article>
+                </a>
+                
+                <!-- Woodstock '99 Tragedy Case Study -->
+                <a href="case-studies/woodstock-99-tragedy.html" class="card-link">
+                    <article class="case-study-card">
+                        <div class="case-study-image" style="background-image: url('images/woodstock_99.jpg');"></div>
+                        <div class="case-study-content">
+                            <h2 class="case-study-title">Woodstock '99 Tragedy</h2>
+                            <span class="case-study-year">1999</span>
+                            <p class="case-study-excerpt">
+                                Examination of infrastructure planning failures, resource shortages, and security breakdown at a major music festival.
+                            </p>
+                            <span class="case-study-link">Read Case Study <i class="fas fa-chevron-right"></i></span>
+                        </div>
+                    </article>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="js/script.js"></script>
+    <script src="js/include-html.js"></script>
+</body>
+</html>

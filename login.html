@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Evenfall Advantage - Portal Login">
+    <title>Portal Login | Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/form-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <main>
+        <section class="login-section">
+            <div class="container">
+                <div class="portal-selection-header">
+                    <h1>Welcome to Evenfall Advantage</h1>
+                    <p>Select your portal to continue</p>
+                </div>
+                
+                <div class="portal-cards">
+                    <!-- Student Portal Card -->
+                    <div class="portal-card">
+                        <div class="portal-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <h2>Student Portal</h2>
+                        <p>Access your training modules, assessments, and track your progress</p>
+                        <ul class="portal-features">
+                            <li><i class="fas fa-book-open"></i> Training Modules</li>
+                            <li><i class="fas fa-chess-board"></i> Interactive Sand Table</li>
+                            <li><i class="fas fa-clipboard-check"></i> Assessments</li>
+                            <li><i class="fas fa-chart-line"></i> Progress Tracking</li>
+                        </ul>
+                        <a href="student-portal/login.html" class="portal-button student-button">
+                            Enter Portal <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                    
+                    <!-- Client Portal Card -->
+                    <div class="portal-card">
+                        <div class="portal-icon">
+                            <i class="fas fa-briefcase"></i>
+                        </div>
+                        <h2>Client Dashboard</h2>
+                        <p>Manage your security services, documents, and communications</p>
+                        <ul class="portal-features">
+                            <li><i class="fas fa-lock"></i> Security Plans</li>
+                            <li><i class="fas fa-file-alt"></i> Training Materials</li>
+                            <li><i class="fas fa-calendar-check"></i> Certifications</li>
+                            <li><i class="fas fa-comments"></i> Secure Messaging</li>
+                        </ul>
+                        <a href="client-portal/login.html" class="portal-button client-button">
+                            Enter Dashboard <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Inconspicuous Admin Link -->
+                <div style="text-align: center; margin-top: 3rem; opacity: 0.2; font-size: 0.7rem;">
+                    <a href="admin/login.html" style="color: #6c757d; text-decoration: none;">•</a>
+                </div>
+                
+                <!-- Client Login Form (Hidden by default) -->
+                <div class="login-container" id="client-login-container" style="display: none;">
+                    <button class="back-button" onclick="hideClientLogin()">
+                        <i class="fas fa-arrow-left"></i> Back to Portal Selection
+                    </button>
+                    
+                    <div class="login-form-container">
+                        <h2>Client Portal Login</h2>
+                        <form class="login-form" id="login-form">
+                            <div class="form-group">
+                                <label for="email">Email Address</label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" id="password" name="password" required>
+                            </div>
+                            
+                            <div class="remember-forgot">
+                                <label class="remember-me">
+                                    <input type="checkbox" name="remember">
+                                    Remember Me
+                                </label>
+                                <a href="#" class="forgot-password">Forgot Password?</a>
+                            </div>
+                            
+                            <button type="submit" class="login-button">Log In</button>
+                        </form>
+                        
+                        <p class="login-help">Don't have an account? <br>Contact your Evenfall Advantage representative for access.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="js/script.js"></script>
+    <script src="js/include-html.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/login.js"></script>
+    <script>
+        function showClientLogin() {
+            document.querySelector('.portal-selection-header').style.display = 'none';
+            document.querySelector('.portal-cards').style.display = 'none';
+            document.getElementById('client-login-container').style.display = 'block';
+        }
+        
+        function hideClientLogin() {
+            document.querySelector('.portal-selection-header').style.display = 'block';
+            document.querySelector('.portal-cards').style.display = 'grid';
+            document.getElementById('client-login-container').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

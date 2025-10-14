@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Evenfall Advantage</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="css/admin-dashboard.css">
+    <link rel="stylesheet" href="css/course-editor.css">
+    <!-- Quill Rich Text Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-content">
+            <div class="logo">
+                <img src="../images/logo.png" alt="Evenfall Advantage">
+                <div class="logo-text">
+                    <span class="logo-title">Evenfall Advantage</span>
+                    <span class="logo-subtitle"><i class="fas fa-shield-alt"></i> Administrator</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span class="admin-name" id="adminName">Administrator</span>
+                <button class="btn-logout" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <nav class="admin-nav">
+                <button class="nav-item active" data-section="overview">
+                    <i class="fas fa-chart-line"></i> Overview
+                </button>
+                <button class="nav-item" data-section="students">
+                    <i class="fas fa-user-graduate"></i> Students
+                </button>
+                <button class="nav-item" data-section="clients">
+                    <i class="fas fa-building"></i> Clients
+                </button>
+                <button class="nav-item" data-section="certificates">
+                    <i class="fas fa-certificate"></i> Certificates
+                </button>
+                <button class="nav-item" data-section="attendance">
+                    <i class="fas fa-clipboard-check"></i> Attendance
+                </button>
+                <button class="nav-item" data-section="courses">
+                    <i class="fas fa-book"></i> Courses
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Overview Section -->
+            <section class="admin-section active" id="overview-section">
+                <h1>Dashboard Overview</h1>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-user-graduate"></i>
+                        <div class="stat-content">
+                            <h3 id="totalStudents">0</h3>
+                            <p>Total Students</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-building"></i>
+                        <div class="stat-content">
+                            <h3 id="totalClients">0</h3>
+                            <p>Total Clients</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-certificate"></i>
+                        <div class="stat-content">
+                            <h3 id="totalCertificates">0</h3>
+                            <p>Certificates Issued</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-book"></i>
+                        <div class="stat-content">
+                            <h3 id="activeCourses">0</h3>
+                            <p>Active Courses</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-activity">
+                    <h2>Recent Activity</h2>
+                    <div id="recentActivityList" class="activity-list">
+                        <!-- Activity items will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Students Section -->
+            <section class="admin-section" id="students-section">
+                <div class="section-header">
+                    <h1>Student Management</h1>
+                    <button class="btn btn-primary" onclick="showCreateStudentModal()">
+                        <i class="fas fa-plus"></i> Add Student
+                    </button>
+                </div>
+
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="studentSearch" placeholder="Search students by name or email...">
+                </div>
+
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Enrolled</th>
+                                <th>Progress</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody">
+                            <!-- Student rows will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Clients Section -->
+            <section class="admin-section" id="clients-section">
+                <div class="section-header">
+                    <h1>Client Management</h1>
+                    <button class="btn btn-primary" onclick="showCreateClientModal()">
+                        <i class="fas fa-plus"></i> Add Client
+                    </button>
+                </div>
+
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="clientSearch" placeholder="Search clients by company name or email...">
+                </div>
+
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientsTableBody">
+                            <!-- Client rows will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Certificates Section -->
+            <section class="admin-section" id="certificates-section">
+                <div class="section-header">
+                    <h1>Certificate Management</h1>
+                    <button class="btn btn-primary" onclick="showIssueCertificateModal()">
+                        <i class="fas fa-award"></i> Issue Certificate
+                    </button>
+                </div>
+
+                <div class="filter-bar">
+                    <select id="certCategoryFilter">
+                        <option value="">All Categories</option>
+                        <option value="Fire">Fire</option>
+                        <option value="Medical">Medical</option>
+                        <option value="LEO">Law Enforcement</option>
+                        <option value="Military">Military</option>
+                        <option value="Security">Security</option>
+                    </select>
+                    <input type="text" id="certSearch" placeholder="Search by student name...">
+                </div>
+
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Certificate</th>
+                                <th>Category</th>
+                                <th>Issue Date</th>
+                                <th>Expiry Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="certificatesTableBody">
+                            <!-- Certificate rows will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Attendance Section -->
+            <section class="admin-section" id="attendance-section">
+                <div class="section-header">
+                    <h1>Class Attendance</h1>
+                    <button class="btn btn-primary" onclick="showCreateRosterModal()">
+                        <i class="fas fa-plus"></i> New Roster
+                    </button>
+                </div>
+
+                <div class="roster-list" id="rosterList">
+                    <!-- Roster cards will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Courses Section -->
+            <section class="admin-section" id="courses-section">
+                <div class="section-header">
+                    <h1>Course Management</h1>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn btn-secondary" onclick="importExistingSlidesToDatabase()" title="Import slides from student portal">
+                            <i class="fas fa-file-import"></i> Import Existing Slides
+                        </button>
+                        <button class="btn btn-primary" onclick="showCreateCourseModal()">
+                            <i class="fas fa-plus"></i> Add Course
+                        </button>
+                    </div>
+                </div>
+
+                <div class="courses-grid" id="coursesGrid">
+                    <!-- Course cards will be loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../student-portal/js/supabase-config.js"></script>
+    <script>
+        // Quick test to see if scripts are loading
+        console.log('=== ADMIN DASHBOARD LOADING ===');
+        console.log('Supabase available:', typeof supabase !== 'undefined');
+        console.log('Window.supabase available:', typeof window.supabase !== 'undefined');
+        
+        // Add error handler to catch any script errors
+        window.addEventListener('error', function(e) {
+            console.error('SCRIPT ERROR:', e.message, 'at', e.filename, 'line', e.lineno);
+        });
+    </script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="js/admin-dashboard.js"></script>
+    <script src="js/course-editor.js"></script>
+    <script src="js/import-slides.js"></script>
+    <script>
+        console.log('Admin dashboard script loaded');
+        
+        // Force initialization after a short delay to ensure DOM is ready
+        setTimeout(async () => {
+            console.log('Forcing initialization...');
+            try {
+                await checkAuth();
+                console.log('Auth check complete');
+                await loadDashboardData();
+                console.log('Dashboard data loaded');
+                setupEventListeners();
+                console.log('Setup complete');
+            } catch (error) {
+                console.error('Error during initialization:', error);
+            }
+        }, 100);
+    </script>
+</body>
+</html>

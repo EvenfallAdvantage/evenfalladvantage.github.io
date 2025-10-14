@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Evenfall Advantage - Security Consulting Request Form">
+    <title>Security Consulting Request | Evenfall Advantage</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/form-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <main>
+        <section class="form-hero">
+            <div class="container">
+                <h1 class="form-title">Security Consulting Request</h1>
+                <p class="form-subtitle">Tell us about your security needs</p>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <div class="container">
+                <div class="form-container">
+                    <div class="form-sidebar">
+                        <div class="sidebar-content">
+                            <h3>Our Security Consulting Services</h3>
+                            <ul class="service-list">
+                                <li><i class="fas fa-shield-alt"></i> Threat & Vulnerability Assessments</li>
+                                <li><i class="fas fa-file-alt"></i> Security SOP Development</li>
+                                <li><i class="fas fa-building"></i> CPTED Evaluations</li>
+                                <li><i class="fas fa-camera"></i> Camera Placement Analysis</li>
+                                <li><i class="fas fa-clipboard-check"></i> Security Audits</li>
+                                <li><i class="fas fa-users"></i> Staff Training Programs</li>
+                            </ul>
+                            <div class="sidebar-cta">
+                                <p>Need immediate assistance?</p>
+                                <a href="mailto:contact@evenfalladvantage.com" class="sidebar-button">Contact Us Directly</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-main">
+                        <form id="security-consulting-form" class="estimate-form">
+                            <div class="form-group">
+                                <h3>Contact Information</h3>
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="full-name">Full Name *</label>
+                                        <input type="text" id="full-name" name="full-name" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="email">Email Address *</label>
+                                        <input type="email" id="email" name="email" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="phone">Phone Number *</label>
+                                        <input type="tel" id="phone" name="phone" required>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="company">Company/Organization</label>
+                                        <input type="text" id="company" name="company">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <h3>Project Details</h3>
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="project-type">Type of Security Consulting Needed *</label>
+                                        <select id="project-type" name="project-type" required>
+                                            <option value="">Select an option</option>
+                                            <option value="threat-assessment">Threat & Vulnerability Assessment</option>
+                                            <option value="sop-development">Security SOP Development</option>
+                                            <option value="cpted">CPTED Evaluation</option>
+                                            <option value="camera-analysis">Camera Placement Analysis</option>
+                                            <option value="security-audit">Security Audit</option>
+                                            <option value="staff-training">Staff Training Program</option>
+                                            <option value="other">Other (Please specify below)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="facility-type">Facility/Venue Type *</label>
+                                        <select id="facility-type" name="facility-type" required>
+                                            <option value="">Select an option</option>
+                                            <option value="event-venue">Event Venue</option>
+                                            <option value="corporate">Corporate Office</option>
+                                            <option value="retail">Retail Location</option>
+                                            <option value="school">Educational Institution</option>
+                                            <option value="government">Government Facility</option>
+                                            <option value="residential">Residential Property</option>
+                                            <option value="other">Other (Please specify below)</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="facility-size">Approximate Facility Size (sq ft)</label>
+                                        <input type="text" id="facility-size" name="facility-size">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="timeline">Desired Timeline *</label>
+                                        <select id="timeline" name="timeline" required>
+                                            <option value="">Select an option</option>
+                                            <option value="urgent">Urgent (Within 2 weeks)</option>
+                                            <option value="standard">Standard (2-4 weeks)</option>
+                                            <option value="planned">Planned (1-2 months)</option>
+                                            <option value="future">Future Planning (3+ months)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <h3>Additional Information</h3>
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="current-security">Current Security Measures in Place (if any)</label>
+                                        <textarea id="current-security" name="current-security" rows="3"></textarea>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group full-width">
+                                        <label for="specific-concerns">Specific Security Concerns or Objectives *</label>
+                                        <textarea id="specific-concerns" name="specific-concerns" rows="5" required></textarea>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label for="budget">Budget Range (Optional)</label>
+                                        <select id="budget" name="budget">
+                                            <option value="">Select an option</option>
+                                            <option value="under-5k">Under $5,000</option>
+                                            <option value="5k-15k">$5,000 - $15,000</option>
+                                            <option value="15k-30k">$15,000 - $30,000</option>
+                                            <option value="30k-plus">$30,000+</option>
+                                            <option value="undetermined">Undetermined</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="referral">How did you hear about us?</label>
+                                        <select id="referral" name="referral">
+                                            <option value="">Select an option</option>
+                                            <option value="search">Search Engine</option>
+                                            <option value="social">Social Media</option>
+                                            <option value="referral">Referral</option>
+                                            <option value="event">Industry Event</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="submit" class="submit-button">Request Estimate</button>
+                            </div>
+                        </form>
+                        
+                        <div class="form-success" style="display: none;">
+                            <div class="success-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h3>Request Submitted Successfully!</h3>
+                            <p>Thank you for your interest in Evenfall Advantage's security consulting services. One of our representatives will contact you within 24-48 business hours to discuss your request in detail.</p>
+                            <a href="../index.html" class="return-button">Return to Homepage</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="../js/script.js"></script>
+    <script src="../js/include-html.js"></script>
+    <script src="../js/form-validation.js"></script>
+</body>
+</html>
