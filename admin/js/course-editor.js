@@ -76,31 +76,18 @@ function showCourseEditorModal(module = null, slides = []) {
                                 </div>
                                 <div class="form-group">
                                     <label>Module Icon</label>
+                                    <input type="hidden" name="icon" id="selectedIcon" value="${module?.icon || 'fa-book'}">
                                     <div style="display: flex; gap: 1rem; align-items: center;">
-                                        <select name="icon" id="iconSelect" onchange="updateIconPreview()" style="flex: 1;">
-                                            <option value="fa-book" ${(module?.icon || 'fa-book') === 'fa-book' ? 'selected' : ''}>📚 Book</option>
-                                            <option value="fa-shield-alt" ${module?.icon === 'fa-shield-alt' ? 'selected' : ''}>🛡️ Shield</option>
-                                            <option value="fa-user-shield" ${module?.icon === 'fa-user-shield' ? 'selected' : ''}>👮 Security Guard</option>
-                                            <option value="fa-fire" ${module?.icon === 'fa-fire' ? 'selected' : ''}>🔥 Fire</option>
-                                            <option value="fa-heartbeat" ${module?.icon === 'fa-heartbeat' ? 'selected' : ''}>💓 Medical</option>
-                                            <option value="fa-users" ${module?.icon === 'fa-users' ? 'selected' : ''}>👥 Crowd</option>
-                                            <option value="fa-exclamation-triangle" ${module?.icon === 'fa-exclamation-triangle' ? 'selected' : ''}>⚠️ Warning</option>
-                                            <option value="fa-clipboard-check" ${module?.icon === 'fa-clipboard-check' ? 'selected' : ''}>📋 Checklist</option>
-                                            <option value="fa-map-marked-alt" ${module?.icon === 'fa-map-marked-alt' ? 'selected' : ''}>🗺️ Map</option>
-                                            <option value="fa-bullhorn" ${module?.icon === 'fa-bullhorn' ? 'selected' : ''}>📢 Announcement</option>
-                                            <option value="fa-video" ${module?.icon === 'fa-video' ? 'selected' : ''}>📹 Camera</option>
-                                            <option value="fa-walkie-talkie" ${module?.icon === 'fa-walkie-talkie' ? 'selected' : ''}>📻 Radio</option>
-                                            <option value="fa-first-aid" ${module?.icon === 'fa-first-aid' ? 'selected' : ''}>🏥 First Aid</option>
-                                            <option value="fa-door-open" ${module?.icon === 'fa-door-open' ? 'selected' : ''}>🚪 Exit</option>
-                                            <option value="fa-car" ${module?.icon === 'fa-car' ? 'selected' : ''}>🚗 Vehicle</option>
-                                            <option value="fa-graduation-cap" ${module?.icon === 'fa-graduation-cap' ? 'selected' : ''}>🎓 Training</option>
-                                            <option value="fa-certificate" ${module?.icon === 'fa-certificate' ? 'selected' : ''}>📜 Certificate</option>
-                                            <option value="fa-lightbulb" ${module?.icon === 'fa-lightbulb' ? 'selected' : ''}>💡 Idea</option>
-                                        </select>
+                                        <button type="button" class="btn btn-secondary" onclick="openIconPicker()" style="flex: 1;">
+                                            <i class="fas fa-icons"></i> Choose Icon
+                                        </button>
                                         <div id="iconPreview" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: var(--admin-primary); color: white; border-radius: 0.5rem; font-size: 2rem;">
                                             <i class="fas ${module?.icon || 'fa-book'}"></i>
                                         </div>
                                     </div>
+                                    <small style="color: var(--admin-text-secondary); margin-top: 0.5rem; display: block;">
+                                        Current: <span id="currentIconName">${module?.icon || 'fa-book'}</span>
+                                    </small>
                                 </div>
                             </div>
                         </div>
@@ -531,13 +518,141 @@ async function uploadMedia(file, moduleId, slideIndex, type) {
     return publicUrl;
 }
 
-// Update icon preview when selection changes
-function updateIconPreview() {
-    const select = document.getElementById('iconSelect');
+// Open icon picker modal
+function openIconPicker() {
+    const currentIcon = document.getElementById('selectedIcon').value;
+    
+    const modalHTML = `
+        <div class="modal-overlay icon-picker-overlay" onclick="closeIconPicker(event)" style="z-index: 10000;">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 900px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-icons"></i> Choose Module Icon</h2>
+                    <button class="close-btn" onclick="closeIconPicker()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="margin-bottom: 1.5rem;">
+                        <input 
+                            type="text" 
+                            id="iconSearchInput" 
+                            placeholder="Search icons... (e.g., fire, shield, user, book)" 
+                            style="width: 100%; padding: 0.75rem; border: 2px solid var(--admin-border); border-radius: 0.5rem; font-size: 1rem;"
+                            oninput="filterIcons()"
+                        >
+                        <small style="color: var(--admin-text-secondary); margin-top: 0.5rem; display: block;">
+                            Showing <span id="iconCount">0</span> icons
+                        </small>
+                    </div>
+                    <div id="iconGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.75rem; overflow-y: auto; padding: 1rem; background: #f8f9fa; border-radius: 0.5rem; flex: 1;">
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--admin-text-secondary);">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>Loading icons...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Load icons dynamically
+    setTimeout(() => loadFontAwesomeIcons(currentIcon), 100);
+}
+
+// Load Font Awesome icons dynamically
+function loadFontAwesomeIcons(currentIcon) {
+    // Comprehensive list of Font Awesome 5 Free icons
+    const icons = ['ad','address-book','address-card','adjust','air-freshener','align-center','align-justify','align-left','align-right','allergies','ambulance','anchor','angle-double-down','angle-double-left','angle-double-right','angle-double-up','angle-down','angle-left','angle-right','angle-up','angry','archive','arrow-alt-circle-down','arrow-alt-circle-left','arrow-alt-circle-right','arrow-alt-circle-up','arrow-circle-down','arrow-circle-left','arrow-circle-right','arrow-circle-up','arrow-down','arrow-left','arrow-right','arrow-up','arrows-alt','arrows-alt-h','arrows-alt-v','assistive-listening-systems','asterisk','at','atlas','atom','audio-description','award','baby','baby-carriage','backspace','backward','bacon','balance-scale','ban','band-aid','barcode','bars','baseball-ball','basketball-ball','bath','battery-empty','battery-full','battery-half','bed','beer','bell','bell-slash','bicycle','binoculars','biohazard','birthday-cake','blender','blind','bold','bolt','bomb','bone','bong','book','book-dead','book-medical','book-open','book-reader','bookmark','bowling-ball','box','box-open','boxes','braille','brain','bread-slice','briefcase','briefcase-medical','broadcast-tower','broom','brush','bug','building','bullhorn','bullseye','burn','bus','bus-alt','business-time','calculator','calendar','calendar-alt','calendar-check','calendar-day','calendar-minus','calendar-plus','calendar-times','calendar-week','camera','camera-retro','campground','candy-cane','cannabis','capsules','car','car-alt','car-battery','car-crash','car-side','caret-down','caret-left','caret-right','caret-square-down','caret-square-left','caret-square-right','caret-square-up','caret-up','carrot','cart-arrow-down','cart-plus','cash-register','cat','certificate','chair','chalkboard','chalkboard-teacher','charging-station','chart-area','chart-bar','chart-line','chart-pie','check','check-circle','check-double','check-square','cheese','chess','chess-bishop','chess-board','chess-king','chess-knight','chess-pawn','chess-queen','chess-rook','chevron-circle-down','chevron-circle-left','chevron-circle-right','chevron-circle-up','chevron-down','chevron-left','chevron-right','chevron-up','child','church','circle','circle-notch','city','clinic-medical','clipboard','clipboard-check','clipboard-list','clock','clone','closed-captioning','cloud','cloud-download-alt','cloud-meatball','cloud-moon','cloud-moon-rain','cloud-rain','cloud-showers-heavy','cloud-sun','cloud-sun-rain','cloud-upload-alt','cocktail','code','code-branch','coffee','cog','cogs','coins','columns','comment','comment-alt','comment-dollar','comment-dots','comment-medical','comment-slash','comments','comments-dollar','compact-disc','compass','compress','compress-arrows-alt','concierge-bell','cookie','cookie-bite','copy','copyright','couch','credit-card','crop','crop-alt','cross','crosshairs','crow','crown','crutch','cube','cubes','cut','database','deaf','democrat','desktop','dharmachakra','diagnoses','dice','dice-d20','dice-d6','dice-five','dice-four','dice-one','dice-six','dice-three','dice-two','digital-tachograph','directions','divide','dizzy','dna','dog','dollar-sign','dolly','dolly-flatbed','donate','door-closed','door-open','dot-circle','dove','download','drafting-compass','dragon','draw-polygon','drum','drum-steelpan','drumstick-bite','dumbbell','dumpster','dumpster-fire','dungeon','edit','egg','eject','ellipsis-h','ellipsis-v','envelope','envelope-open','envelope-open-text','envelope-square','equals','eraser','ethernet','euro-sign','exchange-alt','exclamation','exclamation-circle','exclamation-triangle','expand','expand-arrows-alt','external-link-alt','external-link-square-alt','eye','eye-dropper','eye-slash','fan','fast-backward','fast-forward','fax','feather','feather-alt','female','fighter-jet','file','file-alt','file-archive','file-audio','file-code','file-contract','file-csv','file-download','file-excel','file-export','file-image','file-import','file-invoice','file-invoice-dollar','file-medical','file-medical-alt','file-pdf','file-powerpoint','file-prescription','file-signature','file-upload','file-video','file-word','fill','fill-drip','film','filter','fingerprint','fire','fire-alt','fire-extinguisher','first-aid','fish','fist-raised','flag','flag-checkered','flag-usa','flask','flushed','folder','folder-minus','folder-open','folder-plus','font','football-ball','forward','frog','frown','frown-open','funnel-dollar','futbol','gamepad','gas-pump','gavel','gem','genderless','ghost','gift','gifts','glass-cheers','glass-martini','glass-martini-alt','glass-whiskey','glasses','globe','globe-africa','globe-americas','globe-asia','globe-europe','golf-ball','gopuram','graduation-cap','greater-than','greater-than-equal','grimace','grin','grin-alt','grin-beam','grin-beam-sweat','grin-hearts','grin-squint','grin-squint-tears','grin-stars','grin-tears','grin-tongue','grin-tongue-squint','grin-tongue-wink','grin-wink','grip-horizontal','grip-lines','grip-lines-vertical','grip-vertical','guitar','h-square','hamburger','hammer','hamsa','hand-holding','hand-holding-heart','hand-holding-usd','hand-lizard','hand-middle-finger','hand-paper','hand-peace','hand-point-down','hand-point-left','hand-point-right','hand-point-up','hand-pointer','hand-rock','hand-scissors','hand-spock','hands','hands-helping','handshake','hanukiah','hard-hat','hashtag','hat-wizard','haykal','hdd','heading','headphones','headphones-alt','headset','heart','heart-broken','heartbeat','helicopter','highlighter','hiking','hippo','history','hockey-puck','holly-berry','home','horse','horse-head','hospital','hospital-alt','hospital-symbol','hot-tub','hotdog','hotel','hourglass','hourglass-end','hourglass-half','hourglass-start','house-damage','hryvnia','i-cursor','ice-cream','icicles','icons','id-badge','id-card','id-card-alt','igloo','image','images','inbox','indent','industry','infinity','info','info-circle','italic','jedi','joint','journal-whills','kaaba','key','keyboard','khanda','kiss','kiss-beam','kiss-wink-heart','kiwi-bird','landmark','language','laptop','laptop-code','laptop-medical','laugh','laugh-beam','laugh-squint','laugh-wink','layer-group','leaf','lemon','less-than','less-than-equal','level-down-alt','level-up-alt','life-ring','lightbulb','link','lira-sign','list','list-alt','list-ol','list-ul','location-arrow','lock','lock-open','long-arrow-alt-down','long-arrow-alt-left','long-arrow-alt-right','long-arrow-alt-up','low-vision','luggage-cart','magic','magnet','mail-bulk','male','map','map-marked','map-marked-alt','map-marker','map-marker-alt','map-pin','map-signs','marker','mars','mars-double','mars-stroke','mars-stroke-h','mars-stroke-v','mask','medal','medkit','meh','meh-blank','meh-rolling-eyes','memory','menorah','mercury','meteor','microchip','microphone','microphone-alt','microphone-alt-slash','microphone-slash','microscope','minus','minus-circle','minus-square','mitten','mobile','mobile-alt','money-bill','money-bill-alt','money-bill-wave','money-bill-wave-alt','money-check','money-check-alt','monument','moon','mortar-pestle','mosque','motorcycle','mountain','mouse-pointer','mug-hot','music','network-wired','neuter','newspaper','not-equal','notes-medical','object-group','object-ungroup','oil-can','om','otter','outdent','pager','paint-brush','paint-roller','palette','pallet','paper-plane','paperclip','parachute-box','paragraph','parking','passport','pastafarianism','paste','pause','pause-circle','paw','peace','pen','pen-alt','pen-fancy','pen-nib','pen-square','pencil-alt','pencil-ruler','people-carry','pepper-hot','percent','percentage','person-booth','phone','phone-alt','phone-slash','phone-square','phone-square-alt','phone-volume','photo-video','piggy-bank','pills','pizza-slice','place-of-worship','plane','plane-arrival','plane-departure','play','play-circle','plug','plus','plus-circle','plus-square','podcast','poll','poll-h','poo','poo-storm','poop','portrait','pound-sign','power-off','pray','praying-hands','prescription','prescription-bottle','prescription-bottle-alt','print','procedures','project-diagram','puzzle-piece','qrcode','question','question-circle','quidditch','quote-left','quote-right','quran','radiation','radiation-alt','rainbow','random','receipt','recycle','redo','redo-alt','registered','remove-format','reply','reply-all','republican','restroom','retweet','ribbon','ring','road','robot','rocket','route','rss','rss-square','ruble-sign','ruler','ruler-combined','ruler-horizontal','ruler-vertical','running','rupee-sign','sad-cry','sad-tear','satellite','satellite-dish','save','school','screwdriver','scroll','sd-card','search','search-dollar','search-location','search-minus','search-plus','seedling','server','shapes','share','share-alt','share-alt-square','share-square','shekel-sign','shield-alt','ship','shipping-fast','shoe-prints','shopping-bag','shopping-basket','shopping-cart','shower','shuttle-van','sign','sign-in-alt','sign-language','sign-out-alt','signal','signature','sim-card','sitemap','skating','skiing','skiing-nordic','skull','skull-crossbones','slash','sleigh','sliders-h','smile','smile-beam','smile-wink','smog','smoking','smoking-ban','sms','snowboarding','snowflake','snowman','snowplow','socks','solar-panel','sort','sort-alpha-down','sort-alpha-down-alt','sort-alpha-up','sort-alpha-up-alt','sort-amount-down','sort-amount-down-alt','sort-amount-up','sort-amount-up-alt','sort-down','sort-numeric-down','sort-numeric-down-alt','sort-numeric-up','sort-numeric-up-alt','sort-up','spa','space-shuttle','spell-check','spider','spinner','splotch','spray-can','square','square-full','square-root-alt','stamp','star','star-and-crescent','star-half','star-half-alt','star-of-david','star-of-life','step-backward','step-forward','stethoscope','sticky-note','stop','stop-circle','stopwatch','store','store-alt','stream','street-view','strikethrough','stroopwafel','subscript','subway','suitcase','suitcase-rolling','sun','superscript','surprise','swatchbook','swimmer','swimming-pool','synagogue','sync','sync-alt','syringe','table','table-tennis','tablet','tablet-alt','tablets','tachometer-alt','tag','tags','tape','tasks','taxi','teeth','teeth-open','temperature-high','temperature-low','tenge','terminal','text-height','text-width','th','th-large','th-list','theater-masks','thermometer','thermometer-empty','thermometer-full','thermometer-half','thermometer-quarter','thermometer-three-quarters','thumbs-down','thumbs-up','thumbtack','ticket-alt','times','times-circle','tint','tint-slash','tired','toggle-off','toggle-on','toilet','toilet-paper','toolbox','tools','tooth','torah','torii-gate','tractor','trademark','traffic-light','train','tram','transgender','transgender-alt','trash','trash-alt','trash-restore','trash-restore-alt','tree','trophy','truck','truck-loading','truck-monster','truck-moving','truck-pickup','tshirt','tty','tv','umbrella','umbrella-beach','underline','undo','undo-alt','universal-access','university','unlink','unlock','unlock-alt','upload','user','user-alt','user-alt-slash','user-astronaut','user-check','user-circle','user-clock','user-cog','user-edit','user-friends','user-graduate','user-injured','user-lock','user-md','user-minus','user-ninja','user-nurse','user-plus','user-secret','user-shield','user-slash','user-tag','user-tie','user-times','users','users-cog','utensil-spoon','utensils','vector-square','venus','venus-double','venus-mars','vial','vials','video','video-slash','vihara','voicemail','volleyball-ball','volume-down','volume-mute','volume-off','volume-up','vote-yea','vr-cardboard','walking','wallet','warehouse','water','wave-square','weight','weight-hanging','wheelchair','wifi','wind','window-close','window-maximize','window-minimize','window-restore','wine-bottle','wine-glass','wine-glass-alt','won-sign','wrench','x-ray','yen-sign','yin-yang'];
+    
+    const grid = document.getElementById('iconGrid');
+    const iconCount = document.getElementById('iconCount');
+    
+    const iconButtons = icons.map(icon => {
+        const iconClass = `fa-${icon}`;
+        const isSelected = iconClass === currentIcon;
+        const iconName = icon.replace(/-/g, ' ');
+        return `
+            <button 
+                type="button"
+                class="icon-option ${isSelected ? 'selected' : ''}" 
+                data-icon="${iconClass}"
+                onclick="selectIcon('${iconClass}')"
+                title="${iconName}"
+                style="padding: 1rem; background: white; border: 2px solid ${isSelected ? 'var(--admin-secondary)' : 'var(--admin-border)'}; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--admin-text-secondary);"
+                onmouseover="this.style.borderColor='var(--admin-secondary)'; this.style.transform='scale(1.05)';"
+                onmouseout="this.style.borderColor='${isSelected ? 'var(--admin-secondary)' : 'var(--admin-border)'}'; this.style.transform='scale(1)';"
+            >
+                <i class="fas ${iconClass}" style="font-size: 2rem; color: var(--admin-primary);"></i>
+                <span style="text-align: center; word-break: break-word; font-size: 0.7rem;">${iconName}</span>
+            </button>
+        `;
+    }).join('');
+    
+    grid.innerHTML = iconButtons;
+    iconCount.textContent = icons.length;
+}
+
+// Filter icons based on search
+function filterIcons() {
+    const searchTerm = document.getElementById('iconSearchInput').value.toLowerCase();
+    const iconButtons = document.querySelectorAll('.icon-option');
+    const iconCount = document.getElementById('iconCount');
+    let visibleCount = 0;
+    
+    iconButtons.forEach(button => {
+        const iconName = button.dataset.icon.toLowerCase();
+        if (iconName.includes(searchTerm)) {
+            button.style.display = 'flex';
+            visibleCount++;
+        } else {
+            button.style.display = 'none';
+        }
+    });
+    
+    iconCount.textContent = visibleCount;
+}
+
+// Select an icon
+function selectIcon(iconClass) {
+    // Update hidden input
+    document.getElementById('selectedIcon').value = iconClass;
+    
+    // Update preview
     const preview = document.getElementById('iconPreview');
-    if (select && preview) {
-        const iconClass = select.value;
+    if (preview) {
         preview.innerHTML = `<i class="fas ${iconClass}"></i>`;
+    }
+    
+    // Update current icon name
+    const currentIconName = document.getElementById('currentIconName');
+    if (currentIconName) {
+        currentIconName.textContent = iconClass;
+    }
+    
+    // Update selected state in picker
+    document.querySelectorAll('.icon-option').forEach(btn => {
+        btn.classList.remove('selected');
+        btn.style.borderColor = 'var(--admin-border)';
+    });
+    
+    const selectedBtn = document.querySelector(`[data-icon="${iconClass}"]`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('selected');
+        selectedBtn.style.borderColor = 'var(--admin-secondary)';
+    }
+    
+    // Close picker
+    closeIconPicker();
+}
+
+// Close icon picker
+function closeIconPicker(event) {
+    if (event && event.target.classList.contains('modal-overlay')) {
+        document.querySelector('.icon-picker-overlay').remove();
+    } else if (!event) {
+        document.querySelector('.icon-picker-overlay')?.remove();
     }
 }
 
@@ -553,5 +668,8 @@ window.previewImage = previewImage;
 window.previewVideo = previewVideo;
 window.createCourse = createCourse;
 window.updateCourse = updateCourse;
-window.updateIconPreview = updateIconPreview;
+window.openIconPicker = openIconPicker;
+window.closeIconPicker = closeIconPicker;
+window.selectIcon = selectIcon;
+window.filterIcons = filterIcons;
 window.showCreateCourseModal = () => showCourseEditorModal(null, []);
