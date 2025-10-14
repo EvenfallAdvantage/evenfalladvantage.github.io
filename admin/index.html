@@ -228,9 +228,14 @@
             <section class="admin-section" id="courses-section">
                 <div class="section-header">
                     <h1>Course Management</h1>
-                    <button class="btn btn-primary" onclick="showCreateCourseModal()">
-                        <i class="fas fa-plus"></i> Add Course
-                    </button>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn btn-secondary" onclick="importExistingSlidesToDatabase()" title="Import slides from student portal">
+                            <i class="fas fa-file-import"></i> Import Existing Slides
+                        </button>
+                        <button class="btn btn-primary" onclick="showCreateCourseModal()">
+                            <i class="fas fa-plus"></i> Add Course
+                        </button>
+                    </div>
                 </div>
 
                 <div class="courses-grid" id="coursesGrid">
@@ -255,6 +260,7 @@
     </script>
     <script src="js/admin-dashboard.js"></script>
     <script src="js/course-editor.js"></script>
+    <script src="js/import-slides.js"></script>
     <script>
         console.log('Admin dashboard script loaded');
         
