@@ -107,6 +107,13 @@ function showCourseEditorModal(module = null, slides = []) {
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Initialize Quill editors for existing slides
+    setTimeout(() => {
+        slides.forEach((slide, index) => {
+            initializeQuillEditor(index);
+        });
+    }, 100);
 }
 
 // Create HTML for a slide
@@ -150,8 +157,9 @@ function createSlideHTML(slide = null, index = 0) {
                 </div>
                 
                 <div class="form-group slide-content-group">
-                    <label>Content</label>
-                    <textarea name="slides[${index}][content]" rows="4" placeholder="Slide content (supports HTML)">${slide?.content || ''}</textarea>
+                    <label>Content <span class="help-text">(Use the toolbar to format text - no HTML knowledge needed!)</span></label>
+                    <div id="editor-${index}" class="quill-editor">${slide?.content || ''}</div>
+                    <input type="hidden" name="slides[${index}][content]" id="content-${index}">
                 </div>
                 
                 <div class="media-upload-section" style="display: ${['image', 'video', 'mixed'].includes(slideType) ? 'block' : 'none'}">
@@ -184,6 +192,9 @@ function createSlideHTML(slide = null, index = 0) {
     `;
 }
 
+// Store Quill editor instances
+const quillEditors = {};
+
 // Add new slide
 function addSlide() {
     const container = document.getElementById('slidesContainer');
@@ -193,6 +204,52 @@ function addSlide() {
     const currentSlides = container.querySelectorAll('.slide-editor').length;
     const slideHTML = createSlideHTML(null, currentSlides);
     container.insertAdjacentHTML('beforeend', slideHTML);
+    
+    // Initialize Quill editor for the new slide
+    initializeQuillEditor(currentSlides);
+}
+
+// Initialize Quill rich text editor for a slide
+function initializeQuillEditor(index) {
+    const editorElement = document.getElementById(`editor-${index}`);
+    if (!editorElement) return;
+    
+    // Destroy existing editor if it exists
+    if (quillEditors[index]) {
+        delete quillEditors[index];
+    }
+    
+    // Create new Quill editor
+    const quill = new Quill(`#editor-${index}`, {
+        theme: 'snow',
+        placeholder: 'Enter slide content here...',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                ['link'],
+                ['clean']
+            ]
+        }
+    });
+    
+    // Store editor instance
+    quillEditors[index] = quill;
+    
+    // Update hidden input when content changes
+    quill.on('text-change', () => {
+        const contentInput = document.getElementById(`content-${index}`);
+        if (contentInput) {
+            contentInput.value = quill.root.innerHTML;
+        }
+    });
+    
+    // Set initial content
+    const contentInput = document.getElementById(`content-${index}`);
+    if (contentInput) {
+        contentInput.value = quill.root.innerHTML;
+    }
 }
 
 // Remove slide
