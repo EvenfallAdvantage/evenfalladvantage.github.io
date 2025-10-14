@@ -75,8 +75,32 @@ function showCourseEditorModal(module = null, slides = []) {
                                     </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Icon (FontAwesome class)</label>
-                                    <input type="text" name="icon" value="${module?.icon || 'fa-book'}" placeholder="fa-book">
+                                    <label>Module Icon</label>
+                                    <div style="display: flex; gap: 1rem; align-items: center;">
+                                        <select name="icon" id="iconSelect" onchange="updateIconPreview()" style="flex: 1;">
+                                            <option value="fa-book" ${(module?.icon || 'fa-book') === 'fa-book' ? 'selected' : ''}>📚 Book</option>
+                                            <option value="fa-shield-alt" ${module?.icon === 'fa-shield-alt' ? 'selected' : ''}>🛡️ Shield</option>
+                                            <option value="fa-user-shield" ${module?.icon === 'fa-user-shield' ? 'selected' : ''}>👮 Security Guard</option>
+                                            <option value="fa-fire" ${module?.icon === 'fa-fire' ? 'selected' : ''}>🔥 Fire</option>
+                                            <option value="fa-heartbeat" ${module?.icon === 'fa-heartbeat' ? 'selected' : ''}>💓 Medical</option>
+                                            <option value="fa-users" ${module?.icon === 'fa-users' ? 'selected' : ''}>👥 Crowd</option>
+                                            <option value="fa-exclamation-triangle" ${module?.icon === 'fa-exclamation-triangle' ? 'selected' : ''}>⚠️ Warning</option>
+                                            <option value="fa-clipboard-check" ${module?.icon === 'fa-clipboard-check' ? 'selected' : ''}>📋 Checklist</option>
+                                            <option value="fa-map-marked-alt" ${module?.icon === 'fa-map-marked-alt' ? 'selected' : ''}>🗺️ Map</option>
+                                            <option value="fa-bullhorn" ${module?.icon === 'fa-bullhorn' ? 'selected' : ''}>📢 Announcement</option>
+                                            <option value="fa-video" ${module?.icon === 'fa-video' ? 'selected' : ''}>📹 Camera</option>
+                                            <option value="fa-walkie-talkie" ${module?.icon === 'fa-walkie-talkie' ? 'selected' : ''}>📻 Radio</option>
+                                            <option value="fa-first-aid" ${module?.icon === 'fa-first-aid' ? 'selected' : ''}>🏥 First Aid</option>
+                                            <option value="fa-door-open" ${module?.icon === 'fa-door-open' ? 'selected' : ''}>🚪 Exit</option>
+                                            <option value="fa-car" ${module?.icon === 'fa-car' ? 'selected' : ''}>🚗 Vehicle</option>
+                                            <option value="fa-graduation-cap" ${module?.icon === 'fa-graduation-cap' ? 'selected' : ''}>🎓 Training</option>
+                                            <option value="fa-certificate" ${module?.icon === 'fa-certificate' ? 'selected' : ''}>📜 Certificate</option>
+                                            <option value="fa-lightbulb" ${module?.icon === 'fa-lightbulb' ? 'selected' : ''}>💡 Idea</option>
+                                        </select>
+                                        <div id="iconPreview" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: var(--admin-primary); color: white; border-radius: 0.5rem; font-size: 2rem;">
+                                            <i class="fas ${module?.icon || 'fa-book'}"></i>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -507,6 +531,16 @@ async function uploadMedia(file, moduleId, slideIndex, type) {
     return publicUrl;
 }
 
+// Update icon preview when selection changes
+function updateIconPreview() {
+    const select = document.getElementById('iconSelect');
+    const preview = document.getElementById('iconPreview');
+    if (select && preview) {
+        const iconClass = select.value;
+        preview.innerHTML = `<i class="fas ${iconClass}"></i>`;
+    }
+}
+
 // Export functions
 window.editCourse = editCourse;
 window.showCourseEditorModal = showCourseEditorModal;
@@ -519,4 +553,5 @@ window.previewImage = previewImage;
 window.previewVideo = previewVideo;
 window.createCourse = createCourse;
 window.updateCourse = updateCourse;
+window.updateIconPreview = updateIconPreview;
 window.showCreateCourseModal = () => showCourseEditorModal(null, []);
