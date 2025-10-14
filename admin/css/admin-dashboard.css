@@ -1,7 +1,7 @@
 /* Admin Dashboard Styles */
 :root {
     --admin-primary: #253646;
-    --admin-secondary: #e74c3c;
+    --admin-secondary: #ff6b35;
     --admin-accent: #3498db;
     --admin-success: #27ae60;
     --admin-warning: #f39c12;
@@ -47,13 +47,37 @@ body {
 .logo {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--admin-primary);
+    gap: 1rem;
 }
 
-.logo i {
+.logo img {
+    height: 50px;
+    width: auto;
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.logo-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--admin-primary);
+    line-height: 1;
+}
+
+.logo-subtitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--admin-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logo-subtitle i {
     color: var(--admin-secondary);
 }
 
