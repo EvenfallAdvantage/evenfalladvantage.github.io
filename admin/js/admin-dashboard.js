@@ -2,9 +2,17 @@
 
 // Check authentication on load
 window.addEventListener('DOMContentLoaded', async () => {
-    await checkAuth();
-    await loadDashboardData();
-    setupEventListeners();
+    console.log('DOM Content Loaded');
+    try {
+        await checkAuth();
+        console.log('Auth check complete');
+        await loadDashboardData();
+        console.log('Dashboard data loaded');
+        setupEventListeners();
+        console.log('Setup complete');
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
 });
 
 // Show alert message
@@ -66,36 +74,59 @@ async function logout() {
 function setupEventListeners() {
     console.log('Setting up event listeners...');
     
-    // Navigation
-    const navItems = document.querySelectorAll('.nav-item');
-    console.log('Found nav items:', navItems.length);
-    
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const section = item.dataset.section;
-            console.log('Nav clicked:', section);
-            switchSection(section);
+    try {
+        // Navigation
+        const navItems = document.querySelectorAll('.nav-item');
+        console.log('Found nav items:', navItems.length);
+        
+        if (navItems.length === 0) {
+            console.error('WARNING: No nav items found!');
+            return;
+        }
+        
+        navItems.forEach((item, index) => {
+            console.log(`Setting up nav item ${index}:`, item.dataset.section);
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const section = this.dataset.section;
+                console.log('Nav clicked:', section);
+                switchSection(section);
+            });
         });
-    });
 
-    // Search functionality
-    document.getElementById('studentSearch')?.addEventListener('input', (e) => {
-        filterStudents(e.target.value);
-    });
+        // Search functionality
+        const studentSearch = document.getElementById('studentSearch');
+        if (studentSearch) {
+            studentSearch.addEventListener('input', (e) => {
+                filterStudents(e.target.value);
+            });
+        }
 
-    document.getElementById('clientSearch')?.addEventListener('input', (e) => {
-        filterClients(e.target.value);
-    });
+        const clientSearch = document.getElementById('clientSearch');
+        if (clientSearch) {
+            clientSearch.addEventListener('input', (e) => {
+                filterClients(e.target.value);
+            });
+        }
 
-    document.getElementById('certSearch')?.addEventListener('input', (e) => {
-        filterCertificates(e.target.value);
-    });
+        const certSearch = document.getElementById('certSearch');
+        if (certSearch) {
+            certSearch.addEventListener('input', (e) => {
+                filterCertificates(e.target.value);
+            });
+        }
 
-    document.getElementById('certCategoryFilter')?.addEventListener('change', (e) => {
-        filterCertificatesByCategory(e.target.value);
-    });
-    
-    console.log('Event listeners setup complete');
+        const certCategoryFilter = document.getElementById('certCategoryFilter');
+        if (certCategoryFilter) {
+            certCategoryFilter.addEventListener('change', (e) => {
+                filterCertificatesByCategory(e.target.value);
+            });
+        }
+        
+        console.log('Event listeners setup complete');
+    } catch (error) {
+        console.error('Error setting up event listeners:', error);
+    }
 }
 
 // Switch between sections
