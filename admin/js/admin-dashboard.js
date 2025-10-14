@@ -182,10 +182,11 @@ async function loadOverviewStats() {
             console.error('Error loading client count:', clientError);
         }
 
-        // Get total certificates
+        // Get total certificates (only admin-issued)
         const { count: certCount, error: certError } = await supabase
             .from('certifications')
-            .select('*', { count: 'exact', head: true });
+            .select('*', { count: 'exact', head: true })
+            .eq('issued_by_admin', true);
 
         if (certError) {
             console.error('Error loading certificate count:', certError);
@@ -325,6 +326,7 @@ async function loadCertificates() {
                 *,
                 students(first_name, last_name)
             `)
+            .eq('issued_by_admin', true)
             .order('issue_date', { ascending: false });
 
         if (error) throw error;
@@ -799,7 +801,8 @@ async function issueCertificate(event) {
                 issuing_organization: data.issuing_organization,
                 issue_date: data.issue_date,
                 expiry_date: data.expiry_date || null,
-                credential_id: data.credential_id || null
+                credential_id: data.credential_id || null,
+                issued_by_admin: true
             });
 
         if (error) throw error;
