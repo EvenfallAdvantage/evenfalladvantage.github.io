@@ -252,6 +252,25 @@
     <script src="js/admin-dashboard.js"></script>
     <script>
         console.log('Admin dashboard script loaded');
+        
+        // Manual initialization if DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            console.log('DOM still loading, event listener will fire');
+        } else {
+            console.log('DOM already loaded, manually initializing...');
+            (async () => {
+                try {
+                    await checkAuth();
+                    console.log('Auth check complete');
+                    await loadDashboardData();
+                    console.log('Dashboard data loaded');
+                    setupEventListeners();
+                    console.log('Setup complete');
+                } catch (error) {
+                    console.error('Error during initialization:', error);
+                }
+            })();
+        }
     </script>
 </body>
 </html>
