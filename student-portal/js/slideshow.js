@@ -3314,7 +3314,6 @@ function loadSlide(index) {
             // Direct video file (uploaded)
             slideHTML += `
                 <div class="slide-media">
-                    <h4 style="margin-top: 2rem; margin-bottom: 0.5rem;">Uploaded Video:</h4>
                     <video controls style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; display: block;">
                         <source src="${slide.video_url}" type="video/mp4">
                         Your browser does not support the video tag.
