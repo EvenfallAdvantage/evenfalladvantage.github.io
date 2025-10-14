@@ -256,6 +256,17 @@ body {
     background: #229954;
 }
 
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
 .btn-small {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;

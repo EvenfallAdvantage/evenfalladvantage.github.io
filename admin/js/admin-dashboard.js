@@ -443,12 +443,49 @@ function displayCourses(courses) {
                     <span><i class="fas fa-book"></i> Module</span>
                     <span><i class="fas fa-users"></i> Active</span>
                 </div>
-                <button class="btn btn-secondary btn-small" onclick="editCourse('${course.id}')">
-                    <i class="fas fa-edit"></i> Edit Module
-                </button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-secondary btn-small" onclick="editCourse('${course.id}')">
+                        <i class="fas fa-edit"></i> Edit Module
+                    </button>
+                    <button class="btn btn-danger btn-small" onclick="deleteCourse('${course.id}', '${course.module_name}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
+}
+
+// Delete course with confirmation
+async function deleteCourse(id, moduleName) {
+    // Show confirmation dialog
+    const confirmed = confirm(`Are you sure you want to delete "${moduleName}"?\n\nThis will permanently delete the module and all its slides. This action cannot be undone.`);
+    
+    if (!confirmed) return;
+    
+    try {
+        // Delete slides first (due to foreign key constraint)
+        const { error: slidesError } = await supabase
+            .from('module_slides')
+            .delete()
+            .eq('module_id', id);
+        
+        if (slidesError) throw slidesError;
+        
+        // Delete the module
+        const { error: moduleError } = await supabase
+            .from('training_modules')
+            .delete()
+            .eq('id', id);
+        
+        if (moduleError) throw moduleError;
+        
+        showAlert('Module deleted successfully!', 'success');
+        loadCourses();
+    } catch (error) {
+        console.error('Error deleting module:', error);
+        showAlert('Error deleting module: ' + error.message, 'error');
+    }
 }
 
 // Load section data when switching
