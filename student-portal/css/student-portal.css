@@ -492,6 +492,20 @@ body {
     background: var(--success);
 }
 
+/* Expired module styles */
+.module-card.expired {
+    border-color: #ff9800;
+    background: linear-gradient(to bottom, rgba(255, 152, 0, 0.05) 0%, var(--surface) 100%);
+}
+
+.module-card.expired:hover {
+    border-color: #ff9800;
+}
+
+.module-card.expired .module-icon {
+    background: #ff9800;
+}
+
 .completion-badge {
     position: absolute;
     top: 1rem;
@@ -506,6 +520,11 @@ body {
     align-items: center;
     gap: 0.5rem;
     box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.completion-badge.expired {
+    background: #ff9800;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
 }
 
 .completion-badge i {

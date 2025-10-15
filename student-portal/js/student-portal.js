@@ -32,14 +32,31 @@ async function loadTrainingModules() {
         
         // Generate module cards with completion indicators
         container.innerHTML = modules.map((module, index) => {
-            const isCompleted = progressData.completedModules.includes(module.module_code);
-            const completedClass = isCompleted ? 'completed' : '';
-            const buttonText = isCompleted ? 'Review Module' : 'Start Module';
-            const buttonIcon = isCompleted ? 'fa-check-circle' : 'fa-play';
+            const completionStatus = getModuleCompletionStatus(module.module_code);
+            const isCompleted = completionStatus.completed && !completionStatus.expired;
+            const isExpired = completionStatus.expired;
+            
+            let statusClass = '';
+            let statusBadge = '';
+            let buttonText = 'Start Module';
+            let buttonIcon = 'fa-play';
+            
+            if (isExpired) {
+                statusClass = 'expired';
+                statusBadge = `<div class="completion-badge expired"><i class="fas fa-exclamation-triangle"></i> Expired - Recertify</div>`;
+                buttonText = 'Recertify';
+                buttonIcon = 'fa-redo';
+            } else if (isCompleted) {
+                statusClass = 'completed';
+                const expiresText = completionStatus.expiresIn ? ` (Expires in ${completionStatus.expiresIn})` : '';
+                statusBadge = `<div class="completion-badge"><i class="fas fa-check-circle"></i> Certified${expiresText}</div>`;
+                buttonText = 'Review Module';
+                buttonIcon = 'fa-check-circle';
+            }
             
             return `
-                <div class="module-card ${completedClass}" data-module="${module.module_code}">
-                    ${isCompleted ? '<div class="completion-badge"><i class="fas fa-check-circle"></i> Completed</div>' : ''}
+                <div class="module-card ${statusClass}" data-module="${module.module_code}">
+                    ${statusBadge}
                     <div class="module-icon">
                         <i class="fas ${module.icon || 'fa-book'}"></i>
                     </div>
@@ -184,6 +201,57 @@ let progressData = {
     assessmentResults: [],
     activities: []
 };
+
+// Module expiration periods (in months)
+const MODULE_EXPIRATION = {
+    'stop-the-bleed': 6,
+    'threat-assessment': 6,
+    'use-of-force': 6,
+    'default': 12
+};
+
+// Get module completion status with expiration check
+function getModuleCompletionStatus(moduleCode) {
+    // Check if assessment was passed
+    const passedAssessment = progressData.assessmentResults.find(
+        result => (result.module === moduleCode || result.assessment === moduleCode) && result.passed
+    );
+    
+    if (!passedAssessment) {
+        return { completed: false, expired: false };
+    }
+    
+    // Get expiration period for this module
+    const expirationMonths = MODULE_EXPIRATION[moduleCode] || MODULE_EXPIRATION.default;
+    
+    // Calculate expiration date
+    const completionDate = new Date(passedAssessment.date);
+    const expirationDate = new Date(completionDate);
+    expirationDate.setMonth(expirationDate.getMonth() + expirationMonths);
+    
+    const now = new Date();
+    const isExpired = now > expirationDate;
+    
+    // Calculate time until expiration
+    let expiresIn = '';
+    if (!isExpired) {
+        const daysUntilExpiration = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+        if (daysUntilExpiration <= 30) {
+            expiresIn = `${daysUntilExpiration} days`;
+        } else {
+            const monthsUntilExpiration = Math.floor(daysUntilExpiration / 30);
+            expiresIn = `${monthsUntilExpiration} month${monthsUntilExpiration > 1 ? 's' : ''}`;
+        }
+    }
+    
+    return {
+        completed: true,
+        expired: isExpired,
+        expiresIn: expiresIn,
+        completionDate: completionDate,
+        expirationDate: expirationDate
+    };
+}
 
 // Load progress from localStorage
 function loadProgress() {
