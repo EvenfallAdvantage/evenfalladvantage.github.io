@@ -2013,26 +2013,32 @@ body {
     }
 
     .slideshow-footer {
+        display: flex;
         flex-direction: row;
         flex-wrap: wrap;
         gap: 0.5rem;
         justify-content: space-between;
+        align-items: center;
     }
 
     #prevSlideBtn {
         order: 1;
+        flex: 0 0 auto;
     }
 
     #nextSlideBtn {
-        order: 3;
+        order: 2;
+        flex: 0 0 auto;
     }
 
     #completeModuleBtn {
-        order: 3;
+        order: 2;
+        flex: 0 0 auto;
     }
 
     .slide-dots {
-        order: 2;
+        order: 3;
+        flex-basis: 100%;
         width: 100%;
         justify-content: center;
         margin: 0.5rem 0;
