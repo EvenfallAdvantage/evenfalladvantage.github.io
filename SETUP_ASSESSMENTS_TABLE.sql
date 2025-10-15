@@ -19,46 +19,53 @@ CREATE INDEX IF NOT EXISTS idx_assessments_category ON assessments(category);
 -- ============================================
 
 -- Link existing assessments to their modules and set to "Event Security Core"
+-- Module 1: Radio Communications
 UPDATE assessments SET 
-    module_id = (SELECT id FROM training_modules WHERE module_code = 'communication-protocols' LIMIT 1),
+    module_id = (SELECT id FROM training_modules WHERE module_name LIKE '%Radio%' OR module_name LIKE '%Communication%' LIMIT 1),
     category = 'Event Security Core',
-    icon = (SELECT icon FROM training_modules WHERE module_code = 'communication-protocols' LIMIT 1)
+    icon = COALESCE((SELECT icon FROM training_modules WHERE module_name LIKE '%Radio%' OR module_name LIKE '%Communication%' LIMIT 1), 'fa-clipboard')
 WHERE assessment_name LIKE '%Radio%' OR assessment_name LIKE '%Communication%';
 
+-- Module 2: Stop the Bleed
 UPDATE assessments SET 
-    module_id = (SELECT id FROM training_modules WHERE module_code = 'stop-the-bleed' LIMIT 1),
+    module_id = (SELECT id FROM training_modules WHERE module_name LIKE '%STOP THE BLEED%' OR module_name LIKE '%Emergency Medical%' LIMIT 1),
     category = 'Event Security Core',
-    icon = (SELECT icon FROM training_modules WHERE module_code = 'stop-the-bleed' LIMIT 1)
+    icon = COALESCE((SELECT icon FROM training_modules WHERE module_name LIKE '%STOP THE BLEED%' OR module_name LIKE '%Emergency Medical%' LIMIT 1), 'fa-first-aid')
 WHERE assessment_name LIKE '%STOP THE BLEED%' OR assessment_name LIKE '%Emergency Medical%';
 
+-- Module 3: Threat Assessment
 UPDATE assessments SET 
-    module_id = (SELECT id FROM training_modules WHERE module_code = 'threat-assessment' LIMIT 1),
+    module_id = (SELECT id FROM training_modules WHERE module_name LIKE '%Threat%' LIMIT 1),
     category = 'Event Security Core',
-    icon = (SELECT icon FROM training_modules WHERE module_code = 'threat-assessment' LIMIT 1)
+    icon = COALESCE((SELECT icon FROM training_modules WHERE module_name LIKE '%Threat%' LIMIT 1), 'fa-eye')
 WHERE assessment_name LIKE '%Threat%';
 
+-- Module 4: ICS-100
 UPDATE assessments SET 
-    module_id = (SELECT id FROM training_modules WHERE module_code = 'ics-100' LIMIT 1),
+    module_id = (SELECT id FROM training_modules WHERE module_name LIKE '%ICS%' OR module_name LIKE '%Incident Command%' LIMIT 1),
     category = 'Event Security Core',
-    icon = (SELECT icon FROM training_modules WHERE module_code = 'ics-100' LIMIT 1)
-WHERE assessment_name LIKE '%ICS%';
+    icon = COALESCE((SELECT icon FROM training_modules WHERE module_name LIKE '%ICS%' OR module_name LIKE '%Incident Command%' LIMIT 1), 'fa-sitemap')
+WHERE assessment_name LIKE '%ICS%' OR assessment_name LIKE '%Emergency Response%';
 
+-- Module 5: Diverse Populations
 UPDATE assessments SET 
-    module_id = (SELECT id FROM training_modules WHERE module_code = 'diverse-population' LIMIT 1),
+    module_id = (SELECT id FROM training_modules WHERE module_name LIKE '%Diverse%' OR module_name LIKE '%Interacting%' LIMIT 1),
     category = 'Event Security Core',
-    icon = (SELECT icon FROM training_modules WHERE module_code = 'diverse-population' LIMIT 1)
+    icon = COALESCE((SELECT icon FROM training_modules WHERE module_name LIKE '%Diverse%' OR module_name LIKE '%Interacting%' LIMIT 1), 'fa-people-group')
 WHERE assessment_name LIKE '%Diverse%' OR assessment_name LIKE '%Interacting%';
 
+-- Module 6: Crowd Management
 UPDATE assessments SET 
-    module_id = (SELECT id FROM training_modules WHERE module_code = 'crowd-management' LIMIT 1),
+    module_id = (SELECT id FROM training_modules WHERE module_name LIKE '%Crowd%' LIMIT 1),
     category = 'Event Security Core',
-    icon = (SELECT icon FROM training_modules WHERE module_code = 'crowd-management' LIMIT 1)
+    icon = COALESCE((SELECT icon FROM training_modules WHERE module_name LIKE '%Crowd%' LIMIT 1), 'fa-users')
 WHERE assessment_name LIKE '%Crowd%';
 
+-- Module 7: Use of Force
 UPDATE assessments SET 
-    module_id = (SELECT id FROM training_modules WHERE module_code = 'use-of-force' LIMIT 1),
+    module_id = (SELECT id FROM training_modules WHERE module_name LIKE '%Use of Force%' OR module_name LIKE '%Legal%' LIMIT 1),
     category = 'Event Security Core',
-    icon = (SELECT icon FROM training_modules WHERE module_code = 'use-of-force' LIMIT 1)
+    icon = COALESCE((SELECT icon FROM training_modules WHERE module_name LIKE '%Use of Force%' OR module_name LIKE '%Legal%' LIMIT 1), 'fa-balance-scale')
 WHERE assessment_name LIKE '%Use of Force%' OR assessment_name LIKE '%Legal%';
 
 -- ============================================
