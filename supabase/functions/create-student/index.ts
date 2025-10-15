@@ -42,12 +42,17 @@ Deno.serve(async (req) => {
         first_name: firstName,
         last_name: lastName,
         user_type: 'student'
+      },
+      app_metadata: {
+        provider: 'email',
+        providers: ['email']
       }
     })
     
     if (authError) {
       console.error('Error creating auth user:', authError)
-      throw authError
+      console.error('Auth error details:', JSON.stringify(authError))
+      throw new Error(`Failed to create auth user: ${authError.message}`)
     }
     
     if (!authData.user) {
@@ -56,24 +61,39 @@ Deno.serve(async (req) => {
     
     console.log('Auth user created:', authData.user.id)
     
-    // Create student record
-    const { error: studentError } = await supabaseAdmin
+    // Wait a moment for any database triggers to complete
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // Check if student record already exists (created by trigger)
+    const { data: existingStudent } = await supabaseAdmin
       .from('students')
-      .insert({
-        id: authData.user.id,
-        email: email,
-        first_name: firstName,
-        last_name: lastName
-      })
+      .select('id')
+      .eq('id', authData.user.id)
+      .single()
     
-    if (studentError) {
-      console.error('Error creating student record:', studentError)
-      // If student creation fails, delete the auth user to keep things clean
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-      throw studentError
+    if (!existingStudent) {
+      // Create student record if it doesn't exist
+      const { error: studentError } = await supabaseAdmin
+        .from('students')
+        .insert({
+          id: authData.user.id,
+          email: email,
+          first_name: firstName,
+          last_name: lastName
+        })
+      
+      if (studentError && studentError.code !== '23505') {
+        // If error is not duplicate key, it's a real error
+        console.error('Error creating student record:', studentError)
+        // Delete the auth user to keep things clean
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+        throw studentError
+      }
+      
+      console.log('Student record created')
+    } else {
+      console.log('Student record already exists (created by trigger)')
     }
-    
-    console.log('Student record created')
     
     // Create student profile
     const { error: profileError } = await supabaseAdmin

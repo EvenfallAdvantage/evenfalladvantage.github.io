@@ -745,24 +745,53 @@ async function createStudent(event) {
     submitBtn.innerHTML = '<span class="loading-spinner"></span> Creating...';
 
     try {
-        // Use Edge Function to create student (uses admin API, auto-confirms email)
-        const { data: createResult, error: createError } = await supabase.functions.invoke('create-student', {
-            body: {
-                email: data.email,
-                password: data.password,
-                firstName: data.first_name,
-                lastName: data.last_name,
-                phone: data.phone || null
+        // Create user account (email confirmation is disabled in Supabase settings)
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: data.email,
+            password: data.password,
+            options: {
+                data: {
+                    first_name: data.first_name,
+                    last_name: data.last_name,
+                    user_type: 'student'
+                }
             }
         });
 
-        if (createError) {
-            console.error('Create student error:', createError);
-            console.error('Error details:', JSON.stringify(createError, null, 2));
-            throw createError;
+        if (authError) throw authError;
+        
+        if (!authData.user) {
+            throw new Error('User creation failed');
         }
         
-        console.log('Student created:', createResult);
+        console.log('User created:', authData.user.id);
+        
+        // Create student record
+        const { error: studentError } = await supabase
+            .from('students')
+            .insert({
+                id: authData.user.id,
+                email: data.email,
+                first_name: data.first_name,
+                last_name: data.last_name
+            });
+        
+        if (studentError && studentError.code !== '23505') {
+            console.error('Error creating student record:', studentError);
+            throw studentError;
+        }
+        
+        // Create student profile
+        const { error: profileError } = await supabase
+            .from('student_profiles')
+            .insert({
+                student_id: authData.user.id,
+                phone: data.phone || null
+            });
+        
+        if (profileError && profileError.code !== '23505') {
+            console.warn('Profile creation warning:', profileError);
+        }
         
         // Send welcome email with login credentials
         try {
