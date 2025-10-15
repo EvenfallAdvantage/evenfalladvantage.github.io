@@ -68,8 +68,7 @@ async function loadAssessments() {
                     module_name,
                     display_order
                 )
-            `)
-            .order('created_at', { ascending: true });
+            `);
         
         if (error) throw error;
         
