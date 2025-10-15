@@ -102,13 +102,18 @@ async function saveProgressToDatabase(studentId) {
                             .limit(1);
                         
                         if (assessments && assessments.length > 0) {
+                            // Determine if passed (default to true if score >= 70 and passed is undefined)
+                            const passed = result.passed !== undefined 
+                                ? result.passed 
+                                : (result.score >= 70);
+                            
                             await StudentData.saveAssessmentResult(studentId, assessments[0].id, {
                                 score: result.score,
-                                passed: result.passed,
+                                passed: passed,
                                 time_taken_minutes: result.timeTaken || 0,
                                 answers_json: result.answers || {}
                             });
-                            console.log(`✅ Saved assessment result: ${result.module}`);
+                            console.log(`✅ Saved assessment result: ${result.module} (${passed ? 'passed' : 'failed'})`);
                         } else {
                             console.warn(`No assessment found for module: ${result.module}`);
                         }
