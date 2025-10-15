@@ -761,10 +761,43 @@ async function createStudent(event) {
 
         if (authError) throw authError;
 
-        // The students table should auto-populate via database trigger
-        // Create or update the profile
+        // Wait for the database trigger to create the student record
         if (authData.user) {
-            // Check if profile already exists
+            // Poll for the student record to be created (max 5 seconds)
+            let studentExists = false;
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            while (!studentExists && attempts < maxAttempts) {
+                const { data: student } = await supabase
+                    .from('students')
+                    .select('id')
+                    .eq('id', authData.user.id)
+                    .single();
+                
+                if (student) {
+                    studentExists = true;
+                } else {
+                    // Wait 500ms before trying again
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    attempts++;
+                }
+            }
+            
+            if (!studentExists) {
+                console.warn('Student record not created by trigger, creating manually...');
+                // Manually create student record if trigger failed
+                await supabase
+                    .from('students')
+                    .insert({
+                        id: authData.user.id,
+                        email: data.email,
+                        first_name: data.first_name,
+                        last_name: data.last_name
+                    });
+            }
+            
+            // Now create the profile
             const { data: existingProfile } = await supabase
                 .from('student_profiles')
                 .select('id')
@@ -790,7 +823,6 @@ async function createStudent(event) {
                 
                 if (profileError) {
                     console.warn('Profile creation warning:', profileError);
-                    // Don't fail the whole operation if profile creation fails
                 }
             }
         }
