@@ -4103,6 +4103,57 @@ const assessmentQuestions = {
 };
 
 
+// Load assessment questions from database
+async function loadAssessmentQuestions(moduleCode) {
+    try {
+        // Get assessment for this module
+        const { data: assessments, error: assessmentError } = await supabase
+            .from('assessments')
+            .select('id')
+            .eq('module_id', (await supabase
+                .from('training_modules')
+                .select('id')
+                .eq('module_code', moduleCode)
+                .single()
+            ).data?.id)
+            .single();
+        
+        if (assessmentError || !assessments) {
+            console.warn('No assessment found for module:', moduleCode);
+            return null;
+        }
+        
+        // Get questions for this assessment
+        const { data: dbQuestions, error: questionsError } = await supabase
+            .from('assessment_questions')
+            .select('*')
+            .eq('assessment_id', assessments.id)
+            .order('question_number');
+        
+        if (questionsError) throw questionsError;
+        
+        if (!dbQuestions || dbQuestions.length === 0) {
+            console.warn('No questions found for assessment:', assessments.id);
+            return null;
+        }
+        
+        // Convert database format to app format
+        const questions = dbQuestions.map(q => ({
+            question: q.question_text,
+            options: [q.option_a, q.option_b, q.option_c, q.option_d],
+            correct: ['A', 'B', 'C', 'D'].indexOf(q.correct_answer),
+            explanation: q.explanation || ''
+        }));
+        
+        console.log(`Loaded ${questions.length} questions from database for ${moduleCode}`);
+        return questions;
+        
+    } catch (error) {
+        console.error('Error loading assessment questions:', error);
+        return null;
+    }
+}
+
 // Shuffle array helper function
 function shuffleArray(array) {
     const shuffled = [...array];
@@ -4113,7 +4164,7 @@ function shuffleArray(array) {
     return shuffled;
 }
 
-function startAssessment(assessmentId) {
+async function startAssessment(assessmentId) {
     // Check attempt limit
     if (!assessmentAttempts[assessmentId]) {
         assessmentAttempts[assessmentId] = 0;
@@ -4131,12 +4182,18 @@ function startAssessment(assessmentId) {
     userAnswers = [];
     assessmentStartTime = Date.now();
 
-    // Check for state-specific questions (Module 7)
-    let questions = assessmentQuestions[assessmentId];
-    if (window.getStateSpecificQuestions) {
-        const stateQuestions = window.getStateSpecificQuestions(assessmentId);
-        if (stateQuestions) {
-            questions = stateQuestions;
+    // Try to load questions from database first
+    let questions = await loadAssessmentQuestions(assessmentId);
+    
+    // Fallback to hardcoded questions if database load fails
+    if (!questions || questions.length === 0) {
+        // Check for state-specific questions (Module 7)
+        questions = assessmentQuestions[assessmentId];
+        if (window.getStateSpecificQuestions) {
+            const stateQuestions = window.getStateSpecificQuestions(assessmentId);
+            if (stateQuestions) {
+                questions = stateQuestions;
+            }
         }
     }
     

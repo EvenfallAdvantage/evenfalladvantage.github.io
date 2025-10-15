@@ -148,7 +148,14 @@ function switchSection(sectionName) {
     document.querySelectorAll('.admin-section').forEach(section => {
         section.classList.remove('active');
     });
-    document.getElementById(`${sectionName}-section`).classList.add('active');
+    
+    const targetSection = document.getElementById(`${sectionName}-section`);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    } else {
+        console.error(`Section not found: ${sectionName}-section`);
+        return;
+    }
 
     // Load section data
     loadSectionData(sectionName);
