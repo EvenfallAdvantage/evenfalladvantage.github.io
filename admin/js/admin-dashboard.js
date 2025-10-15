@@ -762,14 +762,21 @@ async function createStudent(event) {
         if (authError) throw authError;
 
         // The students table should auto-populate via database trigger
-        // But we'll also create the profile
+        // Create or update the profile (use upsert to avoid conflicts)
         if (authData.user) {
-            await supabase
+            const { error: profileError } = await supabase
                 .from('student_profiles')
-                .insert({
+                .upsert({
                     student_id: authData.user.id,
                     phone: data.phone || null
+                }, {
+                    onConflict: 'student_id'
                 });
+            
+            if (profileError) {
+                console.warn('Profile creation warning:', profileError);
+                // Don't fail the whole operation if profile creation fails
+            }
         }
 
         showAlert('Student created successfully! They will need to confirm their email.', 'success');
