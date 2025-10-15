@@ -804,6 +804,13 @@ body {
     align-items: center;
 }
 
+.slideshow-footer #prevSlideBtn,
+.slideshow-footer #nextSlideBtn,
+.slideshow-footer #completeModuleBtn {
+    flex: 0 0 auto;
+    order: initial;
+}
+
 .slide-dots {
     display: flex;
     gap: 0.5rem;
@@ -2021,22 +2028,22 @@ body {
         align-items: center;
     }
 
-    #prevSlideBtn {
+    .slideshow-footer #prevSlideBtn {
         order: 1;
         flex: 0 0 auto;
     }
 
-    #nextSlideBtn {
+    .slideshow-footer #nextSlideBtn {
         order: 2;
         flex: 0 0 auto;
     }
 
-    #completeModuleBtn {
+    .slideshow-footer #completeModuleBtn {
         order: 2;
         flex: 0 0 auto;
     }
 
-    .slide-dots {
+    .slideshow-footer .slide-dots {
         order: 3;
         flex-basis: 100%;
         width: 100%;
