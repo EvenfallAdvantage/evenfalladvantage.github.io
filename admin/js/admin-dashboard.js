@@ -60,8 +60,13 @@ async function checkAuth() {
         return;
     }
 
-    // Display admin name
-    document.getElementById('adminName').textContent = adminData.first_name + ' ' + adminData.last_name;
+    // Display admin name (optional - can be added to navbar if needed)
+    const adminNameElement = document.getElementById('adminName');
+    if (adminNameElement) {
+        adminNameElement.textContent = adminData.first_name + ' ' + adminData.last_name;
+    }
+    
+    console.log('Admin authenticated:', adminData.first_name + ' ' + adminData.last_name);
 }
 
 // Logout function
