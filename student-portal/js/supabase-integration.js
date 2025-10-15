@@ -85,6 +85,12 @@ async function saveProgressToDatabase(studentId) {
         if (progressData.assessmentResults && progressData.assessmentResults.length > 0) {
             for (const result of progressData.assessmentResults) {
                 try {
+                    // Skip if module code is missing
+                    if (!result.module) {
+                        console.warn('Skipping assessment result with no module code:', result);
+                        continue;
+                    }
+                    
                     // Find assessment by module code
                     const moduleResult = await TrainingData.getModuleByCode(result.module);
                     if (moduleResult.success && moduleResult.data) {
@@ -102,8 +108,12 @@ async function saveProgressToDatabase(studentId) {
                                 time_taken_minutes: result.timeTaken || 0,
                                 answers_json: result.answers || {}
                             });
-                            console.log(`Saved assessment result: ${result.module}`);
+                            console.log(`✅ Saved assessment result: ${result.module}`);
+                        } else {
+                            console.warn(`No assessment found for module: ${result.module}`);
                         }
+                    } else {
+                        console.warn(`Module not found: ${result.module}`);
                     }
                 } catch (err) {
                     console.warn(`Failed to save assessment ${result.module}:`, err.message);

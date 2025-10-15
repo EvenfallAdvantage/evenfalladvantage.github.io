@@ -4205,6 +4205,7 @@ function submitAssessment() {
     // Save to progress
     if (percentage >= 70) {
         progressData.assessmentResults.push({
+            module: currentAssessment,
             assessment: currentAssessment,
             score: percentage,
             date: new Date().toISOString()
@@ -4406,6 +4407,7 @@ function resubmitAssessment() {
     
     // Save to progress (save all attempts, not just passing)
     progressData.assessmentResults.push({
+        module: currentAssessment,
         assessment: currentAssessment,
         score: percentage,
         date: new Date().toISOString(),
