@@ -4583,6 +4583,23 @@ function addActivity(description) {
     }
 }
 
+// Get best assessment attempt for each unique module
+function getBestAssessmentAttempts() {
+    const bestByModule = {};
+    
+    // Group by module and keep only the highest score
+    progressData.assessmentResults.forEach(result => {
+        const moduleCode = result.module || result.assessment;
+        if (!moduleCode) return;
+        
+        if (!bestByModule[moduleCode] || result.score > bestByModule[moduleCode].score) {
+            bestByModule[moduleCode] = result;
+        }
+    });
+    
+    return Object.values(bestByModule);
+}
+
 function updateProgressDisplay() {
     // Ensure progressData has all required properties
     if (!progressData.completedModules) progressData.completedModules = [];
@@ -4594,12 +4611,16 @@ function updateProgressDisplay() {
     document.getElementById('completedModules').textContent = progressData.completedModules.length;
     document.getElementById('completedScenarios').textContent = progressData.completedScenarios.length;
     
-    const passedAssessments = progressData.assessmentResults.filter(r => r.score >= 70).length;
+    // Get best attempt for each unique assessment
+    const bestAttempts = getBestAssessmentAttempts();
+    
+    // Count only passed assessments (using best attempts)
+    const passedAssessments = bestAttempts.filter(r => r.score >= 70).length;
     document.getElementById('completedAssessments').textContent = passedAssessments;
     
-    const avgScore = progressData.assessmentResults.length > 0 ?
-        Math.round(progressData.assessmentResults.reduce((sum, r) => sum + r.score, 0) / 
-                  progressData.assessmentResults.length) : 0;
+    // Calculate average score using only best attempts
+    const avgScore = bestAttempts.length > 0 ?
+        Math.round(bestAttempts.reduce((sum, r) => sum + r.score, 0) / bestAttempts.length) : 0;
     document.getElementById('averageScore').textContent = `${avgScore}%`;
     
     // Update module progress (use database modules if available, sorted by display_order)
