@@ -463,6 +463,9 @@ async function createCourse(event) {
         // Process slides
         await processSlides(module.id, formData);
         
+        // Create assessment for this module
+        await createAssessmentForModule(module);
+        
         showAlert('Course created successfully!', 'success');
         closeModal();
         loadCourses();
@@ -585,6 +588,52 @@ async function uploadMedia(file, moduleId, slideIndex, type) {
         .getPublicUrl(fileName);
     
     return publicUrl;
+}
+
+// Create assessment for a module
+async function createAssessmentForModule(module) {
+    try {
+        // Determine category based on module order
+        // First 7 modules are "Event Security Core", rest are "Miscellaneous"
+        const coreModuleCodes = [
+            'communication-protocols',
+            'stop-the-bleed', 
+            'threat-assessment',
+            'ics-100',
+            'diverse-population',
+            'crowd-management',
+            'use-of-force'
+        ];
+        
+        const category = coreModuleCodes.includes(module.module_code) 
+            ? 'Event Security Core' 
+            : 'Miscellaneous';
+        
+        // Create assessment
+        const assessmentData = {
+            module_id: module.id,
+            assessment_name: `${module.module_name} Assessment`,
+            category: category,
+            icon: module.icon || 'fa-clipboard-check',
+            total_questions: 10, // Default, can be updated later
+            passing_score: 80,
+            time_limit_minutes: 20
+        };
+        
+        const { error } = await supabase
+            .from('assessments')
+            .insert(assessmentData);
+        
+        if (error) {
+            console.error('Error creating assessment:', error);
+            // Don't throw error - assessment creation is optional
+        } else {
+            console.log('Assessment created successfully for module:', module.module_name);
+        }
+    } catch (error) {
+        console.error('Error in createAssessmentForModule:', error);
+        // Don't throw - we don't want to fail module creation if assessment fails
+    }
 }
 
 // Open icon picker modal
