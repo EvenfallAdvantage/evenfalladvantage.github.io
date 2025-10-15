@@ -266,7 +266,53 @@ function loadProgress() {
     if (!progressData.assessmentResults) progressData.assessmentResults = [];
     if (!progressData.activities) progressData.activities = [];
     
+    // Migrate old assessment results that use assessment names instead of module codes
+    migrateAssessmentResults();
+    
     updateProgressDisplay();
+}
+
+// Migrate old assessment results to use module codes
+function migrateAssessmentResults() {
+    const assessmentNameToModuleCode = {
+        'Security Radio Communications': 'communication-protocols',
+        'Module 1: Security Radio Communications': 'communication-protocols',
+        'STOP THE BLEED®': 'stop-the-bleed',
+        'Module 2: STOP THE BLEED®': 'stop-the-bleed',
+        'Threat Assessment & Situational Awareness': 'threat-assessment',
+        'Module 3: Threat Assessment & Situational Awareness': 'threat-assessment',
+        'Introduction to ICS-100': 'ics-100',
+        'Module 4: Introduction to ICS-100': 'ics-100',
+        'Interacting with Diverse Populations': 'diverse-population',
+        'Module 5: Interacting with Diverse Populations': 'diverse-population',
+        'Crowd Management & Public Safety': 'crowd-management',
+        'Module 6: Crowd Management & Public Safety': 'crowd-management',
+        'Legal Aspects & Use of Force': 'use-of-force',
+        'Module 7: Legal Aspects & Use of Force': 'use-of-force',
+        'Comprehensive Guard Certification': 'comprehensive'
+    };
+    
+    let migrated = false;
+    progressData.assessmentResults = progressData.assessmentResults.map(result => {
+        // If module is missing or is an assessment name, fix it
+        if (!result.module || assessmentNameToModuleCode[result.module]) {
+            migrated = true;
+            const moduleCode = assessmentNameToModuleCode[result.module] || 
+                              assessmentNameToModuleCode[result.assessment] || 
+                              result.assessment;
+            return {
+                ...result,
+                module: moduleCode,
+                assessment: moduleCode
+            };
+        }
+        return result;
+    });
+    
+    if (migrated) {
+        console.log('Migrated assessment results to use module codes');
+        saveProgress();
+    }
 }
 
 // Save progress to localStorage
