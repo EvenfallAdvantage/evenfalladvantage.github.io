@@ -826,8 +826,39 @@ async function createStudent(event) {
                 }
             }
         }
+        
+        // Send welcome email with login credentials
+        try {
+            const emailBody = `
+Welcome to Evenfall Advantage Training Platform!
 
-        showAlert('Student created successfully! They will need to confirm their email.', 'success');
+Your student account has been created. Here are your login details:
+
+Email: ${data.email}
+Temporary Password: ${data.password}
+
+Login here: ${window.location.origin}/student-portal/login.html
+
+Please log in and change your password as soon as possible.
+
+If you have any questions, please contact your administrator.
+
+Best regards,
+Evenfall Advantage Team
+            `.trim();
+            
+            // Note: Supabase doesn't have built-in email sending from client
+            // You would need to set up a Supabase Edge Function or use a service like SendGrid
+            // For now, we'll log it and show admin the credentials
+            console.log('Welcome email content:', emailBody);
+            
+            // Show admin the credentials to share manually
+            alert(`Student created successfully!\n\nEmail: ${data.email}\nTemporary Password: ${data.password}\n\nPlease share these credentials with the student securely.`);
+        } catch (emailError) {
+            console.error('Error sending welcome email:', emailError);
+        }
+
+        showAlert('Student created successfully!', 'success');
         closeModal();
         setTimeout(() => loadStudents(), 1000);
 

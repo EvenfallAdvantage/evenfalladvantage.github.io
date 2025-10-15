@@ -101,7 +101,44 @@
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
-            color: var(--primary-color);
+            color: #333;
+        }
+        
+        .password-wrapper {
+            position: relative;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 5px;
+            transition: color 0.3s ease;
+        }
+        
+        .password-toggle:hover {
+            color: var(--secondary-color);
+        }
+        
+        .forgot-password {
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+        
+        .forgot-password a {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .forgot-password a:hover {
+            text-decoration: underline;
         }
         
         .form-group input {
@@ -215,7 +252,15 @@
                     
                     <div class="form-group">
                         <label for="login-password">Password</label>
-                        <input type="password" id="login-password" required>
+                        <div class="password-wrapper">
+                            <input type="password" id="login-password" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('login-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="forgot-password">
+                            <a href="#" onclick="showForgotPassword(); return false;">Forgot Password?</a>
+                        </div>
                     </div>
                     
                     <button type="submit" class="submit-btn">
@@ -244,13 +289,23 @@
                     
                     <div class="form-group">
                         <label for="signup-password">Password</label>
-                        <input type="password" id="signup-password" minlength="6" required>
+                        <div class="password-wrapper">
+                            <input type="password" id="signup-password" minlength="6" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('signup-password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                         <small style="color: #666;">Minimum 6 characters</small>
                     </div>
                     
                     <div class="form-group">
                         <label for="signup-confirm">Confirm Password</label>
-                        <input type="password" id="signup-confirm" required>
+                        <div class="password-wrapper">
+                            <input type="password" id="signup-confirm" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('signup-confirm')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     
                     <button type="submit" class="submit-btn">
@@ -299,6 +354,42 @@
         function hideAlert() {
             const alert = document.getElementById('alert');
             alert.className = 'alert';
+        }
+        
+        // Toggle password visibility
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const button = input.nextElementSibling;
+            const icon = button.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+        
+        // Show forgot password form
+        async function showForgotPassword() {
+            const email = prompt('Enter your email address to reset your password:');
+            
+            if (!email) return;
+            
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/student-portal/reset-password.html'
+                });
+                
+                if (error) throw error;
+                
+                showAlert('Password reset email sent! Check your inbox.', 'success');
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
         }
         
         // Handle Login

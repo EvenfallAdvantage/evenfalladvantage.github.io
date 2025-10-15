@@ -36,6 +36,42 @@ function hideAlert() {
     alert.classList.remove('show');
 }
 
+// Toggle password visibility
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.nextElementSibling;
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+// Show forgot password form
+async function showForgotPassword() {
+    const email = prompt('Enter your email address to reset your password:');
+    
+    if (!email) return;
+    
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/client-portal/reset-password.html'
+        });
+        
+        if (error) throw error;
+        
+        showAlert('Password reset email sent! Check your inbox.', 'success');
+    } catch (error) {
+        showAlert('Error: ' + error.message, 'error');
+    }
+}
+
 // Login form handler
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
