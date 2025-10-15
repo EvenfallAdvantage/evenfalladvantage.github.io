@@ -746,7 +746,7 @@ async function createStudent(event) {
 
     try {
         // Note: Since we can't use admin API from frontend, we'll use regular signup
-        // The user will need to confirm their email or you can manually confirm in Supabase
+        // We'll set emailRedirectTo to skip confirmation for admin-created accounts
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: data.email,
             password: data.password,
@@ -755,7 +755,8 @@ async function createStudent(event) {
                     first_name: data.first_name,
                     last_name: data.last_name,
                     user_type: 'student'
-                }
+                },
+                emailRedirectTo: window.location.origin + '/student-portal/index.html'
             }
         });
 
@@ -1044,13 +1045,13 @@ async function updateStudent(event, id) {
 }
 
 async function deleteStudent(id) {
-    if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) return;
+    if (!confirm('Are you sure you want to delete this student? This action cannot be undone.\n\nThis will delete:\n- Student account\n- Student profile\n- Auth user (login credentials)')) return;
     
     try {
-        const { error } = await supabase
-            .from('students')
-            .delete()
-            .eq('id', id);
+        // Call Edge Function to delete student completely (including auth user)
+        const { data, error } = await supabase.functions.invoke('delete-student', {
+            body: { studentId: id }
+        });
 
         if (error) throw error;
 
