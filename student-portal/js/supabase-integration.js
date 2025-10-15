@@ -208,18 +208,43 @@ async function loadProgressFromDatabase() {
         // Get assessment results from database
         const resultsResult = await StudentData.getAssessmentResults(user.id);
         if (resultsResult.success && resultsResult.data && resultsResult.data.length > 0) {
+            // Get module info to map assessment to module code
+            const { data: modules } = await supabase
+                .from('training_modules')
+                .select('id, module_code');
+            
+            const moduleIdToCode = {};
+            if (modules) {
+                modules.forEach(m => moduleIdToCode[m.id] = m.module_code);
+            }
+            
             const assessmentResults = resultsResult.data
                 .filter(r => r.assessments)
-                .map(r => ({
-                    module: r.assessments.assessment_name.replace(' Assessment', ''),
-                    score: r.score,
-                    passed: r.passed,
-                    date: r.completed_at,
-                    timeTaken: r.time_taken_minutes
-                }));
+                .map(r => {
+                    // Get module code from assessment's module_id
+                    const moduleCode = moduleIdToCode[r.assessments.module_id] || 'unknown';
+                    
+                    return {
+                        module: moduleCode,
+                        assessment: moduleCode,
+                        score: r.score,
+                        passed: r.passed,
+                        date: r.completed_at,
+                        timeTaken: r.time_taken_minutes
+                    };
+                });
             
-            localProgress.assessmentResults = assessmentResults;
-            console.log('Loaded assessment results:', assessmentResults.length);
+            // Deduplicate: keep only the best attempt for each module
+            const bestAttempts = {};
+            assessmentResults.forEach(result => {
+                const key = result.module;
+                if (!bestAttempts[key] || result.score > bestAttempts[key].score) {
+                    bestAttempts[key] = result;
+                }
+            });
+            
+            localProgress.assessmentResults = Object.values(bestAttempts);
+            console.log('Loaded assessment results:', localProgress.assessmentResults.length, '(deduplicated from', assessmentResults.length, 'total)');
         }
         
         // Save to localStorage (as cache)
