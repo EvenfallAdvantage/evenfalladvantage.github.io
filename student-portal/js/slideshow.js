@@ -3389,7 +3389,8 @@ function goToSlide(index) {
 function completeModule() {
     if (currentModuleId && !progressData.completedModules.includes(currentModuleId)) {
         progressData.completedModules.push(currentModuleId);
-        addActivity(`Completed module: ${moduleContent[currentModuleId].title}`);
+        const moduleTitle = moduleContent[currentModuleId]?.title || 'Unknown Module';
+        addActivity(`Completed module: ${moduleTitle}`);
         saveProgress();
     }
     

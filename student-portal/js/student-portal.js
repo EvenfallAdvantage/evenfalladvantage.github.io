@@ -4009,6 +4009,13 @@ function startAssessment(assessmentId) {
         }
     }
     
+    // Check if questions exist
+    if (!questions || questions.length === 0) {
+        alert('This assessment does not have any questions yet. Please contact your instructor.');
+        assessmentAttempts[assessmentId]--; // Don't count this as an attempt
+        return;
+    }
+    
     // Shuffle answer options for each question
     shuffledQuestions = questions.map(q => {
         const shuffledOptions = q.options.map((option, index) => ({
