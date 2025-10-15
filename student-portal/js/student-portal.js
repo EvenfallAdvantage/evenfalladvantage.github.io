@@ -21,7 +21,7 @@ async function loadTrainingModules() {
             .from('training_modules')
             .select('*')
             .eq('is_active', true)
-            .order('display_order', { ascending: true });
+            .order('display_order', { ascending: true});
         
         if (error) throw error;
         
@@ -50,6 +50,61 @@ async function loadTrainingModules() {
     } catch (error) {
         console.error('Error loading training modules:', error);
         container.innerHTML = '<p style="text-align: center; padding: 2rem; color: red;">Error loading modules. Please refresh the page.</p>';
+    }
+}
+
+// Load assessments from database
+async function loadAssessments() {
+    const container = document.querySelector('.assessment-list');
+    if (!container) return;
+    
+    try {
+        const { data: assessments, error } = await supabase
+            .from('assessments')
+            .select(`
+                *,
+                training_modules (
+                    module_code,
+                    module_name
+                )
+            `)
+            .order('category', { ascending: true });
+        
+        if (error) throw error;
+        
+        if (!assessments || assessments.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 2rem;">No assessments available yet.</p>';
+            return;
+        }
+        
+        // Generate assessment items
+        container.innerHTML = assessments.map(assessment => {
+            const moduleCode = assessment.training_modules?.module_code || assessment.assessment_name.toLowerCase().replace(/\s+/g, '-');
+            const isComprehensive = assessment.assessment_name.includes('Comprehensive');
+            
+            return `
+                <div class="assessment-item" 
+                     data-assessment="${moduleCode}" 
+                     data-required-module="${moduleCode}"
+                     ${isComprehensive ? 'data-required-all="true"' : ''}
+                     onclick="startAssessment('${moduleCode}')">
+                    <i class="fas ${assessment.icon || 'fa-clipboard-check'}"></i>
+                    <div>
+                        <h4>${assessment.assessment_name}</h4>
+                        <p>${assessment.total_questions || 10} questions • ${assessment.time_limit_minutes || 20} minutes</p>
+                    </div>
+                    <button class="btn btn-small btn-primary">Start</button>
+                </div>
+            `;
+        }).join('');
+        
+        // Update assessment availability after loading
+        updateAssessmentAvailability();
+        
+        console.log(`Loaded ${assessments.length} assessments`);
+    } catch (error) {
+        console.error('Error loading assessments:', error);
+        container.innerHTML = '<p style="text-align: center; padding: 2rem; color: red;">Error loading assessments. Please refresh the page.</p>';
     }
 }
 
@@ -107,6 +162,7 @@ function navigateToSection(sectionId) {
 document.addEventListener('DOMContentLoaded', () => {
     loadProgress();
     loadTrainingModules(); // Load modules from database
+    loadAssessments(); // Load assessments from database
     updateAssessmentAvailability();
 
     document.querySelectorAll('.nav-link').forEach(link => {
@@ -115,9 +171,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const section = link.dataset.section;
             navigateToSection(section);
             
-            // Update assessment availability when navigating to assessment section
+            // Reload assessments when navigating to assessment section
             if (section === 'assessment') {
-                updateAssessmentAvailability();
+                loadAssessments();
             }
         });
     });
