@@ -10,13 +10,50 @@ window.saveProgress = async function() {
         originalSaveProgress();
     }
     
-    // Also save to Supabase
+    // Also save to Supabase (don't await to avoid blocking UI)
     const user = await Auth.getCurrentUser();
-    if (!user) return;
+    if (!user) {
+        console.warn('Cannot save to database: User not logged in');
+        return;
+    }
     
-    // Save to database
-    await saveProgressToDatabase(user.id);
+    // Save to database in background
+    saveProgressToDatabase(user.id).catch(err => {
+        console.error('Failed to sync progress to database:', err);
+        // Show a non-intrusive notification
+        showSyncError();
+    });
 };
+
+// Show sync error notification
+function showSyncError() {
+    const existingError = document.querySelector('.sync-error-notification');
+    if (existingError) return; // Don't show multiple errors
+    
+    const notification = document.createElement('div');
+    notification.className = 'sync-error-notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #f44336;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+    `;
+    notification.innerHTML = `
+        <i class="fas fa-exclamation-triangle"></i>
+        Progress sync failed. Your progress is saved locally.
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
 
 // Save progress to Supabase database
 async function saveProgressToDatabase(studentId) {
@@ -74,11 +111,56 @@ async function saveProgressToDatabase(studentId) {
             }
         }
         
-        console.log('Database sync complete!');
+        console.log('✅ Database sync complete!');
+        
+        // Show success notification
+        showSyncSuccess();
     } catch (error) {
-        console.error('Database sync error:', error.message);
+        console.error('❌ Database sync error:', error.message);
+        console.error('Full error:', error);
         throw error; // Propagate error so user knows sync failed
     }
+}
+
+// Show sync success notification
+function showSyncSuccess() {
+    const notification = document.createElement('div');
+    notification.className = 'sync-success-notification';
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-size: 14px;
+        opacity: 0;
+        animation: fadeInOut 2s ease;
+    `;
+    notification.innerHTML = `
+        <i class="fas fa-check-circle"></i> Progress saved
+    `;
+    
+    // Add animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 2000);
 }
 
 // Load progress from Supabase on page load

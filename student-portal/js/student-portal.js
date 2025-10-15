@@ -65,10 +65,11 @@ async function loadAssessments() {
                 *,
                 training_modules (
                     module_code,
-                    module_name
+                    module_name,
+                    display_order
                 )
             `)
-            .order('category', { ascending: true });
+            .order('created_at', { ascending: true });
         
         if (error) throw error;
         
@@ -77,10 +78,17 @@ async function loadAssessments() {
             return;
         }
         
+        // Sort assessments by module display_order
+        const sortedAssessments = assessments.sort((a, b) => {
+            const orderA = a.training_modules?.display_order || 999;
+            const orderB = b.training_modules?.display_order || 999;
+            return orderA - orderB;
+        });
+        
         // Separate assessments by category
-        const coreAssessments = assessments.filter(a => a.category === 'Event Security Core');
-        const miscAssessments = assessments.filter(a => a.category === 'Miscellaneous');
-        const comprehensiveAssessments = assessments.filter(a => 
+        const coreAssessments = sortedAssessments.filter(a => a.category === 'Event Security Core');
+        const miscAssessments = sortedAssessments.filter(a => a.category === 'Miscellaneous');
+        const comprehensiveAssessments = sortedAssessments.filter(a => 
             a.assessment_name.includes('Comprehensive') || a.category === 'Comprehensive'
         );
         
