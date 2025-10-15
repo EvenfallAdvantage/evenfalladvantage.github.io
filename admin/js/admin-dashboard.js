@@ -761,13 +761,29 @@ async function createStudent(event) {
 
         if (authError) throw authError;
 
-        // Wait for the database trigger to create the student record
-        // Give the trigger 5 seconds to complete
+        // Manually create the student record (trigger may not be working)
         if (authData.user) {
-            console.log('Waiting for database trigger to create student record...');
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            console.log('Creating student record...');
             
-            // Try to create the profile (trigger should have created student record by now)
+            // Create student record
+            const { error: studentError } = await supabase
+                .from('students')
+                .insert({
+                    id: authData.user.id,
+                    email: data.email,
+                    first_name: data.first_name,
+                    last_name: data.last_name
+                });
+            
+            if (studentError) {
+                console.error('Error creating student record:', studentError);
+                // If it already exists, that's okay
+                if (studentError.code !== '23505') {
+                    throw studentError;
+                }
+            }
+            
+            // Now create the profile
             const { error: profileError } = await supabase
                 .from('student_profiles')
                 .insert({
@@ -777,23 +793,7 @@ async function createStudent(event) {
             
             if (profileError) {
                 console.warn('Profile creation warning:', profileError);
-                // If foreign key error, the student record isn't ready yet
-                // Wait another 3 seconds and try again
-                if (profileError.code === '23503') {
-                    console.log('Student record not ready, waiting 3 more seconds...');
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                    
-                    const { error: retryError } = await supabase
-                        .from('student_profiles')
-                        .insert({
-                            student_id: authData.user.id,
-                            phone: data.phone || null
-                        });
-                    
-                    if (retryError) {
-                        console.warn('Profile creation retry failed:', retryError);
-                    }
-                }
+                // If it already exists, that's okay
             }
         }
         
