@@ -514,6 +514,17 @@ async function updateCourse(event, moduleId) {
         // Process slides
         await processSlides(moduleId, formData);
         
+        // Update or create assessment for this module
+        const { data: updatedModule } = await supabase
+            .from('training_modules')
+            .select('*')
+            .eq('id', moduleId)
+            .single();
+        
+        if (updatedModule) {
+            await updateOrCreateAssessment(updatedModule);
+        }
+        
         showAlert('Course updated successfully!', 'success');
         closeModal();
         loadCourses();
@@ -633,6 +644,59 @@ async function createAssessmentForModule(module) {
     } catch (error) {
         console.error('Error in createAssessmentForModule:', error);
         // Don't throw - we don't want to fail module creation if assessment fails
+    }
+}
+
+// Update or create assessment for a module
+async function updateOrCreateAssessment(module) {
+    try {
+        // Check if assessment already exists for this module
+        const { data: existingAssessment } = await supabase
+            .from('assessments')
+            .select('*')
+            .eq('module_id', module.id)
+            .single();
+        
+        // Determine category
+        const coreModuleCodes = [
+            'communication-protocols',
+            'stop-the-bleed', 
+            'threat-assessment',
+            'ics-100',
+            'diverse-population',
+            'crowd-management',
+            'use-of-force'
+        ];
+        
+        const category = coreModuleCodes.includes(module.module_code) 
+            ? 'Event Security Core' 
+            : 'Miscellaneous';
+        
+        const assessmentData = {
+            assessment_name: `${module.module_name} Assessment`,
+            category: category,
+            icon: module.icon || 'fa-clipboard-check'
+        };
+        
+        if (existingAssessment) {
+            // Update existing assessment
+            const { error } = await supabase
+                .from('assessments')
+                .update(assessmentData)
+                .eq('id', existingAssessment.id);
+            
+            if (error) {
+                console.error('Error updating assessment:', error);
+            } else {
+                console.log('Assessment updated successfully for module:', module.module_name);
+            }
+        } else {
+            // Create new assessment
+            await createAssessmentForModule(module);
+        }
+    } catch (error) {
+        console.error('Error in updateOrCreateAssessment:', error);
+        // Don't throw - we don't want to fail module update if assessment fails
     }
 }
 
