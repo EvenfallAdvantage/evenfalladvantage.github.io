@@ -829,33 +829,25 @@ async function createStudent(event) {
         
         // Send welcome email with login credentials
         try {
-            const emailBody = `
-Welcome to Evenfall Advantage Training Platform!
+            const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+                body: {
+                    email: data.email,
+                    password: data.password,
+                    firstName: data.first_name,
+                    lastName: data.last_name
+                }
+            });
 
-Your student account has been created. Here are your login details:
-
-Email: ${data.email}
-Temporary Password: ${data.password}
-
-Login here: ${window.location.origin}/student-portal/login.html
-
-Please log in and change your password as soon as possible.
-
-If you have any questions, please contact your administrator.
-
-Best regards,
-Evenfall Advantage Team
-            `.trim();
-            
-            // Note: Supabase doesn't have built-in email sending from client
-            // You would need to set up a Supabase Edge Function or use a service like SendGrid
-            // For now, we'll log it and show admin the credentials
-            console.log('Welcome email content:', emailBody);
-            
-            // Show admin the credentials to share manually
-            alert(`Student created successfully!\n\nEmail: ${data.email}\nTemporary Password: ${data.password}\n\nPlease share these credentials with the student securely.`);
+            if (emailError) {
+                console.error('Email error:', emailError);
+                alert(`Student created but email failed to send.\n\nEmail: ${data.email}\nPassword: ${data.password}\n\nPlease share these credentials manually.`);
+            } else {
+                console.log('Welcome email sent successfully:', emailResult);
+                // Email sent successfully - no need to show credentials
+            }
         } catch (emailError) {
             console.error('Error sending welcome email:', emailError);
+            alert(`Student created but email failed to send.\n\nEmail: ${data.email}\nPassword: ${data.password}\n\nPlease share these credentials manually.`);
         }
 
         showAlert('Student created successfully!', 'success');
