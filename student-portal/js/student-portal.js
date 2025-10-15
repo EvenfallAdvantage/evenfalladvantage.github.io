@@ -4504,11 +4504,15 @@ function updateProgressDisplay() {
                 const statusIcon = passed ? 'fa-check-circle' : 'fa-times-circle';
                 const statusText = passed ? 'Passed' : 'Failed';
                 
+                // Use module or assessment property for lookup
+                const moduleCode = result.module || result.assessment;
+                const title = assessmentTitles[moduleCode] || moduleCode || 'Unknown Assessment';
+                
                 return `
                     <div class="assessment-history-item">
                         <div class="assessment-history-header">
                             <div>
-                                <h4>${assessmentTitles[result.assessment] || result.assessment}</h4>
+                                <h4>${title}</h4>
                                 <span style="color: var(--text-secondary); font-size: 0.875rem;">
                                     ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}
                                 </span>
