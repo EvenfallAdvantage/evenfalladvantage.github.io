@@ -75,8 +75,8 @@ function setupEventListeners() {
     console.log('Setting up event listeners...');
     
     try {
-        // Navigation
-        const navItems = document.querySelectorAll('.nav-item');
+        // Navigation - support both sidebar nav-item and header nav-link
+        const navItems = document.querySelectorAll('.nav-item, .nav-link[data-section]');
         console.log('Found nav items:', navItems.length);
         
         if (navItems.length === 0) {
@@ -131,8 +131,8 @@ function setupEventListeners() {
 
 // Switch between sections
 function switchSection(sectionName) {
-    // Update nav
-    document.querySelectorAll('.nav-item').forEach(item => {
+    // Update nav - both sidebar and header
+    document.querySelectorAll('.nav-item, .nav-link[data-section]').forEach(item => {
         item.classList.remove('active');
         if (item.dataset.section === sectionName) {
             item.classList.add('active');
