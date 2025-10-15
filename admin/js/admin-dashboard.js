@@ -762,20 +762,36 @@ async function createStudent(event) {
         if (authError) throw authError;
 
         // The students table should auto-populate via database trigger
-        // Create or update the profile (use upsert to avoid conflicts)
+        // Create or update the profile
         if (authData.user) {
-            const { error: profileError } = await supabase
+            // Check if profile already exists
+            const { data: existingProfile } = await supabase
                 .from('student_profiles')
-                .upsert({
-                    student_id: authData.user.id,
-                    phone: data.phone || null
-                }, {
-                    onConflict: 'student_id'
-                });
+                .select('id')
+                .eq('student_id', authData.user.id)
+                .single();
             
-            if (profileError) {
-                console.warn('Profile creation warning:', profileError);
-                // Don't fail the whole operation if profile creation fails
+            if (existingProfile) {
+                // Update existing profile
+                await supabase
+                    .from('student_profiles')
+                    .update({
+                        phone: data.phone || null
+                    })
+                    .eq('student_id', authData.user.id);
+            } else {
+                // Create new profile
+                const { error: profileError } = await supabase
+                    .from('student_profiles')
+                    .insert({
+                        student_id: authData.user.id,
+                        phone: data.phone || null
+                    });
+                
+                if (profileError) {
+                    console.warn('Profile creation warning:', profileError);
+                    // Don't fail the whole operation if profile creation fails
+                }
             }
         }
 
