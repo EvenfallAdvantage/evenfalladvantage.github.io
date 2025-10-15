@@ -840,9 +840,11 @@ async function createStudent(event) {
 
             if (emailError) {
                 console.error('Email error:', emailError);
+                console.error('Email error details:', JSON.stringify(emailError, null, 2));
                 alert(`Student created but email failed to send.\n\nEmail: ${data.email}\nPassword: ${data.password}\n\nPlease share these credentials manually.`);
             } else {
                 console.log('Welcome email sent successfully:', emailResult);
+                console.log('Email result details:', JSON.stringify(emailResult, null, 2));
                 // Email sent successfully - no need to show credentials
             }
         } catch (emailError) {
