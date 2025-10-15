@@ -762,9 +762,10 @@ async function createStudent(event) {
         if (authError) throw authError;
 
         // Wait for the database trigger to create the student record
-        // Give the trigger 2 seconds to complete
+        // Give the trigger 5 seconds to complete
         if (authData.user) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log('Waiting for database trigger to create student record...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
             
             // Try to create the profile (trigger should have created student record by now)
             const { error: profileError } = await supabase
@@ -776,8 +777,23 @@ async function createStudent(event) {
             
             if (profileError) {
                 console.warn('Profile creation warning:', profileError);
-                // Profile might already exist or student record not ready yet
-                // This is okay - the important part (user account) was created
+                // If foreign key error, the student record isn't ready yet
+                // Wait another 3 seconds and try again
+                if (profileError.code === '23503') {
+                    console.log('Student record not ready, waiting 3 more seconds...');
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    const { error: retryError } = await supabase
+                        .from('student_profiles')
+                        .insert({
+                            student_id: authData.user.id,
+                            phone: data.phone || null
+                        });
+                    
+                    if (retryError) {
+                        console.warn('Profile creation retry failed:', retryError);
+                    }
+                }
             }
         }
         
