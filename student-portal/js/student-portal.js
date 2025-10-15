@@ -4478,23 +4478,8 @@ function updateProgressDisplay() {
                   progressData.assessmentResults.length) : 0;
     document.getElementById('averageScore').textContent = `${avgScore}%`;
     
-    // Update module progress
-    const moduleProgressHTML = Object.keys(moduleContent).map(moduleId => {
-        const completed = progressData.completedModules.includes(moduleId);
-        const percentage = completed ? 100 : 0;
-        return `
-            <div class="progress-item">
-                <div class="progress-item-header">
-                    <span>${moduleContent[moduleId].title}</span>
-                    <span>${percentage}%</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-bar-fill" style="width: ${percentage}%"></div>
-                </div>
-            </div>
-        `;
-    }).join('');
-    document.getElementById('moduleProgress').innerHTML = moduleProgressHTML;
+    // Update module progress (use database modules if available, sorted by display_order)
+    updateModuleProgressDisplay();
     
     // Update assessment history
     if (progressData.assessmentResults.length > 0) {
@@ -4581,6 +4566,76 @@ function updateProgressDisplay() {
         `;
     }).join('');
     document.getElementById('achievementsGrid').innerHTML = achievementsHTML;
+}
+
+// Update module progress display with proper ordering
+async function updateModuleProgressDisplay() {
+    try {
+        // Get modules from database, sorted by display_order
+        const { data: modules, error } = await supabase
+            .from('training_modules')
+            .select('id, module_code, module_name, display_order')
+            .order('display_order', { ascending: true });
+        
+        if (error) throw error;
+        
+        if (modules && modules.length > 0) {
+            // Use database modules (properly ordered)
+            const moduleProgressHTML = modules.map(module => {
+                const completed = progressData.completedModules.includes(module.module_code);
+                const percentage = completed ? 100 : 0;
+                return `
+                    <div class="progress-item">
+                        <div class="progress-item-header">
+                            <span>${module.module_name}</span>
+                            <span>${percentage}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('moduleProgress').innerHTML = moduleProgressHTML;
+        } else {
+            // Fallback to static moduleContent if database is unavailable
+            const moduleProgressHTML = Object.keys(moduleContent).map(moduleId => {
+                const completed = progressData.completedModules.includes(moduleId);
+                const percentage = completed ? 100 : 0;
+                return `
+                    <div class="progress-item">
+                        <div class="progress-item-header">
+                            <span>${moduleContent[moduleId].title}</span>
+                            <span>${percentage}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('moduleProgress').innerHTML = moduleProgressHTML;
+        }
+    } catch (error) {
+        console.error('Error updating module progress display:', error);
+        // Fallback to static content on error
+        const moduleProgressHTML = Object.keys(moduleContent).map(moduleId => {
+            const completed = progressData.completedModules.includes(moduleId);
+            const percentage = completed ? 100 : 0;
+            return `
+                <div class="progress-item">
+                    <div class="progress-item-header">
+                        <span>${moduleContent[moduleId].title}</span>
+                        <span>${percentage}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        document.getElementById('moduleProgress').innerHTML = moduleProgressHTML;
+    }
 }
 
 // Review past assessment from history
