@@ -477,7 +477,18 @@ async function createCourse(event) {
         // Create assessment for this module
         await createAssessmentForModule(module);
         
-        showAlert('Course created successfully!', 'success');
+        // Generate AI questions for the assessment
+        if (window.generateAssessmentQuestions) {
+            submitBtn.innerHTML = '<span class="loading-spinner"></span> Generating questions...';
+            const result = await generateAssessmentQuestions(module.id, module.module_name);
+            if (result.success) {
+                console.log(`Generated ${result.questionsGenerated} questions`);
+            } else {
+                console.warn('Failed to generate questions:', result.error);
+            }
+        }
+        
+        showAlert('Course created successfully with AI-generated questions!', 'success');
         closeModal();
         loadCourses();
     } catch (error) {
@@ -534,9 +545,20 @@ async function updateCourse(event, moduleId) {
         
         if (updatedModule) {
             await updateOrCreateAssessment(updatedModule);
+            
+            // Regenerate AI questions for the assessment
+            if (window.generateAssessmentQuestions) {
+                submitBtn.innerHTML = '<span class="loading-spinner"></span> Regenerating questions...';
+                const result = await generateAssessmentQuestions(updatedModule.id, updatedModule.module_name);
+                if (result.success) {
+                    console.log(`Regenerated ${result.questionsGenerated} questions`);
+                } else {
+                    console.warn('Failed to regenerate questions:', result.error);
+                }
+            }
         }
         
-        showAlert('Course updated successfully!', 'success');
+        showAlert('Course updated successfully with refreshed questions!', 'success');
         closeModal();
         loadCourses();
     } catch (error) {
