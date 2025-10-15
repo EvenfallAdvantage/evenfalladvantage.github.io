@@ -208,6 +208,8 @@ async function loadProgressFromDatabase() {
         // Get assessment results from database
         const resultsResult = await StudentData.getAssessmentResults(user.id);
         if (resultsResult.success && resultsResult.data && resultsResult.data.length > 0) {
+            console.log('Raw assessment results from DB:', resultsResult.data.length);
+            
             // Get module info to map assessment to module code
             const { data: modules } = await supabase
                 .from('training_modules')
@@ -216,17 +218,23 @@ async function loadProgressFromDatabase() {
             const moduleIdToCode = {};
             if (modules) {
                 modules.forEach(m => moduleIdToCode[m.id] = m.module_code);
+                console.log('Module mapping created:', Object.keys(moduleIdToCode).length, 'modules');
             }
             
             const assessmentResults = resultsResult.data
                 .filter(r => r.assessments)
                 .map(r => {
                     // Get module code from assessment's module_id
-                    const moduleCode = moduleIdToCode[r.assessments.module_id] || 'unknown';
+                    const moduleId = r.assessments?.module_id;
+                    const moduleCode = moduleIdToCode[moduleId];
+                    
+                    if (!moduleCode) {
+                        console.warn('Could not find module code for module_id:', moduleId, 'Assessment:', r.assessments?.assessment_name);
+                    }
                     
                     return {
-                        module: moduleCode,
-                        assessment: moduleCode,
+                        module: moduleCode || 'unknown',
+                        assessment: moduleCode || 'unknown',
                         score: r.score,
                         passed: r.passed,
                         date: r.completed_at,
@@ -243,8 +251,11 @@ async function loadProgressFromDatabase() {
                 }
             });
             
-            localProgress.assessmentResults = Object.values(bestAttempts);
-            console.log('Loaded assessment results:', localProgress.assessmentResults.length, '(deduplicated from', assessmentResults.length, 'total)');
+            // Don't include 'unknown' assessments
+            const validAttempts = Object.values(bestAttempts).filter(r => r.module !== 'unknown');
+            
+            localProgress.assessmentResults = validAttempts;
+            console.log('Loaded assessment results:', validAttempts.length, '(deduplicated from', assessmentResults.length, 'total)');
         }
         
         // Save to localStorage (as cache)

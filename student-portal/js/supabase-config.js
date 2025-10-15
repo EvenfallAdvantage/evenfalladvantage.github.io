@@ -256,6 +256,7 @@ const StudentData = {
                     *,
                     assessments (
                         assessment_name,
+                        module_id,
                         total_questions,
                         passing_score
                     )
