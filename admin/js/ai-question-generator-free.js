@@ -5,7 +5,7 @@
 const HUGGINGFACE_API_KEY = 'YOUR_HF_API_KEY'; // Get free at https://huggingface.co/settings/tokens
 
 // Option 2: Google Gemini (Free - 60 requests/minute)
-const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; // Get free at https://makersuite.google.com/app/apikey
+const GEMINI_API_KEY = 'AIzaSyCAYqCl-Gxz67P86_6DPGTrXS-nyNuTpbY'; // Get free at https://makersuite.google.com/app/apikey
 
 // Choose which API to use
 const USE_GEMINI = true; // Set to false to use Hugging Face instead
