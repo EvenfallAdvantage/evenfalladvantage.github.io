@@ -745,58 +745,20 @@ async function createStudent(event) {
     submitBtn.innerHTML = '<span class="loading-spinner"></span> Creating...';
 
     try {
-        // Note: Since we can't use admin API from frontend, we'll use regular signup
-        // We'll set emailRedirectTo to skip confirmation for admin-created accounts
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: data.email,
-            password: data.password,
-            options: {
-                data: {
-                    first_name: data.first_name,
-                    last_name: data.last_name,
-                    user_type: 'student'
-                },
-                emailRedirectTo: window.location.origin + '/student-portal/index.html'
+        // Use Edge Function to create student (uses admin API, auto-confirms email)
+        const { data: createResult, error: createError } = await supabase.functions.invoke('create-student', {
+            body: {
+                email: data.email,
+                password: data.password,
+                firstName: data.first_name,
+                lastName: data.last_name,
+                phone: data.phone || null
             }
         });
 
-        if (authError) throw authError;
-
-        // Manually create the student record (trigger may not be working)
-        if (authData.user) {
-            console.log('Creating student record...');
-            
-            // Create student record
-            const { error: studentError } = await supabase
-                .from('students')
-                .insert({
-                    id: authData.user.id,
-                    email: data.email,
-                    first_name: data.first_name,
-                    last_name: data.last_name
-                });
-            
-            if (studentError) {
-                console.error('Error creating student record:', studentError);
-                // If it already exists, that's okay
-                if (studentError.code !== '23505') {
-                    throw studentError;
-                }
-            }
-            
-            // Now create the profile
-            const { error: profileError } = await supabase
-                .from('student_profiles')
-                .insert({
-                    student_id: authData.user.id,
-                    phone: data.phone || null
-                });
-            
-            if (profileError) {
-                console.warn('Profile creation warning:', profileError);
-                // If it already exists, that's okay
-            }
-        }
+        if (createError) throw createError;
+        
+        console.log('Student created:', createResult);
         
         // Send welcome email with login credentials
         try {
@@ -811,11 +773,9 @@ async function createStudent(event) {
 
             if (emailError) {
                 console.error('Email error:', emailError);
-                console.error('Email error details:', JSON.stringify(emailError, null, 2));
                 alert(`Student created but email failed to send.\n\nEmail: ${data.email}\nPassword: ${data.password}\n\nPlease share these credentials manually.`);
             } else {
                 console.log('Welcome email sent successfully:', emailResult);
-                console.log('Email result details:', JSON.stringify(emailResult, null, 2));
                 // Email sent successfully - no need to show credentials
             }
         } catch (emailError) {
