@@ -762,68 +762,22 @@ async function createStudent(event) {
         if (authError) throw authError;
 
         // Wait for the database trigger to create the student record
+        // Give the trigger 2 seconds to complete
         if (authData.user) {
-            // Poll for the student record to be created (max 5 seconds)
-            let studentExists = false;
-            let attempts = 0;
-            const maxAttempts = 10;
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
-            while (!studentExists && attempts < maxAttempts) {
-                const { data: student } = await supabase
-                    .from('students')
-                    .select('id')
-                    .eq('id', authData.user.id)
-                    .single();
-                
-                if (student) {
-                    studentExists = true;
-                } else {
-                    // Wait 500ms before trying again
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    attempts++;
-                }
-            }
-            
-            if (!studentExists) {
-                console.warn('Student record not created by trigger, creating manually...');
-                // Manually create student record if trigger failed
-                await supabase
-                    .from('students')
-                    .insert({
-                        id: authData.user.id,
-                        email: data.email,
-                        first_name: data.first_name,
-                        last_name: data.last_name
-                    });
-            }
-            
-            // Now create the profile
-            const { data: existingProfile } = await supabase
+            // Try to create the profile (trigger should have created student record by now)
+            const { error: profileError } = await supabase
                 .from('student_profiles')
-                .select('id')
-                .eq('student_id', authData.user.id)
-                .single();
+                .insert({
+                    student_id: authData.user.id,
+                    phone: data.phone || null
+                });
             
-            if (existingProfile) {
-                // Update existing profile
-                await supabase
-                    .from('student_profiles')
-                    .update({
-                        phone: data.phone || null
-                    })
-                    .eq('student_id', authData.user.id);
-            } else {
-                // Create new profile
-                const { error: profileError } = await supabase
-                    .from('student_profiles')
-                    .insert({
-                        student_id: authData.user.id,
-                        phone: data.phone || null
-                    });
-                
-                if (profileError) {
-                    console.warn('Profile creation warning:', profileError);
-                }
+            if (profileError) {
+                console.warn('Profile creation warning:', profileError);
+                // Profile might already exist or student record not ready yet
+                // This is okay - the important part (user account) was created
             }
         }
         
