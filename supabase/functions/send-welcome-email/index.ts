@@ -15,6 +15,14 @@ Deno.serve(async (req) => {
     
     console.log(`Sending welcome email to: ${email}`)
     
+    // Check if API key exists
+    const apiKey = Deno.env.get('RESEND_API_KEY')
+    if (!apiKey) {
+      console.error('RESEND_API_KEY not found in environment')
+      throw new Error('RESEND_API_KEY not configured')
+    }
+    console.log('API key found:', apiKey.substring(0, 10) + '...')
+    
     // Send email via Resend
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -23,7 +31,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'Evenfall Advantage <onboarding@resend.dev>',
+        from: 'Evenfall Advantage <noreply@evenfalladvantage.com>',
         to: [email],
         subject: 'Welcome to Evenfall Advantage Training Platform',
         html: `
@@ -95,7 +103,9 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       console.error('Resend API error:', data)
-      throw new Error(data.message || 'Failed to send email')
+      console.error('Resend response status:', response.status)
+      console.error('Resend response:', JSON.stringify(data))
+      throw new Error(JSON.stringify(data) || 'Failed to send email')
     }
 
     console.log('Email sent successfully:', data.id)
