@@ -178,7 +178,15 @@ function createSlideHTML(slide = null, index = 0) {
                         <div class="form-group">
                             <label>Image</label>
                             <input type="file" name="slides[${index}][image_file]" accept="image/*" onchange="previewImage(${index}, this)">
-                            ${slide?.image_url ? `<div class="current-media"><img src="${slide.image_url}" alt="Current image"><input type="hidden" name="slides[${index}][image_url]" value="${slide.image_url}"></div>` : ''}
+                            ${slide?.image_url ? `
+                                <div class="current-media" id="currentImage${index}">
+                                    <img src="${slide.image_url}" alt="Current image">
+                                    <button type="button" class="btn btn-danger btn-small" onclick="removeMedia(${index}, 'image')">
+                                        <i class="fas fa-trash"></i> Remove Image
+                                    </button>
+                                    <input type="hidden" name="slides[${index}][image_url]" value="${slide.image_url}">
+                                </div>
+                            ` : ''}
                             <div id="imagePreview${index}" class="media-preview"></div>
                         </div>
                     ` : ''}
@@ -188,7 +196,14 @@ function createSlideHTML(slide = null, index = 0) {
                             <label>Video URL or Upload</label>
                             <input type="text" name="slides[${index}][video_url]" value="${slide?.video_url || ''}" placeholder="YouTube/Vimeo URL or upload file">
                             <input type="file" name="slides[${index}][video_file]" accept="video/*" onchange="previewVideo(${index}, this)">
-                            ${slide?.video_url ? `<div class="current-media"><video controls src="${slide.video_url}"></video></div>` : ''}
+                            ${slide?.video_url ? `
+                                <div class="current-media" id="currentVideo${index}">
+                                    <video controls src="${slide.video_url}"></video>
+                                    <button type="button" class="btn btn-danger btn-small" onclick="removeMedia(${index}, 'video')">
+                                        <i class="fas fa-trash"></i> Remove Video
+                                    </button>
+                                </div>
+                            ` : ''}
                             <div id="videoPreview${index}" class="media-preview"></div>
                         </div>
                     ` : ''}
@@ -344,8 +359,8 @@ function updateSlideType(index, type) {
                 <div class="form-group">
                     <label>Image</label>
                     <input type="file" name="slides[${index}][image_file]" accept="image/*" onchange="previewImage(${index}, this)">
-                    <input type="text" name="slides[${index}][image_url]" placeholder="Or enter image URL">
-                    <div id="imagePreview${index}" class="image-preview"></div>
+                    <div id="currentImage${index}" class="current-media"></div>
+                    <div id="imagePreview${index}" class="media-preview"></div>
                 </div>
             `;
         }
@@ -356,7 +371,8 @@ function updateSlideType(index, type) {
                     <label>Video URL or Upload</label>
                     <input type="text" name="slides[${index}][video_url]" placeholder="YouTube/Vimeo URL or upload file">
                     <input type="file" name="slides[${index}][video_file]" accept="video/*" onchange="previewVideo(${index}, this)">
-                    <div id="videoPreview${index}" class="video-preview"></div>
+                    <div id="currentVideo${index}" class="current-media"></div>
+                    <div id="videoPreview${index}" class="media-preview"></div>
                 </div>
             `;
         }
@@ -385,6 +401,32 @@ function previewVideo(index, input) {
     if (input.files && input.files[0]) {
         const url = URL.createObjectURL(input.files[0]);
         preview.innerHTML = `<video controls src="${url}"></video>`;
+    }
+}
+
+// Remove media (image or video)
+function removeMedia(index, type) {
+    const confirmed = confirm(`Are you sure you want to remove this ${type}?`);
+    if (!confirmed) return;
+    
+    if (type === 'image') {
+        const currentImage = document.getElementById(`currentImage${index}`);
+        if (currentImage) {
+            currentImage.remove();
+        }
+        // Clear the file input
+        const fileInput = document.querySelector(`input[name="slides[${index}][image_file]"]`);
+        if (fileInput) fileInput.value = '';
+    } else if (type === 'video') {
+        const currentVideo = document.getElementById(`currentVideo${index}`);
+        if (currentVideo) {
+            currentVideo.remove();
+        }
+        // Clear the video URL and file input
+        const urlInput = document.querySelector(`input[name="slides[${index}][video_url]"]`);
+        if (urlInput) urlInput.value = '';
+        const fileInput = document.querySelector(`input[name="slides[${index}][video_file]"]`);
+        if (fileInput) fileInput.value = '';
     }
 }
 
@@ -693,6 +735,7 @@ window.moveSlideDown = moveSlideDown;
 window.updateSlideType = updateSlideType;
 window.previewImage = previewImage;
 window.previewVideo = previewVideo;
+window.removeMedia = removeMedia;
 window.createCourse = createCourse;
 window.updateCourse = updateCourse;
 window.openIconPicker = openIconPicker;
