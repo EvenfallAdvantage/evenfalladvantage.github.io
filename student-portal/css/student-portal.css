@@ -800,8 +800,9 @@ body {
 }
 
 .slideshow-footer {
-    justify-content: space-between;
+    justify-content: space-between !important;
     align-items: center;
+    padding: 1.5rem 2rem;
 }
 
 .slideshow-footer #prevSlideBtn,
@@ -809,6 +810,7 @@ body {
 .slideshow-footer #completeModuleBtn {
     flex: 0 0 auto;
     order: initial;
+    margin: 0;
 }
 
 .slide-dots {
