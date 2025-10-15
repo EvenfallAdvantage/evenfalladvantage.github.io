@@ -469,12 +469,47 @@ body {
     box-shadow: var(--shadow);
     transition: var(--transition);
     border: 1px solid var(--border-color);
+    position: relative;
 }
 
 .module-card:hover {
     transform: translateY(-5px);
     box-shadow: var(--shadow-lg);
     border-color: var(--secondary-color);
+}
+
+/* Completed module styles */
+.module-card.completed {
+    border-color: var(--success);
+    background: linear-gradient(to bottom, rgba(40, 167, 69, 0.05) 0%, var(--surface) 100%);
+}
+
+.module-card.completed:hover {
+    border-color: var(--success);
+}
+
+.module-card.completed .module-icon {
+    background: var(--success);
+}
+
+.completion-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--success);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.completion-badge i {
+    font-size: 1rem;
 }
 
 .module-icon {

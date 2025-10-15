@@ -30,21 +30,31 @@ async function loadTrainingModules() {
             return;
         }
         
-        // Generate module cards
-        container.innerHTML = modules.map((module, index) => `
-            <div class="module-card" data-module="${module.module_code}">
-                <div class="module-icon">
-                    <i class="fas ${module.icon || 'fa-book'}"></i>
+        // Generate module cards with completion indicators
+        container.innerHTML = modules.map((module, index) => {
+            const isCompleted = progressData.completedModules.includes(module.module_code);
+            const completedClass = isCompleted ? 'completed' : '';
+            const buttonText = isCompleted ? 'Review Module' : 'Start Module';
+            const buttonIcon = isCompleted ? 'fa-check-circle' : 'fa-play';
+            
+            return `
+                <div class="module-card ${completedClass}" data-module="${module.module_code}">
+                    ${isCompleted ? '<div class="completion-badge"><i class="fas fa-check-circle"></i> Completed</div>' : ''}
+                    <div class="module-icon">
+                        <i class="fas ${module.icon || 'fa-book'}"></i>
+                    </div>
+                    <h3>Module ${index + 1}: ${module.module_name}</h3>
+                    <p>${module.description || 'No description available'}</p>
+                    <div class="module-meta">
+                        <span><i class="fas fa-clock"></i> ${module.estimated_time || 'TBD'}</span>
+                        <span><i class="fas fa-signal"></i> ${module.difficulty_level || 'Essential'}</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="startModule('${module.module_code}')">
+                        <i class="fas ${buttonIcon}"></i> ${buttonText}
+                    </button>
                 </div>
-                <h3>Module ${index + 1}: ${module.module_name}</h3>
-                <p>${module.description || 'No description available'}</p>
-                <div class="module-meta">
-                    <span><i class="fas fa-clock"></i> ${module.estimated_time || 'TBD'}</span>
-                    <span><i class="fas fa-signal"></i> ${module.difficulty_level || 'Essential'}</span>
-                </div>
-                <button class="btn btn-secondary" onclick="startModule('${module.module_code}')">Start Module</button>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
         console.log(`Loaded ${modules.length} training modules`);
     } catch (error) {
