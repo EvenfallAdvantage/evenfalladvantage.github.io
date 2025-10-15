@@ -441,6 +441,16 @@ async function createCourse(event) {
     submitBtn.innerHTML = '<span class="loading-spinner"></span> Creating...';
     
     try {
+        // Get the highest display_order to add new module at the end
+        const { data: maxOrderModule } = await supabase
+            .from('training_modules')
+            .select('display_order')
+            .order('display_order', { ascending: false })
+            .limit(1)
+            .single();
+        
+        const nextOrder = (maxOrderModule?.display_order || 7) + 1;
+        
         // Create module
         const moduleData = {
             module_name: formData.get('module_name'),
@@ -449,7 +459,8 @@ async function createCourse(event) {
             estimated_time: formData.get('estimated_time'),
             difficulty_level: formData.get('difficulty_level'),
             icon: formData.get('icon'),
-            is_active: true
+            is_active: true,
+            display_order: nextOrder
         };
         
         const { data: module, error: moduleError } = await supabase

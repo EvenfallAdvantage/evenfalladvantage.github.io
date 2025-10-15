@@ -77,26 +77,78 @@ async function loadAssessments() {
             return;
         }
         
+        // Separate assessments by category
+        const coreAssessments = assessments.filter(a => a.category === 'Event Security Core');
+        const miscAssessments = assessments.filter(a => a.category === 'Miscellaneous');
+        const comprehensiveAssessments = assessments.filter(a => 
+            a.assessment_name.includes('Comprehensive') || a.category === 'Comprehensive'
+        );
+        
         // Generate assessment items
-        container.innerHTML = assessments.map(assessment => {
-            const moduleCode = assessment.training_modules?.module_code || assessment.assessment_name.toLowerCase().replace(/\s+/g, '-');
-            const isComprehensive = assessment.assessment_name.includes('Comprehensive');
-            
-            return `
-                <div class="assessment-item" 
-                     data-assessment="${moduleCode}" 
-                     data-required-module="${moduleCode}"
-                     ${isComprehensive ? 'data-required-all="true"' : ''}
-                     onclick="startAssessment('${moduleCode}')">
-                    <i class="fas ${assessment.icon || 'fa-clipboard-check'}"></i>
-                    <div>
-                        <h4>${assessment.assessment_name}</h4>
-                        <p>${assessment.total_questions || 10} questions • ${assessment.time_limit_minutes || 20} minutes</p>
+        let html = '';
+        
+        // Event Security Core assessments
+        if (coreAssessments.length > 0) {
+            html += coreAssessments.map(assessment => {
+                const moduleCode = assessment.training_modules?.module_code || assessment.assessment_name.toLowerCase().replace(/\s+/g, '-');
+                
+                return `
+                    <div class="assessment-item" 
+                         data-assessment="${moduleCode}" 
+                         data-required-module="${moduleCode}"
+                         onclick="startAssessment('${moduleCode}')">
+                        <i class="fas ${assessment.icon || 'fa-clipboard-check'}"></i>
+                        <div>
+                            <h4>${assessment.assessment_name}</h4>
+                            <p>${assessment.total_questions || 10} questions • ${assessment.time_limit_minutes || 20} minutes</p>
+                        </div>
+                        <button class="btn btn-small btn-primary">Start</button>
                     </div>
-                    <button class="btn btn-small btn-primary">Start</button>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+        }
+        
+        // Miscellaneous assessments
+        if (miscAssessments.length > 0) {
+            html += miscAssessments.map(assessment => {
+                const moduleCode = assessment.training_modules?.module_code || assessment.assessment_name.toLowerCase().replace(/\s+/g, '-');
+                
+                return `
+                    <div class="assessment-item" 
+                         data-assessment="${moduleCode}" 
+                         data-required-module="${moduleCode}"
+                         onclick="startAssessment('${moduleCode}')">
+                        <i class="fas ${assessment.icon || 'fa-clipboard-check'}"></i>
+                        <div>
+                            <h4>${assessment.assessment_name}</h4>
+                            <p>${assessment.total_questions || 10} questions • ${assessment.time_limit_minutes || 20} minutes</p>
+                        </div>
+                        <button class="btn btn-small btn-primary">Start</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Comprehensive assessment (always at the end)
+        if (comprehensiveAssessments.length > 0) {
+            html += comprehensiveAssessments.map(assessment => {
+                return `
+                    <div class="assessment-item" 
+                         data-assessment="comprehensive" 
+                         data-required-all="true"
+                         onclick="startAssessment('comprehensive')">
+                        <i class="fas ${assessment.icon || 'fa-certificate'}"></i>
+                        <div>
+                            <h4>${assessment.assessment_name}</h4>
+                            <p>${assessment.total_questions || 50} questions • ${assessment.time_limit_minutes || 75} minutes</p>
+                        </div>
+                        <button class="btn btn-small btn-primary">Start</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        container.innerHTML = html;
         
         // Update assessment availability after loading
         updateAssessmentAvailability();
