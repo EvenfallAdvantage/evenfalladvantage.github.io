@@ -272,22 +272,39 @@ const StudentData = {
         }
     },
 
-    // Save assessment result
+    // Save assessment result (upsert to avoid duplicates)
     async saveAssessmentResult(studentId, assessmentId, resultData) {
         try {
-            const { data, error } = await supabase
+            // Check if a result already exists for this student/assessment
+            const { data: existing, error: checkError } = await supabase
                 .from('assessment_results')
-                .insert({
-                    student_id: studentId,
-                    assessment_id: assessmentId,
-                    ...resultData
-                })
+                .select('id, score')
+                .eq('student_id', studentId)
+                .eq('assessment_id', assessmentId)
+                .order('completed_at', { ascending: false })
+                .limit(1)
+                .single();
             
-            if (error) throw error
-            return { success: true, data }
+            // Only insert if this is a new attempt or a better score
+            if (!existing || resultData.score > existing.score) {
+                const { data, error } = await supabase
+                    .from('assessment_results')
+                    .insert({
+                        student_id: studentId,
+                        assessment_id: assessmentId,
+                        ...resultData
+                    });
+                
+                if (error) throw error;
+                console.log('Saved new assessment result (score:', resultData.score, ')');
+                return { success: true, data };
+            } else {
+                console.log('Skipped saving - existing score is higher or equal');
+                return { success: true, skipped: true };
+            }
         } catch (error) {
-            console.error('Save result error:', error)
-            return { success: false, error: error.message }
+            console.error('Save result error:', error);
+            return { success: false, error: error.message };
         }
     },
 
