@@ -756,7 +756,11 @@ async function createStudent(event) {
             }
         });
 
-        if (createError) throw createError;
+        if (createError) {
+            console.error('Create student error:', createError);
+            console.error('Error details:', JSON.stringify(createError, null, 2));
+            throw createError;
+        }
         
         console.log('Student created:', createResult);
         
@@ -789,7 +793,19 @@ async function createStudent(event) {
 
     } catch (error) {
         console.error('Error creating student:', error);
-        showAlert('Error creating student: ' + error.message, 'error');
+        
+        // Try to get more details from the error
+        let errorMessage = error.message;
+        if (error.context && error.context.body) {
+            try {
+                const errorBody = JSON.parse(error.context.body);
+                errorMessage = errorBody.error || errorMessage;
+            } catch (e) {
+                // Couldn't parse error body
+            }
+        }
+        
+        showAlert('Error creating student: ' + errorMessage, 'error');
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-plus"></i> Create Student';
     }
