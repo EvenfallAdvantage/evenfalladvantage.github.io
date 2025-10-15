@@ -6,6 +6,7 @@
 -- ============================================
 
 DROP POLICY IF EXISTS "Everyone can view slides" ON module_slides;
+DROP POLICY IF EXISTS "Anyone can view slides" ON module_slides;
 DROP POLICY IF EXISTS "Admins can manage slides" ON module_slides;
 DROP POLICY IF EXISTS "Admins can insert slides" ON module_slides;
 DROP POLICY IF EXISTS "Admins can update slides" ON module_slides;

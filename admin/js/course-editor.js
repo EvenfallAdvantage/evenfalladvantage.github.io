@@ -335,6 +335,33 @@ function updateSlideType(index, type) {
     
     if (['image', 'video', 'mixed'].includes(type)) {
         mediaSection.style.display = 'block';
+        
+        // Update media section content based on type
+        let mediaHTML = '';
+        
+        if (type === 'image' || type === 'mixed') {
+            mediaHTML += `
+                <div class="form-group">
+                    <label>Image</label>
+                    <input type="file" name="slides[${index}][image_file]" accept="image/*" onchange="previewImage(${index}, this)">
+                    <input type="text" name="slides[${index}][image_url]" placeholder="Or enter image URL">
+                    <div id="imagePreview${index}" class="image-preview"></div>
+                </div>
+            `;
+        }
+        
+        if (type === 'video' || type === 'mixed') {
+            mediaHTML += `
+                <div class="form-group">
+                    <label>Video URL or Upload</label>
+                    <input type="text" name="slides[${index}][video_url]" placeholder="YouTube/Vimeo URL or upload file">
+                    <input type="file" name="slides[${index}][video_file]" accept="video/*" onchange="previewVideo(${index}, this)">
+                    <div id="videoPreview${index}" class="video-preview"></div>
+                </div>
+            `;
+        }
+        
+        mediaSection.innerHTML = mediaHTML;
     } else {
         mediaSection.style.display = 'none';
     }
