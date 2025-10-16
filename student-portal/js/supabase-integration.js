@@ -129,7 +129,7 @@ async function saveProgressToDatabase(studentId) {
                             
                             // If passed, mark module as completed
                             if (passed) {
-                                await StudentData.saveModuleProgress(studentId, moduleResult.data.id, {
+                                await StudentData.updateModuleProgress(studentId, moduleResult.data.id, {
                                     progress_percentage: 100,
                                     last_accessed: new Date().toISOString(),
                                     completed_at: new Date().toISOString()
