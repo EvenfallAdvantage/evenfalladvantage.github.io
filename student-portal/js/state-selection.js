@@ -76,7 +76,7 @@ function getStateFlag(stateCode) {
 }
 
 // Handle state selection
-function selectState(stateCode) {
+async function selectState(stateCode) {
     selectedState = stateCode;
     
     // Store selection in localStorage
@@ -89,12 +89,21 @@ function selectState(stateCode) {
     }
     
     // Start the module with state-specific content
-    startModuleWithState('use-of-force', stateCode);
+    await startModuleWithState('use-of-force', stateCode);
 }
 
 // Start module with state-specific content
-function startModuleWithState(moduleId, stateCode) {
-    const stateInfo = stateLaws[stateCode];
+async function startModuleWithState(moduleId, stateCode) {
+    // Ensure state laws are loaded from database
+    await ensureStateLawsLoaded();
+    
+    const stateInfo = window.stateLaws[stateCode];
+    
+    if (!stateInfo) {
+        console.error('State info not found for:', stateCode);
+        alert('Error loading state information. Please try again.');
+        return;
+    }
     
     // Generate state-specific slides
     const stateSlides = generateStateSpecificSlides(stateInfo, stateCode);
