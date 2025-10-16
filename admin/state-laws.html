@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State Laws Management - Evenfall Advantage Admin</title>
+    <link rel="stylesheet" href="css/admin-dashboard.css">
+    <link rel="stylesheet" href="css/course-editor.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .states-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .state-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            transition: box-shadow 0.3s;
+        }
+
+        .state-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .state-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .state-header h3 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 1.25rem;
+        }
+
+        .state-info p {
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .state-info strong {
+            color: #333;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <nav class="admin-nav">
+            <div class="logo">
+                <h2>Evenfall Advantage</h2>
+                <p>Admin Dashboard</p>
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="assessments.html" class="nav-link">
+                    <i class="fas fa-clipboard-check"></i> Assessments
+                </a>
+                <a href="state-laws.html" class="nav-link active">
+                    <i class="fas fa-gavel"></i> State Laws
+                </a>
+            </div>
+            <button class="btn btn-secondary" onclick="window.location.href='../student-portal/index.html'">
+                <i class="fas fa-arrow-left"></i> Back to Portal
+            </button>
+        </nav>
+
+        <main class="admin-content">
+            <header class="content-header">
+                <h1><i class="fas fa-gavel"></i> State Laws Management</h1>
+                <p>Manage state-specific security guard requirements for Module 7 assessments</p>
+            </header>
+
+            <div class="filters">
+                <input type="text" id="searchInput" placeholder="Search by state name or code..." class="search-input">
+                <button class="btn btn-primary" onclick="showAddStateModal()">
+                    <i class="fas fa-plus"></i> Add New State
+                </button>
+            </div>
+
+            <div id="statesList" class="states-grid">
+                <!-- States will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit State Modal -->
+    <div id="editStateModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 id="modalTitle">Edit State Laws</h2>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="stateForm">
+                    <input type="hidden" id="stateId">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stateCode">State Code *</label>
+                            <input type="text" id="stateCode" maxlength="2" required class="form-control" placeholder="e.g., CA">
+                        </div>
+                        <div class="form-group">
+                            <label for="stateName">State Name *</label>
+                            <input type="text" id="stateName" required class="form-control" placeholder="e.g., California">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="licensing">Licensing Requirement *</label>
+                        <textarea id="licensing" required class="form-control" rows="2" placeholder="e.g., Guard Card (Guard Registration) required from BSIS"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="trainingHours">Training Hours *</label>
+                        <input type="text" id="trainingHours" required class="form-control" placeholder="e.g., 40 hours (8 hours pre-assignment, 32 hours within first 30 days)">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="minAge">Minimum Age *</label>
+                        <input type="text" id="minAge" required class="form-control" placeholder="e.g., 18 years old">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="useOfForce">Use of Force Laws *</label>
+                        <textarea id="useOfForce" required class="form-control" rows="2" placeholder="e.g., Reasonable force for self-defense only. Duty to retreat when safe."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="citizensArrest">Citizen's Arrest Laws *</label>
+                        <textarea id="citizensArrest" required class="form-control" rows="2" placeholder="e.g., Allowed for public offenses committed in presence or felonies."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="weapons">Weapons Regulations *</label>
+                        <textarea id="weapons" required class="form-control" rows="2" placeholder="e.g., Exposed firearms permit or concealed weapons permit required"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="agency">Regulatory Agency *</label>
+                        <input type="text" id="agency" required class="form-control" placeholder="e.g., Bureau of Security and Investigative Services (BSIS)">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Additional Notes</label>
+                        <textarea id="notes" class="form-control" rows="3" placeholder="Any additional important information..."></textarea>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../student-portal/js/supabase-config.js"></script>
+    <script src="js/state-laws-manager.js"></script>
+</body>
+</html>
