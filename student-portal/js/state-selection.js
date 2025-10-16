@@ -77,62 +77,95 @@ function getStateFlag(stateCode) {
 
 // Handle state selection
 async function selectState(stateCode) {
-    selectedState = stateCode;
-    
-    // Store selection in localStorage
-    localStorage.setItem('selectedState', stateCode);
-    
-    // Close modal
-    const modal = document.getElementById('state-selection-modal');
-    if (modal) {
-        modal.remove();
+    try {
+        console.log('State selected:', stateCode);
+        selectedState = stateCode;
+        
+        // Store selection in localStorage
+        localStorage.setItem('selectedState', stateCode);
+        console.log('Stored state in localStorage');
+        
+        // Close modal
+        const modal = document.getElementById('state-selection-modal');
+        if (modal) {
+            modal.remove();
+            console.log('Modal closed');
+        }
+        
+        // Start the module with state-specific content
+        console.log('Starting module with state:', stateCode);
+        await startModuleWithState('use-of-force', stateCode);
+        console.log('Module started successfully');
+    } catch (error) {
+        console.error('Error in selectState:', error);
+        alert('Error loading module. Please try again.');
     }
-    
-    // Start the module with state-specific content
-    await startModuleWithState('use-of-force', stateCode);
 }
 
 // Start module with state-specific content
 async function startModuleWithState(moduleId, stateCode) {
-    // Ensure state laws are loaded from database
-    await ensureStateLawsLoaded();
-    
-    const stateInfo = window.stateLaws[stateCode];
-    
-    if (!stateInfo) {
-        console.error('State info not found for:', stateCode);
-        alert('Error loading state information. Please try again.');
-        return;
-    }
-    
-    // Generate state-specific slides
-    const stateSlides = generateStateSpecificSlides(stateInfo, stateCode);
-    
-    // Replace the use-of-force slides with state-specific ones
-    if (window.moduleSlidesData) {
-        window.moduleSlidesData['use-of-force'] = stateSlides;
-    } else {
-        console.error('moduleSlidesData not found. Make sure slideshow.js is loaded.');
-        return;
-    }
-    
-    // Start the slideshow - directly access the saved original or call from slideshow.js
-    if (originalStartModuleFromSlideshow) {
-        originalStartModuleFromSlideshow(moduleId);
-    } else if (window.startModule && window.startModule.toString().includes('currentModuleId')) {
-        // Call the original function directly if it hasn't been overridden yet
-        window.startModule(moduleId);
-    } else {
-        console.error('startModule function not available. Trying direct initialization...');
-        // Fallback: manually initialize slideshow
+    try {
+        console.log('startModuleWithState called with:', moduleId, stateCode);
+        
+        // Ensure state laws are loaded from database
+        console.log('Ensuring state laws loaded...');
+        await ensureStateLawsLoaded();
+        console.log('State laws loaded, count:', Object.keys(window.stateLaws || {}).length);
+        
+        const stateInfo = window.stateLaws[stateCode];
+        
+        if (!stateInfo) {
+            console.error('State info not found for:', stateCode);
+            console.log('Available states:', Object.keys(window.stateLaws || {}));
+            alert('Error loading state information. Please try again.');
+            return;
+        }
+        
+        console.log('State info found:', stateInfo.name);
+        
+        // Generate state-specific slides
+        console.log('Generating state-specific slides...');
+        const stateSlides = generateStateSpecificSlides(stateInfo, stateCode);
+        console.log('Generated', stateSlides.length, 'slides');
+        
+        // Replace the use-of-force slides with state-specific ones
         if (window.moduleSlidesData) {
-            window.currentModuleId = moduleId;
-            window.currentModuleSlides = window.moduleSlidesData[moduleId];
-            window.currentSlideIndex = 0;
-            if (window.showSlide && typeof window.showSlide === 'function') {
-                window.showSlide(0);
+            window.moduleSlidesData['use-of-force'] = stateSlides;
+            console.log('Updated moduleSlidesData with state-specific slides');
+        } else {
+            console.error('moduleSlidesData not found. Make sure slideshow.js is loaded.');
+            return;
+        }
+        
+        // Start the slideshow - directly access the saved original or call from slideshow.js
+        console.log('Attempting to start slideshow...');
+        if (originalStartModuleFromSlideshow) {
+            console.log('Using originalStartModuleFromSlideshow');
+            await originalStartModuleFromSlideshow(moduleId);
+        } else if (window.startModule) {
+            console.log('Using window.startModule');
+            await window.startModule(moduleId);
+        } else {
+            console.error('startModule function not available. Trying direct initialization...');
+            // Fallback: manually initialize slideshow
+            if (window.moduleSlidesData) {
+                window.currentModuleId = moduleId;
+                window.currentModuleSlides = window.moduleSlidesData[moduleId];
+                window.currentSlideIndex = 0;
+                if (window.showSlide && typeof window.showSlide === 'function') {
+                    window.showSlide(0);
+                }
+                // Show the modal
+                const modal = document.getElementById('moduleModal');
+                if (modal) {
+                    modal.classList.add('active');
+                }
             }
         }
+        console.log('Slideshow started');
+    } catch (error) {
+        console.error('Error in startModuleWithState:', error);
+        alert('Error starting module: ' + error.message);
     }
 }
 
