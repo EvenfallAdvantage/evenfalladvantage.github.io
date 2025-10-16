@@ -138,7 +138,7 @@ WHERE assessment_name LIKE '%Radio%';
 
 -- Module 3: Conflict Resolution & De-escalation
 UPDATE assessments
-SET questions_json = '[
+SET questions_json = $$[
     {
         "question": "What is the first step in de-escalation?",
         "options": ["Use force", "Remain calm", "Call police", "Yell louder"],
@@ -165,9 +165,9 @@ SET questions_json = '[
     },
     {
         "question": "What is empathy in conflict resolution?",
-        "options": ["Agreeing with everyone", "Understanding another person''s feelings", "Being weak", "Giving in"],
+        "options": ["Agreeing with everyone", "Understanding another person's feelings", "Being weak", "Giving in"],
         "correctAnswer": 1,
-        "explanation": "Empathy is understanding and acknowledging another person''s feelings."
+        "explanation": "Empathy is understanding and acknowledging another person's feelings."
     },
     {
         "question": "Body language accounts for what percentage of communication?",
@@ -199,7 +199,7 @@ SET questions_json = '[
         "correctAnswer": 1,
         "explanation": "Respecting personal space prevents escalation and shows respect."
     }
-]'::jsonb,
+]$$::jsonb,
 total_questions = 10
 WHERE assessment_name LIKE '%Conflict%' OR assessment_name LIKE '%De-escalation%';
 
