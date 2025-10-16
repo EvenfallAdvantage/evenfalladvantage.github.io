@@ -473,6 +473,11 @@ body {
     overflow-y: auto;
 }
 
+/* Wider modal for assessment editor */
+#editAssessmentModal .modal-content {
+    max-width: 800px;
+}
+
 .modal-header {
     padding: 1.5rem;
     border-bottom: 2px solid var(--admin-border);
