@@ -666,11 +666,14 @@ body {
     padding: 2rem;
     overflow-y: auto;
     flex: 1;
+    max-height: calc(90vh - 200px);
 }
 
 .slideshow-body {
     padding: 3rem;
-    min-height: 500px;
+    min-height: 400px;
+    max-height: calc(90vh - 250px);
+    overflow-y: auto;
 }
 
 .slide {
