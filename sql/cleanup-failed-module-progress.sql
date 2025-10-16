@@ -6,6 +6,7 @@ SELECT
     s.email,
     s.first_name || ' ' || s.last_name as student_name,
     tm.module_name,
+    tm.display_order,
     smp.status,
     smp.completed_at,
     COALESCE(bool_or(ar.passed), false) as assessment_passed,
@@ -16,7 +17,7 @@ JOIN training_modules tm ON smp.module_id = tm.id
 LEFT JOIN assessments a ON a.module_id = tm.id
 LEFT JOIN assessment_results ar ON ar.assessment_id = a.id AND ar.student_id = s.id
 WHERE smp.status = 'completed'
-GROUP BY s.email, s.first_name, s.last_name, tm.module_name, smp.status, smp.completed_at, smp.student_id, smp.module_id
+GROUP BY s.email, s.first_name, s.last_name, tm.module_name, tm.display_order, smp.status, smp.completed_at, smp.student_id, smp.module_id
 HAVING COALESCE(bool_or(ar.passed), false) = false
 ORDER BY s.email, tm.display_order;
 
