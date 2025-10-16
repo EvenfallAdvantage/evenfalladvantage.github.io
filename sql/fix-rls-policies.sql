@@ -22,8 +22,9 @@ WHERE tablename = 'student_module_progress';
 
 -- STEP 3: Create policy to allow authenticated users to read all student module progress
 -- This allows clients to see candidate progress
+-- Note: If policy already exists, you'll get an error - that's OK, just skip to STEP 4
 
-CREATE POLICY IF NOT EXISTS "Allow authenticated users to view student module progress"
+CREATE POLICY "Allow authenticated users to view student module progress"
 ON student_module_progress
 FOR SELECT
 TO authenticated
