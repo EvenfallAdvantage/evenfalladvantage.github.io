@@ -365,8 +365,8 @@ body {
 
 .btn-icon {
     padding: 0.5rem;
-    background: none;
-    border: none;
+    background: rgba(37, 54, 70, 0.1);
+    border: 1px solid rgba(37, 54, 70, 0.2);
     color: var(--admin-text);
     cursor: pointer;
     border-radius: 0.25rem;
@@ -374,6 +374,11 @@ body {
     opacity: 1 !important;
     visibility: visible !important;
     display: inline-flex !important;
+}
+
+.data-table .btn-icon {
+    color: #253646 !important;
+    background: rgba(37, 54, 70, 0.05) !important;
 }
 
 .btn-icon:hover {
