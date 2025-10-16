@@ -3210,30 +3210,9 @@ async function startModule(moduleId, skipStateCheck = false) {
     }
     
     try {
-        // First, try to load slides from database
-        const { data: module, error: moduleError } = await supabase
-            .from('training_modules')
-            .select('*')
-            .eq('module_code', moduleId)
-            .single();
-        
-        if (moduleError) throw moduleError;
-        
-        // Load slides from database
-        const { data: slides, error: slidesError } = await supabase
-            .from('module_slides')
-            .select('*')
-            .eq('module_id', module.id)
-            .order('slide_number');
-        
-        if (slidesError) throw slidesError;
-        
-        // If slides exist in database, use them
-        if (slides && slides.length > 0) {
-            currentModuleSlides = slides;
-            document.getElementById('moduleTitle').textContent = module.module_name;
-        } else {
-            // Fallback to hardcoded slides if no database slides
+        // If skipStateCheck is true, we're coming from startModuleWithState
+        // and the slides are already prepared in moduleSlidesData
+        if (skipStateCheck && moduleId === 'use-of-force') {
             currentModuleSlides = moduleSlidesData[moduleId];
             const fallbackModule = moduleContent[moduleId];
             if (!currentModuleSlides || !fallbackModule) {
@@ -3241,6 +3220,39 @@ async function startModule(moduleId, skipStateCheck = false) {
                 return;
             }
             document.getElementById('moduleTitle').textContent = fallbackModule.title;
+        } else {
+            // First, try to load slides from database
+            const { data: module, error: moduleError } = await supabase
+                .from('training_modules')
+                .select('*')
+                .eq('module_code', moduleId)
+                .single();
+            
+            if (moduleError) throw moduleError;
+            
+            // Load slides from database
+            const { data: slides, error: slidesError } = await supabase
+                .from('module_slides')
+                .select('*')
+                .eq('module_id', module.id)
+                .order('slide_number');
+            
+            if (slidesError) throw slidesError;
+            
+            // If slides exist in database, use them
+            if (slides && slides.length > 0) {
+                currentModuleSlides = slides;
+                document.getElementById('moduleTitle').textContent = module.module_name;
+            } else {
+                // Fallback to hardcoded slides if no database slides
+                currentModuleSlides = moduleSlidesData[moduleId];
+                const fallbackModule = moduleContent[moduleId];
+                if (!currentModuleSlides || !fallbackModule) {
+                    alert('This module has no content yet. Please contact your administrator.');
+                    return;
+                }
+                document.getElementById('moduleTitle').textContent = fallbackModule.title;
+            }
         }
         
         // Generate slide dots
