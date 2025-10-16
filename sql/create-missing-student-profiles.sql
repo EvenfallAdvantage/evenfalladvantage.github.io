@@ -13,14 +13,10 @@ WHERE sp.id IS NULL
 ORDER BY au.created_at DESC;
 
 -- Create student profiles for any auth users that don't have them
--- Note: student_profiles doesn't have an email column, email is in auth.users
-INSERT INTO student_profiles (id, first_name, last_name, created_at, updated_at)
+-- Note: Using only the 'id' column - other columns will be populated when user updates their profile
+INSERT INTO student_profiles (id)
 SELECT 
-    au.id,
-    COALESCE(au.raw_user_meta_data->>'first_name', split_part(au.email, '@', 1)) as first_name,
-    COALESCE(au.raw_user_meta_data->>'last_name', 'User') as last_name,
-    au.created_at,
-    NOW()
+    au.id
 FROM auth.users au
 LEFT JOIN student_profiles sp ON au.id = sp.id
 WHERE sp.id IS NULL
@@ -34,18 +30,12 @@ SELECT
 FROM auth.users au
 LEFT JOIN student_profiles sp ON au.id = sp.id;
 
--- Show the newly created profiles with email from auth.users
+-- Show all student profiles with their auth email
 SELECT 
     sp.id,
     au.email,
-    sp.first_name,
-    sp.last_name,
-    sp.created_at
+    au.created_at
 FROM student_profiles sp
 JOIN auth.users au ON sp.id = au.id
-WHERE sp.id IN (
-    SELECT au2.id 
-    FROM auth.users au2
-    WHERE au2.created_at > NOW() - INTERVAL '1 day'
-)
-ORDER BY sp.created_at DESC;
+ORDER BY au.created_at DESC
+LIMIT 10;
