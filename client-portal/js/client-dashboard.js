@@ -281,8 +281,11 @@ async function loadTotalModules() {
 // Load candidates
 async function loadCandidates() {
     console.log('Loading candidates...');
-    const container = document.getElementById('candidatesList');
-    if (!container) return;
+    const container = document.getElementById('candidatesGrid');
+    if (!container) {
+        console.error('candidatesGrid element not found');
+        return;
+    }
     
     container.innerHTML = '<div class="loading">Loading candidates...</div>';
     
