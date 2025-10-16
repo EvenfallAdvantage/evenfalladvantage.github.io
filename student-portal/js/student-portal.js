@@ -4837,7 +4837,12 @@ function updateProgressDisplay() {
                 
                 // Use module or assessment property for lookup
                 const moduleCode = result.module || result.assessment;
-                const title = assessmentTitles[moduleCode] || moduleCode || 'Unknown Assessment';
+                let title = assessmentTitles[moduleCode] || moduleCode || 'Unknown Assessment';
+                
+                // For Module 7, append the state code if available
+                if (moduleCode === 'use-of-force' && result.state_code) {
+                    title += ` (${result.state_code})`;
+                }
                 
                 return `
                     <div class="assessment-history-item">

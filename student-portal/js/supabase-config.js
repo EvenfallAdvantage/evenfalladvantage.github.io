@@ -275,17 +275,27 @@ const StudentData = {
     // Save assessment result (upsert to avoid duplicates)
     async saveAssessmentResult(studentId, assessmentId, resultData) {
         try {
-            // Check if a result already exists for this student/assessment
-            const { data: existing, error: checkError } = await supabase
+            // For Module 7 with state_code, check for existing result for this specific state
+            let query = supabase
                 .from('assessment_results')
-                .select('id, score')
+                .select('id, score, state_code')
                 .eq('student_id', studentId)
-                .eq('assessment_id', assessmentId)
+                .eq('assessment_id', assessmentId);
+            
+            // If this has a state_code (Module 7), filter by that state
+            if (resultData.state_code) {
+                query = query.eq('state_code', resultData.state_code);
+            } else {
+                // For non-Module 7, ensure we're not looking at Module 7 results
+                query = query.is('state_code', null);
+            }
+            
+            const { data: existing, error: checkError } = await query
                 .order('completed_at', { ascending: false })
                 .limit(1)
-                .single();
+                .maybeSingle();
             
-            // Only insert if this is a new attempt or a better score
+            // Only insert if this is a new attempt or a better score for this state
             if (!existing || resultData.score > existing.score) {
                 const { data, error } = await supabase
                     .from('assessment_results')
@@ -296,10 +306,12 @@ const StudentData = {
                     });
                 
                 if (error) throw error;
-                console.log('Saved new assessment result (score:', resultData.score, ')');
+                const stateInfo = resultData.state_code ? ` for ${resultData.state_code}` : '';
+                console.log(`Saved new assessment result${stateInfo} (score: ${resultData.score})`);
                 return { success: true, data };
             } else {
-                console.log('Skipped saving - existing score is higher or equal');
+                const stateInfo = resultData.state_code ? ` for ${resultData.state_code}` : '';
+                console.log(`Skipped saving${stateInfo} - existing score is higher or equal`);
                 return { success: true, skipped: true };
             }
         } catch (error) {

@@ -107,12 +107,24 @@ async function saveProgressToDatabase(studentId) {
                                 ? result.passed 
                                 : (result.score >= 70);
                             
-                            await StudentData.saveAssessmentResult(studentId, assessments[0].id, {
+                            // For Module 7 (Use of Force), include the state code
+                            const assessmentData = {
                                 score: result.score,
                                 passed: passed,
                                 time_taken_minutes: result.timeTaken || 0,
                                 answers_json: result.answers || {}
-                            });
+                            };
+                            
+                            // Add state code if this is Module 7
+                            if (result.module === 'use-of-force') {
+                                const selectedState = localStorage.getItem('selectedState');
+                                if (selectedState) {
+                                    assessmentData.state_code = selectedState;
+                                    console.log(`📍 Saving Module 7 assessment for state: ${selectedState}`);
+                                }
+                            }
+                            
+                            await StudentData.saveAssessmentResult(studentId, assessments[0].id, assessmentData);
                             console.log(`✅ Saved assessment result: ${result.module} (${passed ? 'passed' : 'failed'})`);
                             
                             // If passed, mark module as completed
@@ -248,14 +260,20 @@ async function loadProgressFromDatabase() {
                         score: r.score,
                         passed: r.passed,
                         date: r.completed_at,
-                        timeTaken: r.time_taken_minutes
+                        timeTaken: r.time_taken_minutes,
+                        state_code: r.state_code // Include state code for Module 7
                     };
                 });
             
             // Deduplicate: keep only the best attempt for each module
+            // For Module 7 (use-of-force), keep separate entries for each state
             const bestAttempts = {};
             assessmentResults.forEach(result => {
-                const key = result.module;
+                // For Module 7, create a unique key per state
+                const key = result.module === 'use-of-force' && result.state_code
+                    ? `${result.module}-${result.state_code}`
+                    : result.module;
+                    
                 if (!bestAttempts[key] || result.score > bestAttempts[key].score) {
                     bestAttempts[key] = result;
                 }
