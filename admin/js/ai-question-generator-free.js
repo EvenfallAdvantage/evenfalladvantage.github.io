@@ -20,7 +20,7 @@ ${slide.content || ''}
 ${slide.notes || ''}`;
         }).join('\n\n');
 
-        const prompt = `You are an expert training assessment creator. Based on the following training module content, generate 10 multiple-choice questions to test comprehension.
+        const prompt = `You are an expert security training assessment creator specializing in event security and emergency response. Based on the following training module content, generate 10 high-quality multiple-choice questions.
 
 Module: ${moduleName}
 
@@ -39,14 +39,38 @@ Generate exactly 10 questions in the following JSON format:
   ]
 }
 
-Requirements:
-- Questions should test understanding, not just memorization
-- Include a mix of difficulty levels
-- Options should be plausible but only one clearly correct
-- Correct answer index (0-3) should be randomized
-- Keep questions clear and concise
-- Focus on practical application and key concepts
-- RESPOND ONLY WITH VALID JSON, NO OTHER TEXT`;
+CRITICAL REQUIREMENTS:
+1. **Question Quality:**
+   - Each question MUST be based on SPECIFIC content from the slides above
+   - Questions should test practical application and scenario-based understanding
+   - Avoid vague questions like "What is the main topic?" - be specific!
+   - Use real-world scenarios relevant to event security guards
+
+2. **Answer Options:**
+   - All 4 options must be plausible and related to the topic
+   - Incorrect options should be common misconceptions or related concepts
+   - Avoid obvious wrong answers like "Unrelated topic A/B/C"
+   - Options should be similar in length and complexity
+   - Randomize which position (A/B/C/D) contains the correct answer
+
+3. **Difficulty Mix:**
+   - 3 questions: Basic recall of key facts and definitions
+   - 4 questions: Application of concepts to scenarios
+   - 3 questions: Analysis and decision-making situations
+
+4. **Content Focus:**
+   - Prioritize safety-critical information
+   - Include legal/regulatory requirements if mentioned
+   - Cover proper procedures and protocols
+   - Test understanding of when/how to apply knowledge
+
+5. **Formatting:**
+   - Keep questions clear and under 200 characters
+   - Use professional security industry terminology
+   - Include specific numbers, procedures, or requirements from the content
+   - Explanations should reference the slide content
+
+RESPOND ONLY WITH VALID JSON, NO OTHER TEXT OR MARKDOWN`;
 
         let questions;
         
@@ -150,70 +174,128 @@ async function generateWithHuggingFace(prompt) {
     }
 }
 
-// Fallback: Generate questions using simple template-based approach (NO API NEEDED)
+// Fallback: Generate questions using improved template-based approach (NO API NEEDED)
 function generateQuestionsLocally(slides, moduleName) {
     const questions = [];
     
+    // Common security-related distractors
+    const commonDistractors = {
+        procedures: [
+            'Follow standard operating procedures',
+            'Contact your supervisor immediately',
+            'Document the incident in writing',
+            'Notify local law enforcement'
+        ],
+        safety: [
+            'Ensure personal safety first',
+            'Evacuate the area immediately',
+            'Secure the perimeter',
+            'Call for backup assistance'
+        ],
+        communication: [
+            'Use clear and concise language',
+            'Maintain radio silence',
+            'Report to the command center',
+            'Document all communications'
+        ],
+        legal: [
+            'Follow company policy',
+            'Comply with local regulations',
+            'Obtain written consent',
+            'Consult with legal counsel'
+        ]
+    };
+    
     // Extract key concepts from slides
     slides.forEach((slide, index) => {
-        if (slide.content && slide.content.length > 50) {
-            // Simple question templates
-            const templates = [
-                {
-                    question: `What is the main topic covered in "${slide.title}"?`,
-                    generateOptions: (content) => {
-                        return [
-                            slide.title || 'Main concept',
-                            'Unrelated topic A',
-                            'Unrelated topic B',
-                            'Unrelated topic C'
-                        ];
-                    },
-                    correct: 0
-                },
-                {
-                    question: `According to the module, which statement about ${slide.title} is correct?`,
-                    generateOptions: (content) => {
-                        const firstSentence = content.split('.')[0];
-                        return [
-                            firstSentence,
-                            'This is not mentioned in the module',
-                            'This contradicts the module content',
-                            'This is partially incorrect'
-                        ];
-                    },
-                    correct: 0
-                }
-            ];
+        if (slide.content && slide.content.length > 50 && questions.length < 10) {
+            const content = slide.content;
+            const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
             
-            if (questions.length < 10) {
-                const template = templates[questions.length % templates.length];
+            if (sentences.length > 0) {
+                // Extract a key fact from the slide
+                const keyFact = sentences[0].trim();
+                const words = keyFact.split(' ');
+                
+                // Create a scenario-based question
+                const questionTypes = [
+                    {
+                        question: `According to ${moduleName}, what is the correct procedure regarding ${slide.title?.toLowerCase() || 'this topic'}?`,
+                        generateOptions: () => {
+                            const distractorSet = commonDistractors.procedures;
+                            return shuffleArray([
+                                keyFact.length > 100 ? keyFact.substring(0, 100) + '...' : keyFact,
+                                ...distractorSet.slice(0, 3)
+                            ]);
+                        }
+                    },
+                    {
+                        question: `When dealing with ${slide.title?.toLowerCase() || 'this situation'}, what should a security guard prioritize?`,
+                        generateOptions: () => {
+                            const distractorSet = commonDistractors.safety;
+                            return shuffleArray([
+                                keyFact.length > 100 ? keyFact.substring(0, 100) + '...' : keyFact,
+                                ...distractorSet.slice(0, 3)
+                            ]);
+                        }
+                    }
+                ];
+                
+                const template = questionTypes[questions.length % questionTypes.length];
+                const options = template.generateOptions();
+                const correctAnswer = options.findIndex(opt => opt.includes(keyFact.substring(0, 50)));
+                
                 questions.push({
                     question: template.question,
-                    options: template.generateOptions(slide.content),
-                    correct: template.correct,
-                    explanation: `This information is covered in the slide: ${slide.title}`
+                    options: options,
+                    correct: correctAnswer >= 0 ? correctAnswer : 0,
+                    explanation: `This information is covered in ${slide.title}: ${keyFact.substring(0, 150)}...`
                 });
             }
         }
     });
     
-    // Fill remaining questions with general ones
+    // Fill remaining questions with general security knowledge if needed
     while (questions.length < 10) {
-        questions.push({
-            question: `What is an important concept from the ${moduleName} module?`,
-            options: [
-                'Key concept from the training',
-                'Unrelated concept A',
-                'Unrelated concept B',
-                'Unrelated concept C'
-            ],
-            correct: 0,
-            explanation: 'This is covered throughout the module content.'
-        });
+        const generalQuestions = [
+            {
+                question: 'What is the primary responsibility of an event security guard?',
+                options: shuffleArray([
+                    'Ensuring the safety and security of all attendees',
+                    'Selling merchandise and concessions',
+                    'Managing event logistics and scheduling',
+                    'Providing entertainment for guests'
+                ]),
+                correct: 0,
+                explanation: 'The primary responsibility is always safety and security.'
+            },
+            {
+                question: 'When should you escalate a situation to your supervisor?',
+                options: shuffleArray([
+                    'When the situation exceeds your authority or training',
+                    'Only during emergencies',
+                    'Never, handle everything independently',
+                    'Only at the end of your shift'
+                ]),
+                correct: 0,
+                explanation: 'Always escalate when a situation is beyond your scope.'
+            }
+        ];
+        
+        questions.push(generalQuestions[questions.length % generalQuestions.length]);
     }
     
     return questions;
+}
+
+// Helper function to shuffle array
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
 }
 
 // Save generated questions to database
