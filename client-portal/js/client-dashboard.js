@@ -302,8 +302,19 @@ async function loadCandidates() {
     console.log(`Found ${result.data.length} candidates`);
     
     const candidatesHTML = result.data.map(student => {
-        const profile = student.student_profiles || {};
-        const completedModules = student.student_module_progress?.filter(p => p.status === 'completed').length || 0;
+        // Handle profile (might be object or array)
+        const profile = Array.isArray(student.student_profiles) 
+            ? student.student_profiles[0] 
+            : student.student_profiles || {};
+        
+        // Handle module progress (should be array)
+        const moduleProgress = Array.isArray(student.student_module_progress) 
+            ? student.student_module_progress 
+            : [];
+        
+        const completedModules = moduleProgress.filter(p => p.status === 'completed').length;
+        
+        console.log(`${student.first_name}: ${completedModules}/${totalModules} modules (${moduleProgress.length} total progress records)`);
         
         return `
             <div class="candidate-card">
@@ -389,8 +400,17 @@ function displayFilteredCandidates(candidates) {
     
     // Use same rendering logic as loadCandidates
     const candidatesHTML = candidates.map(student => {
-        const profile = student.student_profiles || {};
-        const completedModules = student.student_module_progress?.filter(p => p.status === 'completed').length || 0;
+        // Handle profile (might be object or array)
+        const profile = Array.isArray(student.student_profiles) 
+            ? student.student_profiles[0] 
+            : student.student_profiles || {};
+        
+        // Handle module progress (should be array)
+        const moduleProgress = Array.isArray(student.student_module_progress) 
+            ? student.student_module_progress 
+            : [];
+        
+        const completedModules = moduleProgress.filter(p => p.status === 'completed').length;
         
         return `
             <div class="candidate-card">
@@ -469,7 +489,8 @@ async function viewCandidate(studentId) {
         .select('*')
         .eq('student_id', studentId);
     
-    const completedModules = progress?.filter(p => p.status === 'completed').length || 0;
+    const moduleProgress = Array.isArray(progress) ? progress : [];
+    const completedModules = moduleProgress.filter(p => p.status === 'completed').length;
     
     // Get certifications
     const { data: certifications } = await supabase
