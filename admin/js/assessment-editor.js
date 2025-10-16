@@ -12,10 +12,11 @@ async function loadAssessments() {
                 *,
                 training_modules (
                     module_name,
-                    module_code
+                    module_code,
+                    display_order
                 )
             `)
-            .order('created_at', { ascending: false });
+            .order('training_modules(display_order)', { ascending: true });
 
         if (error) throw error;
 
