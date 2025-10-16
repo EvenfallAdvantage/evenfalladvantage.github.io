@@ -2032,8 +2032,13 @@ body {
     }
 
     .quiz-footer {
-        flex-direction: column;
-        gap: 1rem;
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+    
+    .quiz-footer .btn {
+        flex: 1;
+        min-width: auto;
     }
 
     /* Slideshow Mobile Fixes */
