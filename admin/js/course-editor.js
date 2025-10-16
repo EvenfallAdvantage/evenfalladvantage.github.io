@@ -599,8 +599,8 @@ async function updateCourse(event, moduleId) {
         if (updatedModule) {
             await updateOrCreateAssessment(updatedModule);
             
-            // Regenerate AI questions for the assessment
-            if (window.generateAssessmentQuestions) {
+            // Skip AI question regeneration for Module 7 (use-of-force) since it uses state-specific questions
+            if (updatedModule.module_code !== 'use-of-force' && window.generateAssessmentQuestions) {
                 submitBtn.innerHTML = '<span class="loading-spinner"></span> Regenerating questions...';
                 const result = await generateAssessmentQuestions(updatedModule.id, updatedModule.module_name);
                 if (result.success) {
@@ -608,10 +608,12 @@ async function updateCourse(event, moduleId) {
                 } else {
                     console.warn('Failed to regenerate questions:', result.error);
                 }
+            } else if (updatedModule.module_code === 'use-of-force') {
+                console.log('Skipped AI question generation for Module 7 - using state-specific questions');
             }
         }
         
-        showAlert('Course updated successfully with refreshed questions!', 'success');
+        showAlert('Course updated successfully!', 'success');
         closeModal();
         loadCourses();
     } catch (error) {
