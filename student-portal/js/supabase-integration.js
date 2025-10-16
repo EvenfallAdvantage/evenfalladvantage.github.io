@@ -114,6 +114,16 @@ async function saveProgressToDatabase(studentId) {
                                 answers_json: result.answers || {}
                             });
                             console.log(`✅ Saved assessment result: ${result.module} (${passed ? 'passed' : 'failed'})`);
+                            
+                            // If passed, mark module as completed
+                            if (passed) {
+                                await StudentData.saveModuleProgress(studentId, moduleResult.data.id, {
+                                    progress_percentage: 100,
+                                    last_accessed: new Date().toISOString(),
+                                    completed_at: new Date().toISOString()
+                                });
+                                console.log(`✅ Marked module as completed: ${result.module}`);
+                            }
                         } else {
                             console.warn(`No assessment found for module: ${result.module}`);
                         }

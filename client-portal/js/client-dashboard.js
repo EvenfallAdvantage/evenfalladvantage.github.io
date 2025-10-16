@@ -267,21 +267,32 @@ async function deleteJob(jobId) {
     }
 }
 
+// Global variable for total module count
+let totalModules = 7;
+
+// Load total module count
+async function loadTotalModules() {
+    const { data: modules } = await supabase
+        .from('training_modules')
+        .select('id');
+    totalModules = modules?.length || 7;
+}
+
 // Load candidates
 async function loadCandidates() {
     console.log('Loading candidates...');
-    const result = await ClientData.searchCandidates();
-    console.log('Search result:', result);
+    const container = document.getElementById('candidatesList');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading">Loading candidates...</div>';
+    
+    // Ensure total modules is loaded
+    await loadTotalModules();
+    
+    const result = await ClientData.getCandidates();
     
     if (!result.success) {
-        console.error('Search failed:', result.error);
-        document.getElementById('candidatesGrid').innerHTML = `<p class="empty-state">Error loading candidates: ${result.error || 'Unknown error'}</p>`;
-        return;
-    }
-    
-    if (!result.data || result.data.length === 0) {
-        console.log('No candidates found');
-        document.getElementById('candidatesGrid').innerHTML = '<p class="empty-state">No candidates available yet</p>';
+        container.innerHTML = '<p style="text-align: center; padding: 2rem; color: red;">Error loading candidates.</p>';
         return;
     }
     
@@ -318,7 +329,7 @@ async function loadCandidates() {
                 </div>
                 
                 <div style="margin: 1rem 0; padding: 0.75rem; background: #f8f9fa; border-radius: 0.5rem;">
-                    <strong>${completedModules}/7</strong> modules completed
+                    <strong>${completedModules}/${totalModules}</strong> modules completed
                 </div>
                 
                 <div class="candidate-actions">
@@ -405,7 +416,7 @@ function displayFilteredCandidates(candidates) {
                 </div>
                 
                 <div style="margin: 1rem 0; padding: 0.75rem; background: #f8f9fa; border-radius: 0.5rem;">
-                    <strong>${completedModules}/7</strong> modules completed
+                    <strong>${completedModules}/${totalModules}</strong> modules completed
                 </div>
                 
                 <div class="candidate-actions">
