@@ -5,7 +5,10 @@
 let selectedState = null;
 
 // Show state selection modal before starting Module 7
-function showStateSelectionModal() {
+async function showStateSelectionModal() {
+    // Load state laws from database first
+    await ensureStateLawsLoaded();
+    
     const modal = document.createElement('div');
     modal.id = 'state-selection-modal';
     modal.className = 'modal';
@@ -33,10 +36,21 @@ function showStateSelectionModal() {
     document.body.appendChild(modal);
 }
 
+// Load state laws from database if not already loaded
+async function ensureStateLawsLoaded() {
+    if (!window.stateLaws || Object.keys(window.stateLaws).length === 0) {
+        if (window.loadStateLaws) {
+            await window.loadStateLaws();
+        }
+    }
+}
+
 // Generate state selection buttons
 function generateStateButtons() {
-    const states = Object.keys(stateLaws).sort((a, b) => 
-        stateLaws[a].name.localeCompare(stateLaws[b].name)
+    // Ensure stateLaws is available (fallback to empty object if not)
+    const laws = window.stateLaws || {};
+    const states = Object.keys(laws).sort((a, b) => 
+        laws[a].name.localeCompare(laws[b].name)
     );
     
     return states.map(stateCode => `
@@ -47,12 +61,10 @@ function generateStateButtons() {
             border-radius: 0.5rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 0.9rem;
-            font-weight: 600;
         " onmouseover="this.style.borderColor='var(--secondary-color)'; this.style.transform='translateY(-2px)'" 
            onmouseout="this.style.borderColor='#e0e0e0'; this.style.transform='translateY(0)'">
             <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">${getStateFlag(stateCode)}</div>
-            <div>${stateLaws[stateCode].name}</div>
+            <div>${laws[stateCode].name}</div>
             <div style="font-size: 0.75rem; color: #666; margin-top: 0.25rem;">${stateCode}</div>
         </button>
     `).join('');

@@ -4103,6 +4103,43 @@ const assessmentQuestions = {
 };
 
 
+// Load state laws from database
+async function loadStateLaws() {
+    try {
+        const { data: states, error } = await supabase
+            .from('state_laws')
+            .select('*')
+            .order('state_name');
+        
+        if (error) throw error;
+        
+        // Convert to the format expected by the app
+        const stateLawsObj = {};
+        states.forEach(state => {
+            stateLawsObj[state.state_code] = {
+                name: state.state_name,
+                licensing: state.licensing,
+                trainingHours: state.training_hours,
+                minAge: state.min_age,
+                useOfForce: state.use_of_force,
+                citizensArrest: state.citizens_arrest,
+                weapons: state.weapons,
+                agency: state.regulatory_agency,
+                notes: state.notes
+            };
+        });
+        
+        // Store in window for global access
+        window.stateLaws = stateLawsObj;
+        console.log(`Loaded ${states.length} state laws from database`);
+        return stateLawsObj;
+    } catch (error) {
+        console.error('Error loading state laws:', error);
+        // Fallback to hardcoded if database fails
+        return window.stateLaws || {};
+    }
+}
+
 // Load assessment questions from database
 async function loadAssessmentQuestions(moduleCode) {
     try {
@@ -4141,8 +4178,14 @@ async function loadAssessmentQuestions(moduleCode) {
         }
         
         // Special handling for Module 7 (Use of Force) - combine with state-specific questions
-        if (moduleCode === 'use-of-force' && window.getStateSpecificQuestions) {
+        if (moduleCode === 'use-of-force') {
             const selectedState = localStorage.getItem('selectedState');
+            
+            // Ensure state laws are loaded
+            if (!window.stateLaws || Object.keys(window.stateLaws).length === 0) {
+                await loadStateLaws();
+            }
+            
             if (selectedState && window.stateLaws && window.stateLaws[selectedState]) {
                 const stateInfo = window.stateLaws[selectedState];
                 
