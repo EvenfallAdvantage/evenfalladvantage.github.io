@@ -130,28 +130,45 @@ const ClientData = {
         try {
             console.log('getCandidates called');
             
-            // Get all students with their profiles and progress
+            // Get all students
             const { data: students, error: studentsError } = await supabase
                 .from('students')
-                .select(`
-                    id, 
-                    first_name, 
-                    last_name, 
-                    email,
-                    student_profiles (*),
-                    student_module_progress (*)
-                `);
+                .select('id, first_name, last_name, email');
             
             if (studentsError) throw studentsError;
             
             console.log('Students found:', students?.length);
             
+            // Get all profiles
+            const { data: profiles } = await supabase
+                .from('student_profiles')
+                .select('*');
+            
+            // Get all module progress
+            const { data: moduleProgress } = await supabase
+                .from('student_module_progress')
+                .select('*');
+            
+            console.log('Module progress records:', moduleProgress?.length);
+            
+            // Manually join the data
+            const enrichedStudents = students?.map(student => {
+                const profile = profiles?.find(p => p.student_id === student.id);
+                const progress = moduleProgress?.filter(p => p.student_id === student.id) || [];
+                
+                return {
+                    ...student,
+                    student_profiles: profile,
+                    student_module_progress: progress
+                };
+            }) || [];
+            
             // Filter for students with visible profiles
-            const visibleData = students?.filter(student => {
+            const visibleData = enrichedStudents.filter(student => {
                 const profile = student.student_profiles;
                 if (!profile) return false;
                 return profile.profile_visible === true;
-            }) || [];
+            });
             
             console.log(`Visible candidates: ${visibleData.length}`);
             
