@@ -506,6 +506,26 @@ async function viewCandidate(studentId) {
         .select('*')
         .order('display_order');
     
+    // Get assessment results with assessment details
+    const { data: assessmentResults } = await supabase
+        .from('assessment_results')
+        .select(`
+            *,
+            assessments (
+                assessment_name,
+                total_questions,
+                passing_score,
+                module_id,
+                training_modules (
+                    module_name,
+                    module_code,
+                    display_order
+                )
+            )
+        `)
+        .eq('student_id', studentId)
+        .order('completed_at', { ascending: false });
+    
     // Get certifications
     const { data: certifications } = await supabase
         .from('certifications')
@@ -615,6 +635,52 @@ async function viewCandidate(studentId) {
                             }).join('') || '<p>No modules found</p>'}
                         </div>
                     </div>
+                    
+                    ${assessmentResults && assessmentResults.length > 0 ? `
+                        <div class="profile-section">
+                            <h4>Assessment Results</h4>
+                            <p style="margin-bottom: 1rem; color: #666;">Detailed scores and completion history</p>
+                            
+                            <div class="assessment-results-list">
+                                ${assessmentResults.map(result => {
+                                    const assessment = result.assessments;
+                                    const moduleName = assessment?.training_modules?.module_name || 'Unknown Module';
+                                    const isPassed = result.passed;
+                                    const score = result.score;
+                                    const passingScore = assessment?.passing_score || 70;
+                                    const completedDate = new Date(result.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                    const timeTaken = result.time_taken_minutes ? `${result.time_taken_minutes} min` : 'N/A';
+                                    
+                                    return `
+                                        <div class="assessment-result-item" style="padding: 1rem; margin-bottom: 0.75rem; background: ${isPassed ? '#e8f5e9' : '#ffebee'}; border-radius: 0.5rem; border-left: 4px solid ${isPassed ? '#4caf50' : '#f44336'};">
+                                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                                                <div style="flex: 1;">
+                                                    <div style="font-weight: 600; color: #333; margin-bottom: 0.25rem;">${moduleName}</div>
+                                                    <div style="font-size: 0.875rem; color: #666;">
+                                                        <i class="fas fa-calendar"></i> ${completedDate}
+                                                        <span style="margin-left: 1rem;"><i class="fas fa-clock"></i> ${timeTaken}</span>
+                                                    </div>
+                                                </div>
+                                                <div style="text-align: right;">
+                                                    <div style="font-size: 1.5rem; font-weight: 700; color: ${isPassed ? '#4caf50' : '#f44336'};">${score}%</div>
+                                                    <div style="font-size: 0.75rem; color: #666;">Passing: ${passingScore}%</div>
+                                                </div>
+                                            </div>
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                ${isPassed ? 
+                                                    `<span style="padding: 0.25rem 0.75rem; background: #4caf50; color: white; border-radius: 1rem; font-size: 0.875rem; font-weight: 600;"><i class="fas fa-check"></i> Passed</span>` : 
+                                                    `<span style="padding: 0.25rem 0.75rem; background: #f44336; color: white; border-radius: 1rem; font-size: 0.875rem; font-weight: 600;"><i class="fas fa-times"></i> Failed</span>`
+                                                }
+                                                <div style="flex: 1; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden;">
+                                                    <div style="height: 100%; background: ${isPassed ? '#4caf50' : '#f44336'}; width: ${score}%; transition: width 0.3s;"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
                     
                     ${profile.certifications_completed && profile.certifications_completed.length > 0 ? `
                         <div class="profile-section">
