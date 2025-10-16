@@ -8,7 +8,7 @@ SELECT
     tm.module_name,
     smp.status,
     smp.completed_at,
-    COALESCE(MAX(ar.passed), false) as assessment_passed,
+    COALESCE(bool_or(ar.passed), false) as assessment_passed,
     COALESCE(MAX(ar.score), 0) as best_score
 FROM student_module_progress smp
 JOIN students s ON smp.student_id = s.id
@@ -17,7 +17,7 @@ LEFT JOIN assessments a ON a.module_id = tm.id
 LEFT JOIN assessment_results ar ON ar.assessment_id = a.id AND ar.student_id = s.id
 WHERE smp.status = 'completed'
 GROUP BY s.email, s.first_name, s.last_name, tm.module_name, smp.status, smp.completed_at, smp.student_id, smp.module_id
-HAVING COALESCE(MAX(ar.passed), false) = false
+HAVING COALESCE(bool_or(ar.passed), false) = false
 ORDER BY s.email, tm.display_order;
 
 -- STEP 2: Delete module progress where assessment was not passed
@@ -32,7 +32,7 @@ WHERE id IN (
     LEFT JOIN assessment_results ar ON ar.assessment_id = a.id AND ar.student_id = smp.student_id
     WHERE smp.status = 'completed'
     GROUP BY smp.id, smp.student_id, smp.module_id
-    HAVING COALESCE(MAX(ar.passed), false) = false
+    HAVING COALESCE(bool_or(ar.passed), false) = false
 );
 
 -- STEP 3: Verify the cleanup
