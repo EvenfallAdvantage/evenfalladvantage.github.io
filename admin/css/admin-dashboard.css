@@ -382,17 +382,25 @@ body {
 }
 
 .btn-icon:hover {
-    background: rgba(255, 107, 53, 0.1);
-    color: #FF6B35;
+    background: rgba(255, 107, 53, 0.1) !important;
+    color: #FF6B35 !important;
     box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
     transform: translateY(-2px);
 }
 
+.data-table .btn-icon:hover {
+    color: #FF6B35 !important;
+}
+
 .btn-icon.danger:hover {
-    background: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1) !important;
+    color: #e74c3c !important;
     box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
     transform: translateY(-2px);
+}
+
+.data-table .btn-icon.danger:hover {
+    color: #e74c3c !important;
 }
 
 /* Roster List */
