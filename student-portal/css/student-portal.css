@@ -1409,37 +1409,15 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 1rem;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 2px solid rgba(255, 255, 255, 0.1);
     animation: fadeIn 0.5s ease;
 }
 
-.quiz-footer .btn {
-    min-width: 140px;
-    padding: 0.875rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.quiz-footer .btn-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.quiz-footer .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.5);
-}
-
-.quiz-footer .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+.quiz-footer #prevBtn,
+.quiz-footer #nextBtn,
+.quiz-footer #submitBtn {
+    flex: 0 0 auto;
+    order: initial;
+    margin: 0;
 }
 
 .results-header {
