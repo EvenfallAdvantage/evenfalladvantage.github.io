@@ -478,6 +478,26 @@ body {
     max-width: 800px;
 }
 
+/* Ensure answer option inputs are full width */
+.modal-content input[type="text"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #ddd;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.modal-content textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #ddd;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+    min-height: 100px;
+}
+
 .modal-header {
     padding: 1.5rem;
     border-bottom: 2px solid var(--admin-border);
