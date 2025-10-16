@@ -382,13 +382,17 @@ body {
 }
 
 .btn-icon:hover {
-    background: var(--admin-bg);
-    color: var(--admin-primary);
+    background: rgba(255, 107, 53, 0.1);
+    color: #FF6B35;
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+    transform: translateY(-2px);
 }
 
 .btn-icon.danger:hover {
     background: rgba(231, 76, 60, 0.1);
-    color: var(--admin-danger);
+    color: #e74c3c;
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+    transform: translateY(-2px);
 }
 
 /* Roster List */
