@@ -33,13 +33,66 @@ SET questions_json = $$[
 total_questions = 20
 WHERE assessment_name LIKE '%Threat%' OR assessment_name LIKE '%Situational%';
 
--- Verify Module 3
+-- ============================================================================
+-- MODULE 4: INTRODUCTION TO ICS-100 (15 questions)
+-- ============================================================================
+UPDATE assessments
+SET questions_json = $$[
+    {"question": "What does ICS stand for?", "options": ["Internal Command Structure", "Incident Command System", "Integrated Communications System", "International Crisis Standards"], "correctAnswer": 1, "explanation": "ICS stands for Incident Command System."},
+    {"question": "Who has overall authority and responsibility for the incident?", "options": ["Operations Section Chief", "Incident Commander (IC)", "Safety Officer", "Planning Section Chief"], "correctAnswer": 1, "explanation": "The Incident Commander (IC) has overall authority and responsibility."},
+    {"question": "What is the ideal span of control in ICS?", "options": ["1-3 people per supervisor", "5 people per supervisor", "10-12 people per supervisor", "As many as needed"], "correctAnswer": 1, "explanation": "The ideal span of control is 5 people per supervisor."},
+    {"question": "In which section do security guards typically work?", "options": ["Planning Section", "Operations Section", "Logistics Section", "Finance/Administration Section"], "correctAnswer": 1, "explanation": "Security guards typically work in the Operations Section."},
+    {"question": "What is the first thing you must do when arriving at an incident?", "options": ["Start working immediately", "Check in at designated location", "Find the Incident Commander", "Set up your equipment"], "correctAnswer": 1, "explanation": "Always check in at the designated location first."},
+    {"question": "How many supervisors should you report to in ICS?", "options": ["As many as assign you tasks", "ONE supervisor only", "Two - one primary and one backup", "The Incident Commander and your Section Chief"], "correctAnswer": 1, "explanation": "You should report to ONE supervisor only (unity of command)."},
+    {"question": "What is an Incident Action Plan (IAP)?", "options": ["A plan for your personal actions during the incident", "A plan for managing an incident during an operational period", "A plan for evacuating the area", "A plan for calling additional resources"], "correctAnswer": 1, "explanation": "An IAP is a plan for managing an incident during an operational period."},
+    {"question": "What does \"Unified Command\" mean?", "options": ["Everyone follows one commander without question", "Multiple agencies share command authority and develop one plan together", "The military takes over command", "All agencies work independently"], "correctAnswer": 1, "explanation": "Unified Command means multiple agencies share authority and develop one plan together."},
+    {"question": "Which ICS form is used as an activity log?", "options": ["ICS 201", "ICS 214", "ICS 205", "ICS 211"], "correctAnswer": 1, "explanation": "ICS 214 is used as an activity log."},
+    {"question": "What are the three resource status categories in ICS?", "options": ["Ready, Working, Resting", "Assigned, Available, Out of Service", "Active, Standby, Released", "Deployed, Staged, Demobilized"], "correctAnswer": 1, "explanation": "The three categories are: Assigned, Available, Out of Service."},
+    {"question": "What is the purpose of NIMS (National Incident Management System)?", "options": ["To provide military support for incidents", "To enable responders from different jurisdictions to work together", "To replace local emergency plans", "To federalize all emergency response"], "correctAnswer": 1, "explanation": "NIMS enables responders from different jurisdictions to work together."},
+    {"question": "During a crowd surge simulation, who should the Incident Commander contact first when law enforcement arrives and starts overriding security orders?", "options": ["The media", "The Liaison Officer to coordinate with law enforcement", "All security personnel directly", "The venue owner"], "correctAnswer": 1, "explanation": "Contact the Liaison Officer to coordinate with law enforcement."},
+    {"question": "In the simulation, when multiple radio calls are happening at once during mass panic, what should the IC do?", "options": ["Let everyone talk until they finish", "Turn off the radio", "Regain control by asserting command of the channel", "Switch to a different frequency"], "correctAnswer": 2, "explanation": "The IC should regain control by asserting command of the channel."},
+    {"question": "What is the primary purpose of the After Action Review (AAR)?", "options": ["To assign blame for mistakes", "To identify what went well, what failed, and what to do differently", "To write reports for management", "To determine who gets promoted"], "correctAnswer": 1, "explanation": "AAR identifies what went well, what failed, and what to do differently."},
+    {"question": "During the simulation, when should security personnel document their activities?", "options": ["Only at the end of the incident", "Never - that's someone else's job", "Throughout the incident using ICS 214 activity logs", "Only if something goes wrong"], "correctAnswer": 2, "explanation": "Document activities throughout the incident using ICS 214 activity logs."}
+]$$::jsonb,
+total_questions = 15
+WHERE assessment_name LIKE '%ICS%';
+
+-- ============================================================================
+-- MODULE 5: INTERACTING WITH DIVERSE POPULATIONS (15 questions)
+-- ============================================================================
+UPDATE assessments
+SET questions_json = $$[
+    {"question": "What is the primary goal when interacting with a diverse population as a security guard?", "options": ["Treat everyone exactly the same without any accommodations", "Provide professional, respectful service to all individuals regardless of background", "Focus only on people who speak English fluently", "Apply stricter security measures to unfamiliar cultural groups"], "correctAnswer": 1, "explanation": "Provide professional, respectful service to all individuals regardless of background."},
+    {"question": "Under the ADA, what questions can you ask about a service animal?", "options": ["What is your disability? and Can I see certification?", "Is this a service animal? and What task is it trained to perform?", "Where did you get the animal? and How much did it cost?", "You cannot ask any questions about service animals"], "correctAnswer": 1, "explanation": "You can ask: Is this a service animal? and What task is it trained to perform?"},
+    {"question": "What is implicit bias?", "options": ["Openly stated prejudices that you are aware of", "Unconscious attitudes that affect our actions and decisions", "Company policies about who to screen more carefully", "Legal profiling based on statistical crime data"], "correctAnswer": 1, "explanation": "Implicit bias is unconscious attitudes that affect our actions and decisions."},
+    {"question": "How should you handle religious head coverings during security screening?", "options": ["Always require removal for proper security screening", "Respect them and screen without requiring removal when possible", "Only allow them if the person has documentation", "Ask the person to prove their religion is legitimate"], "correctAnswer": 1, "explanation": "Respect them and screen without requiring removal when possible."},
+    {"question": "When communicating with someone who has a hearing impairment, you should:", "options": ["Speak louder and exaggerate your mouth movements", "Face the person, speak clearly, and use written notes if needed", "Avoid interacting and find someone else to help them", "Use hand gestures only without speaking at all"], "correctAnswer": 1, "explanation": "Face the person, speak clearly, and use written notes if needed."},
+    {"question": "What is racial profiling and why is it prohibited?", "options": ["A legal security technique based on crime statistics", "Basing security decisions on race alone - it is illegal discrimination", "A required practice for high-security venues and events", "Profiling is only illegal if done by law enforcement"], "correctAnswer": 1, "explanation": "Racial profiling is basing security decisions on race alone - it is illegal discrimination."},
+    {"question": "How should you interact with someone using a wheelchair?", "options": ["Lean on or touch the wheelchair to be friendly", "Never touch the wheelchair without permission and ensure accessible paths", "Speak to their companion instead of directly to them", "Offer to push them even if they don't ask for help"], "correctAnswer": 1, "explanation": "Never touch the wheelchair without permission and ensure accessible paths."},
+    {"question": "What should you do if you witness discrimination or harassment at your venue?", "options": ["Ignore it unless the victim files a formal complaint", "Intervene immediately, support the victim, and report to supervisors", "Only get involved if it becomes physically violent", "Wait until your shift ends to mention it to someone"], "correctAnswer": 1, "explanation": "Intervene immediately, support the victim, and report to supervisors."},
+    {"question": "When someone has difficulty speaking English, you should:", "options": ["Speak louder and slower in English until they understand", "Use simple language, gestures, and translation apps when available", "Refuse to help them and direct them to find a translator", "Mock their accent to lighten the mood and reduce tension"], "correctAnswer": 1, "explanation": "Use simple language, gestures, and translation apps when available."},
+    {"question": "What is the best approach to cultural differences in personal space?", "options": ["Maintain American standards of personal space with everyone", "Be mindful that personal space norms vary by culture", "Stand as close as possible to show you are friendly", "Avoid interacting with people from different cultures"], "correctAnswer": 1, "explanation": "Be mindful that personal space norms vary by culture."},
+    {"question": "How should you address someone whose gender presentation is unclear to you?", "options": ["Guess their gender based on their appearance", "Use the name and pronouns the person requests", "Avoid speaking to them to prevent making a mistake", "Ask invasive questions about their gender identity"], "correctAnswer": 1, "explanation": "Use the name and pronouns the person requests."},
+    {"question": "What is behavior-based security?", "options": ["Profiling people based on their ethnic background", "Focusing on suspicious actions rather than appearance", "Treating everyone as a potential threat equally", "Only screening people who look nervous or anxious"], "correctAnswer": 1, "explanation": "Behavior-based security focuses on suspicious actions rather than appearance."},
+    {"question": "What does \"Security isn't about sameness—it's about skill in difference\" mean?", "options": ["Everyone should be treated exactly the same way", "Professional service means adapting your approach while maintaining standards", "Different groups require different security standards", "Security should focus only on similarities"], "correctAnswer": 1, "explanation": "Professional service means adapting your approach while maintaining standards."},
+    {"question": "When writing a report, which description is appropriate?", "options": ["\"Suspicious Middle Eastern male loitering\"", "\"Male, approximately 30s, pacing near entrance for 15 minutes, repeatedly checking phone\"", "\"He looked like he was up to something\"", "\"Typical troublemaker from that neighborhood\""], "correctAnswer": 1, "explanation": "Use objective, behavior-based descriptions without racial or ethnic identifiers."},
+    {"question": "What is the best way to communicate with someone who doesn't speak English?", "options": ["Speak louder until they understand", "Use gestures, simple language, translation apps, or find someone who speaks their language", "Give up and call law enforcement", "Refuse to help them"], "correctAnswer": 1, "explanation": "Use gestures, simple language, translation apps, or find someone who speaks their language."}
+]$$::jsonb,
+total_questions = 15
+WHERE assessment_name LIKE '%Diverse%' OR assessment_name LIKE '%Population%';
+
+-- Verify all modules 3-5
 SELECT 
     tm.module_name,
     tm.display_order,
     a.assessment_name,
     a.total_questions,
-    jsonb_array_length(a.questions_json) as actual_questions
+    jsonb_array_length(a.questions_json) as actual_questions,
+    CASE 
+        WHEN jsonb_array_length(a.questions_json) = a.total_questions THEN '✓ Match'
+        ELSE '✗ Mismatch'
+    END as status
 FROM assessments a
 JOIN training_modules tm ON a.module_id = tm.id
-WHERE tm.display_order = 3;
+WHERE tm.display_order IN (3, 4, 5)
+ORDER BY tm.display_order;
