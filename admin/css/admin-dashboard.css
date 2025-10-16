@@ -341,6 +341,28 @@ body {
     visibility: visible !important;
 }
 
+.data-table .table-actions {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.data-table .table-actions .btn-icon {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-flex !important;
+    pointer-events: auto !important;
+}
+
+/* Force buttons to always show - override any hover states */
+.data-table tbody tr .table-actions,
+.data-table tbody tr:hover .table-actions,
+.data-table tbody tr .btn-icon,
+.data-table tbody tr:hover .btn-icon {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-flex !important;
+}
+
 .btn-icon {
     padding: 0.5rem;
     background: none;
