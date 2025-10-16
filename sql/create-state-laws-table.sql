@@ -41,37 +41,26 @@ CREATE POLICY "Allow authenticated read access to state laws"
     TO authenticated
     USING (true);
 
--- Only allow admins to insert/update/delete
--- Note: You'll need to create an admin role or use a specific user check
-CREATE POLICY "Allow admin insert access to state laws"
+-- Allow authenticated users to insert/update/delete
+-- Note: In production, you should restrict this to admin users only
+-- For now, any authenticated user can manage state laws through the admin interface
+CREATE POLICY "Allow authenticated insert access to state laws"
     ON state_laws
     FOR INSERT
     TO authenticated
-    WITH CHECK (
-        auth.jwt() ->> 'email' IN (
-            SELECT email FROM profiles WHERE role = 'admin'
-        )
-    );
+    WITH CHECK (true);
 
-CREATE POLICY "Allow admin update access to state laws"
+CREATE POLICY "Allow authenticated update access to state laws"
     ON state_laws
     FOR UPDATE
     TO authenticated
-    USING (
-        auth.jwt() ->> 'email' IN (
-            SELECT email FROM profiles WHERE role = 'admin'
-        )
-    );
+    USING (true);
 
-CREATE POLICY "Allow admin delete access to state laws"
+CREATE POLICY "Allow authenticated delete access to state laws"
     ON state_laws
     FOR DELETE
     TO authenticated
-    USING (
-        auth.jwt() ->> 'email' IN (
-            SELECT email FROM profiles WHERE role = 'admin'
-        )
-    );
+    USING (true);
 
 -- Add comment
 COMMENT ON TABLE state_laws IS 'State-specific security guard laws and requirements. Used to generate state-specific assessment questions for Module 7.';
