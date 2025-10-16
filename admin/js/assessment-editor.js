@@ -179,22 +179,20 @@ function renderQuestionsList() {
                 ${q.options?.map((option, optIndex) => {
                     const escapedOption = (option || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                     return `
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center; width: 100%;">
+                    <div class="answer-option-row">
                         <input 
                             type="radio" 
                             name="correct_${index}" 
                             ${q.correctAnswer === optIndex ? 'checked' : ''}
                             onchange="updateQuestion(${index}, 'correctAnswer', ${optIndex})"
                             title="Mark as correct answer"
-                            style="flex-shrink: 0;"
                         >
                         <input 
                             type="text" 
-                            class="form-control" 
+                            class="answer-option-input" 
                             value="${escapedOption}" 
                             onchange="updateQuestionOption(${index}, ${optIndex}, this.value)"
                             placeholder="Option ${optIndex + 1}"
-                            style="flex: 1; min-width: 0; width: 100%;"
                         >
                     </div>
                 `;
