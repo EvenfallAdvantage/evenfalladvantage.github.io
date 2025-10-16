@@ -336,16 +336,19 @@ body {
 .table-actions {
     display: flex;
     gap: 0.5rem;
+    justify-content: flex-end;
 }
 
 .btn-icon {
     padding: 0.5rem;
     background: none;
     border: none;
-    color: var(--admin-text-secondary);
+    color: var(--admin-text);
     cursor: pointer;
     border-radius: 0.25rem;
     transition: all 0.3s ease;
+    opacity: 1;
+    visibility: visible;
 }
 
 .btn-icon:hover {

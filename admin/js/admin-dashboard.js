@@ -230,7 +230,8 @@ async function loadStudents() {
             .from('students')
             .select(`
                 *,
-                student_profiles(*)
+                student_profiles(*),
+                student_module_progress(*)
             `)
             .order('created_at', { ascending: false });
 
@@ -254,6 +255,13 @@ function displayStudents(students) {
 
     tbody.innerHTML = students.map(student => {
         const profile = student.student_profiles?.[0] || {};
+        const moduleProgress = student.student_module_progress || [];
+        
+        // Calculate overall progress (completed modules / total modules)
+        const completedModules = moduleProgress.filter(p => p.completed_at).length;
+        const totalModules = 8; // Total number of training modules
+        const progressPercentage = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+        
         return `
             <tr data-student-id="${student.id}">
                 <td>${student.first_name} ${student.last_name}</td>
@@ -262,8 +270,9 @@ function displayStudents(students) {
                 <td>${new Date(student.created_at).toLocaleDateString()}</td>
                 <td>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: 0%"></div>
+                        <div class="progress-fill" style="width: ${progressPercentage}%"></div>
                     </div>
+                    <small style="color: var(--admin-text-secondary); font-size: 0.75rem;">${completedModules}/${totalModules} modules</small>
                 </td>
                 <td class="table-actions">
                     <button class="btn-icon" onclick="viewStudent('${student.id}')" title="View">
