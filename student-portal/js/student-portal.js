@@ -4770,16 +4770,23 @@ function addActivity(description) {
 }
 
 // Get best assessment attempt for each unique module
+// For Module 7, keeps separate entries for each state
 function getBestAssessmentAttempts() {
     const bestByModule = {};
     
     // Group by module and keep only the highest score
+    // For Module 7 (use-of-force), group by module + state
     progressData.assessmentResults.forEach(result => {
         const moduleCode = result.module || result.assessment;
         if (!moduleCode) return;
         
-        if (!bestByModule[moduleCode] || result.score > bestByModule[moduleCode].score) {
-            bestByModule[moduleCode] = result;
+        // For Module 7, create unique key per state
+        const key = moduleCode === 'use-of-force' && result.state_code
+            ? `${moduleCode}-${result.state_code}`
+            : moduleCode;
+        
+        if (!bestByModule[key] || result.score > bestByModule[key].score) {
+            bestByModule[key] = result;
         }
     });
     
@@ -4825,9 +4832,12 @@ function updateProgressDisplay() {
             'comprehensive': 'Comprehensive Guard Certification'
         };
         
-        const assessmentHistoryHTML = progressData.assessmentResults
+        // Get best attempts (deduplicated by module and state)
+        const bestAttempts = getBestAssessmentAttempts();
+        
+        const assessmentHistoryHTML = bestAttempts
             .slice()
-            .reverse() // Show most recent first
+            .sort((a, b) => new Date(b.date) - new Date(a.date)) // Sort by date, most recent first
             .map((result, index) => {
                 const date = new Date(result.date);
                 const passed = result.score >= 70;
@@ -4861,7 +4871,7 @@ function updateProgressDisplay() {
                         </div>
                         <div class="assessment-history-actions">
                             <span class="status-text ${statusClass}">${statusText}</span>
-                            <button class="btn btn-small btn-secondary" onclick="reviewPastAssessment(${progressData.assessmentResults.length - 1 - index})">
+                            <button class="btn btn-small btn-secondary" onclick="reviewPastAssessment(${index}, true)">
                                 <i class="fas fa-eye"></i> Review Answers
                             </button>
                         </div>
@@ -4979,11 +4989,19 @@ async function updateModuleProgressDisplay() {
 }
 
 // Review past assessment from history
-function reviewPastAssessment(resultIndex) {
-    console.log('reviewPastAssessment called with index:', resultIndex);
+function reviewPastAssessment(resultIndex, fromBestAttempts = false) {
+    console.log('reviewPastAssessment called with index:', resultIndex, 'fromBestAttempts:', fromBestAttempts);
     console.log('Total results:', progressData.assessmentResults.length);
     
-    const result = progressData.assessmentResults[resultIndex];
+    // If coming from best attempts display, get the result from best attempts array
+    let result;
+    if (fromBestAttempts) {
+        const bestAttempts = getBestAssessmentAttempts();
+        const sortedAttempts = bestAttempts.sort((a, b) => new Date(b.date) - new Date(a.date));
+        result = sortedAttempts[resultIndex];
+    } else {
+        result = progressData.assessmentResults[resultIndex];
+    }
     console.log('Result:', result);
     
     if (!result) {
