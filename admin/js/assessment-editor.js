@@ -176,7 +176,9 @@ function renderQuestionsList() {
 
             <div class="form-group">
                 <label>Answer Options</label>
-                ${q.options?.map((option, optIndex) => `
+                ${q.options?.map((option, optIndex) => {
+                    const escapedOption = (option || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    return `
                     <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;">
                         <input 
                             type="radio" 
@@ -188,13 +190,14 @@ function renderQuestionsList() {
                         <input 
                             type="text" 
                             class="form-control" 
-                            value="${option}" 
+                            value="${escapedOption}" 
                             onchange="updateQuestionOption(${index}, ${optIndex}, this.value)"
                             placeholder="Option ${optIndex + 1}"
                             style="flex: 1;"
                         >
                     </div>
-                `).join('') || ''}
+                `;
+                }).join('') || ''}
             </div>
 
             <div class="form-group">
