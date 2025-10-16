@@ -334,9 +334,11 @@ body {
 }
 
 .table-actions {
-    display: flex;
+    display: flex !important;
     gap: 0.5rem;
     justify-content: flex-end;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 .btn-icon {
@@ -347,8 +349,9 @@ body {
     cursor: pointer;
     border-radius: 0.25rem;
     transition: all 0.3s ease;
-    opacity: 1;
-    visibility: visible;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-flex !important;
 }
 
 .btn-icon:hover {
