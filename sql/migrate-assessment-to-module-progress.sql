@@ -8,6 +8,7 @@ SELECT
     s.email,
     a.module_id,
     tm.module_name,
+    tm.display_order,
     MAX(ar.score) as best_score,
     MAX(ar.completed_at) as latest_completion
 FROM assessment_results ar
@@ -23,7 +24,7 @@ AND NOT EXISTS (
     AND smp.module_id = a.module_id
     AND smp.status = 'completed'
 )
-GROUP BY ar.student_id, s.email, a.module_id, tm.module_name
+GROUP BY ar.student_id, s.email, a.module_id, tm.module_name, tm.display_order
 ORDER BY s.email, tm.display_order;
 
 -- STEP 2: Create module progress records for passed assessments
