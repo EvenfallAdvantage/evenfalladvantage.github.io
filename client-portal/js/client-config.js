@@ -145,17 +145,27 @@ const ClientData = {
                 .select('*');
             
             // Get all module progress
+            console.log('Fetching module progress...');
             const { data: moduleProgress, error: progressError } = await supabase
                 .from('student_module_progress')
                 .select('*');
             
+            console.log('Module progress query result:', {
+                data: moduleProgress,
+                error: progressError,
+                count: moduleProgress?.length || 0
+            });
+            
             if (progressError) {
-                console.error('Error loading module progress:', progressError);
+                console.error('❌ Error loading module progress:', progressError);
+                console.error('Error details:', JSON.stringify(progressError, null, 2));
             }
             
             console.log('Module progress records:', moduleProgress?.length || 0);
             if (moduleProgress && moduleProgress.length > 0) {
                 console.log('Sample progress record:', moduleProgress[0]);
+            } else {
+                console.warn('⚠️ No module progress records found - check RLS policies and data');
             }
             
             // Manually join the data
