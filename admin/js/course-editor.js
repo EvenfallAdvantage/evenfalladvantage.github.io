@@ -1,5 +1,30 @@
 // Course Editor Functions
 
+let stateLaws = {}; // Store state laws data
+let selectedModuleStateCode = null; // For Module 7
+
+// Load state laws from database
+async function loadStateLawsForModule() {
+    try {
+        const { data: states, error } = await supabase
+            .from('state_laws')
+            .select('*')
+            .order('state_name');
+        
+        if (error) throw error;
+        
+        // Convert to object keyed by state_code
+        stateLaws = {};
+        states.forEach(state => {
+            stateLaws[state.state_code] = state;
+        });
+        
+        console.log('Loaded state laws for module editor:', Object.keys(stateLaws).length, 'states');
+    } catch (error) {
+        console.error('Error loading state laws:', error);
+    }
+}
+
 // Edit existing course
 async function editCourse(id) {
     try {
@@ -11,6 +36,11 @@ async function editCourse(id) {
             .single();
 
         if (error) throw error;
+
+        // Load state laws if this is Module 7 and not already loaded
+        if (module.module_code === 'use-of-force' && Object.keys(stateLaws).length === 0) {
+            await loadStateLawsForModule();
+        }
 
         // Load slides
         const { data: slides, error: slidesError } = await supabase
@@ -32,6 +62,27 @@ async function editCourse(id) {
 function showCourseEditorModal(module = null, slides = []) {
     const isEdit = module !== null;
     const title = isEdit ? 'Edit Module' : 'Create New Module';
+    const isUseOfForce = module?.module_code === 'use-of-force';
+    
+    // Generate state selector if this is Module 7 (Use of Force)
+    const stateSelector = isUseOfForce ? `
+        <div style="background: #e3f2fd; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid #2196F3;">
+            <p style="margin: 0 0 0.5rem 0; font-weight: bold; color: #1976D2;">
+                <i class="fas fa-map-marker-alt"></i> State-Specific Module Content
+            </p>
+            <p style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: #555;">
+                Select a state to edit its specific Use of Force slides:
+            </p>
+            <select id="moduleStateSelector" onchange="changeModuleState(this.value)" style="width: 100%; padding: 0.75rem; border: 2px solid #2196F3; border-radius: 0.5rem; font-size: 1rem;">
+                <option value="">-- Select a State --</option>
+                ${Object.keys(stateLaws).sort((a, b) => stateLaws[a].state_name.localeCompare(stateLaws[b].state_name)).map(code => `
+                    <option value="${code}" ${selectedModuleStateCode === code ? 'selected' : ''}>
+                        ${stateLaws[code].state_name} (${code})
+                    </option>
+                `).join('')}
+            </select>
+        </div>
+    ` : '';
     
     const modalHTML = `
         <div class="modal-overlay" onclick="closeModal(event)">
@@ -44,6 +95,8 @@ function showCourseEditorModal(module = null, slides = []) {
                 </div>
                 <div class="modal-body">
                     <form id="courseEditorForm" onsubmit="${isEdit ? `updateCourse(event, '${module.id}')` : 'createCourse(event)'}">
+                        ${stateSelector}
+                        
                         <!-- Module Details -->
                         <div class="course-details-section">
                             <h3>Module Details</h3>
@@ -879,6 +932,87 @@ window.removeSlide = removeSlide;
 window.moveSlideUp = moveSlideUp;
 window.moveSlideDown = moveSlideDown;
 window.updateSlideType = updateSlideType;
+// Change state for Module 7 slides
+async function changeModuleState(stateCode) {
+    if (!stateCode) {
+        selectedModuleStateCode = null;
+        // Clear slides container
+        const slidesContainer = document.getElementById('slidesContainer');
+        if (slidesContainer) {
+            slidesContainer.innerHTML = '<p class="no-slides">Select a state to load state-specific slides.</p>';
+        }
+        return;
+    }
+    
+    selectedModuleStateCode = stateCode;
+    const stateInfo = stateLaws[stateCode];
+    console.log('Changed to state:', stateCode, stateInfo.state_name);
+    
+    // Generate state-specific slides
+    const stateSlides = generateStateSpecificSlides(stateInfo, stateCode);
+    
+    // Update slides container
+    const slidesContainer = document.getElementById('slidesContainer');
+    if (slidesContainer) {
+        slidesContainer.innerHTML = stateSlides.map((slide, index) => createSlideHTML(slide, index)).join('');
+        
+        // Initialize Quill editors for the new slides
+        setTimeout(() => {
+            stateSlides.forEach((slide, index) => {
+                initializeQuillEditor(index);
+            });
+        }, 100);
+    }
+}
+
+// Generate state-specific slides for Module 7
+function generateStateSpecificSlides(stateInfo, stateCode) {
+    return [
+        {
+            slide_number: 1,
+            title: 'Legal Aspects & Use of Force',
+            content: `<h3>Legal Aspects & Use of Force</h3>
+                <p class="hero-subtitle">${stateInfo.state_name} State Compliance</p>
+                <div class="slide-callout">
+                    <p><strong>Module Overview:</strong> This module covers the legal framework governing security operations in ${stateInfo.state_name}, including licensing requirements, use of force guidelines, and regulatory compliance.</p>
+                </div>`
+        },
+        {
+            slide_number: 2,
+            title: `${stateInfo.state_name} Licensing Requirements`,
+            content: `<h3>Licensing Requirements</h3>
+                <p><strong>${stateInfo.licensing}</strong></p>
+                <p><strong>Minimum Age:</strong> ${stateInfo.min_age}</p>
+                <p><strong>Training Hours:</strong> ${stateInfo.training_hours}</p>`
+        },
+        {
+            slide_number: 3,
+            title: 'Use of Force Guidelines',
+            content: `<h3>Use of Force in ${stateInfo.state_name}</h3>
+                <p>${stateInfo.use_of_force}</p>`
+        },
+        {
+            slide_number: 4,
+            title: "Citizen's Arrest",
+            content: `<h3>Citizen's Arrest Laws</h3>
+                <p>${stateInfo.citizens_arrest}</p>`
+        },
+        {
+            slide_number: 5,
+            title: 'Weapons Regulations',
+            content: `<h3>Weapons Policy</h3>
+                <p>${stateInfo.weapons}</p>`
+        },
+        {
+            slide_number: 6,
+            title: 'Regulatory Agency',
+            content: `<h3>Oversight & Compliance</h3>
+                <p><strong>Regulatory Agency:</strong> ${stateInfo.regulatory_agency}</p>
+                ${stateInfo.notes ? `<p><strong>Additional Notes:</strong> ${stateInfo.notes}</p>` : ''}`
+        }
+    ];
+}
+
 window.previewImage = previewImage;
 window.previewVideo = previewVideo;
 window.removeMedia = removeMedia;
@@ -889,3 +1023,4 @@ window.closeIconPicker = closeIconPicker;
 window.selectIcon = selectIcon;
 window.filterIcons = filterIcons;
 window.showCreateCourseModal = () => showCourseEditorModal(null, []);
+window.changeModuleState = changeModuleState;
