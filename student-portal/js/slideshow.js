@@ -3189,6 +3189,25 @@ async function startModule(moduleId) {
     currentModuleId = moduleId;
     currentSlideIndex = 0;
     
+    // Special handling for Module 7 (Use of Force) - needs state selection
+    if (moduleId === 'use-of-force') {
+        const selectedState = localStorage.getItem('selectedState');
+        
+        // If no state selected or state laws not loaded, show state selection modal
+        if (!selectedState || !window.stateLaws || Object.keys(window.stateLaws).length === 0) {
+            if (window.showStateSelectionModal) {
+                await window.showStateSelectionModal();
+                return; // State selection modal will call startModuleWithState
+            }
+        } else {
+            // State already selected, regenerate slides with current state
+            if (window.startModuleWithState) {
+                await window.startModuleWithState(moduleId, selectedState);
+                return;
+            }
+        }
+    }
+    
     try {
         // First, try to load slides from database
         const { data: module, error: moduleError } = await supabase
