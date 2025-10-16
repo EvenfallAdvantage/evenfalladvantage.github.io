@@ -145,11 +145,18 @@ const ClientData = {
                 .select('*');
             
             // Get all module progress
-            const { data: moduleProgress } = await supabase
+            const { data: moduleProgress, error: progressError } = await supabase
                 .from('student_module_progress')
                 .select('*');
             
-            console.log('Module progress records:', moduleProgress?.length);
+            if (progressError) {
+                console.error('Error loading module progress:', progressError);
+            }
+            
+            console.log('Module progress records:', moduleProgress?.length || 0);
+            if (moduleProgress && moduleProgress.length > 0) {
+                console.log('Sample progress record:', moduleProgress[0]);
+            }
             
             // Manually join the data
             const enrichedStudents = students?.map(student => {
