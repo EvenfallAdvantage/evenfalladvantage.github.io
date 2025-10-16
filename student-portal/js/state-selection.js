@@ -141,10 +141,10 @@ async function startModuleWithState(moduleId, stateCode) {
         console.log('Attempting to start slideshow...');
         if (originalStartModuleFromSlideshow) {
             console.log('Using originalStartModuleFromSlideshow');
-            await originalStartModuleFromSlideshow(moduleId);
+            await originalStartModuleFromSlideshow(moduleId, true); // Pass true to skip state check
         } else if (window.startModule) {
             console.log('Using window.startModule');
-            await window.startModule(moduleId);
+            await window.startModule(moduleId, true); // Pass true to skip state check
         } else {
             console.error('startModule function not available. Trying direct initialization...');
             // Fallback: manually initialize slideshow

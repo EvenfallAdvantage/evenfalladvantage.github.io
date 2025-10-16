@@ -3185,12 +3185,13 @@ const moduleSlidesData = {
 };
 
 // Initialize slideshow for a module
-async function startModule(moduleId) {
+async function startModule(moduleId, skipStateCheck = false) {
     currentModuleId = moduleId;
     currentSlideIndex = 0;
     
     // Special handling for Module 7 (Use of Force) - needs state selection
-    if (moduleId === 'use-of-force') {
+    // Only do this check if not already coming from startModuleWithState
+    if (moduleId === 'use-of-force' && !skipStateCheck) {
         const selectedState = localStorage.getItem('selectedState');
         
         // If no state selected or state laws not loaded, show state selection modal
