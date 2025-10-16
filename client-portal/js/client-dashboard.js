@@ -483,14 +483,28 @@ async function viewCandidate(studentId) {
         return;
     }
     
-    // Get module progress
+    // Get module progress with module details
     const { data: progress } = await supabase
         .from('student_module_progress')
-        .select('*')
-        .eq('student_id', studentId);
+        .select(`
+            *,
+            training_modules (
+                module_name,
+                module_code,
+                display_order
+            )
+        `)
+        .eq('student_id', studentId)
+        .order('training_modules(display_order)');
     
     const moduleProgress = Array.isArray(progress) ? progress : [];
     const completedModules = moduleProgress.filter(p => p.status === 'completed').length;
+    
+    // Get all training modules to show which ones are not completed
+    const { data: allModules } = await supabase
+        .from('training_modules')
+        .select('*')
+        .order('display_order');
     
     // Get certifications
     const { data: certifications } = await supabase
@@ -576,7 +590,30 @@ async function viewCandidate(studentId) {
                     
                     <div class="profile-section">
                         <h4>Training Progress</h4>
-                        <p><strong>${completedModules}/7</strong> modules completed</p>
+                        <p style="margin-bottom: 1rem;"><strong>${completedModules}/${allModules?.length || 7}</strong> modules completed</p>
+                        
+                        <div class="module-progress-list">
+                            ${allModules?.map(module => {
+                                const progress = moduleProgress.find(p => p.module_id === module.id);
+                                const isCompleted = progress?.status === 'completed';
+                                const completedDate = progress?.completed_at ? new Date(progress.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+                                
+                                return `
+                                    <div class="module-progress-item" style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background: ${isCompleted ? '#e8f5e9' : '#f5f5f5'}; border-radius: 0.5rem; border-left: 4px solid ${isCompleted ? '#4caf50' : '#ddd'};">
+                                        <div style="flex: 0 0 40px;">
+                                            <i class="fas ${isCompleted ? 'fa-check-circle' : 'fa-circle'}" style="color: ${isCompleted ? '#4caf50' : '#ccc'}; font-size: 1.5rem;"></i>
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <div style="font-weight: 600; color: #333;">${module.module_name}</div>
+                                            ${isCompleted ? `<div style="font-size: 0.875rem; color: #666;">Completed ${completedDate}</div>` : `<div style="font-size: 0.875rem; color: #999;">Not completed</div>`}
+                                        </div>
+                                        <div style="flex: 0 0 auto;">
+                                            ${isCompleted ? `<span style="padding: 0.25rem 0.75rem; background: #4caf50; color: white; border-radius: 1rem; font-size: 0.875rem; font-weight: 600;">✓ Complete</span>` : `<span style="padding: 0.25rem 0.75rem; background: #ddd; color: #666; border-radius: 1rem; font-size: 0.875rem;">Pending</span>`}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('') || '<p>No modules found</p>'}
+                        </div>
                     </div>
                     
                     ${profile.certifications_completed && profile.certifications_completed.length > 0 ? `
