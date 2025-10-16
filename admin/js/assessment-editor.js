@@ -2,6 +2,8 @@
 
 let currentAssessment = null;
 let currentQuestions = [];
+let selectedStateCode = null; // For Use of Force assessment
+let stateLaws = {}; // Store state laws data
 
 // Load all assessments
 async function loadAssessments() {
@@ -81,9 +83,36 @@ function filterAssessments() {
     });
 }
 
+// Load state laws from database
+async function loadStateLaws() {
+    try {
+        const { data: states, error } = await supabase
+            .from('state_laws')
+            .select('*')
+            .order('state_name');
+        
+        if (error) throw error;
+        
+        // Convert to object keyed by state_code
+        stateLaws = {};
+        states.forEach(state => {
+            stateLaws[state.state_code] = state;
+        });
+        
+        console.log('Loaded state laws:', Object.keys(stateLaws).length, 'states');
+    } catch (error) {
+        console.error('Error loading state laws:', error);
+    }
+}
+
 // Edit assessment questions
 async function editAssessment(id) {
     try {
+        // Load state laws if not already loaded
+        if (Object.keys(stateLaws).length === 0) {
+            await loadStateLaws();
+        }
+        
         // Load assessment data
         const { data: assessment, error } = await supabase
             .from('assessments')
@@ -113,6 +142,28 @@ async function editAssessment(id) {
 
 // Show assessment editor modal
 function showAssessmentEditorModal() {
+    const isUseOfForce = currentAssessment.training_modules?.module_code === 'use-of-force';
+    
+    // Generate state selector if this is Use of Force assessment
+    const stateSelector = isUseOfForce ? `
+        <div style="background: #e3f2fd; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid #2196F3;">
+            <p style="margin: 0 0 0.5rem 0; font-weight: bold; color: #1976D2;">
+                <i class="fas fa-map-marker-alt"></i> State-Specific Questions
+            </p>
+            <p style="margin: 0 0 0.75rem 0; font-size: 0.875rem; color: #555;">
+                Select a state to edit its specific Use of Force questions:
+            </p>
+            <select id="stateSelector" onchange="changeState(this.value)" style="width: 100%; padding: 0.75rem; border: 2px solid #2196F3; border-radius: 0.5rem; font-size: 1rem;">
+                <option value="">-- Select a State --</option>
+                ${Object.keys(stateLaws).sort((a, b) => stateLaws[a].state_name.localeCompare(stateLaws[b].state_name)).map(code => `
+                    <option value="${code}" ${selectedStateCode === code ? 'selected' : ''}>
+                        ${stateLaws[code].state_name} (${code})
+                    </option>
+                `).join('')}
+            </select>
+        </div>
+    ` : '';
+    
     const modalHTML = `
         <div class="modal-overlay" onclick="closeModal(event)">
             <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;" onclick="event.stopPropagation()">
@@ -127,6 +178,8 @@ function showAssessmentEditorModal() {
                         <p style="margin: 0;"><strong>Total Questions:</strong> ${currentQuestions.length}</p>
                         <p style="margin: 0.5rem 0 0 0;"><strong>Passing Score:</strong> ${currentAssessment.passing_score}%</p>
                     </div>
+
+                    ${stateSelector}
 
                     <div id="questionsList">
                         ${renderQuestionsList()}
@@ -244,6 +297,109 @@ function deleteQuestion(index) {
         currentQuestions.splice(index, 1);
         document.getElementById('questionsList').innerHTML = renderQuestionsList();
     }
+}
+
+// Change state for Use of Force assessment
+async function changeState(stateCode) {
+    if (!stateCode) {
+        selectedStateCode = null;
+        currentQuestions = [];
+        document.getElementById('questionsList').innerHTML = renderQuestionsList();
+        return;
+    }
+    
+    selectedStateCode = stateCode;
+    console.log('Changed to state:', stateCode, stateLaws[stateCode].state_name);
+    
+    // Generate state-specific questions based on the selected state
+    const stateInfo = stateLaws[stateCode];
+    currentQuestions = generateStateSpecificQuestions(stateInfo, stateCode);
+    
+    // Refresh the questions list
+    document.getElementById('questionsList').innerHTML = renderQuestionsList();
+}
+
+// Generate state-specific questions for Use of Force
+function generateStateSpecificQuestions(stateInfo, stateCode) {
+    return [
+        {
+            question: `What is the minimum age requirement to work as a security guard in ${stateInfo.state_name}?`,
+            options: [
+                stateInfo.min_age,
+                '16 years old',
+                '21 years old',
+                '25 years old'
+            ],
+            correctAnswer: 0,
+            explanation: `In ${stateInfo.state_name}, security guards must be at least ${stateInfo.min_age}.`
+        },
+        {
+            question: `What are the training hour requirements for security guards in ${stateInfo.state_name}?`,
+            options: [
+                stateInfo.training_hours,
+                'No training required',
+                '40 hours minimum',
+                '80 hours minimum'
+            ],
+            correctAnswer: 0,
+            explanation: `${stateInfo.state_name} requires: ${stateInfo.training_hours}`
+        },
+        {
+            question: `What is the licensing requirement for unarmed security guards in ${stateInfo.state_name}?`,
+            options: [
+                stateInfo.licensing,
+                'Federal license required',
+                'No license needed',
+                'Must be a sworn officer'
+            ],
+            correctAnswer: 0,
+            explanation: `${stateInfo.state_name} licensing: ${stateInfo.licensing}`
+        },
+        {
+            question: `What are the use of force guidelines in ${stateInfo.state_name}?`,
+            options: [
+                stateInfo.use_of_force,
+                'Unlimited force allowed',
+                'No force permitted',
+                'Only deadly force allowed'
+            ],
+            correctAnswer: 0,
+            explanation: `${stateInfo.state_name} use of force policy: ${stateInfo.use_of_force}`
+        },
+        {
+            question: `What are the citizen's arrest laws in ${stateInfo.state_name}?`,
+            options: [
+                stateInfo.citizens_arrest,
+                'Not permitted',
+                'Only for federal crimes',
+                'Unlimited authority'
+            ],
+            correctAnswer: 0,
+            explanation: `${stateInfo.state_name} citizen's arrest: ${stateInfo.citizens_arrest}`
+        },
+        {
+            question: `What are the weapons regulations for security guards in ${stateInfo.state_name}?`,
+            options: [
+                stateInfo.weapons,
+                'All weapons permitted',
+                'No weapons allowed',
+                'Only firearms allowed'
+            ],
+            correctAnswer: 0,
+            explanation: `${stateInfo.state_name} weapons policy: ${stateInfo.weapons}`
+        },
+        {
+            question: `Which agency regulates security guards in ${stateInfo.state_name}?`,
+            options: [
+                stateInfo.regulatory_agency,
+                'FBI',
+                'Local police only',
+                'No regulation'
+            ],
+            correctAnswer: 0,
+            explanation: `${stateInfo.state_name} is regulated by: ${stateInfo.regulatory_agency}`
+        }
+    ];
 }
 
 // Save assessment questions
