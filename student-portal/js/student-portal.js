@@ -4106,44 +4106,130 @@ const assessmentQuestions = {
 // Load assessment questions from database
 async function loadAssessmentQuestions(moduleCode) {
     try {
-        // Get assessment for this module
-        const { data: assessments, error: assessmentError } = await supabase
-            .from('assessments')
+        // Get module and assessment
+        const { data: module, error: moduleError } = await supabase
+            .from('training_modules')
             .select('id')
-            .eq('module_id', (await supabase
-                .from('training_modules')
-                .select('id')
-                .eq('module_code', moduleCode)
-                .single()
-            ).data?.id)
+            .eq('module_code', moduleCode)
             .single();
         
-        if (assessmentError || !assessments) {
+        if (moduleError || !module) {
+            console.warn('No module found for code:', moduleCode);
+            return null;
+        }
+        
+        const { data: assessment, error: assessmentError } = await supabase
+            .from('assessments')
+            .select('id, questions_json, assessment_name')
+            .eq('module_id', module.id)
+            .single();
+        
+        if (assessmentError || !assessment) {
             console.warn('No assessment found for module:', moduleCode);
             return null;
         }
         
-        // Get questions for this assessment
-        const { data: dbQuestions, error: questionsError } = await supabase
-            .from('assessment_questions')
-            .select('*')
-            .eq('assessment_id', assessments.id)
-            .order('question_number');
-        
-        if (questionsError) throw questionsError;
-        
-        if (!dbQuestions || dbQuestions.length === 0) {
-            console.warn('No questions found for assessment:', assessments.id);
-            return null;
+        // Parse questions from JSON column
+        let questions = [];
+        if (assessment.questions_json && Array.isArray(assessment.questions_json)) {
+            questions = assessment.questions_json.map(q => ({
+                question: q.question,
+                options: q.options,
+                correct: q.correctAnswer,
+                explanation: q.explanation || ''
+            }));
         }
         
-        // Convert database format to app format
-        const questions = dbQuestions.map(q => ({
-            question: q.question_text,
-            options: [q.option_a, q.option_b, q.option_c, q.option_d],
-            correct: ['A', 'B', 'C', 'D'].indexOf(q.correct_answer),
-            explanation: q.explanation || ''
-        }));
+        // Special handling for Module 7 (Use of Force) - combine with state-specific questions
+        if (moduleCode === 'use-of-force' && window.getStateSpecificQuestions) {
+            const selectedState = localStorage.getItem('selectedState');
+            if (selectedState && window.stateLaws && window.stateLaws[selectedState]) {
+                const stateInfo = window.stateLaws[selectedState];
+                
+                // Generate 7 state-specific questions
+                const stateQuestions = [
+                    {
+                        question: `What is the licensing requirement for security guards in ${stateInfo.name}?`,
+                        options: [
+                            'No license required in any circumstance',
+                            stateInfo.licensing,
+                            'Federal license required from DHS',
+                            'Only armed guards need licensing'
+                        ],
+                        correct: 1
+                    },
+                    {
+                        question: `What are the training hour requirements in ${stateInfo.name}?`,
+                        options: [
+                            'No mandatory training required',
+                            '100 hours minimum before starting',
+                            stateInfo.trainingHours,
+                            'Training is optional and recommended'
+                        ],
+                        correct: 2
+                    },
+                    {
+                        question: `What is the minimum age to work as a security guard in ${stateInfo.name}?`,
+                        options: [
+                            '16 years old',
+                            '21 years old',
+                            stateInfo.minAge,
+                            '25 years old'
+                        ],
+                        correct: 2
+                    },
+                    {
+                        question: `Regarding use of force in ${stateInfo.name}:`,
+                        options: [
+                            'Security guards have the same authority as police',
+                            'Any force is allowed to protect property',
+                            stateInfo.useOfForce,
+                            'Force is never allowed under any circumstances'
+                        ],
+                        correct: 2
+                    },
+                    {
+                        question: `What is the citizen's arrest law in ${stateInfo.name}?`,
+                        options: [
+                            'Citizen\'s arrest is completely prohibited',
+                            'Allowed for any crime witnessed',
+                            stateInfo.citizensArrest,
+                            'Only police can make arrests'
+                        ],
+                        correct: 2
+                    },
+                    {
+                        question: `What are the weapons regulations for security guards in ${stateInfo.name}?`,
+                        options: [
+                            'All guards can carry any weapons',
+                            'Weapons are completely prohibited',
+                            stateInfo.weapons,
+                            'Only pepper spray is allowed'
+                        ],
+                        correct: 2
+                    },
+                    {
+                        question: `Which agency regulates security guards in ${stateInfo.name}?`,
+                        options: [
+                            'Federal Bureau of Investigation (FBI)',
+                            'Department of Homeland Security',
+                            stateInfo.agency,
+                            'Local police departments only'
+                        ],
+                        correct: 2
+                    }
+                ];
+                
+                // Combine state-specific questions (first) with general questions (from database)
+                questions = [...stateQuestions, ...questions];
+                console.log(`Loaded ${questions.length} questions for ${moduleCode} (7 state-specific + ${questions.length - 7} general)`);
+            }
+        }
+        
+        if (questions.length === 0) {
+            console.warn('No questions found for assessment:', assessment.id);
+            return null;
+        }
         
         console.log(`Loaded ${questions.length} questions from database for ${moduleCode}`);
         return questions;
