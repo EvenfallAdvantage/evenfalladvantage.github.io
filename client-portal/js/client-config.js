@@ -126,6 +126,42 @@ const ClientData = {
         }
     },
 
+    async getCandidates() {
+        try {
+            console.log('getCandidates called');
+            
+            // Get all students with their profiles and progress
+            const { data: students, error: studentsError } = await supabase
+                .from('students')
+                .select(`
+                    id, 
+                    first_name, 
+                    last_name, 
+                    email,
+                    student_profiles (*),
+                    student_module_progress (*)
+                `);
+            
+            if (studentsError) throw studentsError;
+            
+            console.log('Students found:', students?.length);
+            
+            // Filter for students with visible profiles
+            const visibleData = students?.filter(student => {
+                const profile = student.student_profiles;
+                if (!profile) return false;
+                return profile.profile_visible === true;
+            }) || [];
+            
+            console.log(`Visible candidates: ${visibleData.length}`);
+            
+            return { success: true, data: visibleData };
+        } catch (error) {
+            console.error('Get candidates error:', error);
+            return { success: false, error: error.message, data: [] };
+        }
+    },
+
     async searchCandidates(filters = {}) {
         try {
             console.log('searchCandidates called with filters:', filters);
