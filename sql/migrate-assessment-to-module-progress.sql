@@ -35,7 +35,6 @@ INSERT INTO student_module_progress (
     module_id,
     status,
     progress_percentage,
-    last_accessed,
     completed_at
 )
 SELECT 
@@ -43,7 +42,6 @@ SELECT
     a.module_id,
     'completed' as status,
     100 as progress_percentage,
-    MAX(ar.completed_at) as last_accessed,
     MAX(ar.completed_at) as completed_at
 FROM assessment_results ar
 JOIN assessments a ON ar.assessment_id = a.id
@@ -61,8 +59,7 @@ ON CONFLICT (student_id, module_id)
 DO UPDATE SET
     status = 'completed',
     progress_percentage = 100,
-    completed_at = EXCLUDED.completed_at,
-    last_accessed = EXCLUDED.last_accessed;
+    completed_at = EXCLUDED.completed_at;
 
 -- STEP 3: Verify the migration
 SELECT 
