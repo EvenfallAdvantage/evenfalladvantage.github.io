@@ -2,20 +2,21 @@
 -- This migrates ALL hardcoded questions from student-portal.js to the assessments table
 -- Run this AFTER running add-questions-json-column.sql
 
--- First, let's map the assessment IDs to module names:
--- 'crowd-management' = Module 4: Crowd Management & Public Safety (15 questions)
--- 'emergency-response' = Module 5: Emergency Response Procedures (12 questions)
--- 'access-screening' = Module 6: Access Control & Screening (10 questions)
--- 'communication-protocols' = Module 2: Security Radio Communications (20 questions)
--- 'threat-assessment' = Module 3: Threat Assessment & De-escalation (20 questions)
--- 'ics-100' = Module 1: Introduction to Event Security / ICS-100 (15 questions)
--- 'diverse-population' = Additional module (15 questions)
--- 'stop-the-bleed' = Additional module (13 questions)
+-- First, let's map the assessment IDs to module names (CORRECT ORDER):
+-- 'communication-protocols' = Module 1: Security Radio Communications (20 questions)
+-- 'stop-the-bleed' = Module 2: STOP THE BLEED (13 questions)
+-- 'threat-assessment' = Module 3: Threat Assessment & Situational Awareness (20 questions)
+-- 'ics-100' = Module 4: Introduction to ICS-100 (15 questions)
+-- 'diverse-population' = Module 5: Serving Diverse Populations (15 questions)
+-- 'crowd-management' = Module 6: Crowd Management & Public Safety (15 questions)
+-- 'emergency-response' OR 'access-screening' = Module 7: varies by implementation
+
+-- NOTE: Run check-module-order.sql first to verify your exact module order!
 
 -- Note: Using dollar-quote syntax ($$) to avoid escaping issues with single quotes
 
 -- ============================================================================
--- MODULE 4: CROWD MANAGEMENT & PUBLIC SAFETY (15 questions)
+-- MODULE 6: CROWD MANAGEMENT & PUBLIC SAFETY (15 questions)
 -- ============================================================================
 UPDATE assessments
 SET questions_json = $$[
@@ -39,7 +40,7 @@ total_questions = 15
 WHERE assessment_name LIKE '%Crowd Management%';
 
 -- ============================================================================
--- MODULE 5: EMERGENCY RESPONSE PROCEDURES (12 questions)
+-- MODULE 7 (OPTION A): EMERGENCY RESPONSE PROCEDURES (12 questions)
 -- ============================================================================
 UPDATE assessments
 SET questions_json = $$[
@@ -60,7 +61,7 @@ total_questions = 12
 WHERE assessment_name LIKE '%Emergency Response%';
 
 -- ============================================================================
--- MODULE 6: ACCESS CONTROL & SCREENING (10 questions)
+-- MODULE 7 (OPTION B): ACCESS CONTROL & SCREENING (10 questions)
 -- ============================================================================
 UPDATE assessments
 SET questions_json = $$[
