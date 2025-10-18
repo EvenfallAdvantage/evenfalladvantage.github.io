@@ -1,0 +1,29 @@
+{
+  "name": "Evenfall Advantage AI Assistant",
+  "short_name": "Evenfall AI",
+  "description": "AI training assistant with 40+ years of security expertise. Get instant answers about security training, emergency response, and professional procedures.",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "addOns": {
+    "meet": {
+      "mainStageUri": "",
+      "sidePanel": {
+        "uri": "https://YOUR_HOSTING_URL/sidebar/index.html"
+      }
+    }
+  },
+  "permissions": [
+    "https://meet.google.com/*"
+  ],
+  "oauth2": {
+    "client_id": "YOUR_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/meetings.space.readonly"
+    ]
+  }
+}

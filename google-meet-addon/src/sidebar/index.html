@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clunt Westwood AI Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="addon-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <i class="icon">🎓</i>
+                <h1>Evenfall Advantage</h1>
+            </div>
+            <p class="subtitle">AI Training Assistant</p>
+        </div>
+
+        <!-- AI Status -->
+        <div class="status-bar">
+            <div class="status-indicator active"></div>
+            <span class="status-text">Clunt Westwood is ready</span>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="chat-container" id="chatContainer">
+            <div class="welcome-message">
+                <p><strong>👋 Clunt Westwood here.</strong></p>
+                <p>I'm your AI training assistant with 40+ years of security experience. Ask me anything about:</p>
+                <ul>
+                    <li>Module content and concepts</li>
+                    <li>Security procedures</li>
+                    <li>Emergency response</li>
+                    <li>Legal requirements</li>
+                    <li>Real-world scenarios</li>
+                </ul>
+                <p class="note">Type your question below and hit Enter.</p>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-container">
+            <textarea 
+                id="questionInput" 
+                placeholder="Ask Clunt a question about security training..."
+                rows="3"
+            ></textarea>
+            <button id="sendBtn" class="send-btn">
+                <span>Send</span>
+                <i>→</i>
+            </button>
+        </div>
+
+        <!-- Quick Questions -->
+        <div class="quick-questions">
+            <p class="quick-title">Quick Questions:</p>
+            <button class="quick-btn" data-question="What is STOP THE BLEED?">
+                STOP THE BLEED
+            </button>
+            <button class="quick-btn" data-question="Explain the ICS structure">
+                ICS Structure
+            </button>
+            <button class="quick-btn" data-question="What are the use of force laws?">
+                Use of Force
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Powered by ElevenLabs AI</p>
+        </div>
+    </div>
+
+    <script src="sidebar.js"></script>
+</body>
+</html>
