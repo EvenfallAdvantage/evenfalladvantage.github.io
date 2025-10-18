@@ -1,0 +1,14 @@
+{
+  "name": "evenfall-meet-addon",
+  "version": "1.0.0",
+  "description": "Evenfall Advantage Meet Add-on Backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5"
+  }
+}

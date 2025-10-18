@@ -1,0 +1,19 @@
+{
+  "name": "evenfall-google-meet-bot",
+  "version": "1.0.0",
+  "description": "ElevenLabs AI Agent integration for Google Meet",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.0",
+    "puppeteer": "^21.5.0",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
