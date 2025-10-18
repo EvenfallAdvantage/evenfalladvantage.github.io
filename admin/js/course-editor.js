@@ -263,6 +263,25 @@ function createSlideHTML(slide = null, index = 0) {
                 </div>
                 
                 <div class="form-group">
+                    <label>Audio Narration (Optional)</label>
+                    <input type="file" name="slides[${index}][audio_file]" accept="audio/*" onchange="previewAudio(${index}, this)">
+                    <div class="form-check" style="margin-top: 0.5rem;">
+                        <input type="checkbox" name="slides[${index}][audio_autoplay]" id="audioAutoplay${index}" ${slide?.audio_autoplay ? 'checked' : ''}>
+                        <label for="audioAutoplay${index}">Auto-play once when slide loads</label>
+                    </div>
+                    ${slide?.audio_url ? `
+                        <div class="current-media" id="currentAudio${index}">
+                            <audio controls src="${slide.audio_url}"></audio>
+                            <button type="button" class="btn btn-danger btn-small" onclick="removeMedia(${index}, 'audio')">
+                                <i class="fas fa-trash"></i> Remove Audio
+                            </button>
+                            <input type="hidden" name="slides[${index}][audio_url]" value="${slide.audio_url}">
+                        </div>
+                    ` : ''}
+                    <div id="audioPreview${index}" class="media-preview"></div>
+                </div>
+                
+                <div class="form-group">
                     <label>Notes (for instructors)</label>
                     <textarea name="slides[${index}][notes]" rows="2" placeholder="Internal notes">${slide?.notes || ''}</textarea>
                 </div>
@@ -457,7 +476,16 @@ function previewVideo(index, input) {
     }
 }
 
-// Remove media (image or video)
+// Preview audio
+function previewAudio(index, input) {
+    const preview = document.getElementById(`audioPreview${index}`);
+    if (input.files && input.files[0]) {
+        const url = URL.createObjectURL(input.files[0]);
+        preview.innerHTML = `<audio controls src="${url}"></audio>`;
+    }
+}
+
+// Remove media (image, video, or audio)
 function removeMedia(index, type) {
     const confirmed = confirm(`Are you sure you want to remove this ${type}?`);
     if (!confirmed) return;
@@ -479,6 +507,14 @@ function removeMedia(index, type) {
         const urlInput = document.querySelector(`input[name="slides[${index}][video_url]"]`);
         if (urlInput) urlInput.value = '';
         const fileInput = document.querySelector(`input[name="slides[${index}][video_file]"]`);
+        if (fileInput) fileInput.value = '';
+    } else if (type === 'audio') {
+        const currentAudio = document.getElementById(`currentAudio${index}`);
+        if (currentAudio) {
+            currentAudio.remove();
+        }
+        // Clear the file input
+        const fileInput = document.querySelector(`input[name="slides[${index}][audio_file]"]`);
         if (fileInput) fileInput.value = '';
     }
 }

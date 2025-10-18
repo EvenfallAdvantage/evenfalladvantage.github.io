@@ -3355,9 +3355,38 @@ function loadSlide(index) {
         }
     }
     
+    // Add audio narration if exists
+    if (slide.audio_url) {
+        const audioId = `slideAudio${index}`;
+        slideHTML += `
+            <div class="slide-audio" style="margin: 1.5rem 0;">
+                <audio id="${audioId}" controls style="width: 100%; max-width: 500px;">
+                    <source src="${slide.audio_url}" type="audio/mpeg">
+                    <source src="${slide.audio_url}" type="audio/wav">
+                    <source src="${slide.audio_url}" type="audio/ogg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        `;
+    }
+    
     slideHTML += '</div>';
     
     container.innerHTML = slideHTML;
+    
+    // Auto-play audio if enabled (play once)
+    if (slide.audio_url && slide.audio_autoplay) {
+        const audioElement = document.getElementById(`slideAudio${index}`);
+        if (audioElement) {
+            // Small delay to ensure audio is loaded
+            setTimeout(() => {
+                audioElement.play().catch(err => {
+                    console.log('Audio autoplay prevented by browser:', err);
+                    // Browser blocked autoplay - user will need to click play manually
+                });
+            }, 100);
+        }
+    }
     
     // Update progress
     updateSlideProgress();
