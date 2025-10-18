@@ -64,11 +64,10 @@ async function askElevenLabsAgent(question) {
         console.log('Agent ID:', AGENT_ID);
         console.log('Question:', question);
         
-        // Try the conversational AI endpoint
+        // ElevenLabs Conversational AI endpoint - correct format
         const response = await axios.post(
-            `https://api.elevenlabs.io/v1/convai/conversation`,
+            `https://api.elevenlabs.io/v1/convai/agents/${AGENT_ID}/conversation`,
             {
-                agent_id: AGENT_ID,
                 text: question
             },
             {
