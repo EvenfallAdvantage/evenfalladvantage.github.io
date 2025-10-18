@@ -102,55 +102,17 @@ async function askElevenLabsAgent(question) {
     try {
         console.log('🤖 Calling ElevenLabs API...');
         console.log('Agent ID:', AGENT_ID);
-        console.log('API Key (first 10 chars):', ELEVENLABS_API_KEY?.substring(0, 10));
+        console.log('API Key exists:', !!ELEVENLABS_API_KEY);
         console.log('Question:', question);
         
-        // Try multiple possible endpoints
-        const endpoints = [
-            `https://api.elevenlabs.io/v1/convai/agents/${AGENT_ID}/conversation`,
-            `https://api.elevenlabs.io/v1/convai/conversation`,
-            `https://api.elevenlabs.io/v1/text-to-speech/${AGENT_ID}`
-        ];
-        
-        let lastError = null;
-        
-        // Try first endpoint (most likely correct)
-        try {
-            const response = await axios.post(
-                `https://api.elevenlabs.io/v1/convai/agents/${AGENT_ID}/conversation`,
-                {
-                    text: question
-                },
-                {
-                    headers: {
-                        'xi-api-key': ELEVENLABS_API_KEY,
-                        'Content-Type': 'application/json'
-                    },
-                    timeout: 30000
-                }
-            );
-            
-            console.log('✅ ElevenLabs Response:', JSON.stringify(response.data));
-            
-            const answer = response.data.text || 
-                          response.data.response || 
-                          response.data.message ||
-                          response.data.output ||
-                          response.data.answer ||
-                          'I apologize, but I couldn\'t generate a response. Please try again.';
-            
-            return answer;
-        } catch (err) {
-            lastError = err;
-            console.log('First endpoint failed, trying alternative...');
-        }
-        
-        // If first fails, try with agent_id in body
+        // ElevenLabs Conversational AI endpoint
+        // Documentation: https://elevenlabs.io/docs/conversational-ai/api-reference
         const response = await axios.post(
             `https://api.elevenlabs.io/v1/convai/conversation`,
             {
                 agent_id: AGENT_ID,
-                text: question
+                text: question,
+                mode: "text-only"  // We only want text response, not audio
             },
             {
                 headers: {
@@ -161,14 +123,15 @@ async function askElevenLabsAgent(question) {
             }
         );
         
-        console.log('✅ ElevenLabs Response (alt endpoint):', JSON.stringify(response.data));
+        console.log('✅ ElevenLabs Response:', JSON.stringify(response.data));
         
+        // Extract the text response from the API
         const answer = response.data.text || 
                       response.data.response || 
                       response.data.message ||
                       response.data.output ||
                       response.data.answer ||
-                      'I apologize, but I couldn\'t generate a response. Please try again.';
+                      JSON.stringify(response.data);
         
         return answer;
         
