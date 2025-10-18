@@ -36,7 +36,39 @@ app.post('/', async (req, res) => {
         res.status(200).json({
             answer: answer,
             timestamp: new Date().toISOString(),
-            agent: 'Clunt Westwood'
+            agent: 'Agent Westwood'
+        });
+        
+    } catch (error) {
+        console.error('❌ Error:', error.message);
+        res.status(500).json({
+            error: 'Internal server error',
+            message: error.message
+        });
+    }
+});
+
+// Ask endpoint (for training room)
+app.post('/ask', async (req, res) => {
+    try {
+        const { question } = req.body;
+        
+        if (!question) {
+            return res.status(400).json({ error: 'Question is required' });
+        }
+        
+        console.log('📩 Received question from training room:', question);
+        
+        // Call ElevenLabs API
+        const answer = await askElevenLabsAgent(question);
+        
+        console.log('✅ Generated answer');
+        
+        // Return response
+        res.status(200).json({
+            answer: answer,
+            timestamp: new Date().toISOString(),
+            agent: 'Agent Westwood'
         });
         
     } catch (error) {
