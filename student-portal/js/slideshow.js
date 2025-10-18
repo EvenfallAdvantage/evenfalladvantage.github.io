@@ -3694,17 +3694,15 @@ async function completeModule() {
         await window.loadTrainingModules();
     }
     
-    // Module 0 (welcome-materials) has no assessment - just show completion
-    if (currentModuleId === 'welcome-materials') {
-        setTimeout(() => {
-            alert('Welcome and Reference Materials completed! You\'re ready to begin the training modules.');
-        }, 300);
-        return;
-    }
-    
-    // Show completion message for other modules
+    // Show appropriate completion message
     setTimeout(() => {
-        alert('Module completed! You can now take the assessment from the Assessment section.');
+        // Module 0 (welcome-materials) has no assessment - just show completion
+        if (currentModuleId === 'welcome-materials') {
+            alert('Welcome and Reference Materials completed! You\'re ready to begin the training modules.');
+        } else {
+            // Show completion message for other modules
+            alert('Module completed! You can now take the assessment from the Assessment section.');
+        }
     }, 300);
     
     /* Disabled auto-launch of assessment
