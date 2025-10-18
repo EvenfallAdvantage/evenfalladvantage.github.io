@@ -431,12 +431,30 @@ async function loadCourses() {
     try {
         const { data: modules, error } = await supabase
             .from('training_modules')
-            .select('*')
-            .order('module_code');
+            .select('*');
 
         if (error) throw error;
 
-        displayCourses(modules);
+        // Define correct module order
+        const moduleOrder = [
+            'communication-protocols',  // Module 1
+            'stop-the-bleed',          // Module 2
+            'threat-assessment',       // Module 3
+            'ics-100',                 // Module 4
+            'diverse-population',      // Module 5
+            'crowd-management',        // Module 6
+            'use-of-force',           // Module 7
+            'comprehensive'            // Module 8
+        ];
+
+        // Sort modules by the defined order
+        const sortedModules = modules.sort((a, b) => {
+            const indexA = moduleOrder.indexOf(a.module_code);
+            const indexB = moduleOrder.indexOf(b.module_code);
+            return indexA - indexB;
+        });
+
+        displayCourses(sortedModules);
     } catch (error) {
         console.error('Error loading courses:', error);
     }
@@ -452,29 +470,46 @@ function displayCourses(courses) {
         return;
     }
 
-    grid.innerHTML = courses.map(course => `
-        <div class="course-card">
-            <div class="course-card-header">
-                <h3>${course.module_name}</h3>
-                <span class="badge badge-primary">${course.module_code}</span>
-            </div>
-            <div class="course-card-body">
-                <p>${course.description || 'No description available'}</p>
-                <div class="course-meta">
-                    <span><i class="fas fa-book"></i> Module</span>
-                    <span><i class="fas fa-users"></i> Active</span>
+    // Module number mapping
+    const moduleNumbers = {
+        'communication-protocols': 1,
+        'stop-the-bleed': 2,
+        'threat-assessment': 3,
+        'ics-100': 4,
+        'diverse-population': 5,
+        'crowd-management': 6,
+        'use-of-force': 7,
+        'comprehensive': 8
+    };
+
+    grid.innerHTML = courses.map(course => {
+        const moduleNum = moduleNumbers[course.module_code];
+        const displayName = moduleNum ? `Module ${moduleNum}: ${course.module_name}` : course.module_name;
+        
+        return `
+            <div class="course-card">
+                <div class="course-card-header">
+                    <h3>${displayName}</h3>
+                    <span class="badge badge-primary">${course.module_code}</span>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn btn-secondary btn-small" onclick="editCourse('${course.id}')">
-                        <i class="fas fa-edit"></i> Edit Module
-                    </button>
-                    <button class="btn btn-danger btn-small" onclick="deleteCourse('${course.id}', '${course.module_name}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                <div class="course-card-body">
+                    <p>${course.description || 'No description available'}</p>
+                    <div class="course-meta">
+                        <span><i class="fas fa-book"></i> Module</span>
+                        <span><i class="fas fa-users"></i> Active</span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary btn-small" onclick="editCourse('${course.id}')">
+                            <i class="fas fa-edit"></i> Edit Module
+                        </button>
+                        <button class="btn btn-danger btn-small" onclick="deleteCourse('${course.id}', '${course.module_name}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Delete course with confirmation
