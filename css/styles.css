@@ -3361,3 +3361,12 @@ footer {
         font-size: 1.4rem;
     }
 }
+
+/* ElevenLabs AI Agent Custom Styling */
+elevenlabs-convai::part(button) {
+    background-color: #e74c3c !important;
+}
+
+elevenlabs-convai::part(button):hover {
+    background-color: #c0392b !important;
+}

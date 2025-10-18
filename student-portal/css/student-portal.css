@@ -2375,3 +2375,12 @@ body {
     border-color: #ff8c5a;
     transform: translateY(-2px);
 }
+
+/* ElevenLabs AI Agent Custom Styling */
+elevenlabs-convai::part(button) {
+    background-color: #e74c3c !important;
+}
+
+elevenlabs-convai::part(button):hover {
+    background-color: #c0392b !important;
+}
