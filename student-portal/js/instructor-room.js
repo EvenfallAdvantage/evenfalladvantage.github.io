@@ -1,5 +1,8 @@
 // Instructor Training Room JavaScript
 
+// Configuration - You'll need to add your Daily.co API key here
+const DAILY_API_KEY = 'YOUR_DAILY_API_KEY'; // Get from https://dashboard.daily.co/developers
+
 // DOM Elements
 let roomNameInput;
 let instructorNameInput;
@@ -9,7 +12,7 @@ let roomPasswordInput;
 let recordSessionCheckbox;
 let muteOnEntryCheckbox;
 let meetInfo;
-let jitsiMeetDiv;
+let dailyVideoDiv;
 let sessionInfoCard;
 let displayRoomName;
 let studentLinkInput;
@@ -21,10 +24,11 @@ let copyLinkBtn;
 let exitRoomBtn;
 
 // State
-let jitsiApi = null;
+let dailyCallObject = null;
 let sessionStartTime = null;
 let durationInterval = null;
 let participants = new Map();
+let currentRoomUrl = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     recordSessionCheckbox = document.getElementById('recordSession');
     muteOnEntryCheckbox = document.getElementById('muteOnEntry');
     meetInfo = document.getElementById('meetInfo');
-    jitsiMeetDiv = document.getElementById('jitsiMeet');
+    dailyVideoDiv = document.getElementById('dailyVideo');
     sessionInfoCard = document.getElementById('sessionInfoCard');
     displayRoomName = document.getElementById('displayRoomName');
     studentLinkInput = document.getElementById('studentLink');
@@ -88,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Start Training Session
-function startSession() {
+async function startSession() {
     const roomName = roomNameInput.value.trim();
     const instructorName = instructorNameInput.value.trim() || 'Instructor';
     
@@ -99,14 +103,27 @@ function startSession() {
     
     console.log('🚀 Starting training session:', roomName);
     
+    // For now, instructor needs to create room in Daily.co dashboard
+    // Format: https://yourcompany.daily.co/room-name
+    alert('Please create a room in your Daily.co dashboard first, then paste the room URL here.\n\nExample: https://evenfalladvantage.daily.co/' + roomName);
+    
+    const roomUrl = prompt('Enter your Daily.co room URL:', 'https://evenfalladvantage.daily.co/' + roomName);
+    
+    if (!roomUrl || !roomUrl.includes('daily.co')) {
+        alert('Invalid Daily.co room URL');
+        return;
+    }
+    
+    currentRoomUrl = roomUrl;
+    
     // Hide setup form
     if (meetInfo) {
         meetInfo.classList.add('hidden');
     }
     
-    // Show Jitsi container
-    if (jitsiMeetDiv) {
-        jitsiMeetDiv.classList.add('active');
+    // Show Daily container
+    if (dailyVideoDiv) {
+        dailyVideoDiv.classList.add('active');
     }
     
     // Show session info
@@ -120,7 +137,7 @@ function startSession() {
     }
     
     // Generate and display student link
-    const studentLink = `${window.location.origin}/student-portal/training-room.html?room=${encodeURIComponent(roomName)}`;
+    const studentLink = `${window.location.origin}/student-portal/training-room.html?room=${encodeURIComponent(roomUrl)}`;
     if (studentLinkInput) {
         studentLinkInput.value = studentLink;
     }
@@ -140,97 +157,72 @@ function startSession() {
     sessionStartTime = Date.now();
     startDurationTimer();
     
-    // Initialize Jitsi Meet with moderator privileges
-    const domain = 'meet.jit.si';
-    const options = {
-        roomName: roomName,
-        width: '100%',
-        height: '100%',
-        parentNode: jitsiMeetDiv,
-        userInfo: {
-            displayName: instructorName,
-            email: 'instructor@evenfalladvantage.com'
-        },
-        configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            enableWelcomePage: false,
-            prejoinPageEnabled: false,
-            disableDeepLinking: true,
-            startAudioOnly: false,
-            enableNoisyMicDetection: true,
-            enableLobbyChat: false,
-            disableInviteFunctions: false,
-            doNotStoreRoom: false,
-            enableInsecureRoomNameWarning: false
-        },
-        interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
-                'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
-                'videoquality', 'filmstrip', 'feedback', 'stats', 'shortcuts',
-                'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone',
-                'security'
-            ],
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false,
-            SHOW_BRAND_WATERMARK: false,
-            DEFAULT_REMOTE_DISPLAY_NAME: 'Student'
-        }
-    };
-    
-    jitsiApi = new JitsiMeetExternalAPI(domain, options);
-    
-    // Event listeners for session management
-    jitsiApi.addEventListener('videoConferenceJoined', (event) => {
+    try {
+        // Create Daily call object
+        dailyCallObject = window.DailyIframe.createFrame(dailyVideoDiv, {
+            showLeaveButton: true,
+            showFullscreenButton: true,
+            iframeStyle: {
+                width: '100%',
+                height: '100%',
+                border: 'none'
+            }
+        });
+        
+        // Join as owner/moderator
+        await dailyCallObject.join({
+            url: roomUrl,
+            userName: instructorName
+        });
+        
         console.log('✅ Instructor joined session');
         
-        // Apply initial settings
-        if (muteOnEntryCheckbox && muteOnEntryCheckbox.checked) {
-            // Mute on entry will be handled per participant
-            console.log('Mute on entry enabled');
-        }
-    });
-    
-    jitsiApi.addEventListener('participantJoined', (event) => {
-        console.log('👤 Participant joined:', event);
-        addParticipant(event.id, event.displayName || 'Student');
+        // Event listeners
+        dailyCallObject.on('joined-meeting', (event) => {
+            console.log('Meeting joined successfully', event);
+        });
         
-        // Mute new participant if setting is enabled
-        if (muteOnEntryCheckbox && muteOnEntryCheckbox.checked) {
-            setTimeout(() => {
-                // Note: Jitsi doesn't allow muting others directly via API in free version
-                console.log('Would mute participant:', event.displayName);
-            }, 1000);
-        }
-    });
-    
-    jitsiApi.addEventListener('participantLeft', (event) => {
-        console.log('👋 Participant left:', event);
-        removeParticipant(event.id);
-    });
-    
-    jitsiApi.addEventListener('videoConferenceLeft', () => {
-        console.log('🚪 Session ended');
-        endSession();
-    });
-    
-    jitsiApi.addEventListener('readyToClose', () => {
-        endSession();
-    });
-    
-    // Get initial participant list
-    setTimeout(() => {
-        jitsiApi.getParticipantsInfo().then(participants => {
+        dailyCallObject.on('participant-joined', (event) => {
+            console.log('👤 Participant joined:', event);
+            if (event.participant && event.participant.user_name) {
+                addParticipant(event.participant.session_id, event.participant.user_name);
+            }
+        });
+        
+        dailyCallObject.on('participant-left', (event) => {
+            console.log('👋 Participant left:', event);
+            if (event.participant) {
+                removeParticipant(event.participant.session_id);
+            }
+        });
+        
+        dailyCallObject.on('left-meeting', () => {
+            console.log('🚪 Session ended');
+            endSession();
+        });
+        
+        dailyCallObject.on('error', (error) => {
+            console.error('Daily.co error:', error);
+            alert('Error in video session: ' + error.errorMsg);
+        });
+        
+        // Get initial participants after a delay
+        setTimeout(() => {
+            const participants = dailyCallObject.participants();
             console.log('Initial participants:', participants);
-            participants.forEach(p => {
-                if (p.participantId) {
-                    addParticipant(p.participantId, p.displayName || 'Student');
+            Object.keys(participants).forEach(id => {
+                const p = participants[id];
+                if (p && p.user_name && !p.local) {
+                    addParticipant(id, p.user_name);
                 }
             });
-        });
-    }, 2000);
+        }, 2000);
+        
+    } catch (error) {
+        console.error('❌ Error starting session:', error);
+        alert('Failed to start session. Please check the room URL.');
+        endSession();
+    }
 }
 
 // Add Participant to List
@@ -317,23 +309,22 @@ function copyStudentLink() {
 
 // Quick Actions
 function muteAll() {
-    if (jitsiApi) {
-        // Note: This requires moderator privileges
+    if (dailyCallObject) {
         console.log('Muting all participants');
-        alert('Mute all feature requires moderator privileges. Use the Jitsi interface to mute participants.');
+        alert('Use the Daily.co interface controls to manage participant audio.');
     }
 }
 
 function toggleLobby() {
-    if (jitsiApi) {
+    if (dailyCallObject) {
         console.log('Toggling lobby');
-        alert('Lobby feature is available in the Jitsi security settings (shield icon in toolbar).');
+        alert('Lobby features can be configured in your Daily.co room settings.');
     }
 }
 
 function shareScreen() {
-    if (jitsiApi) {
-        jitsiApi.executeCommand('toggleShareScreen');
+    if (dailyCallObject) {
+        dailyCallObject.startScreenShare();
     }
 }
 
@@ -344,13 +335,22 @@ function endSession() {
         durationInterval = null;
     }
     
-    if (jitsiApi) {
-        jitsiApi.dispose();
-        jitsiApi = null;
+    if (dailyCallObject) {
+        dailyCallObject.destroy();
+        dailyCallObject = null;
+    }
+    
+    if (dailyVideoDiv) {
+        dailyVideoDiv.classList.remove('active');
+    }
+    
+    if (meetInfo) {
+        meetInfo.classList.remove('hidden');
     }
     
     participants.clear();
     sessionStartTime = null;
+    currentRoomUrl = null;
 }
 
 // Exit Room
