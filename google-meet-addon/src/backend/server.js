@@ -7,9 +7,17 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware
-app.use(cors({ origin: true }));
+// Middleware - Enable CORS for all origins
+app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
+
+// Handle preflight requests
+app.options('*', cors());
 
 // ElevenLabs Configuration
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
