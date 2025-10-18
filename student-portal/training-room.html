@@ -6,7 +6,7 @@
     <title>Live Training Room - Evenfall Advantage</title>
     <link rel="stylesheet" href="css/training-room.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://meet.jit.si/external_api.js"></script>
+    <script crossorigin src="https://unpkg.com/@daily-co/daily-js"></script>
 </head>
 <body>
     <div class="training-room-container">
@@ -28,20 +28,20 @@
 
         <!-- Main Content -->
         <div class="main-content">
-            <!-- Jitsi Meet Container -->
+            <!-- Daily.co Video Container -->
             <div class="meet-container" id="meetContainer">
                 <!-- Meeting will be embedded here -->
-                <div id="jitsiMeet"></div>
+                <div id="dailyVideo"></div>
                 
                 <!-- Join Form (shown before joining) -->
                 <div class="meet-info" id="meetInfo">
                     <div class="meet-card">
                         <i class="fas fa-video fa-4x"></i>
                         <h2>Join Your Training Session</h2>
-                        <p>Enter your room name to join the live training with your instructor.</p>
+                        <p>Enter your room URL to join the live training with your instructor.</p>
                         
                         <div class="input-group">
-                            <input type="text" id="roomName" placeholder="evenfall-training-room" />
+                            <input type="text" id="roomUrl" placeholder="https://evenfalladvantage.daily.co/training-room" />
                             <button id="joinMeeting" class="join-btn">
                                 <i class="fas fa-arrow-right"></i> Join Training
                             </button>
@@ -54,7 +54,7 @@
                         <div class="meet-instructions">
                             <p><strong>How it works:</strong></p>
                             <ol>
-                                <li>Enter the room name provided by your instructor</li>
+                                <li>Enter the room URL provided by your instructor</li>
                                 <li>Enter your name</li>
                                 <li>Click "Join Training" to start the video call</li>
                                 <li>Use Clunt AI sidebar to ask questions during training</li>

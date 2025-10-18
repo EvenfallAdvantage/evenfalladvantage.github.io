@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/training-room.css">
     <link rel="stylesheet" href="css/instructor-room.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://meet.jit.si/external_api.js"></script>
+    <script crossorigin src="https://unpkg.com/@daily-co/daily-js"></script>
 </head>
 <body>
     <div class="training-room-container">
@@ -32,10 +32,10 @@
 
         <!-- Main Content -->
         <div class="main-content">
-            <!-- Jitsi Meet Container -->
+            <!-- Daily.co Video Container -->
             <div class="meet-container" id="meetContainer">
                 <!-- Meeting will be embedded here -->
-                <div id="jitsiMeet"></div>
+                <div id="dailyVideo"></div>
                 
                 <!-- Setup Form (shown before starting) -->
                 <div class="meet-info" id="meetInfo">

@@ -5,7 +5,7 @@
 const BACKEND_URL = 'https://evenfall-meet-addon-717441135149.us-central1.run.app/';
 
 // DOM Elements - will be initialized after DOM loads
-let roomNameInput;
+let roomUrlInput;
 let displayNameInput;
 let joinMeetingBtn;
 let cluntSidebar;
@@ -17,18 +17,18 @@ let questionInput;
 let sendQuestionBtn;
 let quickBtns;
 let meetInfo;
-let jitsiMeetDiv;
+let dailyVideoDiv;
 
 // State
 let sidebarVisible = true;
-let jitsiApi = null;
+let dailyCallObject = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎓 Training Room initialized');
     
     // Initialize DOM elements
-    roomNameInput = document.getElementById('roomName');
+    roomUrlInput = document.getElementById('roomUrl');
     displayNameInput = document.getElementById('displayName');
     joinMeetingBtn = document.getElementById('joinMeeting');
     cluntSidebar = document.getElementById('cluntSidebar');
@@ -40,22 +40,22 @@ document.addEventListener('DOMContentLoaded', () => {
     sendQuestionBtn = document.getElementById('sendQuestion');
     quickBtns = document.querySelectorAll('.quick-btn');
     meetInfo = document.getElementById('meetInfo');
-    jitsiMeetDiv = document.getElementById('jitsiMeet');
+    dailyVideoDiv = document.getElementById('dailyVideo');
     
     console.log('DOM elements loaded:', {
-        roomNameInput: !!roomNameInput,
+        roomUrlInput: !!roomUrlInput,
         displayNameInput: !!displayNameInput,
         joinMeetingBtn: !!joinMeetingBtn,
         cluntSidebar: !!cluntSidebar,
-        jitsiMeetDiv: !!jitsiMeetDiv
+        dailyVideoDiv: !!dailyVideoDiv
     });
     
-    // Check for room name in URL
+    // Check for room URL in URL params
     const urlParams = new URLSearchParams(window.location.search);
-    const roomName = urlParams.get('room');
+    const roomUrl = urlParams.get('room');
     const displayName = urlParams.get('name');
-    if (roomName && roomNameInput) {
-        roomNameInput.value = roomName;
+    if (roomUrl && roomUrlInput) {
+        roomUrlInput.value = roomUrl;
         if (displayName && displayNameInput) {
             displayNameInput.value = displayName;
         }
@@ -71,8 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    if (roomNameInput) {
-        roomNameInput.addEventListener('keypress', (e) => {
+    if (roomUrlInput) {
+        roomUrlInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 joinMeeting();
@@ -128,76 +128,94 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Join Jitsi Meeting
-function joinMeeting() {
-    const roomName = roomNameInput.value.trim();
+// Join Daily.co Meeting
+async function joinMeeting() {
+    const roomUrl = roomUrlInput.value.trim();
     const displayName = displayNameInput.value.trim() || 'Student';
     
-    if (!roomName) {
-        alert('Please enter a room name');
+    if (!roomUrl) {
+        alert('Please enter a room URL');
         return;
     }
     
-    console.log('🚪 Joining Jitsi room:', roomName);
+    console.log('🚪 Joining Daily.co room:', roomUrl);
     
     // Hide join form
     if (meetInfo) {
         meetInfo.classList.add('hidden');
     }
     
-    // Show Jitsi container
-    if (jitsiMeetDiv) {
-        jitsiMeetDiv.classList.add('active');
+    // Show Daily container
+    if (dailyVideoDiv) {
+        dailyVideoDiv.classList.add('active');
     }
     
-    // Initialize Jitsi Meet
-    const domain = 'meet.jit.si';
-    const options = {
-        roomName: roomName,
-        width: '100%',
-        height: '100%',
-        parentNode: jitsiMeetDiv,
-        userInfo: {
-            displayName: displayName
-        },
-        configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            enableWelcomePage: false,
-            prejoinPageEnabled: false,
-            disableDeepLinking: true
-        },
-        interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
-                'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
-                'videoquality', 'filmstrip', 'feedback', 'stats', 'shortcuts',
-                'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
-            ],
-            SHOW_JITSI_WATERMARK: false,
-            SHOW_WATERMARK_FOR_GUESTS: false
-        }
-    };
-    
-    jitsiApi = new JitsiMeetExternalAPI(domain, options);
-    
-    // Event listeners
-    jitsiApi.addEventListener('videoConferenceJoined', () => {
-        console.log('✅ Joined Jitsi meeting');
-        addSystemMessage(`Joined training room: ${roomName}`);
+    try {
+        // Create Daily call object
+        dailyCallObject = window.DailyIframe.createFrame(dailyVideoDiv, {
+            showLeaveButton: true,
+            showFullscreenButton: true,
+            iframeStyle: {
+                width: '100%',
+                height: '100%',
+                border: 'none'
+            }
+        });
+        
+        // Join the room
+        await dailyCallObject.join({
+            url: roomUrl,
+            userName: displayName
+        });
+        
+        console.log('✅ Joined Daily.co meeting');
+        addSystemMessage(`Joined training room`);
         addSystemMessage('You are now in the live training session. Ask Clunt any questions!');
-    });
+        
+        // Event listeners
+        dailyCallObject.on('joined-meeting', () => {
+            console.log('Meeting joined successfully');
+        });
+        
+        dailyCallObject.on('left-meeting', () => {
+            console.log('👋 Left meeting');
+            cleanupCall();
+        });
+        
+        dailyCallObject.on('error', (error) => {
+            console.error('Daily.co error:', error);
+            alert('Error joining meeting. Please check the room URL.');
+            cleanupCall();
+        });
+        
+    } catch (error) {
+        console.error('❌ Error joining meeting:', error);
+        alert('Failed to join meeting. Please check the room URL and try again.');
+        
+        // Show form again
+        if (meetInfo) {
+            meetInfo.classList.remove('hidden');
+        }
+        if (dailyVideoDiv) {
+            dailyVideoDiv.classList.remove('active');
+        }
+    }
+}
+
+// Cleanup Daily call
+function cleanupCall() {
+    if (dailyCallObject) {
+        dailyCallObject.destroy();
+        dailyCallObject = null;
+    }
     
-    jitsiApi.addEventListener('videoConferenceLeft', () => {
-        console.log('👋 Left Jitsi meeting');
-        exitRoom();
-    });
+    if (dailyVideoDiv) {
+        dailyVideoDiv.classList.remove('active');
+    }
     
-    jitsiApi.addEventListener('readyToClose', () => {
-        console.log('🚪 Ready to close');
-        exitRoom();
-    });
+    if (meetInfo) {
+        meetInfo.classList.remove('hidden');
+    }
 }
 
 // Toggle Sidebar
@@ -334,11 +352,8 @@ function removeTypingIndicator(id) {
 // Exit Room
 function exitRoom() {
     if (confirm('Are you sure you want to leave the training room?')) {
-        // Dispose of Jitsi API
-        if (jitsiApi) {
-            jitsiApi.dispose();
-            jitsiApi = null;
-        }
+        // Cleanup Daily call
+        cleanupCall();
         window.location.href = 'index.html';
     }
 }
