@@ -81,6 +81,16 @@ body {
     font-weight: 500;
 }
 
+/* Widget Container */
+.widget-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background: white;
+    display: flex;
+    flex-direction: column;
+}
+
 /* Chat Container */
 .chat-container {
     flex: 1;

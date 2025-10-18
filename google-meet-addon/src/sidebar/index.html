@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clunt Westwood AI Assistant</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 </head>
 <body>
     <div class="addon-container">
@@ -23,11 +24,11 @@
             <span class="status-text">Clunt Westwood is ready</span>
         </div>
 
-        <!-- Chat Interface -->
-        <div class="chat-container" id="chatContainer">
+        <!-- ElevenLabs Conversational AI Widget -->
+        <div class="widget-container">
             <div class="welcome-message">
                 <p><strong>👋 Clunt Westwood here.</strong></p>
-                <p>I'm your AI training assistant with 40+ years of security experience. Ask me anything about:</p>
+                <p>I'm your AI training assistant with 40+ years of security experience. Click the button below to start talking with me!</p>
                 <ul>
                     <li>Module content and concepts</li>
                     <li>Security procedures</li>
@@ -35,35 +36,10 @@
                     <li>Legal requirements</li>
                     <li>Real-world scenarios</li>
                 </ul>
-                <p class="note">Type your question below and hit Enter.</p>
             </div>
-        </div>
-
-        <!-- Input Area -->
-        <div class="input-container">
-            <textarea 
-                id="questionInput" 
-                placeholder="Ask Clunt a question about security training..."
-                rows="3"
-            ></textarea>
-            <button id="sendBtn" class="send-btn">
-                <span>Send</span>
-                <i>→</i>
-            </button>
-        </div>
-
-        <!-- Quick Questions -->
-        <div class="quick-questions">
-            <p class="quick-title">Quick Questions:</p>
-            <button class="quick-btn" data-question="What is STOP THE BLEED?">
-                STOP THE BLEED
-            </button>
-            <button class="quick-btn" data-question="Explain the ICS structure">
-                ICS Structure
-            </button>
-            <button class="quick-btn" data-question="What are the use of force laws?">
-                Use of Force
-            </button>
+            
+            <!-- ElevenLabs Widget -->
+            <elevenlabs-convai agent-id="agent_3501k7vzkxnzec2vbt1pjw2nxt47"></elevenlabs-convai>
         </div>
 
         <!-- Footer -->
@@ -71,7 +47,5 @@
             <p>Powered by ElevenLabs AI</p>
         </div>
     </div>
-
-    <script src="sidebar.js"></script>
 </body>
 </html>
