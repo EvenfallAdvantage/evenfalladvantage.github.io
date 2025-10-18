@@ -133,8 +133,12 @@ async function askElevenLabsAgent(question) {
                 return;
             }
             
-            // Connect to ElevenLabs WebSocket
-            const ws = new WebSocket(`wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${AGENT_ID}`, {
+            // Connect to ElevenLabs WebSocket with signed URL
+            const signedUrl = `wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${AGENT_ID}`;
+            
+            console.log('🔗 Connecting to:', signedUrl);
+            
+            const ws = new WebSocket(signedUrl, {
                 headers: {
                     'xi-api-key': ELEVENLABS_API_KEY
                 }
@@ -142,61 +146,106 @@ async function askElevenLabsAgent(question) {
             
             let fullResponse = '';
             let timeout;
+            let hasReceivedResponse = false;
             
             ws.on('open', () => {
-                console.log('✅ WebSocket connected');
+                console.log('✅ WebSocket connected to ElevenLabs');
                 
-                // Send the question
-                ws.send(JSON.stringify({
-                    type: 'user_message',
-                    text: question
-                }));
+                // Send the question as text input
+                const message = {
+                    type: 'conversation_initiation_client_data',
+                    conversation_config_override: {
+                        agent: {
+                            prompt: {
+                                prompt: `You are Agent Westwood, a security training expert with 40+ years of experience. Answer questions about security, emergency response, STOP THE BLEED, ICS, use of force, and related topics professionally and concisely.`
+                            }
+                        }
+                    }
+                };
+                
+                console.log('📤 Sending initiation');
+                ws.send(JSON.stringify(message));
+                
+                // Send the actual question
+                setTimeout(() => {
+                    console.log('📤 Sending question:', question);
+                    ws.send(JSON.stringify({
+                        type: 'user_audio_done'
+                    }));
+                    
+                    ws.send(JSON.stringify({
+                        type: 'user_transcript',
+                        user_transcript: question
+                    }));
+                }, 500);
                 
                 // Set timeout for response
                 timeout = setTimeout(() => {
-                    console.log('⏱️ Response timeout, using fallback');
+                    console.log('⏱️ Response timeout (15s), using fallback');
                     ws.close();
-                    resolve(answer); // Use fallback if timeout
+                    if (!hasReceivedResponse) {
+                        resolve(answer);
+                    }
                 }, 15000);
             });
             
             ws.on('message', (data) => {
                 try {
                     const message = JSON.parse(data.toString());
-                    console.log('📨 Received:', message.type);
+                    console.log('📨 Received message type:', message.type);
+                    console.log('📨 Full message:', JSON.stringify(message));
                     
-                    if (message.type === 'agent_response' || message.type === 'text') {
-                        fullResponse += message.text || message.content || '';
+                    // Handle different message types from ElevenLabs
+                    if (message.type === 'agent_response') {
+                        hasReceivedResponse = true;
+                        fullResponse += message.agent_response || '';
+                        console.log('💬 Agent response chunk:', message.agent_response);
                     }
                     
-                    if (message.type === 'conversation_end' || message.type === 'agent_response_end') {
-                        clearTimeout(timeout);
-                        ws.close();
-                        
-                        if (fullResponse) {
-                            console.log('✅ Got ElevenLabs response');
-                            resolve(fullResponse);
-                        } else {
-                            console.log('📝 Empty response, using fallback');
-                            resolve(answer);
-                        }
+                    if (message.type === 'audio' && message.audio_transcript) {
+                        hasReceivedResponse = true;
+                        fullResponse += message.audio_transcript;
+                        console.log('💬 Audio transcript:', message.audio_transcript);
                     }
+                    
+                    if (message.type === 'interruption' || message.type === 'agent_response_correction') {
+                        // Handle corrections
+                        console.log('🔄 Response correction');
+                    }
+                    
+                    if (message.type === 'conversation_initiation_metadata') {
+                        console.log('✅ Conversation initialized');
+                    }
+                    
+                    // Check if conversation is done
+                    if (message.type === 'ping') {
+                        ws.send(JSON.stringify({ type: 'pong', event_id: message.event_id }));
+                    }
+                    
                 } catch (err) {
-                    console.error('Error parsing message:', err);
+                    console.error('❌ Error parsing message:', err);
+                    console.error('Raw data:', data.toString());
                 }
             });
             
             ws.on('error', (error) => {
                 console.error('❌ WebSocket error:', error.message);
+                console.error('Full error:', error);
                 clearTimeout(timeout);
-                // Use fallback on error
-                resolve(answer);
+                if (!hasReceivedResponse) {
+                    resolve(answer);
+                }
             });
             
-            ws.on('close', () => {
-                console.log('🔌 WebSocket closed');
+            ws.on('close', (code, reason) => {
+                console.log('🔌 WebSocket closed. Code:', code, 'Reason:', reason.toString());
                 clearTimeout(timeout);
-                if (!fullResponse && answer) {
+                
+                if (fullResponse && hasReceivedResponse) {
+                    console.log('✅ Returning ElevenLabs response:', fullResponse);
+                    resolve(fullResponse);
+                } else {
+                    console.log('📝 No response received, using fallback');
                     resolve(answer);
                 }
             });
