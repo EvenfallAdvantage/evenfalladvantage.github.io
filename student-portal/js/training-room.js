@@ -4,19 +4,17 @@
 // Configuration
 const BACKEND_URL = 'https://evenfall-meet-addon-717441135149.us-central1.run.app/';
 
-// DOM Elements
-const meetFrame = document.getElementById('meetFrame');
-const meetPlaceholder = document.getElementById('meetPlaceholder');
-const meetingCodeInput = document.getElementById('meetingCode');
-const joinMeetingBtn = document.getElementById('joinMeeting');
-const cluntSidebar = document.getElementById('cluntSidebar');
-const toggleCluntBtn = document.getElementById('toggleClunt');
-const closeSidebarBtn = document.getElementById('closeSidebar');
-const exitRoomBtn = document.getElementById('exitRoom');
-const chatMessages = document.getElementById('chatMessages');
-const questionInput = document.getElementById('questionInput');
-const sendQuestionBtn = document.getElementById('sendQuestion');
-const quickBtns = document.querySelectorAll('.quick-btn');
+// DOM Elements - will be initialized after DOM loads
+let meetingCodeInput;
+let joinMeetingBtn;
+let cluntSidebar;
+let toggleCluntBtn;
+let closeSidebarBtn;
+let exitRoomBtn;
+let chatMessages;
+let questionInput;
+let sendQuestionBtn;
+let quickBtns;
 
 // State
 let sidebarVisible = true;
@@ -25,40 +23,87 @@ let sidebarVisible = true;
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎓 Training Room initialized');
     
+    // Initialize DOM elements
+    meetingCodeInput = document.getElementById('meetingCode');
+    joinMeetingBtn = document.getElementById('joinMeeting');
+    cluntSidebar = document.getElementById('cluntSidebar');
+    toggleCluntBtn = document.getElementById('toggleClunt');
+    closeSidebarBtn = document.getElementById('closeSidebar');
+    exitRoomBtn = document.getElementById('exitRoom');
+    chatMessages = document.getElementById('chatMessages');
+    questionInput = document.getElementById('questionInput');
+    sendQuestionBtn = document.getElementById('sendQuestion');
+    quickBtns = document.querySelectorAll('.quick-btn');
+    
+    console.log('DOM elements loaded:', {
+        meetingCodeInput: !!meetingCodeInput,
+        joinMeetingBtn: !!joinMeetingBtn,
+        cluntSidebar: !!cluntSidebar
+    });
+    
     // Check for meeting code in URL
     const urlParams = new URLSearchParams(window.location.search);
     const meetingCode = urlParams.get('meeting');
-    if (meetingCode) {
+    if (meetingCode && meetingCodeInput) {
         meetingCodeInput.value = meetingCode;
         joinMeeting();
     }
     
     // Event listeners
-    joinMeetingBtn.addEventListener('click', joinMeeting);
-    meetingCodeInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') joinMeeting();
-    });
-    
-    toggleCluntBtn.addEventListener('click', toggleSidebar);
-    closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
-    exitRoomBtn.addEventListener('click', exitRoom);
-    
-    sendQuestionBtn.addEventListener('click', sendQuestion);
-    questionInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+    if (joinMeetingBtn) {
+        joinMeetingBtn.addEventListener('click', (e) => {
+            console.log('Join button clicked!');
             e.preventDefault();
-            sendQuestion();
-        }
-    });
+            joinMeeting();
+        });
+    }
+    
+    if (meetingCodeInput) {
+        meetingCodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                joinMeeting();
+            }
+        });
+    }
+    
+    if (toggleCluntBtn) {
+        toggleCluntBtn.addEventListener('click', toggleSidebar);
+    }
+    
+    if (closeSidebarBtn) {
+        closeSidebarBtn.addEventListener('click', () => toggleSidebar(false));
+    }
+    
+    if (exitRoomBtn) {
+        exitRoomBtn.addEventListener('click', exitRoom);
+    }
+    
+    if (sendQuestionBtn) {
+        sendQuestionBtn.addEventListener('click', sendQuestion);
+    }
+    
+    if (questionInput) {
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendQuestion();
+            }
+        });
+    }
     
     // Quick question buttons
-    quickBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const question = btn.getAttribute('data-question');
-            questionInput.value = question;
-            sendQuestion();
+    if (quickBtns) {
+        quickBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const question = btn.getAttribute('data-question');
+                if (questionInput) {
+                    questionInput.value = question;
+                    sendQuestion();
+                }
+            });
         });
-    });
+    }
 });
 
 // Join Google Meet
