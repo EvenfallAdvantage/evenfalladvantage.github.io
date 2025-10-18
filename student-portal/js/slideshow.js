@@ -3695,9 +3695,11 @@ async function completeModule() {
     }
     
     // Show appropriate completion message
+    const moduleIdForAlert = currentModuleId; // Capture the value before async operations
     setTimeout(() => {
+        console.log('Alert check - moduleIdForAlert:', moduleIdForAlert);
         // Module 0 (welcome-materials) has no assessment - just show completion
-        if (currentModuleId === 'welcome-materials') {
+        if (moduleIdForAlert === 'welcome-materials') {
             alert('Welcome and Reference Materials completed! You\'re ready to begin the training modules.');
         } else {
             // Show completion message for other modules
