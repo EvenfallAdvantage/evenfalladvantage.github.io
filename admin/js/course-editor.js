@@ -680,7 +680,9 @@ async function processSlides(moduleId, formData) {
             content: formData.get(`slides[${slideIndex}][content]`),
             notes: formData.get(`slides[${slideIndex}][notes]`),
             image_url: formData.get(`slides[${slideIndex}][image_url]`) || null,
-            video_url: formData.get(`slides[${slideIndex}][video_url]`) || null
+            video_url: formData.get(`slides[${slideIndex}][video_url]`) || null,
+            audio_url: formData.get(`slides[${slideIndex}][audio_url]`) || null,
+            audio_autoplay: formData.get(`slides[${slideIndex}][audio_autoplay]`) === 'on'
         };
         
         // Upload image if provided
@@ -695,6 +697,13 @@ async function processSlides(moduleId, formData) {
         if (videoFile && videoFile.size > 0) {
             const videoPath = await uploadMedia(videoFile, moduleId, slideIndex, 'video');
             slide.video_url = videoPath;
+        }
+        
+        // Upload audio if provided
+        const audioFile = formData.get(`slides[${slideIndex}][audio_file]`);
+        if (audioFile && audioFile.size > 0) {
+            const audioPath = await uploadMedia(audioFile, moduleId, slideIndex, 'audio');
+            slide.audio_url = audioPath;
         }
         
         slides.push(slide);
