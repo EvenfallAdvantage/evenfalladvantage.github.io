@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Training Room - Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/training-room.css">
+    <link rel="stylesheet" href="css/instructor-room.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://meet.jit.si/external_api.js"></script>
+</head>
+<body>
+    <div class="training-room-container">
+        <!-- Header -->
+        <header class="training-header">
+            <div class="header-left">
+                <h1>🎓 Instructor Training Room</h1>
+                <span class="session-status" id="sessionStatus">● Ready</span>
+            </div>
+            <div class="header-right">
+                <button id="toggleSettings" class="toggle-btn">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+                <button id="copyLink" class="toggle-btn" style="display: none;">
+                    <i class="fas fa-link"></i> Copy Student Link
+                </button>
+                <button id="exitRoom" class="exit-btn">
+                    <i class="fas fa-sign-out-alt"></i> Exit
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Jitsi Meet Container -->
+            <div class="meet-container" id="meetContainer">
+                <!-- Meeting will be embedded here -->
+                <div id="jitsiMeet"></div>
+                
+                <!-- Setup Form (shown before starting) -->
+                <div class="meet-info" id="meetInfo">
+                    <div class="meet-card">
+                        <i class="fas fa-chalkboard-teacher fa-4x"></i>
+                        <h2>Start Your Training Session</h2>
+                        <p>Create a training room and invite your students to join.</p>
+                        
+                        <div class="input-group">
+                            <label for="roomName">Room Name</label>
+                            <input type="text" id="roomName" placeholder="evenfall-training-oct-18" />
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="instructorName">Your Name</label>
+                            <input type="text" id="instructorName" placeholder="Instructor Name" />
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3>Session Settings</h3>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="requirePassword" />
+                                <span>Require password to join</span>
+                            </label>
+                            <input type="text" id="roomPassword" placeholder="Password" style="display: none;" />
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="recordSession" />
+                                <span>Enable recording</span>
+                            </label>
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="muteOnEntry" checked />
+                                <span>Mute students on entry</span>
+                            </label>
+                        </div>
+                        
+                        <button id="startSession" class="join-btn">
+                            <i class="fas fa-play"></i> Start Training Session
+                        </button>
+                        
+                        <div class="meet-instructions">
+                            <p><strong>How it works:</strong></p>
+                            <ol>
+                                <li>Create a unique room name for your training session</li>
+                                <li>Configure session settings (optional)</li>
+                                <li>Click "Start Training Session"</li>
+                                <li>Share the student link with your trainees</li>
+                                <li>Students will join with Clunt AI assistant available</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructor Sidebar -->
+            <aside class="clunt-sidebar instructor-sidebar" id="instructorSidebar">
+                <div class="sidebar-header">
+                    <div class="ai-avatar">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="ai-info">
+                        <h3>Session Control</h3>
+                        <p class="ai-status">
+                            <span class="status-dot"></span>
+                            <span id="participantCount">0 Participants</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="sidebar-content">
+                    <!-- Session Info Card -->
+                    <div class="session-info-card" id="sessionInfoCard" style="display: none;">
+                        <h4>Session Details</h4>
+                        <div class="info-row">
+                            <strong>Room:</strong>
+                            <span id="displayRoomName">-</span>
+                        </div>
+                        <div class="info-row">
+                            <strong>Student Link:</strong>
+                            <div class="link-container">
+                                <input type="text" id="studentLink" readonly />
+                                <button class="copy-btn" onclick="copyStudentLink()">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <strong>Duration:</strong>
+                            <span id="sessionDuration">00:00:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Participants List -->
+                    <div class="participants-card">
+                        <h4>Participants</h4>
+                        <div id="participantsList" class="participants-list">
+                            <p class="empty-state">No participants yet</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions-card">
+                        <h4>Quick Actions</h4>
+                        <button class="action-btn" onclick="muteAll()">
+                            <i class="fas fa-microphone-slash"></i> Mute All
+                        </button>
+                        <button class="action-btn" onclick="toggleLobby()">
+                            <i class="fas fa-door-open"></i> Toggle Lobby
+                        </button>
+                        <button class="action-btn" onclick="shareScreen()">
+                            <i class="fas fa-desktop"></i> Share Screen
+                        </button>
+                    </div>
+
+                    <!-- Clunt AI Status -->
+                    <div class="clunt-status-card">
+                        <h4>Clunt AI Assistant</h4>
+                        <p>Students have access to Clunt AI for questions during the training.</p>
+                        <div class="clunt-stats">
+                            <div class="stat">
+                                <i class="fas fa-comments"></i>
+                                <span id="cluntQuestions">0</span>
+                                <small>Questions Asked</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="js/instructor-room.js"></script>
+</body>
+</html>

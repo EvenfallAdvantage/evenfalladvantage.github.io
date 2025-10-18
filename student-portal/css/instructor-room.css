@@ -1,0 +1,227 @@
+/* Instructor Room Specific Styles */
+
+.instructor-sidebar {
+    width: 350px;
+}
+
+.session-info-card,
+.participants-card,
+.quick-actions-card,
+.clunt-status-card {
+    background: #1e2d3d;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.session-info-card h4,
+.participants-card h4,
+.quick-actions-card h4,
+.clunt-status-card h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #e74c3c;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Session Info */
+.info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.info-row strong {
+    color: #bbb;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.link-container {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.link-container input {
+    flex: 1;
+    padding: 0.5rem;
+    background: #253646;
+    border: 1px solid #34495e;
+    border-radius: 0.25rem;
+    color: #fff;
+    font-size: 0.75rem;
+}
+
+.copy-btn {
+    padding: 0.5rem;
+    background: #e74c3c;
+    border: none;
+    border-radius: 0.25rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.copy-btn:hover {
+    background: #c0392b;
+}
+
+/* Participants List */
+.participants-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.participant-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: #253646;
+    border-radius: 0.25rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.participant-item i {
+    color: #4caf50;
+}
+
+.participant-item.muted i {
+    color: #e74c3c;
+}
+
+.empty-state {
+    text-align: center;
+    color: #999;
+    font-size: 0.85rem;
+    padding: 1rem;
+}
+
+/* Quick Actions */
+.action-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: #253646;
+    border: 1px solid #34495e;
+    border-radius: 0.25rem;
+    color: #fff;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.action-btn:hover {
+    background: #34495e;
+    border-color: #e74c3c;
+}
+
+.action-btn i {
+    color: #e74c3c;
+}
+
+/* Clunt Stats */
+.clunt-stats {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    background: #253646;
+    border-radius: 0.25rem;
+}
+
+.stat i {
+    color: #e74c3c;
+    font-size: 1.2rem;
+}
+
+.stat span {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #4caf50;
+}
+
+.stat small {
+    font-size: 0.7rem;
+    color: #999;
+    text-align: center;
+}
+
+/* Settings Group */
+.settings-group {
+    background: #1e2d3d;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.settings-group h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #e74c3c;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.settings-group input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    background: #253646;
+    border: 1px solid #34495e;
+    border-radius: 0.25rem;
+    color: #fff;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #bbb;
+    margin-bottom: 0.5rem;
+    text-align: left;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .instructor-sidebar {
+        width: 100%;
+        max-width: 350px;
+    }
+    
+    .clunt-stats {
+        flex-direction: column;
+    }
+}
