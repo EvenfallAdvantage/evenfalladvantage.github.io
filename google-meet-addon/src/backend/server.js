@@ -70,11 +70,22 @@ app.post('/ask', async (req, res) => {
         // Call ElevenLabs API
         const answer = await askElevenLabsAgent(question);
         
+        // If answer is null, it means Agent Westwood shouldn't respond
+        if (answer === null) {
+            console.log('⏭️ Skipping response - not a direct question');
+            return res.status(200).json({
+                answer: null,
+                shouldRespond: false,
+                timestamp: new Date().toISOString()
+            });
+        }
+        
         console.log('✅ Generated answer');
         
         // Return response
         res.status(200).json({
             answer: answer,
+            shouldRespond: true,
             timestamp: new Date().toISOString(),
             agent: 'Agent Westwood'
         });
@@ -137,7 +148,29 @@ async function askElevenLabsAgent(question) {
 
 // Generate security training responses
 function generateSecurityTrainingResponse(question) {
-    const q = question.toLowerCase();
+    const q = question.toLowerCase().trim();
+    
+    // Check if this is actually a question or directed at Agent Westwood
+    const isQuestion = q.includes('?') || 
+                      q.startsWith('what') || 
+                      q.startsWith('how') || 
+                      q.startsWith('why') || 
+                      q.startsWith('when') || 
+                      q.startsWith('where') || 
+                      q.startsWith('who') || 
+                      q.startsWith('can you') || 
+                      q.startsWith('could you') || 
+                      q.startsWith('would you') || 
+                      q.startsWith('explain') || 
+                      q.startsWith('tell me') || 
+                      q.startsWith('describe') ||
+                      q.includes('agent westwood') ||
+                      q.includes('westwood');
+    
+    // If not a question, don't respond
+    if (!isQuestion) {
+        return null; // Return null to indicate no response needed
+    }
     
     // STOP THE BLEED
     if (q.includes('stop the bleed') || q.includes('bleeding') || q.includes('hemorrhage')) {

@@ -422,6 +422,12 @@ async function sendQuestion() {
         // Remove typing indicator
         removeTypingIndicator(typingId);
         
+        // Check if Agent Westwood should respond
+        if (data.shouldRespond === false || !data.answer) {
+            // Don't show any response - Agent Westwood is staying quiet
+            return;
+        }
+        
         if (data.answer) {
             // Add AI response locally
             addMessage(data.answer, 'ai');
@@ -433,8 +439,6 @@ async function sendQuestion() {
                     answer: data.answer
                 }, '*');
             }
-        } else {
-            addMessage('Sorry, I couldn\'t process that question.', 'ai');
         }
     } catch (error) {
         console.error('Error asking Agent Westwood:', error);
