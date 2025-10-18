@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Training Room - Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/training-room.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="training-room-container">
+        <!-- Header -->
+        <header class="training-header">
+            <div class="header-left">
+                <h1>🎓 Live Training Session</h1>
+                <span class="session-status">● Live</span>
+            </div>
+            <div class="header-right">
+                <button id="toggleClunt" class="toggle-btn">
+                    <i class="fas fa-robot"></i> Ask Clunt
+                </button>
+                <button id="exitRoom" class="exit-btn">
+                    <i class="fas fa-sign-out-alt"></i> Exit
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Google Meet Embed -->
+            <div class="meet-container" id="meetContainer">
+                <iframe 
+                    id="meetFrame"
+                    allow="camera; microphone; fullscreen; speaker; display-capture"
+                    style="border: 0; width: 100%; height: 100%;">
+                </iframe>
+                <div class="meet-placeholder" id="meetPlaceholder">
+                    <i class="fas fa-video fa-3x"></i>
+                    <h2>Enter Meeting Code</h2>
+                    <input type="text" id="meetingCode" placeholder="abc-defg-hij" />
+                    <button id="joinMeeting" class="join-btn">Join Training</button>
+                </div>
+            </div>
+
+            <!-- Clunt AI Sidebar -->
+            <aside class="clunt-sidebar" id="cluntSidebar">
+                <div class="sidebar-header">
+                    <div class="ai-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="ai-info">
+                        <h3>Clunt Westwood</h3>
+                        <p class="ai-status">
+                            <span class="status-dot"></span>
+                            AI Assistant Ready
+                        </p>
+                    </div>
+                    <button id="closeSidebar" class="close-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="sidebar-content">
+                    <!-- Welcome Message -->
+                    <div class="welcome-card">
+                        <p><strong>👋 Clunt Westwood here.</strong></p>
+                        <p>I'm your AI training assistant with 40+ years of security experience. Ask me anything about:</p>
+                        <ul>
+                            <li>Training module content</li>
+                            <li>Security procedures</li>
+                            <li>Emergency response</li>
+                            <li>Legal requirements</li>
+                            <li>Real-world scenarios</li>
+                        </ul>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Messages will be added here dynamically -->
+                    </div>
+                </div>
+
+                <div class="sidebar-footer">
+                    <!-- Quick Questions -->
+                    <div class="quick-questions" id="quickQuestions">
+                        <button class="quick-btn" data-question="What is STOP THE BLEED?">
+                            STOP THE BLEED
+                        </button>
+                        <button class="quick-btn" data-question="Explain the ICS structure">
+                            ICS Structure
+                        </button>
+                        <button class="quick-btn" data-question="What are use of force laws?">
+                            Use of Force
+                        </button>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="input-area">
+                        <textarea 
+                            id="questionInput" 
+                            placeholder="Ask Clunt a question..."
+                            rows="2"
+                        ></textarea>
+                        <button id="sendQuestion" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="js/training-room.js"></script>
+</body>
+</html>
