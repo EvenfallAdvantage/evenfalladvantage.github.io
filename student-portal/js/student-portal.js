@@ -30,6 +30,19 @@ async function loadTrainingModules() {
             return;
         }
         
+        // Module number mapping
+        const moduleNumbers = {
+            'welcome-materials': 0,
+            'communication-protocols': 1,
+            'stop-the-bleed': 2,
+            'threat-assessment': 3,
+            'ics-100': 4,
+            'diverse-population': 5,
+            'crowd-management': 6,
+            'use-of-force': 7,
+            'comprehensive': 8
+        };
+        
         // Generate module cards with completion indicators
         container.innerHTML = modules.map((module, index) => {
             const completionStatus = getModuleCompletionStatus(module.module_code);
@@ -54,13 +67,16 @@ async function loadTrainingModules() {
                 buttonIcon = 'fa-check-circle';
             }
             
+            // Get module number from mapping
+            const moduleNum = moduleNumbers[module.module_code] !== undefined ? moduleNumbers[module.module_code] : index + 1;
+            
             return `
                 <div class="module-card ${statusClass}" data-module="${module.module_code}">
                     ${statusBadge}
                     <div class="module-icon">
                         <i class="fas ${module.icon || 'fa-book'}"></i>
                     </div>
-                    <h3>Module ${index + 1}: ${module.module_name}</h3>
+                    <h3>Module ${moduleNum}: ${module.module_name}</h3>
                     <p>${module.description || 'No description available'}</p>
                     <div class="module-meta">
                         <span><i class="fas fa-clock"></i> ${module.estimated_time || 'TBD'}</span>
@@ -275,6 +291,8 @@ function loadProgress() {
 // Migrate old assessment results to use module codes
 function migrateAssessmentResults() {
     const assessmentNameToModuleCode = {
+        'Welcome and Reference Materials': 'welcome-materials',
+        'Module 0: Welcome and Reference Materials': 'welcome-materials',
         'Security Radio Communications': 'communication-protocols',
         'Module 1: Security Radio Communications': 'communication-protocols',
         'STOP THE BLEED®': 'stop-the-bleed',
@@ -4368,6 +4386,7 @@ async function startAssessment(assessmentId) {
 
     // Set title
     const titles = {
+        'welcome-materials': 'Module 0: Welcome and Reference Materials',
         'communication-protocols': 'Module 1: Security Radio Communications Assessment',
         'stop-the-bleed': 'Module 2: STOP THE BLEED® Emergency Medical Response Assessment',
         'threat-assessment': 'Module 3: Threat Assessment & Situational Awareness Assessment',
@@ -4826,6 +4845,7 @@ function updateProgressDisplay() {
     // Update assessment history
     if (progressData.assessmentResults.length > 0) {
         const assessmentTitles = {
+            'welcome-materials': 'Module 0: Welcome and Reference Materials',
             'communication-protocols': 'Module 1: Security Radio Communications',
             'stop-the-bleed': 'Module 2: STOP THE BLEED®',
             'threat-assessment': 'Module 3: Threat Assessment & Situational Awareness',
@@ -5032,6 +5052,7 @@ function reviewPastAssessment(resultIndex, fromBestAttempts = false) {
     });
     
     const assessmentTitles = {
+        'welcome-materials': 'Module 0: Welcome and Reference Materials',
         'communication-protocols': 'Module 1: Security Radio Communications Assessment',
         'stop-the-bleed': 'Module 2: STOP THE BLEED® Emergency Medical Response Assessment',
         'threat-assessment': 'Module 3: Threat Assessment & Situational Awareness Assessment',
