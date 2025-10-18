@@ -154,17 +154,29 @@
                         </button>
                     </div>
 
-                    <!-- Agent Westwood AI Status -->
+                    <!-- Agent Westwood AI Chat -->
                     <div class="clunt-status-card">
                         <h4>Agent Westwood AI Assistant</h4>
-                        <p>Students have access to Agent Westwood AI for questions during the training.</p>
-                        <div class="clunt-stats">
-                            <div class="stat">
-                                <i class="fas fa-comments"></i>
-                                <span id="cluntQuestions">0</span>
-                                <small>Questions Asked</small>
-                            </div>
+                        <p>Shared chat - all participants can see and ask questions.</p>
+                        
+                        <!-- Chat Messages -->
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Messages will be added here dynamically -->
                         </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-footer">
+                    <!-- Input Area -->
+                    <div class="input-area">
+                        <textarea 
+                            id="questionInput" 
+                            placeholder="Ask Agent Westwood a question..."
+                            rows="2"
+                        ></textarea>
+                        <button id="sendQuestion" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
                     </div>
                 </div>
             </aside>

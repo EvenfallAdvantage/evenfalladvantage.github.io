@@ -188,6 +188,16 @@ async function joinMeeting() {
             cleanupCall();
         });
         
+        // Listen for shared chat messages
+        dailyCallObject.on('app-message', (event) => {
+            console.log('📨 Received app message:', event);
+            if (event.data.type === 'chat-question') {
+                addMessage(event.data.question, 'user', event.data.userName);
+            } else if (event.data.type === 'chat-answer') {
+                addMessage(event.data.answer, 'ai');
+            }
+        });
+        
     } catch (error) {
         console.error('❌ Error joining meeting:', error);
         alert('Failed to join meeting. Please check the room URL and try again.');
@@ -235,7 +245,7 @@ function toggleSidebar(show = null) {
     }
 }
 
-// Send Question to Agent Westwood
+// Send Question to Agent Westwood (Shared Chat)
 async function sendQuestion() {
     const question = questionInput.value.trim();
     
@@ -243,56 +253,77 @@ async function sendQuestion() {
     
     console.log('❓ Asking Agent Westwood:', question);
     
+    // Get user's display name
+    const userName = displayNameInput ? displayNameInput.value.trim() || 'Student' : 'Student';
+    
     // Clear input
     questionInput.value = '';
     
-    // Add user message
-    addMessage(question, 'user');
+    // Add user message locally
+    addMessage(question, 'user', userName);
+    
+    // Broadcast question to all participants via Daily.co
+    if (dailyCallObject) {
+        dailyCallObject.sendAppMessage({
+            type: 'chat-question',
+            question: question,
+            userName: userName
+        }, '*');
+    }
     
     // Show typing indicator
     const typingId = showTypingIndicator();
     
     try {
-        // Call backend
-        const response = await fetch(BACKEND_URL, {
+        // Call backend API
+        const response = await fetch(`${BACKEND_URL}ask`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                question: question,
-                context: {
-                    source: 'training-room',
-                    timestamp: new Date().toISOString()
-                }
-            })
+            body: JSON.stringify({ question })
         });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
         
         const data = await response.json();
         
         // Remove typing indicator
         removeTypingIndicator(typingId);
         
-        // Add AI response
-        addMessage(data.answer || data.response || 'No response received', 'ai');
-        
-        console.log('✅ Got response from Clunt');
-        
+        if (data.answer) {
+            // Add AI response locally
+            addMessage(data.answer, 'ai');
+            
+            // Broadcast answer to all participants
+            if (dailyCallObject) {
+                dailyCallObject.sendAppMessage({
+                    type: 'chat-answer',
+                    answer: data.answer
+                }, '*');
+            }
+        } else {
+            addMessage('Sorry, I couldn\'t process that question.', 'ai');
+        }
     } catch (error) {
-        console.error('❌ Error:', error);
+        console.error('Error asking Agent Westwood:', error);
         removeTypingIndicator(typingId);
-        addMessage('Sorry, I encountered an error. Please try again.', 'ai');
+        addMessage('Error connecting to Agent Westwood. Please try again.', 'ai');
     }
 }
 
 // Add Message to Chat
-function addMessage(text, type) {
+function addMessage(text, type, userName = null) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}`;
+    
+    if (type === 'user' && userName) {
+        const nameSpan = document.createElement('strong');
+        nameSpan.textContent = userName;
+        nameSpan.style.display = 'block';
+        nameSpan.style.marginBottom = '0.25rem';
+        nameSpan.style.fontSize = '0.85rem';
+        nameSpan.style.color = '#4caf50';
+        messageDiv.appendChild(nameSpan);
+    }
     
     const bubble = document.createElement('div');
     bubble.className = 'message-bubble';

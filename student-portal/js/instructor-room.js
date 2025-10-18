@@ -1,7 +1,7 @@
 // Instructor Training Room JavaScript
 
-// Configuration - You'll need to add your Daily.co API key here
-const DAILY_API_KEY = 'YOUR_DAILY_API_KEY'; // Get from https://dashboard.daily.co/developers
+// Configuration
+const BACKEND_URL = 'https://evenfall-meet-addon-717441135149.us-central1.run.app/';
 
 // DOM Elements
 let roomUrlInput;
@@ -22,6 +22,9 @@ let sessionDurationSpan;
 let sessionStatus;
 let copyLinkBtn;
 let exitRoomBtn;
+let chatMessages;
+let questionInput;
+let sendQuestionBtn;
 
 // State
 let dailyCallObject = null;
@@ -53,6 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
     sessionStatus = document.getElementById('sessionStatus');
     copyLinkBtn = document.getElementById('copyLink');
     exitRoomBtn = document.getElementById('exitRoom');
+    chatMessages = document.getElementById('chatMessages');
+    questionInput = document.getElementById('questionInput');
+    sendQuestionBtn = document.getElementById('sendQuestion');
     
     // Event listeners
     if (startSessionBtn) {
@@ -71,6 +77,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (exitRoomBtn) {
         exitRoomBtn.addEventListener('click', exitRoom);
+    }
+    
+    if (sendQuestionBtn) {
+        sendQuestionBtn.addEventListener('click', sendQuestion);
+    }
+    
+    if (questionInput) {
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendQuestion();
+            }
+        });
     }
     
     // Enter key support
@@ -195,6 +214,16 @@ async function startSession() {
         dailyCallObject.on('error', (error) => {
             console.error('Daily.co error:', error);
             alert('Error in video session: ' + error.errorMsg);
+        });
+        
+        // Listen for shared chat messages
+        dailyCallObject.on('app-message', (event) => {
+            console.log('📨 Received app message:', event);
+            if (event.data.type === 'chat-question') {
+                addMessage(event.data.question, 'user', event.data.userName);
+            } else if (event.data.type === 'chat-answer') {
+                addMessage(event.data.answer, 'ai');
+            }
         });
         
         // Get initial participants after a delay
@@ -349,6 +378,121 @@ function exitRoom() {
     if (confirm('Are you sure you want to end the training session? All participants will be disconnected.')) {
         endSession();
         window.location.href = 'index.html';
+    }
+}
+
+// Send Question to Agent Westwood (Shared Chat)
+async function sendQuestion() {
+    const question = questionInput.value.trim();
+    
+    if (!question) return;
+    
+    console.log('❓ Asking Agent Westwood:', question);
+    
+    // Clear input
+    questionInput.value = '';
+    
+    // Add user message locally
+    addMessage(question, 'user', 'Instructor');
+    
+    // Broadcast question to all participants via Daily.co
+    if (dailyCallObject) {
+        dailyCallObject.sendAppMessage({
+            type: 'chat-question',
+            question: question,
+            userName: 'Instructor'
+        }, '*');
+    }
+    
+    // Show typing indicator
+    const typingId = showTypingIndicator();
+    
+    try {
+        // Call backend API
+        const response = await fetch(`${BACKEND_URL}ask`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ question })
+        });
+        
+        const data = await response.json();
+        
+        // Remove typing indicator
+        removeTypingIndicator(typingId);
+        
+        if (data.answer) {
+            // Add AI response locally
+            addMessage(data.answer, 'ai');
+            
+            // Broadcast answer to all participants
+            if (dailyCallObject) {
+                dailyCallObject.sendAppMessage({
+                    type: 'chat-answer',
+                    answer: data.answer
+                }, '*');
+            }
+        } else {
+            addMessage('Sorry, I couldn\'t process that question.', 'ai');
+        }
+    } catch (error) {
+        console.error('Error asking Agent Westwood:', error);
+        removeTypingIndicator(typingId);
+        addMessage('Error connecting to Agent Westwood. Please try again.', 'ai');
+    }
+}
+
+// Add Message to Chat
+function addMessage(text, type, userName = null) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}`;
+    
+    if (type === 'user') {
+        const nameSpan = document.createElement('strong');
+        nameSpan.textContent = userName || 'User';
+        nameSpan.style.display = 'block';
+        nameSpan.style.marginBottom = '0.25rem';
+        nameSpan.style.fontSize = '0.85rem';
+        nameSpan.style.color = '#4caf50';
+        messageDiv.appendChild(nameSpan);
+    }
+    
+    const textDiv = document.createElement('div');
+    textDiv.textContent = text;
+    messageDiv.appendChild(textDiv);
+    
+    chatMessages.appendChild(messageDiv);
+    
+    // Scroll to bottom
+    chatMessages.parentElement.scrollTop = chatMessages.parentElement.scrollHeight;
+}
+
+// Show Typing Indicator
+function showTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message ai';
+    const id = 'typing-' + Date.now();
+    typingDiv.id = id;
+    
+    const indicator = document.createElement('div');
+    indicator.className = 'typing-indicator';
+    indicator.innerHTML = '<span></span><span></span><span></span>';
+    
+    typingDiv.appendChild(indicator);
+    chatMessages.appendChild(typingDiv);
+    
+    // Scroll to bottom
+    chatMessages.parentElement.scrollTop = chatMessages.parentElement.scrollHeight;
+    
+    return id;
+}
+
+// Remove Typing Indicator
+function removeTypingIndicator(id) {
+    const indicator = document.getElementById(id);
+    if (indicator) {
+        indicator.remove();
     }
 }
 
