@@ -137,6 +137,8 @@ async function askElevenLabsAgent(question) {
             const signedUrl = `wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${AGENT_ID}`;
             
             console.log('🔗 Connecting to:', signedUrl);
+            console.log('🔑 Using API key:', ELEVENLABS_API_KEY ? `${ELEVENLABS_API_KEY.substring(0, 10)}...` : 'MISSING');
+            console.log('🤖 Agent ID:', AGENT_ID);
             
             const ws = new WebSocket(signedUrl, {
                 headers: {
@@ -144,11 +146,15 @@ async function askElevenLabsAgent(question) {
                 }
             });
             
+            // Track connection state
+            let connectionOpened = false;
+            
             let fullResponse = '';
             let timeout;
             let hasReceivedResponse = false;
             
             ws.on('open', () => {
+                connectionOpened = true;
                 console.log('✅ WebSocket connected to ElevenLabs');
                 
                 // Send the question as text input
@@ -239,12 +245,18 @@ async function askElevenLabsAgent(question) {
             
             ws.on('close', (code, reason) => {
                 console.log('🔌 WebSocket closed. Code:', code, 'Reason:', reason.toString());
+                console.log('Connection was opened:', connectionOpened);
+                console.log('Received response:', hasReceivedResponse);
+                console.log('Full response length:', fullResponse.length);
                 clearTimeout(timeout);
                 
                 if (fullResponse && hasReceivedResponse) {
                     console.log('✅ Returning ElevenLabs response:', fullResponse);
                     resolve(fullResponse);
                 } else {
+                    if (!connectionOpened) {
+                        console.log('❌ Connection never opened - check API key and agent ID');
+                    }
                     console.log('📝 No response received, using fallback');
                     resolve(answer);
                 }
