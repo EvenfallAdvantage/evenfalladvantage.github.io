@@ -5,7 +5,8 @@
 const BACKEND_URL = 'https://evenfall-meet-addon-717441135149.us-central1.run.app/';
 
 // DOM Elements - will be initialized after DOM loads
-let meetingCodeInput;
+let roomNameInput;
+let displayNameInput;
 let joinMeetingBtn;
 let cluntSidebar;
 let toggleCluntBtn;
@@ -15,16 +16,20 @@ let chatMessages;
 let questionInput;
 let sendQuestionBtn;
 let quickBtns;
+let meetInfo;
+let jitsiMeetDiv;
 
 // State
 let sidebarVisible = true;
+let jitsiApi = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🎓 Training Room initialized');
     
     // Initialize DOM elements
-    meetingCodeInput = document.getElementById('meetingCode');
+    roomNameInput = document.getElementById('roomName');
+    displayNameInput = document.getElementById('displayName');
     joinMeetingBtn = document.getElementById('joinMeeting');
     cluntSidebar = document.getElementById('cluntSidebar');
     toggleCluntBtn = document.getElementById('toggleClunt');
@@ -34,18 +39,26 @@ document.addEventListener('DOMContentLoaded', () => {
     questionInput = document.getElementById('questionInput');
     sendQuestionBtn = document.getElementById('sendQuestion');
     quickBtns = document.querySelectorAll('.quick-btn');
+    meetInfo = document.getElementById('meetInfo');
+    jitsiMeetDiv = document.getElementById('jitsiMeet');
     
     console.log('DOM elements loaded:', {
-        meetingCodeInput: !!meetingCodeInput,
+        roomNameInput: !!roomNameInput,
+        displayNameInput: !!displayNameInput,
         joinMeetingBtn: !!joinMeetingBtn,
-        cluntSidebar: !!cluntSidebar
+        cluntSidebar: !!cluntSidebar,
+        jitsiMeetDiv: !!jitsiMeetDiv
     });
     
-    // Check for meeting code in URL
+    // Check for room name in URL
     const urlParams = new URLSearchParams(window.location.search);
-    const meetingCode = urlParams.get('meeting');
-    if (meetingCode && meetingCodeInput) {
-        meetingCodeInput.value = meetingCode;
+    const roomName = urlParams.get('room');
+    const displayName = urlParams.get('name');
+    if (roomName && roomNameInput) {
+        roomNameInput.value = roomName;
+        if (displayName && displayNameInput) {
+            displayNameInput.value = displayName;
+        }
         joinMeeting();
     }
     
@@ -58,8 +71,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    if (meetingCodeInput) {
-        meetingCodeInput.addEventListener('keypress', (e) => {
+    if (roomNameInput) {
+        roomNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                joinMeeting();
+            }
+        });
+    }
+    
+    if (displayNameInput) {
+        displayNameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 joinMeeting();
@@ -106,40 +128,76 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Join Google Meet
+// Join Jitsi Meeting
 function joinMeeting() {
-    const code = meetingCodeInput.value.trim();
+    const roomName = roomNameInput.value.trim();
+    const displayName = displayNameInput.value.trim() || 'Student';
     
-    if (!code) {
-        alert('Please enter a meeting code');
+    if (!roomName) {
+        alert('Please enter a room name');
         return;
     }
     
-    console.log('🚪 Joining meeting:', code);
+    console.log('🚪 Joining Jitsi room:', roomName);
     
-    // Format meeting URL
-    const meetUrl = `https://meet.google.com/${code}`;
-    
-    // Open Google Meet in new tab
-    window.open(meetUrl, '_blank', 'noopener,noreferrer');
-    
-    // Show quick join section
-    const quickJoin = document.getElementById('quickJoin');
-    const meetLink = document.getElementById('meetLink');
-    const meetInfo = document.getElementById('meetInfo');
-    
-    meetLink.href = meetUrl;
-    quickJoin.style.display = 'block';
-    
-    // Hide instructions
-    const instructions = document.querySelector('.meet-instructions');
-    if (instructions) {
-        instructions.style.display = 'none';
+    // Hide join form
+    if (meetInfo) {
+        meetInfo.classList.add('hidden');
     }
     
-    // Show success message in chat
-    addSystemMessage(`Meeting opened: ${code}`);
-    addSystemMessage('Google Meet is now open in a new tab. Use this sidebar to ask Clunt questions during your training!');
+    // Show Jitsi container
+    if (jitsiMeetDiv) {
+        jitsiMeetDiv.classList.add('active');
+    }
+    
+    // Initialize Jitsi Meet
+    const domain = 'meet.jit.si';
+    const options = {
+        roomName: roomName,
+        width: '100%',
+        height: '100%',
+        parentNode: jitsiMeetDiv,
+        userInfo: {
+            displayName: displayName
+        },
+        configOverwrite: {
+            startWithAudioMuted: false,
+            startWithVideoMuted: false,
+            enableWelcomePage: false,
+            prejoinPageEnabled: false,
+            disableDeepLinking: true
+        },
+        interfaceConfigOverwrite: {
+            TOOLBAR_BUTTONS: [
+                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
+                'fodeviceselection', 'hangup', 'profile', 'chat', 'recording',
+                'livestreaming', 'etherpad', 'sharedvideo', 'settings', 'raisehand',
+                'videoquality', 'filmstrip', 'feedback', 'stats', 'shortcuts',
+                'tileview', 'videobackgroundblur', 'download', 'help', 'mute-everyone'
+            ],
+            SHOW_JITSI_WATERMARK: false,
+            SHOW_WATERMARK_FOR_GUESTS: false
+        }
+    };
+    
+    jitsiApi = new JitsiMeetExternalAPI(domain, options);
+    
+    // Event listeners
+    jitsiApi.addEventListener('videoConferenceJoined', () => {
+        console.log('✅ Joined Jitsi meeting');
+        addSystemMessage(`Joined training room: ${roomName}`);
+        addSystemMessage('You are now in the live training session. Ask Clunt any questions!');
+    });
+    
+    jitsiApi.addEventListener('videoConferenceLeft', () => {
+        console.log('👋 Left Jitsi meeting');
+        exitRoom();
+    });
+    
+    jitsiApi.addEventListener('readyToClose', () => {
+        console.log('🚪 Ready to close');
+        exitRoom();
+    });
 }
 
 // Toggle Sidebar
@@ -276,6 +334,11 @@ function removeTypingIndicator(id) {
 // Exit Room
 function exitRoom() {
     if (confirm('Are you sure you want to leave the training room?')) {
+        // Dispose of Jitsi API
+        if (jitsiApi) {
+            jitsiApi.dispose();
+            jitsiApi = null;
+        }
         window.location.href = 'index.html';
     }
 }

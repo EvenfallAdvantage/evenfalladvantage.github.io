@@ -6,6 +6,7 @@
     <title>Live Training Room - Evenfall Advantage</title>
     <link rel="stylesheet" href="css/training-room.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
     <div class="training-room-container">
@@ -27,35 +28,37 @@
 
         <!-- Main Content -->
         <div class="main-content">
-            <!-- Google Meet Container -->
+            <!-- Jitsi Meet Container -->
             <div class="meet-container" id="meetContainer">
+                <!-- Meeting will be embedded here -->
+                <div id="jitsiMeet"></div>
+                
+                <!-- Join Form (shown before joining) -->
                 <div class="meet-info" id="meetInfo">
                     <div class="meet-card">
                         <i class="fas fa-video fa-4x"></i>
                         <h2>Join Your Training Session</h2>
-                        <p>Enter your meeting code to join the live training with your instructor.</p>
+                        <p>Enter your room name to join the live training with your instructor.</p>
                         
                         <div class="input-group">
-                            <input type="text" id="meetingCode" placeholder="abc-defg-hij" />
+                            <input type="text" id="roomName" placeholder="evenfall-training-room" />
                             <button id="joinMeeting" class="join-btn">
                                 <i class="fas fa-arrow-right"></i> Join Training
                             </button>
                         </div>
                         
+                        <div class="input-group">
+                            <input type="text" id="displayName" placeholder="Your Name" />
+                        </div>
+                        
                         <div class="meet-instructions">
                             <p><strong>How it works:</strong></p>
                             <ol>
-                                <li>Enter the meeting code provided by your instructor</li>
-                                <li>Click "Join Training" to open Google Meet</li>
+                                <li>Enter the room name provided by your instructor</li>
+                                <li>Enter your name</li>
+                                <li>Click "Join Training" to start the video call</li>
                                 <li>Use Clunt AI sidebar to ask questions during training</li>
                             </ol>
-                        </div>
-                        
-                        <div class="quick-join" id="quickJoin" style="display: none;">
-                            <p>Meeting ready!</p>
-                            <a id="meetLink" href="#" target="_blank" class="meet-link-btn">
-                                <i class="fas fa-external-link-alt"></i> Open Google Meet
-                            </a>
                         </div>
                     </div>
                 </div>

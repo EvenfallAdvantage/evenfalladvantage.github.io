@@ -91,7 +91,7 @@ body {
     overflow: hidden;
 }
 
-/* Google Meet Container */
+/* Jitsi Meet Container */
 .meet-container {
     flex: 1;
     position: relative;
@@ -99,12 +99,26 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+}
+
+#jitsiMeet {
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+#jitsiMeet.active {
+    display: block;
 }
 
 .meet-info {
     width: 100%;
     max-width: 600px;
+    padding: 2rem;
+}
+
+.meet-info.hidden {
+    display: none;
 }
 
 .meet-card {
