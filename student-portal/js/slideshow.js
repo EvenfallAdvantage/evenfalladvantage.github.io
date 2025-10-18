@@ -7,6 +7,38 @@ let currentModuleId = null;
 
 // Module slides data structure
 const moduleSlidesData = {
+    'welcome-materials': [
+        {
+            title: 'Welcome to Your Security Training',
+            content: `
+                <h3>Welcome and Reference Materials</h3>
+                <p class="hero-subtitle">State-Specific Course Orientation</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-graduation-cap"></i> Module Overview</h4>
+                    <p>This module provides essential information about your state-specific training requirements, recommended prerequisites, and reference materials.</p>
+                    <p><strong>Duration:</strong> 30 Minutes | <strong>Slides:</strong> 8</p>
+                </div>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-info-circle"></i> No Assessment Required</h4>
+                    <p>This is an orientation module. Simply read through all slides to mark it complete. No test required.</p>
+                </div>
+            `
+        },
+        {
+            title: 'State Selection Required',
+            content: `
+                <h3>Select Your State</h3>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-map-marked-alt"></i> State-Specific Training</h4>
+                    <p>This course content is customized based on your state's requirements and regulations.</p>
+                    <p><strong>Please select your state to continue.</strong></p>
+                </div>
+                <div id="stateSelectionContainer" style="margin: 2rem 0;">
+                    <p>Loading state selection...</p>
+                </div>
+            `
+        }
+    ],
     'crowd-management': [
         {
             title: 'Crowd Management & Public Safety',
@@ -3184,14 +3216,183 @@ const moduleSlidesData = {
     ]
 };
 
+// Generate state-specific welcome module content
+function generateWelcomeModuleContent(stateCode) {
+    const state = window.stateLaws[stateCode];
+    if (!state) return null;
+
+    return [
+        {
+            title: 'Welcome to Your Security Training',
+            content: `
+                <h3>Welcome and Reference Materials</h3>
+                <p class="hero-subtitle">${state.name} Modified State Course</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-graduation-cap"></i> Course Information</h4>
+                    <p><strong>Provided by:</strong> Evenfall Advantage LLC</p>
+                    <p><strong>Course:</strong> Unarmed Security Guard Training – State of ${state.name}</p>
+                    <p><strong>Delivery Mode:</strong> Online, 12 Hours (2 Days)</p>
+                    <p><strong>Issued Certificate(s):</strong> ${state.name} Initial Guard Training Certificate</p>
+                </div>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-info-circle"></i> No Assessment Required</h4>
+                    <p>This is an orientation module. Simply read through all slides to mark it complete.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Overview',
+            content: `
+                <h3>📍 Overview</h3>
+                <p>Welcome to the ${state.name} Modified State Course, developed by Evenfall Advantage LLC to meet and exceed ${state.name}'s security training standards.</p>
+                <p>Before we begin live instruction, we ask you to complete the following self-paced preparation to set yourself up for success.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-lightbulb"></i> Preparation Materials</h4>
+                    <p>This material is optional but strongly encouraged and will directly improve your confidence, participation, and performance during the course.</p>
+                </div>
+            `
+        },
+        {
+            title: 'Recommended: ICS-100 Certification',
+            content: `
+                <h3>🔗 1. Recommended: ICS-100 Certification (Free FEMA Course)</h3>
+                <h4>What is ICS-100?</h4>
+                <p>The Incident Command System (ICS-100) introduces you to how emergency response teams organize, communicate, and work together under pressure — from active shooters to fire evacuations and medical triage.</p>
+                <p>You'll apply these concepts in our live tabletop scenario during Module 4.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-medal"></i> Recognition</h4>
+                    <p><strong>🏅 We recommend you complete this before class</strong></p>
+                    <p>Students who submit proof of ICS-100 completion will be recognized by Evenfall and given credit for emergency response leadership on their course certificate.</p>
+                </div>
+                <p><strong>🎓 Enroll Here:</strong><br>
+                <a href="https://training.fema.gov/is/courseoverview.aspx?code=IS-100.c" target="_blank">https://training.fema.gov/is/courseoverview.aspx?code=IS-100.c</a></p>
+            `
+        },
+        {
+            title: `Required Learning: ${state.name} State Goals`,
+            content: `
+                <h3>📄 2. Required Learning: ${state.name} State Goals (Training Compliance)</h3>
+                <p>Your course is built directly on the State Goals mandated by the ${state.name} training authority. You will learn and be tested on each.</p>
+                <p>We encourage you to read through the student-level definitions below to preview what you'll be expected to know by the end of the course.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-clipboard-check"></i> State Compliance</h4>
+                    <p>All state goals will be clearly marked during instruction.</p>
+                </div>
+            `
+        },
+        {
+            title: 'State Goals Covered in This Course',
+            content: `
+                <h3>📘 State Goals Covered in This Course:</h3>
+                <h4>Module 1 – Security Radio Communications</h4>
+                <ul>
+                    <li><strong>SG-11:</strong> Communication in de-escalation</li>
+                </ul>
+                <h4>Module 2 – STOP THE BLEED® Emergency Medical Response</h4>
+                <ul>
+                    <li><strong>SG-13:</strong> Techniques for individuals in crisis</li>
+                    <li><strong>SG-14:</strong> Basic emergency response procedures (First Aid, STOP THE BLEED®)</li>
+                </ul>
+                <h4>Module 3 – Threat Assessment & Situational Awareness</h4>
+                <ul>
+                    <li><strong>SG-9:</strong> Define de-escalation</li>
+                    <li><strong>SG-10:</strong> Use of time, distance, and cover in de-escalation</li>
+                </ul>
+            `
+        },
+        {
+            title: 'State Goals Covered (Continued)',
+            content: `
+                <h3>📘 State Goals Covered (Continued):</h3>
+                <h4>Module 4 – Emergency Response & ICS</h4>
+                <ul>
+                    <li><strong>SG-15:</strong> Describe the duties of emergency first responders</li>
+                    <li><strong>SG-16:</strong> Describe the duties of private security personnel in emergencies</li>
+                </ul>
+                <h4>Module 5 – Interacting with Diverse Populations</h4>
+                <ul>
+                    <li><strong>SG-17:</strong> Interacting with individuals from diverse populations</li>
+                </ul>
+                <h4>Module 6 – Crowd Management & Public Safety</h4>
+                <ul>
+                    <li><strong>SG-6:</strong> Define when force is authorized or prohibited</li>
+                    <li><strong>SG-7:</strong> Reporting requirements when force is used</li>
+                </ul>
+                <h4>Module 7 – Legal Aspects & Use of Force</h4>
+                <ul>
+                    <li><strong>SG-1:</strong> State certification requirements</li>
+                    <li><strong>SG-2:</strong> Limitations to certification</li>
+                    <li><strong>SG-3:</strong> Elements of a crime</li>
+                    <li><strong>SG-4:</strong> Arrest and detention limitations</li>
+                    <li><strong>SG-5:</strong> Use of force definition</li>
+                    <li><strong>SG-8:</strong> Legal consequences of use of force</li>
+                    <li><strong>SG-12:</strong> Restrictions on use/possession of weapons</li>
+                </ul>
+            `
+        },
+        {
+            title: 'White Paper Reading',
+            content: `
+                <h3>📰 3. White Paper Reading: Tragedy, ICS Failure, and the Role of Private Security</h3>
+                <p>We ask all students to read this short white paper authored by Evenfall Advantage prior to Day 2 of class.</p>
+                <p>This will help you understand why ICS is more than just a formality — it's about saving lives, managing chaos, and protecting the public.</p>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-book-open"></i> Required Reading</h4>
+                    <p><strong>📰 Read the Blog & Download the PDF here:</strong><br>
+                    <a href="https://evenfalladvantage.com/blog/the-cost-of-chaos" target="_blank">evenfalladvantage.com/blog/the-cost-of-chaos</a></p>
+                </div>
+            `
+        },
+        {
+            title: 'Summary: How to Prepare',
+            content: `
+                <h3>✅ Summary: How to Prepare</h3>
+                <table style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
+                    <thead>
+                        <tr style="background: rgba(255, 107, 53, 0.1);">
+                            <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Task</th>
+                            <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Description</th>
+                            <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Link</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 0.75rem; border: 1px solid #ddd;"><strong>ICS-100</strong></td>
+                            <td style="padding: 0.75rem; border: 1px solid #ddd;">Complete FEMA online training</td>
+                            <td style="padding: 0.75rem; border: 1px solid #ddd;"><a href="https://training.fema.gov/is/courseoverview.aspx?code=IS-100.c" target="_blank">Enroll Now</a></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.75rem; border: 1px solid #ddd;"><strong>White Paper</strong></td>
+                            <td style="padding: 0.75rem; border: 1px solid #ddd;">Read Evenfall's ICS leadership case study</td>
+                            <td style="padding: 0.75rem; border: 1px solid #ddd;"><a href="https://evenfalladvantage.com/blog/the-cost-of-chaos" target="_blank">Read Now</a></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.75rem; border: 1px solid #ddd;"><strong>${state.name} Goals</strong></td>
+                            <td style="padding: 0.75rem; border: 1px solid #ddd;">Review state learning objectives</td>
+                            <td style="padding: 0.75rem; border: 1px solid #ddd;">See previous slides</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="slide-callout">
+                    <h4><i class="fas fa-question-circle"></i> Questions?</h4>
+                    <p>If you have questions about ICS-100 or trouble accessing the materials, contact us at:</p>
+                    <p>📧 <a href="mailto:contact@evenfalladvantage.com">contact@evenfalladvantage.com</a><br>
+                    🌐 <a href="https://www.evenfalladvantage.com" target="_blank">www.evenfalladvantage.com</a></p>
+                    <p><strong>We're looking forward to working with you. Prepare to lead.</strong></p>
+                </div>
+            `
+        }
+    ];
+}
+
 // Initialize slideshow for a module
 async function startModule(moduleId, skipStateCheck = false) {
     currentModuleId = moduleId;
     currentSlideIndex = 0;
     
-    // Special handling for Module 7 (Use of Force) - needs state selection
+    // Special handling for Module 0 (Welcome) and Module 7 (Use of Force) - needs state selection
     // Only do this check if not already coming from startModuleWithState
-    if (moduleId === 'use-of-force' && !skipStateCheck) {
+    if ((moduleId === 'welcome-materials' || moduleId === 'use-of-force') && !skipStateCheck) {
         const selectedState = localStorage.getItem('selectedState');
         
         // If no state selected or state laws not loaded, show state selection modal
@@ -3212,7 +3413,7 @@ async function startModule(moduleId, skipStateCheck = false) {
     try {
         // If skipStateCheck is true, we're coming from startModuleWithState
         // and the slides are already prepared in moduleSlidesData
-        if (skipStateCheck && moduleId === 'use-of-force') {
+        if (skipStateCheck && (moduleId === 'welcome-materials' || moduleId === 'use-of-force')) {
             currentModuleSlides = moduleSlidesData[moduleId];
             const fallbackModule = moduleContent[moduleId];
             if (!currentModuleSlides || !fallbackModule) {
@@ -3468,7 +3669,15 @@ function completeModule() {
     // Navigate back to training section (don't auto-start assessment)
     navigateToSection('training');
     
-    // Show completion message
+    // Module 0 (welcome-materials) has no assessment - just show completion
+    if (currentModuleId === 'welcome-materials') {
+        setTimeout(() => {
+            alert('Welcome module completed! You can now proceed with the training modules.');
+        }, 300);
+        return;
+    }
+    
+    // Show completion message for other modules
     setTimeout(() => {
         alert('Module completed! You can now take the assessment from the Assessment section.');
     }, 300);
@@ -3577,3 +3786,4 @@ function initializeStateSelector() {
 // Expose slideshow functions and data globally for state-selection.js
 window.moduleSlidesData = moduleSlidesData;
 window.startModule = startModule;
+window.generateWelcomeModuleContent = generateWelcomeModuleContent;

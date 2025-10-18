@@ -431,6 +431,10 @@ function showLockedMessage(message) {
 // ============= TRAINING MODULES =============
 
 const moduleContent = {
+    'welcome-materials': {
+        title: 'Welcome and Reference Materials',
+        description: 'State-specific orientation and prerequisites'
+    },
     'crowd-management': {
         title: 'Crowd Management',
         content: `

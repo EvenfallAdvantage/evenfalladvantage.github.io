@@ -123,15 +123,29 @@ async function startModuleWithState(moduleId, stateCode) {
         
         console.log('State info found:', stateInfo.name);
         
-        // Generate state-specific slides
+        // Generate state-specific slides based on module
         console.log('Generating state-specific slides...');
-        const stateSlides = generateStateSpecificSlides(stateInfo, stateCode);
+        let stateSlides;
+        
+        if (moduleId === 'welcome-materials') {
+            // Generate welcome module content
+            if (window.generateWelcomeModuleContent) {
+                stateSlides = window.generateWelcomeModuleContent(stateCode);
+            } else {
+                console.error('generateWelcomeModuleContent not found');
+                return;
+            }
+        } else if (moduleId === 'use-of-force') {
+            // Generate use of force content
+            stateSlides = generateStateSpecificSlides(stateInfo, stateCode);
+        }
+        
         console.log('Generated', stateSlides.length, 'slides');
         
-        // Replace the use-of-force slides with state-specific ones
+        // Replace the module slides with state-specific ones
         if (window.moduleSlidesData) {
-            window.moduleSlidesData['use-of-force'] = stateSlides;
-            console.log('Updated moduleSlidesData with state-specific slides');
+            window.moduleSlidesData[moduleId] = stateSlides;
+            console.log('Updated moduleSlidesData with state-specific slides for', moduleId);
         } else {
             console.error('moduleSlidesData not found. Make sure slideshow.js is loaded.');
             return;

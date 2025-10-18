@@ -437,6 +437,7 @@ async function loadCourses() {
 
         // Define correct module order
         const moduleOrder = [
+            'welcome-materials',       // Module 0
             'communication-protocols',  // Module 1
             'stop-the-bleed',          // Module 2
             'threat-assessment',       // Module 3
@@ -472,6 +473,7 @@ function displayCourses(courses) {
 
     // Module number mapping
     const moduleNumbers = {
+        'welcome-materials': 0,
         'communication-protocols': 1,
         'stop-the-bleed': 2,
         'threat-assessment': 3,
