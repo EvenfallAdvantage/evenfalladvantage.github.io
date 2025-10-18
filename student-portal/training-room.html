@@ -41,20 +41,23 @@
                         <p>Enter your room URL to join the live training with your instructor.</p>
                         
                         <div class="input-group">
-                            <input type="text" id="roomUrl" placeholder="https://evenfalladvantage.daily.co/training-room" />
-                            <button id="joinMeeting" class="join-btn">
-                                <i class="fas fa-arrow-right"></i> Join Training
-                            </button>
+                            <label for="roomUrl">Select Training Room</label>
+                            <select id="roomUrl" style="width: 100%; padding: 0.875rem; background: #253646; color: #fff; border: 2px solid #34495e; border-radius: 0.5rem; font-size: 1rem;">
+                                <option value="https://evenfalladvantage.daily.co/evenfalladvantage-training-1">Training Room 1</option>
+                                <option value="https://evenfalladvantage.daily.co/evenfalladvantage-training-2">Training Room 2</option>
+                                <option value="https://evenfalladvantage.daily.co/evenfalladvantage-training-3">Training Room 3</option>
+                            </select>
                         </div>
                         
                         <div class="input-group">
+                            <label for="displayName">Your Name</label>
                             <input type="text" id="displayName" placeholder="Your Name" />
                         </div>
                         
                         <div class="meet-instructions">
                             <p><strong>How it works:</strong></p>
                             <ol>
-                                <li>Enter the room URL provided by your instructor</li>
+                                <li>Select the same training room as your instructor</li>
                                 <li>Enter your name</li>
                                 <li>Click "Join Training" to start the video call</li>
                                 <li>Use Agent Westwood AI sidebar to ask questions during training</li>
