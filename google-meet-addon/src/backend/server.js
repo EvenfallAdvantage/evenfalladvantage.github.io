@@ -62,12 +62,54 @@ async function askElevenLabsAgent(question) {
     try {
         console.log('🤖 Calling ElevenLabs API...');
         console.log('Agent ID:', AGENT_ID);
+        console.log('API Key (first 10 chars):', ELEVENLABS_API_KEY?.substring(0, 10));
         console.log('Question:', question);
         
-        // ElevenLabs Conversational AI endpoint - correct format
-        const response = await axios.post(
+        // Try multiple possible endpoints
+        const endpoints = [
             `https://api.elevenlabs.io/v1/convai/agents/${AGENT_ID}/conversation`,
+            `https://api.elevenlabs.io/v1/convai/conversation`,
+            `https://api.elevenlabs.io/v1/text-to-speech/${AGENT_ID}`
+        ];
+        
+        let lastError = null;
+        
+        // Try first endpoint (most likely correct)
+        try {
+            const response = await axios.post(
+                `https://api.elevenlabs.io/v1/convai/agents/${AGENT_ID}/conversation`,
+                {
+                    text: question
+                },
+                {
+                    headers: {
+                        'xi-api-key': ELEVENLABS_API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000
+                }
+            );
+            
+            console.log('✅ ElevenLabs Response:', JSON.stringify(response.data));
+            
+            const answer = response.data.text || 
+                          response.data.response || 
+                          response.data.message ||
+                          response.data.output ||
+                          response.data.answer ||
+                          'I apologize, but I couldn\'t generate a response. Please try again.';
+            
+            return answer;
+        } catch (err) {
+            lastError = err;
+            console.log('First endpoint failed, trying alternative...');
+        }
+        
+        // If first fails, try with agent_id in body
+        const response = await axios.post(
+            `https://api.elevenlabs.io/v1/convai/conversation`,
             {
+                agent_id: AGENT_ID,
                 text: question
             },
             {
@@ -79,12 +121,13 @@ async function askElevenLabsAgent(question) {
             }
         );
         
-        console.log('✅ ElevenLabs Response:', JSON.stringify(response.data));
+        console.log('✅ ElevenLabs Response (alt endpoint):', JSON.stringify(response.data));
         
         const answer = response.data.text || 
                       response.data.response || 
                       response.data.message ||
                       response.data.output ||
+                      response.data.answer ||
                       'I apologize, but I couldn\'t generate a response. Please try again.';
         
         return answer;
@@ -94,12 +137,13 @@ async function askElevenLabsAgent(question) {
         console.error('Status:', error.response?.status);
         console.error('Data:', JSON.stringify(error.response?.data));
         console.error('Message:', error.message);
+        console.error('Full error:', error);
         
         // Return more detailed error for debugging
         if (error.response?.data) {
-            return `Error from ElevenLabs: ${JSON.stringify(error.response.data)}`;
+            return `Error from ElevenLabs (${error.response.status}): ${JSON.stringify(error.response.data)}. Please verify your Agent ID in the ElevenLabs dashboard.`;
         }
-        return 'I\'m having trouble connecting right now. Please try again in a moment.';
+        return 'I\'m having trouble connecting to ElevenLabs. Please check the Cloud Run logs for details.';
     }
 }
 
