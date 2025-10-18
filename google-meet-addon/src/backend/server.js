@@ -3,6 +3,7 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const WebSocket = require('ws');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -108,42 +109,105 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Call ElevenLabs Conversational AI API
+// Call ElevenLabs Conversational AI via WebSocket
 async function askElevenLabsAgent(question) {
-    try {
-        console.log('🤖 Calling ElevenLabs API...');
-        console.log('Agent ID:', AGENT_ID);
-        console.log('API Key exists:', !!ELEVENLABS_API_KEY);
-        console.log('Question:', question);
-        
-        // ElevenLabs Conversational AI uses WebSocket for real conversations
-        // For simple text-based Q&A, we'll use the text-to-speech API with a prompt
-        // Or use a simple fallback with pre-programmed responses
-        
-        // For now, let's create intelligent responses based on the question
-        const answer = generateSecurityTrainingResponse(question);
-        
-        console.log('✅ Generated answer:', answer);
-        
-        return answer;
-        
-    } catch (error) {
-        console.error('❌ ElevenLabs API Error Details:');
-        console.error('Status:', error.response?.status);
-        console.error('Data:', JSON.stringify(error.response?.data));
-        console.error('Message:', error.message);
-        
-        // Fallback response if ElevenLabs isn't configured
-        if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY === 'YOUR_API_KEY') {
-            return "Hello! I'm Agent Westwood, your AI training assistant. I'm currently running in demo mode. To enable full AI responses, please configure your ElevenLabs API key in the Cloud Run environment variables.";
+    return new Promise((resolve, reject) => {
+        try {
+            console.log('🤖 Connecting to ElevenLabs WebSocket...');
+            console.log('Agent ID:', AGENT_ID);
+            console.log('API Key exists:', !!ELEVENLABS_API_KEY);
+            console.log('Question:', question);
+            
+            // Check if this is actually a question
+            const answer = generateSecurityTrainingResponse(question);
+            if (answer === null) {
+                // Not a question, don't call API
+                resolve(null);
+                return;
+            }
+            
+            // If no API key, use fallback responses
+            if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY === 'YOUR_API_KEY') {
+                console.log('📝 Using fallback response (no API key)');
+                resolve(answer);
+                return;
+            }
+            
+            // Connect to ElevenLabs WebSocket
+            const ws = new WebSocket(`wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${AGENT_ID}`, {
+                headers: {
+                    'xi-api-key': ELEVENLABS_API_KEY
+                }
+            });
+            
+            let fullResponse = '';
+            let timeout;
+            
+            ws.on('open', () => {
+                console.log('✅ WebSocket connected');
+                
+                // Send the question
+                ws.send(JSON.stringify({
+                    type: 'user_message',
+                    text: question
+                }));
+                
+                // Set timeout for response
+                timeout = setTimeout(() => {
+                    console.log('⏱️ Response timeout, using fallback');
+                    ws.close();
+                    resolve(answer); // Use fallback if timeout
+                }, 15000);
+            });
+            
+            ws.on('message', (data) => {
+                try {
+                    const message = JSON.parse(data.toString());
+                    console.log('📨 Received:', message.type);
+                    
+                    if (message.type === 'agent_response' || message.type === 'text') {
+                        fullResponse += message.text || message.content || '';
+                    }
+                    
+                    if (message.type === 'conversation_end' || message.type === 'agent_response_end') {
+                        clearTimeout(timeout);
+                        ws.close();
+                        
+                        if (fullResponse) {
+                            console.log('✅ Got ElevenLabs response');
+                            resolve(fullResponse);
+                        } else {
+                            console.log('📝 Empty response, using fallback');
+                            resolve(answer);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error parsing message:', err);
+                }
+            });
+            
+            ws.on('error', (error) => {
+                console.error('❌ WebSocket error:', error.message);
+                clearTimeout(timeout);
+                // Use fallback on error
+                resolve(answer);
+            });
+            
+            ws.on('close', () => {
+                console.log('🔌 WebSocket closed');
+                clearTimeout(timeout);
+                if (!fullResponse && answer) {
+                    resolve(answer);
+                }
+            });
+            
+        } catch (error) {
+            console.error('❌ Error:', error.message);
+            // Use fallback on any error
+            const fallback = generateSecurityTrainingResponse(question);
+            resolve(fallback);
         }
-        
-        // Return more detailed error for debugging
-        if (error.response?.data) {
-            return `Error from ElevenLabs (${error.response.status}): ${JSON.stringify(error.response.data)}. Please verify your Agent ID in the ElevenLabs dashboard.`;
-        }
-        return 'I\'m having trouble connecting to ElevenLabs. Please check the Cloud Run logs for details.';
-    }
+    });
 }
 
 // Generate security training responses
