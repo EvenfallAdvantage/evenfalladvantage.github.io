@@ -1,5 +1,5 @@
 // Training Room JavaScript
-// Connects to Cloud Run backend for Clunt AI responses
+// Connects to Cloud Run backend for Agent Westwood AI responses
 
 // Configuration
 const BACKEND_URL = 'https://evenfall-meet-addon-717441135149.us-central1.run.app/';
@@ -170,7 +170,7 @@ async function joinMeeting() {
         
         console.log('✅ Joined Daily.co meeting');
         addSystemMessage(`Joined training room`);
-        addSystemMessage('You are now in the live training session. Ask Clunt any questions!');
+        addSystemMessage('Google Meet is now open in a new tab. Use this sidebar to ask Agent Westwood questions during your training!');
         
         // Event listeners
         dailyCallObject.on('joined-meeting', () => {
@@ -228,20 +228,20 @@ function toggleSidebar(show = null) {
     
     if (sidebarVisible) {
         cluntSidebar.classList.remove('hidden');
-        toggleCluntBtn.innerHTML = '<i class="fas fa-robot"></i> Hide Clunt';
+        toggleCluntBtn.innerHTML = '<i class="fas fa-robot"></i> Hide Agent Westwood';
     } else {
         cluntSidebar.classList.add('hidden');
-        toggleCluntBtn.innerHTML = '<i class="fas fa-robot"></i> Ask Clunt';
+        toggleCluntBtn.innerHTML = '<i class="fas fa-robot"></i> Ask Agent Westwood';
     }
 }
 
-// Send Question to Clunt
+// Send Question to Agent Westwood
 async function sendQuestion() {
     const question = questionInput.value.trim();
     
     if (!question) return;
     
-    console.log('❓ Asking Clunt:', question);
+    console.log('❓ Asking Agent Westwood:', question);
     
     // Clear input
     questionInput.value = '';
