@@ -3300,6 +3300,13 @@ function loadSlide(index) {
     const slide = currentModuleSlides[index];
     const container = document.getElementById('moduleContent');
     
+    // Stop any currently playing audio before loading new slide
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    
     // Build slide HTML with title, content, and media
     let slideHTML = '<div class="slide active">';
     
@@ -3494,6 +3501,13 @@ function completeModule() {
 }
 
 function closeModule() {
+    // Stop any playing audio
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    
     document.getElementById('moduleModal').classList.remove('active');
     currentModuleId = null;
     currentModuleSlides = [];
