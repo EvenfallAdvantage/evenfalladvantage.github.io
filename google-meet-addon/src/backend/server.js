@@ -177,7 +177,11 @@ async function askElevenLabsAgent(question) {
         console.error('Status:', error.response?.status);
         console.error('Data:', JSON.stringify(error.response?.data));
         console.error('Message:', error.message);
-        console.error('Full error:', error);
+        
+        // Fallback response if ElevenLabs isn't configured
+        if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY === 'YOUR_API_KEY') {
+            return "Hello! I'm Agent Westwood, your AI training assistant. I'm currently running in demo mode. To enable full AI responses, please configure your ElevenLabs API key in the Cloud Run environment variables.";
+        }
         
         // Return more detailed error for debugging
         if (error.response?.data) {
