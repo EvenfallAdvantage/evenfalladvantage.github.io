@@ -3658,10 +3658,13 @@ function goToSlide(index) {
 async function completeModule() {
     if (!currentModuleId) return;
     
+    // Capture module ID immediately before any operations that might clear it
+    const completedModuleId = currentModuleId;
+    
     // Save to localStorage (legacy support)
-    if (!progressData.completedModules.includes(currentModuleId)) {
-        progressData.completedModules.push(currentModuleId);
-        const moduleTitle = moduleContent[currentModuleId]?.title || 'Unknown Module';
+    if (!progressData.completedModules.includes(completedModuleId)) {
+        progressData.completedModules.push(completedModuleId);
+        const moduleTitle = moduleContent[completedModuleId]?.title || 'Unknown Module';
         addActivity(`Completed module: ${moduleTitle}`);
         saveProgress();
     }
@@ -3670,13 +3673,13 @@ async function completeModule() {
     try {
         const userId = window.currentUser?.id;
         if (userId && window.TrainingData && window.StudentData) {
-            const moduleResult = await window.TrainingData.getModuleByCode(currentModuleId);
+            const moduleResult = await window.TrainingData.getModuleByCode(completedModuleId);
             if (moduleResult.success && moduleResult.data) {
                 await window.StudentData.updateModuleProgress(userId, moduleResult.data.id, {
                     progress_percentage: 100,
                     completed_at: new Date().toISOString()
                 });
-                console.log(`✅ Module marked complete in database: ${currentModuleId}`);
+                console.log(`✅ Module marked complete in database: ${completedModuleId}`);
             }
         }
     } catch (error) {
@@ -3694,12 +3697,11 @@ async function completeModule() {
         await window.loadTrainingModules();
     }
     
-    // Show appropriate completion message
-    const moduleIdForAlert = currentModuleId; // Capture the value before async operations
+    // Show appropriate completion message using the captured module ID
     setTimeout(() => {
-        console.log('Alert check - moduleIdForAlert:', moduleIdForAlert);
+        console.log('Alert check - completedModuleId:', completedModuleId);
         // Module 0 (welcome-materials) has no assessment - just show completion
-        if (moduleIdForAlert === 'welcome-materials') {
+        if (completedModuleId === 'welcome-materials') {
             alert('Welcome and Reference Materials completed! You\'re ready to begin the training modules.');
         } else {
             // Show completion message for other modules
