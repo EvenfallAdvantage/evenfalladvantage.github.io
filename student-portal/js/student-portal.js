@@ -62,7 +62,9 @@ async function loadTrainingModules() {
             } else if (isCompleted) {
                 statusClass = 'completed';
                 const expiresText = completionStatus.expiresIn ? ` (Expires in ${completionStatus.expiresIn})` : '';
-                statusBadge = `<div class="completion-badge"><i class="fas fa-check-circle"></i> Certified${expiresText}</div>`;
+                // Module 0 shows "Completed" instead of "Certified" (no expiration)
+                const badgeText = module.module_code === 'welcome-materials' ? 'Completed' : 'Certified';
+                statusBadge = `<div class="completion-badge"><i class="fas fa-check-circle"></i> ${badgeText}${expiresText}</div>`;
                 buttonText = 'Review Module';
                 buttonIcon = 'fa-check-circle';
             }
