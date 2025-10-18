@@ -1,7 +1,7 @@
 // Evenfall Advantage Meet Add-on - Sidebar JavaScript
 
 // Configuration
-const BACKEND_URL = 'YOUR_CLOUD_FUNCTION_URL'; // Will be set after deployment
+const BACKEND_URL = 'https://evenfall-meet-addon-717441135149.us-central1.run.app/';
 
 // DOM Elements
 const chatContainer = document.getElementById('chatContainer');
