@@ -61,7 +61,10 @@ app.get('/health', (req, res) => {
 async function askElevenLabsAgent(question) {
     try {
         console.log('🤖 Calling ElevenLabs API...');
+        console.log('Agent ID:', AGENT_ID);
+        console.log('Question:', question);
         
+        // Try the conversational AI endpoint
         const response = await axios.post(
             `https://api.elevenlabs.io/v1/convai/conversation`,
             {
@@ -77,15 +80,26 @@ async function askElevenLabsAgent(question) {
             }
         );
         
+        console.log('✅ ElevenLabs Response:', JSON.stringify(response.data));
+        
         const answer = response.data.text || 
                       response.data.response || 
                       response.data.message ||
+                      response.data.output ||
                       'I apologize, but I couldn\'t generate a response. Please try again.';
         
         return answer;
         
     } catch (error) {
-        console.error('❌ ElevenLabs API Error:', error.response?.data || error.message);
+        console.error('❌ ElevenLabs API Error Details:');
+        console.error('Status:', error.response?.status);
+        console.error('Data:', JSON.stringify(error.response?.data));
+        console.error('Message:', error.message);
+        
+        // Return more detailed error for debugging
+        if (error.response?.data) {
+            return `Error from ElevenLabs: ${JSON.stringify(error.response.data)}`;
+        }
         return 'I\'m having trouble connecting right now. Please try again in a moment.';
     }
 }
