@@ -95,53 +95,68 @@ body {
 .meet-container {
     flex: 1;
     position: relative;
-    background: #000;
-}
-
-.meet-placeholder {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    background: #1a1a1a;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1.5rem;
-    background: #1a1a1a;
-    color: #fff;
+    padding: 2rem;
 }
 
-.meet-placeholder i {
+.meet-info {
+    width: 100%;
+    max-width: 600px;
+}
+
+.meet-card {
+    background: #253646;
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.meet-card i {
     color: #e74c3c;
-    opacity: 0.5;
+    margin-bottom: 1.5rem;
 }
 
-.meet-placeholder h2 {
-    font-size: 1.5rem;
+.meet-card h2 {
+    font-size: 1.75rem;
     font-weight: 600;
+    margin-bottom: 1rem;
 }
 
-.meet-placeholder input {
-    width: 300px;
-    max-width: 90%;
-    padding: 0.75rem 1rem;
+.meet-card > p {
+    color: #bbb;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.input-group {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 0.875rem 1.25rem;
     font-size: 1rem;
     border: 2px solid #34495e;
     border-radius: 0.5rem;
-    background: #253646;
+    background: #1e2d3d;
     color: #fff;
     text-align: center;
+    transition: border-color 0.3s;
 }
 
-.meet-placeholder input:focus {
+.input-group input:focus {
     outline: none;
     border-color: #e74c3c;
 }
 
 .join-btn {
-    padding: 0.75rem 2rem;
+    padding: 0.875rem 1.5rem;
     background: #e74c3c;
     color: white;
     border: none;
@@ -150,10 +165,68 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
 }
 
 .join-btn:hover {
     background: #c0392b;
+    transform: translateY(-2px);
+}
+
+.meet-instructions {
+    background: #1e2d3d;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: left;
+    margin-bottom: 1.5rem;
+}
+
+.meet-instructions p {
+    margin-bottom: 0.75rem;
+    color: #e74c3c;
+}
+
+.meet-instructions ol {
+    margin-left: 1.5rem;
+    color: #bbb;
+}
+
+.meet-instructions li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.quick-join {
+    background: #1e2d3d;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    border: 2px solid #4caf50;
+}
+
+.quick-join p {
+    color: #4caf50;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.meet-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: #4caf50;
+    color: white;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.meet-link-btn:hover {
+    background: #45a049;
     transform: translateY(-2px);
 }
 

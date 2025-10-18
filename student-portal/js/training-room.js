@@ -75,14 +75,26 @@ function joinMeeting() {
     // Format meeting URL
     const meetUrl = `https://meet.google.com/${code}`;
     
-    // Load meeting in iframe
-    meetFrame.src = meetUrl;
+    // Open Google Meet in new tab
+    window.open(meetUrl, '_blank', 'noopener,noreferrer');
     
-    // Hide placeholder
-    meetPlaceholder.style.display = 'none';
+    // Show quick join section
+    const quickJoin = document.getElementById('quickJoin');
+    const meetLink = document.getElementById('meetLink');
+    const meetInfo = document.getElementById('meetInfo');
     
-    // Show success message
-    addSystemMessage(`Joined meeting: ${code}`);
+    meetLink.href = meetUrl;
+    quickJoin.style.display = 'block';
+    
+    // Hide instructions
+    const instructions = document.querySelector('.meet-instructions');
+    if (instructions) {
+        instructions.style.display = 'none';
+    }
+    
+    // Show success message in chat
+    addSystemMessage(`Meeting opened: ${code}`);
+    addSystemMessage('Google Meet is now open in a new tab. Use this sidebar to ask Clunt questions during your training!');
 }
 
 // Toggle Sidebar
