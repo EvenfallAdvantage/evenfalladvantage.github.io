@@ -635,6 +635,9 @@ async function updateCourse(event, moduleId) {
         if (updatedModule) {
             await updateOrCreateAssessment(updatedModule);
             
+            // Auto-regeneration of assessment questions is disabled
+            // To re-enable, uncomment the code below:
+            /*
             // Skip AI question regeneration for Module 7 (use-of-force) since it uses state-specific questions
             if (updatedModule.module_code !== 'use-of-force' && window.generateAssessmentQuestions) {
                 submitBtn.innerHTML = '<span class="loading-spinner"></span> Regenerating questions...';
@@ -647,6 +650,8 @@ async function updateCourse(event, moduleId) {
             } else if (updatedModule.module_code === 'use-of-force') {
                 console.log('Skipped AI question generation for Module 7 - using state-specific questions');
             }
+            */
+            console.log('Auto-regeneration of assessment questions is disabled');
         }
         
         showAlert('Course updated successfully!', 'success');
