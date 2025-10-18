@@ -3655,12 +3655,32 @@ function goToSlide(index) {
     loadSlide(currentSlideIndex);
 }
 
-function completeModule() {
-    if (currentModuleId && !progressData.completedModules.includes(currentModuleId)) {
+async function completeModule() {
+    if (!currentModuleId) return;
+    
+    // Save to localStorage (legacy support)
+    if (!progressData.completedModules.includes(currentModuleId)) {
         progressData.completedModules.push(currentModuleId);
         const moduleTitle = moduleContent[currentModuleId]?.title || 'Unknown Module';
         addActivity(`Completed module: ${moduleTitle}`);
         saveProgress();
+    }
+    
+    // Save to database
+    try {
+        const userId = window.currentUser?.id;
+        if (userId && window.TrainingData && window.StudentData) {
+            const moduleResult = await window.TrainingData.getModuleByCode(currentModuleId);
+            if (moduleResult.success && moduleResult.data) {
+                await window.StudentData.updateModuleProgress(userId, moduleResult.data.id, {
+                    progress_percentage: 100,
+                    completed_at: new Date().toISOString()
+                });
+                console.log(`✅ Module marked complete in database: ${currentModuleId}`);
+            }
+        }
+    } catch (error) {
+        console.error('Error saving module completion to database:', error);
     }
     
     // Close modal and return to training section
@@ -3669,10 +3689,15 @@ function completeModule() {
     // Navigate back to training section (don't auto-start assessment)
     navigateToSection('training');
     
+    // Reload training modules to show updated completion status
+    if (window.loadTrainingModules) {
+        await window.loadTrainingModules();
+    }
+    
     // Module 0 (welcome-materials) has no assessment - just show completion
     if (currentModuleId === 'welcome-materials') {
         setTimeout(() => {
-            alert('Welcome module completed! You can now proceed with the training modules.');
+            alert('Welcome and Reference Materials completed! You\'re ready to begin the training modules.');
         }, 300);
         return;
     }

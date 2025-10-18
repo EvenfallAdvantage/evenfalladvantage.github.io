@@ -228,6 +228,18 @@ const MODULE_EXPIRATION = {
 
 // Get module completion status with expiration check
 function getModuleCompletionStatus(moduleCode) {
+    // Module 0 (welcome-materials) has no assessment - check if completed in localStorage
+    if (moduleCode === 'welcome-materials') {
+        const isCompleted = progressData.completedModules && progressData.completedModules.includes(moduleCode);
+        return { 
+            completed: isCompleted, 
+            expired: false,
+            expiresIn: '',
+            completionDate: null,
+            expirationDate: null
+        };
+    }
+    
     // Check if assessment was passed
     const passedAssessment = progressData.assessmentResults.find(
         result => (result.module === moduleCode || result.assessment === moduleCode) && result.passed
