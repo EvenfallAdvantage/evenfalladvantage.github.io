@@ -3398,7 +3398,7 @@ async function startModule(moduleId, skipStateCheck = false) {
         // If no state selected or state laws not loaded, show state selection modal
         if (!selectedState || !window.stateLaws || Object.keys(window.stateLaws).length === 0) {
             if (window.showStateSelectionModal) {
-                await window.showStateSelectionModal();
+                await window.showStateSelectionModal(moduleId);
                 return; // State selection modal will call startModuleWithState
             }
         } else {

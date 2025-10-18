@@ -1,11 +1,13 @@
-// State Selection for Module 7 - Legal Aspects & Use of Force
-// This module requires state-specific content
+// State Selection for Module 0 and Module 7
+// These modules require state-specific content
 
-// Store selected state
+// Store selected state and module
 let selectedState = null;
+let pendingModuleId = null;
 
-// Show state selection modal before starting Module 7
-async function showStateSelectionModal() {
+// Show state selection modal before starting state-specific modules
+async function showStateSelectionModal(moduleId = 'use-of-force') {
+    pendingModuleId = moduleId;
     // Load state laws from database first
     await ensureStateLawsLoaded();
     
@@ -18,7 +20,7 @@ async function showStateSelectionModal() {
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
                 <h2><i class="fas fa-map-marked-alt"></i> Select Your State</h2>
-                <p style="margin-top: 0.5rem; opacity: 0.9;">Module 7 content is state-specific. Please select your state to continue.</p>
+                <p style="margin-top: 0.5rem; opacity: 0.9;">This module content is state-specific. Please select your state to continue.</p>
             </div>
             <div class="modal-body">
                 <div class="state-selection-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; max-height: 400px; overflow-y: auto; padding: 1rem;">
@@ -93,8 +95,9 @@ async function selectState(stateCode) {
         }
         
         // Start the module with state-specific content
-        console.log('Starting module with state:', stateCode);
-        await startModuleWithState('use-of-force', stateCode);
+        const moduleToStart = pendingModuleId || 'use-of-force';
+        console.log('Starting module with state:', stateCode, 'Module:', moduleToStart);
+        await startModuleWithState(moduleToStart, stateCode);
         console.log('Module started successfully');
     } catch (error) {
         console.error('Error in selectState:', error);
