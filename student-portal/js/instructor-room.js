@@ -4,7 +4,7 @@
 const DAILY_API_KEY = 'YOUR_DAILY_API_KEY'; // Get from https://dashboard.daily.co/developers
 
 // DOM Elements
-let roomNameInput;
+let roomUrlInput;
 let instructorNameInput;
 let startSessionBtn;
 let requirePasswordCheckbox;
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('🎓 Instructor Room initialized');
     
     // Initialize DOM elements
-    roomNameInput = document.getElementById('roomName');
+    roomUrlInput = document.getElementById('roomUrl');
     instructorNameInput = document.getElementById('instructorName');
     startSessionBtn = document.getElementById('startSession');
     requirePasswordCheckbox = document.getElementById('requirePassword');
@@ -53,11 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sessionStatus = document.getElementById('sessionStatus');
     copyLinkBtn = document.getElementById('copyLink');
     exitRoomBtn = document.getElementById('exitRoom');
-    
-    // Generate default room name
-    const today = new Date();
-    const dateStr = `${today.getMonth() + 1}-${today.getDate()}`;
-    roomNameInput.value = `evenfall-training-${dateStr}`;
     
     // Event listeners
     if (startSessionBtn) {
@@ -79,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Enter key support
-    [roomNameInput, instructorNameInput, roomPasswordInput].forEach(input => {
+    [roomUrlInput, instructorNameInput].forEach(input => {
         if (input) {
             input.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
@@ -93,28 +88,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Start Training Session
 async function startSession() {
-    const roomName = roomNameInput.value.trim();
+    const roomUrl = roomUrlInput.value.trim();
     const instructorName = instructorNameInput.value.trim() || 'Instructor';
     
-    if (!roomName) {
-        alert('Please enter a room name');
+    if (!roomUrl) {
+        alert('Please enter a Daily.co room URL');
         return;
     }
     
-    console.log('🚀 Starting training session:', roomName);
-    
-    // For now, instructor needs to create room in Daily.co dashboard
-    // Format: https://yourcompany.daily.co/room-name
-    alert('Please create a room in your Daily.co dashboard first, then paste the room URL here.\n\nExample: https://evenfalladvantage.daily.co/' + roomName);
-    
-    const roomUrl = prompt('Enter your Daily.co room URL:', 'https://evenfalladvantage.daily.co/' + roomName);
-    
-    if (!roomUrl || !roomUrl.includes('daily.co')) {
-        alert('Invalid Daily.co room URL');
+    if (!roomUrl.includes('daily.co')) {
+        alert('Invalid Daily.co room URL. Must be from daily.co');
         return;
     }
     
+    console.log('🚀 Starting training session:', roomUrl);
     currentRoomUrl = roomUrl;
+    
+    // Extract room name from URL for display
+    const roomName = roomUrl.split('/').pop() || 'training-room';
     
     // Hide setup form
     if (meetInfo) {
