@@ -111,7 +111,7 @@ app.get('/health', (req, res) => {
 
 // Call ElevenLabs Conversational AI via WebSocket
 async function askElevenLabsAgent(question) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         try {
             console.log('🤖 Connecting to ElevenLabs WebSocket...');
             console.log('Agent ID:', AGENT_ID);
@@ -133,18 +133,25 @@ async function askElevenLabsAgent(question) {
                 return;
             }
             
-            // Connect to ElevenLabs WebSocket with signed URL
-            const signedUrl = `wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${AGENT_ID}`;
-            
-            console.log('🔗 Connecting to:', signedUrl);
+            // Get signed URL from ElevenLabs first
+            console.log('🔗 Getting signed URL from ElevenLabs...');
             console.log('🔑 Using API key:', ELEVENLABS_API_KEY ? `${ELEVENLABS_API_KEY.substring(0, 10)}...` : 'MISSING');
             console.log('🤖 Agent ID:', AGENT_ID);
             
-            const ws = new WebSocket(signedUrl, {
-                headers: {
-                    'xi-api-key': ELEVENLABS_API_KEY
+            // First, get a signed URL for the WebSocket connection
+            const signedUrlResponse = await axios.get(
+                `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${AGENT_ID}`,
+                {
+                    headers: {
+                        'xi-api-key': ELEVENLABS_API_KEY
+                    }
                 }
-            });
+            );
+            
+            const signedUrl = signedUrlResponse.data.signed_url;
+            console.log('✅ Got signed URL');
+            
+            const ws = new WebSocket(signedUrl);
             
             // Track connection state
             let connectionOpened = false;
