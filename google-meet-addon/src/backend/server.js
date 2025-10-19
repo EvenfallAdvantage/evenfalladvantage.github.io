@@ -122,10 +122,12 @@ async function askElevenLabsAgent(question) {
         }
         
         // Try ElevenLabs API if configured
+        console.log('🔑 API Key check:', ELEVENLABS_API_KEY ? `${ELEVENLABS_API_KEY.substring(0, 10)}...` : 'NOT SET');
+        console.log('🤖 Agent ID:', AGENT_ID);
+        
         if (ELEVENLABS_API_KEY && ELEVENLABS_API_KEY !== 'YOUR_API_KEY') {
             try {
                 console.log('🤖 Calling ElevenLabs API...');
-                console.log('Agent ID:', AGENT_ID);
                 
                 const response = await axios.post(
                     `https://api.elevenlabs.io/v1/convai/conversation`,
@@ -162,7 +164,8 @@ async function askElevenLabsAgent(question) {
         }
         
         // No ElevenLabs API key, use fallback
-        console.log('📝 Using pre-programmed response (no ElevenLabs key)');
+        console.log('⚠️ ElevenLabs API key not configured - using pre-programmed response');
+        console.log('💡 Set ELEVENLABS_API_KEY environment variable in Cloud Run to enable AI responses');
         return fallbackAnswer;
         
     } catch (error) {
