@@ -185,14 +185,18 @@ async function askElevenLabsAgent(question) {
                     }));
                 }, 500);
                 
-                // Set timeout for response
+                // Set timeout for response (30 seconds for AI to think and respond)
                 timeout = setTimeout(() => {
-                    console.log('⏱️ Response timeout (15s), using fallback');
+                    console.log('⏱️ Response timeout (30s)');
                     ws.close();
-                    if (!hasReceivedResponse) {
+                    if (fullResponse) {
+                        console.log('✅ Returning partial response:', fullResponse);
+                        resolve(fullResponse);
+                    } else if (!hasReceivedResponse) {
+                        console.log('📝 Using fallback');
                         resolve(answer);
                     }
-                }, 15000);
+                }, 30000);
             });
             
             ws.on('message', (data) => {
@@ -221,6 +225,18 @@ async function askElevenLabsAgent(question) {
                     
                     if (message.type === 'conversation_initiation_metadata') {
                         console.log('✅ Conversation initialized');
+                    }
+                    
+                    // Agent is done speaking
+                    if (message.type === 'agent_response_done' || message.type === 'audio_done') {
+                        console.log('✅ Agent finished speaking');
+                        clearTimeout(timeout);
+                        ws.close();
+                        if (fullResponse) {
+                            resolve(fullResponse);
+                        } else {
+                            resolve(answer);
+                        }
                     }
                     
                     // Check if conversation is done
