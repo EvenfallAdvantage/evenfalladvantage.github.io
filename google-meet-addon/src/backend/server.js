@@ -125,47 +125,9 @@ async function askElevenLabsAgent(question) {
         console.log('🔑 API Key check:', ELEVENLABS_API_KEY ? `${ELEVENLABS_API_KEY.substring(0, 10)}...` : 'NOT SET');
         console.log('🤖 Agent ID:', AGENT_ID);
         
-        if (ELEVENLABS_API_KEY && ELEVENLABS_API_KEY !== 'YOUR_API_KEY') {
-            try {
-                console.log('🤖 Calling ElevenLabs API...');
-                
-                const response = await axios.post(
-                    `https://api.elevenlabs.io/v1/convai/conversation`,
-                    {
-                        agent_id: AGENT_ID,
-                        text: question
-                    },
-                    {
-                        headers: {
-                            'xi-api-key': ELEVENLABS_API_KEY,
-                            'Content-Type': 'application/json'
-                        },
-                        timeout: 30000
-                    }
-                );
-                
-                console.log('✅ ElevenLabs Response:', JSON.stringify(response.data));
-                
-                // Extract answer from response
-                const answer = response.data.text || 
-                              response.data.response || 
-                              response.data.message ||
-                              response.data.output ||
-                              fallbackAnswer;
-                
-                console.log('✅ Got ElevenLabs response');
-                return answer;
-                
-            } catch (elevenLabsError) {
-                console.error('❌ ElevenLabs error:', elevenLabsError.response?.data || elevenLabsError.message);
-                console.log('📝 Falling back to pre-programmed responses');
-                return fallbackAnswer;
-            }
-        }
-        
-        // No ElevenLabs API key, use fallback
-        console.log('⚠️ ElevenLabs API key not configured - using pre-programmed response');
-        console.log('💡 Set ELEVENLABS_API_KEY environment variable in Cloud Run to enable AI responses');
+        // Note: ElevenLabs Conversational AI agents are designed for voice (WebRTC/WebSocket)
+        // For text-only responses, we use comprehensive pre-programmed training content
+        console.log('💡 Using Agent Westwood training knowledge base');
         return fallbackAnswer;
         
     } catch (error) {
