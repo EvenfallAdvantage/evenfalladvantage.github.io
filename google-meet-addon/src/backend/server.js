@@ -3,6 +3,7 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+const OpenAI = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -19,9 +20,13 @@ app.use(express.json());
 // Handle preflight requests
 app.options('*', cors());
 
-// ElevenLabs Environment variables
+// API Keys
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || 'YOUR_API_KEY';
 const AGENT_ID = process.env.ELEVENLABS_AGENT_ID || 'agent_3501k7vzkxnzec2vbt1pjw2nxt47';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+// Initialize OpenAI
+const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 
 // Main endpoint
 app.post('/', async (req, res) => {
@@ -108,7 +113,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Call ElevenLabs Conversational AI API
+// Call AI Agent (OpenAI GPT-4 with fallback)
 async function askElevenLabsAgent(question) {
     try {
         console.log('🤖 Processing question...');
@@ -121,18 +126,57 @@ async function askElevenLabsAgent(question) {
             return null;
         }
         
-        // Try ElevenLabs API if configured
-        console.log('🔑 API Key check:', ELEVENLABS_API_KEY ? `${ELEVENLABS_API_KEY.substring(0, 10)}...` : 'NOT SET');
-        console.log('🤖 Agent ID:', AGENT_ID);
+        // Try OpenAI GPT-4 if configured
+        if (openai) {
+            try {
+                console.log('🤖 Calling OpenAI GPT-4 as Agent Westwood...');
+                
+                const completion = await openai.chat.completions.create({
+                    model: "gpt-4",
+                    messages: [
+                        {
+                            role: "system",
+                            content: `You are Agent Westwood, a highly experienced security training expert with over 40 years of experience in law enforcement, emergency response, and security operations. 
+
+Your expertise includes:
+- STOP THE BLEED and emergency medical response
+- Incident Command System (ICS) and NIMS
+- Use of force and legal requirements
+- Active shooter and active threat response
+- Security procedures and protocols
+- Emergency response planning
+- Trespassing and unauthorized access handling
+- Workplace violence prevention
+- Festival and venue security
+
+Provide professional, concise, and practical answers. Keep responses under 150 words. Use your experience to give actionable advice. Be authoritative but approachable.`
+                        },
+                        {
+                            role: "user",
+                            content: question
+                        }
+                    ],
+                    max_tokens: 300,
+                    temperature: 0.7
+                });
+                
+                const aiResponse = completion.choices[0].message.content;
+                console.log('✅ Got OpenAI response');
+                return aiResponse;
+                
+            } catch (openaiError) {
+                console.error('❌ OpenAI error:', openaiError.message);
+                console.log('📝 Falling back to pre-programmed responses');
+                return fallbackAnswer;
+            }
+        }
         
-        // Note: ElevenLabs Conversational AI agents are designed for voice (WebRTC/WebSocket)
-        // For text-only responses, we use comprehensive pre-programmed training content
-        console.log('💡 Using Agent Westwood training knowledge base');
+        // No OpenAI, use fallback
+        console.log('💡 Using Agent Westwood knowledge base (no OpenAI key)');
         return fallbackAnswer;
         
     } catch (error) {
         console.error('❌ Error:', error.message);
-        // Use fallback on any error
         const fallback = generateSecurityTrainingResponse(question);
         return fallback;
     }
