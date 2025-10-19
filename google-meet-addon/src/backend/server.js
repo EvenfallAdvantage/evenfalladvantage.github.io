@@ -3,8 +3,6 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-const WebSocket = require('ws');
-const OpenAI = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -23,11 +21,7 @@ app.options('*', cors());
 
 // ElevenLabs Environment variables
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || 'YOUR_API_KEY';
-const AGENT_ID = process.env.ELEVENLABS_AGENT_ID || 'YOUR_AGENT_ID';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-// Initialize OpenAI client
-const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
+const AGENT_ID = process.env.ELEVENLABS_AGENT_ID || 'agent_3501k7vzkxnzec2vbt1pjw2nxt47';
 
 // Main endpoint
 app.post('/', async (req, res) => {
@@ -114,7 +108,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Call AI Agent (OpenAI GPT or fallback)
+// Call ElevenLabs Conversational AI API
 async function askElevenLabsAgent(question) {
     try {
         console.log('🤖 Processing question...');
@@ -127,39 +121,48 @@ async function askElevenLabsAgent(question) {
             return null;
         }
         
-        // Try OpenAI first if available
-        if (openai) {
+        // Try ElevenLabs API if configured
+        if (ELEVENLABS_API_KEY && ELEVENLABS_API_KEY !== 'YOUR_API_KEY') {
             try {
-                console.log('🤖 Calling OpenAI GPT...');
-                const completion = await openai.chat.completions.create({
-                    model: "gpt-4",
-                    messages: [
-                        {
-                            role: "system",
-                            content: "You are Agent Westwood, a highly experienced security training expert with over 40 years in law enforcement, emergency response, and security operations. You specialize in topics like STOP THE BLEED, Incident Command System (ICS), use of force, active shooter response, emergency procedures, security protocols, and legal requirements. Provide professional, concise, and practical answers to security training questions. Keep responses under 150 words."
+                console.log('🤖 Calling ElevenLabs API...');
+                console.log('Agent ID:', AGENT_ID);
+                
+                const response = await axios.post(
+                    `https://api.elevenlabs.io/v1/convai/conversation`,
+                    {
+                        agent_id: AGENT_ID,
+                        text: question
+                    },
+                    {
+                        headers: {
+                            'xi-api-key': ELEVENLABS_API_KEY,
+                            'Content-Type': 'application/json'
                         },
-                        {
-                            role: "user",
-                            content: question
-                        }
-                    ],
-                    max_tokens: 300,
-                    temperature: 0.7
-                });
+                        timeout: 30000
+                    }
+                );
                 
-                const aiResponse = completion.choices[0].message.content;
-                console.log('✅ Got OpenAI response');
-                return aiResponse;
+                console.log('✅ ElevenLabs Response:', JSON.stringify(response.data));
                 
-            } catch (openaiError) {
-                console.error('❌ OpenAI error:', openaiError.message);
+                // Extract answer from response
+                const answer = response.data.text || 
+                              response.data.response || 
+                              response.data.message ||
+                              response.data.output ||
+                              fallbackAnswer;
+                
+                console.log('✅ Got ElevenLabs response');
+                return answer;
+                
+            } catch (elevenLabsError) {
+                console.error('❌ ElevenLabs error:', elevenLabsError.response?.data || elevenLabsError.message);
                 console.log('📝 Falling back to pre-programmed responses');
                 return fallbackAnswer;
             }
         }
         
-        // No OpenAI, use fallback
-        console.log('📝 Using pre-programmed response (no OpenAI key)');
+        // No ElevenLabs API key, use fallback
+        console.log('📝 Using pre-programmed response (no ElevenLabs key)');
         return fallbackAnswer;
         
     } catch (error) {
