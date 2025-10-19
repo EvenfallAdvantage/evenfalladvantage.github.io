@@ -4,6 +4,7 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const WebSocket = require('ws');
+const OpenAI = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -20,9 +21,13 @@ app.use(express.json());
 // Handle preflight requests
 app.options('*', cors());
 
-// ElevenLabs Configuration
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const AGENT_ID = process.env.ELEVENLABS_AGENT_ID || 'agent_3501k7vzkxnzec2vbt1pjw2nxt47';
+// ElevenLabs Environment variables
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || 'YOUR_API_KEY';
+const AGENT_ID = process.env.ELEVENLABS_AGENT_ID || 'YOUR_AGENT_ID';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+// Initialize OpenAI client
+const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 
 // Main endpoint
 app.post('/', async (req, res) => {
@@ -109,189 +114,60 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Call ElevenLabs Conversational AI via WebSocket
+// Call AI Agent (OpenAI GPT or fallback)
 async function askElevenLabsAgent(question) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            console.log('🤖 Connecting to ElevenLabs WebSocket...');
-            console.log('Agent ID:', AGENT_ID);
-            console.log('API Key exists:', !!ELEVENLABS_API_KEY);
-            console.log('Question:', question);
-            
-            // Check if this is actually a question
-            const answer = generateSecurityTrainingResponse(question);
-            if (answer === null) {
-                // Not a question, don't call API
-                resolve(null);
-                return;
-            }
-            
-            // If no API key, use fallback responses
-            if (!ELEVENLABS_API_KEY || ELEVENLABS_API_KEY === 'YOUR_API_KEY') {
-                console.log('📝 Using fallback response (no API key)');
-                resolve(answer);
-                return;
-            }
-            
-            // Get signed URL from ElevenLabs first
-            console.log('🔗 Getting signed URL from ElevenLabs...');
-            console.log('🔑 Using API key:', ELEVENLABS_API_KEY ? `${ELEVENLABS_API_KEY.substring(0, 10)}...` : 'MISSING');
-            console.log('🤖 Agent ID:', AGENT_ID);
-            
-            // First, get a signed URL for the WebSocket connection
-            const signedUrlResponse = await axios.get(
-                `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${AGENT_ID}`,
-                {
-                    headers: {
-                        'xi-api-key': ELEVENLABS_API_KEY
-                    }
-                }
-            );
-            
-            const signedUrl = signedUrlResponse.data.signed_url;
-            console.log('✅ Got signed URL');
-            
-            const ws = new WebSocket(signedUrl);
-            
-            // Track connection state
-            let connectionOpened = false;
-            
-            let fullResponse = '';
-            let timeout;
-            let hasReceivedResponse = false;
-            
-            ws.on('open', () => {
-                connectionOpened = true;
-                console.log('✅ WebSocket connected to ElevenLabs');
-                
-                // Send the question as text input
-                const message = {
-                    type: 'conversation_initiation_client_data',
-                    conversation_config_override: {
-                        agent: {
-                            prompt: {
-                                prompt: `You are Agent Westwood, a security training expert with 40+ years of experience. Answer questions about security, emergency response, STOP THE BLEED, ICS, use of force, and related topics professionally and concisely.`
-                            }
-                        }
-                    }
-                };
-                
-                console.log('📤 Sending initiation');
-                ws.send(JSON.stringify(message));
-                
-                // Send the actual question
-                setTimeout(() => {
-                    console.log('📤 Sending question:', question);
-                    ws.send(JSON.stringify({
-                        type: 'user_audio_done'
-                    }));
-                    
-                    ws.send(JSON.stringify({
-                        type: 'user_transcript',
-                        user_transcript: question
-                    }));
-                }, 500);
-                
-                // Set timeout for response (30 seconds for AI to think and respond)
-                timeout = setTimeout(() => {
-                    console.log('⏱️ Response timeout (30s)');
-                    ws.close();
-                    if (fullResponse) {
-                        console.log('✅ Returning partial response:', fullResponse);
-                        resolve(fullResponse);
-                    } else if (!hasReceivedResponse) {
-                        console.log('📝 Using fallback');
-                        resolve(answer);
-                    }
-                }, 30000);
-            });
-            
-            ws.on('message', (data) => {
-                try {
-                    const message = JSON.parse(data.toString());
-                    console.log('📨 Received message type:', message.type);
-                    console.log('📨 Full message:', JSON.stringify(message));
-                    
-                    // Handle different message types from ElevenLabs
-                    if (message.type === 'agent_response') {
-                        hasReceivedResponse = true;
-                        fullResponse += message.agent_response || '';
-                        console.log('💬 Agent response chunk:', message.agent_response);
-                    }
-                    
-                    if (message.type === 'audio' && message.audio_transcript) {
-                        hasReceivedResponse = true;
-                        fullResponse += message.audio_transcript;
-                        console.log('💬 Audio transcript:', message.audio_transcript);
-                    }
-                    
-                    if (message.type === 'interruption' || message.type === 'agent_response_correction') {
-                        // Handle corrections
-                        console.log('🔄 Response correction');
-                    }
-                    
-                    if (message.type === 'conversation_initiation_metadata') {
-                        console.log('✅ Conversation initialized');
-                    }
-                    
-                    // Agent is done speaking
-                    if (message.type === 'agent_response_done' || message.type === 'audio_done') {
-                        console.log('✅ Agent finished speaking');
-                        clearTimeout(timeout);
-                        ws.close();
-                        if (fullResponse) {
-                            resolve(fullResponse);
-                        } else {
-                            resolve(answer);
-                        }
-                    }
-                    
-                    // Check if conversation is done
-                    if (message.type === 'ping') {
-                        ws.send(JSON.stringify({ type: 'pong', event_id: message.event_id }));
-                    }
-                    
-                } catch (err) {
-                    console.error('❌ Error parsing message:', err);
-                    console.error('Raw data:', data.toString());
-                }
-            });
-            
-            ws.on('error', (error) => {
-                console.error('❌ WebSocket error:', error.message);
-                console.error('Full error:', error);
-                clearTimeout(timeout);
-                if (!hasReceivedResponse) {
-                    resolve(answer);
-                }
-            });
-            
-            ws.on('close', (code, reason) => {
-                console.log('🔌 WebSocket closed. Code:', code, 'Reason:', reason.toString());
-                console.log('Connection was opened:', connectionOpened);
-                console.log('Received response:', hasReceivedResponse);
-                console.log('Full response length:', fullResponse.length);
-                clearTimeout(timeout);
-                
-                if (fullResponse && hasReceivedResponse) {
-                    console.log('✅ Returning ElevenLabs response:', fullResponse);
-                    resolve(fullResponse);
-                } else {
-                    if (!connectionOpened) {
-                        console.log('❌ Connection never opened - check API key and agent ID');
-                    }
-                    console.log('📝 No response received, using fallback');
-                    resolve(answer);
-                }
-            });
-            
-        } catch (error) {
-            console.error('❌ Error:', error.message);
-            // Use fallback on any error
-            const fallback = generateSecurityTrainingResponse(question);
-            resolve(fallback);
+    try {
+        console.log('🤖 Processing question...');
+        console.log('Question:', question);
+        
+        // Check if this is actually a question
+        const fallbackAnswer = generateSecurityTrainingResponse(question);
+        if (fallbackAnswer === null) {
+            // Not a question, don't respond
+            return null;
         }
-    });
+        
+        // Try OpenAI first if available
+        if (openai) {
+            try {
+                console.log('🤖 Calling OpenAI GPT...');
+                const completion = await openai.chat.completions.create({
+                    model: "gpt-4",
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are Agent Westwood, a highly experienced security training expert with over 40 years in law enforcement, emergency response, and security operations. You specialize in topics like STOP THE BLEED, Incident Command System (ICS), use of force, active shooter response, emergency procedures, security protocols, and legal requirements. Provide professional, concise, and practical answers to security training questions. Keep responses under 150 words."
+                        },
+                        {
+                            role: "user",
+                            content: question
+                        }
+                    ],
+                    max_tokens: 300,
+                    temperature: 0.7
+                });
+                
+                const aiResponse = completion.choices[0].message.content;
+                console.log('✅ Got OpenAI response');
+                return aiResponse;
+                
+            } catch (openaiError) {
+                console.error('❌ OpenAI error:', openaiError.message);
+                console.log('📝 Falling back to pre-programmed responses');
+                return fallbackAnswer;
+            }
+        }
+        
+        // No OpenAI, use fallback
+        console.log('📝 Using pre-programmed response (no OpenAI key)');
+        return fallbackAnswer;
+        
+    } catch (error) {
+        console.error('❌ Error:', error.message);
+        // Use fallback on any error
+        const fallback = generateSecurityTrainingResponse(question);
+        return fallback;
+    }
 }
 
 // Generate security training responses
