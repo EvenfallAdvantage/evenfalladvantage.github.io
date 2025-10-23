@@ -176,24 +176,28 @@ async function sendEnrollmentEmail(studentId, classId, className) {
             `
         };
         
-        // Send email via Supabase Edge Function
+        // Send email via direct fetch to Edge Function (bypasses Supabase client auth)
         console.log('📧 Sending email notification to:', emailData.to);
         
-        // Get current session for auth
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        const { data, error } = await supabase.functions.invoke('send-email', { 
-            body: emailData,
-            headers: session?.access_token ? {
-                Authorization: `Bearer ${session.access_token}`
-            } : {}
-        });
-        
-        if (error) {
+        try {
+            const response = await fetch('https://vaagvairvwmgyzsmymhs.supabase.co/functions/v1/send-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhYWd2YWlydndtZ3l6c215bWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjAzNTcsImV4cCI6MjA3NTMzNjM1N30.wCw2rcV2pJTXiKgKJE9BY3QHBWiRHgGPfdDPIeUsovM'
+                },
+                body: JSON.stringify(emailData)
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                console.error('❌ Email send error:', response.status, data);
+            } else {
+                console.log('✅ Email sent successfully:', data);
+            }
+        } catch (error) {
             console.error('❌ Email send error:', error);
-            console.error('Error details:', JSON.stringify(error, null, 2));
-        } else {
-            console.log('✅ Email sent successfully:', data);
         }
         
     } catch (error) {
