@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Portal | Evenfall Advantage</title>
+    <style>
+        html, body { margin: 0 !important; padding: 0 !important; }
+    </style>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="css/instructor-portal.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="margin:0;padding:0;">
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-container">
+                <div class="nav-brand">
+                    <a href="../index.html" class="logo-link">
+                        <img src="../images/logo.png" alt="Evenfall Advantage Logo" class="nav-logo">
+                    </a>
+                </div>
+                <div class="portal-content">
+                    <h2 class="portal-title">Instructor Portal</h2>
+                    <div class="portal-nav-container">
+                        <div class="nav-links">
+                            <a href="#dashboard" class="nav-link active" data-section="dashboard">Dashboard</a>
+                            <a href="#students" class="nav-link" data-section="students">Students</a>
+                            <a href="#classes" class="nav-link" data-section="classes">Classes</a>
+                            <a href="#certificates" class="nav-link" data-section="certificates">Certificates</a>
+                            <a href="javascript:void(0)" class="nav-link" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            
+            <!-- ===== DASHBOARD SECTION ===== -->
+            <section id="dashboard" class="section active">
+                <div class="section-header">
+                    <h2>Dashboard</h2>
+                    <p>Welcome back, <span id="instructorName">Instructor</span></p>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalStudents">0</h3>
+                            <p>Total Students</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="upcomingClasses">0</h3>
+                            <p>Upcoming Classes</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-certificate"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="certificatesIssued">0</h3>
+                            <p>Certificates Issued</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="todayClasses">0</h3>
+                            <p>Classes Today</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Classes -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3><i class="fas fa-calendar"></i> Upcoming Classes</h3>
+                        <button class="btn btn-primary" onclick="showCreateClassModal()">
+                            <i class="fas fa-plus"></i> Schedule New Class
+                        </button>
+                    </div>
+                    <div id="upcomingClassesList">
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <h3>No Upcoming Classes</h3>
+                            <p>Schedule your first class to get started</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== STUDENTS SECTION ===== -->
+            <section id="students" class="section">
+                <div class="section-header">
+                    <h2>Student Management</h2>
+                    <p>View and manage all enrolled students</p>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3><i class="fas fa-users"></i> All Students</h3>
+                        <div class="table-actions">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="studentSearch" placeholder="Search students..." onkeyup="searchStudents()">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table id="studentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Progress</th>
+                                    <th>Certificates</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTableBody">
+                                <tr>
+                                    <td colspan="5" style="text-align: center; padding: 3rem;">
+                                        <div class="loading-spinner"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== CLASSES SECTION ===== -->
+            <section id="classes" class="section">
+                <div class="section-header">
+                    <h2>Class Management</h2>
+                    <p>Manage your scheduled classes and enrollments</p>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem;">
+                    <button class="btn btn-primary" onclick="showCreateClassModal()">
+                        <i class="fas fa-plus"></i> Schedule New Class
+                    </button>
+                    <select id="classFilter" onchange="filterClasses()" style="padding: 1rem; border-radius: 5px; border: 2px solid #e0e0e0; font-size: 1.4rem;">
+                        <option value="all">All Classes</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="cards-grid" id="classesGrid">
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <h3>No Classes Found</h3>
+                        <p>Schedule your first class to get started</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== CERTIFICATES SECTION ===== -->
+            <section id="certificates" class="section">
+                <div class="section-header">
+                    <h2>Certificate Management</h2>
+                    <p>Issue and manage student certifications</p>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Before issuing certificates:</strong> Verify all prerequisites are met including module completion, assessment scores, and attendance requirements.
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3><i class="fas fa-certificate"></i> Eligible Students</h3>
+                        <button class="btn btn-primary" onclick="checkAllEligibility()">
+                            <i class="fas fa-sync"></i> Refresh Eligibility
+                        </button>
+                    </div>
+                    <div id="eligibleStudentsList">
+                        <div style="padding: 2rem; text-align: center;">
+                            <div class="loading-spinner"></div>
+                            <p style="margin-top: 1rem; color: var(--gray);">Checking student eligibility...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container" style="margin-top: 3rem;">
+                    <div class="table-header">
+                        <h3><i class="fas fa-list"></i> Issued Certificates</h3>
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="certificateSearch" placeholder="Search certificates..." onkeyup="searchCertificates()">
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Certificate #</th>
+                                    <th>Student</th>
+                                    <th>Type</th>
+                                    <th>Issue Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="certificatesTableBody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 3rem;">
+                                        <div class="loading-spinner"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- ===== CREATE/EDIT CLASS MODAL ===== -->
+    <div id="classModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="classModalTitle">Schedule New Class</h2>
+                <button class="modal-close" onclick="closeClassModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="classForm">
+                    <input type="hidden" id="classId">
+                    
+                    <div class="form-group">
+                        <label for="className">Class Name *</label>
+                        <input type="text" id="className" required placeholder="e.g., Unarmed Guard Review Session">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="classType">Class Type *</label>
+                        <select id="classType" required>
+                            <option value="">Select type...</option>
+                            <option value="review">Review Session</option>
+                            <option value="scenario">Scenario Training</option>
+                            <option value="proctored_exam">Proctored Exam</option>
+                            <option value="training">General Training</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="classDate">Date *</label>
+                            <input type="date" id="classDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="classTime">Start Time *</label>
+                            <input type="time" id="classTime" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="classDuration">Duration (hours) *</label>
+                            <input type="number" id="classDuration" min="0.5" max="8" step="0.5" value="2" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="classCapacity">Capacity *</label>
+                            <input type="number" id="classCapacity" min="1" max="100" value="20" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="classLocation">Location</label>
+                        <input type="text" id="classLocation" placeholder="Physical location or 'Virtual'">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meetingLink">Meeting Link (for virtual classes)</label>
+                        <input type="url" id="meetingLink" placeholder="https://...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="classDescription">Description</label>
+                        <textarea id="classDescription" placeholder="Class objectives and topics to be covered..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeClassModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveClass()">
+                    <i class="fas fa-save"></i> Save Class
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CLASS DETAILS MODAL ===== -->
+    <div id="classDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="classDetailsTitle">Class Details</h2>
+                <button class="modal-close" onclick="closeClassDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="classDetailsBody">
+                <!-- Will be populated dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeClassDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== STUDENT DETAILS MODAL ===== -->
+    <div id="studentDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="studentDetailsTitle">Student Details</h2>
+                <button class="modal-close" onclick="closeStudentDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="studentDetailsBody">
+                <!-- Will be populated dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeStudentDetailsModal()">Close</button>
+                <button class="btn btn-primary" onclick="showIssueCertificateModal()">
+                    <i class="fas fa-certificate"></i> Issue Certificate
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ADD STUDENTS TO CLASS MODAL ===== -->
+    <div id="addStudentsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Students to Class</h2>
+                <button class="modal-close" onclick="closeAddStudentsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="targetClassId">
+                <input type="hidden" id="targetClassName">
+                
+                <div class="search-box" style="margin-bottom: 2rem;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="studentSearchInModal" placeholder="Search students..." onkeyup="filterStudentsInModal()">
+                </div>
+
+                <div id="studentsListForEnrollment" style="max-height: 400px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--gray);">Loading students...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddStudentsModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="enrollSelectedStudents()">
+                    <i class="fas fa-user-plus"></i> Enroll Selected Students
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ISSUE CERTIFICATE MODAL ===== -->
+    <div id="issueCertificateModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Issue Certificate</h2>
+                <button class="modal-close" onclick="closeIssueCertificateModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="certificateForm">
+                    <input type="hidden" id="certStudentId">
+                    
+                    <div id="eligibilityCheck" class="alert alert-warning" style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div id="eligibilityMessage"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="certificateType">Certificate Type *</label>
+                        <select id="certificateType" required>
+                            <option value="unarmed_guard">Unarmed Guard Certification</option>
+                            <option value="ics100">ICS-100</option>
+                            <option value="stop_the_bleed">STOP THE BLEED®</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="certificateName">Certificate Name *</label>
+                        <input type="text" id="certificateName" required value="Unarmed Guard Certification">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stateIssued">State (for state-specific certs)</label>
+                        <select id="stateIssued">
+                            <option value="">None</option>
+                            <option value="MD">Maryland</option>
+                            <option value="CA">California</option>
+                            <option value="AZ">Arizona</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expirationDate">Expiration Date (optional)</label>
+                        <input type="date" id="expirationDate">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="certificateNotes">Notes</label>
+                        <textarea id="certificateNotes" placeholder="Any additional notes..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeIssueCertificateModal()">Cancel</button>
+                <button class="btn btn-success" onclick="issueCertificate()">
+                    <i class="fas fa-certificate"></i> Issue Certificate
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/instructor-config.js"></script>
+    <script src="js/instructor-portal.js"></script>
+    <script src="js/instructor-enrollment.js"></script>
+</body>
+</html>

@@ -1567,8 +1567,21 @@ section:nth-child(even) {
 
 .client-button:hover {
     background-color: #1e2b38;
+    color: white !important;
     transform: translateY(-3px);
     box-shadow: 0 0 15px rgba(37, 54, 70, 0.8);
+}
+
+.instructor-button {
+    background-color: #f39c12;
+    color: white;
+}
+
+.instructor-button:hover {
+    background-color: #e67e22;
+    color: white !important;
+    transform: translateY(-3px);
+    box-shadow: 0 0 15px rgba(243, 156, 18, 0.8);
 }
 
 .back-button {

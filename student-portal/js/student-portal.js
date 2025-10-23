@@ -130,8 +130,15 @@ async function loadAssessments() {
         });
         
         // Separate assessments by category
-        const coreAssessments = sortedAssessments.filter(a => a.category === 'Event Security Core');
-        const miscAssessments = sortedAssessments.filter(a => a.category === 'Miscellaneous');
+        // Filter out Module 0 (welcome-materials) as it doesn't have an assessment
+        const coreAssessments = sortedAssessments.filter(a => {
+            const moduleCode = a.training_modules?.module_code || a.assessment_name.toLowerCase().replace(/\s+/g, '-');
+            return a.category === 'Event Security Core' && moduleCode !== 'welcome-materials';
+        });
+        const miscAssessments = sortedAssessments.filter(a => {
+            const moduleCode = a.training_modules?.module_code || a.assessment_name.toLowerCase().replace(/\s+/g, '-');
+            return a.category === 'Miscellaneous' && moduleCode !== 'welcome-materials';
+        });
         const comprehensiveAssessments = sortedAssessments.filter(a => 
             a.assessment_name.includes('Comprehensive') || a.category === 'Comprehensive'
         );
@@ -143,6 +150,10 @@ async function loadAssessments() {
         if (coreAssessments.length > 0) {
             html += coreAssessments.map(assessment => {
                 const moduleCode = assessment.training_modules?.module_code || assessment.assessment_name.toLowerCase().replace(/\s+/g, '-');
+                const moduleOrder = assessment.training_modules?.display_order || 0;
+                const displayName = assessment.assessment_name.includes('Module ') 
+                    ? assessment.assessment_name 
+                    : `Module ${moduleOrder}: ${assessment.assessment_name}`;
                 
                 return `
                     <div class="assessment-item" 
@@ -151,7 +162,7 @@ async function loadAssessments() {
                          onclick="startAssessment('${moduleCode}')">
                         <i class="fas ${assessment.icon || 'fa-clipboard-check'}"></i>
                         <div>
-                            <h4>${assessment.assessment_name}</h4>
+                            <h4>${displayName}</h4>
                             <p>${assessment.total_questions || 10} questions • ${assessment.time_limit_minutes || 20} minutes</p>
                         </div>
                         <button class="btn btn-small btn-primary">Start</button>
@@ -164,6 +175,10 @@ async function loadAssessments() {
         if (miscAssessments.length > 0) {
             html += miscAssessments.map(assessment => {
                 const moduleCode = assessment.training_modules?.module_code || assessment.assessment_name.toLowerCase().replace(/\s+/g, '-');
+                const moduleOrder = assessment.training_modules?.display_order || 0;
+                const displayName = assessment.assessment_name.includes('Module ') 
+                    ? assessment.assessment_name 
+                    : `Module ${moduleOrder}: ${assessment.assessment_name}`;
                 
                 return `
                     <div class="assessment-item" 
@@ -172,7 +187,7 @@ async function loadAssessments() {
                          onclick="startAssessment('${moduleCode}')">
                         <i class="fas ${assessment.icon || 'fa-clipboard-check'}"></i>
                         <div>
-                            <h4>${assessment.assessment_name}</h4>
+                            <h4>${displayName}</h4>
                             <p>${assessment.total_questions || 10} questions • ${assessment.time_limit_minutes || 20} minutes</p>
                         </div>
                         <button class="btn btn-small btn-primary">Start</button>

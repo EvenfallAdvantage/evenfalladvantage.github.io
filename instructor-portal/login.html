@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Login | Evenfall Advantage</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="css/instructor-portal.css">
+    <link rel="stylesheet" href="../css/form-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* Override secondary color for instructor portal */
+        :root {
+            --instructor-primary: #f39c12;
+            --instructor-secondary: #e67e22;
+        }
+        
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #253646 0%, #1a252f 100%);
+            padding: 2rem;
+        }
+        
+        .auth-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 450px;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .auth-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .auth-header img {
+            max-width: 200px;
+            margin-bottom: 1rem;
+        }
+        
+        .auth-header h1 {
+            font-size: 2rem;
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .auth-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        
+        .auth-body {
+            padding: 2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--instructor-primary);
+        }
+        
+        .forgot-password {
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+        
+        .forgot-password a {
+            color: var(--instructor-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .submit-button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--instructor-primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .submit-button:hover {
+            background: var(--instructor-secondary);
+        }
+        
+        .submit-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .back-link a {
+            color: #333;
+            text-decoration: none;
+        }
+        
+        .error-message, .success-message {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        
+        .error-message {
+            background: #fee;
+            color: #c33;
+        }
+        
+        .success-message {
+            background: #efe;
+            color: #3c3;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <img src="../images/logo.png" alt="Evenfall Advantage Logo">
+                <h1>Instructor Portal</h1>
+                <p>Login to manage classes and students</p>
+            </div>
+            
+            <div class="auth-body">
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage"></div>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" required placeholder="instructor@evenfalladvantage.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Enter your password">
+                    </div>
+
+                    <div class="forgot-password">
+                        <a href="../student-portal/reset-password.html">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="submit-button" id="loginButton">
+                        Log In
+                    </button>
+                </form>
+
+                <div class="back-link">
+                    <a href="../login.html"><i class="fas fa-arrow-left"></i> Back to Portal Selection</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/instructor-config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const loginForm = document.getElementById('loginForm');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+            const loginButton = document.getElementById('loginButton');
+
+            // Check if already logged in
+            const isLoggedIn = await InstructorAuth.isLoggedIn();
+            if (isLoggedIn) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Hide previous messages
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+                
+                // Get form values
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                // Show loading state
+                loginButton.disabled = true;
+                loginButton.textContent = 'Logging in...';
+                
+                try {
+                    // Attempt login
+                    const result = await InstructorAuth.signIn(email, password);
+                    
+                    if (result.success) {
+                        successMessage.textContent = 'Login successful! Redirecting...';
+                        successMessage.style.display = 'block';
+                        
+                        // Redirect to instructor portal
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1000);
+                    } else {
+                        errorMessage.textContent = result.error || 'Login failed. Please check your credentials.';
+                        errorMessage.style.display = 'block';
+                        loginButton.disabled = false;
+                        loginButton.textContent = 'Log In';
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    errorMessage.textContent = 'An unexpected error occurred. Please try again.';
+                    errorMessage.style.display = 'block';
+                    loginButton.disabled = false;
+                    loginButton.textContent = 'Log In';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
