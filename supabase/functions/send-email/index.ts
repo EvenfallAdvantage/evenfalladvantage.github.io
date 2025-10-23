@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: 'Evenfall Advantage <onboarding@resend.dev>', // Update with your verified domain
+        from: 'Evenfall Advantage <instructor@evenfalladvantage.com>',
         to: [to],
         subject: subject,
         html: html
