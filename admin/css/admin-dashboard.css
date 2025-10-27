@@ -1,6 +1,6 @@
 /* Admin Dashboard Styles */
 :root {
-    --admin-primary: #253646;
+    --admin-primary: #162029;
     --admin-secondary: #e74c3c;
     --admin-accent: #3498db;
     --admin-success: #28a745;
@@ -377,7 +377,7 @@ body {
 }
 
 .data-table .btn-icon {
-    color: #253646 !important;
+    color: #162029 !important;
     background: rgba(37, 54, 70, 0.05) !important;
 }
 

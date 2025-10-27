@@ -25,7 +25,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    background: #253646;
+    background: #162029;
     border-bottom: 2px solid #e74c3c;
     z-index: 100;
 }
@@ -128,7 +128,7 @@ body {
 }
 
 .meet-card {
-    background: #253646;
+    background: #162029;
     border-radius: 1rem;
     padding: 3rem 2rem;
     text-align: center;
@@ -253,7 +253,7 @@ body {
 /* Agent Westwood Sidebar */
 .clunt-sidebar {
     width: 400px;
-    background: #253646;
+    background: #162029;
     display: flex;
     flex-direction: column;
     border-left: 2px solid #34495e;
@@ -472,7 +472,7 @@ body {
 
 .quick-btn {
     padding: 0.5rem 0.75rem;
-    background: #253646;
+    background: #162029;
     color: #fff;
     border: 1px solid #34495e;
     border-radius: 1rem;
@@ -497,7 +497,7 @@ body {
     padding: 0.75rem;
     border: 2px solid #34495e;
     border-radius: 0.5rem;
-    background: #253646;
+    background: #162029;
     color: #fff;
     font-size: 0.9rem;
     font-family: inherit;

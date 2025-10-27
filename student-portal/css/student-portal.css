@@ -48,7 +48,7 @@ body > nav:first-child {
 
 :root {
     /* Evenfall Advantage Official Color Scheme */
-    --primary-color: #253646;  /* Dark blue-gray */
+    --primary-color: #162029;  /* Dark blue-gray */
     --secondary-color: #e74c3c;  /* Red accent */
     --accent-color: #3498db;  /* Blue accent */
     --orange: #ff6b35;  /* Evenfall Advantage Orange */
@@ -796,8 +796,8 @@ body {
 }
 
 .slide-quiz-option.selected {
-    border-color: #253646 !important;
-    background-color: #253646 !important;
+    border-color: #162029 !important;
+    background-color: #162029 !important;
     color: #ffffff !important;
 }
 
