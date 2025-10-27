@@ -79,11 +79,6 @@
                     </div>
                 </div>
                 
-                <!-- Inconspicuous Admin Link -->
-                <div style="text-align: center; margin-top: 3rem; opacity: 0.2; font-size: 0.7rem;">
-                    <a href="admin/login.html" style="color: #6c757d; text-decoration: none;">•</a>
-                </div>
-                
                 <!-- Client Login Form (Hidden by default) -->
                 <div class="login-container" id="client-login-container" style="display: none;">
                     <button class="back-button" onclick="hideClientLogin()">
@@ -139,6 +134,25 @@
             document.querySelector('.portal-cards').style.display = 'grid';
             document.getElementById('client-login-container').style.display = 'none';
         }
+        
+        // Secret admin login via copyright symbol
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const copyright = document.querySelector('.copyright');
+                if (copyright) {
+                    // Make the © symbol clickable
+                    copyright.innerHTML = copyright.innerHTML.replace('©', '<span id="admin-trigger" style="cursor: default;">©</span>');
+                    
+                    const adminTrigger = document.getElementById('admin-trigger');
+                    if (adminTrigger) {
+                        adminTrigger.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            window.location.href = 'admin/login.html';
+                        });
+                    }
+                }
+            }, 100); // Small delay to ensure footer is loaded
+        });
     </script>
 </body>
 </html>
