@@ -1,37 +1,126 @@
-# Evenfall Advantage Website
+# Evenfall Advantage - Complete Training Platform
 
-A modern, responsive website for Evenfall Advantage LLC, a veteran-led security consulting, professional training, and emergency planning firm. The site features an enhanced user experience with interactive elements and a comprehensive case studies section.
+**Last Updated:** November 15, 2025
+
+A comprehensive security guard training and management platform for Evenfall Advantage LLC, a veteran-led security consulting, professional training, and emergency planning firm. The platform includes a public-facing website, student training portal, instructor management portal, client dashboard, and admin panel.
+
+## 🎯 Platform Overview
+
+This is a full-stack web application featuring:
+- **Public Website** - Marketing site with case studies and service information
+- **Student Portal** - Interactive training modules with AI assistant
+- **Instructor Portal** - Class scheduling, student management, and certification
+- **Client Portal** - Document management and secure messaging
+- **Admin Dashboard** - User management and system administration
 
 ## Project Structure
 
+### Public Website
 - `index.html` - Main landing page
-- `about.html` - About page with company information and team structure
-- `blog.html` - Case studies overview page with interactive cards
+- `about.html` - About page with company information
+- `blog.html` - Case studies overview
+- `login.html` - Portal selection page
+- `privacy-policy.html` - Privacy policy (CCPA compliant)
+- `terms-of-service.html` - Terms of service
 - `case-studies/*.html` - Individual case study pages
 - `forms/*.html` - Service estimate request forms
-- `includes/` - Server-Side Include components
-  - `header.html` - Standardized header with navigation
-  - `footer.html` - Standardized footer with CTA section
-- `css/` - Styling files
-  - `styles.css` - Main styling
-  - Additional component-specific CSS files
-- `js/` - JavaScript functionality
-  - `script.js` - Core interaction scripts
-  - `include-html.js` - Server-Side Includes implementation
-  - Additional feature-specific JS files
-- `images/` - Site imagery and case study photos
 
-## Features
+### Student Portal (`student-portal/`)
+- `login.html` - Student authentication
+- `index.html` - Dashboard with module progress
+- `training-room.html` - Interactive training with AI assistant
+- `instructor-room.html` - Live class interface
+- `profile.html` - Student profile and certificates
+- `css/` - Student portal styling
+- `js/` - Student portal functionality
 
+### Instructor Portal (`instructor-portal/`)
+- `login.html` - Instructor authentication
+- `index.html` - Dashboard with class management
+- `css/instructor-portal.css` - Orange-themed styling
+- `js/instructor-config.js` - Supabase configuration
+- `js/instructor-portal.js` - Core functionality
+- `js/instructor-enrollment.js` - Student enrollment & email notifications
+
+### Client Portal (`client-portal/`)
+- `login.html` - Client authentication
+- `index.html` - Client dashboard
+- `css/` - Client portal styling
+- `js/` - Client portal functionality
+
+### Admin Dashboard (`admin/`)
+- `login.html` - Admin authentication (secret access via © symbol)
+- `index.html` - Admin dashboard
+- `css/` - Admin styling
+- `js/` - Admin functionality
+
+### Backend (`supabase/`)
+- `functions/send-email/` - Email notification Edge Function
+- `config.toml` - Supabase function configuration
+- `sql/` - Database schema and setup scripts
+
+### Shared Resources
+- `includes/` - Reusable components (header, footer)
+- `css/` - Global styling
+- `js/` - Shared JavaScript utilities
+- `images/` - Site imagery
+
+## ✨ Recent Updates (November 2025)
+
+### Instructor Portal Enhancements
+- ✅ **Student Enrollment System** - Modal interface for adding students to classes
+- ✅ **Email Notifications** - Automatic enrollment emails via Resend API
+- ✅ **Supabase Edge Function** - `send-email` function deployed
+- ⚠️ **Known Issue:** Email 403 error (needs debugging)
+
+### Legal & Compliance
+- ✅ **Privacy Policy** - CCPA-compliant privacy page
+- ✅ **Terms of Service** - Comprehensive legal terms
+- ✅ Subtle footer placement for legal links
+
+### Design Updates
+- ✅ **New Color Scheme** - Updated dark blue from #253646 to #162029
+- ✅ **Secret Admin Access** - Copyright symbol trigger on login page
+- ✅ Consistent branding across all portals
+
+## 🎯 Core Features
+
+### Public Website
 - Modern, responsive design that works across all devices
-- Server-Side Includes (SSI) for consistent header and footer across all pages
-- Interactive case study cards with hover effects and full-card clickability
-- Dynamic color changes on interactive elements for improved user experience
+- Server-Side Includes (SSI) for consistent header and footer
+- Interactive case study cards with hover effects
 - Comprehensive case studies section with detailed incident analyses
-- Service cards with expandable content for detailed information
+- Service cards with expandable content
 - Custom-styled form elements for service estimates
-- Structured company information with division explanations
-- Optimized images for case study presentations
+
+### Student Portal
+- Interactive training modules with slide-based content
+- AI assistant (Agent Westwood) for real-time help
+- Progress tracking and assessment system
+- Live instructor room with Daily.co integration
+- Profile management with certificate display
+- Module completion tracking
+
+### Instructor Portal
+- Dashboard with statistics (students, classes, certificates)
+- Student management with search and filtering
+- Class scheduling and management
+- Student enrollment with email notifications
+- Certificate issuance and tracking
+- Attendance tracking (UI complete, backend pending)
+- Orange-themed interface
+
+### Client Portal
+- Document management system
+- Secure messaging
+- Service request tracking
+- Navy-themed interface
+
+### Admin Dashboard
+- User management (students, instructors, clients)
+- System administration
+- Database management
+- Secret access via copyright symbol
 
 ## Technologies Used
 

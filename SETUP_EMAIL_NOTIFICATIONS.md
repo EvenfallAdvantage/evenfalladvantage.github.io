@@ -1,7 +1,24 @@
 # Email Notifications Setup
 
-## Current Implementation
+**Last Updated:** November 15, 2025
 
+## ✅ Current Implementation Status
+
+### Instructor Portal - Enrollment Emails
+- ✅ **Supabase Edge Function deployed** (`send-email`)
+- ✅ **Resend API integrated** with verified domain
+- ✅ **Automatic enrollment notifications** when students are added to classes
+- ✅ **Professional HTML email templates**
+- ⚠️ **Known Issue:** 403 Forbidden errors (needs debugging)
+
+**Configuration:**
+- **Function:** `supabase/functions/send-email/index.ts`
+- **API:** Resend API (`https://api.resend.com/emails`)
+- **Domain:** `evenfalladvantage.com` (verified)
+- **Sender:** `info@evenfalladvantage.com`
+- **API Key:** Stored in Supabase secrets as `RESEND_API_KEY`
+
+### Admin Portal - Student Account Creation
 Currently, when an admin creates a student account, the credentials are shown in an alert dialog that the admin must manually share with the student.
 
 ## Automated Email Options

@@ -289,10 +289,33 @@ The Instructor Portal is fully responsive:
 
 ---
 
+## ✅ Recently Completed Features
+
+- [x] **Student Enrollment System** - Add students to classes with modal interface
+- [x] **Email Notifications** - Automatic enrollment emails via Resend API
+- [x] **Supabase Edge Function** - `send-email` function deployed
+- [x] **Privacy Policy & Terms of Service** - Professional legal pages
+- [x] **Updated Branding** - New dark blue color (#162029)
+- [x] **Secret Admin Access** - Copyright symbol trigger on login page
+
+## ⚠️ Known Issues
+
+### Email System (403 Error)
+- **Status:** Deployed but returning 403 Forbidden
+- **Edge Function:** `send-email` deployed with Resend API
+- **Domain:** `evenfalladvantage.com` verified
+- **Sender:** `info@evenfalladvantage.com`
+- **Next Steps:** Check Supabase function logs for detailed error
+
+### Attendance Recording
+- **Status:** UI complete, backend not connected
+- **Next Steps:** Implement `recordAttendance()` function
+
 ## 🔄 Future Enhancements
 
 Consider adding:
-- [ ] Email notifications for class schedules
+- [ ] Fix email 403 error (HIGH PRIORITY)
+- [ ] Complete attendance recording backend (HIGH PRIORITY)
 - [ ] PDF certificate generation
 - [ ] Bulk enrollment from CSV
 - [ ] Student messaging system
@@ -332,10 +355,12 @@ Consider adding:
 - [x] Can view students list
 - [x] Can schedule classes
 - [x] Can view student details
-- [ ] **Test class scheduling**
-- [ ] **Test certificate issuance**
-- [ ] **Enroll students in classes**
-- [ ] **Take attendance**
+- [x] **Class scheduling tested and working**
+- [x] **Certificate issuance implemented**
+- [x] **Enroll students in classes** - COMPLETE with modal UI
+- [x] **Email notifications** - Deployed (needs 403 fix)
+- [ ] **Take attendance** - UI complete, backend needed
+- [ ] **PDF certificate generation**
 
 ---
 
