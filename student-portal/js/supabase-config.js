@@ -11,12 +11,12 @@ if (typeof window.SupabaseConfigLoaded === 'undefined') {
         throw new Error('Supabase library not loaded');
     }
 
-    // Initialize Supabase client and make it global
-    window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    // Initialize Supabase client and make it global with unique name
+    window.supabaseStudentClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 }
 
 // Make supabase accessible without window prefix
-const supabase = window.supabase
+const supabase = window.supabaseStudentClient
 
 // Authentication Functions
 const Auth = {
