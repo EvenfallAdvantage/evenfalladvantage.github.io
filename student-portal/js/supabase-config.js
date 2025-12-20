@@ -403,3 +403,8 @@ const TrainingData = {
 window.Auth = Auth
 window.StudentData = StudentData
 window.TrainingData = TrainingData
+
+console.log('Supabase config loaded successfully');
+console.log('Auth available:', typeof window.Auth);
+console.log('StudentData available:', typeof window.StudentData);
+console.log('TrainingData available:', typeof window.TrainingData);
