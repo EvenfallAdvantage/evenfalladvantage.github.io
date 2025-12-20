@@ -15,11 +15,11 @@ if (typeof window.SupabaseConfigLoaded === 'undefined') {
     window.supabaseStudentClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 }
 
-// Make supabase accessible without window prefix
-const supabase = window.supabaseStudentClient
+// Make supabase accessible without window prefix (use var to allow redeclaration)
+var supabase = window.supabaseStudentClient
 
-// Authentication Functions
-const Auth = {
+// Authentication Functions (use var to allow redeclaration)
+var Auth = {
     // Sign up new student
     async signUp(email, password, firstName, lastName) {
         try {
@@ -151,8 +151,8 @@ const Auth = {
     }
 }
 
-// Student Data Functions
-const StudentData = {
+// Student Data Functions (use var to allow redeclaration)
+var StudentData = {
     // Get student profile
     async getProfile(studentId) {
         try {
@@ -356,8 +356,8 @@ const StudentData = {
     }
 }
 
-// Training Module Functions
-const TrainingData = {
+// Training Module Functions (use var to allow redeclaration)
+var TrainingData = {
     // Get all modules
     async getAllModules() {
         try {

@@ -15,11 +15,11 @@ if (typeof window.ClientConfigLoaded === 'undefined') {
     window.supabaseClientPortal = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
-// Make supabase accessible
-const supabase = window.supabaseClientPortal;
+// Make supabase accessible (use var to allow redeclaration)
+var supabase = window.supabaseClientPortal;
 
-// Authentication functions
-const ClientAuth = {
+// Authentication functions (use var to allow redeclaration)
+var ClientAuth = {
     async getCurrentUser() {
         try {
             const { data: { user }, error } = await supabase.auth.getUser();

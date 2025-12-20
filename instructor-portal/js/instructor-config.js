@@ -15,13 +15,13 @@ if (typeof window.InstructorConfigLoaded === 'undefined') {
     window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 }
 
-// Make supabase accessible
-const supabase = window.supabaseClient
+// Make supabase accessible (use var to allow redeclaration)
+var supabase = window.supabaseClient
 
 // =====================================================
 // INSTRUCTOR AUTHENTICATION
 // =====================================================
-const InstructorAuth = {
+var InstructorAuth = {
     // Sign in
     async signIn(email, password) {
         try {
