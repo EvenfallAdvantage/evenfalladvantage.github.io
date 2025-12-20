@@ -4,6 +4,12 @@
 const SUPABASE_URL = 'https://vaagvairvwmgyzsmymhs.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhYWd2YWlydndtZ3l6c215bWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjAzNTcsImV4cCI6MjA3NTMzNjM1N30.wCw2rcV2pJTXiKgKJE9BY3QHBWiRHgGPfdDPIeUsovM';
 
+// Check if Supabase library is loaded
+if (typeof window.supabase === 'undefined') {
+    console.error('Supabase library not loaded! Make sure the CDN script is included before this file.');
+    throw new Error('Supabase library not loaded');
+}
+
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Authentication functions
