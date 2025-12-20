@@ -1,15 +1,22 @@
-// Supabase Configuration
-const SUPABASE_URL = 'https://vaagvairvwmgyzsmymhs.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_IPcFlKw8LEGnk2NYg5qrsw_Rq8yIhR1'
+// Supabase Configuration - Only load once
+if (typeof window.SupabaseConfigLoaded === 'undefined') {
+    window.SupabaseConfigLoaded = true;
+    
+    const SUPABASE_URL = 'https://vaagvairvwmgyzsmymhs.supabase.co'
+    const SUPABASE_ANON_KEY = 'sb_publishable_IPcFlKw8LEGnk2NYg5qrsw_Rq8yIhR1'
 
-// Check if Supabase library is loaded
-if (typeof window.supabase === 'undefined') {
-    console.error('Supabase library not loaded! Make sure the CDN script is included before this file.');
-    throw new Error('Supabase library not loaded');
+    // Check if Supabase library is loaded
+    if (typeof window.supabase === 'undefined') {
+        console.error('Supabase library not loaded! Make sure the CDN script is included before this file.');
+        throw new Error('Supabase library not loaded');
+    }
+
+    // Initialize Supabase client and make it global
+    window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 }
 
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Make supabase accessible without window prefix
+const supabase = window.supabase
 
 // Authentication Functions
 const Auth = {
