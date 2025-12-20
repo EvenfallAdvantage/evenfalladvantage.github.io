@@ -1,6 +1,6 @@
 // Supabase Configuration
 const SUPABASE_URL = 'https://vaagvairvwmgyzsmymhs.supabase.co'
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhYWd2YWlydndtZ3l6c215bWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjAzNTcsImV4cCI6MjA3NTMzNjM1N30.wCw2rcV2pJTXiKgKJE9BY3QHBWiRHgGPfdDPIeUsovM'
+const SUPABASE_ANON_KEY = 'sb_publishable_IPcFlKw8LEGnk2NYg5qrsw_Rq8yIhR1'
 
 // Check if Supabase library is loaded
 if (typeof window.supabase === 'undefined') {

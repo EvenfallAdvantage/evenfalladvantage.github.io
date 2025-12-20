@@ -184,7 +184,7 @@ async function sendEnrollmentEmail(studentId, classId, className) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhYWd2YWlydndtZ3l6c215bWhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjAzNTcsImV4cCI6MjA3NTMzNjM1N30.wCw2rcV2pJTXiKgKJE9BY3QHBWiRHgGPfdDPIeUsovM'
+                    'apikey': 'sb_publishable_IPcFlKw8LEGnk2NYg5qrsw_Rq8yIhR1'
                 },
                 body: JSON.stringify(emailData)
             });
