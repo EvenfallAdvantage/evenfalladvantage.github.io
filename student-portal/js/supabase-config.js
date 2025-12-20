@@ -1,8 +1,5 @@
-console.log('🔵 supabase-config.js is loading...');
-
 // Supabase Configuration - Only load once
 if (typeof window.SupabaseConfigLoaded === 'undefined') {
-    console.log('🟢 First time loading - initializing Supabase client');
     window.SupabaseConfigLoaded = true;
     
     const SUPABASE_URL = 'https://vaagvairvwmgyzsmymhs.supabase.co'
@@ -16,9 +13,6 @@ if (typeof window.SupabaseConfigLoaded === 'undefined') {
 
     // Initialize Supabase client and make it global with unique name
     window.supabaseStudentClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    console.log('✅ Supabase client created:', window.supabaseStudentClient);
-} else {
-    console.log('🟡 Config already loaded, skipping initialization');
 }
 
 // Make supabase accessible without window prefix (use var to allow redeclaration)
@@ -409,8 +403,3 @@ var TrainingData = {
 window.Auth = Auth
 window.StudentData = StudentData
 window.TrainingData = TrainingData
-
-console.log('Supabase config loaded successfully');
-console.log('Auth available:', typeof window.Auth);
-console.log('StudentData available:', typeof window.StudentData);
-console.log('TrainingData available:', typeof window.TrainingData);
