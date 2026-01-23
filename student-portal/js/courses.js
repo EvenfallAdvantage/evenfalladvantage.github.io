@@ -415,7 +415,13 @@ async function initiateCheckout(courseId) {
         }
     } catch (error) {
         console.error('Error creating checkout session:', error);
-        showAlert('Error starting checkout. Please try again or contact support.', 'error');
+        
+        // Check if this is because Stripe isn't set up yet
+        if (error.message && (error.message.includes('FunctionsRelayError') || error.message.includes('not found'))) {
+            showAlert('Payment processing is not yet configured. Please contact support to enroll in this course.', 'info');
+        } else {
+            showAlert('Error starting checkout. Please try again or contact support.', 'error');
+        }
     }
 }
 
