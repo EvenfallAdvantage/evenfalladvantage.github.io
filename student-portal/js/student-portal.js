@@ -182,13 +182,10 @@ async function loadTrainingModules(courseId) {
     const container = document.getElementById('trainingModulesContainer');
     
     try {
-        // Get course modules
+        // Get course modules with their training module details
         const { data: courseModules, error: cmError } = await supabase
             .from('course_modules')
-            .select(`
-                *,
-                training_modules (*)
-            `)
+            .select('*')
             .eq('course_id', courseId)
             .order('module_order');
 
@@ -198,6 +195,27 @@ async function loadTrainingModules(courseId) {
             container.innerHTML = '<p style="text-align: center; padding: 2rem;">No modules in this course yet.</p>';
             return;
         }
+
+        // Fetch training module details separately
+        const moduleIds = courseModules.map(cm => cm.module_id);
+        const { data: trainingModules, error: tmError } = await supabase
+            .from('training_modules')
+            .select('*')
+            .in('id', moduleIds);
+
+        if (tmError) throw tmError;
+
+        // Create a map of module details
+        const moduleMap = {};
+        trainingModules.forEach(tm => {
+            moduleMap[tm.id] = tm;
+        });
+
+        // Combine course_modules with training_modules data
+        const enrichedModules = courseModules.map(cm => ({
+            ...cm,
+            training_modules: moduleMap[cm.module_id]
+        }));
 
         // Module number mapping
         const moduleNumbers = {
@@ -213,7 +231,7 @@ async function loadTrainingModules(courseId) {
         };
         
         // Generate module cards
-        container.innerHTML = courseModules.map((cm, index) => {
+        container.innerHTML = enrichedModules.map((cm, index) => {
             const module = cm.training_modules;
             const completionStatus = getModuleCompletionStatus(module.module_code);
             const isCompleted = completionStatus.completed && !completionStatus.expired;
@@ -260,7 +278,7 @@ async function loadTrainingModules(courseId) {
             `;
         }).join('');
         
-        console.log(`Loaded ${courseModules.length} modules for course`);
+        console.log(`Loaded ${enrichedModules.length} modules for course`);
     } catch (error) {
         console.error('Error loading course modules:', error);
         container.innerHTML = '<p style="text-align: center; padding: 2rem; color: red;">Error loading modules. Please refresh the page.</p>';
