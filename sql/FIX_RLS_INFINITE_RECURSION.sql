@@ -92,5 +92,3 @@ SELECT
 FROM pg_policies
 WHERE tablename = 'student_module_progress'
 ORDER BY policyname;
-
-RAISE NOTICE 'RLS policies fixed! Infinite recursion issue resolved.';
