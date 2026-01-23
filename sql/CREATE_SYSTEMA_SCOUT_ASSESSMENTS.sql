@@ -127,10 +127,10 @@ SELECT
     a.assessment_name,
     tm.module_name,
     tm.module_code,
-    a.question_count,
-    a.time_limit,
+    a.total_questions,
+    a.time_limit_minutes,
     a.passing_score,
-    a.is_active
+    a.category
 FROM assessments a
 JOIN training_modules tm ON a.module_id = tm.id
 WHERE tm.module_code LIKE 'systema-scout%'
@@ -138,8 +138,7 @@ ORDER BY tm.module_code;
 
 -- Count assessments created
 SELECT 
-    COUNT(*) as total_assessments,
-    COUNT(CASE WHEN a.is_active = true THEN 1 END) as active_assessments
+    COUNT(*) as total_assessments
 FROM assessments a
 JOIN training_modules tm ON a.module_id = tm.id
 WHERE tm.module_code LIKE 'systema-scout%';
