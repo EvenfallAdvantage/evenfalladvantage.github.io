@@ -3,7 +3,7 @@
 let currentAssessment = null;
 let currentQuestions = [];
 let selectedStateCode = null; // For Use of Force assessment
-let stateLaws = {}; // Store state laws data
+let assessmentStateLaws = {}; // Store state laws data
 
 // Load courses for assessment course selection
 async function loadAssessments() {
@@ -171,12 +171,12 @@ async function loadStateLaws() {
         if (error) throw error;
         
         // Convert to object keyed by state_code
-        stateLaws = {};
+        assessmentStateLaws = {};
         states.forEach(state => {
-            stateLaws[state.state_code] = state;
+            assessmentStateLaws[state.state_code] = state;
         });
         
-        console.log('Loaded state laws:', Object.keys(stateLaws).length, 'states');
+        console.log('Loaded state laws:', Object.keys(assessmentStateLaws).length, 'states');
     } catch (error) {
         console.error('Error loading state laws:', error);
     }
@@ -186,7 +186,7 @@ async function loadStateLaws() {
 async function editAssessment(id) {
     try {
         // Load state laws if not already loaded
-        if (Object.keys(stateLaws).length === 0) {
+        if (Object.keys(assessmentStateLaws).length === 0) {
             await loadStateLaws();
         }
         
@@ -232,9 +232,9 @@ function showAssessmentEditorModal() {
             </p>
             <select id="stateSelector" onchange="changeState(this.value)" style="width: 100%; padding: 0.75rem; border: 2px solid #2196F3; border-radius: 0.5rem; font-size: 1rem;">
                 <option value="">-- Select a State --</option>
-                ${Object.keys(stateLaws).sort((a, b) => stateLaws[a].state_name.localeCompare(stateLaws[b].state_name)).map(code => `
+                ${Object.keys(assessmentStateLaws).sort((a, b) => assessmentStateLaws[a].state_name.localeCompare(assessmentStateLaws[b].state_name)).map(code => `
                     <option value="${code}" ${selectedStateCode === code ? 'selected' : ''}>
-                        ${stateLaws[code].state_name} (${code})
+                        ${assessmentStateLaws[code].state_name} (${code})
                     </option>
                 `).join('')}
             </select>
@@ -386,10 +386,10 @@ async function changeState(stateCode) {
     }
     
     selectedStateCode = stateCode;
-    console.log('Changed to state:', stateCode, stateLaws[stateCode].state_name);
+    console.log('Changed to state:', stateCode, assessmentStateLaws[stateCode].state_name);
     
     // Generate state-specific questions based on the selected state
-    const stateInfo = stateLaws[stateCode];
+    const stateInfo = assessmentStateLaws[stateCode];
     currentQuestions = generateStateSpecificQuestions(stateInfo, stateCode);
     
     // Refresh the questions list
