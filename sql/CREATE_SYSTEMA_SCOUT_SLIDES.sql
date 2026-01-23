@@ -19,7 +19,7 @@ BEGIN
     IF v_module_id IS NOT NULL THEN
         -- Slide 1: Welcome
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 1, 'title', 'Systema Scout', 
+        VALUES (v_module_id, 1, 'text', 'Systema Scout', 
         '<h1>Systema Scout</h1><h2>Foundational Internal Training</h2><p>Welcome to a transformative journey in self-regulation and awareness.</p>');
         
         -- Slide 2: Orientation & Purpose
@@ -111,7 +111,7 @@ BEGIN
         
         -- Slide 8: Module Complete
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 8, 'completion', 'Orientation Complete', 
+        VALUES (v_module_id, 8, 'text', 'Orientation Complete', 
         '<h2>Foundation Established</h2>
         <p>You now understand the framework and principles of Systema Scout.</p>
         <p>In the next modules, you will begin the practical drills that develop these skills.</p>
@@ -134,7 +134,7 @@ BEGIN
     IF v_module_id IS NOT NULL THEN
         -- Slide 1: Introduction
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 1, 'title', 'Walking, Breathing, and Choice', 
+        VALUES (v_module_id, 1, 'text', 'Walking, Breathing, and Choice', 
         '<h1>Drill 1</h1><h2>Walking, Breathing, and Choice</h2><p>Exploring the relationship between movement, breath, and conscious awareness.</p>');
         
         -- Slide 2: First, Walk
@@ -238,7 +238,7 @@ BEGIN
         
         -- Slide 10: Module Complete
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 10, 'completion', 'Drill Complete', 
+        VALUES (v_module_id, 10, 'text', 'Drill Complete', 
         '<h2>Walking, Breathing, and Choice</h2>
         <p>You have completed the first foundational drill.</p>
         <p>This practice develops conscious choice around automatic processes.</p>
@@ -261,7 +261,7 @@ BEGIN
     IF v_module_id IS NOT NULL THEN
         -- Slide 1: Introduction
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 1, 'title', 'Security Assessment', 
+        VALUES (v_module_id, 1, 'text', 'Security Assessment', 
         '<h1>Drill 2</h1><h2>Security Assessment: Observation & Recall</h2><p>Developing perceptual awareness and environmental observation.</p>');
         
         -- Slide 2: After the Walk
@@ -340,7 +340,7 @@ BEGIN
         
         -- Slide 8: Module Complete
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 8, 'completion', 'Drill Complete', 
+        VALUES (v_module_id, 8, 'text', 'Drill Complete', 
         '<h2>Observation & Recall</h2>
         <p>You have completed the second foundational drill.</p>
         <p>This practice develops perceptual awareness and environmental observation.</p>
@@ -363,7 +363,7 @@ BEGIN
     IF v_module_id IS NOT NULL THEN
         -- Slide 1: Introduction
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 1, 'title', 'Glove Work', 
+        VALUES (v_module_id, 1, 'text', 'Glove Work', 
         '<h1>Drill 3</h1><h2>Glove Work: Unnecessary Tension</h2><p>Identifying and eliminating unnecessary tension through constrained movement.</p>');
         
         -- Slide 2: Get a Glove
@@ -467,7 +467,7 @@ BEGIN
         
         -- Slide 10: Module Complete
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 10, 'completion', 'Drill Complete', 
+        VALUES (v_module_id, 10, 'text', 'Drill Complete', 
         '<h2>Unnecessary Tension</h2>
         <p>You have completed the third foundational drill.</p>
         <p>This practice develops awareness of unnecessary tension and the relationship between effort and stress.</p>
@@ -490,7 +490,7 @@ BEGIN
     IF v_module_id IS NOT NULL THEN
         -- Slide 1: Introduction
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 1, 'title', 'Integration & Self-Regulation', 
+        VALUES (v_module_id, 1, 'text', 'Integration & Self-Regulation', 
         '<h1>Module 4</h1><h2>Integration & Self-Regulation</h2><p>Combining all practices into daily life and professional work.</p>');
         
         -- Slide 2: The Three Drills
@@ -592,7 +592,7 @@ BEGIN
         
         -- Slide 9: Module Complete
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 9, 'completion', 'Integration Complete', 
+        VALUES (v_module_id, 9, 'text', 'Integration Complete', 
         '<h2>Skills Integrated</h2>
         <p>You have learned to combine all three foundational drills.</p>
         <p>You understand how to apply these skills in daily life and professional work.</p>
@@ -615,7 +615,7 @@ BEGIN
     IF v_module_id IS NOT NULL THEN
         -- Slide 1: Introduction
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 1, 'title', 'Closing Aim', 
+        VALUES (v_module_id, 1, 'text', 'Closing Aim', 
         '<h1>Module 5</h1><h2>Closing Aim & Continued Practice</h2><p>Understanding the path forward.</p>');
         
         -- Slide 2: The Aim
@@ -672,7 +672,7 @@ BEGIN
         
         -- Slide 6: Course Complete
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 6, 'completion', 'Systema Scout Complete', 
+        VALUES (v_module_id, 6, 'text', 'Systema Scout Complete', 
         '<h2>Congratulations</h2>
         <p>You have completed Systema Scout: Foundational Internal Training.</p>
         <p>You now have the tools for:</p>
