@@ -31,7 +31,7 @@ INSERT INTO courses (
     'Foundational internal training for security professionals, law enforcement, military, and anyone whose presence affects the safety of others.',
     149.99,
     5,
-    'Foundational',
+    'Beginner',
     'fa-yin-yang',
     NULL,
     true,
