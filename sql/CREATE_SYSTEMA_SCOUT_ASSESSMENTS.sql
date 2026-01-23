@@ -50,7 +50,7 @@ SELECT
     80,
     'Systema Scout'
 FROM training_modules tm
-WHERE tm.module_code = 'systema-scout-security';
+WHERE tm.module_code = 'systema-scout-observation';
 
 -- =====================================================
 -- MODULE 3: Glove Work - Unnecessary Tension
@@ -72,7 +72,7 @@ SELECT
     80,
     'Systema Scout'
 FROM training_modules tm
-WHERE tm.module_code = 'systema-scout-glove';
+WHERE tm.module_code = 'systema-scout-tension';
 
 -- =====================================================
 -- MODULE 4: Eyes Closed & Lying Down Walking
@@ -94,7 +94,7 @@ SELECT
     80,
     'Systema Scout'
 FROM training_modules tm
-WHERE tm.module_code = 'systema-scout-eyes';
+WHERE tm.module_code = 'systema-scout-closing';
 
 -- =====================================================
 -- MODULE 5: Evolving Relationship with Empathy
@@ -116,7 +116,7 @@ SELECT
     80,
     'Systema Scout'
 FROM training_modules tm
-WHERE tm.module_code = 'systema-scout-empathy';
+WHERE tm.module_code = 'systema-scout-integration';
 
 -- =====================================================
 -- VERIFICATION
