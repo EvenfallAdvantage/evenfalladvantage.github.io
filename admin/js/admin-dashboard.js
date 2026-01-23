@@ -4,10 +4,10 @@
 const initialHash = window.location.hash;
 console.log('=== INITIAL HASH CAPTURED ===', initialHash);
 
-// Check authentication on load
-window.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM Content Loaded');
-    console.log('Hash at DOMContentLoaded:', window.location.hash);
+// Initialize function
+async function initializeDashboard() {
+    console.log('Initializing dashboard...');
+    console.log('Hash at initialization:', window.location.hash);
     console.log('Initial hash captured:', initialHash);
     
     try {
@@ -43,14 +43,23 @@ window.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     console.error('Section not found:', section + '-section');
                 }
-            }, 300);
+            }, 500);
         } else {
             console.log('No hash detected, staying on overview');
         }
     } catch (hashError) {
         console.error('Error during hash navigation:', hashError);
     }
-});
+}
+
+// Check if DOM is already loaded
+if (document.readyState === 'loading') {
+    console.log('DOM still loading, adding event listener');
+    document.addEventListener('DOMContentLoaded', initializeDashboard);
+} else {
+    console.log('DOM already loaded, initializing immediately');
+    initializeDashboard();
+}
 
 // Show alert message
 function showAlert(message, type = 'info') {
