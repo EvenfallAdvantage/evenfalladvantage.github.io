@@ -7,6 +7,7 @@ let stateLaws = {}; // Store state laws data
 
 // Load courses for assessment course selection
 async function loadAssessments() {
+    console.log('loadAssessments() called');
     try {
         // Load all active courses
         const { data: courses, error } = await supabase
@@ -17,6 +18,7 @@ async function loadAssessments() {
 
         if (error) throw error;
 
+        console.log('Loaded courses for assessments:', courses);
         displayAssessmentCourses(courses || []);
     } catch (error) {
         console.error('Error loading courses:', error);
