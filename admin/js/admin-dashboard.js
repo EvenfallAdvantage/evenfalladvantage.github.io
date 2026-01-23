@@ -12,12 +12,24 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.log('Setup complete');
         
         // Handle hash navigation from external links (e.g., from assessments page)
-        if (window.location.hash) {
-            const section = window.location.hash.substring(1); // Remove the #
-            console.log('Hash detected, navigating to:', section);
+        const hash = window.location.hash;
+        console.log('Current hash:', hash);
+        if (hash && hash.length > 1) {
+            const section = hash.substring(1); // Remove the #
+            console.log('Hash detected, navigating to section:', section);
+            // Use longer delay to ensure all sections are loaded
             setTimeout(() => {
-                switchSection(section);
-            }, 100); // Small delay to ensure everything is loaded
+                console.log('Attempting to switch to section:', section);
+                const targetSection = document.getElementById(`${section}-section`);
+                console.log('Target section element:', targetSection);
+                if (targetSection) {
+                    switchSection(section);
+                } else {
+                    console.error('Section not found:', section);
+                }
+            }, 200);
+        } else {
+            console.log('No hash detected, staying on overview');
         }
     } catch (error) {
         console.error('Error during initialization:', error);
