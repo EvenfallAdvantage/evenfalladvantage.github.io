@@ -64,8 +64,7 @@ INSERT INTO training_modules (
     duration_minutes,
     difficulty_level,
     is_active,
-    display_order,
-    category
+    display_order
 ) VALUES (
     'systema-scout-orientation',
     'Orientation & Philosophy',
@@ -73,10 +72,9 @@ INSERT INTO training_modules (
     'fa-compass',
     '30-45 minutes',
     40,
-    'Foundational',
+    'Beginner',
     true,
-    100,
-    'systema-scout'
+    100
 )
 ON CONFLICT (module_code) DO NOTHING;
 
@@ -90,8 +88,7 @@ INSERT INTO training_modules (
     duration_minutes,
     difficulty_level,
     is_active,
-    display_order,
-    category
+    display_order
 ) VALUES (
     'systema-scout-walking',
     'Walking, Breathing, and Choice',
@@ -99,10 +96,9 @@ INSERT INTO training_modules (
     'fa-walking',
     '45-60 minutes',
     50,
-    'Foundational',
+    'Beginner',
     true,
-    101,
-    'systema-scout'
+    101
 )
 ON CONFLICT (module_code) DO NOTHING;
 
@@ -116,8 +112,7 @@ INSERT INTO training_modules (
     duration_minutes,
     difficulty_level,
     is_active,
-    display_order,
-    category
+    display_order
 ) VALUES (
     'systema-scout-observation',
     'Security Assessment: Observation & Recall',
@@ -127,8 +122,7 @@ INSERT INTO training_modules (
     40,
     'Intermediate',
     true,
-    102,
-    'systema-scout'
+    102
 )
 ON CONFLICT (module_code) DO NOTHING;
 
@@ -142,8 +136,7 @@ INSERT INTO training_modules (
     duration_minutes,
     difficulty_level,
     is_active,
-    display_order,
-    category
+    display_order
 ) VALUES (
     'systema-scout-tension',
     'Glove Work: Unnecessary Tension',
@@ -153,8 +146,7 @@ INSERT INTO training_modules (
     50,
     'Intermediate',
     true,
-    103,
-    'systema-scout'
+    103
 )
 ON CONFLICT (module_code) DO NOTHING;
 
@@ -168,8 +160,7 @@ INSERT INTO training_modules (
     duration_minutes,
     difficulty_level,
     is_active,
-    display_order,
-    category
+    display_order
 ) VALUES (
     'systema-scout-integration',
     'Integration & Self-Regulation',
@@ -179,8 +170,7 @@ INSERT INTO training_modules (
     60,
     'Advanced',
     true,
-    104,
-    'systema-scout'
+    104
 )
 ON CONFLICT (module_code) DO NOTHING;
 
@@ -194,8 +184,7 @@ INSERT INTO training_modules (
     duration_minutes,
     difficulty_level,
     is_active,
-    display_order,
-    category
+    display_order
 ) VALUES (
     'systema-scout-closing',
     'Closing Aim & Continued Practice',
@@ -203,10 +192,9 @@ INSERT INTO training_modules (
     'fa-flag-checkered',
     '20-30 minutes',
     25,
-    'Foundational',
+    'Beginner',
     true,
-    105,
-    'systema-scout'
+    105
 )
 ON CONFLICT (module_code) DO NOTHING;
 
