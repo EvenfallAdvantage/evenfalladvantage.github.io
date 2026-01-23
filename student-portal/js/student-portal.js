@@ -12,24 +12,193 @@ let assessmentStartTime = null;
 let timerInterval = null;
 let assessmentAttempts = {}; // Track attempts per assessment
 
-// Load training modules from database
-async function loadTrainingModules() {
+// Global variables for course management
+let allCourses = [];
+let myEnrollments = [];
+let currentSelectedCourse = null;
+
+// Load courses instead of direct module access
+async function loadCourses() {
+    try {
+        const currentUser = await Auth.getCurrentUser();
+        if (!currentUser) {
+            console.error('No user logged in');
+            return;
+        }
+
+        // Load student's enrollments
+        const { data: enrollments, error: enrollError } = await supabase
+            .from('student_course_enrollments')
+            .select(`
+                *,
+                courses (*)
+            `)
+            .eq('student_id', currentUser.id)
+            .in('enrollment_status', ['active', 'completed']);
+
+        if (enrollError) throw enrollError;
+        myEnrollments = enrollments || [];
+
+        // Load all active courses
+        const { data: courses, error: coursesError } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('is_active', true)
+            .order('display_order');
+
+        if (coursesError) throw coursesError;
+        allCourses = courses || [];
+
+        // Render courses
+        renderMyCourses();
+        renderAvailableCourses();
+    } catch (error) {
+        console.error('Error loading courses:', error);
+        document.getElementById('myCoursesContainer').innerHTML = 
+            '<p style="text-align: center; padding: 2rem; color: red;">Error loading courses. Please refresh the page.</p>';
+    }
+}
+
+// Render enrolled courses
+function renderMyCourses() {
+    const container = document.getElementById('myCoursesContainer');
+
+    if (myEnrollments.length === 0) {
+        container.innerHTML = `
+            <div class="no-courses-message">
+                <i class="fas fa-graduation-cap"></i>
+                <p>You haven't enrolled in any courses yet.</p>
+                <p>Contact support to get enrolled in a course.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = myEnrollments.map(enrollment => {
+        const course = enrollment.courses;
+        const progress = enrollment.completion_percentage || 0;
+        
+        return `
+            <div class="course-card-inline enrolled" onclick="selectCourse('${course.id}')">
+                <div class="enrolled-badge">ENROLLED</div>
+                <div class="course-thumbnail-inline">
+                    <i class="fas ${course.icon || 'fa-graduation-cap'}"></i>
+                </div>
+                <div class="course-card-content">
+                    <h3 class="course-card-title">${course.course_name}</h3>
+                    <div class="course-card-meta">
+                        ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${course.duration_hours} hours</span>` : ''}
+                        ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${course.difficulty_level}</span>` : ''}
+                    </div>
+                    <p class="course-card-description">${course.short_description || course.description || ''}</p>
+                    <div class="course-progress-inline">
+                        <div class="progress-label-inline">
+                            <span>Progress</span>
+                            <span>${Math.round(progress)}%</span>
+                        </div>
+                        <div class="progress-bar-inline">
+                            <div class="progress-fill-inline" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Render available courses (not enrolled)
+function renderAvailableCourses() {
+    const container = document.getElementById('availableCoursesContainer');
+    const enrolledCourseIds = myEnrollments.map(e => e.course_id);
+    const availableCourses = allCourses.filter(c => !enrolledCourseIds.includes(c.id));
+
+    if (availableCourses.length === 0) {
+        container.innerHTML = `
+            <div class="no-courses-message">
+                <i class="fas fa-check-circle"></i>
+                <p>You're enrolled in all available courses!</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = availableCourses.map(course => {
+        const isFree = course.price === 0 || course.price === null;
+        
+        return `
+            <div class="course-card-inline">
+                <div class="course-thumbnail-inline">
+                    <i class="fas ${course.icon || 'fa-graduation-cap'}"></i>
+                </div>
+                <div class="course-card-content">
+                    <h3 class="course-card-title">${course.course_name}</h3>
+                    <div class="course-card-meta">
+                        ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${course.duration_hours} hours</span>` : ''}
+                        ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${course.difficulty_level}</span>` : ''}
+                    </div>
+                    <p class="course-card-description">${course.short_description || course.description || ''}</p>
+                    <div class="course-card-footer">
+                        <div class="course-price-inline ${isFree ? 'free' : ''}">
+                            ${isFree ? 'FREE' : `$${course.price.toFixed(2)}`}
+                        </div>
+                        <button class="btn btn-secondary" onclick="alert('Please contact support to enroll in this course.')">
+                            <i class="fas fa-envelope"></i> Contact Support
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Select a course to view its modules
+async function selectCourse(courseId) {
+    currentSelectedCourse = allCourses.find(c => c.id === courseId);
+    if (!currentSelectedCourse) return;
+
+    // Hide courses, show modules view
+    document.getElementById('myCoursesContainer').style.display = 'none';
+    document.getElementById('availableCoursesSection').style.display = 'none';
+    document.getElementById('courseModulesView').style.display = 'block';
+
+    // Update header
+    document.getElementById('selectedCourseName').textContent = currentSelectedCourse.course_name;
+    document.getElementById('selectedCourseDescription').textContent = currentSelectedCourse.description || '';
+
+    // Load modules for this course
+    await loadTrainingModules(courseId);
+}
+
+// Back to courses view
+function backToCourses() {
+    document.getElementById('myCoursesContainer').style.display = 'grid';
+    document.getElementById('availableCoursesSection').style.display = 'block';
+    document.getElementById('courseModulesView').style.display = 'none';
+    currentSelectedCourse = null;
+}
+
+// Load training modules for a specific course
+async function loadTrainingModules(courseId) {
     const container = document.getElementById('trainingModulesContainer');
     
     try {
-        const { data: modules, error } = await supabase
-            .from('training_modules')
-            .select('*')
-            .eq('is_active', true)
-            .order('display_order', { ascending: true});
-        
-        if (error) throw error;
-        
-        if (!modules || modules.length === 0) {
-            container.innerHTML = '<p style="text-align: center; padding: 2rem;">No training modules available yet.</p>';
+        // Get course modules
+        const { data: courseModules, error: cmError } = await supabase
+            .from('course_modules')
+            .select(`
+                *,
+                training_modules (*)
+            `)
+            .eq('course_id', courseId)
+            .order('module_order');
+
+        if (cmError) throw cmError;
+
+        if (!courseModules || courseModules.length === 0) {
+            container.innerHTML = '<p style="text-align: center; padding: 2rem;">No modules in this course yet.</p>';
             return;
         }
-        
+
         // Module number mapping
         const moduleNumbers = {
             'welcome-materials': 0,
@@ -43,8 +212,9 @@ async function loadTrainingModules() {
             'comprehensive': 8
         };
         
-        // Generate module cards with completion indicators
-        container.innerHTML = modules.map((module, index) => {
+        // Generate module cards
+        container.innerHTML = courseModules.map((cm, index) => {
+            const module = cm.training_modules;
             const completionStatus = getModuleCompletionStatus(module.module_code);
             const isCompleted = completionStatus.completed && !completionStatus.expired;
             const isExpired = completionStatus.expired;
@@ -62,19 +232,18 @@ async function loadTrainingModules() {
             } else if (isCompleted) {
                 statusClass = 'completed';
                 const expiresText = completionStatus.expiresIn ? ` (Expires in ${completionStatus.expiresIn})` : '';
-                // Module 0 shows "Completed" instead of "Certified" (no expiration)
                 const badgeText = module.module_code === 'welcome-materials' ? 'Completed' : 'Certified';
                 statusBadge = `<div class="completion-badge"><i class="fas fa-check-circle"></i> ${badgeText}${expiresText}</div>`;
                 buttonText = 'Review Module';
                 buttonIcon = 'fa-check-circle';
             }
             
-            // Get module number from mapping
-            const moduleNum = moduleNumbers[module.module_code] !== undefined ? moduleNumbers[module.module_code] : index + 1;
+            const moduleNum = moduleNumbers[module.module_code] !== undefined ? moduleNumbers[module.module_code] : cm.module_order;
             
             return `
                 <div class="module-card ${statusClass}" data-module="${module.module_code}">
                     ${statusBadge}
+                    ${cm.is_required ? '<div class="required-badge">Required</div>' : ''}
                     <div class="module-icon">
                         <i class="fas ${module.icon || 'fa-book'}"></i>
                     </div>
@@ -91,12 +260,16 @@ async function loadTrainingModules() {
             `;
         }).join('');
         
-        console.log(`Loaded ${modules.length} training modules`);
+        console.log(`Loaded ${courseModules.length} modules for course`);
     } catch (error) {
-        console.error('Error loading training modules:', error);
+        console.error('Error loading course modules:', error);
         container.innerHTML = '<p style="text-align: center; padding: 2rem; color: red;">Error loading modules. Please refresh the page.</p>';
     }
 }
+
+// Make functions globally accessible
+window.selectCourse = selectCourse;
+window.backToCourses = backToCourses;
 
 // Load assessments from database
 async function loadAssessments() {
@@ -391,7 +564,7 @@ function navigateToSection(sectionId) {
 // Event Listeners for Navigation
 document.addEventListener('DOMContentLoaded', () => {
     loadProgress();
-    loadTrainingModules(); // Load modules from database
+    loadCourses(); // Load courses from database
     loadAssessments(); // Load assessments from database
     updateAssessmentAvailability();
 

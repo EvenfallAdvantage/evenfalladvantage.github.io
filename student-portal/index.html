@@ -34,7 +34,6 @@
                     <div class="portal-nav-container">
                         <div class="nav-links">
                             <a href="#home" class="nav-link active" data-section="home">Home</a>
-                            <a href="courses.html" class="nav-link">Courses</a>
                             <a href="#training" class="nav-link" data-section="training">Learn</a>
                             <a href="#sandtable" class="nav-link" data-section="sandtable">Practice</a>
                             <a href="#assessment" class="nav-link" data-section="assessment">Assess</a>
@@ -85,14 +84,43 @@
         <!-- Training Section -->
         <section id="training" class="section">
             <div class="section-header">
-                <h2>Training Modules</h2>
-                <p>Select a module to begin your training</p>
+                <h2>My Courses</h2>
+                <p>Select a course to view its modules and continue learning</p>
             </div>
-            <div class="training-modules" id="trainingModulesContainer">
-                <!-- Modules will be loaded dynamically from database -->
+            
+            <!-- My Enrolled Courses -->
+            <div id="myCoursesContainer" class="courses-container">
                 <div style="text-align: center; padding: 2rem;">
                     <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--secondary);"></i>
-                    <p>Loading training modules...</p>
+                    <p>Loading your courses...</p>
+                </div>
+            </div>
+
+            <!-- Course Modules View (shown when a course is selected) -->
+            <div id="courseModulesView" class="course-modules-view" style="display: none;">
+                <div class="section-header">
+                    <button class="btn btn-secondary" onclick="backToCourses()">
+                        <i class="fas fa-arrow-left"></i> Back to Courses
+                    </button>
+                    <h2 id="selectedCourseName">Course Modules</h2>
+                    <p id="selectedCourseDescription"></p>
+                </div>
+                <div class="training-modules" id="trainingModulesContainer">
+                    <!-- Modules will be loaded dynamically when course is selected -->
+                </div>
+            </div>
+
+            <!-- Available Courses (not enrolled) -->
+            <div id="availableCoursesSection" class="section-divider">
+                <div class="section-header">
+                    <h2>Available Courses</h2>
+                    <p>Enroll in additional courses to expand your training</p>
+                </div>
+                <div id="availableCoursesContainer" class="courses-container">
+                    <div style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--secondary);"></i>
+                        <p>Loading available courses...</p>
+                    </div>
                 </div>
             </div>
 

@@ -2376,6 +2376,167 @@ body {
     transform: translateY(-2px);
 }
 
+/* Course Cards in Learn Section */
+.courses-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.course-card-inline {
+    background: white;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.course-card-inline:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    transform: translateY(-4px);
+}
+
+.course-card-inline.enrolled {
+    border: 2px solid var(--secondary);
+}
+
+.course-thumbnail-inline {
+    width: 100%;
+    height: 180px;
+    background: linear-gradient(135deg, var(--primary) 0%, #1a252f 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.course-thumbnail-inline i {
+    font-size: 3.5rem;
+    color: rgba(255,255,255,0.3);
+}
+
+.course-card-content {
+    padding: 1.5rem;
+}
+
+.course-card-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.course-card-meta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 0.75rem;
+}
+
+.course-card-meta i {
+    color: var(--secondary);
+}
+
+.course-card-description {
+    color: #555;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.course-progress-inline {
+    margin-bottom: 1rem;
+}
+
+.progress-label-inline {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    color: #666;
+    font-weight: 600;
+}
+
+.progress-bar-inline {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill-inline {
+    height: 100%;
+    background: linear-gradient(90deg, var(--secondary), #ff8c42);
+    transition: width 0.3s ease;
+}
+
+.course-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.course-price-inline {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.course-price-inline.free {
+    color: var(--secondary);
+}
+
+.enrolled-badge {
+    background: var(--secondary);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1;
+}
+
+.section-divider {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px solid #e0e0e0;
+}
+
+.course-modules-view {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.no-courses-message {
+    text-align: center;
+    padding: 3rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    color: #666;
+}
+
+.no-courses-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+    color: #ccc;
+}
+
 /* ElevenLabs AI Agent Custom Styling */
 elevenlabs-convai::part(button) {
     background-color: #e74c3c !important;
