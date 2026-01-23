@@ -14,7 +14,7 @@ BEGIN
     -- Get student ID (replace with your email)
     SELECT id INTO v_student_id 
     FROM students 
-    WHERE email = 'YOUR_EMAIL@EXAMPLE.COM'; -- CHANGE THIS
+    WHERE email = 'james.david.ferguson@protonmail.com'; -- CHANGE THIS
     
     IF v_student_id IS NULL THEN
         RAISE EXCEPTION 'Student not found. Please update the email address in the script.';
@@ -39,8 +39,7 @@ BEGIN
         UPDATE student_module_progress
         SET 
             progress_percentage = 100,
-            completed_at = NOW(),
-            updated_at = NOW()
+            completed_at = NOW()
         WHERE student_id = v_student_id 
         AND module_id = v_module_id;
         
@@ -52,13 +51,11 @@ BEGIN
             module_id,
             progress_percentage,
             completed_at,
-            started_at,
-            updated_at
+            started_at
         ) VALUES (
             v_student_id,
             v_module_id,
             100,
-            NOW(),
             NOW(),
             NOW()
         );

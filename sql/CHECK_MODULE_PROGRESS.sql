@@ -13,8 +13,7 @@ SELECT
     tm.module_name,
     smp.progress_percentage,
     smp.completed_at,
-    smp.started_at,
-    smp.updated_at
+    smp.started_at
 FROM student_module_progress smp
 JOIN students s ON smp.student_id = s.id
 JOIN training_modules tm ON smp.module_id = tm.id
