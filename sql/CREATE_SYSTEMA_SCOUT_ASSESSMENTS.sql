@@ -15,10 +15,9 @@
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    question_count,
-    time_limit,
+    total_questions,
+    time_limit_minutes,
     passing_score,
-    is_active,
     category
 )
 SELECT 
@@ -27,7 +26,6 @@ SELECT
     15,
     20,
     80,
-    true,
     'Systema Scout'
 FROM training_modules tm
 WHERE tm.module_code = 'systema-scout-walking';
@@ -39,10 +37,9 @@ WHERE tm.module_code = 'systema-scout-walking';
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    question_count,
-    time_limit,
+    total_questions,
+    time_limit_minutes,
     passing_score,
-    is_active,
     category
 )
 SELECT 
@@ -51,7 +48,6 @@ SELECT
     15,
     20,
     80,
-    true,
     'Systema Scout'
 FROM training_modules tm
 WHERE tm.module_code = 'systema-scout-security';
@@ -63,10 +59,9 @@ WHERE tm.module_code = 'systema-scout-security';
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    question_count,
-    time_limit,
+    total_questions,
+    time_limit_minutes,
     passing_score,
-    is_active,
     category
 )
 SELECT 
@@ -75,7 +70,6 @@ SELECT
     15,
     20,
     80,
-    true,
     'Systema Scout'
 FROM training_modules tm
 WHERE tm.module_code = 'systema-scout-glove';
@@ -87,10 +81,9 @@ WHERE tm.module_code = 'systema-scout-glove';
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    question_count,
-    time_limit,
+    total_questions,
+    time_limit_minutes,
     passing_score,
-    is_active,
     category
 )
 SELECT 
@@ -99,7 +92,6 @@ SELECT
     15,
     20,
     80,
-    true,
     'Systema Scout'
 FROM training_modules tm
 WHERE tm.module_code = 'systema-scout-eyes';
@@ -111,10 +103,9 @@ WHERE tm.module_code = 'systema-scout-eyes';
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    question_count,
-    time_limit,
+    total_questions,
+    time_limit_minutes,
     passing_score,
-    is_active,
     category
 )
 SELECT 
@@ -123,7 +114,6 @@ SELECT
     15,
     20,
     80,
-    true,
     'Systema Scout'
 FROM training_modules tm
 WHERE tm.module_code = 'systema-scout-empathy';
