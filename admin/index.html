@@ -294,23 +294,5 @@
     <script src="js/course-editor.js"></script>
     <script src="js/ai-question-generator-free.js"></script>
     <script src="js/import-slides.js"></script>
-    <script>
-        console.log('Admin dashboard script loaded');
-        
-        // Force initialization after a short delay to ensure DOM is ready
-        setTimeout(async () => {
-            console.log('Forcing initialization...');
-            try {
-                await checkAuth();
-                console.log('Auth check complete');
-                await loadDashboardData();
-                console.log('Dashboard data loaded');
-                setupEventListeners();
-                console.log('Setup complete');
-            } catch (error) {
-                console.error('Error during initialization:', error);
-            }
-        }, 100);
-    </script>
 </body>
 </html>
