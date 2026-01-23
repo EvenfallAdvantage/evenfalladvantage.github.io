@@ -679,6 +679,7 @@ async function deleteCourse(id, moduleName) {
 
 // Load section data when switching
 function loadSectionData(section) {
+    console.log('loadSectionData called for section:', section);
     switch(section) {
         case 'overview':
             loadOverviewStats();
@@ -699,9 +700,14 @@ function loadSectionData(section) {
             loadCourses();
             break;
         case 'assessments':
+            console.log('Assessments case triggered');
+            console.log('loadAssessments function exists:', typeof loadAssessments === 'function');
             // Load assessments (function from assessment-editor.js)
             if (typeof loadAssessments === 'function') {
+                console.log('Calling loadAssessments()');
                 loadAssessments();
+            } else {
+                console.error('loadAssessments function not found!');
             }
             break;
     }
