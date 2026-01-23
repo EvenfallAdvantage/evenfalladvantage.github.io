@@ -15,7 +15,6 @@
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    description,
     question_count,
     time_limit,
     passing_score,
@@ -25,7 +24,6 @@ INSERT INTO assessments (
 SELECT 
     tm.id,
     'Systema Scout: Walking, Breathing, and Choice',
-    'Test your understanding of fundamental Systema principles including walking mechanics, breathing patterns, and conscious choice.',
     15,
     20,
     80,
@@ -41,7 +39,6 @@ WHERE tm.module_code = 'systema-scout-walking';
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    description,
     question_count,
     time_limit,
     passing_score,
@@ -51,7 +48,6 @@ INSERT INTO assessments (
 SELECT 
     tm.id,
     'Systema Scout: Security Assessment',
-    'Assess your ability to observe environments, recall details, and conduct security assessments using Systema principles.',
     15,
     20,
     80,
@@ -67,7 +63,6 @@ WHERE tm.module_code = 'systema-scout-security';
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    description,
     question_count,
     time_limit,
     passing_score,
@@ -77,7 +72,6 @@ INSERT INTO assessments (
 SELECT 
     tm.id,
     'Systema Scout: Glove Work & Tension Management',
-    'Test your knowledge of identifying and eliminating unnecessary tension through constraint training and self-observation.',
     15,
     20,
     80,
@@ -93,7 +87,6 @@ WHERE tm.module_code = 'systema-scout-glove';
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    description,
     question_count,
     time_limit,
     passing_score,
@@ -103,7 +96,6 @@ INSERT INTO assessments (
 SELECT 
     tm.id,
     'Systema Scout: Sensory Awareness & Movement',
-    'Evaluate your understanding of sensory awareness, proprioception, and movement without visual input.',
     15,
     20,
     80,
@@ -119,7 +111,6 @@ WHERE tm.module_code = 'systema-scout-eyes';
 INSERT INTO assessments (
     module_id,
     assessment_name,
-    description,
     question_count,
     time_limit,
     passing_score,
@@ -129,7 +120,6 @@ INSERT INTO assessments (
 SELECT 
     tm.id,
     'Systema Scout: Empathy & Professional Relationships',
-    'Test your knowledge of developing empathy, managing professional relationships, and maintaining healthy boundaries.',
     15,
     20,
     80,
