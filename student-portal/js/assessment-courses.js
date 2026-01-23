@@ -105,8 +105,7 @@ async function loadCourseAssessments(courseId) {
         const { data: assessments, error: assessError } = await supabase
             .from('assessments')
             .select('*')
-            .in('module_id', moduleIds)
-            .eq('is_active', true);
+            .in('module_id', moduleIds);
 
         if (assessError) throw assessError;
 
