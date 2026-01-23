@@ -232,6 +232,8 @@ async function loadTrainingModules(courseId) {
             progressData.forEach(p => {
                 progressMap[p.module_id] = p;
             });
+            console.log('Progress data loaded:', progressData);
+            console.log('Progress map:', progressMap);
         }
 
         // Combine course_modules with training_modules data and progress
@@ -240,6 +242,8 @@ async function loadTrainingModules(courseId) {
             training_modules: moduleMap[cm.module_id],
             progress: progressMap[cm.module_id]
         }));
+        
+        console.log('Enriched modules with progress:', enrichedModules);
 
         // Module number mapping
         const moduleNumbers = {
@@ -259,9 +263,17 @@ async function loadTrainingModules(courseId) {
             const module = cm.training_modules;
             const progress = cm.progress;
             
+            console.log(`Module ${module.module_code}:`, {
+                progress: progress,
+                completed_at: progress?.completed_at,
+                progress_percentage: progress?.progress_percentage
+            });
+            
             // Check if module is completed from database
             const isCompleted = progress && progress.completed_at !== null;
             const progressPercentage = progress ? progress.progress_percentage : 0;
+            
+            console.log(`Module ${module.module_code} - isCompleted: ${isCompleted}, progressPercentage: ${progressPercentage}`);
             
             let statusClass = '';
             let statusBadge = '';
@@ -273,11 +285,13 @@ async function loadTrainingModules(courseId) {
                 statusBadge = `<div class="completion-badge"><i class="fas fa-check-circle"></i> Completed</div>`;
                 buttonText = 'Review Module';
                 buttonIcon = 'fa-check-circle';
+                console.log(`Module ${module.module_code} - Setting as COMPLETED`);
             } else if (progressPercentage > 0) {
                 statusClass = 'in-progress';
                 statusBadge = `<div class="completion-badge in-progress"><i class="fas fa-spinner"></i> ${progressPercentage}% Complete</div>`;
                 buttonText = 'Continue Module';
                 buttonIcon = 'fa-play';
+                console.log(`Module ${module.module_code} - Setting as IN PROGRESS`);
             }
             
             const moduleNum = moduleNumbers[module.module_code] !== undefined ? moduleNumbers[module.module_code] : cm.module_order;
