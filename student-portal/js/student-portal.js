@@ -615,6 +615,11 @@ function navigateToSection(sectionId) {
     });
 
     currentSection = sectionId;
+    
+    // Load assessment courses when navigating to assessment section
+    if (sectionId === 'assessment' && typeof loadAssessmentCourses === 'function') {
+        loadAssessmentCourses();
+    }
 }
 
 // Event Listeners for Navigation
