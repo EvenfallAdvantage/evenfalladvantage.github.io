@@ -3,6 +3,7 @@
 // Capture hash immediately before anything else
 const initialHash = window.location.hash;
 console.log('=== INITIAL HASH CAPTURED ===', initialHash);
+console.log('Script continuing to execute...');
 
 // Initialize function
 async function initializeDashboard() {
