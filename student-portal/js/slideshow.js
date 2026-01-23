@@ -3735,8 +3735,8 @@ async function completeModule() {
     navigateToSection('training');
     
     // Reload training modules to show updated completion status
-    if (window.loadTrainingModules) {
-        await window.loadTrainingModules();
+    if (window.loadTrainingModules && window.currentCourseId) {
+        await window.loadTrainingModules(window.currentCourseId);
     }
     
     // Show appropriate completion message using the captured module ID

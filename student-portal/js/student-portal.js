@@ -16,6 +16,7 @@ let assessmentAttempts = {}; // Track attempts per assessment
 let allCourses = [];
 let myEnrollments = [];
 let currentSelectedCourse = null;
+let currentCourseId = null; // Track current course ID globally for module reloading
 
 // Load courses instead of direct module access
 async function loadCourses() {
@@ -155,6 +156,10 @@ function renderAvailableCourses() {
 async function selectCourse(courseId) {
     currentSelectedCourse = allCourses.find(c => c.id === courseId);
     if (!currentSelectedCourse) return;
+
+    // Store current course ID globally for module reloading
+    currentCourseId = courseId;
+    window.currentCourseId = courseId; // Make it accessible to slideshow.js
 
     // Hide courses, show modules view
     document.getElementById('myCoursesContainer').style.display = 'none';
