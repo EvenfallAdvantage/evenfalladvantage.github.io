@@ -242,7 +242,9 @@ function switchSection(sectionName) {
     }
 
     // Load section data
+    console.log('About to call loadSectionData for:', sectionName);
     loadSectionData(sectionName);
+    console.log('Called loadSectionData for:', sectionName);
 }
 
 // Load dashboard data
