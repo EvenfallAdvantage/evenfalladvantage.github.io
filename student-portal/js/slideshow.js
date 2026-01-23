@@ -3390,6 +3390,48 @@ async function startModule(moduleId, skipStateCheck = false) {
     currentModuleId = moduleId;
     currentSlideIndex = 0;
     
+    // Check course enrollment access
+    try {
+        const currentUser = await Auth.getCurrentUser();
+        if (!currentUser) {
+            alert('Please log in to access course modules.');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Get module UUID from module code
+        const { data: moduleData, error: moduleError } = await supabase
+            .from('training_modules')
+            .select('id')
+            .eq('module_code', moduleId)
+            .single();
+
+        if (moduleError || !moduleData) {
+            console.error('Error finding module:', moduleError);
+            // Continue anyway for backward compatibility
+        } else {
+            // Check if student has access to this module
+            const { data: hasAccess, error: accessError } = await supabase
+                .rpc('student_has_module_access', {
+                    p_student_id: currentUser.id,
+                    p_module_id: moduleData.id
+                });
+
+            if (accessError) {
+                console.error('Error checking module access:', accessError);
+            }
+
+            if (hasAccess === false) {
+                alert('You need to enroll in a course to access this module. Redirecting to course catalog...');
+                window.location.href = 'courses.html';
+                return;
+            }
+        }
+    } catch (error) {
+        console.error('Error verifying module access:', error);
+        // Continue anyway for backward compatibility
+    }
+    
     // Special handling for Module 0 (Welcome) and Module 7 (Use of Force) - needs state selection
     // Only do this check if not already coming from startModuleWithState
     if ((moduleId === 'welcome-materials' || moduleId === 'use-of-force') && !skipStateCheck) {
