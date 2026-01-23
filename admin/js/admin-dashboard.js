@@ -17,7 +17,12 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.log('Dashboard data loaded');
         setupEventListeners();
         console.log('Setup complete');
-        
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
+    
+    // Handle hash navigation OUTSIDE the try-catch to ensure it always runs
+    try {
         console.log('=== STARTING HASH NAVIGATION CHECK ===');
         // Handle hash navigation from external links (e.g., from assessments page)
         // Use the initially captured hash in case it gets lost
@@ -42,8 +47,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         } else {
             console.log('No hash detected, staying on overview');
         }
-    } catch (error) {
-        console.error('Error during initialization:', error);
+    } catch (hashError) {
+        console.error('Error during hash navigation:', hashError);
     }
 });
 
