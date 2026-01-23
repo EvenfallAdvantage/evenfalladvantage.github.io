@@ -27,6 +27,12 @@ DROP POLICY IF EXISTS "Students can insert their own progress" ON student_module
 DROP POLICY IF EXISTS "Students can insert their progress" ON student_module_progress;
 DROP POLICY IF EXISTS "Enable insert for own progress" ON student_module_progress;
 
+-- Drop the new policy names we're about to create (in case script was run before)
+DROP POLICY IF EXISTS "students_select_own_enrollments" ON student_course_enrollments;
+DROP POLICY IF EXISTS "students_select_own_progress" ON student_module_progress;
+DROP POLICY IF EXISTS "students_insert_own_progress" ON student_module_progress;
+DROP POLICY IF EXISTS "students_update_own_progress" ON student_module_progress;
+
 -- =====================================================
 -- 2. CREATE SIMPLE, NON-RECURSIVE POLICIES
 -- =====================================================
