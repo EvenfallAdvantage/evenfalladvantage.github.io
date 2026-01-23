@@ -699,6 +699,6 @@ SELECT
     COUNT(ms.id) as slide_count
 FROM training_modules tm
 LEFT JOIN module_slides ms ON tm.id = ms.module_id
-WHERE tm.category = 'systema-scout'
+WHERE tm.module_code LIKE 'systema-scout%'
 GROUP BY tm.module_name, tm.display_order
 ORDER BY tm.display_order;
