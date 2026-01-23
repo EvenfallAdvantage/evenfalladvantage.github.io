@@ -239,20 +239,38 @@
 
             <!-- Modules Section -->
             <section class="admin-section" id="courses-section">
-                <div class="section-header">
-                    <h1>Module Management</h1>
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="btn btn-secondary" onclick="importExistingSlidesToDatabase()" title="Import slides from student portal">
-                            <i class="fas fa-file-import"></i> Import Existing Slides
+                <!-- Course Selection View -->
+                <div id="courseSelectionView">
+                    <div class="section-header">
+                        <h1>Course Management</h1>
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn btn-secondary" onclick="importExistingSlidesToDatabase()" title="Import slides from student portal">
+                                <i class="fas fa-file-import"></i> Import Existing Slides
+                            </button>
+                            <button class="btn btn-primary" onclick="showCreateCourseModal()">
+                                <i class="fas fa-plus"></i> Add Module
+                            </button>
+                        </div>
+                    </div>
+                    <div class="courses-grid" id="adminCoursesGrid">
+                        <!-- Course cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Module Management View (shown when course is selected) -->
+                <div id="moduleManagementView" style="display: none;">
+                    <div class="section-header">
+                        <button class="btn btn-secondary" onclick="backToAdminCourses()">
+                            <i class="fas fa-arrow-left"></i> Back to Courses
                         </button>
+                        <h1 id="selectedCourseTitle">Course Modules</h1>
                         <button class="btn btn-primary" onclick="showCreateCourseModal()">
                             <i class="fas fa-plus"></i> Add Module
                         </button>
                     </div>
-                </div>
-
-                <div class="courses-grid" id="coursesGrid">
-                    <!-- Module cards will be loaded here -->
+                    <div class="courses-grid" id="coursesGrid">
+                        <!-- Module cards will be loaded here when course is selected -->
+                    </div>
                 </div>
             </section>
         </main>

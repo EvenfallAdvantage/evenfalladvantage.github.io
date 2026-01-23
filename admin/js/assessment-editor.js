@@ -5,10 +5,75 @@ let currentQuestions = [];
 let selectedStateCode = null; // For Use of Force assessment
 let stateLaws = {}; // Store state laws data
 
-// Load all assessments
+// Load courses for assessment course selection
 async function loadAssessments() {
     try {
-        const { data: assessments, error } = await supabase
+        // Load all active courses
+        const { data: courses, error } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('is_active', true)
+            .order('display_order');
+
+        if (error) throw error;
+
+        displayAssessmentCourses(courses || []);
+    } catch (error) {
+        console.error('Error loading courses:', error);
+        document.getElementById('assessmentCoursesGrid').innerHTML = '<p class="error">Error loading courses</p>';
+    }
+}
+
+// Display courses for assessment selection
+function displayAssessmentCourses(courses) {
+    const grid = document.getElementById('assessmentCoursesGrid');
+    if (!grid) return;
+
+    if (!courses || courses.length === 0) {
+        grid.innerHTML = '<p>No courses found</p>';
+        return;
+    }
+
+    grid.innerHTML = courses.map(course => {
+        return `
+            <div class="course-card" onclick="selectAssessmentCourse('${course.id}', '${course.course_name}')" style="cursor: pointer;">
+                <div class="course-card-header">
+                    <h3>${course.course_name}</h3>
+                    <span class="badge badge-primary">${course.course_code}</span>
+                </div>
+                <div class="course-card-body">
+                    <p>${course.description || 'No description available'}</p>
+                    <div class="course-meta">
+                        <span><i class="fas fa-trophy"></i> Assessments</span>
+                        <span><i class="fas fa-check-circle"></i> Active</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Select a course to view its assessments
+async function selectAssessmentCourse(courseId, courseName) {
+    try {
+        // Hide course selection, show assessment management
+        document.getElementById('assessmentCourseSelectionView').style.display = 'none';
+        document.getElementById('assessmentManagementView').style.display = 'block';
+        document.getElementById('selectedAssessmentCourseTitle').textContent = courseName;
+
+        // Load modules for this course
+        const { data: courseModules, error: cmError } = await supabase
+            .from('course_modules')
+            .select('module_id')
+            .eq('course_id', courseId)
+            .order('module_order');
+
+        if (cmError) throw cmError;
+
+        const moduleIds = courseModules.map(cm => cm.module_id);
+
+        // Fetch assessments for these modules
+        const { data: assessments, error: assessError } = await supabase
             .from('assessments')
             .select(`
                 *,
@@ -18,16 +83,26 @@ async function loadAssessments() {
                     display_order
                 )
             `)
-            .order('training_modules(display_order)', { ascending: true });
+            .in('module_id', moduleIds);
 
-        if (error) throw error;
+        if (assessError) throw assessError;
 
         displayAssessments(assessments || []);
     } catch (error) {
-        console.error('Error loading assessments:', error);
+        console.error('Error loading course assessments:', error);
         document.getElementById('assessmentsList').innerHTML = '<p class="error">Error loading assessments</p>';
     }
 }
+
+// Back to course selection
+function backToAssessmentCourses() {
+    document.getElementById('assessmentCourseSelectionView').style.display = 'block';
+    document.getElementById('assessmentManagementView').style.display = 'none';
+}
+
+// Make functions globally accessible
+window.selectAssessmentCourse = selectAssessmentCourse;
+window.backToAssessmentCourses = backToAssessmentCourses;
 
 // Display assessments in table
 function displayAssessments(assessments) {

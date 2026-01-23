@@ -48,18 +48,40 @@
         <!-- Main Content -->
         <main class="admin-main" style="margin-left: 0; max-width: 1400px; margin: 0 auto; padding: 2rem;">
 
-            <!-- Assessments List -->
-            <div class="card">
-                <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h2>All Assessments</h2>
-                    <div class="search-box" style="max-width: 300px;">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchAssessments" placeholder="Search assessments..." onkeyup="filterAssessments()">
+            <!-- Course Selection View -->
+            <div id="assessmentCourseSelectionView">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Course Assessments</h2>
+                        <p>Select a course to view and manage its assessments</p>
+                    </div>
+                    <div class="card-body">
+                        <div id="assessmentCoursesGrid" class="courses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                            <p>Loading courses...</p>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body">
-                    <div id="assessmentsList" class="table-container">
-                        <p>Loading assessments...</p>
+            </div>
+
+            <!-- Assessments List (shown when course is selected) -->
+            <div id="assessmentManagementView" style="display: none;">
+                <div class="card">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <button class="btn btn-secondary" onclick="backToAssessmentCourses()" style="margin-bottom: 0.5rem;">
+                                <i class="fas fa-arrow-left"></i> Back to Courses
+                            </button>
+                            <h2 id="selectedAssessmentCourseTitle">Course Assessments</h2>
+                        </div>
+                        <div class="search-box" style="max-width: 300px;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchAssessments" placeholder="Search assessments..." onkeyup="filterAssessments()">
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="assessmentsList" class="table-container">
+                            <p>Loading assessments...</p>
+                        </div>
                     </div>
                 </div>
             </div>

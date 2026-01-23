@@ -426,20 +426,92 @@ async function loadRosters() {
     `;
 }
 
-// Load courses
+// Load courses for admin course selection
 async function loadCourses() {
     try {
-        const { data: modules, error } = await supabase
-            .from('training_modules')
+        // Load all active courses
+        const { data: courses, error } = await supabase
+            .from('courses')
             .select('*')
+            .eq('is_active', true)
             .order('display_order');
 
         if (error) throw error;
 
-        displayCourses(modules || []);
+        displayAdminCourses(courses || []);
     } catch (error) {
         console.error('Error loading courses:', error);
     }
+}
+
+// Display courses in admin portal
+function displayAdminCourses(courses) {
+    const grid = document.getElementById('adminCoursesGrid');
+    if (!grid) return;
+
+    if (!courses || courses.length === 0) {
+        grid.innerHTML = '<p>No courses found</p>';
+        return;
+    }
+
+    grid.innerHTML = courses.map(course => {
+        return `
+            <div class="course-card" onclick="selectAdminCourse('${course.id}', '${course.course_name}')" style="cursor: pointer;">
+                <div class="course-card-header">
+                    <h3>${course.course_name}</h3>
+                    <span class="badge badge-primary">${course.course_code}</span>
+                </div>
+                <div class="course-card-body">
+                    <p>${course.description || 'No description available'}</p>
+                    <div class="course-meta">
+                        <span><i class="fas ${course.icon || 'fa-graduation-cap'}"></i> ${course.difficulty_level || 'Course'}</span>
+                        <span><i class="fas fa-clock"></i> ${course.duration_hours || 'TBD'} hours</span>
+                        <span><i class="fas fa-check-circle"></i> Active</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Select a course to view its modules
+async function selectAdminCourse(courseId, courseName) {
+    try {
+        // Hide course selection, show module management
+        document.getElementById('courseSelectionView').style.display = 'none';
+        document.getElementById('moduleManagementView').style.display = 'block';
+        document.getElementById('selectedCourseTitle').textContent = courseName;
+
+        // Load modules for this course
+        const { data: courseModules, error: cmError } = await supabase
+            .from('course_modules')
+            .select('module_id')
+            .eq('course_id', courseId)
+            .order('module_order');
+
+        if (cmError) throw cmError;
+
+        const moduleIds = courseModules.map(cm => cm.module_id);
+
+        // Fetch training module details
+        const { data: modules, error: modulesError } = await supabase
+            .from('training_modules')
+            .select('*')
+            .in('id', moduleIds)
+            .order('display_order');
+
+        if (modulesError) throw modulesError;
+
+        displayCourses(modules || []);
+    } catch (error) {
+        console.error('Error loading course modules:', error);
+    }
+}
+
+// Back to course selection
+function backToAdminCourses() {
+    document.getElementById('courseSelectionView').style.display = 'block';
+    document.getElementById('moduleManagementView').style.display = 'none';
 }
 
 // Display courses
@@ -1172,6 +1244,8 @@ window.showCreateCourseModal = showCreateCourseModal;
 window.closeModal = closeModal;
 window.createStudent = createStudent;
 window.createClient = createClient;
+window.selectAdminCourse = selectAdminCourse;
+window.backToAdminCourses = backToAdminCourses;
 window.issueCertificate = issueCertificate;
 window.viewStudent = viewStudent;
 window.editStudent = editStudent;
