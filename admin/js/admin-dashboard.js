@@ -1,8 +1,15 @@
 // Admin Dashboard JavaScript
 
+// Capture hash immediately before anything else
+const initialHash = window.location.hash;
+console.log('=== INITIAL HASH CAPTURED ===', initialHash);
+
 // Check authentication on load
 window.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM Content Loaded');
+    console.log('Hash at DOMContentLoaded:', window.location.hash);
+    console.log('Initial hash captured:', initialHash);
+    
     try {
         await checkAuth();
         console.log('Auth check complete');
@@ -12,22 +19,25 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.log('Setup complete');
         
         // Handle hash navigation from external links (e.g., from assessments page)
-        const hash = window.location.hash;
-        console.log('Current hash:', hash);
+        // Use the initially captured hash in case it gets lost
+        const hash = initialHash || window.location.hash;
+        console.log('Using hash for navigation:', hash);
+        
         if (hash && hash.length > 1) {
             const section = hash.substring(1); // Remove the #
-            console.log('Hash detected, navigating to section:', section);
+            console.log('Hash detected, will navigate to section:', section);
             // Use longer delay to ensure all sections are loaded
             setTimeout(() => {
-                console.log('Attempting to switch to section:', section);
+                console.log('NOW attempting to switch to section:', section);
                 const targetSection = document.getElementById(`${section}-section`);
-                console.log('Target section element:', targetSection);
+                console.log('Target section element found:', !!targetSection);
                 if (targetSection) {
+                    console.log('Calling switchSection for:', section);
                     switchSection(section);
                 } else {
-                    console.error('Section not found:', section);
+                    console.error('Section not found:', section + '-section');
                 }
-            }, 200);
+            }, 300);
         } else {
             console.log('No hash detected, staying on overview');
         }
