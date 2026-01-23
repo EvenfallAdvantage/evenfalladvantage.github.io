@@ -18,6 +18,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         setupEventListeners();
         console.log('Setup complete');
         
+        console.log('=== STARTING HASH NAVIGATION CHECK ===');
         // Handle hash navigation from external links (e.g., from assessments page)
         // Use the initially captured hash in case it gets lost
         const hash = initialHash || window.location.hash;
