@@ -53,7 +53,41 @@ async function initializeDashboard() {
     }
 }
 
-// Check if DOM is already loaded
+// Immediate hash navigation - runs before async initialization
+console.log('Checking for immediate hash navigation...');
+if (initialHash && initialHash.length > 1) {
+    console.log('Hash found, will navigate after DOM loads');
+    // Wait for DOM to be ready, then navigate
+    const navigateToHash = () => {
+        const section = initialHash.substring(1);
+        console.log('Navigating to section from hash:', section);
+        const targetSection = document.getElementById(`${section}-section`);
+        if (targetSection) {
+            // Hide all sections
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            // Show target section
+            targetSection.classList.add('active');
+            // Update nav
+            document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.section === section) {
+                    link.classList.add('active');
+                }
+            });
+            console.log('Successfully navigated to:', section);
+        } else {
+            console.error('Section not found:', section);
+        }
+    };
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', navigateToHash);
+    } else {
+        navigateToHash();
+    }
+}
+
+// Check if DOM is already loaded for main initialization
 if (document.readyState === 'loading') {
     console.log('DOM still loading, adding event listener');
     document.addEventListener('DOMContentLoaded', initializeDashboard);
