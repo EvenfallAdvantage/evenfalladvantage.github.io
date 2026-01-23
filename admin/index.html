@@ -294,5 +294,33 @@
     <script src="js/course-editor.js"></script>
     <script src="js/ai-question-generator-free.js"></script>
     <script src="js/import-slides.js"></script>
+    <script>
+        // Simple hash navigation handler
+        window.addEventListener('load', function() {
+            const hash = window.location.hash;
+            console.log('Window loaded, checking hash:', hash);
+            if (hash && hash.length > 1) {
+                const section = hash.substring(1);
+                console.log('Navigating to section:', section);
+                setTimeout(() => {
+                    const targetSection = document.getElementById(section + '-section');
+                    if (targetSection) {
+                        // Hide all sections
+                        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+                        // Show target section
+                        targetSection.classList.add('active');
+                        // Update nav
+                        document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+                            link.classList.remove('active');
+                            if (link.dataset.section === section) {
+                                link.classList.add('active');
+                            }
+                        });
+                        console.log('Hash navigation complete');
+                    }
+                }, 100);
+            }
+        });
+    </script>
 </body>
 </html>
