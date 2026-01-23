@@ -33,7 +33,7 @@
                             <a href="#students" class="nav-link" data-section="students">Students</a>
                             <a href="#clients" class="nav-link" data-section="clients">Clients</a>
                             <a href="#courses" class="nav-link" data-section="courses">Courses</a>
-                            <a href="assessments.html" class="nav-link">Assessments</a>
+                            <a href="#assessments" class="nav-link" data-section="assessments">Assessments</a>
                             <a href="#certifications" class="nav-link" data-section="certifications">Certifications</a>
                             <a href="#messages" class="nav-link" data-section="messages">Messages</a>
                             <a href="javascript:void(0)" class="nav-link" onclick="logout()">
@@ -273,6 +273,37 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Assessments Section -->
+            <section class="admin-section" id="assessments-section">
+                <!-- Course Selection View -->
+                <div id="assessmentCourseSelectionView">
+                    <div class="section-header">
+                        <h1>Course Assessments</h1>
+                        <p>Select a course to view and manage its assessments</p>
+                    </div>
+                    <div class="courses-grid" id="assessmentCoursesGrid">
+                        <!-- Course cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Assessments List (shown when course is selected) -->
+                <div id="assessmentManagementView" style="display: none;">
+                    <div class="section-header">
+                        <button class="btn btn-secondary" onclick="backToAssessmentCourses()">
+                            <i class="fas fa-arrow-left"></i> Back to Courses
+                        </button>
+                        <h1 id="selectedAssessmentCourseTitle">Course Assessments</h1>
+                        <div class="search-box" style="max-width: 300px;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchAssessments" placeholder="Search assessments..." onkeyup="filterAssessments()">
+                        </div>
+                    </div>
+                    <div id="assessmentsList" class="table-container">
+                        <!-- Assessments table will be loaded here -->
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -292,6 +323,7 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="js/admin-dashboard.js"></script>
     <script src="js/course-editor.js"></script>
+    <script src="js/assessment-editor.js"></script>
     <script src="js/ai-question-generator-free.js"></script>
     <script src="js/import-slides.js"></script>
     <script>

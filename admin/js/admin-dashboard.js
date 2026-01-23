@@ -217,6 +217,9 @@ function setupEventListeners() {
 
 // Switch between sections
 function switchSection(sectionName) {
+    // Update URL hash
+    window.location.hash = sectionName;
+    
     // Update nav - both sidebar and header
     document.querySelectorAll('.nav-item, .nav-link[data-section]').forEach(item => {
         item.classList.remove('active');
@@ -694,6 +697,12 @@ function loadSectionData(section) {
             break;
         case 'courses':
             loadCourses();
+            break;
+        case 'assessments':
+            // Load assessments (function from assessment-editor.js)
+            if (typeof loadAssessments === 'function') {
+                loadAssessments();
+            }
             break;
     }
 }
