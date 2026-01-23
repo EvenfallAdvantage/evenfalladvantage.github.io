@@ -187,6 +187,8 @@ async function loadTrainingModules(courseId) {
     const container = document.getElementById('trainingModulesContainer');
     
     try {
+        const currentUser = await Auth.getCurrentUser();
+        
         // Get course modules with their training module details
         const { data: courseModules, error: cmError } = await supabase
             .from('course_modules')
@@ -210,16 +212,33 @@ async function loadTrainingModules(courseId) {
 
         if (tmError) throw tmError;
 
-        // Create a map of module details
+        // Fetch student progress for these modules
+        const { data: progressData, error: progressError } = await supabase
+            .from('student_module_progress')
+            .select('*')
+            .eq('student_id', currentUser.id)
+            .in('module_id', moduleIds);
+
+        if (progressError) console.error('Error fetching progress:', progressError);
+
+        // Create a map of module details and progress
         const moduleMap = {};
         trainingModules.forEach(tm => {
             moduleMap[tm.id] = tm;
         });
 
-        // Combine course_modules with training_modules data
+        const progressMap = {};
+        if (progressData) {
+            progressData.forEach(p => {
+                progressMap[p.module_id] = p;
+            });
+        }
+
+        // Combine course_modules with training_modules data and progress
         const enrichedModules = courseModules.map(cm => ({
             ...cm,
-            training_modules: moduleMap[cm.module_id]
+            training_modules: moduleMap[cm.module_id],
+            progress: progressMap[cm.module_id]
         }));
 
         // Module number mapping
@@ -238,27 +257,27 @@ async function loadTrainingModules(courseId) {
         // Generate module cards
         container.innerHTML = enrichedModules.map((cm, index) => {
             const module = cm.training_modules;
-            const completionStatus = getModuleCompletionStatus(module.module_code);
-            const isCompleted = completionStatus.completed && !completionStatus.expired;
-            const isExpired = completionStatus.expired;
+            const progress = cm.progress;
+            
+            // Check if module is completed from database
+            const isCompleted = progress && progress.completed_at !== null;
+            const progressPercentage = progress ? progress.progress_percentage : 0;
             
             let statusClass = '';
             let statusBadge = '';
             let buttonText = 'Start Module';
             let buttonIcon = 'fa-play';
             
-            if (isExpired) {
-                statusClass = 'expired';
-                statusBadge = `<div class="completion-badge expired"><i class="fas fa-exclamation-triangle"></i> Expired - Recertify</div>`;
-                buttonText = 'Recertify';
-                buttonIcon = 'fa-redo';
-            } else if (isCompleted) {
+            if (isCompleted) {
                 statusClass = 'completed';
-                const expiresText = completionStatus.expiresIn ? ` (Expires in ${completionStatus.expiresIn})` : '';
-                const badgeText = module.module_code === 'welcome-materials' ? 'Completed' : 'Certified';
-                statusBadge = `<div class="completion-badge"><i class="fas fa-check-circle"></i> ${badgeText}${expiresText}</div>`;
+                statusBadge = `<div class="completion-badge"><i class="fas fa-check-circle"></i> Completed</div>`;
                 buttonText = 'Review Module';
                 buttonIcon = 'fa-check-circle';
+            } else if (progressPercentage > 0) {
+                statusClass = 'in-progress';
+                statusBadge = `<div class="completion-badge in-progress"><i class="fas fa-spinner"></i> ${progressPercentage}% Complete</div>`;
+                buttonText = 'Continue Module';
+                buttonIcon = 'fa-play';
             }
             
             const moduleNum = moduleNumbers[module.module_code] !== undefined ? moduleNumbers[module.module_code] : cm.module_order;
