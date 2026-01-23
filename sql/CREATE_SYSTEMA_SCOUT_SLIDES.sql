@@ -24,7 +24,7 @@ BEGIN
         
         -- Slide 2: Orientation & Purpose
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 2, 'content', 'Orientation & Purpose', 
+        VALUES (v_module_id, 2, 'text', 'Orientation & Purpose', 
         '<h2>What is Systema Scout?</h2>
         <p>Systema Scout is a foundational, experiential training framework rooted in Systema principles.</p>
         <p><strong>The outcomes are qualitative and experiential</strong>, based on first-person awareness and observable behavioral changes rather than numerical metrics.</p>
@@ -40,14 +40,14 @@ BEGIN
         
         -- Slide 3: The Goal
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 3, 'content', 'The Goal', 
+        VALUES (v_module_id, 3, 'text', 'The Goal', 
         '<h2>The Goal is Not Perfection</h2>
         <p class="emphasis">The goal is ongoing regulation, reflection, and responsibility.</p>
         <p>This training is about becoming, not arriving. It is a practice, not a destination.</p>');
         
         -- Slide 4: Axis & Audience
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 4, 'content', 'Axis & Audience', 
+        VALUES (v_module_id, 4, 'text', 'Axis & Audience', 
         '<h2>The Axis of Responsibility</h2>
         <p><strong>The axis of Systema Scout is responsibility, not profession.</strong></p>
         <h3>Primary Audience:</h3>
@@ -67,7 +67,7 @@ BEGIN
         
         -- Slide 5: Training Orientation
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 5, 'content', 'Training Orientation', 
+        VALUES (v_module_id, 5, 'text', 'Training Orientation', 
         '<h2>Our Approach</h2>
         <p><strong>Systema Scout does not diagnose people or situations.</strong></p>
         <p>Like everyone else present, practitioners recognize when something is wrong because the situation has already declared itself. That is why a call came in, or why help was requested. Rarely is the responder the first witness.</p>
@@ -79,7 +79,7 @@ BEGIN
         
         -- Slide 6: The Foundational Cycle
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 6, 'content', 'The Foundational Cycle', 
+        VALUES (v_module_id, 6, 'text', 'The Foundational Cycle', 
         '<h2>Breathe → Relax → Structure → Move</h2>
         <p>A foundational cycle runs throughout the work:</p>
         <div class="cycle">
@@ -96,7 +96,7 @@ BEGIN
         
         -- Slide 7: Safety & Scope
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 7, 'content', 'Safety & Scope', 
+        VALUES (v_module_id, 7, 'text', 'Safety & Scope', 
         '<h2>Training Principles</h2>
         <ul>
             <li>Most foundational work is solo and appropriate for online training</li>
@@ -139,7 +139,7 @@ BEGIN
         
         -- Slide 2: First, Walk
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 2, 'content', 'First, Walk', 
+        VALUES (v_module_id, 2, 'text', 'First, Walk', 
         '<h2>Walk Freely</h2>
         <p>Find a space where you can walk safely.</p>
         <p><strong>Walk without destination. Wander. Observe the world.</strong></p>
@@ -148,7 +148,7 @@ BEGIN
         
         -- Slide 3: Monitor Your Breathing
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 3, 'content', 'Monitor Your Breathing', 
+        VALUES (v_module_id, 3, 'text', 'Monitor Your Breathing', 
         '<h2>Observe Your Breath</h2>
         <p>After you''ve been walking, monitor your breathing.</p>
         <p class="emphasis">Notice that as soon as you start monitoring your breathing, it will change.</p>
@@ -162,7 +162,7 @@ BEGIN
         
         -- Slide 4: Notice Your Natural Way
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 4, 'content', 'Your Natural Way', 
+        VALUES (v_module_id, 4, 'text', 'Your Natural Way', 
         '<h2>Observe Your Habits</h2>
         <p>Before moving on, notice your natural way of walking.</p>
         <p>Is it more like a slow vacation stroll, sand under your toes and waves in your ears?</p>
@@ -171,7 +171,7 @@ BEGIN
         
         -- Slide 5: Breath Counts 1-3
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 5, 'content', 'Breath Counts: 1-3', 
+        VALUES (v_module_id, 5, 'text', 'Breath Counts: 1-3', 
         '<h2>Switch Your Breathing</h2>
         <p>Now consciously change your breath pattern:</p>
         <h3>One Step In, One Step Out</h3>
@@ -184,7 +184,7 @@ BEGIN
         
         -- Slide 6: Higher Numbers
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 6, 'content', 'Higher Numbers', 
+        VALUES (v_module_id, 6, 'text', 'Higher Numbers', 
         '<h2>Continue Upward</h2>
         <p>Continue with four, five, all the way up to ten, fifteen, or even twenty.</p>
         <p>Higher numbers are difficult. There are methods to make them easier, but for now just do whatever comes.</p>
@@ -197,7 +197,7 @@ BEGIN
         
         -- Slide 7: Asymmetric Breathing
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 7, 'content', 'Asymmetric Breathing', 
+        VALUES (v_module_id, 7, 'text', 'Asymmetric Breathing', 
         '<h2>Variations</h2>
         <p>As you go up in numbers, keep one number the same and reset the other.</p>
         <h3>Example 1:</h3>
@@ -210,7 +210,7 @@ BEGIN
         
         -- Slide 8: Backward Walking
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 8, 'content', 'Backward Walking', 
+        VALUES (v_module_id, 8, 'text', 'Backward Walking', 
         '<h2>Walking Backward</h2>
         <p><strong>Carefully.</strong> Looking behind you or not. You know where you are. Be safe.</p>
         <p>Monitor how the fear of not knowing what''s behind you affects your breathing and movement.</p>
@@ -224,7 +224,7 @@ BEGIN
         
         -- Slide 9: Practice Instructions
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 9, 'content', 'Practice Instructions', 
+        VALUES (v_module_id, 9, 'text', 'Practice Instructions', 
         '<h2>Your Practice</h2>
         <p>Take 15-20 minutes to practice this drill now.</p>
         <h3>Sequence:</h3>
@@ -266,7 +266,7 @@ BEGIN
         
         -- Slide 2: After the Walk
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 2, 'content', 'After the Walk', 
+        VALUES (v_module_id, 2, 'text', 'After the Walk', 
         '<h2>Sit or Lie Down</h2>
         <p>After completing the walking drill, find a comfortable position.</p>
         <p>Close your eyes. Relax.</p>
@@ -274,7 +274,7 @@ BEGIN
         
         -- Slide 3: Relive the Walk
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 3, 'content', 'Relive the Walk', 
+        VALUES (v_module_id, 3, 'text', 'Relive the Walk', 
         '<h2>Go Back in Memory</h2>
         <p>Go back in your memory to the beginning of the walk and try to relive it.</p>
         <p><strong>Try to feel in your body what it felt like.</strong></p>
@@ -283,7 +283,7 @@ BEGIN
         
         -- Slide 4: Record Everything
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 4, 'content', 'Record Everything', 
+        VALUES (v_module_id, 4, 'text', 'Record Everything', 
         '<h2>Concrete and Tangible</h2>
         <p>When the walk is complete in your memory, come back and record in a notebook everything you noticed outside of yourself.</p>
         <p class="emphasis">Everything concrete and tangible. Do not make anything up.</p>
@@ -299,7 +299,7 @@ BEGIN
         
         -- Slide 5: Details Matter
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 5, 'content', 'Details Matter', 
+        VALUES (v_module_id, 5, 'text', 'Details Matter', 
         '<h2>How Many Details?</h2>
         <p>If you did this in your own house, see how many details you can remember.</p>
         <p>If you did it outside, what cars did you pass or see pass you?</p>
@@ -311,7 +311,7 @@ BEGIN
         
         -- Slide 6: Practice Instructions
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 6, 'content', 'Practice Instructions', 
+        VALUES (v_module_id, 6, 'text', 'Practice Instructions', 
         '<h2>Your Practice</h2>
         <p>Complete a 10-15 minute walk, then practice recall.</p>
         <h3>Sequence:</h3>
@@ -325,7 +325,7 @@ BEGIN
         
         -- Slide 7: Building Awareness
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 7, 'content', 'Building Awareness', 
+        VALUES (v_module_id, 7, 'text', 'Building Awareness', 
         '<h2>Continuous Practice</h2>
         <p>This drill can be practiced anywhere, anytime.</p>
         <p>After any walk, any drive, any interaction, you can pause and recall:</p>
@@ -368,7 +368,7 @@ BEGIN
         
         -- Slide 2: Get a Glove
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 2, 'content', 'Get a Glove', 
+        VALUES (v_module_id, 2, 'text', 'Get a Glove', 
         '<h2>Materials Needed</h2>
         <p>Go get a glove. Put it on.</p>
         <p><strong>Recommended gloves:</strong></p>
@@ -382,7 +382,7 @@ BEGIN
         
         -- Slide 3: The Task
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 3, 'content', 'The Task', 
+        VALUES (v_module_id, 3, 'text', 'The Task', 
         '<h2>Remove the Glove</h2>
         <p>Now get the glove off your hand:</p>
         <ul>
@@ -394,7 +394,7 @@ BEGIN
         
         -- Slide 4: What Shows Up
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 4, 'content', 'What Shows Up', 
+        VALUES (v_module_id, 4, 'text', 'What Shows Up', 
         '<h2>Notice What Appears</h2>
         <p>As you work to remove the glove, observe:</p>
         <ul>
@@ -409,7 +409,7 @@ BEGIN
         
         -- Slide 5: Compartmentalized Brain
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 5, 'content', 'The Compartmentalized Brain', 
+        VALUES (v_module_id, 5, 'text', 'The Compartmentalized Brain', 
         '<h2>Internal Communication</h2>
         <p>The brain is often compartmentalized.</p>
         <p>One part gives the order. Another part reacts to how hard it feels and makes sure the first part knows.</p>
@@ -423,7 +423,7 @@ BEGIN
         
         -- Slide 6: The Constraint
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 6, 'content', 'The Constraint', 
+        VALUES (v_module_id, 6, 'text', 'The Constraint', 
         '<h2>Intentional Difficulty</h2>
         <p>Under these constraints, removing the glove is, for all intents and purposes, impossible.</p>
         <p class="emphasis">That is intentional.</p>
@@ -432,7 +432,7 @@ BEGIN
         
         -- Slide 7: Variations
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 7, 'content', 'Variations', 
+        VALUES (v_module_id, 7, 'text', 'Variations', 
         '<h2>Explore Different Conditions</h2>
         <p>Try removing the glove under different conditions:</p>
         <ul>
@@ -445,7 +445,7 @@ BEGIN
         
         -- Slide 8: Optional Humility Drill
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 8, 'content', 'Optional Humility Drill', 
+        VALUES (v_module_id, 8, 'text', 'Optional Humility Drill', 
         '<h2>Advanced Challenge</h2>
         <p class="emphasis">Try removing your clothes without touching them.</p>
         <p>Good luck.</p>
@@ -453,7 +453,7 @@ BEGIN
         
         -- Slide 9: Practice Instructions
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 9, 'content', 'Practice Instructions', 
+        VALUES (v_module_id, 9, 'text', 'Practice Instructions', 
         '<h2>Your Practice</h2>
         <p>Spend 15-20 minutes with this drill.</p>
         <h3>Sequence:</h3>
@@ -495,7 +495,7 @@ BEGIN
         
         -- Slide 2: The Three Drills
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 2, 'content', 'The Three Drills', 
+        VALUES (v_module_id, 2, 'text', 'The Three Drills', 
         '<h2>What You''ve Learned</h2>
         <h3>Drill 1: Walking, Breathing, and Choice</h3>
         <p>Conscious modulation of breath and movement</p>
@@ -507,7 +507,7 @@ BEGIN
         
         -- Slide 3: Combined Practice
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 3, 'content', 'Combined Practice', 
+        VALUES (v_module_id, 3, 'text', 'Combined Practice', 
         '<h2>All Three Together</h2>
         <p>Practice all three drills in sequence:</p>
         <ol>
@@ -520,7 +520,7 @@ BEGIN
         
         -- Slide 4: Daily Life Application
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 4, 'content', 'Daily Life Application', 
+        VALUES (v_module_id, 4, 'text', 'Daily Life Application', 
         '<h2>Beyond Formal Practice</h2>
         <p>These skills apply to everyday situations:</p>
         <ul>
@@ -533,7 +533,7 @@ BEGIN
         
         -- Slide 5: Professional Application
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 5, 'content', 'Professional Application', 
+        VALUES (v_module_id, 5, 'text', 'Professional Application', 
         '<h2>In Security Work</h2>
         <p>For security professionals, law enforcement, and military:</p>
         <ul>
@@ -546,7 +546,7 @@ BEGIN
         
         -- Slide 6: Self-Debrief
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 6, 'content', 'Self-Debrief', 
+        VALUES (v_module_id, 6, 'text', 'Self-Debrief', 
         '<h2>Empathetic Self-Reflection</h2>
         <p>After difficult situations, practice self-debrief:</p>
         <ol>
@@ -560,7 +560,7 @@ BEGIN
         
         -- Slide 7: Self-Accountability
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 7, 'content', 'Self-Accountability', 
+        VALUES (v_module_id, 7, 'text', 'Self-Accountability', 
         '<h2>Responsibility Without Punishment</h2>
         <p>Self-accountability means:</p>
         <ul>
@@ -573,7 +573,7 @@ BEGIN
         
         -- Slide 8: Building a Practice
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 8, 'content', 'Building a Practice', 
+        VALUES (v_module_id, 8, 'text', 'Building a Practice', 
         '<h2>Sustainable Routine</h2>
         <p>Create a practice that fits your life:</p>
         <h3>Minimal Daily Practice (10-15 minutes):</h3>
@@ -620,7 +620,7 @@ BEGIN
         
         -- Slide 2: The Aim
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 2, 'content', 'The Aim', 
+        VALUES (v_module_id, 2, 'text', 'The Aim', 
         '<h2>What Systema Scout Builds</h2>
         <p>Systema Scout builds internal regulation, perceptual awareness, and self-accountability before proximity, contact, or force.</p>
         <p class="emphasis">The aim is not to create fighters, controllers, or enforcers.</p>
@@ -628,7 +628,7 @@ BEGIN
         
         -- Slide 3: Not Perfection
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 3, 'content', 'Not Perfection', 
+        VALUES (v_module_id, 3, 'text', 'Not Perfection', 
         '<h2>The Goal Is Not Perfection</h2>
         <p class="emphasis">The goal is ongoing regulation, reflection, and responsibility.</p>
         <p>You will have days when:</p>
@@ -643,7 +643,7 @@ BEGIN
         
         -- Slide 4: Continued Practice
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 4, 'content', 'Continued Practice', 
+        VALUES (v_module_id, 4, 'text', 'Continued Practice', 
         '<h2>The Path Forward</h2>
         <p>These drills are not one-time exercises. They are ongoing practices.</p>
         <h3>Recommendations:</h3>
@@ -658,7 +658,7 @@ BEGIN
         
         -- Slide 5: Your Presence
         INSERT INTO module_slides (module_id, slide_number, slide_type, title, content)
-        VALUES (v_module_id, 5, 'content', 'Your Presence', 
+        VALUES (v_module_id, 5, 'text', 'Your Presence', 
         '<h2>Making Situations Safer</h2>
         <p>With consistent practice, your presence changes.</p>
         <p>People around you will notice:</p>
