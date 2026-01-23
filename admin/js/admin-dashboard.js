@@ -10,6 +10,15 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.log('Dashboard data loaded');
         setupEventListeners();
         console.log('Setup complete');
+        
+        // Handle hash navigation from external links (e.g., from assessments page)
+        if (window.location.hash) {
+            const section = window.location.hash.substring(1); // Remove the #
+            console.log('Hash detected, navigating to:', section);
+            setTimeout(() => {
+                switchSection(section);
+            }, 100); // Small delay to ensure everything is loaded
+        }
     } catch (error) {
         console.error('Error during initialization:', error);
     }
