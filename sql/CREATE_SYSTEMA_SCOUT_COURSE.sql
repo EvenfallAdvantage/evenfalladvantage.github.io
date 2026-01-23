@@ -68,7 +68,7 @@ INSERT INTO training_modules (
 ) VALUES (
     'systema-scout-orientation',
     'Orientation & Philosophy',
-    'Understanding the Systema Scout framework, its purpose, and who it serves. Learn the foundational cycle: Breathe → Relax → Structure → Move. Explore the axis of responsibility and the qualitative, experiential nature of this training.',
+    'Introduction to Systema Scout framework and foundational cycle: Breathe → Relax → Structure → Move.',
     'fa-compass',
     '30-45 minutes',
     40,
@@ -92,7 +92,7 @@ INSERT INTO training_modules (
 ) VALUES (
     'systema-scout-walking',
     'Walking, Breathing, and Choice',
-    'Explore the relationship between walking pace, breathing patterns, and conscious choice. Practice forward and backward walking with varied breath counts from 1 to 20 steps. Develop awareness of natural breathing patterns and learn to modulate breath consciously.',
+    'Practice walking mechanics with varied breathing patterns. Develop conscious breath control and movement awareness.',
     'fa-walking',
     '45-60 minutes',
     50,
@@ -116,7 +116,7 @@ INSERT INTO training_modules (
 ) VALUES (
     'systema-scout-observation',
     'Security Assessment: Observation & Recall',
-    'Develop perceptual awareness through post-walk recall exercises. Practice concrete observation and detailed environmental assessment. Build scenario awareness for security work and expand continuous awareness practice.',
+    'Build perceptual awareness through observation exercises and environmental assessment for security scenarios.',
     'fa-eye',
     '30-45 minutes',
     40,
@@ -140,7 +140,7 @@ INSERT INTO training_modules (
 ) VALUES (
     'systema-scout-tension',
     'Glove Work: Unnecessary Tension',
-    'Identify and eliminate unnecessary tension through constrained movement. Observe psychological and physical responses to effort. Practice self-observation during constraint and explore variations including eyes closed, lying down, and walking.',
+    'Identify and eliminate unnecessary tension through constrained movement and self-observation exercises.',
     'fa-hand-paper',
     '45-60 minutes',
     50,
@@ -164,7 +164,7 @@ INSERT INTO training_modules (
 ) VALUES (
     'systema-scout-integration',
     'Integration & Self-Regulation',
-    'Integrate walking, observation, and tension awareness into daily practice. Develop self-accountability and empathetic self-debrief skills. Combine multiple awareness practices and apply regulation skills to professional scenarios.',
+    'Integrate walking, observation, and tension awareness. Develop self-accountability and apply skills to professional scenarios.',
     'fa-puzzle-piece',
     '60 minutes',
     60,
@@ -188,7 +188,7 @@ INSERT INTO training_modules (
 ) VALUES (
     'systema-scout-closing',
     'Closing Aim & Continued Practice',
-    'Review the aim of Systema Scout and establish a sustainable practice routine. Understand the path forward as a regulated, responsible practitioner. Create a personal practice plan and commit to ongoing responsibility and reflection.',
+    'Review course aims and establish a sustainable practice routine for continued growth and responsibility.',
     'fa-flag-checkered',
     '20-30 minutes',
     25,
