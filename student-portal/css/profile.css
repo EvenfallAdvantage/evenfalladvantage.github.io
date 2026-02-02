@@ -287,7 +287,7 @@
 }
 
 .experience-actions button:last-child {
-    color: var(--danger-color);
+    color: #e74c3c;
 }
 
 .experience-actions button:last-child:hover {
