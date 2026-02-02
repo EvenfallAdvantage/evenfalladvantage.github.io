@@ -134,7 +134,7 @@ nav, .navbar {
 .nav-logo {
     width: auto;
     height: auto;
-    min-width: 286px;
+    min-width: 257px;
     max-width: 100%;
     max-height: 154px;
     display: block;
@@ -243,7 +243,7 @@ nav, .navbar {
 .site-logo {
     width: auto;
     height: auto;
-    min-width: 286px;
+    min-width: 257px;
     max-width: 100%;
     max-height: 154px;
     display: block;
@@ -259,7 +259,7 @@ nav, .navbar {
     }
     
     .site-logo {
-        min-width: 220px;
+        min-width: 198px;
         max-height: 121px;
         margin: 0 auto;
     }
@@ -3346,7 +3346,7 @@ footer {
     .nav-logo {
         position: static !important;
         left: auto !important;
-        min-width: 220px !important;
+        min-width: 198px !important;
         max-height: 121px !important;
     }
 
