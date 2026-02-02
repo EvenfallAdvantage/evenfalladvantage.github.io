@@ -292,6 +292,7 @@ body {
 .section {
     display: none;
     animation: fadeIn 0.3s ease;
+    padding-top: 0;
 }
 
 .section.active {
