@@ -644,6 +644,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     initializeDragAndDrop();
+    
+    // Initialize scenario selector
+    const scenarioSelect = document.getElementById('scenarioSelect');
+    if (scenarioSelect) {
+        console.log('Scenario select found, adding event listener');
+        scenarioSelect.addEventListener('change', (e) => {
+            console.log('Scenario dropdown changed to:', e.target.value);
+            loadScenario(e.target.value);
+        });
+    } else {
+        console.warn('Scenario select element not found');
+    }
 });
 
 // Update assessment availability based on completed modules
