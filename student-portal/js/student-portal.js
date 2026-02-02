@@ -2323,7 +2323,10 @@ function loadScenario(scenarioId) {
     currentScenario = scenarioId;
     const scenario = scenarios[scenarioId];
     
-    clearCanvas();
+    // Clear any placed items but don't reset canvas HTML yet
+    canvasItems = [];
+    
+    // Generate the event map
     generateEventMap(scenario);
     document.getElementById('scenarioTitle').textContent = scenario.title;
     
@@ -2368,9 +2371,19 @@ function generateEventMap(scenario) {
 function clearCanvas() {
     canvasItems = [];
     const canvas = document.getElementById('canvas');
-    canvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-hand-pointer"></i><p>Drag security resources to the event layout to create your security plan</p></div>';
-    canvas.removeEventListener('dragover', handleDragOver);
-    canvas.removeEventListener('drop', handleDrop);
+    
+    // Remove all canvas items but keep the event map if it exists
+    const eventMap = canvas.querySelector('.event-map');
+    if (eventMap) {
+        // Remove only canvas-item elements, keep the map
+        const items = canvas.querySelectorAll('.canvas-item');
+        items.forEach(item => item.remove());
+    } else {
+        // No map exists, show placeholder
+        canvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-hand-pointer"></i><p>Drag security resources to the event layout to create your security plan</p></div>';
+        canvas.removeEventListener('dragover', handleDragOver);
+        canvas.removeEventListener('drop', handleDrop);
+    }
 }
 
 function validateSolution() {
