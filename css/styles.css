@@ -1557,7 +1557,7 @@ section:nth-child(even) {
     background-color: #d59b3c;
     color: white !important;
     transform: translateY(-3px);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
 }
 
 .client-button {
