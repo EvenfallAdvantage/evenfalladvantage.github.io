@@ -91,6 +91,11 @@
     color: #ccc;
 }
 
+.no-courses-message p {
+    text-align: center;
+    margin: 0;
+}
+
 /* Course Card */
 .course-card {
     background: white;
