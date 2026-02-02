@@ -10,10 +10,6 @@ async function loadAssessmentCourses() {
     
     if (!myEnrollments || myEnrollments.length === 0) {
         container.innerHTML = `
-            <div class="section-header">
-                <h2>My Course Assessments</h2>
-                <p>Select a course to view and take its assessments</p>
-            </div>
             <p style="text-align: center; padding: 2rem;">No enrolled courses found. Please enroll in a course from the Learn section.</p>
         `;
         return;
@@ -21,33 +17,25 @@ async function loadAssessmentCourses() {
     
     const enrolledCourses = myEnrollments.map(e => e.courses);
     
-    container.innerHTML = `
-        <div class="section-header">
-            <h2>My Course Assessments</h2>
-            <p>Select a course to view and take its assessments</p>
-        </div>
-        <div class="courses-grid">
-            ${enrolledCourses.map(course => `
-                <div class="course-card-inline enrolled" onclick="selectAssessmentCourse('${course.id}')">
-                    <div class="enrolled-badge">ENROLLED</div>
-                    <div class="course-thumbnail-inline">
-                        <i class="fas ${course.icon || 'fa-trophy'}"></i>
-                    </div>
-                    <div class="course-card-content">
-                        <h3 class="course-card-title">${course.course_name}</h3>
-                        <div class="course-card-meta">
-                            ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${course.duration_hours} hours</span>` : ''}
-                            ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${course.difficulty_level}</span>` : ''}
-                        </div>
-                        <p class="course-card-description">${course.short_description || course.description || ''}</p>
-                        <div class="course-meta" style="margin-top: 1rem;">
-                            <span><i class="fas fa-trophy"></i> Assessments Available</span>
-                        </div>
-                    </div>
+    container.innerHTML = enrolledCourses.map(course => `
+        <div class="course-card-inline enrolled" onclick="selectAssessmentCourse('${course.id}')">
+            <div class="enrolled-badge">ENROLLED</div>
+            <div class="course-thumbnail-inline">
+                <i class="fas ${course.icon || 'fa-trophy'}"></i>
+            </div>
+            <div class="course-card-content">
+                <h3 class="course-card-title">${course.course_name}</h3>
+                <div class="course-card-meta">
+                    ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${course.duration_hours} hours</span>` : ''}
+                    ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${course.difficulty_level}</span>` : ''}
                 </div>
-            `).join('')}
+                <p class="course-card-description">${course.short_description || course.description || ''}</p>
+                <div class="course-meta" style="margin-top: 1rem;">
+                    <span><i class="fas fa-trophy"></i> Assessments Available</span>
+                </div>
+            </div>
         </div>
-    `;
+    `).join('');
 }
 
 // Select a course to view its assessments
