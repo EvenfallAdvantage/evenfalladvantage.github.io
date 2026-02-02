@@ -152,33 +152,96 @@ document.getElementById('profileForm').addEventListener('submit', async (e) => {
 // Skills management
 function displaySkills(skills) {
     const container = document.getElementById('skillsContainer');
-    container.innerHTML = skills.map(skill => `
+    container.innerHTML = skills.map((skill, index) => `
         <div class="skill-tag">
             ${skill}
-            <button onclick="removeSkill('${skill}')" title="Remove skill">
-                <i class="fas fa-trash"></i>
-            </button>
+            <div class="skill-actions">
+                <button onclick="editSkill(${index}, '${skill.replace(/'/g, "\\'")}')", title="Edit skill">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="removeSkill('${skill.replace(/'/g, "\\'")}')", title="Remove skill">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         </div>
     `).join('');
 }
 
-async function addSkill() {
-    const skill = prompt('Enter a skill:');
-    if (!skill) return;
+function addSkill() {
+    showSkillModal();
+}
+
+async function editSkill(index, currentSkill) {
+    showSkillModal(index, currentSkill);
+}
+
+function showSkillModal(index = null, currentSkill = '') {
+    const isEdit = index !== null;
+    const modalHTML = `
+        <div class="modal-overlay" id="skillModal" onclick="closeSkillModal()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2>${isEdit ? 'Edit' : 'Add'} Skill</h2>
+                    <button class="close-btn" onclick="closeSkillModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="skillForm" onsubmit="submitSkill(event, ${isEdit ? index : 'null'})">
+                        <div class="form-group">
+                            <label for="skillName">Skill *</label>
+                            <input type="text" id="skillName" required placeholder="e.g., First Aid, Crowd Management" value="${currentSkill}">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" onclick="closeSkillModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas ${isEdit ? 'fa-save' : 'fa-plus'}"></i> ${isEdit ? 'Save Changes' : 'Add Skill'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function closeSkillModal() {
+    const modal = document.getElementById('skillModal');
+    if (modal) modal.remove();
+}
+
+async function submitSkill(event, index = null) {
+    event.preventDefault();
     
     const user = await Auth.getCurrentUser();
     if (!user) return;
+    
+    const skillName = document.getElementById('skillName').value;
     
     const profileResult = await StudentData.getProfile(user.id);
     if (!profileResult.success) return;
     
     const currentSkills = profileResult.data.skills || [];
-    const updatedSkills = [...currentSkills, skill];
+    let updatedSkills;
+    
+    if (index !== null) {
+        // Edit existing skill
+        updatedSkills = [...currentSkills];
+        updatedSkills[index] = skillName;
+    } else {
+        // Add new skill
+        updatedSkills = [...currentSkills, skillName];
+    }
     
     const result = await StudentData.updateProfile(user.id, { skills: updatedSkills });
     
     if (result.success) {
+        closeSkillModal();
         displaySkills(updatedSkills);
+    } else {
+        alert('Failed to save skill: ' + result.error);
     }
 }
 
@@ -465,9 +528,14 @@ function displayCertifications(certifications) {
                                     ${cert.credential_id ? `<p class="cert-credential">ID: ${cert.credential_id}</p>` : ''}
                                     ${cert.file_url ? `<a href="${cert.file_url}" target="_blank" class="cert-link"><i class="fas fa-file-pdf"></i> View Certificate</a>` : ''}
                                 </div>
-                                <button class="btn-icon-danger" onclick="removeCertification('${cert.id}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div class="cert-actions">
+                                    <button class="btn-icon-edit" onclick="editCertification('${cert.id}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon-danger" onclick="removeCertification('${cert.id}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -491,61 +559,86 @@ function getCategoryIcon(category) {
 }
 
 function addCertification() {
+    showCertificationModal();
+}
+
+async function editCertification(certId) {
+    const user = await Auth.getCurrentUser();
+    if (!user) return;
+    
+    // Load the certification data
+    const { data, error } = await supabase
+        .from('certifications')
+        .select('*')
+        .eq('id', certId)
+        .single();
+    
+    if (error) {
+        alert('Failed to load certification: ' + error.message);
+        return;
+    }
+    
+    showCertificationModal(data);
+}
+
+function showCertificationModal(certData = null) {
+    const isEdit = certData !== null;
     const modalHTML = `
         <div class="modal-overlay" id="certModal" onclick="closeCertModal()">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 600px;">
                 <div class="modal-header">
-                    <h2>Add Certification</h2>
+                    <h2>${isEdit ? 'Edit' : 'Add'} Certification</h2>
                     <button class="close-btn" onclick="closeCertModal()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form id="certForm" onsubmit="submitCertification(event)">
+                    <form id="certForm" onsubmit="submitCertification(event, ${isEdit ? `'${certData.id}'` : 'null'})">
                         <div class="form-group">
                             <label for="certName">Certification Name *</label>
-                            <input type="text" id="certName" required placeholder="e.g., CPR/AED Certification">
+                            <input type="text" id="certName" required placeholder="e.g., CPR/AED Certification" value="${isEdit ? certData.name : ''}">
                         </div>
                         <div class="form-group">
                             <label for="certCategory">Category *</label>
                             <select id="certCategory" required>
                                 <option value="">Select a category...</option>
-                                <option value="Fire">Fire</option>
-                                <option value="Medical">Medical</option>
-                                <option value="LEO">Law Enforcement</option>
-                                <option value="Military">Military</option>
-                                <option value="Security">Security</option>
+                                <option value="Fire" ${isEdit && certData.category === 'Fire' ? 'selected' : ''}>Fire</option>
+                                <option value="Medical" ${isEdit && certData.category === 'Medical' ? 'selected' : ''}>Medical</option>
+                                <option value="LEO" ${isEdit && certData.category === 'LEO' ? 'selected' : ''}>Law Enforcement</option>
+                                <option value="Military" ${isEdit && certData.category === 'Military' ? 'selected' : ''}>Military</option>
+                                <option value="Security" ${isEdit && certData.category === 'Security' ? 'selected' : ''}>Security</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label for="certIssuer">Issuing Organization *</label>
-                            <input type="text" id="certIssuer" required placeholder="e.g., American Red Cross">
+                            <input type="text" id="certIssuer" required placeholder="e.g., American Red Cross" value="${isEdit ? certData.issuing_organization : ''}">
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="certIssueDate">Issue Date *</label>
-                                <input type="date" id="certIssueDate" required>
+                                <input type="date" id="certIssueDate" required value="${isEdit ? certData.issue_date : ''}">
                             </div>
                             <div class="form-group">
                                 <label for="certExpiryDate">Expiry Date</label>
-                                <input type="date" id="certExpiryDate">
+                                <input type="date" id="certExpiryDate" value="${isEdit && certData.expiry_date ? certData.expiry_date : ''}">
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="certCredentialId">Credential ID</label>
-                            <input type="text" id="certCredentialId" placeholder="Optional">
+                            <input type="text" id="certCredentialId" placeholder="Optional" value="${isEdit && certData.credential_id ? certData.credential_id : ''}">
                         </div>
                         <div class="form-group">
                             <label for="certFile">Upload Certificate (PDF, JPG, PNG)</label>
                             <input type="file" id="certFile" accept=".pdf,.jpg,.jpeg,.png">
                             <small style="color: var(--text-secondary, #6c757d); display: block; margin-top: 0.5rem;">
-                                Max file size: 5MB
+                                ${isEdit ? 'Leave empty to keep existing file. ' : ''}Max file size: 5MB
                             </small>
+                            ${isEdit && certData.file_url ? `<p style="margin-top: 0.5rem;"><a href="${certData.file_url}" target="_blank">View current certificate</a></p>` : ''}
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeCertModal()">Cancel</button>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Add Certification
+                                <i class="fas ${isEdit ? 'fa-save' : 'fa-plus'}"></i> ${isEdit ? 'Save Changes' : 'Add Certification'}
                             </button>
                         </div>
                     </form>
@@ -562,7 +655,7 @@ function closeCertModal() {
     if (modal) modal.remove();
 }
 
-async function submitCertification(event) {
+async function submitCertification(event, certId = null) {
     event.preventDefault();
     
     const user = await Auth.getCurrentUser();
@@ -600,21 +693,37 @@ async function submitCertification(event) {
         fileUrl = urlData.publicUrl;
     }
     
-    const { data, error } = await supabase
-        .from('certifications')
-        .insert({
-            student_id: user.id,
-            name: certName,
-            category: category,
-            issuing_organization: issuer,
-            issue_date: issueDate,
-            expiry_date: expiryDate || null,
-            credential_id: credentialId || null,
-            file_url: fileUrl
-        });
+    const certData = {
+        name: certName,
+        category: category,
+        issuing_organization: issuer,
+        issue_date: issueDate,
+        expiry_date: expiryDate || null,
+        credential_id: credentialId || null
+    };
     
-    if (error) {
-        alert('Failed to add certification: ' + error.message);
+    // Only update file_url if a new file was uploaded
+    if (fileUrl) {
+        certData.file_url = fileUrl;
+    }
+    
+    let result;
+    if (certId) {
+        // Update existing certification
+        result = await supabase
+            .from('certifications')
+            .update(certData)
+            .eq('id', certId);
+    } else {
+        // Insert new certification
+        certData.student_id = user.id;
+        result = await supabase
+            .from('certifications')
+            .insert(certData);
+    }
+    
+    if (result.error) {
+        alert(`Failed to ${certId ? 'update' : 'add'} certification: ` + result.error.message);
     } else {
         closeCertModal();
         const certifications = await loadCertifications(user.id);
