@@ -3,6 +3,7 @@ let currentSection = 'home';
 let currentModule = null;
 let currentScenario = null;
 let canvasItems = [];
+let itemIdCounter = 0;
 // Assessment State
 let currentAssessment = null;
 let currentQuestionIndex = 0;
