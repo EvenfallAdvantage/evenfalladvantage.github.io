@@ -2196,7 +2196,21 @@ const scenarios = {
             'Set up first aid station with medical staff'
         ],
         requiredComponents: ['guard', 'checkpoint', 'metal-detector', 'barrier', 'command-post', 'first-aid'],
-        optionalComponents: ['camera', 'supervisor', 'emergency-exit', 'medic']
+        optionalComponents: ['camera', 'supervisor', 'emergency-exit', 'medic'],
+        mapLayout: {
+            type: 'concert',
+            locations: [
+                { type: 'stage', label: 'Main Stage', x: 50, y: 15, width: 30, height: 15 },
+                { type: 'entry', label: 'Main Entrance', x: 45, y: 85, width: 10, height: 8 },
+                { type: 'entry', label: 'Side Entrance', x: 10, y: 50, width: 8, height: 8 },
+                { type: 'entry', label: 'Side Entrance', x: 82, y: 50, width: 8, height: 8 },
+                { type: 'exit', label: 'Emergency Exit', x: 5, y: 20, width: 6, height: 6 },
+                { type: 'exit', label: 'Emergency Exit', x: 89, y: 20, width: 6, height: 6 },
+                { type: 'zone', label: 'General Admission', x: 20, y: 35, width: 60, height: 40 },
+                { type: 'zone', label: 'VIP Area', x: 35, y: 30, width: 30, height: 10 },
+                { type: 'parking', label: 'Parking Area', x: 10, y: 75, width: 80, height: 15 }
+            ]
+        }
     },
     'sports-event': {
         title: 'Stadium Sports Event',
@@ -2210,7 +2224,26 @@ const scenarios = {
             'Station medical staff throughout venue'
         ],
         requiredComponents: ['guard', 'supervisor', 'gate', 'command-post', 'emergency-exit', 'medic'],
-        optionalComponents: ['camera', 'checkpoint', 'barrier', 'usher', 'first-aid']
+        optionalComponents: ['camera', 'checkpoint', 'barrier', 'usher', 'first-aid'],
+        mapLayout: {
+            type: 'stadium',
+            locations: [
+                { type: 'field', label: 'Playing Field', x: 30, y: 30, width: 40, height: 30 },
+                { type: 'entry', label: 'North Gate', x: 45, y: 5, width: 10, height: 6 },
+                { type: 'entry', label: 'South Gate', x: 45, y: 89, width: 10, height: 6 },
+                { type: 'entry', label: 'East Gate', x: 85, y: 45, width: 10, height: 6 },
+                { type: 'entry', label: 'West Gate', x: 5, y: 45, width: 10, height: 6 },
+                { type: 'zone', label: 'Section A', x: 15, y: 15, width: 12, height: 20 },
+                { type: 'zone', label: 'Section B', x: 73, y: 15, width: 12, height: 20 },
+                { type: 'zone', label: 'Section C', x: 15, y: 65, width: 12, height: 20 },
+                { type: 'zone', label: 'Section D', x: 73, y: 65, width: 12, height: 20 },
+                { type: 'exit', label: 'Emergency Exit', x: 8, y: 25, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 87, y: 25, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 8, y: 70, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 87, y: 70, width: 5, height: 5 },
+                { type: 'concourse', label: 'Main Concourse', x: 10, y: 40, width: 80, height: 8 }
+            ]
+        }
     },
     'conference-center': {
         title: 'Conference/Convention Security',
@@ -2224,7 +2257,23 @@ const scenarios = {
             'Set up first aid station'
         ],
         requiredComponents: ['checkpoint', 'guard', 'command-post', 'camera', 'usher', 'first-aid'],
-        optionalComponents: ['supervisor', 'gate', 'barrier', 'medic']
+        optionalComponents: ['supervisor', 'gate', 'barrier', 'medic'],
+        mapLayout: {
+            type: 'conference',
+            locations: [
+                { type: 'entry', label: 'Main Lobby', x: 45, y: 85, width: 10, height: 10 },
+                { type: 'zone', label: 'Main Hall', x: 20, y: 30, width: 60, height: 30 },
+                { type: 'zone', label: 'VIP Lounge', x: 25, y: 15, width: 20, height: 12 },
+                { type: 'zone', label: 'Breakout Room 1', x: 55, y: 15, width: 20, height: 12 },
+                { type: 'zone', label: 'Breakout Room 2', x: 10, y: 65, width: 15, height: 12 },
+                { type: 'zone', label: 'Breakout Room 3', x: 75, y: 65, width: 15, height: 12 },
+                { type: 'zone', label: 'Exhibition Area', x: 30, y: 65, width: 40, height: 15 },
+                { type: 'entry', label: 'Side Entrance', x: 5, y: 45, width: 8, height: 8 },
+                { type: 'entry', label: 'Side Entrance', x: 87, y: 45, width: 8, height: 8 },
+                { type: 'exit', label: 'Emergency Exit', x: 10, y: 20, width: 6, height: 6 },
+                { type: 'exit', label: 'Emergency Exit', x: 84, y: 20, width: 6, height: 6 }
+            ]
+        }
     },
     'festival-grounds': {
         title: 'Multi-Day Festival',
@@ -2240,7 +2289,25 @@ const scenarios = {
             'Mark all emergency exits clearly'
         ],
         requiredComponents: ['guard', 'checkpoint', 'metal-detector', 'barrier', 'command-post', 'supervisor', 'first-aid', 'emergency-exit'],
-        optionalComponents: ['camera', 'medic', 'usher', 'gate']
+        optionalComponents: ['camera', 'medic', 'usher', 'gate'],
+        mapLayout: {
+            type: 'festival',
+            locations: [
+                { type: 'stage', label: 'Main Stage', x: 50, y: 15, width: 25, height: 12 },
+                { type: 'stage', label: 'Secondary Stage', x: 20, y: 40, width: 20, height: 10 },
+                { type: 'stage', label: 'Acoustic Stage', x: 65, y: 40, width: 20, height: 10 },
+                { type: 'entry', label: 'Main Gate', x: 45, y: 88, width: 10, height: 8 },
+                { type: 'entry', label: 'North Gate', x: 20, y: 5, width: 8, height: 6 },
+                { type: 'entry', label: 'South Gate', x: 72, y: 5, width: 8, height: 6 },
+                { type: 'zone', label: 'Food Court', x: 10, y: 60, width: 30, height: 20 },
+                { type: 'zone', label: 'Vendor Area', x: 60, y: 60, width: 30, height: 20 },
+                { type: 'zone', label: 'Camping Area', x: 5, y: 15, width: 15, height: 20 },
+                { type: 'zone', label: 'Camping Area', x: 80, y: 15, width: 15, height: 20 },
+                { type: 'exit', label: 'Emergency Exit', x: 5, y: 45, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 90, y: 45, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 45, y: 5, width: 5, height: 5 }
+            ]
+        }
     }
 };
 
@@ -2256,6 +2323,7 @@ function loadScenario(scenarioId) {
     const scenario = scenarios[scenarioId];
     
     clearCanvas();
+    generateEventMap(scenario);
     document.getElementById('scenarioTitle').textContent = scenario.title;
     
     let descriptionHTML = `
@@ -2270,10 +2338,38 @@ function loadScenario(scenarioId) {
     document.getElementById('scenarioDescription').innerHTML = descriptionHTML;
 }
 
+function generateEventMap(scenario) {
+    const canvas = document.getElementById('canvas');
+    const mapLayout = scenario.mapLayout;
+    
+    let mapHTML = '<div class="event-map">';
+    
+    // Generate map locations based on scenario type
+    mapLayout.locations.forEach((location, index) => {
+        const locationClass = `map-location map-${location.type}`;
+        const style = `left: ${location.x}%; top: ${location.y}%; width: ${location.width}%; height: ${location.height}%;`;
+        
+        mapHTML += `
+            <div class="${locationClass}" style="${style}" data-location-id="${index}">
+                <span class="location-label">${location.label}</span>
+            </div>
+        `;
+    });
+    
+    mapHTML += '</div>';
+    canvas.innerHTML = mapHTML;
+    
+    // Make canvas droppable
+    canvas.addEventListener('dragover', handleDragOver);
+    canvas.addEventListener('drop', handleDrop);
+}
+
 function clearCanvas() {
     canvasItems = [];
     const canvas = document.getElementById('canvas');
     canvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-hand-pointer"></i><p>Drag security resources to the event layout to create your security plan</p></div>';
+    canvas.removeEventListener('dragover', handleDragOver);
+    canvas.removeEventListener('drop', handleDrop);
 }
 
 function validateSolution() {

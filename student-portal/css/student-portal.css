@@ -1124,9 +1124,9 @@ body {
 .scenario-description {
     margin-top: 1.5rem;
     padding: 1.5rem;
-    background: var(--background);
+    background: var(--surface);
     border-radius: 0.5rem;
-    border-left: 4px solid var(--primary-color);
+    border-left: 4px solid var(--secondary-color);
 }
 
 .scenario-description h4 {
@@ -1141,6 +1141,78 @@ body {
 
 .scenario-description li {
     margin-bottom: 0.5rem;
+}
+
+/* Event Map Styles */
+.event-map {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    min-height: 500px;
+}
+
+.map-location {
+    position: absolute;
+    border: 2px solid;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+.map-location:hover {
+    opacity: 1;
+    transform: scale(1.02);
+    z-index: 10;
+}
+
+.location-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 0.25rem;
+    color: #333;
+    text-shadow: 0 0 3px white;
+}
+
+/* Map location types */
+.map-stage {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: #e74c3c;
+}
+
+.map-entry {
+    background: rgba(52, 152, 219, 0.2);
+    border-color: #3498db;
+}
+
+.map-exit {
+    background: rgba(46, 204, 113, 0.2);
+    border-color: #2ecc71;
+}
+
+.map-zone {
+    background: rgba(155, 89, 182, 0.15);
+    border-color: #9b59b6;
+    border-style: dashed;
+}
+
+.map-field {
+    background: rgba(39, 174, 96, 0.2);
+    border-color: #27ae60;
+}
+
+.map-parking {
+    background: rgba(149, 165, 166, 0.2);
+    border-color: #95a5a6;
+    border-style: dashed;
+}
+
+.map-concourse {
+    background: rgba(241, 196, 15, 0.2);
+    border-color: #f1c40f;
 }
 
 /* Feedback Panel */
