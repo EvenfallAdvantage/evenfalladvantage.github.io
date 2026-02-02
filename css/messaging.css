@@ -47,7 +47,7 @@
         display: flex;
         flex-direction: column;
         background: white;
-        border-top: 3px solid var(--secondary-color, #e74c3c);
+        border-top: 3px solid var(--secondary-color, #d59b3c);
         border-bottom: 1px solid var(--border-color, #dee2e6);
         min-height: 400px;
         max-height: 500px;
@@ -110,7 +110,7 @@
 
 .conversation-item.active {
     background: #e3f2fd;
-    border-left: 4px solid var(--secondary-color, #e74c3c);
+    border-left: 4px solid var(--secondary-color, #d59b3c);
 }
 
 .conversation-item.unread {
@@ -161,7 +161,7 @@
 }
 
 .unread-badge {
-    background: var(--secondary-color, #e74c3c);
+    background: var(--secondary-color, #d59b3c);
     color: white;
     padding: 0.2rem 0.6rem;
     border-radius: 12px;
@@ -264,7 +264,7 @@
 }
 
 .message-bubble.sent .bubble-content {
-    background: var(--secondary-color, #e74c3c);
+    background: var(--secondary-color, #d59b3c);
     color: white;
     border-bottom-right-radius: 4px;
 }

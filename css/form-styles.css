@@ -219,7 +219,7 @@
 }
 
 .submit-button:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
     color: white;
     transform: translateY(-3px);
     box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
@@ -243,11 +243,11 @@
 .form-group.error input,
 .form-group.error select,
 .form-group.error textarea {
-    border-color: #e74c3c;
+    border-color: #d59b3c;
 }
 
 .error-message {
-    color: #e74c3c;
+    color: #d59b3c;
     font-size: 1.3rem;
     margin-top: 0.5rem;
 }

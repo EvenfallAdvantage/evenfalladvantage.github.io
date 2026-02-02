@@ -1,11 +1,11 @@
 /* Admin Dashboard Styles */
 :root {
     --admin-primary: #162029;
-    --admin-secondary: #e74c3c;
+    --admin-secondary: #d59b3c;
     --admin-accent: #3498db;
     --admin-success: #28a745;
     --admin-warning: #f39c12;
-    --admin-danger: #e74c3c;
+    --admin-danger: #d59b3c;
     --admin-bg: #f8f9fa;
     --admin-sidebar: #1a252f;
     --admin-text: #212529;

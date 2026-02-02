@@ -674,7 +674,7 @@ section:nth-child(even) {
 }
 
 .badge.service-card:hover .badge-icon i {
-    color: #e74c3c;
+    color: #d59b3c;
     transform: scale(1.1);
 }
 
@@ -703,7 +703,7 @@ section:nth-child(even) {
 }
 
 .badge.service-card:hover .badge-title {
-    color: #e74c3c;
+    color: #d59b3c;
 }
 
 .badge .expanded-content {
@@ -1400,7 +1400,7 @@ section:nth-child(even) {
 }
 
 .login-button:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
     transform: translateY(-3px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1554,7 +1554,7 @@ section:nth-child(even) {
 }
 
 .student-button:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
     color: white !important;
     transform: translateY(-3px);
     box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
@@ -1944,11 +1944,11 @@ footer {
 }
 
 .form-group.error input, .form-group.error select {
-    border-color: #e74c3c;
+    border-color: #d59b3c;
 }
 
 .error-message {
-    color: #e74c3c;
+    color: #d59b3c;
     font-size: 1.2rem;
     margin-top: 0.5rem;
 }
@@ -2023,7 +2023,7 @@ footer {
 }
 
 .next-button:hover, .submit-button:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
 }
 
 .terms {
@@ -2154,7 +2154,7 @@ footer {
 }
 
 .return-login:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
 }
 
 .login-redirect {
@@ -2602,7 +2602,7 @@ footer {
 }
 
 .action-button.delete:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
 }
 
 /* Documents Section */
@@ -2635,7 +2635,7 @@ footer {
 }
 
 .upload-button:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
 }
 
 .document-categories {
@@ -2771,7 +2771,7 @@ footer {
 }
 
 .submit-upload:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
 }
 
 .document-info {
@@ -3099,7 +3099,7 @@ footer {
 }
 
 .send-message:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
 }
 
 /* Profile Section */
@@ -3163,7 +3163,7 @@ footer {
 }
 
 .change-avatar:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
 }
 
 .profile-info h4 {
@@ -3271,7 +3271,7 @@ footer {
 }
 
 .save-button:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
 }
 
 /* Responsive Dashboard */
@@ -3321,7 +3321,7 @@ footer {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #e74c3c !important;
+    color: #d59b3c !important;
 }
 
 .logout-link:hover {
@@ -3381,7 +3381,7 @@ footer {
 
 /* ElevenLabs AI Agent Custom Styling */
 elevenlabs-convai::part(button) {
-    background-color: #e74c3c !important;
+    background-color: #d59b3c !important;
 }
 
 elevenlabs-convai::part(button):hover {
