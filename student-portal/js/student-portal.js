@@ -1,9 +1,11 @@
 // Global State
+console.log('🚀 student-portal.js is loading...');
 let currentSection = 'home';
 let currentModule = null;
 let currentScenario = null;
 let canvasItems = [];
 let itemIdCounter = 0;
+console.log('✅ Global variables initialized');
 // Assessment State
 let currentAssessment = null;
 let currentQuestionIndex = 0;
@@ -646,16 +648,20 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeDragAndDrop();
     
     // Initialize scenario selector
+    console.log('🎯 Initializing scenario selector...');
     const scenarioSelect = document.getElementById('scenarioSelect');
+    console.log('Scenario select element:', scenarioSelect);
     if (scenarioSelect) {
-        console.log('Scenario select found, adding event listener');
+        console.log('✅ Scenario select found, adding event listener');
         scenarioSelect.addEventListener('change', (e) => {
-            console.log('Scenario dropdown changed to:', e.target.value);
+            console.log('🔄 Scenario dropdown changed to:', e.target.value);
             loadScenario(e.target.value);
         });
     } else {
-        console.warn('Scenario select element not found');
+        console.error('❌ Scenario select element not found!');
     }
+    
+    console.log('✅ DOMContentLoaded initialization complete');
 });
 
 // Update assessment availability based on completed modules
