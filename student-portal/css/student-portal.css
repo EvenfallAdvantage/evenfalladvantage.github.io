@@ -51,7 +51,7 @@ body > nav:first-child {
     --primary-color: #162029;  /* Dark blue-gray */
     --secondary-color: #e74c3c;  /* Red accent */
     --accent-color: #3498db;  /* Blue accent */
-    --orange: #ff6b35;  /* Evenfall Advantage Orange */
+    --orange: #d59b3c;  /* Evenfall Advantage Orange */
     --light: #f8f9fa;
     --dark: #212529;
     --gray: #6c757d;
@@ -641,7 +641,7 @@ body {
 
 .progress-bar-container .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--orange), #ff8c5a);
+    background: linear-gradient(90deg, var(--orange), #e0a84d);
     transition: width 0.3s ease;
 }
 
@@ -1546,7 +1546,7 @@ body {
 }
 
 .stat-card {
-    background: linear-gradient(135deg, var(--orange), #ff8c5a);
+    background: linear-gradient(135deg, var(--orange), #e0a84d);
     color: white;
     padding: 2rem;
     border-radius: 1rem;
@@ -1621,7 +1621,7 @@ body {
 
 .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--orange), #ff8c5a);
+    background: linear-gradient(90deg, var(--orange), #e0a84d);
     transition: width 0.5s ease;
 }
 
@@ -2371,8 +2371,8 @@ body {
 }
 
 .assessment-history-actions .btn-secondary:hover {
-    background: #ff8c5a;
-    border-color: #ff8c5a;
+    background: #e0a84d;
+    border-color: #e0a84d;
     transform: translateY(-2px);
 }
 
