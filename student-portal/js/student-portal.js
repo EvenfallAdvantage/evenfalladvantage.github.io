@@ -2491,6 +2491,7 @@ function addCanvasItem(type, x, y) {
     item.className = 'canvas-item';
     item.style.left = `${x}px`;
     item.style.top = `${y}px`;
+    item.style.position = 'absolute';
     
     const iconMap = {
         'guard': 'fa-user-shield',
@@ -2536,7 +2537,13 @@ function addCanvasItem(type, x, y) {
     // Make item draggable within canvas
     item.addEventListener('mousedown', startDragging);
 
-    canvas.appendChild(item);
+    // Append to event map if it exists, otherwise to canvas
+    const eventMap = canvas.querySelector('.event-map');
+    if (eventMap) {
+        eventMap.appendChild(item);
+    } else {
+        canvas.appendChild(item);
+    }
     
     canvasItems.push({ id: itemId, type, x, y });
 }
@@ -2547,10 +2554,13 @@ function removeCanvasItem(itemId) {
         item.remove();
         canvasItems = canvasItems.filter(i => i.id !== itemId);
         
-        // Add placeholder back if canvas is empty
+        // Don't add placeholder back if event map exists
         if (canvasItems.length === 0) {
             const canvas = document.getElementById('canvas');
-            canvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-hand-pointer"></i><p>Drag components from the toolbox to build your solution</p></div>';
+            const eventMap = canvas.querySelector('.event-map');
+            if (!eventMap) {
+                canvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-hand-pointer"></i><p>Drag components from the toolbox to build your solution</p></div>';
+            }
         }
     }
 }
