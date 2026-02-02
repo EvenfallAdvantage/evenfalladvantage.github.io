@@ -306,8 +306,8 @@
 
 .message-input-container input:focus {
     outline: none;
-    border-color: var(--secondary-color, #e74c3c);
-    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+    border-color: var(--secondary-color, #d59b3c);
+    box-shadow: 0 0 0 3px rgba(213, 155, 60, 0.1);
 }
 
 .message-input-container .send-btn {
@@ -325,7 +325,7 @@
 
 .message-input-container .send-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    box-shadow: 0 4px 12px rgba(213, 155, 60, 0.3);
 }
 
 .message-input-container .send-btn:active {

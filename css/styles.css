@@ -390,7 +390,7 @@ nav, .navbar {
 
 .header-badge:hover, .header-badge:focus, .header-badge.active {
     transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
     color: white !important;
 }
 
@@ -401,9 +401,9 @@ nav, .navbar {
 }
 
 @keyframes border-pulse {
-    0% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.5); }
-    50% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 20px rgba(231, 76, 60, 0.8); }
-    100% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.5); }
+    0% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.5); }
+    50% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 20px rgba(213, 155, 60, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.5); }
 }
 
 /* Section Styles */
@@ -457,10 +457,10 @@ section:nth-child(even) {
 }
 
 .estimate-button:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
     color: white;
     transform: translateY(-3px);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
 }
 
 .button-container {
@@ -506,20 +506,20 @@ section:nth-child(even) {
 
 .service-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
 .service-card:hover .service-icon {
-    box-shadow: 0 0 12px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 0 12px rgba(213, 155, 60, 0.7);
     transform: scale(1.1);
     animation: icon-pulse 2s infinite;
 }
 
 @keyframes icon-pulse {
-    0% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.5); }
-    50% { box-shadow: 0 0 18px rgba(231, 76, 60, 0.8); }
-    100% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.5); }
+    0% { box-shadow: 0 0 12px rgba(213, 155, 60, 0.5); }
+    50% { box-shadow: 0 0 18px rgba(213, 155, 60, 0.8); }
+    100% { box-shadow: 0 0 12px rgba(213, 155, 60, 0.5); }
 }
 
 .card-image-container {
@@ -578,7 +578,7 @@ section:nth-child(even) {
 .expanded-content p[align="right"] {
     margin-top: 1.5rem;
     padding-top: 0.5rem;
-    border-top: 1px solid rgba(231, 76, 60, 0.2);
+    border-top: 1px solid rgba(213, 155, 60, 0.2);
 }
 
 .expanded-content p:last-child {
@@ -588,7 +588,7 @@ section:nth-child(even) {
 .service-icon {
     font-size: 2.4rem;
     color: var(--secondary);
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -609,7 +609,7 @@ section:nth-child(even) {
 }
 
 .service-card:hover h4 {
-    color: #e74c3c;
+    color: #d59b3c;
 }
 
 .service-card p {
@@ -662,7 +662,7 @@ section:nth-child(even) {
 
 .badge.service-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
@@ -829,12 +829,12 @@ section:nth-child(even) {
 
 .division-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
 #pathfinder:hover, #vanguard:hover {
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
@@ -862,43 +862,43 @@ section:nth-child(even) {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
     border-radius: 50%;
     transition: transform 0.3s ease;
 }
 
 .division-card:hover .division-icon i {
-    color: #e74c3c;
+    color: #d59b3c;
     transform: scale(1.1);
 }
 
 .division-card:hover .division-icon {
-    box-shadow: 0 0 12px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 0 12px rgba(213, 155, 60, 0.7);
     animation: icon-pulse 2s infinite;
 }
 
 #pathfinder .division-icon {
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
 }
 
 #pathfinder .division-icon i {
-    color: #e74c3c;
+    color: #d59b3c;
 }
 
 #pathfinder:hover .division-icon i {
-    color: #e74c3c;
+    color: #d59b3c;
 }
 
 #vanguard .division-icon {
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
 }
 
 #vanguard .division-icon i {
-    color: #e74c3c;
+    color: #d59b3c;
 }
 
 #vanguard:hover .division-icon i {
-    color: #e74c3c;
+    color: #d59b3c;
 }
 
 .division-header h4 {
@@ -1278,10 +1278,10 @@ section:nth-child(even) {
 }
 
 .cta-button:hover {
-    background-color: #e74c3c;
+    background-color: #d59b3c;
     color: white;
     transform: translateY(-3px);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
 }
 
 /* Login Page Styles */
@@ -1480,7 +1480,7 @@ section:nth-child(even) {
 
 .portal-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15), 0 0 15px rgba(231, 76, 60, 0.3);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15), 0 0 15px rgba(213, 155, 60, 0.3);
 }
 
 .portal-icon {
@@ -2340,7 +2340,7 @@ footer {
 .card-icon {
     width: 60px;
     height: 60px;
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2412,7 +2412,7 @@ footer {
 .activity-icon {
     width: 40px;
     height: 40px;
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
     border-radius: 50%;
     display: flex;
     align-items: center;

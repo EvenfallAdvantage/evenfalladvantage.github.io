@@ -364,7 +364,7 @@ body {
 
 .hero-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
@@ -394,15 +394,15 @@ body {
 }
 
 @keyframes border-pulse {
-    0% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.5); }
-    50% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 20px rgba(231, 76, 60, 0.8); }
-    100% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.5); }
+    0% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.5); }
+    50% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 20px rgba(213, 155, 60, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.5); }
 }
 
 @keyframes icon-pulse {
-    0% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.5); }
-    50% { box-shadow: 0 0 18px rgba(231, 76, 60, 0.8); }
-    100% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.5); }
+    0% { box-shadow: 0 0 12px rgba(213, 155, 60, 0.5); }
+    50% { box-shadow: 0 0 18px rgba(213, 155, 60, 0.8); }
+    100% { box-shadow: 0 0 12px rgba(213, 155, 60, 0.5); }
 }
 
 /* Buttons */
@@ -1958,7 +1958,7 @@ body {
 .message-modal textarea:focus {
     outline: none;
     border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+    box-shadow: 0 0 0 3px rgba(213, 155, 60, 0.1);
 }
 
 .message-modal textarea {

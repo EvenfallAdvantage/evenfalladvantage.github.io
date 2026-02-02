@@ -150,7 +150,7 @@
 .form-group textarea:focus {
     border-color: var(--secondary);
     outline: none;
-    box-shadow: 0 0 10px rgba(231, 76, 60, 0.2);
+    box-shadow: 0 0 10px rgba(213, 155, 60, 0.2);
 }
 
 .form-group textarea {
