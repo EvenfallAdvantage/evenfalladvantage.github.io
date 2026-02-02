@@ -234,9 +234,14 @@ function displayExperience(experiences) {
                         ${exp.end_date ? new Date(exp.end_date).toLocaleDateString() : 'Present'}
                     </p>
                 </div>
-                <button onclick="removeExperience('${exp.id}')">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <div class="experience-actions">
+                    <button onclick="editExperience('${exp.id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="removeExperience('${exp.id}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
             ${exp.description ? `<p class="experience-description">${exp.description}</p>` : ''}
         </div>
@@ -244,50 +249,73 @@ function displayExperience(experiences) {
 }
 
 function addExperience() {
-    // Show modal form
+    showExperienceModal();
+}
+
+async function editExperience(expId) {
+    const user = await Auth.getCurrentUser();
+    if (!user) return;
+    
+    // Load the experience data
+    const { data, error } = await supabase
+        .from('work_experience')
+        .select('*')
+        .eq('id', expId)
+        .single();
+    
+    if (error) {
+        alert('Failed to load experience: ' + error.message);
+        return;
+    }
+    
+    showExperienceModal(data);
+}
+
+function showExperienceModal(experienceData = null) {
+    const isEdit = experienceData !== null;
     const modalHTML = `
         <div class="modal-overlay" id="experienceModal" onclick="closeExperienceModal()">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 600px;">
                 <div class="modal-header">
-                    <h2>Add Work Experience</h2>
+                    <h2>${isEdit ? 'Edit' : 'Add'} Work Experience</h2>
                     <button class="close-btn" onclick="closeExperienceModal()">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 <div class="modal-body">
-                    <form id="experienceForm" onsubmit="submitExperience(event)">
+                    <form id="experienceForm" onsubmit="submitExperience(event, ${isEdit ? `'${experienceData.id}'` : 'null'})">
                         <div class="form-group">
                             <label for="jobTitle">Job Title *</label>
-                            <input type="text" id="jobTitle" required placeholder="e.g., Security Officer">
+                            <input type="text" id="jobTitle" required placeholder="e.g., Security Officer" value="${isEdit ? experienceData.job_title : ''}">
                         </div>
                         <div class="form-group">
                             <label for="companyName">Company Name *</label>
-                            <input type="text" id="companyName" required placeholder="e.g., ABC Security Services">
+                            <input type="text" id="companyName" required placeholder="e.g., ABC Security Services" value="${isEdit ? experienceData.company_name : ''}">
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="startDate">Start Date *</label>
-                                <input type="date" id="startDate" required>
+                                <input type="date" id="startDate" required value="${isEdit ? experienceData.start_date : ''}">
                             </div>
                             <div class="form-group">
                                 <label for="endDate">End Date</label>
-                                <input type="date" id="endDate">
+                                <input type="date" id="endDate" value="${isEdit && experienceData.end_date ? experienceData.end_date : ''}" ${isEdit && !experienceData.end_date ? 'disabled' : ''}>
                             </div>
                         </div>
                         <div class="form-group">
                             <label>
-                                <input type="checkbox" id="currentJob" onchange="toggleEndDate()">
+                                <input type="checkbox" id="currentJob" onchange="toggleEndDate()" ${isEdit && !experienceData.end_date ? 'checked' : ''}>
                                 I currently work here
                             </label>
                         </div>
                         <div class="form-group">
                             <label for="expDescription">Description</label>
-                            <textarea id="expDescription" rows="4" placeholder="Describe your responsibilities and achievements..."></textarea>
+                            <textarea id="expDescription" rows="4" placeholder="Describe your responsibilities and achievements...">${isEdit && experienceData.description ? experienceData.description : ''}</textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" onclick="closeExperienceModal()">Cancel</button>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> Add Experience
+                                <i class="fas ${isEdit ? 'fa-save' : 'fa-plus'}"></i> ${isEdit ? 'Save Changes' : 'Add Experience'}
                             </button>
                         </div>
                     </form>
@@ -316,7 +344,7 @@ function toggleEndDate() {
     }
 }
 
-async function submitExperience(event) {
+async function submitExperience(event, expId = null) {
     event.preventDefault();
     
     const user = await Auth.getCurrentUser();
@@ -328,19 +356,31 @@ async function submitExperience(event) {
     const endDate = document.getElementById('endDate').value;
     const description = document.getElementById('expDescription').value;
     
-    const { data, error } = await supabase
-        .from('work_experience')
-        .insert({
-            student_id: user.id,
-            job_title: jobTitle,
-            company_name: companyName,
-            start_date: startDate,
-            end_date: endDate || null,
-            description: description || null
-        });
+    const experienceData = {
+        job_title: jobTitle,
+        company_name: companyName,
+        start_date: startDate,
+        end_date: endDate || null,
+        description: description || null
+    };
     
-    if (error) {
-        alert('Failed to add experience: ' + error.message);
+    let result;
+    if (expId) {
+        // Update existing experience
+        result = await supabase
+            .from('work_experience')
+            .update(experienceData)
+            .eq('id', expId);
+    } else {
+        // Insert new experience
+        experienceData.student_id = user.id;
+        result = await supabase
+            .from('work_experience')
+            .insert(experienceData);
+    }
+    
+    if (result.error) {
+        alert(`Failed to ${expId ? 'update' : 'add'} experience: ` + result.error.message);
     } else {
         closeExperienceModal();
         const experiences = await loadWorkExperience(user.id);

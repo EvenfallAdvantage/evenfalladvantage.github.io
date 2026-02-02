@@ -263,12 +263,35 @@
     color: var(--primary-color);
 }
 
-.experience-header button {
+.experience-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.experience-actions button {
     background: none;
     border: none;
-    color: var(--danger-color);
     cursor: pointer;
     font-size: 1.2rem;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease;
+}
+
+.experience-actions button:first-child {
+    color: var(--secondary-color);
+}
+
+.experience-actions button:first-child:hover {
+    background-color: rgba(213, 155, 60, 0.1);
+}
+
+.experience-actions button:last-child {
+    color: var(--danger-color);
+}
+
+.experience-actions button:last-child:hover {
+    background-color: rgba(231, 76, 60, 0.1);
 }
 
 .experience-company {
