@@ -2313,6 +2313,8 @@ const scenarios = {
 };
 
 function loadScenario(scenarioId) {
+    console.log('loadScenario called with:', scenarioId);
+    
     if (!scenarioId) {
         clearCanvas();
         document.getElementById('scenarioTitle').textContent = 'Select a scenario to begin';
@@ -2322,12 +2324,15 @@ function loadScenario(scenarioId) {
 
     currentScenario = scenarioId;
     const scenario = scenarios[scenarioId];
+    console.log('Scenario loaded:', scenario);
     
     // Clear any placed items but don't reset canvas HTML yet
     canvasItems = [];
     
     // Generate the event map
+    console.log('About to generate event map...');
     generateEventMap(scenario);
+    console.log('Event map generation completed');
     document.getElementById('scenarioTitle').textContent = scenario.title;
     
     let descriptionHTML = `
@@ -2343,8 +2348,17 @@ function loadScenario(scenarioId) {
 }
 
 function generateEventMap(scenario) {
+    console.log('generateEventMap called');
     const canvas = document.getElementById('canvas');
+    console.log('Canvas element:', canvas);
+    
     const mapLayout = scenario.mapLayout;
+    console.log('Map layout:', mapLayout);
+    
+    if (!mapLayout || !mapLayout.locations) {
+        console.error('No map layout or locations found in scenario!');
+        return;
+    }
     
     let mapHTML = '<div class="event-map">';
     
@@ -2361,11 +2375,16 @@ function generateEventMap(scenario) {
     });
     
     mapHTML += '</div>';
+    console.log('Generated map HTML length:', mapHTML.length);
+    console.log('Map HTML preview:', mapHTML.substring(0, 200));
+    
     canvas.innerHTML = mapHTML;
+    console.log('Canvas innerHTML set, new content:', canvas.innerHTML.substring(0, 200));
     
     // Make canvas droppable
     canvas.addEventListener('dragover', handleDragOver);
     canvas.addEventListener('drop', handleDrop);
+    console.log('Event listeners added to canvas');
 }
 
 function clearCanvas() {
