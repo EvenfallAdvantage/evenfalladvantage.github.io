@@ -2384,6 +2384,27 @@ body {
     margin-bottom: 2rem;
 }
 
+.courses-container .no-courses-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    color: #666;
+}
+
+.courses-container .no-courses-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+    color: #ccc;
+}
+
+.courses-container .no-courses-message p {
+    text-align: center;
+    margin: 0;
+}
+
 .course-card-inline {
     background: white;
     border-radius: 1rem;
