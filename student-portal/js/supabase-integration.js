@@ -151,6 +151,38 @@ async function saveProgressToDatabase(studentId) {
             }
         }
         
+        // Save scenario results (de-escalation personal bests)
+        if (progressData.scenarioResults && Object.keys(progressData.scenarioResults).length > 0) {
+            for (const [scenarioId, result] of Object.entries(progressData.scenarioResults)) {
+                try {
+                    // Check if a result already exists for this scenario
+                    const { data: existingResults } = await supabase
+                        .from('scenario_results')
+                        .select('*')
+                        .eq('student_id', studentId)
+                        .eq('scenario_id', scenarioId)
+                        .order('steps', { ascending: true })
+                        .limit(1);
+                    
+                    // Only save if this is a new personal best (fewer steps) or first attempt
+                    if (!existingResults || existingResults.length === 0 || result.steps < existingResults[0].steps) {
+                        await supabase
+                            .from('scenario_results')
+                            .insert({
+                                student_id: studentId,
+                                scenario_id: scenarioId,
+                                steps: result.steps,
+                                success: result.success,
+                                completed_at: result.date
+                            });
+                        console.log(`✅ Saved scenario result: ${scenarioId} (${result.steps} steps)`);
+                    }
+                } catch (err) {
+                    console.warn(`Failed to save scenario ${scenarioId}:`, err.message);
+                }
+            }
+        }
+        
         console.log('✅ Database sync complete!');
         
         // Show success notification
@@ -293,6 +325,32 @@ async function loadProgressFromDatabase() {
             
             localProgress.assessmentResults = validAttempts;
             console.log('Loaded assessment results:', validAttempts.length, '(deduplicated from', assessmentResults.length, 'total)');
+        }
+        
+        // Get scenario results from database
+        const { data: scenarioResults, error: scenarioError } = await supabase
+            .from('scenario_results')
+            .select('*')
+            .eq('student_id', user.id)
+            .order('completed_at', { ascending: false });
+        
+        if (!scenarioError && scenarioResults && scenarioResults.length > 0) {
+            console.log('Raw scenario results from DB:', scenarioResults.length);
+            
+            // Keep only the best (lowest steps) for each scenario
+            const bestScenarios = {};
+            scenarioResults.forEach(result => {
+                if (!bestScenarios[result.scenario_id] || result.steps < bestScenarios[result.scenario_id].steps) {
+                    bestScenarios[result.scenario_id] = {
+                        steps: result.steps,
+                        date: result.completed_at,
+                        success: result.success
+                    };
+                }
+            });
+            
+            localProgress.scenarioResults = bestScenarios;
+            console.log('Loaded scenario results:', Object.keys(bestScenarios).length);
         }
         
         // Save to localStorage (as cache)
