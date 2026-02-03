@@ -5532,21 +5532,24 @@ async function updateModuleProgressDisplay() {
         // Get modules from database, sorted by display_order
         const { data: modules, error } = await supabase
             .from('training_modules')
-            .select('id, module_code, module_name, display_order, course_id')
+            .select('id, module_code, module_name, display_order, default_course_id')
             .order('display_order', { ascending: true });
         
         if (error) throw error;
         
         if (modules && modules.length > 0) {
-            // Map course IDs to course titles
-            const courseMap = {
-                1: 'Unarmed Guard Core',
-                2: 'Systema Scout'
+            // Determine course based on module_code prefix
+            const getCourseTitle = (moduleCode) => {
+                if (moduleCode.startsWith('systema-scout')) {
+                    return 'Systema Scout';
+                } else {
+                    return 'Unarmed Guard Core';
+                }
             };
             
             // Group modules by course
             const groupedModules = modules.reduce((acc, module) => {
-                const courseTitle = courseMap[module.course_id] || 'Other';
+                const courseTitle = getCourseTitle(module.module_code);
                 if (!acc[courseTitle]) {
                     acc[courseTitle] = [];
                 }
