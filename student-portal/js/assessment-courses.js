@@ -70,7 +70,7 @@ async function loadAssessmentCourses() {
     
     container.innerHTML = enrolledCourses.map(course => {
         const progress = progressMap[course.id] || { completed: 0, total: 0 };
-        const progressPercent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+        const progressPercent = progress.total > 0 ? Math.min(100, Math.round((progress.completed / progress.total) * 100)) : 0;
         
         return `
         <div class="course-card-inline enrolled" onclick="selectAssessmentCourse('${course.id}')">
@@ -91,10 +91,10 @@ async function loadAssessmentCourses() {
                         <span style="font-size: 0.9rem; color: var(--text-secondary);">
                             <i class="fas fa-trophy"></i> Assessments: ${progress.completed}/${progress.total}
                         </span>
-                        <span style="font-size: 0.9rem; font-weight: 600; color: var(--primary);">${progressPercent}%</span>
+                        <span style="font-size: 0.9rem; font-weight: 600; color: #D4AF37;">${progressPercent}%</span>
                     </div>
                     <div class="progress-bar" style="background: var(--bg-secondary); border-radius: 10px; height: 8px; overflow: hidden;">
-                        <div class="progress-fill" style="background: var(--primary); height: 100%; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                        <div class="progress-fill" style="background: linear-gradient(90deg, #D4AF37, #FFD700); height: 100%; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
                     </div>
                 </div>
                 ` : `
