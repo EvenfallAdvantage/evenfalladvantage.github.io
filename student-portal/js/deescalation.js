@@ -399,6 +399,35 @@ function showResults(step) {
         icon.innerHTML = '<i class="fas fa-check-circle"></i>';
         title.textContent = 'De-escalation Successful!';
         forceAvoided.textContent = '100%';
+        
+        // Save completion with step count
+        const scenarioId = Object.keys(deescalationScenarios).find(id => deescalationScenarios[id] === deescalationScenario);
+        if (scenarioId && window.progressData) {
+            // Initialize scenarioResults if it doesn't exist
+            if (!window.progressData.scenarioResults) {
+                window.progressData.scenarioResults = {};
+            }
+            
+            // Save or update personal best (lowest step count)
+            const currentBest = window.progressData.scenarioResults[scenarioId];
+            if (!currentBest || stepCount < currentBest.steps) {
+                window.progressData.scenarioResults[scenarioId] = {
+                    steps: stepCount,
+                    date: new Date().toISOString(),
+                    success: true
+                };
+                
+                // Also add to completedScenarios if not already there
+                if (!window.progressData.completedScenarios.includes(scenarioId)) {
+                    window.progressData.completedScenarios.push(scenarioId);
+                }
+                
+                // Save progress
+                if (window.saveProgress) {
+                    window.saveProgress();
+                }
+            }
+        }
     } else {
         icon.className = 'results-icon fail';
         icon.innerHTML = '<i class="fas fa-times-circle"></i>';
@@ -431,12 +460,47 @@ function exitDeescalation() {
     // Show menu
     document.getElementById('deescalation-menu').classList.remove('hidden');
     
+    // Update scenario cards with personal bests
+    updateScenarioCards();
+    
     // Reset state
     deescalationScenario = null;
     deescalationStep = null;
     emotionalMeter = 40;
     stepCount = 0;
     currentState = 'Distressed';
+}
+
+// Update scenario cards with personal best scores
+function updateScenarioCards() {
+    const scenarioCards = document.querySelectorAll('.scenario-card');
+    
+    scenarioCards.forEach(card => {
+        const scenarioId = card.getAttribute('data-scenario');
+        const scenarioResults = window.progressData?.scenarioResults?.[scenarioId];
+        
+        // Remove existing personal best badge if any
+        const existingBadge = card.querySelector('.personal-best-badge');
+        if (existingBadge) {
+            existingBadge.remove();
+        }
+        
+        // Add personal best badge if user has completed this scenario
+        if (scenarioResults && scenarioResults.success) {
+            const badge = document.createElement('div');
+            badge.className = 'personal-best-badge';
+            badge.innerHTML = `
+                <i class="fas fa-trophy"></i>
+                <span>Personal Best: ${scenarioResults.steps} steps</span>
+            `;
+            
+            // Insert after the scenario description
+            const description = card.querySelector('p');
+            if (description) {
+                description.after(badge);
+            }
+        }
+    });
 }
 
 // Initialize event listeners
@@ -469,6 +533,9 @@ function initializeDeescalationListeners() {
     if (exitResultsBtn) {
         exitResultsBtn.addEventListener('click', exitDeescalation);
     }
+    
+    // Update scenario cards with personal bests on load
+    updateScenarioCards();
 }
 
 // Initialize when DOM is ready (or immediately if already loaded)

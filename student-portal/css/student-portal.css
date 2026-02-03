@@ -1299,6 +1299,25 @@ body {
     margin-right: 0.5rem;
 }
 
+.personal-best-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #d4a574 0%, #c99456 100%);
+    color: #1a1a1a;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin: 1rem 0;
+    box-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
+}
+
+.personal-best-badge i {
+    font-size: 1.1rem;
+    color: #1a1a1a;
+}
+
 /* Active Training Screen */
 .deescalation-training {
     background: var(--card-background);
