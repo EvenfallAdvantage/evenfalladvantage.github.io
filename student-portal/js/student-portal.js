@@ -5608,23 +5608,29 @@ function reviewPastAssessment(resultIndex, fromBestAttempts = false) {
     // Show in a modal or overlay
     console.log('Showing review modal...');
     
-    // Hide progress section, show assessment section
-    document.getElementById('progress').classList.remove('active');
-    document.getElementById('assessment').classList.add('active');
+    // Navigate to assessment section
+    const profileSection = document.getElementById('profile');
+    const assessmentSection = document.getElementById('assessment');
+    
+    if (profileSection) profileSection.classList.remove('active');
+    if (assessmentSection) assessmentSection.classList.add('active');
     
     // Update nav
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
-        const onclick = link.getAttribute('onclick');
-        if (onclick && onclick.includes('assessment')) {
+        if (link.getAttribute('data-section') === 'assessment') {
             link.classList.add('active');
         }
     });
     
     // Hide assessment selector, show quiz
-    document.querySelector('.assessment-selector').style.display = 'none';
-    document.getElementById('assessmentResults').classList.add('hidden');
-    document.getElementById('assessmentQuiz').classList.remove('hidden');
+    const assessmentSelector = document.querySelector('.assessment-selector');
+    const assessmentResults = document.getElementById('assessmentResults');
+    const assessmentQuiz = document.getElementById('assessmentQuiz');
+    
+    if (assessmentSelector) assessmentSelector.style.display = 'none';
+    if (assessmentResults) assessmentResults.classList.add('hidden');
+    if (assessmentQuiz) assessmentQuiz.classList.remove('hidden');
     
     // Hide quiz header and footer, show review content
     const quizHeader = document.querySelector('.quiz-header');
