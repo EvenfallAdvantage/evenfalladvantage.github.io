@@ -216,7 +216,8 @@ async function loadProgressFromDatabase() {
             completedModules: [],
             completedScenarios: [],
             assessmentResults: [],
-            activities: []
+            activities: [],
+            scenarioResults: {}
         };
         
         // Get module progress from database
@@ -310,7 +311,8 @@ async function loadProgressFromDatabase() {
             completedModules: [],
             completedScenarios: [],
             assessmentResults: [],
-            activities: []
+            activities: [],
+            scenarioResults: {}
         };
         localStorage.setItem('securityTrainingProgress', JSON.stringify(emptyProgress));
     }

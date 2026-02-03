@@ -402,31 +402,43 @@ function showResults(step) {
         
         // Save completion with step count
         const scenarioId = Object.keys(deescalationScenarios).find(id => deescalationScenarios[id] === deescalationScenario);
+        console.log('🏆 Scenario completed successfully:', scenarioId, 'Steps:', stepCount);
+        
         if (scenarioId && window.progressData) {
             // Initialize scenarioResults if it doesn't exist
             if (!window.progressData.scenarioResults) {
                 window.progressData.scenarioResults = {};
+                console.log('📊 Initialized scenarioResults object');
             }
             
             // Save or update personal best (lowest step count)
             const currentBest = window.progressData.scenarioResults[scenarioId];
+            console.log('📈 Current best for', scenarioId, ':', currentBest);
+            
             if (!currentBest || stepCount < currentBest.steps) {
                 window.progressData.scenarioResults[scenarioId] = {
                     steps: stepCount,
                     date: new Date().toISOString(),
                     success: true
                 };
+                console.log('✅ New personal best saved!', window.progressData.scenarioResults[scenarioId]);
                 
                 // Also add to completedScenarios if not already there
                 if (!window.progressData.completedScenarios.includes(scenarioId)) {
                     window.progressData.completedScenarios.push(scenarioId);
+                    console.log('📝 Added to completedScenarios');
                 }
                 
                 // Save progress
                 if (window.saveProgress) {
                     window.saveProgress();
+                    console.log('💾 Progress saved to localStorage');
                 }
+            } else {
+                console.log('⏭️ Not a new personal best, skipping save');
             }
+        } else {
+            console.warn('⚠️ Could not save scenario result - scenarioId:', scenarioId, 'progressData:', !!window.progressData);
         }
     } else {
         icon.className = 'results-icon fail';
@@ -473,16 +485,23 @@ function exitDeescalation() {
 
 // Update scenario cards with personal best scores
 function updateScenarioCards() {
+    console.log('🎯 Updating scenario cards...');
+    console.log('📊 Current progressData:', window.progressData);
+    console.log('🏆 Scenario results:', window.progressData?.scenarioResults);
+    
     const scenarioCards = document.querySelectorAll('.scenario-card');
+    console.log('🃏 Found scenario cards:', scenarioCards.length);
     
     scenarioCards.forEach(card => {
         const scenarioId = card.getAttribute('data-scenario');
         const scenarioResults = window.progressData?.scenarioResults?.[scenarioId];
+        console.log(`📋 Card ${scenarioId}:`, scenarioResults);
         
         // Remove existing personal best badge if any
         const existingBadge = card.querySelector('.personal-best-badge');
         if (existingBadge) {
             existingBadge.remove();
+            console.log(`🗑️ Removed existing badge for ${scenarioId}`);
         }
         
         // Add personal best badge if user has completed this scenario
@@ -498,7 +517,12 @@ function updateScenarioCards() {
             const description = card.querySelector('p');
             if (description) {
                 description.after(badge);
+                console.log(`✅ Added badge for ${scenarioId}: ${scenarioResults.steps} steps`);
+            } else {
+                console.warn(`⚠️ No description element found for ${scenarioId}`);
             }
+        } else {
+            console.log(`⏭️ No personal best for ${scenarioId}`);
         }
     });
 }

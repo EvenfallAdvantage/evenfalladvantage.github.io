@@ -464,7 +464,8 @@ let progressData = {
     completedModules: [],
     completedScenarios: [],
     assessmentResults: [],
-    activities: []
+    activities: [],
+    scenarioResults: {}
 };
 
 // Module expiration periods (in months)
@@ -542,6 +543,7 @@ function loadProgress() {
     if (!progressData.completedScenarios) progressData.completedScenarios = [];
     if (!progressData.assessmentResults) progressData.assessmentResults = [];
     if (!progressData.activities) progressData.activities = [];
+    if (!progressData.scenarioResults) progressData.scenarioResults = {};
     
     // Migrate old assessment results that use assessment names instead of module codes
     migrateAssessmentResults();
