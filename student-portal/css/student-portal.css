@@ -1593,10 +1593,6 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .subject-interaction {
-        grid-template-columns: 1fr;
-    }
-    
     .results-stats {
         grid-template-columns: 1fr;
     }
