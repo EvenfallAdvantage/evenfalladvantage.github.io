@@ -11,19 +11,19 @@ let currentState = 'Distressed';
 // Audio file mapping for scenarios
 const scenarioAudio = {
     'lost-wristband': {
-        'start': 'audio/de_escalation/S.mp3',
-        'good-path-step-2': 'audio/de_escalation/G2.mp3',
-        'good-path-step-3': 'audio/de_escalation/G3.mp3',
-        'bad-path-1-step-2': 'audio/de_escalation/B12.mp3',
-        'bad-path-1-step-3': 'audio/de_escalation/B13.mp3',
-        'bad-path-2-step-2': 'audio/de_escalation/B22.mp3',
-        'bad-path-2-step-3': 'audio/de_escalation/B23.mp3',
-        'bad-path-2-step-4': 'audio/de_escalation/B24.mp3',
-        'mixed-path-step-2': 'audio/de_escalation/M2.mp3',
-        'mixed-path-step-3-recovery': 'audio/de_escalation/M3R.mp3',
-        'mixed-path-step-3-proof': 'audio/de_escalation/M3P.mp3',
-        'success-happy': 'audio/de_escalation/P.mp3',
-        'fail-very-angry': 'audio/de_escalation/F.mp3'
+        'start': '/audio/de_escalation/S.mp3',
+        'good-path-step-2': '/audio/de_escalation/G2.mp3',
+        'good-path-step-3': '/audio/de_escalation/G3.mp3',
+        'bad-path-1-step-2': '/audio/de_escalation/B12.mp3',
+        'bad-path-1-step-3': '/audio/de_escalation/B13.mp3',
+        'bad-path-2-step-2': '/audio/de_escalation/B22.mp3',
+        'bad-path-2-step-3': '/audio/de_escalation/B23.mp3',
+        'bad-path-2-step-4': '/audio/de_escalation/B24.mp3',
+        'mixed-path-step-2': '/audio/de_escalation/M2.mp3',
+        'mixed-path-step-3-recovery': '/audio/de_escalation/M3R.mp3',
+        'mixed-path-step-3-proof': '/audio/de_escalation/M3P.mp3',
+        'success-happy': '/audio/de_escalation/P.mp3',
+        'fail-very-angry': '/audio/de_escalation/F.mp3'
     }
 };
 
