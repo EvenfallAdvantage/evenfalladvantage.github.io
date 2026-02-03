@@ -625,6 +625,36 @@ function navigateToSection(sectionId) {
     if (sectionId === 'assessment' && typeof loadAssessmentCourses === 'function') {
         loadAssessmentCourses();
     }
+    
+    // Set default tab for Practice section (sand table)
+    if (sectionId === 'sandtable') {
+        const sandtableTabs = document.querySelectorAll('#sandtable .profile-tab');
+        const sandtableContents = document.querySelectorAll('#sandtable .profile-tab-content');
+        
+        sandtableTabs.forEach(tab => tab.classList.remove('active'));
+        sandtableContents.forEach(content => content.classList.remove('active'));
+        
+        const defaultTab = document.querySelector('#sandtable .profile-tab[data-tab="sandtable-practice"]');
+        const defaultContent = document.getElementById('sandtable-practice-tab');
+        
+        if (defaultTab) defaultTab.classList.add('active');
+        if (defaultContent) defaultContent.classList.add('active');
+    }
+    
+    // Set default tab for Profile section (about)
+    if (sectionId === 'profile') {
+        const profileTabs = document.querySelectorAll('#profile .profile-tab');
+        const profileContents = document.querySelectorAll('#profile .profile-tab-content');
+        
+        profileTabs.forEach(tab => tab.classList.remove('active'));
+        profileContents.forEach(content => content.classList.remove('active'));
+        
+        const defaultTab = document.querySelector('#profile .profile-tab[data-tab="about"]');
+        const defaultContent = document.getElementById('about-tab');
+        
+        if (defaultTab) defaultTab.classList.add('active');
+        if (defaultContent) defaultContent.classList.add('active');
+    }
 }
 
 // Event Listeners for Navigation
