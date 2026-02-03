@@ -17,7 +17,62 @@ async function loadAssessmentCourses() {
     
     const enrolledCourses = myEnrollments.map(e => e.courses);
     
-    container.innerHTML = enrolledCourses.map(course => `
+    // Fetch assessment completion data for all courses
+    const currentUser = await Auth.getCurrentUser();
+    const courseProgressData = await Promise.all(enrolledCourses.map(async (course) => {
+        try {
+            // Get course modules
+            const { data: courseModules } = await supabase
+                .from('course_modules')
+                .select('module_id')
+                .eq('course_id', course.id);
+            
+            if (!courseModules || courseModules.length === 0) {
+                return { courseId: course.id, completed: 0, total: 0 };
+            }
+            
+            const moduleIds = courseModules.map(cm => cm.module_id);
+            
+            // Get assessments for these modules
+            const { data: assessments } = await supabase
+                .from('assessments')
+                .select('id')
+                .in('module_id', moduleIds);
+            
+            const totalAssessments = assessments?.length || 0;
+            
+            if (totalAssessments === 0) {
+                return { courseId: course.id, completed: 0, total: 0 };
+            }
+            
+            // Get passed assessment results
+            const { data: results } = await supabase
+                .from('assessment_results')
+                .select('assessment_id, passed')
+                .eq('student_id', currentUser.id)
+                .in('assessment_id', assessments.map(a => a.id))
+                .eq('passed', true);
+            
+            const completedAssessments = results?.length || 0;
+            
+            return { courseId: course.id, completed: completedAssessments, total: totalAssessments };
+        } catch (error) {
+            console.error('Error fetching progress for course:', course.id, error);
+            return { courseId: course.id, completed: 0, total: 0 };
+        }
+    }));
+    
+    // Create progress map
+    const progressMap = {};
+    courseProgressData.forEach(p => {
+        progressMap[p.courseId] = p;
+    });
+    
+    container.innerHTML = enrolledCourses.map(course => {
+        const progress = progressMap[course.id] || { completed: 0, total: 0 };
+        const progressPercent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+        
+        return `
         <div class="course-card-inline enrolled" onclick="selectAssessmentCourse('${course.id}')">
             <div class="enrolled-badge">ENROLLED</div>
             <div class="course-thumbnail-inline">
@@ -30,12 +85,27 @@ async function loadAssessmentCourses() {
                     ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${course.difficulty_level}</span>` : ''}
                 </div>
                 <p class="course-card-description">${course.short_description || course.description || ''}</p>
-                <div class="course-meta" style="margin-top: 1rem;">
-                    <span><i class="fas fa-trophy"></i> Assessments Available</span>
+                ${progress.total > 0 ? `
+                <div class="course-progress" style="margin-top: 1rem;">
+                    <div class="progress-header" style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.9rem; color: var(--text-secondary);">
+                            <i class="fas fa-trophy"></i> Assessments: ${progress.completed}/${progress.total}
+                        </span>
+                        <span style="font-size: 0.9rem; font-weight: 600; color: var(--primary);">${progressPercent}%</span>
+                    </div>
+                    <div class="progress-bar" style="background: var(--bg-secondary); border-radius: 10px; height: 8px; overflow: hidden;">
+                        <div class="progress-fill" style="background: var(--primary); height: 100%; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                    </div>
                 </div>
+                ` : `
+                <div class="course-meta" style="margin-top: 1rem;">
+                    <span><i class="fas fa-trophy"></i> No Assessments Available</span>
+                </div>
+                `}
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Select a course to view its assessments
