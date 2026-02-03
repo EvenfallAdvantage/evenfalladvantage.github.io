@@ -5350,7 +5350,7 @@ function updateProgressDisplay() {
                     <div class="assessment-history-item">
                         <div class="assessment-history-header">
                             <div>
-                                <span style="color: var(--primary); font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                                <span style="color: #d4a574; font-weight: 600; font-size: 1.75rem; display: block; margin-bottom: 0.5rem;">
                                     ${courseTitle}
                                 </span>
                                 <h4>${title}</h4>
