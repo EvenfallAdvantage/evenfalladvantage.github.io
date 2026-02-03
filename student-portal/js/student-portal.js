@@ -64,7 +64,7 @@ async function loadCourses() {
 }
 
 // Render enrolled courses
-function renderMyCourses() {
+async function renderMyCourses() {
     const container = document.getElementById('myCoursesContainer');
 
     if (myEnrollments.length === 0) {
@@ -78,9 +78,51 @@ function renderMyCourses() {
         return;
     }
 
+    // Fetch module completion data for all courses
+    const currentUser = await Auth.getCurrentUser();
+    const courseModuleData = await Promise.all(myEnrollments.map(async (enrollment) => {
+        const course = enrollment.courses;
+        try {
+            // Get course modules
+            const { data: courseModules } = await supabase
+                .from('course_modules')
+                .select('module_id')
+                .eq('course_id', course.id);
+            
+            if (!courseModules || courseModules.length === 0) {
+                return { courseId: course.id, completed: 0, total: 0 };
+            }
+            
+            const moduleIds = courseModules.map(cm => cm.module_id);
+            const totalModules = moduleIds.length;
+            
+            // Get completed modules
+            const { data: completedModules } = await supabase
+                .from('student_module_progress')
+                .select('module_id')
+                .eq('student_id', currentUser.id)
+                .in('module_id', moduleIds)
+                .not('completed_at', 'is', null);
+            
+            const completedCount = completedModules?.length || 0;
+            
+            return { courseId: course.id, completed: completedCount, total: totalModules };
+        } catch (error) {
+            console.error('Error fetching module progress for course:', course.id, error);
+            return { courseId: course.id, completed: 0, total: 0 };
+        }
+    }));
+    
+    // Create module progress map
+    const moduleProgressMap = {};
+    courseModuleData.forEach(p => {
+        moduleProgressMap[p.courseId] = p;
+    });
+
     container.innerHTML = myEnrollments.map(enrollment => {
         const course = enrollment.courses;
-        const progress = enrollment.completion_percentage || 0;
+        const moduleProgress = moduleProgressMap[course.id] || { completed: 0, total: 0 };
+        const progressPercent = moduleProgress.total > 0 ? Math.min(100, Math.round((moduleProgress.completed / moduleProgress.total) * 100)) : 0;
         
         return `
             <div class="course-card-inline enrolled" onclick="selectCourse('${course.id}')">
@@ -97,11 +139,11 @@ function renderMyCourses() {
                     <p class="course-card-description">${course.short_description || course.description || ''}</p>
                     <div class="course-progress-inline">
                         <div class="progress-label-inline">
-                            <span>Progress</span>
-                            <span>${Math.round(progress)}%</span>
+                            <span>Modules: ${moduleProgress.completed}/${moduleProgress.total}</span>
+                            <span>${progressPercent}%</span>
                         </div>
                         <div class="progress-bar-inline">
-                            <div class="progress-fill-inline" style="width: ${progress}%"></div>
+                            <div class="progress-fill-inline" style="width: ${progressPercent}%"></div>
                         </div>
                     </div>
                 </div>

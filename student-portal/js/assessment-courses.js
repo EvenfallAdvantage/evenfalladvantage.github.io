@@ -89,7 +89,7 @@ async function loadAssessmentCourses() {
                 <div class="course-progress" style="margin-top: 1rem;">
                     <div class="progress-header" style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                         <span style="font-size: 0.9rem; color: var(--text-secondary);">
-                            <i class="fas fa-trophy"></i> Assessments: ${progress.completed}/${progress.total}
+                            Assessments: ${progress.completed}/${progress.total}
                         </span>
                         <span style="font-size: 0.9rem; font-weight: 600; color: #D4AF37;">${progressPercent}%</span>
                     </div>
