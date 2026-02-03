@@ -769,7 +769,7 @@ function startDeescalation(scenarioId) {
     currentState = deescalationScenario.initialState;
     
     // Update scenario title
-    const titleElement = document.querySelector('.deescalation-training h2');
+    const titleElement = document.getElementById('scenario-title');
     if (titleElement) {
         titleElement.textContent = deescalationScenario.title;
     }
