@@ -5528,6 +5528,7 @@ function updateProgressDisplay() {
 
 // Update module progress display with proper ordering
 async function updateModuleProgressDisplay() {
+    console.log('📚 updateModuleProgressDisplay called - v2');
     try {
         // Get modules from database, sorted by display_order
         const { data: modules, error } = await supabase
@@ -5535,9 +5536,13 @@ async function updateModuleProgressDisplay() {
             .select('id, module_code, module_name, display_order, default_course_id')
             .order('display_order', { ascending: true });
         
+        console.log('📊 Modules query result:', { modules, error });
+        
         if (error) throw error;
         
         if (modules && modules.length > 0) {
+            console.log(`✅ Loaded ${modules.length} modules from database`);
+            
             // Determine course based on module_code prefix
             const getCourseTitle = (moduleCode) => {
                 if (moduleCode.startsWith('systema-scout')) {
@@ -5556,6 +5561,8 @@ async function updateModuleProgressDisplay() {
                 acc[courseTitle].push(module);
                 return acc;
             }, {});
+            
+            console.log('📦 Grouped modules:', Object.keys(groupedModules));
             
             // Build HTML with course groupings
             const moduleProgressHTML = Object.entries(groupedModules).map(([courseTitle, courseModules]) => {
