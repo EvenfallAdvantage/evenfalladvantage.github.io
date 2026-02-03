@@ -2760,6 +2760,12 @@ body {
     gap: 1rem;
 }
 
+.deescalation-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
 .assessment-history-item {
     background: white;
     border: 1px solid var(--border);
