@@ -1244,10 +1244,10 @@ body {
     background: var(--surface);
     border-radius: 1rem;
     padding: 2rem;
-    box-shadow: var(--card-shadow);
+    box-shadow: var(--shadow);
     border: 2px solid transparent;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     text-align: center;
 }
 
@@ -1259,14 +1259,24 @@ body {
 
 .scenario-card i {
     font-size: 3rem;
-    color: var(--secondary-color);
+    color: var(--primary-color);
     margin-bottom: 1rem;
+    transition: color 0.3s ease;
+}
+
+.scenario-card:hover i {
+    color: #d59b3c;
 }
 
 .scenario-card h4 {
     font-size: 1.4rem;
     margin-bottom: 1rem;
     color: var(--text-primary);
+    transition: color 0.3s ease;
+}
+
+.scenario-card:hover h4 {
+    color: #d59b3c;
 }
 
 .scenario-card p {
