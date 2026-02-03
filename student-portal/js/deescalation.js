@@ -829,15 +829,25 @@ function updateSubjectDialogue(dialogue) {
 
 // Play audio for current step
 function playStepAudio(stepId) {
+    console.log('🔊 playStepAudio called for step:', stepId);
+    console.log('🎯 currentScenarioId:', currentScenarioId);
+    
     // Get audio file for this step
     const audioMap = scenarioAudio[currentScenarioId];
+    console.log('🗺️ audioMap:', audioMap);
+    
     if (!audioMap || !audioMap[stepId]) {
+        console.log('❌ No audio mapping found for step:', stepId);
         return; // No audio for this step
     }
+    
+    const audioSrc = audioMap[stepId];
+    console.log('🎵 Audio source:', audioSrc);
     
     // Stop any currently playing audio
     const existingAudio = document.getElementById('step-audio');
     if (existingAudio) {
+        console.log('⏹️ Stopping existing audio');
         existingAudio.pause();
         existingAudio.remove();
     }
@@ -845,14 +855,18 @@ function playStepAudio(stepId) {
     // Create and play new audio
     const audio = document.createElement('audio');
     audio.id = 'step-audio';
-    audio.src = audioMap[stepId];
+    audio.src = audioSrc;
     audio.style.display = 'none'; // Hide audio element
     document.body.appendChild(audio);
+    console.log('✅ Audio element created and appended');
     
     // Play audio with slight delay for dialogue fade-in
     setTimeout(() => {
-        audio.play().catch(err => {
-            console.log('Audio playback failed:', err);
+        console.log('▶️ Attempting to play audio...');
+        audio.play().then(() => {
+            console.log('✅ Audio playing successfully');
+        }).catch(err => {
+            console.error('❌ Audio playback failed:', err);
         });
     }, 400);
 }
