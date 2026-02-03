@@ -5380,6 +5380,88 @@ function updateProgressDisplay() {
         document.getElementById('assessmentHistory').innerHTML = assessmentHistoryHTML;
     }
     
+    // Update de-escalation practice results
+    if (progressData.scenarioResults && Object.keys(progressData.scenarioResults).length > 0) {
+        const scenarioTitles = {
+            'lost-wristband': 'Lost Wristband at the Gate',
+            'intoxicated-patron': 'Intoxicated Patron at Bar',
+            'denied-entry-id': 'Denied Entry - Invalid ID'
+        };
+        
+        // Optimal steps for each scenario (minimum to pass)
+        const optimalSteps = {
+            'lost-wristband': 4,
+            'intoxicated-patron': 4,
+            'denied-entry-id': 5
+        };
+        
+        // Calculate grade: 80% for any pass, 100% for optimal, interpolate between
+        function calculateGrade(steps, scenarioId) {
+            const optimal = optimalSteps[scenarioId];
+            if (!optimal) return 80; // Default if scenario not found
+            
+            if (steps <= optimal) {
+                return 100; // Perfect score for optimal or better
+            }
+            
+            // Interpolate between 80% and 100%
+            // Assume reasonable max steps is optimal * 2.5
+            const maxSteps = Math.ceil(optimal * 2.5);
+            const extraSteps = steps - optimal;
+            const maxExtraSteps = maxSteps - optimal;
+            
+            // Linear interpolation from 100% to 80%
+            const grade = 100 - ((extraSteps / maxExtraSteps) * 20);
+            return Math.max(80, Math.round(grade)); // Minimum 80% for passing
+        }
+        
+        const deescalationHTML = Object.entries(progressData.scenarioResults)
+            .filter(([id, result]) => result.success) // Only show successful completions
+            .sort((a, b) => new Date(b[1].date) - new Date(a[1].date)) // Sort by date
+            .map(([scenarioId, result]) => {
+                const title = scenarioTitles[scenarioId] || scenarioId;
+                const date = new Date(result.date);
+                const grade = calculateGrade(result.steps, scenarioId);
+                const optimal = optimalSteps[scenarioId];
+                
+                // Determine grade class
+                let gradeClass = 'success';
+                if (grade === 100) gradeClass = 'perfect';
+                else if (grade >= 90) gradeClass = 'success';
+                else if (grade >= 80) gradeClass = 'warning';
+                
+                return `
+                    <div class="assessment-history-item">
+                        <div class="assessment-history-header">
+                            <div>
+                                <span style="color: #d4a574; font-weight: 600; font-size: 1.75rem; display: block; margin-bottom: 0.5rem;">
+                                    De-escalation Practice
+                                </span>
+                                <h4>${title}</h4>
+                                <span style="color: var(--text-secondary); font-size: 0.875rem;">
+                                    ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}
+                                </span>
+                            </div>
+                            <div class="assessment-history-score">
+                                <span class="score-badge ${gradeClass}">
+                                    <i class="fas fa-trophy"></i> ${grade}%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="assessment-history-actions">
+                            <span class="status-text success">
+                                ${result.steps} steps (Optimal: ${optimal})
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        
+        if (deescalationHTML) {
+            document.getElementById('deescalationProgress').innerHTML = deescalationHTML;
+        }
+    }
+    
     // Update activity list
     if (progressData.activities.length > 0) {
         const activityHTML = progressData.activities.map(activity => {

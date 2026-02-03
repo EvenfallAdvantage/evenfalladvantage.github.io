@@ -2798,6 +2798,17 @@ body {
     color: var(--success);
 }
 
+.score-badge.perfect {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.score-badge.warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
 .score-badge.danger {
     background: #fee2e2;
     color: var(--danger);
