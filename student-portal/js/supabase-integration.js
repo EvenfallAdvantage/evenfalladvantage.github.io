@@ -339,7 +339,15 @@ async function loadProgressFromDatabase() {
             
             // Keep only the best (lowest steps) for each scenario
             const bestScenarios = {};
+            const completedScenarioIds = new Set();
+            
             scenarioResults.forEach(result => {
+                // Add to completed scenarios list (any successful completion)
+                if (result.success) {
+                    completedScenarioIds.add(result.scenario_id);
+                }
+                
+                // Track best attempt
                 if (!bestScenarios[result.scenario_id] || result.steps < bestScenarios[result.scenario_id].steps) {
                     bestScenarios[result.scenario_id] = {
                         steps: result.steps,
@@ -350,7 +358,9 @@ async function loadProgressFromDatabase() {
             });
             
             localProgress.scenarioResults = bestScenarios;
+            localProgress.completedScenarios = Array.from(completedScenarioIds);
             console.log('Loaded scenario results:', Object.keys(bestScenarios).length);
+            console.log('Loaded completed scenarios:', localProgress.completedScenarios.length);
         }
         
         // Save to localStorage (as cache)
