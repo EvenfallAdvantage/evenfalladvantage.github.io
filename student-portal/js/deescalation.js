@@ -9,7 +9,7 @@ let stepCount = 0;
 let currentState = 'Distressed';
 
 // Scenario data structure
-const scenarios = {
+const deescalationScenarios = {
     'lost-wristband': {
         title: 'Lost Wristband at the Gate',
         description: 'A patron claims they lost their entry wristband and wants to enter the venue.',
@@ -262,7 +262,7 @@ const statePhotos = {
 
 // Initialize de-escalation training
 function startDeescalation(scenarioId) {
-    deescalationScenario = scenarios[scenarioId];
+    deescalationScenario = deescalationScenarios[scenarioId];
     deescalationStep = 'start';
     emotionalMeter = deescalationScenario.initialMeter;
     stepCount = 1;
@@ -418,7 +418,7 @@ function restartDeescalation() {
     document.getElementById('deescalation-results').classList.add('hidden');
     
     // Reset and start
-    const scenarioId = Object.keys(scenarios).find(id => scenarios[id] === deescalationScenario);
+    const scenarioId = Object.keys(deescalationScenarios).find(id => deescalationScenarios[id] === deescalationScenario);
     startDeescalation(scenarioId);
 }
 
