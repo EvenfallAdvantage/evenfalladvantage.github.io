@@ -1336,6 +1336,7 @@ body {
 .training-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 1rem;
     margin-bottom: 2rem;
     padding-bottom: 1rem;
@@ -1344,7 +1345,7 @@ body {
 
 .training-header h3 {
     flex: 1;
-    font-size: 1.6rem;
+    font-size: 3.2rem;
     color: var(--text-primary);
 }
 
