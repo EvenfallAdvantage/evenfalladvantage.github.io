@@ -5424,11 +5424,10 @@ function updateProgressDisplay() {
                 const grade = calculateGrade(result.steps, scenarioId);
                 const optimal = optimalSteps[scenarioId];
                 
-                // Determine grade class
-                let gradeClass = 'success';
-                if (grade === 100) gradeClass = 'perfect';
-                else if (grade >= 90) gradeClass = 'success';
-                else if (grade >= 80) gradeClass = 'warning';
+                // Use same formatting as assessments - success class and check icon
+                const statusClass = 'success';
+                const statusIcon = 'fa-check-circle';
+                const statusText = 'Passed';
                 
                 return `
                     <div class="assessment-history-item">
@@ -5443,13 +5442,14 @@ function updateProgressDisplay() {
                                 </span>
                             </div>
                             <div class="assessment-history-score">
-                                <span class="score-badge ${gradeClass}">
-                                    <i class="fas fa-trophy"></i> ${grade}%
+                                <span class="score-badge ${statusClass}">
+                                    <i class="fas ${statusIcon}"></i> ${grade}%
                                 </span>
                             </div>
                         </div>
                         <div class="assessment-history-actions">
-                            <span class="status-text success">
+                            <span class="status-text ${statusClass}">${statusText}</span>
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">
                                 ${result.steps} steps (Optimal: ${optimal})
                             </span>
                         </div>
