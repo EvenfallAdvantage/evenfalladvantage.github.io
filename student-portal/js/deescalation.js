@@ -918,7 +918,7 @@ function showResults(step) {
     } else {
         icon.className = 'results-icon fail';
         icon.innerHTML = '<i class="fas fa-times-circle"></i>';
-        title.textContent = 'Escalation Failure';
+        title.textContent = 'De-escalation Failure';
         forceAvoided.textContent = '0%';
     }
     
