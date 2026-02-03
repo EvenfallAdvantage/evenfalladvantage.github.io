@@ -24,6 +24,20 @@ const scenarioAudio = {
         'mixed-path-step-3-proof': '../audio/de_escalation/s1/M3P.mp3',
         'success-happy': '../audio/de_escalation/s1/P.mp3',
         'fail-very-angry': '../audio/de_escalation/s1/F.mp3'
+    },
+    'intoxicated-patron': {
+        'start': '../audio/de_escalation/s2/S.mp3',
+        'good-path-step-2': '../audio/de_escalation/s2/G2.mp3',
+        'good-path-step-3': '../audio/de_escalation/s2/G3.mp3',
+        'bad-path-1-step-2': '../audio/de_escalation/s2/B12.mp3',
+        'bad-path-1-step-3': '../audio/de_escalation/s2/B13.mp3',
+        'bad-path-2-step-2': '../audio/de_escalation/s2/B22.mp3',
+        'bad-path-2-step-3': '../audio/de_escalation/s2/B23.mp3',
+        'bad-path-2-step-4': '../audio/de_escalation/s2/B24.mp3',
+        'mixed-path-step-2': '../audio/de_escalation/s2/M2.mp3',
+        'mixed-path-step-3-recovery': '../audio/de_escalation/s2/M3.mp3',
+        'success-happy': '../audio/de_escalation/s2/P.mp3',
+        'fail-very-angry': '../audio/de_escalation/s2/F.mp3'
     }
 };
 
@@ -829,25 +843,15 @@ function updateSubjectDialogue(dialogue) {
 
 // Play audio for current step
 function playStepAudio(stepId) {
-    console.log('🔊 playStepAudio called for step:', stepId);
-    console.log('🎯 currentScenarioId:', currentScenarioId);
-    
     // Get audio file for this step
     const audioMap = scenarioAudio[currentScenarioId];
-    console.log('🗺️ audioMap:', audioMap);
-    
     if (!audioMap || !audioMap[stepId]) {
-        console.log('❌ No audio mapping found for step:', stepId);
         return; // No audio for this step
     }
-    
-    const audioSrc = audioMap[stepId];
-    console.log('🎵 Audio source:', audioSrc);
     
     // Stop any currently playing audio
     const existingAudio = document.getElementById('step-audio');
     if (existingAudio) {
-        console.log('⏹️ Stopping existing audio');
         existingAudio.pause();
         existingAudio.remove();
     }
@@ -855,18 +859,14 @@ function playStepAudio(stepId) {
     // Create and play new audio
     const audio = document.createElement('audio');
     audio.id = 'step-audio';
-    audio.src = audioSrc;
+    audio.src = audioMap[stepId];
     audio.style.display = 'none'; // Hide audio element
     document.body.appendChild(audio);
-    console.log('✅ Audio element created and appended');
     
     // Play audio with slight delay for dialogue fade-in
     setTimeout(() => {
-        console.log('▶️ Attempting to play audio...');
-        audio.play().then(() => {
-            console.log('✅ Audio playing successfully');
-        }).catch(err => {
-            console.error('❌ Audio playback failed:', err);
+        audio.play().catch(err => {
+            console.log('Audio playback failed:', err);
         });
     }, 400);
 }
