@@ -4585,6 +4585,8 @@ async function loadStateLaws() {
 // Load assessment questions from database
 async function loadAssessmentQuestions(moduleCode) {
     try {
+        console.log('🔍 Loading assessment questions for module:', moduleCode);
+        
         // Get module and assessment
         const { data: module, error: moduleError } = await supabase
             .from('training_modules')
@@ -4593,9 +4595,11 @@ async function loadAssessmentQuestions(moduleCode) {
             .single();
         
         if (moduleError || !module) {
-            console.warn('No module found for code:', moduleCode);
+            console.warn('❌ No module found for code:', moduleCode, moduleError);
             return null;
         }
+        
+        console.log('✅ Found module:', module.id);
         
         const { data: assessment, error: assessmentError } = await supabase
             .from('assessments')
@@ -4604,9 +4608,11 @@ async function loadAssessmentQuestions(moduleCode) {
             .single();
         
         if (assessmentError || !assessment) {
-            console.warn('No assessment found for module:', moduleCode);
+            console.warn('❌ No assessment found for module:', moduleCode, assessmentError);
             return null;
         }
+        
+        console.log('✅ Found assessment:', assessment.id, assessment.assessment_name);
         
         // Load questions from assessment_questions table
         const { data: questionRows, error: questionsError } = await supabase
@@ -4616,9 +4622,11 @@ async function loadAssessmentQuestions(moduleCode) {
             .order('question_number', { ascending: true });
         
         if (questionsError) {
-            console.error('Error loading questions:', questionsError);
+            console.error('❌ Error loading questions:', questionsError);
             return null;
         }
+        
+        console.log(`✅ Loaded ${questionRows?.length || 0} questions from database`);
         
         // Convert to expected format
         let questions = [];
@@ -4629,6 +4637,9 @@ async function loadAssessmentQuestions(moduleCode) {
                 correct: q.correct_answer === 'A' ? 0 : q.correct_answer === 'B' ? 1 : q.correct_answer === 'C' ? 2 : 3,
                 explanation: q.explanation || ''
             }));
+            console.log('✅ Converted questions to expected format');
+        } else {
+            console.warn('⚠️ No question rows returned from database');
         }
         
         // Special handling for Module 7 (Use of Force) - combine with state-specific questions
