@@ -695,23 +695,51 @@ const deescalationScenarios = {
     }
 };
 
-// State to photo mapping
-const statePhotos = {
-    'Distressed': '/images/de_escalation/1-Distressed.jpg',
-    'Sad': '/images/de_escalation/1-Sad.jpg',
-    'Angry': '/images/de_escalation/1-Angry.jpg',
-    'Faded': '/images/de_escalation/1-Faded.jpg',
-    'Happy': '/images/de_escalation/1-Happy.jpg',
-    'Fail': '/images/de_escalation/1-Fail.jpg'
+// State to photo mapping by scenario
+const scenarioPhotos = {
+    'lost-wristband': {
+        'Distressed': '/images/de_escalation/1-Distressed.jpg',
+        'Sad': '/images/de_escalation/1-Sad.jpg',
+        'Angry': '/images/de_escalation/1-Angry.jpg',
+        'Faded': '/images/de_escalation/1-Faded.jpg',
+        'Happy': '/images/de_escalation/1-Happy.jpg',
+        'Fail': '/images/de_escalation/1-Fail.jpg'
+    },
+    'intoxicated-patron': {
+        'Distressed': '/images/de_escalation/2-Distressed.jpg',
+        'Sad': '/images/de_escalation/2-Sad.jpg',
+        'Angry': '/images/de_escalation/2-Angry.jpg',
+        'Faded': '/images/de_escalation/2-Faded.jpg',
+        'Happy': '/images/de_escalation/2-Happy.jpg',
+        'Fail': '/images/de_escalation/2-Fail.jpg'
+    },
+    'denied-entry-id': {
+        'Distressed': '/images/de_escalation/3-Distressed.jpg',
+        'Sad': '/images/de_escalation/3-Sad.jpg',
+        'Angry': '/images/de_escalation/3-Angry.jpg',
+        'Faded': '/images/de_escalation/3-Faded.jpg',
+        'Happy': '/images/de_escalation/3-Happy.jpg',
+        'Fail': '/images/de_escalation/3-Fail.jpg'
+    }
 };
+
+// Current scenario ID
+let currentScenarioId = null;
 
 // Initialize de-escalation training
 function startDeescalation(scenarioId) {
+    currentScenarioId = scenarioId;
     deescalationScenario = deescalationScenarios[scenarioId];
     deescalationStep = 'start';
     emotionalMeter = deescalationScenario.initialMeter;
     stepCount = 1;
     currentState = deescalationScenario.initialState;
+    
+    // Update scenario title
+    const titleElement = document.querySelector('.deescalation-training h2');
+    if (titleElement) {
+        titleElement.textContent = deescalationScenario.title;
+    }
     
     // Hide menu, show training
     document.getElementById('deescalation-menu').classList.add('hidden');
@@ -750,7 +778,9 @@ function updateSubjectPhoto(state) {
     const img = document.getElementById('subject-image');
     const label = document.getElementById('subject-state');
     
-    img.src = statePhotos[state];
+    // Get the correct photo for the current scenario
+    const photoMap = scenarioPhotos[currentScenarioId] || scenarioPhotos['lost-wristband'];
+    img.src = photoMap[state];
     label.textContent = state;
     
     // Add animation
@@ -892,7 +922,9 @@ function showResults(step) {
         forceAvoided.textContent = '0%';
     }
     
-    image.src = statePhotos[step.state];
+    // Get the correct photo for the current scenario
+    const photoMap = scenarioPhotos[currentScenarioId] || scenarioPhotos['lost-wristband'];
+    image.src = photoMap[step.state];
     message.textContent = step.debrief;
     finalState.textContent = step.state;
     stepsTaken.textContent = stepCount;
