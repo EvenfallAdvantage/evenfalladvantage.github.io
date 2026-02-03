@@ -439,6 +439,36 @@ function exitDeescalation() {
     currentState = 'Distressed';
 }
 
+// Initialize event listeners when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Attach click handlers to scenario cards
+    const scenarioCards = document.querySelectorAll('.scenario-card');
+    scenarioCards.forEach(card => {
+        card.addEventListener('click', (e) => {
+            const scenarioId = card.dataset.scenario;
+            if (scenarioId) {
+                startDeescalation(scenarioId);
+            }
+        });
+    });
+    
+    // Attach click handlers to control buttons
+    const exitBtn = document.getElementById('exit-scenario-btn');
+    if (exitBtn) {
+        exitBtn.addEventListener('click', exitDeescalation);
+    }
+    
+    const restartBtn = document.getElementById('restart-scenario-btn');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', restartDeescalation);
+    }
+    
+    const exitResultsBtn = document.getElementById('exit-results-btn');
+    if (exitResultsBtn) {
+        exitResultsBtn.addEventListener('click', exitDeescalation);
+    }
+});
+
 // Make functions globally accessible
 window.startDeescalation = startDeescalation;
 window.exitDeescalation = exitDeescalation;

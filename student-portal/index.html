@@ -312,7 +312,7 @@
                     <div id="deescalation-menu" class="deescalation-menu">
                         <h3>Select a Scenario</h3>
                         <div class="scenario-cards">
-                            <div class="scenario-card" onclick="startDeescalation('lost-wristband')">
+                            <div class="scenario-card" data-scenario="lost-wristband">
                                 <i class="fas fa-ticket-alt"></i>
                                 <h4>Lost Wristband at the Gate</h4>
                                 <p>A patron claims they lost their entry wristband and wants to enter the venue.</p>
@@ -329,7 +329,7 @@
                     <div id="deescalation-training" class="deescalation-training hidden">
                         <!-- Header with Back Button -->
                         <div class="training-header">
-                            <button class="btn btn-secondary" onclick="exitDeescalation()">
+                            <button class="btn btn-secondary" id="exit-scenario-btn">
                                 <i class="fas fa-arrow-left"></i> Exit Scenario
                             </button>
                             <h3 id="scenario-title">Lost Wristband at the Gate</h3>
@@ -401,10 +401,10 @@
                                 </div>
                             </div>
                             <div class="results-actions">
-                                <button class="btn btn-primary" onclick="restartDeescalation()">
+                                <button class="btn btn-primary" id="restart-scenario-btn">
                                     <i class="fas fa-redo"></i> Try Again
                                 </button>
-                                <button class="btn btn-secondary" onclick="exitDeescalation()">
+                                <button class="btn btn-secondary" id="exit-results-btn">
                                     <i class="fas fa-list"></i> Back to Scenarios
                                 </button>
                             </div>
