@@ -57,6 +57,21 @@ async function selectAssessmentCourse(courseId) {
 
 // Back to assessment courses view
 function backToAssessmentCourses() {
+    // Clear any active assessment state
+    if (window.currentAssessment) {
+        window.currentAssessment = null;
+        window.currentQuestionIndex = 0;
+        window.userAnswers = [];
+        window.shuffledQuestions = [];
+    }
+    
+    // Hide assessment quiz if it's showing
+    const assessmentQuiz = document.getElementById('assessmentQuiz');
+    if (assessmentQuiz) {
+        assessmentQuiz.classList.add('hidden');
+    }
+    
+    // Show courses view
     document.getElementById('myAssessmentCoursesContainer').style.display = 'block';
     document.getElementById('courseAssessmentsView').style.display = 'none';
 }
