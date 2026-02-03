@@ -84,7 +84,7 @@ function backToAssessmentCourses() {
     }
     
     // Show courses view, hide assessments view
-    document.getElementById('myAssessmentCoursesContainer').style.display = 'block';
+    document.getElementById('myAssessmentCoursesContainer').style.display = 'grid';
     document.getElementById('courseAssessmentsView').style.display = 'none';
 }
 
