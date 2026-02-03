@@ -71,7 +71,19 @@ function backToAssessmentCourses() {
         assessmentQuiz.classList.add('hidden');
     }
     
-    // Show courses view
+    // Show assessment selector (in case it was hidden during assessment)
+    const assessmentSelector = document.querySelector('.assessment-selector');
+    if (assessmentSelector) {
+        assessmentSelector.style.display = 'block';
+    }
+    
+    // Hide any results
+    const assessmentResults = document.getElementById('assessmentResults');
+    if (assessmentResults) {
+        assessmentResults.classList.add('hidden');
+    }
+    
+    // Show courses view, hide assessments view
     document.getElementById('myAssessmentCoursesContainer').style.display = 'block';
     document.getElementById('courseAssessmentsView').style.display = 'none';
 }
