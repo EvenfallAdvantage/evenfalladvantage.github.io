@@ -5296,7 +5296,31 @@ function updateProgressDisplay() {
             'diverse-population': 'Module 5: Interacting with Diverse Populations',
             'crowd-management': 'Module 6: Crowd Management & Public Safety',
             'use-of-force': 'Module 7: Legal Aspects & Use of Force',
-            'comprehensive': 'Comprehensive Guard Certification'
+            'comprehensive': 'Comprehensive Guard Certification',
+            'systema-scout-orientation': 'Module 0: Orientation & Philosophy',
+            'systema-scout-walking': 'Module 1: Walking, Breathing, and Choice',
+            'systema-scout-observation': 'Module 2: Security Assessment',
+            'systema-scout-tension': 'Module 3: Glove Work & Tension Management',
+            'systema-scout-integration': 'Module 4: Integration & Self-Regulation',
+            'systema-scout-closing': 'Module 5: Closing Aim & Continued Practice'
+        };
+        
+        const courseTitles = {
+            'welcome-materials': 'Unarmed Guard Core',
+            'communication-protocols': 'Unarmed Guard Core',
+            'stop-the-bleed': 'Unarmed Guard Core',
+            'threat-assessment': 'Unarmed Guard Core',
+            'ics-100': 'Unarmed Guard Core',
+            'diverse-population': 'Unarmed Guard Core',
+            'crowd-management': 'Unarmed Guard Core',
+            'use-of-force': 'Unarmed Guard Core',
+            'comprehensive': 'Unarmed Guard Core',
+            'systema-scout-orientation': 'Systema Scout',
+            'systema-scout-walking': 'Systema Scout',
+            'systema-scout-observation': 'Systema Scout',
+            'systema-scout-tension': 'Systema Scout',
+            'systema-scout-integration': 'Systema Scout',
+            'systema-scout-closing': 'Systema Scout'
         };
         
         // Get best attempts (deduplicated by module and state)
@@ -5315,6 +5339,7 @@ function updateProgressDisplay() {
                 // Use module or assessment property for lookup
                 const moduleCode = result.module || result.assessment;
                 let title = assessmentTitles[moduleCode] || moduleCode || 'Unknown Assessment';
+                const courseTitle = courseTitles[moduleCode] || 'Unknown Course';
                 
                 // For Module 7, append the state code if available
                 if (moduleCode === 'use-of-force' && result.state_code) {
@@ -5325,6 +5350,9 @@ function updateProgressDisplay() {
                     <div class="assessment-history-item">
                         <div class="assessment-history-header">
                             <div>
+                                <span style="color: var(--primary); font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 0.25rem;">
+                                    ${courseTitle}
+                                </span>
                                 <h4>${title}</h4>
                                 <span style="color: var(--text-secondary); font-size: 0.875rem;">
                                     ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}
