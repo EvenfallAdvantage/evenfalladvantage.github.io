@@ -5532,28 +5532,56 @@ async function updateModuleProgressDisplay() {
         // Get modules from database, sorted by display_order
         const { data: modules, error } = await supabase
             .from('training_modules')
-            .select('id, module_code, module_name, display_order')
+            .select('id, module_code, module_name, display_order, course_id')
             .order('display_order', { ascending: true });
         
         if (error) throw error;
         
         if (modules && modules.length > 0) {
-            // Use database modules (properly ordered)
-            const moduleProgressHTML = modules.map(module => {
-                const completed = progressData.completedModules.includes(module.module_code);
-                const percentage = completed ? 100 : 0;
-                return `
-                    <div class="progress-item">
-                        <div class="progress-item-header">
-                            <span>${module.module_name}</span>
-                            <span>${percentage}%</span>
+            // Map course IDs to course titles
+            const courseMap = {
+                1: 'Unarmed Guard Core',
+                2: 'Systema Scout'
+            };
+            
+            // Group modules by course
+            const groupedModules = modules.reduce((acc, module) => {
+                const courseTitle = courseMap[module.course_id] || 'Other';
+                if (!acc[courseTitle]) {
+                    acc[courseTitle] = [];
+                }
+                acc[courseTitle].push(module);
+                return acc;
+            }, {});
+            
+            // Build HTML with course groupings
+            const moduleProgressHTML = Object.entries(groupedModules).map(([courseTitle, courseModules]) => {
+                const modulesHTML = courseModules.map(module => {
+                    const completed = progressData.completedModules.includes(module.module_code);
+                    const percentage = completed ? 100 : 0;
+                    return `
+                        <div class="progress-item">
+                            <div class="progress-item-header">
+                                <span>${module.module_name}</span>
+                                <span>${percentage}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                            </div>
                         </div>
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                    `;
+                }).join('');
+                
+                return `
+                    <div class="course-group">
+                        <h4 class="course-title">${courseTitle}</h4>
+                        <div class="course-modules">
+                            ${modulesHTML}
                         </div>
                     </div>
                 `;
             }).join('');
+            
             document.getElementById('moduleProgress').innerHTML = moduleProgressHTML;
         } else {
             // Fallback to static moduleContent if database is unavailable

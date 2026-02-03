@@ -2051,6 +2051,28 @@ body {
     gap: 1.5rem;
 }
 
+.course-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.course-title {
+    color: #d4a574;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.course-modules {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-left: 1rem;
+}
+
 .progress-item {
     display: flex;
     flex-direction: column;
