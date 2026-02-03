@@ -2927,10 +2927,6 @@ body {
     transform: translateY(-4px);
 }
 
-.course-card-inline.enrolled {
-    border: 2px solid var(--secondary);
-}
-
 .course-thumbnail-inline {
     width: 100%;
     height: 200px;
@@ -3000,7 +2996,7 @@ body {
 
 .progress-fill-inline {
     height: 100%;
-    background: linear-gradient(90deg, var(--secondary), #ff8c42);
+    background: linear-gradient(90deg, #D4AF37, #FFD700);
     transition: width 0.3s ease;
 }
 
