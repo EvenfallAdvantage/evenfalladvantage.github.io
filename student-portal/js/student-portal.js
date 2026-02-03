@@ -4599,7 +4599,7 @@ async function loadAssessmentQuestions(moduleCode) {
         
         const { data: assessment, error: assessmentError } = await supabase
             .from('assessments')
-            .select('id, questions_json, assessment_name')
+            .select('id, assessment_name')
             .eq('module_id', module.id)
             .single();
         
@@ -4608,13 +4608,25 @@ async function loadAssessmentQuestions(moduleCode) {
             return null;
         }
         
-        // Parse questions from JSON column
+        // Load questions from assessment_questions table
+        const { data: questionRows, error: questionsError } = await supabase
+            .from('assessment_questions')
+            .select('*')
+            .eq('assessment_id', assessment.id)
+            .order('question_number', { ascending: true });
+        
+        if (questionsError) {
+            console.error('Error loading questions:', questionsError);
+            return null;
+        }
+        
+        // Convert to expected format
         let questions = [];
-        if (assessment.questions_json && Array.isArray(assessment.questions_json)) {
-            questions = assessment.questions_json.map(q => ({
-                question: q.question,
-                options: q.options,
-                correct: q.correctAnswer,
+        if (questionRows && questionRows.length > 0) {
+            questions = questionRows.map(q => ({
+                question: q.question_text,
+                options: [q.option_a, q.option_b, q.option_c, q.option_d],
+                correct: q.correct_answer === 'A' ? 0 : q.correct_answer === 'B' ? 1 : q.correct_answer === 'C' ? 2 : 3,
                 explanation: q.explanation || ''
             }));
         }
