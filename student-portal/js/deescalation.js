@@ -909,6 +909,12 @@ function showResults(step) {
                     saveProgress();
                     console.log('💾 Progress saved to localStorage');
                 }
+                
+                // Update progress display to reflect new scenario completion
+                if (typeof updateProgressDisplay !== 'undefined') {
+                    updateProgressDisplay();
+                    console.log('📊 Progress display updated');
+                }
             } else {
                 console.log('⏭️ Not a new personal best, skipping save');
             }
