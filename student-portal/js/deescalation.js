@@ -439,13 +439,15 @@ function exitDeescalation() {
     currentState = 'Distressed';
 }
 
-// Initialize event listeners when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize event listeners
+function initializeDeescalationListeners() {
     // Attach click handlers to scenario cards
     const scenarioCards = document.querySelectorAll('.scenario-card');
+    console.log('Found scenario cards:', scenarioCards.length);
     scenarioCards.forEach(card => {
         card.addEventListener('click', (e) => {
             const scenarioId = card.dataset.scenario;
+            console.log('Scenario card clicked:', scenarioId);
             if (scenarioId) {
                 startDeescalation(scenarioId);
             }
@@ -467,7 +469,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (exitResultsBtn) {
         exitResultsBtn.addEventListener('click', exitDeescalation);
     }
-});
+}
+
+// Initialize when DOM is ready (or immediately if already loaded)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeDeescalationListeners);
+} else {
+    // DOM already loaded, initialize immediately
+    initializeDeescalationListeners();
+}
 
 // Make functions globally accessible
 window.startDeescalation = startDeescalation;
