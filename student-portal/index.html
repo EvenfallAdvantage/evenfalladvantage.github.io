@@ -308,18 +308,107 @@
                 </div>
                 
                 <div class="deescalation-container">
-                    <div class="coming-soon-message">
-                        <i class="fas fa-hands-helping" style="font-size: 4rem; color: var(--secondary-color); margin-bottom: 1rem;"></i>
-                        <h3>De-Escalation Training Coming Soon</h3>
-                        <p>Interactive de-escalation scenarios and training modules will be available here.</p>
-                        <p>Learn techniques for:</p>
-                        <ul style="text-align: left; max-width: 500px; margin: 1rem auto;">
-                            <li>Verbal de-escalation strategies</li>
-                            <li>Active listening and empathy</li>
-                            <li>Recognizing escalation triggers</li>
-                            <li>Safe positioning and body language</li>
-                            <li>Crisis intervention techniques</li>
-                        </ul>
+                    <!-- Scenario Selection Screen -->
+                    <div id="deescalation-menu" class="deescalation-menu">
+                        <h3>Select a Scenario</h3>
+                        <div class="scenario-cards">
+                            <div class="scenario-card" onclick="startDeescalation('lost-wristband')">
+                                <i class="fas fa-ticket-alt"></i>
+                                <h4>Lost Wristband at the Gate</h4>
+                                <p>A patron claims they lost their entry wristband and wants to enter the venue.</p>
+                                <div class="scenario-meta">
+                                    <span><i class="fas fa-clock"></i> 10-15 min</span>
+                                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                                </div>
+                                <button class="btn btn-primary">Start Scenario</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Training Screen -->
+                    <div id="deescalation-training" class="deescalation-training hidden">
+                        <!-- Header with Back Button -->
+                        <div class="training-header">
+                            <button class="btn btn-secondary" onclick="exitDeescalation()">
+                                <i class="fas fa-arrow-left"></i> Exit Scenario
+                            </button>
+                            <h3 id="scenario-title">Lost Wristband at the Gate</h3>
+                        </div>
+
+                        <!-- Emotional Meter -->
+                        <div class="emotional-meter">
+                            <div class="meter-label">
+                                <span>Emotional State</span>
+                                <span id="meter-percentage">40%</span>
+                            </div>
+                            <div class="meter-bar">
+                                <div class="meter-fill" id="meter-fill" style="width: 40%"></div>
+                            </div>
+                            <div class="meter-states">
+                                <span class="state-calm">Calm</span>
+                                <span class="state-elevated">Elevated</span>
+                                <span class="state-critical">Critical</span>
+                            </div>
+                        </div>
+
+                        <!-- Subject Photo and Dialogue -->
+                        <div class="subject-interaction">
+                            <div class="subject-photo">
+                                <img id="subject-image" src="/images/de_escalation/1-Distressed.jpg" alt="Subject">
+                                <div class="subject-state-label" id="subject-state">Distressed</div>
+                            </div>
+                            <div class="subject-dialogue">
+                                <div class="dialogue-bubble" id="subject-dialogue">
+                                    Look man, I swear I had my wristband... I think it fell off when I was in the bathroom line. My friends are already inside. I paid $180 for this ticket. You gotta let me in, please.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Response Choices -->
+                        <div class="response-choices" id="response-choices">
+                            <!-- Choices will be populated by JavaScript -->
+                        </div>
+
+                        <!-- Progress Indicator -->
+                        <div class="progress-indicator">
+                            <span>Step <span id="current-step">1</span> of <span id="total-steps">4-5</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Results Screen -->
+                    <div id="deescalation-results" class="deescalation-results hidden">
+                        <div class="results-content">
+                            <div class="results-icon" id="results-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h3 id="results-title">De-escalation Successful!</h3>
+                            <div class="results-photo">
+                                <img id="results-image" src="/images/de_escalation/1-Happy.jpg" alt="Final State">
+                            </div>
+                            <p id="results-message"></p>
+                            <div class="results-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Final Emotional State</span>
+                                    <span class="stat-value" id="final-state">Happy</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Steps Taken</span>
+                                    <span class="stat-value" id="steps-taken">4</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Force Avoided</span>
+                                    <span class="stat-value" id="force-avoided">100%</span>
+                                </div>
+                            </div>
+                            <div class="results-actions">
+                                <button class="btn btn-primary" onclick="restartDeescalation()">
+                                    <i class="fas fa-redo"></i> Try Again
+                                </button>
+                                <button class="btn btn-secondary" onclick="exitDeescalation()">
+                                    <i class="fas fa-list"></i> Back to Scenarios
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -718,6 +807,7 @@
     <script src="js/state-laws.js"></script>
     <script src="js/state-selection.js"></script>
     <script src="js/profile.js"></script>
+    <script src="js/deescalation.js"></script>
     <script src="js/messages.js"></script>
     
     <!-- ElevenLabs AI Agent -->
