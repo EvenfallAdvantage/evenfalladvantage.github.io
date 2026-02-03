@@ -886,6 +886,12 @@ function showResults(step) {
                 console.log('📊 Initialized scenarioResults object');
             }
             
+            // Add to completedScenarios if not already there (do this regardless of personal best)
+            if (!progressData.completedScenarios.includes(scenarioId)) {
+                progressData.completedScenarios.push(scenarioId);
+                console.log('📝 Added to completedScenarios');
+            }
+            
             // Save or update personal best (lowest step count)
             const currentBest = progressData.scenarioResults[scenarioId];
             console.log('📈 Current best for', scenarioId, ':', currentBest);
@@ -897,26 +903,20 @@ function showResults(step) {
                     success: true
                 };
                 console.log('✅ New personal best saved!', progressData.scenarioResults[scenarioId]);
-                
-                // Also add to completedScenarios if not already there
-                if (!progressData.completedScenarios.includes(scenarioId)) {
-                    progressData.completedScenarios.push(scenarioId);
-                    console.log('📝 Added to completedScenarios');
-                }
-                
-                // Save progress
-                if (typeof saveProgress !== 'undefined') {
-                    saveProgress();
-                    console.log('💾 Progress saved to localStorage');
-                }
-                
-                // Update progress display to reflect new scenario completion
-                if (typeof updateProgressDisplay !== 'undefined') {
-                    updateProgressDisplay();
-                    console.log('📊 Progress display updated');
-                }
             } else {
-                console.log('⏭️ Not a new personal best, skipping save');
+                console.log('⏭️ Not a new personal best, but scenario still completed');
+            }
+            
+            // Always save progress and update display when scenario is completed
+            if (typeof saveProgress !== 'undefined') {
+                saveProgress();
+                console.log('💾 Progress saved to localStorage');
+            }
+            
+            // Update progress display to reflect scenario completion
+            if (typeof updateProgressDisplay !== 'undefined') {
+                updateProgressDisplay();
+                console.log('📊 Progress display updated');
             }
         } else {
             console.warn('⚠️ Could not save scenario result - scenarioId:', scenarioId, 'progressData available:', typeof progressData !== 'undefined');
