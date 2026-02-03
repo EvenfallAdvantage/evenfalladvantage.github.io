@@ -1303,26 +1303,26 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: linear-gradient(135deg, #d4a574 0%, #c99456 100%);
-    color: #1a1a1a;
+    background: #162029;
+    color: #d4a574;
     padding: 0.5rem 1rem;
     border-radius: 2rem;
     font-weight: 600;
     font-size: 0.9rem;
     margin: 1rem 0;
-    box-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
+    box-shadow: 0 2px 8px rgba(22, 32, 41, 0.4);
 }
 
 .personal-best-badge i {
     font-size: 1.1rem;
-    color: #1a1a1a !important;
+    color: #d4a574 !important;
     display: flex;
     align-items: center;
     margin: 0;
 }
 
 .scenario-card:hover .personal-best-badge i {
-    color: #1a1a1a !important;
+    color: #d4a574 !important;
 }
 
 /* Active Training Screen */
