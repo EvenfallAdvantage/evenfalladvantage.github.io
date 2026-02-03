@@ -404,41 +404,41 @@ function showResults(step) {
         const scenarioId = Object.keys(deescalationScenarios).find(id => deescalationScenarios[id] === deescalationScenario);
         console.log('🏆 Scenario completed successfully:', scenarioId, 'Steps:', stepCount);
         
-        if (scenarioId && window.progressData) {
+        if (scenarioId && typeof progressData !== 'undefined') {
             // Initialize scenarioResults if it doesn't exist
-            if (!window.progressData.scenarioResults) {
-                window.progressData.scenarioResults = {};
+            if (!progressData.scenarioResults) {
+                progressData.scenarioResults = {};
                 console.log('📊 Initialized scenarioResults object');
             }
             
             // Save or update personal best (lowest step count)
-            const currentBest = window.progressData.scenarioResults[scenarioId];
+            const currentBest = progressData.scenarioResults[scenarioId];
             console.log('📈 Current best for', scenarioId, ':', currentBest);
             
             if (!currentBest || stepCount < currentBest.steps) {
-                window.progressData.scenarioResults[scenarioId] = {
+                progressData.scenarioResults[scenarioId] = {
                     steps: stepCount,
                     date: new Date().toISOString(),
                     success: true
                 };
-                console.log('✅ New personal best saved!', window.progressData.scenarioResults[scenarioId]);
+                console.log('✅ New personal best saved!', progressData.scenarioResults[scenarioId]);
                 
                 // Also add to completedScenarios if not already there
-                if (!window.progressData.completedScenarios.includes(scenarioId)) {
-                    window.progressData.completedScenarios.push(scenarioId);
+                if (!progressData.completedScenarios.includes(scenarioId)) {
+                    progressData.completedScenarios.push(scenarioId);
                     console.log('📝 Added to completedScenarios');
                 }
                 
                 // Save progress
-                if (window.saveProgress) {
-                    window.saveProgress();
+                if (typeof saveProgress !== 'undefined') {
+                    saveProgress();
                     console.log('💾 Progress saved to localStorage');
                 }
             } else {
                 console.log('⏭️ Not a new personal best, skipping save');
             }
         } else {
-            console.warn('⚠️ Could not save scenario result - scenarioId:', scenarioId, 'progressData:', !!window.progressData);
+            console.warn('⚠️ Could not save scenario result - scenarioId:', scenarioId, 'progressData available:', typeof progressData !== 'undefined');
         }
     } else {
         icon.className = 'results-icon fail';
@@ -486,15 +486,23 @@ function exitDeescalation() {
 // Update scenario cards with personal best scores
 function updateScenarioCards() {
     console.log('🎯 Updating scenario cards...');
-    console.log('📊 Current progressData:', window.progressData);
-    console.log('🏆 Scenario results:', window.progressData?.scenarioResults);
+    
+    // Check if progressData is available
+    if (typeof progressData === 'undefined') {
+        console.warn('⚠️ progressData is not defined yet, retrying in 100ms...');
+        setTimeout(updateScenarioCards, 100);
+        return;
+    }
+    
+    console.log('📊 Current progressData:', progressData);
+    console.log('🏆 Scenario results:', progressData?.scenarioResults);
     
     const scenarioCards = document.querySelectorAll('.scenario-card');
     console.log('🃏 Found scenario cards:', scenarioCards.length);
     
     scenarioCards.forEach(card => {
         const scenarioId = card.getAttribute('data-scenario');
-        const scenarioResults = window.progressData?.scenarioResults?.[scenarioId];
+        const scenarioResults = progressData?.scenarioResults?.[scenarioId];
         console.log(`📋 Card ${scenarioId}:`, scenarioResults);
         
         // Remove existing personal best badge if any
