@@ -8,6 +8,25 @@ let emotionalMeter = 40; // 0-100%
 let stepCount = 0;
 let currentState = 'Distressed';
 
+// Audio file mapping for scenarios
+const scenarioAudio = {
+    'lost-wristband': {
+        'start': 'audio/de_escalation/S.mp3',
+        'good-path-step-2': 'audio/de_escalation/G2.mp3',
+        'good-path-step-3': 'audio/de_escalation/G3.mp3',
+        'bad-path-1-step-2': 'audio/de_escalation/B12.mp3',
+        'bad-path-1-step-3': 'audio/de_escalation/B13.mp3',
+        'bad-path-2-step-2': 'audio/de_escalation/B22.mp3',
+        'bad-path-2-step-3': 'audio/de_escalation/B23.mp3',
+        'bad-path-2-step-4': 'audio/de_escalation/B24.mp3',
+        'mixed-path-step-2': 'audio/de_escalation/M2.mp3',
+        'mixed-path-step-3-recovery': 'audio/de_escalation/M3R.mp3',
+        'mixed-path-step-3-proof': 'audio/de_escalation/M3P.mp3',
+        'success-happy': 'audio/de_escalation/P.mp3',
+        'fail-very-angry': 'audio/de_escalation/F.mp3'
+    }
+};
+
 // Scenario data structure
 const deescalationScenarios = {
     'lost-wristband': {
@@ -763,6 +782,9 @@ function loadStep(stepId) {
     updateEmotionalMeter();
     updateProgressIndicator();
     
+    // Play audio for this step
+    playStepAudio(stepId);
+    
     // Check if this is an ending
     if (step.isEnding) {
         setTimeout(() => showResults(step), 1000);
@@ -803,6 +825,36 @@ function updateSubjectDialogue(dialogue) {
         bubble.style.transition = 'opacity 0.5s ease';
         bubble.style.opacity = '1';
     }, 300);
+}
+
+// Play audio for current step
+function playStepAudio(stepId) {
+    // Get audio file for this step
+    const audioMap = scenarioAudio[currentScenarioId];
+    if (!audioMap || !audioMap[stepId]) {
+        return; // No audio for this step
+    }
+    
+    // Stop any currently playing audio
+    const existingAudio = document.getElementById('step-audio');
+    if (existingAudio) {
+        existingAudio.pause();
+        existingAudio.remove();
+    }
+    
+    // Create and play new audio
+    const audio = document.createElement('audio');
+    audio.id = 'step-audio';
+    audio.src = audioMap[stepId];
+    audio.style.display = 'none'; // Hide audio element
+    document.body.appendChild(audio);
+    
+    // Play audio with slight delay for dialogue fade-in
+    setTimeout(() => {
+        audio.play().catch(err => {
+            console.log('Audio playback failed:', err);
+        });
+    }, 400);
 }
 
 // Update emotional meter
