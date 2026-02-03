@@ -4984,7 +4984,9 @@ function submitAssessment() {
             module: currentAssessment,
             assessment: currentAssessment,
             score: percentage,
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            questions: shuffledQuestions,
+            userAnswers: userAnswers
         });
         addActivity(`Passed assessment: ${document.getElementById('quizTitle').textContent} (${percentage}%)`);
         saveProgress();
@@ -5531,7 +5533,13 @@ function reviewPastAssessment(resultIndex, fromBestAttempts = false) {
         'diverse-population': 'Module 5: Interacting with Diverse Populations Assessment',
         'crowd-management': 'Module 6: Crowd Management & Public Safety Assessment',
         'use-of-force': 'Module 7: Legal Aspects & Use of Force Assessment',
-        'comprehensive': 'Comprehensive Guard Certification Exam'
+        'comprehensive': 'Comprehensive Guard Certification Exam',
+        'systema-scout-orientation': 'Module 0: Orientation & Philosophy',
+        'systema-scout-walking': 'Module 1: Walking, Breathing, and Choice',
+        'systema-scout-observation': 'Module 2: Security Assessment',
+        'systema-scout-tension': 'Module 3: Glove Work & Tension Management',
+        'systema-scout-integration': 'Module 4: Integration & Self-Regulation',
+        'systema-scout-closing': 'Module 5: Closing Aim & Continued Practice'
     };
     
     let reviewHTML = `

@@ -112,7 +112,11 @@ async function saveProgressToDatabase(studentId) {
                                 score: result.score,
                                 passed: passed,
                                 time_taken_minutes: result.timeTaken || 0,
-                                answers_json: result.answers || {}
+                                answers_json: {
+                                    questions: result.questions || [],
+                                    userAnswers: result.userAnswers || [],
+                                    answers: result.answers || {}
+                                }
                             };
                             
                             // Add state code if this is Module 7
@@ -253,6 +257,9 @@ async function loadProgressFromDatabase() {
                         console.warn('Could not find module code for module_id:', moduleId, 'Assessment:', r.assessments?.assessment_name);
                     }
                     
+                    // Extract questions and userAnswers from answers_json if available
+                    const answersData = r.answers_json || {};
+                    
                     return {
                         module: moduleCode || 'unknown',
                         assessment: moduleCode || 'unknown',
@@ -260,7 +267,9 @@ async function loadProgressFromDatabase() {
                         passed: r.passed,
                         date: r.completed_at,
                         timeTaken: r.time_taken_minutes,
-                        state_code: r.state_code // Include state code for Module 7
+                        state_code: r.state_code, // Include state code for Module 7
+                        questions: answersData.questions || [],
+                        userAnswers: answersData.userAnswers || []
                     };
                 });
             
