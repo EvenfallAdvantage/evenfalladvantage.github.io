@@ -160,15 +160,27 @@
             </div>
         </section>
 
-        <!-- Sand Table Section -->
-        <!-- Updated: 2026-02-02 23:01 -->
+        <!-- Practice Section -->
+        <!-- Updated: 2026-02-02 23:13 -->
         <section id="sandtable" class="section">
-            <div class="section-header">
-                <h2>Interactive Sand Table</h2>
-                <p>Design security layouts and position personnel for various event scenarios</p>
+            <!-- Practice Tabs -->
+            <div class="profile-tabs">
+                <button class="profile-tab active" data-tab="sandtable-practice">
+                    <i class="fas fa-map-marked-alt"></i> Sand Table
+                </button>
+                <button class="profile-tab" data-tab="deescalation-practice">
+                    <i class="fas fa-hands-helping"></i> De-Escalation Training
+                </button>
             </div>
-            
-            <div class="sandtable-container">
+
+            <!-- Sand Table Tab -->
+            <div class="profile-tab-content active" id="sandtable-practice-tab">
+                <div class="section-header">
+                    <h2>Interactive Sand Table</h2>
+                    <p>Design security layouts and position personnel for various event scenarios</p>
+                </div>
+                
+                <div class="sandtable-container">
                 <!-- Scenario Selector -->
                 <div class="scenario-selector">
                     <h3>Select Scenario</h3>
@@ -283,6 +295,31 @@
                         <p id="feedbackMessage"></p>
                         <div id="feedbackDetails"></div>
                         <button class="btn btn-primary" onclick="closeFeedback()">Continue</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- De-Escalation Training Tab -->
+            <div class="profile-tab-content" id="deescalation-practice-tab">
+                <div class="section-header">
+                    <h2>De-Escalation Training</h2>
+                    <p>Practice verbal de-escalation techniques and conflict resolution strategies</p>
+                </div>
+                
+                <div class="deescalation-container">
+                    <div class="coming-soon-message">
+                        <i class="fas fa-hands-helping" style="font-size: 4rem; color: var(--secondary-color); margin-bottom: 1rem;"></i>
+                        <h3>De-Escalation Training Coming Soon</h3>
+                        <p>Interactive de-escalation scenarios and training modules will be available here.</p>
+                        <p>Learn techniques for:</p>
+                        <ul style="text-align: left; max-width: 500px; margin: 1rem auto;">
+                            <li>Verbal de-escalation strategies</li>
+                            <li>Active listening and empathy</li>
+                            <li>Recognizing escalation triggers</li>
+                            <li>Safe positioning and body language</li>
+                            <li>Crisis intervention techniques</li>
+                        </ul>
                     </div>
                 </div>
             </div>

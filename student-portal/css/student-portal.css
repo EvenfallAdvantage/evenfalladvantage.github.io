@@ -1215,6 +1215,43 @@ body {
     border-color: #f1c40f;
 }
 
+/* De-Escalation Training Styles */
+.deescalation-container {
+    padding: 2rem;
+}
+
+.coming-soon-message {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--card-background);
+    border-radius: 1rem;
+    box-shadow: var(--card-shadow);
+    max-width: 800px;
+    margin: 2rem auto;
+}
+
+.coming-soon-message h3 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1.8rem;
+}
+
+.coming-soon-message p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.coming-soon-message ul {
+    list-style-position: inside;
+    color: var(--text-secondary);
+}
+
+.coming-soon-message ul li {
+    padding: 0.5rem 0;
+    font-size: 1rem;
+}
+
 /* Feedback Panel */
 .feedback-panel {
     position: fixed;
