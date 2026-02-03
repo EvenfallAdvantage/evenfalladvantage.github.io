@@ -1315,7 +1315,14 @@ body {
 
 .personal-best-badge i {
     font-size: 1.1rem;
-    color: #1a1a1a;
+    color: #1a1a1a !important;
+    display: flex;
+    align-items: center;
+    margin: 0;
+}
+
+.scenario-card:hover .personal-best-badge i {
+    color: #1a1a1a !important;
 }
 
 /* Active Training Screen */
