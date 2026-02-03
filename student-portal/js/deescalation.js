@@ -2,8 +2,8 @@
 // Handles interactive scenario-based de-escalation training
 
 // Current scenario state
-let currentScenario = null;
-let currentStep = null;
+let deescalationScenario = null;
+let deescalationStep = null;
 let emotionalMeter = 40; // 0-100%
 let stepCount = 0;
 let currentState = 'Distressed';
@@ -262,27 +262,27 @@ const statePhotos = {
 
 // Initialize de-escalation training
 function startDeescalation(scenarioId) {
-    currentScenario = scenarios[scenarioId];
-    currentStep = 'start';
-    emotionalMeter = currentScenario.initialMeter;
+    deescalationScenario = scenarios[scenarioId];
+    deescalationStep = 'start';
+    emotionalMeter = deescalationScenario.initialMeter;
     stepCount = 1;
-    currentState = currentScenario.initialState;
+    currentState = deescalationScenario.initialState;
     
     // Hide menu, show training
     document.getElementById('deescalation-menu').classList.add('hidden');
     document.getElementById('deescalation-training').classList.remove('hidden');
     
     // Load first step
-    loadStep(currentStep);
+    loadStep(deescalationStep);
 }
 
 // Load a step in the scenario
 function loadStep(stepId) {
-    const step = currentScenario.steps[stepId];
+    const step = deescalationScenario.steps[stepId];
     
     // Update state
     currentState = step.state;
-    currentStep = stepId;
+    deescalationStep = stepId;
     
     // Update UI
     updateSubjectPhoto(step.state);
@@ -418,7 +418,7 @@ function restartDeescalation() {
     document.getElementById('deescalation-results').classList.add('hidden');
     
     // Reset and start
-    const scenarioId = Object.keys(scenarios).find(id => scenarios[id] === currentScenario);
+    const scenarioId = Object.keys(scenarios).find(id => scenarios[id] === deescalationScenario);
     startDeescalation(scenarioId);
 }
 
@@ -432,8 +432,8 @@ function exitDeescalation() {
     document.getElementById('deescalation-menu').classList.remove('hidden');
     
     // Reset state
-    currentScenario = null;
-    currentStep = null;
+    deescalationScenario = null;
+    deescalationStep = null;
     emotionalMeter = 40;
     stepCount = 0;
     currentState = 'Distressed';
