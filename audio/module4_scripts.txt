@@ -1,0 +1,107 @@
+ADVANCED SURVEILLANCE & STALKING RECOGNITION COURSE
+MODULE 4: TECHNICAL SURVEILLANCE RECOGNITION
+Audio Narration Scripts
+
+==============================================
+m4s1 - Welcome to Module 4
+==============================================
+Welcome to Module 4: Technical Surveillance Recognition. In this module, you'll learn to identify GPS trackers, hidden cameras, audio bugs, and other technical surveillance devices. You'll also learn when to call professional Technical Surveillance Counter-Measures specialists.
+
+==============================================
+m4s2 - Learning Objectives
+==============================================
+By the end of this module, you'll be able to identify common technical surveillance devices, understand GPS tracking methods and detection, recognize hidden cameras and audio bugs, learn counter-surveillance equipment basics, and know when to call professional TSCM services.
+
+==============================================
+m4s3 - What is Technical Surveillance?
+==============================================
+Technical surveillance involves the use of electronic devices to monitor, track, or record a person's activities, communications, or location. Unlike physical surveillance, technical surveillance can operate twenty-four hours a day, seven days a week, without human presence. This makes it both powerful and insidious.
+
+==============================================
+m4s4 - Types of GPS Trackers
+==============================================
+GPS tracking devices come in several types. Real-time trackers transmit location data continuously. Data loggers store location data for later retrieval. OBD-II trackers plug into your vehicle's diagnostic port. Battery-powered trackers use magnetic mounts and can be placed anywhere. Hardwired trackers connect to the vehicle's power system for long-term monitoring.
+
+==============================================
+m4s5 - Common GPS Hiding Locations
+==============================================
+GPS trackers are commonly hidden under the vehicle chassis using magnetic mounts, inside wheel wells, behind bumpers, under seats, in the glove compartment or center console, inside the dashboard, or in the OBD-II port under the steering column. Regular vehicle inspections can reveal these devices.
+
+==============================================
+m4s6 - GPS Detection Methods
+==============================================
+You can detect GPS trackers through visual inspection of vehicle exterior and interior, using RF radio frequency detectors, employing GPS detector devices, hiring professional TSCM sweeps, and checking for unfamiliar devices in the OBD-II port. Combine multiple methods for best results.
+
+==============================================
+m4s7 - Types of Hidden Cameras
+==============================================
+Hidden cameras come in various forms. Wired cameras connect to recording devices or networks. Wireless cameras transmit via WiFi or RF. Covert cameras are disguised as everyday objects. Pinhole cameras have extremely small lens openings. Night vision or IR cameras can record in darkness. Each type has different detection challenges.
+
+==============================================
+m4s8 - Common Camera Disguises
+==============================================
+Hidden cameras are often disguised as smoke detectors, clock radios, USB chargers, picture frames, air fresheners, pens, clothing hooks, and electrical outlets. Be suspicious of items that seem out of place or unnecessarily positioned to view private areas.
+
+==============================================
+m4s9 - Camera Detection Techniques
+==============================================
+Detect hidden cameras through visual inspection looking for unusual objects or out-of-place items, lens detection using a flashlight to spot camera lens reflections, RF detectors to find wireless camera transmissions, infrared detection using your smartphone camera to spot IR LEDs, and network scanning to check for unknown devices on WiFi.
+
+==============================================
+m4s10 - Types of Audio Surveillance
+==============================================
+Audio surveillance devices include RF transmitters that broadcast audio via radio frequency, GSM bugs that transmit via cellular networks, voice recorders that store audio locally, infinity transmitters that activate via phone call, and laser microphones that detect vibrations from windows. Each requires different detection methods.
+
+==============================================
+m4s11 - Common Audio Bug Locations
+==============================================
+Audio bugs are commonly hidden in electrical outlets, smoke detectors, light fixtures, furniture, picture frames, telephones, and computers and peripherals. Professional installers choose locations near conversations with access to power or good transmission paths.
+
+==============================================
+m4s12 - Audio Bug Detection
+==============================================
+Detect audio bugs using RF spectrum analyzers, non-linear junction detectors that find electronic components, physical inspection of suspicious areas, thermal imaging to detect heat from active devices, and professional TSCM sweeps for comprehensive detection.
+
+==============================================
+m4s13 - RF Detectors
+==============================================
+RF detectors detect radio frequency transmissions from wireless devices. Look for wide frequency range coverage, sensitivity adjustment capabilities, audio and visual alerts, and frequency display. Quality RF detectors are essential tools for counter-surveillance.
+
+==============================================
+m4s14 - Hidden Camera Detectors
+==============================================
+Specialized devices detect camera lenses using LED-based lens finders, infrared viewers, and combination RF and lens detectors. These tools can find cameras even when they're powered off by detecting the lens reflection.
+
+==============================================
+m4s15 - IoT Device Vulnerabilities
+==============================================
+Internet of Things devices can be exploited for surveillance. These include smart home assistants like Alexa and Google Home, smart TVs with cameras and microphones, baby monitors, security cameras, smart doorbells, and connected appliances. Each represents a potential surveillance risk.
+
+==============================================
+m4s16 - IoT Protection Measures
+==============================================
+Protect IoT devices by changing default passwords, keeping firmware updated, disabling unnecessary features, using network segmentation, covering cameras when not in use, and reviewing privacy settings regularly. Treat every connected device as a potential security risk.
+
+==============================================
+m4s17 - When to Call TSCM Professionals
+==============================================
+Contact Technical Surveillance Counter-Measures professionals when you suspect sophisticated surveillance, sensitive information has been compromised, DIY detection methods are inconclusive, legal proceedings require professional documentation, or high-value targets need regular sweeps.
+
+==============================================
+m4s18 - What TSCM Professionals Provide
+==============================================
+TSCM professionals provide comprehensive electronic sweeps, advanced detection equipment, physical inspection expertise, detailed reports and documentation, and recommendations for security improvements. Their expertise and equipment far exceed consumer-grade tools.
+
+==============================================
+m4s19 - Legal Considerations
+==============================================
+Important legal points to remember: recording laws vary by state with one-party versus two-party consent requirements. GPS tracking of vehicles you don't own is generally illegal. Hidden cameras in private spaces like bathrooms and bedrooms are illegal. Evidence of illegal surveillance should be reported to law enforcement. Tampering with surveillance devices may have legal implications. Always consult legal counsel.
+
+==============================================
+m4s20 - Key Takeaway
+==============================================
+Technical surveillance is increasingly accessible and sophisticated. While consumer-grade detection equipment can identify many common devices, professional TSCM services are recommended for high-stakes situations. Regular awareness and inspection of your environment, combined with good digital hygiene, provides the best protection against technical surveillance. Remember: if you find surveillance devices, document them and contact law enforcement rather than removing them yourself. Preservation of evidence is critical.
+
+==============================================
+END OF MODULE 4 SCRIPTS
+==============================================

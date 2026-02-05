@@ -1,0 +1,77 @@
+ADVANCED SURVEILLANCE & STALKING RECOGNITION COURSE
+MODULE 1: INTRODUCTION TO SURVEILLANCE & STALKING
+Audio Narration Scripts
+
+==============================================
+m1s1 - Welcome
+==============================================
+Welcome to Advanced Surveillance and Stalking Recognition. This comprehensive course will teach you how to detect physical surveillance, recognize stalking behaviors, and protect yourself from both technical and cyber monitoring. Whether you're a security professional or a civilian concerned about personal safety, this training provides practical, evidence-based techniques that can save lives.
+
+==============================================
+m1s2 - Learning Objectives
+==============================================
+In this module, you'll learn to understand the legal definitions of surveillance and stalking, distinguish between different types of surveillance, recognize the real-world impact of stalking on victims and society, and understand why this training matters for both professionals and civilians.
+
+==============================================
+m1s3 - What is Surveillance?
+==============================================
+Surveillance is the systematic observation of people, places, or activities for the purpose of gathering information. While surveillance can be conducted for legitimate purposes such as law enforcement or security operations, it can also be used with malicious intent.
+
+==============================================
+m1s4 - Types of Surveillance
+==============================================
+There are three main types of surveillance covered in this course. Physical surveillance involves direct observation using human operatives, either on foot or in vehicles. Technical surveillance uses electronic devices such as cameras, GPS trackers, or listening devices. Cyber surveillance monitors digital activities, social media, emails, and online behavior.
+
+==============================================
+m1s5 - What is Stalking?
+==============================================
+Stalking is a pattern of repeated, unwanted attention and contact that causes fear or concern for safety. According to the U.S. Department of Justice, stalking is defined as "a course of conduct directed at a specific person that would cause a reasonable person to feel fear."
+
+==============================================
+m1s6 - Key Elements of Stalking
+==============================================
+For behavior to be considered stalking, it must meet several key elements. First, there must be a pattern of behavior, typically two or more incidents, though this varies by jurisdiction. Second, the contact must be unwanted - the victim has not consented to the attention. Third, the behavior must cause reasonable fear for safety or substantial emotional distress. Finally, the perpetrator knows or should know their behavior is unwanted.
+
+==============================================
+m1s7 - Surveillance vs Stalking
+==============================================
+While related, surveillance and stalking have important distinctions. Surveillance may be legal when conducted with proper authorization, while stalking is always illegal when it meets statutory requirements. Surveillance is typically covert and professional, whereas stalking may be overt or covert and often escalates over time. Surveillance has an information gathering purpose, while stalking is motivated by harassment, intimidation, or control. Surveillance is conducted by trained operatives, while stalking is conducted by individuals with personal motives.
+
+==============================================
+m1s8 - Statistics Part 1
+==============================================
+The statistics on stalking are sobering. One in six women and one in seventeen men have experienced stalking in their lifetime, according to the CDC. Over seven point five million people are stalked annually in the United States alone.
+
+==============================================
+m1s9 - Statistics Part 2
+==============================================
+Perhaps most alarming, seventy-six percent of femicide victims were stalked prior to being killed. Eighty-five percent of stalking victims know their stalker. And technology-facilitated stalking has increased four hundred percent in recent years.
+
+==============================================
+m1s10 - Why This Training Matters for Security Professionals
+==============================================
+For security professionals, this training is essential. You'll learn to protect high-value clients from hostile surveillance, detect pre-attack indicators before incidents occur, implement effective counter-surveillance measures, and advise clients on personal security protocols.
+
+==============================================
+m1s11 - Why This Training Matters for Civilians
+==============================================
+For civilians, this training can be life-saving. You'll learn to recognize when you're being followed or monitored, protect yourself and loved ones from stalking, understand your legal rights and reporting options, and implement practical safety measures in daily life.
+
+==============================================
+m1s12 - Legal Framework
+==============================================
+All fifty U.S. states, the District of Columbia, and U.S. territories have anti-stalking laws. However, definitions and penalties vary by jurisdiction. Federal stalking laws include Title 18 U.S.C. Section 2261A for interstate stalking, Title 18 U.S.C. Section 875(c) for interstate communications containing threats, and Title 47 U.S.C. Section 223 for harassing telephone calls.
+
+==============================================
+m1s13 - Course Overview
+==============================================
+This comprehensive course covers eight modules. You'll learn about pre-attack indicators and behavioral analysis, physical surveillance detection techniques, technical surveillance recognition, cyber stalking and digital surveillance, operational security principles, documentation and legal reporting, and response strategies and safety planning.
+
+==============================================
+m1s14 - Key Takeaway
+==============================================
+Surveillance and stalking are serious threats that can affect anyone. Understanding the fundamentals of recognition and response is the first step in protecting yourself and others. This course provides practical, evidence-based training that bridges the gap between professional security practices and civilian personal safety. Remember, knowledge is protection.
+
+==============================================
+END OF MODULE 1 SCRIPTS
+==============================================

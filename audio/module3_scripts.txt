@@ -1,0 +1,102 @@
+ADVANCED SURVEILLANCE & STALKING RECOGNITION COURSE
+MODULE 3: PHYSICAL SURVEILLANCE DETECTION
+Audio Narration Scripts
+
+==============================================
+m3s1 - Welcome to Module 3
+==============================================
+Welcome to Module 3: Physical Surveillance Detection. This module teaches you the art and science of detecting when you're being followed. You'll learn surveillance detection route methodology, recognize foot and vehicle surveillance patterns, and implement effective counter-surveillance techniques.
+
+==============================================
+m3s2 - Learning Objectives
+==============================================
+By the end of this module, you'll understand surveillance detection route methodology, recognize foot surveillance patterns and techniques, identify vehicle surveillance indicators, detect surveillance teams and coordination, and implement effective counter-surveillance measures.
+
+==============================================
+m3s3 - What is Physical Surveillance?
+==============================================
+Physical surveillance is the direct observation of a person, place, or activity using human operatives. It can be conducted on foot, in vehicles, or from fixed positions. Professional surveillance is typically covert, systematic, and coordinated. Understanding how surveillance works is the first step in detecting it.
+
+==============================================
+m3s4 - Surveillance Detection Routes Overview
+==============================================
+A Surveillance Detection Route, or SDR, is a pre-planned route designed to expose hostile surveillance while appearing natural to observers. SDRs are used by intelligence operatives, executive protection teams, and anyone concerned about being followed. The route creates opportunities to observe if you're being watched.
+
+==============================================
+m3s5 - Key Principles of SDRs
+==============================================
+Effective SDRs follow five key principles. First, appear natural: all movements must seem logical and unforced. Second, create opportunities: design routes that force surveillance to reveal themselves. Third, vary patterns: never use the same route repeatedly. Fourth, use terrain: leverage choke points, channels, and observation points. Fifth, manage time: arrive at destinations on schedule despite route complexity.
+
+==============================================
+m3s6 - SDR Technique: The Turn
+==============================================
+Making turns at natural corners gives you a chance to look back and see who is behind. More importantly, a turn forces followers to react to your seemingly sudden movements. Use building corners, intersections, and natural turning points to create observation opportunities.
+
+==============================================
+m3s7 - SDR Technique: Stairstepping
+==============================================
+Stairstepping involves making a series of left and right turns, usually in a grid pattern. The rule of thumb: anyone still behind you after three to four turns in a stairstep pattern is likely following you. This technique is provocative and must be followed immediately by a logical stop to explain the unusual route.
+
+==============================================
+m3s8 - SDR Technique: Channels
+==============================================
+Channels are sections of route chosen to force surveillance to follow directly behind. Examples include bridges, alleys, tunnels, isolated roads, and single-lane areas. An effective channel will force a surveillance team into a wagon train formation, making them easier to spot.
+
+==============================================
+m3s9 - SDR Technique: Reversals
+==============================================
+Reversals are U-turns that allow you to look back naturally and force surveillance to react. Reversals are highly provocative and must be followed by a stop that explains the reversal, such as stopping at a store on the opposite side of a divided street. This technique can break surveillance or force them to reveal themselves.
+
+==============================================
+m3s10 - SDR Technique: The 90-Degree Break
+==============================================
+The only technique that works to detect a well-operated hostile bubble: move swiftly and decisively at ninety degrees to your general direction of travel for at least four blocks, then immediately resume travel along the original direction. This breaks the bubble and forces re-deployment, revealing the surveillance team.
+
+==============================================
+m3s11 - One-Man Surveillance
+==============================================
+Single operative following the target. This is the easiest to detect but most commonly used for casual stalking. Look for the same person appearing repeatedly in different locations. One-man surveillance is vulnerable to being spotted.
+
+==============================================
+m3s12 - Two-Man AB Surveillance
+==============================================
+Two operatives alternate following the target. Operative A maintains visual contact while operative B provides backup and can take over if A is compromised. This is more difficult to detect than one-man surveillance but still has vulnerabilities.
+
+==============================================
+m3s13 - Three-Man ABC Surveillance
+==============================================
+The most common professional configuration. Operative A is the primary follower maintaining close contact. Operative B takes a parallel position, ready to take over. Operative C positions ahead of the target and can observe from the front. This formation is highly effective and difficult to detect.
+
+==============================================
+m3s14 - Vehicle Surveillance Indicators
+==============================================
+Watch for these indicators of vehicle surveillance. The same vehicle appears multiple times in different locations. A vehicle maintains consistent distance despite speed changes. Cars follow through unusual turns or route deviations. Multiple vehicles appear to coordinate movements. Vehicles with multiple occupants, tinted windows, or covered license plates. Vehicles that seem out of place for the area.
+
+==============================================
+m3s15 - The Four-Turn Test
+==============================================
+Make four consecutive turns in the same direction, creating a square. Any vehicle still behind you after completing the square is likely following you. This is one of the most reliable vehicle surveillance detection techniques.
+
+==============================================
+m3s16 - Areas of Predictable Travel
+==============================================
+Areas of Predictable Travel, or APTs, are locations where your movement is constrained and predictable. These include your home or workplace, regular routes you travel, choke points like bridges and tunnels, parking garages, and building entrances and exits. Surveillance teams often position at APTs because they know you'll pass through.
+
+==============================================
+m3s17 - Counter-Surveillance Basics
+==============================================
+Counter-surveillance involves actively identifying surveillance operatives. Key principles include: maintain situational awareness at all times, use reflective surfaces like windows and mirrors to observe behind you, vary your routine and routes, document suspicious observations, never confront suspected surveillance directly, and report to appropriate authorities.
+
+==============================================
+m3s18 - Natural Observation Techniques
+==============================================
+Ways to observe without appearing suspicious include window shopping using reflections, tying your shoe, checking your phone, waiting at crosswalks, sitting at outdoor cafes, and using building entrances with glass doors. These techniques allow you to observe your surroundings without alerting surveillance.
+
+==============================================
+m3s19 - Key Takeaway
+==============================================
+Physical surveillance detection is both an art and a science. Professional surveillance teams are highly trained and difficult to detect, but they must follow certain patterns and principles that create vulnerabilities. By understanding SDR methodology and surveillance patterns, you can significantly increase your ability to detect when you're being followed. Remember: the goal is not to confront surveillance, but to detect it and take appropriate action. Your awareness is your greatest defense.
+
+==============================================
+END OF MODULE 3 SCRIPTS
+==============================================

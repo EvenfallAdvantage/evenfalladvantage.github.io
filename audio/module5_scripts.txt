@@ -1,0 +1,97 @@
+ADVANCED SURVEILLANCE & STALKING RECOGNITION COURSE
+MODULE 5: CYBER STALKING & DIGITAL SURVEILLANCE
+Audio Narration Scripts
+
+==============================================
+m5s1 - Welcome to Module 5
+==============================================
+Welcome to Module 5: Cyber Stalking and Digital Surveillance. In this module, you'll learn about the growing threat of online harassment, social media monitoring, spyware, and digital tracking. You'll discover how to protect your digital footprint and respond effectively to cyber stalking.
+
+==============================================
+m5s2 - Learning Objectives
+==============================================
+By the end of this module, you'll be able to recognize cyber stalking behaviors and tactics, understand social media monitoring and open source intelligence, identify spyware and stalkerware on your devices, protect your digital footprint, and report and respond to cyber stalking effectively.
+
+==============================================
+m5s3 - What is Cyber Stalking?
+==============================================
+Cyber stalking is the use of the Internet, email, or other electronic communications to stalk, harass, or threaten an individual. It may include false accusations, defamation, monitoring, identity theft, threats, or solicitation. Cyber stalking can be as dangerous as physical stalking and often accompanies it.
+
+==============================================
+m5s4 - Common Cyber Stalking Behaviors
+==============================================
+Common cyber stalking behaviors include sending threatening or harassing messages, monitoring online activities, posting false information online, identity theft or impersonation, doxing which is publishing private information, cyberbullying and harassment, tracking location through social media, and installing spyware on devices.
+
+==============================================
+m5s5 - Social Media Monitoring and OSINT
+==============================================
+Open Source Intelligence, or OSINT, involves gathering information from publicly available sources. Stalkers use OSINT techniques to learn about their targets through social media and public records. Understanding what information you're sharing is critical to protection.
+
+==============================================
+m5s6 - What Stalkers Learn from Social Media
+==============================================
+From social media, stalkers can learn your location and travel patterns, daily routines and schedules, friends and family connections, workplace and school information, hobbies and interests, relationship status, and photos revealing home or car details. Every post is a piece of intelligence.
+
+==============================================
+m5s7 - Privacy Settings Best Practices
+==============================================
+Protect yourself by setting profiles to private, limiting who can see your posts, disabling location tagging, reviewing tagged photos before posting, limiting friend and follower lists visibility, turning off last seen indicators, and disabling read receipts. Privacy settings are your first line of defense.
+
+==============================================
+m5s8 - Types of Spyware
+==============================================
+Malicious software comes in many forms. Keyloggers record keystrokes. Screen recorders capture screen activity. Location trackers monitor GPS location. Communication monitors access texts, calls, and emails. Remote access tools control devices remotely. Each type violates your privacy differently.
+
+==============================================
+m5s9 - Signs Your Device May Be Compromised
+==============================================
+Watch for these warning signs: unusual battery drain, increased data usage, device running hot, unfamiliar apps installed, settings changed without your knowledge, strange background noise on calls, and unexpected reboots. These symptoms often indicate spyware infection.
+
+==============================================
+m5s10 - Spyware Protection Measures
+==============================================
+Protect your devices by using strong passwords and biometrics, enabling two-factor authentication, keeping software updated, installing apps from official stores only, reviewing app permissions regularly, using mobile security software, and performing a factory reset if compromised.
+
+==============================================
+m5s11 - Email and Messaging Surveillance
+==============================================
+Email and messaging threats include account compromise, message interception, phishing attacks, and forwarding rules set without your knowledge. Protect yourself by using encrypted messaging apps, enabling two-factor authentication, checking for forwarding rules, using unique passwords, and being cautious with links.
+
+==============================================
+m5s12 - Location Tracking Through Apps
+==============================================
+Many apps track location even when not in use. Common tracking methods include GPS tracking apps, Find My Phone features, social media check-ins, photo metadata called EXIF data, fitness apps, and dating apps. Each reveals your movements and patterns.
+
+==============================================
+m5s13 - Location Tracking Protection
+==============================================
+Protect your location by reviewing app location permissions, disabling location services when not needed, removing photo metadata before sharing, avoiding check-ins on social media, and using VPN services. Control what location data you share.
+
+==============================================
+m5s14 - Doxing and Online Harassment
+==============================================
+Doxing is publishing private information online with malicious intent. Information often targeted includes home address, phone numbers, email addresses, workplace information, family member details, and financial information. Doxing can lead to real-world harm.
+
+==============================================
+m5s15 - Doxing Prevention
+==============================================
+Prevent doxing by using privacy services for domain registration, opting out of data broker sites, using separate email for public accounts, limiting personal information online, and using pseudonyms when possible. Minimize your digital footprint.
+
+==============================================
+m5s16 - Reporting Cyber Stalking
+==============================================
+If you're being cyber stalked, take these steps: document all incidents with screenshots, dates, and times. Block the stalker on all platforms. Report to platform administrators. File a police report. Contact the FBI IC3 for federal crimes. Seek a restraining order if appropriate. Contact victim support organizations.
+
+==============================================
+m5s17 - Digital Hygiene Best Practices
+==============================================
+Maintain good digital hygiene by using password managers, enabling encryption, conducting regular security audits, separating personal and professional accounts, being cautious about oversharing, reviewing privacy policies, and using secure browsers. Make security a habit.
+
+==============================================
+m5s18 - Key Takeaway
+==============================================
+Cyber stalking is a growing threat that can be as dangerous as physical stalking. Your digital footprint reveals more than you realize. By implementing strong privacy practices, monitoring your accounts, and being cautious about what you share online, you can significantly reduce your vulnerability to cyber stalking and digital surveillance. Remember: once information is online, it's nearly impossible to completely remove. Think before you post.
+
+==============================================
+END OF MODULE 5 SCRIPTS
+==============================================

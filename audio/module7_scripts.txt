@@ -1,0 +1,117 @@
+ADVANCED SURVEILLANCE & STALKING RECOGNITION COURSE
+MODULE 7: DOCUMENTATION, REPORTING & LEGAL CONSIDERATIONS
+Audio Narration Scripts
+
+==============================================
+m7s1 - Welcome to Module 7
+==============================================
+Welcome to Module 7: Documentation, Reporting, and Legal Considerations. This module teaches you the critical skills of evidence collection, proper documentation, and working with law enforcement. Your documentation can make the difference between a successful prosecution and a case that falls apart.
+
+==============================================
+m7s2 - Learning Objectives
+==============================================
+By the end of this module, you'll understand proper evidence collection and preservation, know how to maintain effective documentation logs, understand how to report to law enforcement, know what legal protections are available, and learn to work effectively with prosecutors and victim services.
+
+==============================================
+m7s3 - Why Documentation Matters
+==============================================
+Stalking and surveillance cases require establishing a course of conduct, a pattern of behavior over time. Detailed documentation is critical for proving the pattern to law enforcement, obtaining restraining orders, supporting criminal prosecution, civil litigation, and demonstrating reasonable fear. Without documentation, cases often fail.
+
+==============================================
+m7s4 - Types of Evidence
+==============================================
+Evidence comes in many forms. Physical evidence includes letters, gifts, and objects left behind. Digital evidence encompasses emails, texts, and social media messages. Photographic evidence captures images of the stalker, their vehicle, or damage. Video evidence includes security footage and recordings. Audio evidence consists of voicemails and recorded threats. Documentary evidence includes police reports and medical records.
+
+==============================================
+m7s5 - Evidence Collection Best Practices
+==============================================
+Follow these best practices: don't delete messages or emails, take screenshots with dates and times visible, save original files and make copies for working, photograph physical evidence with a ruler for scale, note date, time, and location for all incidents, preserve chain of custody, and store evidence securely. Proper collection ensures admissibility.
+
+==============================================
+m7s6 - Digital Evidence Preservation
+==============================================
+For digital evidence, screenshot entire conversations not just parts, include headers showing sender information, save to multiple locations including cloud and external drives, don't edit or alter evidence, preserve metadata when possible, and document how evidence was obtained. Digital evidence is fragile and easily challenged.
+
+==============================================
+m7s7 - What to Document
+==============================================
+Document the date and time of each incident, location where it occurred, detailed description of what happened, what was said using exact quotes when possible, names of witnesses, your response and actions taken, emotional and physical impact, photos or evidence collected, and police report numbers if filed. Thoroughness is essential.
+
+==============================================
+m7s8 - Documentation Log Template
+==============================================
+Use a consistent format for each entry. Include date, time, location, incident description, what was said or done, witnesses present, evidence collected, whether police were contacted and the report number, your response, and the impact on you. Consistency makes patterns clear.
+
+==============================================
+m7s9 - Photography Best Practices
+==============================================
+When photographing evidence, use timestamp features if available, take multiple angles, include context showing the surrounding area, photograph damage, vehicles, and people, don't confront while photographing, maintain a safe distance, and note camera settings and conditions. Photos must tell the complete story.
+
+==============================================
+m7s10 - Video Recording Considerations
+==============================================
+Before recording video, know your state's recording laws. Understand one-party consent versus two-party consent requirements. Know the difference between public and private spaces. Consider expectation of privacy. Understand admissibility in court. Illegal recordings can harm your case.
+
+==============================================
+m7s11 - Obtaining Witness Information
+==============================================
+When you have witnesses, get their full name and contact information, ask what they observed, request a written statement if they're willing, note their relationship to you, and document when and where they witnessed the incident. Witnesses corroborate your account.
+
+==============================================
+m7s12 - When to Report to Law Enforcement
+==============================================
+Report immediately for threats or violence. Report after establishing a pattern of two or more incidents. Report when fear for safety is reasonable. Report when a restraining order is needed. Report when evidence is collected. Early reporting creates an official record.
+
+==============================================
+m7s13 - How to Report Effectively
+==============================================
+When reporting, bring your documentation log, provide all evidence, be specific and factual, explain the pattern of behavior, describe the impact on your life, request a report number, ask about next steps, and follow up regularly. Preparation makes reporting more effective.
+
+==============================================
+m7s14 - What to Expect When Reporting
+==============================================
+Expect that an officer will take your statement, evidence will be collected, a report will be filed, an investigation may be opened, a detective may be assigned, and you may need to provide additional information. The process takes time but creates an official record.
+
+==============================================
+m7s15 - Types of Restraining Orders
+==============================================
+Different types of orders provide different protections. Emergency protective orders are immediate and short-term. Temporary restraining orders are pending a hearing. Permanent restraining orders are issued after a hearing for long-term protection. Criminal protective orders are part of a criminal case. Each serves a specific purpose.
+
+==============================================
+m7s16 - What Restraining Orders Can Require
+==============================================
+Restraining orders can require no contact, direct or indirect, a stay-away distance typically one hundred to five hundred yards, no harassment or surveillance, surrender of firearms, and moving out of a shared residence. Violations are criminal offenses.
+
+==============================================
+m7s17 - Obtaining a Restraining Order
+==============================================
+To obtain a restraining order, file a petition with the court, provide evidence of harassment or stalking, attend a hearing, testify about incidents, present evidence and witnesses, receive the order if granted, and ensure proper service on the respondent. Legal advocacy can help with this process.
+
+==============================================
+m7s18 - Working with Prosecutors
+==============================================
+Your role includes providing complete documentation, being available for interviews, testifying if the case goes to trial, informing the prosecutor of new incidents, and attending court proceedings. Prosecutors need your cooperation to build a strong case.
+
+==============================================
+m7s19 - What Prosecutors Need
+==============================================
+Prosecutors need a clear pattern of behavior, credible evidence, witness testimony, demonstration of fear, and proof of unwanted contact. Your documentation provides this foundation. Strong evidence leads to successful prosecution.
+
+==============================================
+m7s20 - Victim Support Resources
+==============================================
+Organizations that can help include the National Domestic Violence Hotline at 1-800-799-7233, the Stalking Resource Center, local victim advocacy programs, legal aid societies, counseling services, and safety planning assistance. You don't have to face this alone.
+
+==============================================
+m7s21 - What Victim Advocates Provide
+==============================================
+Victim advocates can explain the legal process, accompany you to court, help with safety planning, connect you with resources, provide emotional support, and assist with documentation. Advocates are trained professionals who understand what you're going through.
+
+==============================================
+m7s22 - Key Takeaway
+==============================================
+Documentation is your most powerful tool in stalking and surveillance cases. Detailed, consistent records establish the pattern of behavior required for legal action. Start documenting from the first incident, preserve all evidence, and don't hesitate to report to law enforcement. Remember: you are not alone. Victim advocates and support services are available to help you through the process. Your documentation can save your life.
+
+==============================================
+END OF MODULE 7 SCRIPTS
+==============================================
