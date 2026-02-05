@@ -2827,7 +2827,7 @@ body {
 }
 
 .score-badge.perfect {
-    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    background: linear-gradient(135deg, #dd8c33 0%, #ff9d47 100%);
     color: #1a1a1a;
     font-weight: 700;
 }
@@ -2996,7 +2996,7 @@ body {
 
 .progress-fill-inline {
     height: 100%;
-    background: linear-gradient(90deg, #D4AF37, #FFD700);
+    background: linear-gradient(90deg, #dd8c33, #ff9d47);
     transition: width 0.3s ease;
 }
 

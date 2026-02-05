@@ -91,10 +91,10 @@ async function loadAssessmentCourses() {
                         <span style="font-size: 0.9rem; color: var(--text-secondary);">
                             Assessments: ${progress.completed}/${progress.total}
                         </span>
-                        <span style="font-size: 0.9rem; font-weight: 600; color: #D4AF37;">${progressPercent}%</span>
+                        <span style="font-size: 0.9rem; font-weight: 600; color: #dd8c33;">${progressPercent}%</span>
                     </div>
                     <div class="progress-bar" style="background: var(--bg-secondary); border-radius: 10px; height: 8px; overflow: hidden;">
-                        <div class="progress-fill" style="background: linear-gradient(90deg, #D4AF37, #FFD700); height: 100%; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+                        <div class="progress-fill" style="background: linear-gradient(90deg, #dd8c33, #ff9d47); height: 100%; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
                     </div>
                 </div>
                 ` : `

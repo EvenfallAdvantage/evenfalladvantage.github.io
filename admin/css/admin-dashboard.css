@@ -754,7 +754,7 @@ body {
 .alert-message.warning {
     background: #fff3cd;
     color: #856404;
-    border-left: 4px solid #ffc107;
+    border-left: 4px solid #dd8c33;
 }
 
 .alert-message i {
