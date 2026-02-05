@@ -187,8 +187,8 @@ function renderAvailableCourses() {
                         <div class="course-price-inline ${isFree ? 'free' : ''}">
                             ${isFree ? 'FREE' : `$${course.price.toFixed(2)}`}
                         </div>
-                        <button class="btn btn-secondary" onclick="alert('Please contact support to enroll in this course.')">
-                            <i class="fas fa-envelope"></i> Contact Support
+                        <button class="btn ${isFree ? 'btn-primary' : 'btn-secondary'}" onclick="${isFree ? `enrollInCourse('${course.id}')` : `alert('Please contact support to enroll in this course.')`}">
+                            <i class="fas ${isFree ? 'fa-user-plus' : 'fa-envelope'}"></i> ${isFree ? 'Enroll Now' : 'Contact Support'}
                         </button>
                     </div>
                 </div>
@@ -225,6 +225,38 @@ function backToCourses() {
     document.getElementById('availableCoursesSection').style.display = 'block';
     document.getElementById('courseModulesView').style.display = 'none';
     currentSelectedCourse = null;
+}
+
+// Enroll in a free course
+async function enrollInCourse(courseId) {
+    try {
+        const currentUser = await Auth.getCurrentUser();
+        if (!currentUser) {
+            alert('Please log in to enroll in courses.');
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('student_course_enrollments')
+            .insert({
+                student_id: currentUser.id,
+                course_id: courseId,
+                enrollment_status: 'active',
+                enrollment_type: 'free',
+                amount_paid: 0,
+                currency: 'USD'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        alert('Successfully enrolled! Refreshing page...');
+        window.location.reload();
+    } catch (error) {
+        console.error('Error enrolling in course:', error);
+        alert('Error enrolling in course. Please try again.');
+    }
 }
 
 // Load training modules for a specific course
