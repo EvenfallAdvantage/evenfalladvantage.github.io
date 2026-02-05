@@ -79,7 +79,7 @@
 .conversations-header h3 {
     margin: 0;
     font-size: 1.8rem;
-    color: var(--primary-color, #162029);
+    color: var(--primary-color, #1d3451);
     flex-shrink: 0;
 }
 
@@ -125,7 +125,7 @@
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary-color, #162029), var(--accent-color, #3498db));
+    background: linear-gradient(135deg, var(--primary-color, #1d3451), var(--accent-color, #3498db));
     display: flex;
     align-items: center;
     justify-content: center;

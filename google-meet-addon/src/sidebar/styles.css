@@ -9,7 +9,7 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f8f9fa;
-    color: #162029;
+    color: #1d3451;
     overflow: hidden;
 }
 
@@ -22,7 +22,7 @@ body {
 
 /* Header */
 .header {
-    background: linear-gradient(135deg, #162029 0%, #1a2633 100%);
+    background: linear-gradient(135deg, #1d3451 0%, #1a2633 100%);
     color: white;
     padding: 1.5rem;
     text-align: center;
@@ -171,7 +171,7 @@ body {
 
 .message.ai .message-bubble {
     background: #f0f0f0;
-    color: #162029;
+    color: #1d3451;
     border-bottom-left-radius: 0.25rem;
 }
 

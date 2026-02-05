@@ -508,7 +508,7 @@
 
 .modal-header h2 {
     margin: 0;
-    color: var(--primary-color, #162029);
+    color: var(--primary-color, #1d3451);
     font-size: 2rem;
 }
 
@@ -530,7 +530,7 @@
 
 .close-btn:hover {
     background: #f8f9fa;
-    color: var(--primary-color, #162029);
+    color: var(--primary-color, #1d3451);
 }
 
 .modal-body {
@@ -544,7 +544,7 @@
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    color: var(--primary-color, #162029);
+    color: var(--primary-color, #1d3451);
     font-weight: 600;
     font-size: 1.4rem;
 }
@@ -612,7 +612,7 @@
 }
 
 .cert-category-title {
-    color: var(--primary-color, #162029);
+    color: var(--primary-color, #1d3451);
     font-size: 1.6rem;
     margin: 0 0 1rem 0;
     display: flex;
@@ -647,7 +647,7 @@
 
 .cert-info h5 {
     margin: 0 0 0.5rem 0;
-    color: var(--primary-color, #162029);
+    color: var(--primary-color, #1d3451);
     font-size: 1.6rem;
 }
 
@@ -682,7 +682,7 @@
 }
 
 .cert-link:hover {
-    color: var(--primary-color, #162029);
+    color: var(--primary-color, #1d3451);
 }
 
 .btn-icon-danger {
