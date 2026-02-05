@@ -26,7 +26,7 @@ body {
     align-items: center;
     padding: 1rem 1.5rem;
     background: #162029;
-    border-bottom: 2px solid #d59b3c;
+    border-bottom: 2px solid #dd8c33;
     z-index: 100;
 }
 
@@ -66,7 +66,7 @@ body {
 }
 
 .toggle-btn {
-    background: #d59b3c;
+    background: #dd8c33;
     color: white;
 }
 
@@ -136,7 +136,7 @@ body {
 }
 
 .meet-card i {
-    color: #d59b3c;
+    color: #dd8c33;
     margin-bottom: 1.5rem;
 }
 
@@ -172,12 +172,12 @@ body {
 
 .input-group input:focus {
     outline: none;
-    border-color: #d59b3c;
+    border-color: #dd8c33;
 }
 
 .join-btn {
     padding: 0.875rem 1.5rem;
-    background: #d59b3c;
+    background: #dd8c33;
     color: white;
     border: none;
     border-radius: 0.5rem;
@@ -206,7 +206,7 @@ body {
 
 .meet-instructions p {
     margin-bottom: 0.75rem;
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .meet-instructions ol {
@@ -272,14 +272,14 @@ body {
     gap: 1rem;
     padding: 1.5rem;
     background: #1e2d3d;
-    border-bottom: 2px solid #d59b3c;
+    border-bottom: 2px solid #dd8c33;
     flex-shrink: 0;
 }
 
 .ai-avatar {
     width: 50px;
     height: 50px;
-    background: linear-gradient(135deg, #d59b3c, #c48a33);
+    background: linear-gradient(135deg, #dd8c33, #c48a33);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -330,7 +330,7 @@ body {
 }
 
 .close-btn:hover {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 /* Sidebar Content */
@@ -343,7 +343,7 @@ body {
 
 .welcome-card {
     background: #1e2d3d;
-    border-left: 4px solid #d59b3c;
+    border-left: 4px solid #dd8c33;
     padding: 1rem;
     border-radius: 0.5rem;
     margin-bottom: 1rem;
@@ -406,7 +406,7 @@ body {
 }
 
 .message.user .message-bubble {
-    background: #d59b3c;
+    background: #dd8c33;
     color: white;
     border-bottom-right-radius: 0.25rem;
 }
@@ -482,8 +482,8 @@ body {
 }
 
 .quick-btn:hover {
-    background: #d59b3c;
-    border-color: #d59b3c;
+    background: #dd8c33;
+    border-color: #dd8c33;
 }
 
 /* Input Area */
@@ -507,13 +507,13 @@ body {
 
 #questionInput:focus {
     outline: none;
-    border-color: #d59b3c;
+    border-color: #dd8c33;
 }
 
 .send-btn {
     width: 50px;
     height: 50px;
-    background: #d59b3c;
+    background: #dd8c33;
     color: white;
     border: none;
     border-radius: 0.5rem;

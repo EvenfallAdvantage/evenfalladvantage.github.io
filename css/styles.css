@@ -2,8 +2,8 @@
 :root {
     --primary: #162029;
     --primary-color: #162029;
-    --secondary: #d59b3c;
-    --secondary-color: #d59b3c;
+    --secondary: #dd8c33;
+    --secondary-color: #dd8c33;
     --accent: #3498db;
     --light: #f8f9fa;
     --dark: #212529;
@@ -457,7 +457,7 @@ section:nth-child(even) {
 }
 
 .estimate-button:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
     color: white;
     transform: translateY(-3px);
     box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
@@ -609,7 +609,7 @@ section:nth-child(even) {
 }
 
 .service-card:hover h4 {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .service-card p {
@@ -674,7 +674,7 @@ section:nth-child(even) {
 }
 
 .badge.service-card:hover .badge-icon i {
-    color: #d59b3c;
+    color: #dd8c33;
     transform: scale(1.1);
 }
 
@@ -703,7 +703,7 @@ section:nth-child(even) {
 }
 
 .badge.service-card:hover .badge-title {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .badge .expanded-content {
@@ -868,7 +868,7 @@ section:nth-child(even) {
 }
 
 .division-card:hover .division-icon i {
-    color: #d59b3c;
+    color: #dd8c33;
     transform: scale(1.1);
 }
 
@@ -882,11 +882,11 @@ section:nth-child(even) {
 }
 
 #pathfinder .division-icon i {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 #pathfinder:hover .division-icon i {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 #vanguard .division-icon {
@@ -894,11 +894,11 @@ section:nth-child(even) {
 }
 
 #vanguard .division-icon i {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 #vanguard:hover .division-icon i {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .division-header h4 {
@@ -1278,7 +1278,7 @@ section:nth-child(even) {
 }
 
 .cta-button:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
     color: white;
     transform: translateY(-3px);
     box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
@@ -1400,7 +1400,7 @@ section:nth-child(even) {
 }
 
 .login-button:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
     transform: translateY(-3px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1554,7 +1554,7 @@ section:nth-child(even) {
 }
 
 .student-button:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
     color: white !important;
     transform: translateY(-3px);
     box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
@@ -1944,11 +1944,11 @@ footer {
 }
 
 .form-group.error input, .form-group.error select {
-    border-color: #d59b3c;
+    border-color: #dd8c33;
 }
 
 .error-message {
-    color: #d59b3c;
+    color: #dd8c33;
     font-size: 1.2rem;
     margin-top: 0.5rem;
 }
@@ -2023,7 +2023,7 @@ footer {
 }
 
 .next-button:hover, .submit-button:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
 }
 
 .terms {
@@ -2154,7 +2154,7 @@ footer {
 }
 
 .return-login:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
 }
 
 .login-redirect {
@@ -2602,7 +2602,7 @@ footer {
 }
 
 .action-button.delete:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
 }
 
 /* Documents Section */
@@ -2635,7 +2635,7 @@ footer {
 }
 
 .upload-button:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
 }
 
 .document-categories {
@@ -2771,7 +2771,7 @@ footer {
 }
 
 .submit-upload:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
 }
 
 .document-info {
@@ -3099,7 +3099,7 @@ footer {
 }
 
 .send-message:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
 }
 
 /* Profile Section */
@@ -3163,7 +3163,7 @@ footer {
 }
 
 .change-avatar:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
 }
 
 .profile-info h4 {
@@ -3271,7 +3271,7 @@ footer {
 }
 
 .save-button:hover {
-    background-color: #d59b3c;
+    background-color: #dd8c33;
 }
 
 /* Responsive Dashboard */
@@ -3321,7 +3321,7 @@ footer {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #d59b3c !important;
+    color: #dd8c33 !important;
 }
 
 .logout-link:hover {
@@ -3381,7 +3381,7 @@ footer {
 
 /* ElevenLabs AI Agent Custom Styling */
 elevenlabs-convai::part(button) {
-    background-color: #d59b3c !important;
+    background-color: #dd8c33 !important;
 }
 
 elevenlabs-convai::part(button):hover {

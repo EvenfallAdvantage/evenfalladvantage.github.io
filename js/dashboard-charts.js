@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 {
                     label: 'Document Activity',
                     data: [1, 0, 3, 2, 0, 1, 2],
-                    borderColor: '#d59b3c',
+                    borderColor: '#dd8c33',
                     backgroundColor: 'rgba(213, 155, 60, 0.1)',
                     tension: 0.3,
                     fill: true

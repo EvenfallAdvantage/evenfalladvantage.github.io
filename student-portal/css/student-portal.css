@@ -49,9 +49,9 @@ body > nav:first-child {
 :root {
     /* Evenfall Advantage Official Color Scheme */
     --primary-color: #162029;  /* Dark blue-gray */
-    --secondary-color: #d59b3c;  /* Evenfall Advantage Orange */
+    --secondary-color: #dd8c33;  /* Evenfall Advantage Orange */
     --accent-color: #3498db;  /* Blue accent */
-    --orange: #d59b3c;  /* Evenfall Advantage Orange */
+    --orange: #dd8c33;  /* Evenfall Advantage Orange */
     --light: #f8f9fa;
     --dark: #212529;
     --gray: #6c757d;
@@ -370,7 +370,7 @@ body {
 }
 
 .hero-card:hover i {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .hero-card i {
@@ -387,7 +387,7 @@ body {
 }
 
 .hero-card:hover h3 {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .hero-card p {
@@ -441,7 +441,7 @@ body {
 }
 
 .btn-secondary:hover {
-    background: #d59b3c;
+    background: #dd8c33;
     transform: translateY(-2px);
     box-shadow: 0 0 15px rgba(213, 155, 60, 0.5);
 }
@@ -1265,7 +1265,7 @@ body {
 }
 
 .scenario-card:hover i {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .scenario-card h4 {
@@ -1276,7 +1276,7 @@ body {
 }
 
 .scenario-card:hover h4 {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .scenario-card p {
@@ -3068,7 +3068,7 @@ body {
 
 /* ElevenLabs AI Agent Custom Styling */
 elevenlabs-convai::part(button) {
-    background-color: #d59b3c !important;
+    background-color: #dd8c33 !important;
 }
 
 elevenlabs-convai::part(button):hover {

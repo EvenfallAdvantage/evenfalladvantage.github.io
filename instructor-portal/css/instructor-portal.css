@@ -53,9 +53,9 @@ body > nav:first-child {
 :root {
     /* Instructor Portal Color Scheme - Orange theme */
     --primary-color: #162029;  /* Dark blue-gray */
-    --secondary-color: #d59b3c;  /* Orange accent (INSTRUCTOR) */
+    --secondary-color: #dd8c33;  /* Orange accent (INSTRUCTOR) */
     --accent-color: #3498db;  /* Blue accent */
-    --instructor-primary: #d59b3c;
+    --instructor-primary: #dd8c33;
     --instructor-secondary: #c48a33;
     --instructor-dark: #d68910;
     --instructor-light: #fef5e7;

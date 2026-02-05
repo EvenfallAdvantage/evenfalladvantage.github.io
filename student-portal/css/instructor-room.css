@@ -21,7 +21,7 @@
     font-size: 0.9rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: #d59b3c;
+    color: #dd8c33;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -58,7 +58,7 @@
 
 .copy-btn {
     padding: 0.5rem;
-    background: #d59b3c;
+    background: #dd8c33;
     border: none;
     border-radius: 0.25rem;
     color: white;
@@ -92,7 +92,7 @@
 }
 
 .participant-item.muted i {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .empty-state {
@@ -121,11 +121,11 @@
 
 .action-btn:hover {
     background: #34495e;
-    border-color: #d59b3c;
+    border-color: #dd8c33;
 }
 
 .action-btn i {
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 /* Agent Westwood Stats */
@@ -147,7 +147,7 @@
 }
 
 .stat i {
-    color: #d59b3c;
+    color: #dd8c33;
     font-size: 1.2rem;
 }
 
@@ -176,7 +176,7 @@
     font-size: 0.9rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: #d59b3c;
+    color: #dd8c33;
 }
 
 .checkbox-label {
