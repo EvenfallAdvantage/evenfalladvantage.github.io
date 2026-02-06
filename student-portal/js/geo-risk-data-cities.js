@@ -49,16 +49,72 @@ const CountyLevelCrimeData = {
     // Add more counties as needed
 };
 
+// State abbreviation mapping
+const stateAbbreviations = {
+    'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA',
+    'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE', 'Florida': 'FL', 'Georgia': 'GA',
+    'Hawaii': 'HI', 'Idaho': 'ID', 'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA',
+    'Kansas': 'KS', 'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+    'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS', 'Missouri': 'MO',
+    'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV', 'New Hampshire': 'NH', 'New Jersey': 'NJ',
+    'New Mexico': 'NM', 'New York': 'NY', 'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH',
+    'Oklahoma': 'OK', 'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+    'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT', 'Vermont': 'VT',
+    'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY'
+};
+
 // Helper function to find city data
 function getCityData(city, state) {
-    const key = `${city}, ${state}`;
-    return CityLevelCrimeData[key] || null;
+    // Normalize state to abbreviation
+    const stateAbbr = stateAbbreviations[state] || state;
+    
+    // Try exact match first
+    let key = `${city}, ${stateAbbr}`;
+    let data = CityLevelCrimeData[key];
+    
+    if (data) {
+        console.log(`✓ Found city data: ${key}`);
+        return data;
+    }
+    
+    // Try with full state name
+    key = `${city}, ${state}`;
+    data = CityLevelCrimeData[key];
+    
+    if (data) {
+        console.log(`✓ Found city data: ${key}`);
+        return data;
+    }
+    
+    console.warn(`✗ No city data found for: ${city}, ${state} (tried ${city}, ${stateAbbr})`);
+    return null;
 }
 
 // Helper function to find county data
 function getCountyData(county, state) {
-    const key = `${county}, ${state}`;
-    return CountyLevelCrimeData[key] || null;
+    // Normalize state to abbreviation
+    const stateAbbr = stateAbbreviations[state] || state;
+    
+    // Try exact match first
+    let key = `${county}, ${stateAbbr}`;
+    let data = CountyLevelCrimeData[key];
+    
+    if (data) {
+        console.log(`✓ Found county data: ${key}`);
+        return data;
+    }
+    
+    // Try with full state name
+    key = `${county}, ${state}`;
+    data = CountyLevelCrimeData[key];
+    
+    if (data) {
+        console.log(`✓ Found county data: ${key}`);
+        return data;
+    }
+    
+    console.warn(`✗ No county data found for: ${county}, ${state} (tried ${county}, ${stateAbbr})`);
+    return null;
 }
 
 // Export for use in geo-risk-service
