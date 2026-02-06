@@ -226,6 +226,22 @@ const SiteAssessments = {
         
         return data;
     },
+    
+    restoreFormData(data) {
+        if (!data) return;
+        
+        Object.keys(data).forEach(key => {
+            const input = document.getElementById(key) || document.querySelector(`[name="${key}"]`);
+            if (input) {
+                if (input.type === 'checkbox') {
+                    const values = Array.isArray(data[key]) ? data[key] : [data[key]];
+                    input.checked = values.includes(input.value);
+                } else {
+                    input.value = data[key];
+                }
+            }
+        });
+    },
 
     calculateRiskScore(data) {
         const likelihood = this.riskMatrix.likelihood[data.threatLikelihood?.toLowerCase()] || this.riskMatrix.likelihood.possible;
