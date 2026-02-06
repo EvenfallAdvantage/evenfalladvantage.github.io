@@ -311,33 +311,53 @@
         max-width: 50px !important;
     }
     
-    /* Force page breaks between major sections */
+    /* Remove hard page breaks - let content flow naturally */
     .report-page {
-        page-break-after: always;
-        page-break-inside: avoid;
+        page-break-after: auto;
+        page-break-inside: auto;
     }
     
-    /* Prevent breaking inside these elements */
+    /* Only prevent breaking inside small, critical elements */
     .risk-score-display,
-    .findings-section,
-    .recommendations-table,
-    .signature-section {
+    .signature-section,
+    .confidentiality-notice {
         page-break-inside: avoid;
     }
     
-    /* Allow breaks before section titles */
-    .report-section-title {
-        page-break-before: auto;
-        page-break-after: avoid;
+    /* Allow natural breaks in large sections */
+    .findings-section {
+        page-break-inside: auto;
     }
     
-    h3 {
+    /* Don't break immediately after headings */
+    .report-section-title,
+    h2, h3, h4 {
         page-break-after: avoid;
+        page-break-inside: avoid;
     }
     
-    /* Keep table rows together */
+    /* Keep individual table rows together but allow table to span pages */
+    .recommendations-table {
+        page-break-inside: auto;
+    }
+    
     .recommendations-table tr {
         page-break-inside: avoid;
+    }
+    
+    .recommendations-table thead {
+        display: table-header-group;
+    }
+    
+    /* Keep list items together */
+    li {
+        page-break-inside: avoid;
+    }
+    
+    /* Avoid orphans and widows */
+    p {
+        orphans: 3;
+        widows: 3;
     }
     
     /* Page margins for print */
