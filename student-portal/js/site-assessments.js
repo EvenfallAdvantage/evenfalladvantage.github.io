@@ -241,9 +241,77 @@ const SiteAssessments = {
         window.print();
     },
 
-    downloadPDF() {
-        alert('PDF download functionality requires a PDF library. For now, please use Print > Save as PDF.');
-        this.printReport();
+    async downloadPDF() {
+        const reportContent = document.getElementById('reportContent');
+        const data = this.collectFormData();
+        const clientName = data.clientName || 'Security_Assessment';
+        
+        try {
+            // Use PDFGenerator utility if available
+            if (window.PDFGenerator) {
+                await window.PDFGenerator.generateAssessmentReport(clientName, reportContent);
+            } else {
+                // Fallback to direct implementation
+                await this.generatePDFDirect(reportContent, clientName);
+            }
+        } catch (error) {
+            console.error('PDF generation error:', error);
+            alert('Error generating PDF. Please try using Print > Save as PDF instead.');
+        }
+    },
+
+    async generatePDFDirect(reportContent, clientName) {
+        const fileName = `${clientName.replace(/\s+/g, '_')}_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+        
+        const loadingDiv = document.createElement('div');
+        loadingDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(29, 52, 81, 0.95); color: white; padding: 2rem 3rem; border-radius: 1rem; z-index: 10000; text-align: center;';
+        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i><br><strong>Generating PDF...</strong><br><small>This may take a moment</small>';
+        document.body.appendChild(loadingDiv);
+        
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'letter',
+                compress: true
+            });
+            
+            const pages = reportContent.querySelectorAll('.report-page');
+            
+            for (let i = 0; i < pages.length; i++) {
+                if (i > 0) pdf.addPage();
+                
+                const canvas = await html2canvas(pages[i], {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    windowWidth: 900,
+                    onclone: (clonedDoc) => {
+                        const imgs = clonedDoc.querySelectorAll('img');
+                        imgs.forEach(img => img.style.maxWidth = '100%');
+                    }
+                });
+                
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
+            }
+            
+            pdf.save(fileName);
+            document.body.removeChild(loadingDiv);
+            
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+            successDiv.innerHTML = '<i class="fas fa-check-circle"></i> PDF downloaded successfully!';
+            document.body.appendChild(successDiv);
+            setTimeout(() => document.body.removeChild(successDiv), 3000);
+        } catch (error) {
+            document.body.removeChild(loadingDiv);
+            throw error;
+        }
     }
 };
 
