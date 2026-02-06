@@ -285,99 +285,108 @@
 .report-page {
     margin-bottom: 3rem;
     page-break-after: always;
+    padding: 2.5rem;
+    box-sizing: border-box;
 }
 
 /* Cover Page */
 .cover-page {
     text-align: center;
-    padding: 3rem 2rem;
+    padding: 3rem 2.5rem;
     min-height: 600px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 2rem;
+    gap: 1.5rem;
 }
 
 .cover-logo img {
-    max-width: 300px;
+    max-width: 200px;
     margin: 0 auto;
 }
 
 .cover-title {
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: #1d3451;
-    margin: 2rem 0;
+    margin: 1.5rem 0;
     line-height: 1.3;
+    font-weight: 700;
 }
 
 .cover-info {
     background: #f8f9fa;
-    padding: 2rem;
-    border-radius: 1rem;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
     text-align: left;
     max-width: 600px;
     margin: 0 auto;
 }
 
 .cover-info p {
-    margin: 0.75rem 0;
-    font-size: 1.1rem;
+    margin: 0.5rem 0;
+    font-size: 1rem;
+    line-height: 1.6;
 }
 
 .confidentiality-notice {
     background: #fff3cd;
     border: 2px solid #dd8c33;
-    padding: 1.5rem;
+    padding: 1.25rem;
     border-radius: 0.5rem;
-    max-width: 700px;
+    max-width: 650px;
     margin: 0 auto;
 }
 
 .confidentiality-notice h3 {
     color: #1d3451;
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.75rem 0;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    font-size: 1.1rem;
 }
 
 /* Report Sections */
 .report-section-title {
     color: #1d3451;
-    font-size: 2rem;
-    margin: 2rem 0 1.5rem 0;
+    font-size: 1.75rem;
+    margin: 0 0 1.25rem 0;
     padding-bottom: 0.75rem;
     border-bottom: 3px solid #dd8c33;
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    font-weight: 700;
 }
 
 .report-page h3 {
     color: #1d3451;
-    font-size: 1.5rem;
-    margin: 1.5rem 0 1rem 0;
+    font-size: 1.3rem;
+    margin: 1.25rem 0 0.75rem 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    font-weight: 700;
 }
 
 .report-page p {
-    line-height: 1.8;
-    margin: 1rem 0;
+    line-height: 1.7;
+    margin: 0.75rem 0;
     color: #2c3e50;
+    font-size: 1rem;
 }
 
 .report-page ul,
 .report-page ol {
-    line-height: 1.8;
-    margin: 1rem 0;
+    line-height: 1.7;
+    margin: 0.75rem 0;
     padding-left: 2rem;
 }
 
 .report-page li {
-    margin: 0.5rem 0;
+    margin: 0.4rem 0;
+    font-size: 1rem;
 }
 
 /* Risk Score Display */

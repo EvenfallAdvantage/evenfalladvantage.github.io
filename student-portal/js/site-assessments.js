@@ -79,64 +79,245 @@ const SiteAssessments = {
         }
     },
 
-    // Recommendations Library
-    recommendationsLibrary: {
-        hollowDoors: {
-            issue: 'Hollow-core or glass classroom doors',
-            recommendation: 'Replace with solid-core or metal doors',
-            priority: 1,
-            timeline: '1-3 months',
-            responsibility: 'Facilities'
-        },
-        noSecondaryLocks: {
-            issue: 'Classroom locking capability insufficient',
-            recommendation: 'Add interior and secondary locks to all classrooms',
-            priority: 1,
-            timeline: '1-2 months',
-            responsibility: 'Facilities'
-        },
-        noAlarmSystem: {
-            issue: 'Emergency alert system inadequate',
-            recommendation: 'Install intercom-based alarm system with classroom coverage',
-            priority: 1,
-            timeline: 'Immediate',
-            responsibility: 'Admin / IT'
-        },
-        coverageGaps: {
-            issue: 'Surveillance coverage gaps',
-            recommendation: 'Expand camera coverage to all entry points and critical areas',
-            priority: 2,
-            timeline: '3-6 months',
-            responsibility: 'Admin / IT'
-        },
-        noCrisisTeam: {
-            issue: 'No formalized crisis response team',
-            recommendation: 'Establish crisis response team with defined roles',
-            priority: 2,
-            timeline: '3 months',
-            responsibility: 'Admin'
-        },
-        limitedDrills: {
-            issue: 'Training and drills limited',
-            recommendation: 'Implement annual drills and quarterly refreshers',
-            priority: 3,
-            timeline: 'Ongoing',
-            responsibility: 'Crisis Team'
-        },
-        inadequateBarriers: {
-            issue: 'Insufficient physical barriers',
-            recommendation: 'Install layered deterrent barriers at entry points',
-            priority: 1,
-            timeline: '1-2 months',
-            responsibility: 'Facilities'
-        },
-        uncontrolledEntry: {
-            issue: 'Multiple uncontrolled entry points',
-            recommendation: 'Implement controlled access system with visitor management',
-            priority: 1,
-            timeline: '2-4 months',
-            responsibility: 'Admin / Security'
-        }
+    // Get facility-specific recommendations
+    getRecommendationsLibrary(facilityType) {
+        const libraries = {
+            'School': {
+                hollowDoors: {
+                    issue: 'Hollow-core or glass classroom doors',
+                    recommendation: 'Replace with solid-core or metal doors',
+                    priority: 1,
+                    timeline: '1-3 months',
+                    responsibility: 'Facilities Management'
+                },
+                noSecondaryLocks: {
+                    issue: 'Classroom locking capability insufficient',
+                    recommendation: 'Add interior and secondary locks to all classrooms',
+                    priority: 1,
+                    timeline: '1-2 months',
+                    responsibility: 'Facilities Management'
+                },
+                noAlarmSystem: {
+                    issue: 'Emergency alert system inadequate',
+                    recommendation: 'Install intercom-based alarm system with classroom coverage',
+                    priority: 1,
+                    timeline: 'Immediate',
+                    responsibility: 'Administration / IT'
+                },
+                coverageGaps: {
+                    issue: 'Surveillance coverage gaps',
+                    recommendation: 'Expand camera coverage to all entry points and critical areas',
+                    priority: 2,
+                    timeline: '3-6 months',
+                    responsibility: 'Administration / IT'
+                },
+                noCrisisTeam: {
+                    issue: 'No formalized crisis response team',
+                    recommendation: 'Establish crisis response team with defined roles',
+                    priority: 2,
+                    timeline: '3 months',
+                    responsibility: 'Administration'
+                },
+                limitedDrills: {
+                    issue: 'Training and drills limited',
+                    recommendation: 'Implement annual drills and quarterly refreshers',
+                    priority: 3,
+                    timeline: 'Ongoing',
+                    responsibility: 'Crisis Team'
+                },
+                inadequateBarriers: {
+                    issue: 'Insufficient physical barriers',
+                    recommendation: 'Install layered deterrent barriers at entry points',
+                    priority: 1,
+                    timeline: '1-2 months',
+                    responsibility: 'Facilities Management'
+                },
+                uncontrolledEntry: {
+                    issue: 'Multiple uncontrolled entry points',
+                    recommendation: 'Implement controlled access system with visitor management',
+                    priority: 1,
+                    timeline: '2-4 months',
+                    responsibility: 'Administration / Security'
+                }
+            },
+            'Single-family Home': {
+                hollowDoors: {
+                    issue: 'Weak or hollow-core entry doors',
+                    recommendation: 'Replace with solid-core or metal exterior doors',
+                    priority: 1,
+                    timeline: 'Within 90 days',
+                    responsibility: 'Homeowner'
+                },
+                noSecondaryLocks: {
+                    issue: 'Insufficient door locking mechanisms',
+                    recommendation: 'Install deadbolts on all exterior doors',
+                    priority: 1,
+                    timeline: 'Within 30 days',
+                    responsibility: 'Homeowner'
+                },
+                noAlarmSystem: {
+                    issue: 'No monitored security system',
+                    recommendation: 'Install monitored alarm system with door/window sensors',
+                    priority: 1,
+                    timeline: 'Within 60 days',
+                    responsibility: 'Homeowner'
+                },
+                coverageGaps: {
+                    issue: 'Limited or no security camera coverage',
+                    recommendation: 'Install cameras covering all entry points and perimeter',
+                    priority: 2,
+                    timeline: '3-6 months',
+                    responsibility: 'Homeowner'
+                },
+                noCrisisTeam: {
+                    issue: 'No emergency response plan',
+                    recommendation: 'Develop family emergency plan with evacuation routes',
+                    priority: 2,
+                    timeline: '1 month',
+                    responsibility: 'Homeowner'
+                },
+                limitedDrills: {
+                    issue: 'No emergency preparedness practice',
+                    recommendation: 'Practice emergency scenarios with household members',
+                    priority: 3,
+                    timeline: 'Ongoing',
+                    responsibility: 'Homeowner'
+                },
+                inadequateBarriers: {
+                    issue: 'Insufficient perimeter security',
+                    recommendation: 'Install motion-activated lighting and reinforce entry points',
+                    priority: 1,
+                    timeline: '1-2 months',
+                    responsibility: 'Homeowner'
+                },
+                uncontrolledEntry: {
+                    issue: 'Multiple unsecured access points',
+                    recommendation: 'Secure all windows and secondary doors with locks and sensors',
+                    priority: 1,
+                    timeline: 'Within 60 days',
+                    responsibility: 'Homeowner'
+                }
+            },
+            'Office Building': {
+                hollowDoors: {
+                    issue: 'Weak office entry doors',
+                    recommendation: 'Upgrade to commercial-grade solid-core doors',
+                    priority: 1,
+                    timeline: '1-3 months',
+                    responsibility: 'Property Management'
+                },
+                noSecondaryLocks: {
+                    issue: 'Insufficient access control on office suites',
+                    recommendation: 'Install electronic access control on all suite entries',
+                    priority: 1,
+                    timeline: '1-2 months',
+                    responsibility: 'Property Management'
+                },
+                noAlarmSystem: {
+                    issue: 'No integrated security system',
+                    recommendation: 'Install building-wide security system with monitoring',
+                    priority: 1,
+                    timeline: 'Immediate',
+                    responsibility: 'Building Management'
+                },
+                coverageGaps: {
+                    issue: 'Surveillance coverage gaps',
+                    recommendation: 'Expand camera coverage to all common areas and entries',
+                    priority: 2,
+                    timeline: '3-6 months',
+                    responsibility: 'Building Management'
+                },
+                noCrisisTeam: {
+                    issue: 'No emergency response team',
+                    recommendation: 'Establish building emergency response team',
+                    priority: 2,
+                    timeline: '3 months',
+                    responsibility: 'Building Management'
+                },
+                limitedDrills: {
+                    issue: 'Limited emergency drills',
+                    recommendation: 'Conduct quarterly emergency drills for all tenants',
+                    priority: 3,
+                    timeline: 'Ongoing',
+                    responsibility: 'Building Management'
+                },
+                inadequateBarriers: {
+                    issue: 'Insufficient lobby security',
+                    recommendation: 'Install security desk and access control at main entrance',
+                    priority: 1,
+                    timeline: '1-2 months',
+                    responsibility: 'Property Management'
+                },
+                uncontrolledEntry: {
+                    issue: 'Multiple unmonitored entry points',
+                    recommendation: 'Implement card access system on all building entries',
+                    priority: 1,
+                    timeline: '2-4 months',
+                    responsibility: 'Building Management'
+                }
+            },
+            'Religious Facility': {
+                hollowDoors: {
+                    issue: 'Weak sanctuary and facility doors',
+                    recommendation: 'Replace with solid-core or metal doors',
+                    priority: 1,
+                    timeline: '1-3 months',
+                    responsibility: 'Facilities Committee'
+                },
+                noSecondaryLocks: {
+                    issue: 'Insufficient locking on worship and classroom spaces',
+                    recommendation: 'Add interior locks to all occupied spaces',
+                    priority: 1,
+                    timeline: '1-2 months',
+                    responsibility: 'Facilities Committee'
+                },
+                noAlarmSystem: {
+                    issue: 'No emergency notification system',
+                    recommendation: 'Install silent alarm and PA system for emergency alerts',
+                    priority: 1,
+                    timeline: 'Immediate',
+                    responsibility: 'Leadership / Safety Team'
+                },
+                coverageGaps: {
+                    issue: 'Limited surveillance coverage',
+                    recommendation: 'Install cameras at all entries and parking areas',
+                    priority: 2,
+                    timeline: '3-6 months',
+                    responsibility: 'Leadership / Safety Team'
+                },
+                noCrisisTeam: {
+                    issue: 'No safety team established',
+                    recommendation: 'Form safety team with defined emergency roles',
+                    priority: 2,
+                    timeline: '3 months',
+                    responsibility: 'Leadership'
+                },
+                limitedDrills: {
+                    issue: 'No emergency preparedness training',
+                    recommendation: 'Conduct annual safety training for staff and volunteers',
+                    priority: 3,
+                    timeline: 'Ongoing',
+                    responsibility: 'Safety Team'
+                },
+                inadequateBarriers: {
+                    issue: 'Open access during services',
+                    recommendation: 'Implement greeters and controlled entry during gatherings',
+                    priority: 1,
+                    timeline: '1-2 months',
+                    responsibility: 'Leadership'
+                },
+                uncontrolledEntry: {
+                    issue: 'Multiple unlocked entry points',
+                    recommendation: 'Limit access to one monitored entrance during services',
+                    priority: 1,
+                    timeline: 'Immediate',
+                    responsibility: 'Safety Team'
+                }
+            }
+        };
+        
+        // Return facility-specific library or default to Office Building
+        return libraries[facilityType] || libraries['Office Building'];
     },
 
     init() {
@@ -264,8 +445,11 @@ const SiteAssessments = {
     generateRecommendations(data) {
         const recs = { priority1: [], priority2: [], priority3: [] };
         
-        // Get facility-specific recommendations based on risk level
-        const facilityType = data.facilityType || 'Other';
+        // Get facility-specific recommendations library
+        const facilityType = data.facilityType || 'Office Building';
+        const recsLib = this.getRecommendationsLibrary(facilityType);
+        
+        // Get facility-specific high-level recommendations based on risk level
         const riskLevel = data.overallVulnerability || 'Moderate';
         const facilityRecs = FacilityTypeConfig.getRecommendations(facilityType, riskLevel);
         
@@ -275,28 +459,30 @@ const SiteAssessments = {
                 issue: `${facilityType}-specific security concern`,
                 recommendation: rec,
                 timeline: 'Within 90 days',
-                responsibility: 'Facility Management'
+                responsibility: facilityType === 'Single-family Home' ? 'Homeowner' : 
+                               facilityType === 'Religious Facility' ? 'Leadership' : 
+                               'Management'
             });
         });
 
-        // Add generic recommendations based on assessment findings
+        // Add specific recommendations based on assessment findings using facility-specific library
         if (data.doorType === 'Hollow-core' || data.doorType === 'Glass') {
-            recs.priority1.push(this.recommendationsLibrary.hollowDoors);
+            recs.priority1.push(recsLib.hollowDoors);
         }
         if (data.interiorLocks === 'No interior locks' || data.interiorLocks === 'Partial coverage') {
-            recs.priority1.push(this.recommendationsLibrary.noSecondaryLocks);
+            recs.priority1.push(recsLib.noSecondaryLocks);
         }
         if (data.alarmSystem === 'None' || data.alarmSystem === 'Fire alarm only') {
-            recs.priority1.push(this.recommendationsLibrary.noAlarmSystem);
+            recs.priority1.push(recsLib.noAlarmSystem);
         }
         if (data.cameraCoverage === 'Partial - significant gaps' || data.cameraCoverage === 'Minimal - limited coverage') {
-            recs.priority2.push(this.recommendationsLibrary.coverageGaps);
+            recs.priority2.push(recsLib.coverageGaps);
         }
         if (data.crisisTeam === 'None' || data.crisisTeam === 'Ad-hoc response only') {
-            recs.priority2.push(this.recommendationsLibrary.noCrisisTeam);
+            recs.priority2.push(recsLib.noCrisisTeam);
         }
         if (data.staffTraining === 'Minimal training' || data.staffTraining === 'None') {
-            recs.priority3.push(this.recommendationsLibrary.limitedDrills);
+            recs.priority3.push(recsLib.limitedDrills);
         }
 
         return recs;
@@ -754,25 +940,44 @@ const SiteAssessments = {
             
             const pages = reportContent.querySelectorAll('.report-page');
             
+            // PDF dimensions with margins
+            const pdfWidth = 215.9; // Letter width in mm
+            const pdfHeight = 279.4; // Letter height in mm
+            const margin = 12.7; // 0.5 inch margins
+            const contentWidth = pdfWidth - (margin * 2);
+            const contentHeight = pdfHeight - (margin * 2);
+            
             for (let i = 0; i < pages.length; i++) {
                 if (i > 0) pdf.addPage();
                 
                 const canvas = await html2canvas(pages[i], {
-                    scale: 2,
+                    scale: 1.5,
                     useCORS: true,
                     logging: false,
                     backgroundColor: '#ffffff',
-                    windowWidth: 900,
+                    windowWidth: 850,
                     onclone: (clonedDoc) => {
                         const imgs = clonedDoc.querySelectorAll('img');
                         imgs.forEach(img => img.style.maxWidth = '100%');
                     }
                 });
                 
-                const imgWidth = 210;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                // Calculate dimensions to fit within margins
+                const canvasRatio = canvas.height / canvas.width;
+                let imgWidth = contentWidth;
+                let imgHeight = imgWidth * canvasRatio;
+                
+                // If height exceeds content area, scale down
+                if (imgHeight > contentHeight) {
+                    imgHeight = contentHeight;
+                    imgWidth = imgHeight / canvasRatio;
+                }
+                
+                // Center the image if it's smaller than content width
+                const xOffset = margin + (contentWidth - imgWidth) / 2;
+                
                 const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
+                pdf.addImage(imgData, 'JPEG', xOffset, margin, imgWidth, imgHeight, undefined, 'FAST');
             }
             
             pdf.save(fileName);
