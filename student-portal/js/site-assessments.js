@@ -947,9 +947,9 @@ const SiteAssessments = {
             const contentWidth = pdfWidth - (margin * 2);
             const contentHeight = pdfHeight - (margin * 2);
             
+            let isFirstPage = true;
+            
             for (let i = 0; i < pages.length; i++) {
-                if (i > 0) pdf.addPage();
-                
                 const canvas = await html2canvas(pages[i], {
                     scale: 1.5,
                     useCORS: true,
@@ -962,22 +962,56 @@ const SiteAssessments = {
                     }
                 });
                 
-                // Calculate dimensions to fit within margins
-                const canvasRatio = canvas.height / canvas.width;
-                let imgWidth = contentWidth;
-                let imgHeight = imgWidth * canvasRatio;
-                
-                // If height exceeds content area, scale down
-                if (imgHeight > contentHeight) {
-                    imgHeight = contentHeight;
-                    imgWidth = imgHeight / canvasRatio;
-                }
-                
-                // Center the image if it's smaller than content width
-                const xOffset = margin + (contentWidth - imgWidth) / 2;
-                
                 const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                pdf.addImage(imgData, 'JPEG', xOffset, margin, imgWidth, imgHeight, undefined, 'FAST');
+                
+                // Calculate dimensions to fit width within margins
+                const canvasRatio = canvas.height / canvas.width;
+                const imgWidth = contentWidth;
+                const fullImgHeight = imgWidth * canvasRatio;
+                
+                // If content fits on one page, add it normally
+                if (fullImgHeight <= contentHeight) {
+                    if (!isFirstPage) pdf.addPage();
+                    isFirstPage = false;
+                    
+                    const xOffset = margin;
+                    pdf.addImage(imgData, 'JPEG', xOffset, margin, imgWidth, fullImgHeight, undefined, 'FAST');
+                } else {
+                    // Content is too tall - split across multiple pages
+                    let remainingHeight = fullImgHeight;
+                    let sourceY = 0;
+                    
+                    while (remainingHeight > 0) {
+                        if (!isFirstPage) pdf.addPage();
+                        isFirstPage = false;
+                        
+                        const pageHeight = Math.min(contentHeight, remainingHeight);
+                        
+                        // Calculate the portion of the canvas to use
+                        const sourceHeight = (pageHeight / fullImgHeight) * canvas.height;
+                        
+                        // Create a temporary canvas for this slice
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = canvas.width;
+                        tempCanvas.height = sourceHeight;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        
+                        // Draw the slice
+                        tempCtx.drawImage(
+                            canvas,
+                            0, sourceY,
+                            canvas.width, sourceHeight,
+                            0, 0,
+                            canvas.width, sourceHeight
+                        );
+                        
+                        const sliceData = tempCanvas.toDataURL('image/jpeg', 0.95);
+                        pdf.addImage(sliceData, 'JPEG', margin, margin, imgWidth, pageHeight, undefined, 'FAST');
+                        
+                        sourceY += sourceHeight;
+                        remainingHeight -= pageHeight;
+                    }
+                }
             }
             
             pdf.save(fileName);
