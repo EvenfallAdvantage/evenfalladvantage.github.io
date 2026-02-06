@@ -44,8 +44,8 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
     
     return `
         <div class="report-document">
-            <!-- Single continuous page - canvas slicing will handle page breaks -->
-            <div class="report-page">
+            <!-- Cover Page Only -->
+            <div class="report-page cover-page">
                 <div class="cover-logo">
                     <img src="../images/logo-print.png" alt="Evenfall Advantage">
                 </div>
@@ -62,8 +62,10 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                     <h3><i class="fas fa-lock"></i> Confidentiality Notice</h3>
                     <p>This document contains sensitive security information and is intended solely for the leadership of ${data.clientName || 'the client'}. Unauthorized distribution, duplication, or disclosure is strictly prohibited.</p>
                 </div>
-                
-                <!-- Executive Summary -->
+            </div>
+            
+            <!-- Executive Summary - Separate Page -->
+            <div class="report-page">
                 <h2 class="report-section-title"><i class="fas fa-file-alt"></i> Executive Summary</h2>
                 
                 <h3>Assessment Overview</h3>
@@ -110,8 +112,10 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                 <ol class="priority-list">
                     ${recommendations.priority1.slice(0, 3).map(r => `<li>${r.recommendation}</li>`).join('')}
                 </ol>
-                
-                <!-- Detailed Findings -->
+            </div>
+            
+            <!-- Detailed Findings - Separate Page -->
+            <div class="report-page">
                 <h2 class="report-section-title"><i class="fas fa-search"></i> Detailed Security Survey & Analysis</h2>
                 
                 <h3><i class="fas fa-shield-alt"></i> Physical Security</h3>
@@ -161,8 +165,10 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                     <p><strong>Security Culture:</strong> ${data.securityCulture || 'Not assessed'}</p>
                     ${data.trainingNotes ? `<p><strong>Notes:</strong> ${data.trainingNotes}</p>` : ''}
                 </div>
-                
-                <!-- Recommendations -->
+            </div>
+            
+            <!-- Recommendations - Separate Page -->
+            <div class="report-page">
                 <h2 class="report-section-title"><i class="fas fa-tasks"></i> Recommendations & Action Plan</h2>
                 
                 ${this.buildRecommendationsTable('Priority 1 – Immediate (0–3 Months)', recommendations.priority1)}
@@ -183,8 +189,10 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                     <li>Crisis team quarterly reviews</li>
                     <li>Alarm and communication system testing</li>
                 </ul>
-                
-                <!-- Conclusion -->
+            </div>
+            
+            <!-- Conclusion - Separate Page -->
+            <div class="report-page">
                 <h2 class="report-section-title"><i class="fas fa-check-circle"></i> Conclusion & Next Steps</h2>
                 
                 <p>${data.clientName || 'The facility'} has ${data.securityCulture === 'Strong - security is priority' ? 'a strong foundation and committed leadership' : 'opportunities to enhance its security posture'}. With targeted investments in physical security, communication systems, and training, the facility can significantly enhance its safety posture while preserving its mission.</p>
