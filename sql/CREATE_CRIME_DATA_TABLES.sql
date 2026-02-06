@@ -11,16 +11,46 @@ CREATE TABLE IF NOT EXISTS city_crime_data (
     state_code VARCHAR(2) NOT NULL, -- Two-letter state code (e.g., 'TN', 'CA')
     state_name VARCHAR(100) NOT NULL, -- Full state name (e.g., 'Tennessee')
     
-    -- Crime statistics (per 100,000 population)
+    -- Overall crime statistics (per 100,000 population)
     violent_crime_rate INTEGER NOT NULL,
     property_crime_rate INTEGER NOT NULL,
+    total_crime_rate INTEGER, -- Sum of violent + property
     
-    -- Population data
+    -- Violent crime breakdown (per 100,000 population)
+    murder_rate DECIMAL(10,2),
+    rape_rate DECIMAL(10,2),
+    robbery_rate DECIMAL(10,2),
+    aggravated_assault_rate DECIMAL(10,2),
+    
+    -- Property crime breakdown (per 100,000 population)
+    burglary_rate DECIMAL(10,2),
+    larceny_theft_rate DECIMAL(10,2),
+    motor_vehicle_theft_rate DECIMAL(10,2),
+    arson_rate DECIMAL(10,2),
+    
+    -- Clearance rates (percentage of crimes solved)
+    violent_clearance_rate DECIMAL(5,2), -- e.g., 45.5 = 45.5%
+    property_clearance_rate DECIMAL(5,2),
+    
+    -- Trend analysis
+    violent_crime_trend VARCHAR(20), -- 'increasing', 'stable', 'decreasing'
+    property_crime_trend VARCHAR(20),
+    year_over_year_change DECIMAL(5,2), -- Percentage change from previous year
+    previous_year_violent_rate INTEGER, -- For comparison
+    
+    -- Population and density
     population INTEGER,
+    area_square_miles DECIMAL(10,2),
+    crime_density DECIMAL(10,2), -- Crimes per square mile
+    
+    -- Risk indicators
+    top_violent_crime_type VARCHAR(50), -- e.g., 'Aggravated Assault'
+    top_property_crime_type VARCHAR(50), -- e.g., 'Larceny-Theft'
     
     -- Data source and versioning
     data_year INTEGER NOT NULL DEFAULT 2022,
     data_source VARCHAR(255) DEFAULT 'FBI UCR',
+    data_quality VARCHAR(20) DEFAULT 'verified', -- 'verified', 'estimated', 'partial'
     
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -43,16 +73,46 @@ CREATE TABLE IF NOT EXISTS county_crime_data (
     state_code VARCHAR(2) NOT NULL,
     state_name VARCHAR(100) NOT NULL,
     
-    -- Crime statistics (per 100,000 population)
+    -- Overall crime statistics (per 100,000 population)
     violent_crime_rate INTEGER NOT NULL,
     property_crime_rate INTEGER NOT NULL,
+    total_crime_rate INTEGER,
     
-    -- Population data
+    -- Violent crime breakdown (per 100,000 population)
+    murder_rate DECIMAL(10,2),
+    rape_rate DECIMAL(10,2),
+    robbery_rate DECIMAL(10,2),
+    aggravated_assault_rate DECIMAL(10,2),
+    
+    -- Property crime breakdown (per 100,000 population)
+    burglary_rate DECIMAL(10,2),
+    larceny_theft_rate DECIMAL(10,2),
+    motor_vehicle_theft_rate DECIMAL(10,2),
+    arson_rate DECIMAL(10,2),
+    
+    -- Clearance rates (percentage of crimes solved)
+    violent_clearance_rate DECIMAL(5,2),
+    property_clearance_rate DECIMAL(5,2),
+    
+    -- Trend analysis
+    violent_crime_trend VARCHAR(20),
+    property_crime_trend VARCHAR(20),
+    year_over_year_change DECIMAL(5,2),
+    previous_year_violent_rate INTEGER,
+    
+    -- Population and density
     population INTEGER,
+    area_square_miles DECIMAL(10,2),
+    crime_density DECIMAL(10,2),
+    
+    -- Risk indicators
+    top_violent_crime_type VARCHAR(50),
+    top_property_crime_type VARCHAR(50),
     
     -- Data source and versioning
     data_year INTEGER NOT NULL DEFAULT 2022,
     data_source VARCHAR(255) DEFAULT 'FBI UCR',
+    data_quality VARCHAR(20) DEFAULT 'verified',
     
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -74,16 +134,42 @@ CREATE TABLE IF NOT EXISTS state_crime_data (
     state_code VARCHAR(2) NOT NULL,
     state_name VARCHAR(100) NOT NULL,
     
-    -- Crime statistics (per 100,000 population)
+    -- Overall crime statistics (per 100,000 population)
     violent_crime_rate INTEGER NOT NULL,
     property_crime_rate INTEGER NOT NULL,
+    total_crime_rate INTEGER,
     
-    -- Overall rating
+    -- Violent crime breakdown (per 100,000 population)
+    murder_rate DECIMAL(10,2),
+    rape_rate DECIMAL(10,2),
+    robbery_rate DECIMAL(10,2),
+    aggravated_assault_rate DECIMAL(10,2),
+    
+    -- Property crime breakdown (per 100,000 population)
+    burglary_rate DECIMAL(10,2),
+    larceny_theft_rate DECIMAL(10,2),
+    motor_vehicle_theft_rate DECIMAL(10,2),
+    arson_rate DECIMAL(10,2),
+    
+    -- Clearance rates (percentage of crimes solved)
+    violent_clearance_rate DECIMAL(5,2),
+    property_clearance_rate DECIMAL(5,2),
+    
+    -- Trend analysis
+    violent_crime_trend VARCHAR(20),
+    property_crime_trend VARCHAR(20),
+    year_over_year_change DECIMAL(5,2),
+    previous_year_violent_rate INTEGER,
+    
+    -- Risk indicators
+    top_violent_crime_type VARCHAR(50),
+    top_property_crime_type VARCHAR(50),
     overall_rating VARCHAR(50), -- 'Negligible', 'Low', 'Moderate', 'High', 'Critical'
     
     -- Data source and versioning
     data_year INTEGER NOT NULL DEFAULT 2022,
     data_source VARCHAR(255) DEFAULT 'FBI UCR',
+    data_quality VARCHAR(20) DEFAULT 'verified',
     
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
