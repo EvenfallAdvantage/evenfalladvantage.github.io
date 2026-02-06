@@ -208,7 +208,23 @@ const SiteAssessments = {
 
     generateRecommendations(data) {
         const recs = { priority1: [], priority2: [], priority3: [] };
+        
+        // Get facility-specific recommendations based on risk level
+        const facilityType = data.facilityType || 'Other';
+        const riskLevel = data.overallVulnerability || 'Moderate';
+        const facilityRecs = FacilityTypeConfig.getRecommendations(facilityType, riskLevel);
+        
+        // Add facility-specific recommendations to priority1
+        facilityRecs.forEach(rec => {
+            recs.priority1.push({
+                issue: `${facilityType}-specific security concern`,
+                recommendation: rec,
+                timeline: 'Within 90 days',
+                responsibility: 'Facility Management'
+            });
+        });
 
+        // Add generic recommendations based on assessment findings
         if (data.doorType === 'Hollow-core' || data.doorType === 'Glass') {
             recs.priority1.push(this.recommendationsLibrary.hollowDoors);
         }

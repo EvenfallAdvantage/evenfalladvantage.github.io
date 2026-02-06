@@ -37,6 +37,11 @@ SiteAssessments.generateReport = function() {
 SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
+    // Get facility-specific terminology
+    const facilityType = data.facilityType || 'Other';
+    const config = FacilityTypeConfig.getConfig(facilityType);
+    const terms = config.terminology;
+    
     return `
         <div class="report-document">
             <!-- Cover Page -->
@@ -46,7 +51,8 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                 </div>
                 <h1 class="cover-title">Final Security Assessment<br>& Recommendations Report</h1>
                 <div class="cover-info">
-                    <p><strong>Client:</strong> ${data.clientName || 'N/A'}</p>
+                    <p><strong>Facility:</strong> ${data.clientName || 'N/A'}</p>
+                    <p><strong>Facility Type:</strong> ${facilityType}</p>
                     <p><strong>Location:</strong> ${data.city || ''}, ${data.state || ''}</p>
                     <p><strong>Date of Report:</strong> ${today}</p>
                     <p><strong>Prepared By:</strong> ${data.assessorName || 'N/A'}</p>
@@ -63,7 +69,7 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                 <h2 class="report-section-title"><i class="fas fa-file-alt"></i> Executive Summary</h2>
                 
                 <h3>Assessment Overview</h3>
-                <p>This Final Security Assessment was conducted to evaluate ${data.clientName || 'the facility'}'s current security posture, emergency response preparedness, and physical protection measures. The assessment included an on-site evaluation, administrative review, and comprehensive risk analysis.</p>
+                <p>This Final Security Assessment was conducted to evaluate ${data.clientName || 'the facility'}'s current security posture, emergency response preparedness, and physical protection measures. The assessment included an on-site evaluation of ${terms.spaces}, ${terms.commonAreas}, and ${terms.entryArea}, along with administrative review and comprehensive risk analysis specific to ${facilityType.toLowerCase()} security considerations.</p>
                 
                 <h3>Overall Risk Assessment</h3>
                 <div class="risk-score-display">
@@ -219,8 +225,14 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
 SiteAssessments.generateKeyFindings = function(data) {
     const findings = [];
     
+    // Get facility-specific terminology
+    const facilityType = data.facilityType || 'Other';
+    const terms = FacilityTypeConfig.getTerm(facilityType, 'spaces');
+    const primarySpace = FacilityTypeConfig.getTerm(facilityType, 'primarySpace');
+    const occupants = FacilityTypeConfig.getTerm(facilityType, 'occupants');
+    
     if (data.doorType === 'Hollow-core' || data.doorType === 'Glass') {
-        findings.push('Classroom doors lack adequate physical protection');
+        findings.push(`${primarySpace.charAt(0).toUpperCase() + primarySpace.slice(1)} doors lack adequate physical protection`);
     }
     if (data.interiorLocks === 'No interior locks' || data.interiorLocks === 'Partial coverage') {
         findings.push('Limited interior locking capability during emergencies');
@@ -235,7 +247,7 @@ SiteAssessments.generateKeyFindings = function(data) {
         findings.push('No formalized crisis response team structure');
     }
     if (data.visitorManagement === 'None' || data.visitorManagement === 'Sign-in only') {
-        findings.push('Visitor management and access control need enhancement');
+        findings.push(`${occupants.charAt(0).toUpperCase() + occupants.slice(1)} management and access control need enhancement`);
     }
     
     if (findings.length === 0) {

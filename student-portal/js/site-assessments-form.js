@@ -111,6 +111,11 @@ SiteAssessments.renderForm = function() {
     let html = '';
     
     this.formSections.forEach(section => {
+        // Get facility-specific fields if facility type is selected
+        const facilityType = this.getCurrentFacilityType();
+        const specificFields = facilityType ? FacilityTypeConfig.getSpecificFields(facilityType, section.id) : [];
+        const allFields = [...section.fields, ...specificFields];
+        
         html += `
             <div class="assessment-section" id="section-${section.id}">
                 <div class="section-header-assessment">
@@ -118,7 +123,7 @@ SiteAssessments.renderForm = function() {
                     ${this.tutorialMode ? `<div class="tutorial-tip"><i class="fas fa-lightbulb"></i> ${section.tutorial}</div>` : ''}
                 </div>
                 <div class="section-fields">
-                    ${this.renderFields(section.fields)}
+                    ${this.renderFields(allFields)}
                 </div>
             </div>
         `;
@@ -126,6 +131,12 @@ SiteAssessments.renderForm = function() {
 
     formContainer.innerHTML = html;
     this.attachEventListeners();
+};
+
+// Helper to get current facility type
+SiteAssessments.getCurrentFacilityType = function() {
+    const facilityTypeField = document.getElementById('facilityType');
+    return facilityTypeField ? facilityTypeField.value : null;
 };
 
 SiteAssessments.renderFields = function(fields) {
@@ -201,6 +212,21 @@ SiteAssessments.attachEventListeners = function() {
     inputs.forEach(input => {
         input.addEventListener('change', () => this.saveProgress());
     });
+    
+    // Special handler for facility type changes - re-render form with facility-specific fields
+    const facilityTypeField = document.getElementById('facilityType');
+    if (facilityTypeField) {
+        facilityTypeField.addEventListener('change', () => {
+            // Save current form data
+            const currentData = this.collectFormData();
+            
+            // Re-render form with facility-specific fields
+            this.renderForm();
+            
+            // Restore form data
+            this.restoreFormData(currentData);
+        });
+    }
 };
 
 SiteAssessments.saveProgress = function() {
