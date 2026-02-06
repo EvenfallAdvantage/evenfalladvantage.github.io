@@ -308,11 +308,23 @@ const SiteAssessments = {
         const infoPanel = document.createElement('div');
         infoPanel.className = 'risk-analysis-info';
         
+        const granularity = riskData.metadata?.granularity || 'state';
         const isFallback = riskData.metadata?.location?.fallback;
-        const borderColor = isFallback ? '#ffc107' : '#3498db';
-        const bgGradient = isFallback 
-            ? 'linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%)'
-            : 'linear-gradient(135deg, #e7f3ff 0%, #d4edff 100%)';
+        
+        // Color coding based on granularity
+        let borderColor = '#3498db'; // Default blue
+        let bgGradient = 'linear-gradient(135deg, #e7f3ff 0%, #d4edff 100%)';
+        
+        if (granularity === 'city') {
+            borderColor = '#27ae60'; // Green for city-level
+            bgGradient = 'linear-gradient(135deg, #e8f8f5 0%, #d5f4e6 100%)';
+        } else if (granularity === 'county') {
+            borderColor = '#3498db'; // Blue for county-level
+            bgGradient = 'linear-gradient(135deg, #e7f3ff 0%, #d4edff 100%)';
+        } else if (isFallback) {
+            borderColor = '#ffc107'; // Amber for state fallback
+            bgGradient = 'linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%)';
+        }
         
         infoPanel.style.cssText = `
             background: ${bgGradient};
@@ -325,8 +337,16 @@ const SiteAssessments = {
         const crimeRating = riskData.crimeData?.overallRating || 'Unknown';
         const violentRate = riskData.crimeData?.violentCrimeRate || 'N/A';
         const propertyRate = riskData.crimeData?.propertyCrimeRate || 'N/A';
+        const source = riskData.crimeData?.source || 'Unknown';
         
-        const locationNote = isFallback 
+        // Granularity badge
+        const granularityBadge = granularity === 'city' 
+            ? '<span style="background: #27ae60; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">📍 City-Level Data</span>'
+            : granularity === 'county'
+            ? '<span style="background: #3498db; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">📍 County-Level Data</span>'
+            : '<span style="background: #95a5a6; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">📍 State-Level Data</span>';
+        
+        const locationNote = isFallback && granularity === 'state'
             ? `<div style="background: rgba(255, 193, 7, 0.2); padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
                 <i class="fas fa-info-circle" style="color: #f57c00;"></i> 
                 <strong>Note:</strong> Specific address not found in geocoding database. Using state-level crime statistics for 
@@ -335,12 +355,25 @@ const SiteAssessments = {
             </div>`
             : '';
         
+        // Recent incidents section
+        const incidentsSection = riskData.recentIncidents && riskData.recentIncidents.total > 0
+            ? `<div style="background: rgba(231, 76, 60, 0.1); padding: 0.75rem; border-radius: 0.25rem; margin-top: 1rem;">
+                <strong><i class="fas fa-exclamation-triangle"></i> Recent Incidents:</strong>
+                ${riskData.recentIncidents.total} crimes in ${riskData.recentIncidents.radius} mile radius 
+                (${riskData.recentIncidents.violent} violent, ${riskData.recentIncidents.property} property)
+            </div>`
+            : '';
+        
         infoPanel.innerHTML = `
-            <h4 style="margin: 0 0 1rem 0; color: #1d3451; display: flex; align-items: center; gap: 0.5rem;">
-                <i class="fas fa-chart-line"></i> Location Risk Analysis Complete
+            <h4 style="margin: 0 0 1rem 0; color: #1d3451; display: flex; align-items: center; gap: 0.5rem; justify-content: space-between;">
+                <span><i class="fas fa-chart-line"></i> Location Risk Analysis Complete</span>
+                ${granularityBadge}
             </h4>
             ${locationNote}
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <strong>Data Source:</strong> ${source}
+                </div>
                 <div>
                     <strong>Crime Rating:</strong> ${crimeRating}
                 </div>
@@ -351,6 +384,7 @@ const SiteAssessments = {
                     <strong>Property Crime Rate:</strong> ${propertyRate} per 100k
                 </div>
             </div>
+            ${incidentsSection}
             <p style="margin: 0.5rem 0; font-size: 0.9rem;">
                 <i class="fas fa-info-circle"></i> Risk assessment fields have been auto-populated based on location data. 
                 <strong>You can edit any field</strong> to refine the assessment based on your on-site observations.
