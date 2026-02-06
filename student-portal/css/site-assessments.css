@@ -172,13 +172,16 @@
 .form-input,
 .form-select,
 .form-textarea {
-    padding: 0.75rem;
+    padding: 0.875rem 1rem;
     border: 2px solid #dee2e6;
     border-radius: 0.5rem;
-    font-size: 1rem;
+    font-size: 16px;
     font-family: inherit;
     transition: all 0.3s ease;
     background: white;
+    min-height: 44px;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .form-input:focus,
@@ -208,9 +211,10 @@
     align-items: center;
     gap: 0.75rem;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.75rem;
     border-radius: 0.25rem;
     transition: background 0.2s ease;
+    min-height: 44px;
 }
 
 .checkbox-label:hover {
@@ -218,9 +222,11 @@
 }
 
 .checkbox-label input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     cursor: pointer;
+    min-width: 24px;
+    min-height: 24px;
 }
 
 /* Action Buttons */
@@ -546,6 +552,15 @@
     }
 }
 
+/* Prevent zoom on input focus for iOS */
+@supports (-webkit-touch-callout: none) {
+    .form-input,
+    .form-select,
+    .form-textarea {
+        font-size: 16px !important;
+    }
+}
+
 /* Auto-populated fields */
 .form-input.auto-populated,
 .form-select.auto-populated {
@@ -617,47 +632,169 @@
     .assessment-header {
         flex-direction: column;
         align-items: flex-start;
+        padding: 1.5rem;
+    }
+    
+    .assessment-header .header-content h2 {
+        font-size: 1.5rem;
+    }
+    
+    .assessment-header .header-content p {
+        font-size: 1rem;
     }
     
     .header-controls {
         width: 100%;
+        flex-direction: column;
     }
     
     .header-controls .btn {
-        flex: 1;
+        width: 100%;
+        min-height: 48px;
+        font-size: 16px;
+    }
+    
+    .assessment-form {
+        padding: 1rem;
     }
     
     .section-fields {
         grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .section-header-assessment h3 {
+        font-size: 1.25rem;
+    }
+    
+    .form-field label {
+        font-size: 16px;
+    }
+    
+    .tutorial-tip {
+        padding: 0.875rem 1rem;
+        font-size: 15px;
+    }
+    
+    .field-tutorial {
+        font-size: 14px;
     }
     
     .risk-score-display {
         flex-direction: column;
         text-align: center;
+        gap: 1.5rem;
+        padding: 1.5rem 1rem;
+    }
+    
+    .risk-score-circle {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .risk-score-value {
+        font-size: 3rem;
     }
     
     .assessment-actions {
         flex-direction: column;
+        padding: 1rem;
     }
     
     .assessment-actions .btn {
         width: 100%;
+        min-height: 48px;
+        font-size: 16px;
+    }
+    
+    .report-header {
+        padding: 1.5rem 1rem;
+    }
+    
+    .report-header h2 {
+        font-size: 1.5rem;
     }
     
     .report-actions {
         width: 100%;
+        flex-direction: column;
     }
     
     .report-actions .btn {
-        flex: 1;
+        width: 100%;
+        min-height: 48px;
+        font-size: 16px;
+    }
+    
+    .report-content {
+        padding: 1rem;
+    }
+    
+    .cover-page {
+        padding: 2rem 1rem;
+        min-height: auto;
+    }
+    
+    .cover-title {
+        font-size: 1.75rem;
+    }
+    
+    .cover-info {
+        padding: 1.5rem 1rem;
+    }
+    
+    .cover-info p {
+        font-size: 1rem;
+    }
+    
+    .report-section-title {
+        font-size: 1.5rem;
+    }
+    
+    .report-page h3 {
+        font-size: 1.25rem;
+    }
+    
+    .report-page p,
+    .report-page li {
+        font-size: 16px;
     }
     
     .recommendations-table {
-        font-size: 0.9rem;
+        font-size: 14px;
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
-    .recommendations-table th,
+    .recommendations-table thead {
+        display: none;
+    }
+    
+    .recommendations-table tbody,
+    .recommendations-table tr,
     .recommendations-table td {
-        padding: 0.75rem 0.5rem;
+        display: block;
+    }
+    
+    .recommendations-table tr {
+        margin-bottom: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+    }
+    
+    .recommendations-table td {
+        padding: 0.5rem 0;
+        border-bottom: none;
+        text-align: left;
+    }
+    
+    .recommendations-table td:before {
+        content: attr(data-label);
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.25rem;
+        color: #1d3451;
     }
 }

@@ -306,10 +306,10 @@ SiteAssessments.buildRecommendationsTable = function(title, recommendations) {
             <tbody>
                 ${recommendations.map(r => `
                     <tr>
-                        <td>${r.issue}</td>
-                        <td>${r.recommendation}</td>
-                        <td>${r.timeline}</td>
-                        <td>${r.responsibility}</td>
+                        <td data-label="Issue">${r.issue}</td>
+                        <td data-label="Recommendation">${r.recommendation}</td>
+                        <td data-label="Timeline">${r.timeline}</td>
+                        <td data-label="Responsibility">${r.responsibility}</td>
                     </tr>
                 `).join('')}
             </tbody>
