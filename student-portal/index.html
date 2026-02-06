@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="css/student-portal.css">
     <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="css/site-assessments.css">
     <link rel="stylesheet" href="../css/messaging.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -168,6 +169,9 @@
                 <button class="profile-tab active" data-tab="sandtable-practice">
                     <i class="fas fa-map-marked-alt"></i> Sand Table
                 </button>
+                <button class="profile-tab" data-tab="site-assessments-practice">
+                    <i class="fas fa-clipboard-list"></i> Site Assessments
+                </button>
                 <button class="profile-tab" data-tab="deescalation-practice">
                     <i class="fas fa-hands-helping"></i> De-escalation
                 </button>
@@ -292,6 +296,66 @@
                         <button class="btn btn-primary" onclick="closeFeedback()">Continue</button>
                     </div>
                 </div>
+                </div>
+            </div>
+
+            <!-- Site Assessments Tab -->
+            <div class="profile-tab-content" id="site-assessments-practice-tab">
+                <div class="site-assessments-container">
+                    <!-- Assessment Header -->
+                    <div class="assessment-header">
+                        <div class="header-content">
+                            <h2><i class="fas fa-shield-alt"></i> Security Site Assessment Tool</h2>
+                            <p>Professional security assessment and report generation</p>
+                        </div>
+                        <div class="header-controls">
+                            <button class="btn btn-secondary" onclick="SiteAssessments.toggleTutorialMode()">
+                                <i class="fas fa-graduation-cap"></i> <span id="tutorialToggleText">Tutorial Mode: OFF</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="SiteAssessments.loadTemplate()">
+                                <i class="fas fa-folder-open"></i> Load Template
+                            </button>
+                            <button class="btn btn-secondary" onclick="SiteAssessments.saveTemplate()">
+                                <i class="fas fa-save"></i> Save Template
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Assessment Form -->
+                    <div class="assessment-form" id="assessmentForm">
+                        <!-- Form sections will be dynamically generated -->
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="assessment-actions">
+                        <button class="btn btn-secondary" onclick="SiteAssessments.resetForm()">
+                            <i class="fas fa-redo"></i> Reset Form
+                        </button>
+                        <button class="btn btn-primary" onclick="SiteAssessments.generateReport()">
+                            <i class="fas fa-file-alt"></i> Generate Report
+                        </button>
+                    </div>
+
+                    <!-- Report Display -->
+                    <div class="report-container" id="reportContainer" style="display: none;">
+                        <div class="report-header">
+                            <h2>Security Assessment Report</h2>
+                            <div class="report-actions">
+                                <button class="btn btn-secondary" onclick="SiteAssessments.printReport()">
+                                    <i class="fas fa-print"></i> Print
+                                </button>
+                                <button class="btn btn-secondary" onclick="SiteAssessments.downloadPDF()">
+                                    <i class="fas fa-download"></i> Download PDF
+                                </button>
+                                <button class="btn btn-secondary" onclick="SiteAssessments.closeReport()">
+                                    <i class="fas fa-times"></i> Close
+                                </button>
+                            </div>
+                        </div>
+                        <div class="report-content" id="reportContent">
+                            <!-- Report will be generated here -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -830,6 +894,9 @@
     <script src="js/state-selection.js"></script>
     <script src="js/profile.js"></script>
     <script src="js/deescalation.js"></script>
+    <script src="js/site-assessments.js"></script>
+    <script src="js/site-assessments-form.js"></script>
+    <script src="js/site-assessments-report.js"></script>
     <script src="js/messages.js"></script>
     
     <!-- ElevenLabs AI Agent -->
