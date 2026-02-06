@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="css/student-portal.css">
     <link rel="stylesheet" href="css/profile.css">
     <link rel="stylesheet" href="css/site-assessments.css">
+    <link rel="stylesheet" href="css/invoice-generator.css">
     <link rel="stylesheet" href="../css/messaging.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -173,6 +174,9 @@
                 <button class="profile-tab active" data-tab="site-assessments-practice">
                     <i class="fas fa-clipboard-list"></i> Site Assessments
                 </button>
+                <button class="profile-tab" data-tab="invoice-generator-practice">
+                    <i class="fas fa-file-invoice-dollar"></i> Invoice Generator
+                </button>
                 <button class="profile-tab" data-tab="sandtable-practice">
                     <i class="fas fa-map-marked-alt"></i> Sand Table
                 </button>
@@ -212,6 +216,175 @@
                             </button>
                         </div>
                         <div id="reportContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice Generator Tab -->
+            <div class="profile-tab-content" id="invoice-generator-practice-tab">
+                <div class="invoice-generator-container" id="invoice-generator-container">
+                    <div class="invoice-header-section">
+                        <h2><i class="fas fa-file-invoice-dollar"></i> Professional Invoice Generator</h2>
+                        <p>Create professional invoices for your 1099 contractor services with automatic calculations and PDF export.</p>
+                    </div>
+
+                    <div class="invoice-layout">
+                        <!-- Form Section -->
+                        <div class="invoice-form-section">
+                            <div class="invoice-form">
+                                <!-- Template Selection -->
+                                <div class="form-section template-selector">
+                                    <h3><i class="fas fa-palette"></i> Template</h3>
+                                    <div class="form-group">
+                                        <label for="invoice-template">Invoice Template</label>
+                                        <select id="invoice-template">
+                                            <option value="professional">Professional</option>
+                                            <option value="basic">Basic</option>
+                                            <option value="detailed">Detailed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Your Information -->
+                                <div class="form-section">
+                                    <h3><i class="fas fa-user"></i> Your Information</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="your-name">Your Name *</label>
+                                            <input type="text" id="your-name" placeholder="John Doe" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="your-business">Business Name</label>
+                                            <input type="text" id="your-business" placeholder="Doe Security Services">
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label for="your-address">Address</label>
+                                            <input type="text" id="your-address" placeholder="123 Main Street">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="your-city">City</label>
+                                            <input type="text" id="your-city" placeholder="New York">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="your-state">State</label>
+                                            <input type="text" id="your-state" placeholder="NY">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="your-zip">ZIP Code</label>
+                                            <input type="text" id="your-zip" placeholder="10001">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="your-email">Email</label>
+                                            <input type="email" id="your-email" placeholder="john@example.com">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="your-phone">Phone</label>
+                                            <input type="tel" id="your-phone" placeholder="(555) 123-4567">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Client Information -->
+                                <div class="form-section">
+                                    <h3><i class="fas fa-building"></i> Client Information</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="client-name">Client Name *</label>
+                                            <input type="text" id="client-name" placeholder="Jane Smith" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="client-company">Company Name</label>
+                                            <input type="text" id="client-company" placeholder="ABC Corporation">
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label for="client-address">Address</label>
+                                            <input type="text" id="client-address" placeholder="456 Business Ave">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="client-city">City</label>
+                                            <input type="text" id="client-city" placeholder="Los Angeles">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="client-state">State</label>
+                                            <input type="text" id="client-state" placeholder="CA">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="client-zip">ZIP Code</label>
+                                            <input type="text" id="client-zip" placeholder="90001">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Invoice Details -->
+                                <div class="form-section">
+                                    <h3><i class="fas fa-file-alt"></i> Invoice Details</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group">
+                                            <label for="invoice-number">Invoice Number *</label>
+                                            <input type="text" id="invoice-number" placeholder="INV-001" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="invoice-date">Invoice Date *</label>
+                                            <input type="date" id="invoice-date" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="due-date">Due Date</label>
+                                            <input type="date" id="due-date">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="tax-rate">Tax Rate (%)</label>
+                                            <input type="number" id="tax-rate" placeholder="0" min="0" max="100" step="0.01" value="0">
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label for="payment-terms">Payment Terms</label>
+                                            <textarea id="payment-terms" placeholder="Payment due within 30 days. Accepted methods: Check, Bank Transfer, PayPal."></textarea>
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label for="invoice-notes">Notes</label>
+                                            <textarea id="invoice-notes" placeholder="Thank you for your business!"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Line Items -->
+                                <div class="form-section">
+                                    <div class="line-items-section">
+                                        <div class="line-items-header">
+                                            <h4><i class="fas fa-list"></i> Line Items</h4>
+                                            <button class="btn btn-primary" id="add-line-item">
+                                                <i class="fas fa-plus"></i> Add Line Item
+                                            </button>
+                                        </div>
+                                        <div id="line-items-container"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="invoice-actions">
+                                    <button class="btn btn-secondary" id="save-invoice">
+                                        <i class="fas fa-save"></i> Save Invoice
+                                    </button>
+                                    <button class="btn btn-primary" id="download-invoice">
+                                        <i class="fas fa-download"></i> Download PDF
+                                    </button>
+                                    <button class="btn btn-secondary" id="clear-invoice">
+                                        <i class="fas fa-trash"></i> Clear Form
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div class="invoice-preview-section">
+                            <h3 style="margin: 0 0 1.5rem 0; color: #1d3451;">
+                                <i class="fas fa-eye"></i> Live Preview
+                            </h3>
+                            <div id="invoice-preview">
+                                <p style="text-align: center; color: #6c757d; padding: 3rem;">
+                                    Fill out the form to see your invoice preview
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -880,6 +1053,7 @@
     <script src="js/site-assessments.js"></script>
     <script src="js/site-assessments-form.js"></script>
     <script src="js/site-assessments-report.js"></script>
+    <script src="js/invoice-generator.js"></script>
     <script src="js/messages.js"></script>
     
     <!-- ElevenLabs AI Agent -->
