@@ -62,10 +62,8 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                     <h3><i class="fas fa-lock"></i> Confidentiality Notice</h3>
                     <p>This document contains sensitive security information and is intended solely for the leadership of ${data.clientName || 'the client'}. Unauthorized distribution, duplication, or disclosure is strictly prohibited.</p>
                 </div>
-            </div>
-
-            <!-- Executive Summary -->
-            <div class="report-page">
+                
+                <!-- Executive Summary - on same page as cover -->
                 <h2 class="report-section-title"><i class="fas fa-file-alt"></i> Executive Summary</h2>
                 
                 <h3>Assessment Overview</h3>
@@ -114,7 +112,7 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                 </ol>
             </div>
 
-            <!-- Detailed Findings -->
+            <!-- Detailed Findings - New Page -->
             <div class="report-page">
                 <h2 class="report-section-title"><i class="fas fa-search"></i> Detailed Security Survey & Analysis</h2>
                 

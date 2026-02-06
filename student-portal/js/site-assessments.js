@@ -995,16 +995,18 @@ const SiteAssessments = {
                     backgroundColor: '#ffffff',
                     windowWidth: 850,
                     onclone: (clonedDoc) => {
-                        // Set logo to PDF size
+                        // Set logo to PDF size - much smaller
                         const logos = clonedDoc.querySelectorAll('.cover-logo img');
                         logos.forEach(logo => {
-                            logo.style.maxWidth = '80px';
-                            logo.style.width = '80px';
+                            logo.style.maxWidth = '50px';
+                            logo.style.width = '50px';
+                            logo.style.height = 'auto';
                         });
-                        // Ensure all images fit
-                        const imgs = clonedDoc.querySelectorAll('img');
-                        imgs.forEach(img => {
-                            if (!img.classList.contains('cover-logo')) {
+                        // Ensure all other images fit
+                        const allImgs = clonedDoc.querySelectorAll('img');
+                        allImgs.forEach(img => {
+                            const isCoverLogo = img.closest('.cover-logo');
+                            if (!isCoverLogo) {
                                 img.style.maxWidth = '100%';
                             }
                         });
