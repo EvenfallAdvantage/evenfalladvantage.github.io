@@ -452,28 +452,57 @@ const InvoiceGenerator = {
             this.showNotification('Generating PDF...', 'info');
 
             const canvas = await html2canvas(preview, {
-                scale: 2,
+                scale: 1,
                 useCORS: true,
-                logging: false
+                logging: false,
+                windowWidth: preview.scrollWidth,
+                windowHeight: preview.scrollHeight
             });
 
             const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF('p', 'mm', 'a4');
             
-            const imgWidth = 210;
-            const pageHeight = 297;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
-
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
+            // A4 dimensions in mm
+            const pdfWidth = 210;
+            const pdfHeight = 297;
+            
+            // Calculate image dimensions to fit on page with margins
+            const margin = 10;
+            const maxWidth = pdfWidth - (margin * 2);
+            const maxHeight = pdfHeight - (margin * 2);
+            
+            // Calculate scaled dimensions maintaining aspect ratio
+            let imgWidth = (canvas.width * 0.264583); // Convert px to mm (96 DPI)
+            let imgHeight = (canvas.height * 0.264583);
+            
+            // Scale down if too large
+            if (imgWidth > maxWidth) {
+                const ratio = maxWidth / imgWidth;
+                imgWidth = maxWidth;
+                imgHeight = imgHeight * ratio;
+            }
+            
+            if (imgHeight > maxHeight) {
+                const ratio = maxHeight / imgHeight;
+                imgHeight = maxHeight;
+                imgWidth = imgWidth * ratio;
+            }
+            
+            // Center on page
+            const xOffset = (pdfWidth - imgWidth) / 2;
+            const yOffset = margin;
+            
+            pdf.addImage(imgData, 'PNG', xOffset, yOffset, imgWidth, imgHeight);
+            
+            // Add additional pages if content is too tall
+            let heightLeft = (canvas.height * 0.264583) - maxHeight;
+            let position = -maxHeight;
+            
+            while (heightLeft > 0) {
                 pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+                position -= maxHeight;
+                pdf.addImage(imgData, 'PNG', xOffset, position + yOffset, imgWidth, (canvas.height * 0.264583));
+                heightLeft -= maxHeight;
             }
 
             const invoiceNumber = document.getElementById('invoice-number')?.value || 'invoice';
