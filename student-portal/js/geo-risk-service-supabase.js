@@ -283,6 +283,11 @@ window.GeoRiskService = {
             // Retail/offices care more about theft and burglary
             if (crimeBreakdown.burglary_rate > 300) threatScore += 15;
             if (crimeBreakdown.larceny_theft_rate > 1000) threatScore += 10;
+        } else if (facilityType.includes('home') || facilityType.includes('family')) {
+            // Residential properties: burglary and home invasion are primary threats
+            if (crimeBreakdown.burglary_rate > 250) threatScore += 20; // Critical for homes
+            if (crimeBreakdown.robbery_rate > 80) threatScore += 15; // Home invasion concern
+            if (crimeBreakdown.motor_vehicle_theft_rate > 200) threatScore += 5; // Vehicle theft
         }
         
         // Trend analysis (0-15 points)
@@ -333,6 +338,16 @@ window.GeoRiskService = {
         } else if (facilityType.includes('venue') || facilityType.includes('event')) {
             potentialImpact = 'Major'; // Large gatherings
             impactReasoning.push('Large public gatherings');
+        } else if (facilityType.includes('single-family') || facilityType.toLowerCase().includes('home')) {
+            potentialImpact = 'Major'; // Personal safety and property
+            impactReasoning.push('Personal safety, family security');
+            impactReasoning.push('High-value personal property');
+            impactReasoning.push('Privacy and psychological impact');
+        } else if (facilityType.includes('multi-family') || facilityType.includes('complex')) {
+            potentialImpact = 'Major'; // Multiple families at risk
+            impactReasoning.push('Multiple residential units affected');
+            impactReasoning.push('Shared access points increase vulnerability');
+            impactReasoning.push('Potential for multiple victims');
         } else if (facilityType.includes('office')) {
             potentialImpact = 'Moderate';
             impactReasoning.push('Standard business operations');
@@ -354,12 +369,34 @@ window.GeoRiskService = {
         // Top crime types relevant to facility
         const topPropertyCrime = crimeData.top_property_crime_type || '';
         if (topPropertyCrime.toLowerCase().includes('burglary')) {
-            vulnerabilityScore += 10; // Burglary = direct facility threat
+            if (facilityType.includes('home') || facilityType.includes('family')) {
+                vulnerabilityScore += 15; // Burglary = critical threat for residential
+            } else {
+                vulnerabilityScore += 10; // Burglary = direct facility threat
+            }
+        }
+        
+        // Residential-specific vulnerability factors
+        if (facilityType.includes('home') || facilityType.includes('family')) {
+            // High burglary rate is especially concerning for homes
+            if (crimeBreakdown.burglary_rate > 300) {
+                vulnerabilityScore += 15;
+            }
+            
+            // Multi-family complexes have additional vulnerabilities
+            if (facilityType.includes('multi-family') || facilityType.includes('complex')) {
+                vulnerabilityScore += 10; // Shared access, multiple entry points
+                impactReasoning.push('Shared building access increases vulnerability');
+            }
         }
         
         // Population density
         if (demographics.populationDensity === 'High') {
-            vulnerabilityScore += 5; // More targets, but also more witnesses
+            if (facilityType.includes('home') || facilityType.includes('family')) {
+                vulnerabilityScore += 3; // Urban homes = more targets, but more witnesses
+            } else {
+                vulnerabilityScore += 5; // More targets, but also more witnesses
+            }
         }
         
         let overallVulnerability;

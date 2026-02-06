@@ -509,9 +509,12 @@ const GeoRiskService = {
         let potentialImpact = 'Moderate';
         const facilityType = addressData.facilityType?.toLowerCase() || '';
         
-        if (facilityType.includes('school') || facilityType.includes('healthcare') || 
-            facilityType.includes('religious')) {
+        if (facilityType.includes('school') || facilityType.includes('healthcare')) {
             potentialImpact = 'Major'; // Higher impact for vulnerable populations
+        } else if (facilityType.includes('single-family') || facilityType.includes('home')) {
+            potentialImpact = 'Major'; // Personal safety and family security
+        } else if (facilityType.includes('multi-family') || facilityType.includes('complex')) {
+            potentialImpact = 'Major'; // Multiple families at risk
         } else if (facilityType.includes('office') || facilityType.includes('retail')) {
             potentialImpact = 'Moderate';
         } else if (facilityType.includes('venue') || facilityType.includes('event')) {

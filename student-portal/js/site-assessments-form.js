@@ -11,7 +11,7 @@ SiteAssessments.formSections = [
         tutorial: 'Start by gathering basic information about the facility you\'re assessing.',
         fields: [
             { name: 'clientName', label: 'Client/Facility Name', type: 'text', required: true, placeholder: 'e.g., Antioch Christian Academy' },
-            { name: 'facilityType', label: 'Facility Type', type: 'select', required: true, options: ['School', 'Office Building', 'Venue/Event Space', 'Religious Facility', 'Healthcare', 'Retail', 'Other'] },
+            { name: 'facilityType', label: 'Facility Type', type: 'select', required: true, options: ['School', 'Office Building', 'Venue/Event Space', 'Religious Facility', 'Healthcare', 'Retail', 'Single-family Home', 'Multi-family Complex', 'Other'] },
             { name: 'address', label: 'Address', type: 'text', placeholder: 'Street Address' },
             { name: 'city', label: 'City', type: 'text', required: true },
             { name: 'state', label: 'State', type: 'text', required: true },
