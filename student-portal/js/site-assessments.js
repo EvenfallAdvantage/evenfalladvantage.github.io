@@ -260,8 +260,7 @@ const SiteAssessments = {
             // Show success with data sources
             this.showRiskAnalysisResults(riskData);
             
-            // Scroll to risk assessment section
-            document.getElementById('section-riskAssessment')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // No scrolling needed - card appears right after the analyze button
 
         } catch (error) {
             console.error('Location risk analysis error:', error);
