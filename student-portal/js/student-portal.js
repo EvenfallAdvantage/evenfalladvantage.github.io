@@ -700,7 +700,7 @@ function navigateToSection(sectionId) {
         loadAssessmentCourses();
     }
     
-    // Set default tab for Practice section (sand table)
+    // Set default tab for Practice section (site assessments)
     if (sectionId === 'sandtable') {
         const sandtableTabs = document.querySelectorAll('#sandtable .profile-tab');
         const sandtableContents = document.querySelectorAll('#sandtable .profile-tab-content');
@@ -708,8 +708,8 @@ function navigateToSection(sectionId) {
         sandtableTabs.forEach(tab => tab.classList.remove('active'));
         sandtableContents.forEach(content => content.classList.remove('active'));
         
-        const defaultTab = document.querySelector('#sandtable .profile-tab[data-tab="sandtable-practice"]');
-        const defaultContent = document.getElementById('sandtable-practice-tab');
+        const defaultTab = document.querySelector('#sandtable .profile-tab[data-tab="site-assessments-practice"]');
+        const defaultContent = document.getElementById('site-assessments-practice-tab');
         
         if (defaultTab) defaultTab.classList.add('active');
         if (defaultContent) defaultContent.classList.add('active');
