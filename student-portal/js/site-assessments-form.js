@@ -15,7 +15,7 @@ SiteAssessments.formSections = [
             { name: 'address', label: 'Address', type: 'text', placeholder: 'Street Address' },
             { name: 'city', label: 'City', type: 'text', required: true },
             { name: 'state', label: 'State', type: 'text', required: true },
-            { name: 'assessmentDate', label: 'Assessment Date', type: 'date', required: true },
+            { name: 'assessmentDate', label: 'Assessment Date', type: 'date', required: true, value: new Date().toISOString().split('T')[0] },
             { name: 'assessorName', label: 'Assessor Name', type: 'text', required: true },
             { name: 'assessorTitle', label: 'Assessor Title', type: 'text', placeholder: 'e.g., Security Consultant' },
             { name: 'analyzeButton', label: '', type: 'button', buttonText: 'Analyze Location Risk', buttonIcon: 'fa-map-marked-alt', buttonClass: 'btn-analyze-risk', onClick: 'SiteAssessments.analyzeLocationRisk()' }
