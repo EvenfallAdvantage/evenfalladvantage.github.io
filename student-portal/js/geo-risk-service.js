@@ -69,8 +69,24 @@ const GeoRiskService = {
      * @returns {Promise<Object>} Location data
      */
     async geocodeAddress(address, city, state) {
-        const query = address ? `${address}, ${city}, ${state}, USA` : `${city}, ${state}, USA`;
-        const cacheKey = `geocode_${query}`;
+        // Try multiple query formats for better success rate
+        const queries = [];
+        
+        if (address) {
+            // Try with full address
+            queries.push(`${address}, ${city}, ${state}, USA`);
+            // Try with structured format
+            queries.push({
+                street: address,
+                city: city,
+                state: state,
+                country: 'USA'
+            });
+        }
+        // Always include city/state fallback
+        queries.push(`${city}, ${state}, USA`);
+
+        const cacheKey = `geocode_${address}_${city}_${state}`;
 
         // Check cache
         if (this.cache[cacheKey]) {
@@ -80,54 +96,80 @@ const GeoRiskService = {
         // Add delay to respect Nominatim usage policy (1 request per second)
         await this.delay(1000);
 
-        try {
-            const response = await fetch(
-                `${this.apis.nominatim}?` + new URLSearchParams({
-                    q: query,
-                    format: 'json',
-                    addressdetails: 1,
-                    limit: 1,
-                    countrycodes: 'us'
-                }),
-                {
+        // Try each query format
+        for (let i = 0; i < queries.length; i++) {
+            try {
+                const query = queries[i];
+                let url;
+                
+                if (typeof query === 'string') {
+                    // Simple query string
+                    url = `${this.apis.nominatim}?` + new URLSearchParams({
+                        q: query,
+                        format: 'json',
+                        addressdetails: 1,
+                        limit: 1,
+                        countrycodes: 'us'
+                    });
+                } else {
+                    // Structured query
+                    url = `${this.apis.nominatim}?` + new URLSearchParams({
+                        street: query.street,
+                        city: query.city,
+                        state: query.state,
+                        country: query.country,
+                        format: 'json',
+                        addressdetails: 1,
+                        limit: 1
+                    });
+                }
+
+                const response = await fetch(url, {
                     headers: {
                         'User-Agent': 'EvenfallAdvantage-SecurityAssessment/1.0'
                     }
+                });
+
+                if (!response.ok) {
+                    console.warn('Geocoding API returned error status:', response.status);
+                    continue; // Try next query format
                 }
-            );
 
-            if (!response.ok) {
-                console.warn('Geocoding API returned error status:', response.status);
-                throw new Error('Geocoding service unavailable');
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    // Success! Found location
+                    const result = {
+                        lat: parseFloat(data[0].lat),
+                        lon: parseFloat(data[0].lon),
+                        county: data[0].address?.county || '',
+                        state: data[0].address?.state || state,
+                        city: data[0].address?.city || data[0].address?.town || city,
+                        displayName: data[0].display_name,
+                        geocoded: true,
+                        queryUsed: typeof query === 'string' ? query : 'structured'
+                    };
+
+                    // Cache result
+                    this.cache[cacheKey] = result;
+                    console.log('Geocoding successful:', result.displayName);
+                    return result;
+                }
+
+                // Add small delay between attempts
+                if (i < queries.length - 1) {
+                    await this.delay(500);
+                }
+
+            } catch (error) {
+                console.warn(`Geocoding attempt ${i + 1} failed:`, error.message);
+                continue; // Try next query format
             }
-
-            const data = await response.json();
-            
-            if (!data || data.length === 0) {
-                console.warn('No geocoding results for:', query);
-                // Return fallback with city/state
-                return this.createFallbackLocation(city, state);
-            }
-
-            const result = {
-                lat: parseFloat(data[0].lat),
-                lon: parseFloat(data[0].lon),
-                county: data[0].address?.county || '',
-                state: data[0].address?.state || state,
-                city: data[0].address?.city || data[0].address?.town || city,
-                displayName: data[0].display_name,
-                geocoded: true
-            };
-
-            // Cache result
-            this.cache[cacheKey] = result;
-            return result;
-
-        } catch (error) {
-            console.warn('Geocoding error, using fallback:', error.message);
-            // Return fallback location data
-            return this.createFallbackLocation(city, state);
         }
+
+        // All attempts failed, use fallback
+        console.warn('All geocoding attempts failed, using city/state fallback');
+        return this.createFallbackLocation(city, state);
     },
 
     createFallbackLocation(city, state) {
