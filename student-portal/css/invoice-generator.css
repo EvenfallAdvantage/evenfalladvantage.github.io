@@ -239,11 +239,12 @@
 /* Invoice Preview Templates */
 .invoice-template {
     background: white;
-    padding: 1.5rem;
+    padding: 2rem 2.5rem;
     font-family: 'Raleway', sans-serif;
-    max-width: 800px;
-    margin: 0 auto;
-    font-size: 14px;
+    max-width: 100%;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
 }
 
 .invoice-template.professional {
@@ -254,21 +255,23 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 1.25rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #1d3451;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid #1d3451;
 }
 
 .invoice-logo-section h1 {
-    font-size: 1.75rem;
+    font-size: 2rem;
     color: #1d3451;
     margin: 0;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
 .business-name {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: #6c757d;
-    margin-top: 0.5rem;
+    margin-top: 0.35rem;
 }
 
 .invoice-meta {
@@ -276,10 +279,11 @@
 }
 
 .meta-item {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
+    gap: 0.75rem;
+    font-size: 0.9rem;
 }
 
 .meta-label {
@@ -295,32 +299,34 @@
 .invoice-parties {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    gap: 2rem;
+    margin-bottom: 1.25rem;
 }
 
 .party-section h3 {
     color: #1d3451;
-    font-size: 0.95rem;
-    margin: 0 0 0.5rem 0;
+    font-size: 0.85rem;
+    margin: 0 0 0.4rem 0;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.75px;
+    font-weight: 700;
 }
 
 .party-details {
-    line-height: 1.6;
+    line-height: 1.5;
     color: #2c3e50;
+    font-size: 0.9rem;
 }
 
 .party-details div {
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.15rem;
 }
 
 /* Invoice Table */
 .invoice-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 1rem 0;
+    margin: 1.25rem 0 0.75rem 0;
 }
 
 .invoice-table thead {
@@ -329,15 +335,18 @@
 }
 
 .invoice-table th {
-    padding: 0.65rem;
+    padding: 0.75rem 0.65rem;
     text-align: left;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .invoice-table td {
-    padding: 0.65rem;
+    padding: 0.6rem 0.65rem;
     border-bottom: 1px solid #dee2e6;
+    font-size: 0.9rem;
 }
 
 .invoice-table tbody tr:hover {
@@ -350,27 +359,29 @@
 
 /* Invoice Totals */
 .invoice-totals {
-    margin: 2rem 0;
-    padding: 1.5rem;
+    margin: 1rem 0 1.5rem 0;
+    padding: 1.25rem 1.5rem;
     background: #f8f9fa;
     border-radius: 0.5rem;
-    max-width: 400px;
+    max-width: 350px;
     margin-left: auto;
+    border: 1px solid #dee2e6;
 }
 
 .totals-row {
     display: flex;
     justify-content: space-between;
-    padding: 0.75rem 0;
+    padding: 0.5rem 0;
     border-bottom: 1px solid #dee2e6;
+    font-size: 0.95rem;
 }
 
 .totals-row.total {
     border-bottom: none;
     border-top: 2px solid #1d3451;
     margin-top: 0.5rem;
-    padding-top: 1rem;
-    font-size: 1.25rem;
+    padding-top: 0.75rem;
+    font-size: 1.35rem;
     font-weight: 700;
 }
 
@@ -391,30 +402,37 @@
 
 /* Invoice Sections */
 .invoice-section {
-    margin: 2rem 0;
-    padding: 1.5rem;
+    margin: 1rem 0;
+    padding: 1rem 1.25rem;
     background: #f8f9fa;
     border-radius: 0.5rem;
+    border-left: 3px solid #1d3451;
 }
 
 .invoice-section h4 {
     color: #1d3451;
-    margin: 0 0 1rem 0;
-    font-size: 1.1rem;
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .invoice-section p {
     margin: 0;
-    line-height: 1.6;
+    line-height: 1.5;
     color: #2c3e50;
+    font-size: 0.9rem;
 }
 
 .invoice-footer {
     text-align: center;
-    margin-top: 3rem;
-    padding-top: 2rem;
+    margin-top: 2rem;
+    padding-top: 1.25rem;
     border-top: 2px solid #dee2e6;
     color: #6c757d;
+    font-size: 0.9rem;
+    font-style: italic;
 }
 
 /* Responsive Design */
