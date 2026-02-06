@@ -326,6 +326,8 @@ const SiteAssessments = {
             border-radius: 0.5rem;
             margin: 1rem 0;
             color: ${riskColors.text};
+            width: 100%;
+            grid-column: 1 / -1;
         `;
         
         // Granularity badge with accuracy-based colors
