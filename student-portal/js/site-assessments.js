@@ -310,41 +310,27 @@ const SiteAssessments = {
         
         const granularity = riskData.metadata?.granularity || 'state';
         const isFallback = riskData.metadata?.location?.fallback;
-        
-        // Color coding based on granularity
-        let borderColor = '#3498db'; // Default blue
-        let bgGradient = 'linear-gradient(135deg, #e7f3ff 0%, #d4edff 100%)';
-        
-        if (granularity === 'city') {
-            borderColor = '#27ae60'; // Green for city-level
-            bgGradient = 'linear-gradient(135deg, #e8f8f5 0%, #d5f4e6 100%)';
-        } else if (granularity === 'county') {
-            borderColor = '#3498db'; // Blue for county-level
-            bgGradient = 'linear-gradient(135deg, #e7f3ff 0%, #d4edff 100%)';
-        } else if (isFallback) {
-            borderColor = '#ffc107'; // Amber for state fallback
-            bgGradient = 'linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%)';
-        }
-        
-        infoPanel.style.cssText = `
-            background: ${bgGradient};
-            border-left: 4px solid ${borderColor};
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            margin: 1rem 0;
-        `;
-        
-        const crimeRating = riskData.crimeData?.overallRating || 'Unknown';
+        const crimeRating = riskData.crimeData?.overallRating || 'Moderate';
         const violentRate = riskData.crimeData?.violentCrimeRate || 'N/A';
         const propertyRate = riskData.crimeData?.propertyCrimeRate || 'N/A';
         const source = riskData.crimeData?.source || 'Unknown';
         
-        // Granularity badge
-        const granularityBadge = granularity === 'city' 
-            ? '<span style="background: #27ae60; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">📍 City-Level Data</span>'
-            : granularity === 'county'
-            ? '<span style="background: #3498db; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">📍 County-Level Data</span>'
-            : '<span style="background: #95a5a6; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">📍 State-Level Data</span>';
+        // Get color schemes from GeoRiskService
+        const riskColors = window.GeoRiskService.getRiskColors(crimeRating);
+        const granularityColors = window.GeoRiskService.getGranularityColors(granularity);
+        
+        // Apply risk-based colors to card
+        infoPanel.style.cssText = `
+            background: ${riskColors.bg};
+            border-left: 4px solid ${riskColors.border};
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            color: ${riskColors.text};
+        `;
+        
+        // Granularity badge with accuracy-based colors
+        const granularityBadge = `<span style="background: ${granularityColors.bg}; color: ${granularityColors.text}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600;">${granularityColors.label}</span>`;
         
         const locationNote = isFallback && granularity === 'state'
             ? `<div style="background: rgba(255, 193, 7, 0.2); padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
@@ -364,8 +350,17 @@ const SiteAssessments = {
             </div>`
             : '';
         
+        // Risk level emoji
+        const riskEmoji = {
+            'Negligible': '✅',
+            'Low': '🟢',
+            'Moderate': '🟡',
+            'High': '🟠',
+            'Critical': '🔴'
+        }[crimeRating] || '⚠️';
+
         infoPanel.innerHTML = `
-            <h4 style="margin: 0 0 1rem 0; color: #1d3451; display: flex; align-items: center; gap: 0.5rem; justify-content: space-between;">
+            <h4 style="margin: 0 0 1rem 0; color: inherit; display: flex; align-items: center; gap: 0.5rem; justify-content: space-between;">
                 <span><i class="fas fa-chart-line"></i> Location Risk Analysis Complete</span>
                 ${granularityBadge}
             </h4>
@@ -375,7 +370,7 @@ const SiteAssessments = {
                     <strong>Data Source:</strong> ${source}
                 </div>
                 <div>
-                    <strong>Crime Rating:</strong> ${crimeRating}
+                    <strong>Crime Rating:</strong> ${riskEmoji} ${crimeRating}
                 </div>
                 <div>
                     <strong>Violent Crime Rate:</strong> ${violentRate} per 100k
@@ -385,24 +380,24 @@ const SiteAssessments = {
                 </div>
             </div>
             ${incidentsSection}
-            <p style="margin: 0.5rem 0; font-size: 0.9rem;">
+            <p style="margin: 0.5rem 0; font-size: 0.9rem; color: inherit;">
                 <i class="fas fa-info-circle"></i> Risk assessment fields have been auto-populated based on location data. 
                 <strong>You can edit any field</strong> to refine the assessment based on your on-site observations.
             </p>
             <details style="margin-top: 1rem;">
-                <summary style="cursor: pointer; font-weight: 600; color: #1d3451;">
+                <summary style="cursor: pointer; font-weight: 600; color: inherit;">
                     <i class="fas fa-database"></i> Data Sources & Methodology
                 </summary>
-                <ul style="margin: 0.5rem 0; padding-left: 2rem; font-size: 0.9rem;">
+                <ul style="margin: 0.5rem 0; padding-left: 2rem; font-size: 0.9rem; color: inherit;">
                     ${riskData.metadata.dataSources.map(source => 
                         `<li><strong>${source.name}</strong>${source.year ? ` (${source.year})` : ''} - ${source.description}</li>`
                     ).join('')}
                 </ul>
-                <p style="margin: 0.5rem 0; font-size: 0.85rem; color: #6c757d;">
+                <p style="margin: 0.5rem 0; font-size: 0.85rem; opacity: 0.8;">
                     Analysis Date: ${new Date(riskData.metadata.analysisDate).toLocaleDateString()} | 
                     Confidence Level: ${riskData.metadata.confidence}
                 </p>
-                ${isFallback ? `<p style="margin: 0.5rem 0; font-size: 0.85rem; color: #6c757d;">
+                ${isFallback ? `<p style="margin: 0.5rem 0; font-size: 0.85rem; opacity: 0.8;">
                     <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> State-level statistics are appropriate for most security assessments. 
                     Local variations should be noted in your on-site observations.
                 </p>` : ''}

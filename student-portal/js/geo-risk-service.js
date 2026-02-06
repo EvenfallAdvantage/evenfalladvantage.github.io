@@ -650,10 +650,85 @@ const GeoRiskService = {
         return sources;
     },
 
+    /**
+     * Calculate 5-level risk rating based on violent crime rate
+     * @param {number} violentRate - Violent crimes per 100k population
+     * @returns {string} Risk level
+     */
     getCrimeRating(violentRate) {
-        if (violentRate > 500) return 'High';
-        if (violentRate > 350) return 'Moderate';
-        return 'Low';
+        // 5-level risk assessment based on FBI UCR data analysis
+        if (violentRate >= 1000) return 'Critical';  // Extremely high crime
+        if (violentRate >= 600) return 'High';       // High crime
+        if (violentRate >= 350) return 'Moderate';   // Moderate crime
+        if (violentRate >= 150) return 'Low';        // Low crime
+        return 'Negligible';                         // Very low crime
+    },
+
+    /**
+     * Get color scheme for risk level
+     * @param {string} riskLevel - Risk level (Negligible, Low, Moderate, High, Critical)
+     * @returns {Object} Color scheme with background, border, and text colors
+     */
+    getRiskColors(riskLevel) {
+        const colorSchemes = {
+            'Negligible': {
+                bg: 'linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%)',
+                border: '#9e9e9e',
+                text: '#424242',
+                icon: '#757575'
+            },
+            'Low': {
+                bg: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)',
+                border: '#4caf50',
+                text: '#1b5e20',
+                icon: '#2e7d32'
+            },
+            'Moderate': {
+                bg: 'linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%)',
+                border: '#ffc107',
+                text: '#f57c00',
+                icon: '#ff9800'
+            },
+            'High': {
+                bg: 'linear-gradient(135deg, #ffe8e0 0%, #ffccbc 100%)',
+                border: '#ff5722',
+                text: '#bf360c',
+                icon: '#d84315'
+            },
+            'Critical': {
+                bg: 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)',
+                border: '#f44336',
+                text: '#b71c1c',
+                icon: '#c62828'
+            }
+        };
+        return colorSchemes[riskLevel] || colorSchemes['Moderate'];
+    },
+
+    /**
+     * Get color for granularity badge (accuracy indicator)
+     * @param {string} granularity - Data granularity level
+     * @returns {Object} Badge color scheme
+     */
+    getGranularityColors(granularity) {
+        const colorSchemes = {
+            'city': {
+                bg: '#4caf50',      // Green - Best accuracy
+                text: 'white',
+                label: '📍 City-Level Data'
+            },
+            'county': {
+                bg: '#ffc107',      // Yellow - Good accuracy
+                text: '#000',
+                label: '📍 County-Level Data'
+            },
+            'state': {
+                bg: '#f44336',      // Red - Lowest accuracy
+                text: 'white',
+                label: '📍 State-Level Data'
+            }
+        };
+        return colorSchemes[granularity] || colorSchemes['state'];
     },
 
     /**
