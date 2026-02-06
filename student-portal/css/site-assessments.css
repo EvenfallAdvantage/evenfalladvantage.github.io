@@ -301,8 +301,15 @@
 }
 
 .cover-logo img {
-    max-width: 200px;
+    max-width: 320px;
     margin: 0 auto;
+}
+
+/* PDF-specific logo sizing */
+@media print {
+    .cover-logo img {
+        max-width: 80px !important;
+    }
 }
 
 .cover-title {
