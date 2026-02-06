@@ -960,61 +960,29 @@ const SiteAssessments = {
     },
 
     async generatePDFDirect(reportContent, clientName) {
-        const fileName = `${clientName.replace(/\s+/g, '_')}_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+        // Use browser's native print functionality with CSS page-break properties
+        // This is more reliable than jsPDF for complex layouts
         
-        const loadingDiv = document.createElement('div');
-        loadingDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(29, 52, 81, 0.95); color: white; padding: 2rem 3rem; border-radius: 1rem; z-index: 10000; text-align: center;';
-        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i><br><strong>Generating PDF...</strong><br><small>This may take a moment</small>';
-        document.body.appendChild(loadingDiv);
-        
-        try {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'letter',
-                compress: true
-            });
-            
-            // Use jsPDF's html() method with intelligent page breaking
-            await pdf.html(reportContent, {
-                callback: function(doc) {
-                    doc.save(fileName);
-                    document.body.removeChild(loadingDiv);
-                    
-                    const successDiv = document.createElement('div');
-                    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
-                    successDiv.innerHTML = '<i class="fas fa-check-circle"></i> PDF downloaded successfully!';
-                    document.body.appendChild(successDiv);
-                    setTimeout(() => document.body.removeChild(successDiv), 3000);
-                },
-                x: 12.7,
-                y: 12.7,
-                width: 190.5, // Letter width minus margins (215.9 - 25.4)
-                windowWidth: 850,
-                html2canvas: {
-                    scale: 0.75,
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: '#ffffff',
-                    onclone: (clonedDoc) => {
-                        // Set logo to PDF size
-                        const logos = clonedDoc.querySelectorAll('.cover-logo img');
-                        logos.forEach(logo => {
-                            logo.style.maxWidth = '50px';
-                            logo.style.width = '50px';
-                            logo.style.height = 'auto';
-                        });
-                    }
-                },
-                autoPaging: 'text' // Intelligent page breaking
-            });
-        } catch (error) {
-            if (document.body.contains(loadingDiv)) {
-                document.body.removeChild(loadingDiv);
-            }
-            throw error;
-        }
+        const infoDiv = document.createElement('div');
+        infoDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(29, 52, 81, 0.95); color: white; padding: 2rem 3rem; border-radius: 1rem; z-index: 10000; text-align: center; max-width: 500px;';
+        infoDiv.innerHTML = `
+            <i class="fas fa-print" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <br><strong>Ready to Generate PDF</strong>
+            <br><small style="margin-top: 1rem; display: block;">
+                In the print dialog:<br>
+                1. Select "Save as PDF" as the destination<br>
+                2. Set margins to "Default" (0.5 inch)<br>
+                3. Click "Save"
+            </small>
+            <br>
+            <button onclick="this.parentElement.remove(); window.print();" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 1rem;">
+                Open Print Dialog
+            </button>
+            <button onclick="this.parentElement.remove();" style="margin-top: 0.5rem; margin-left: 0.5rem; padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 1rem;">
+                Cancel
+            </button>
+        `;
+        document.body.appendChild(infoDiv);
     }
 };
 

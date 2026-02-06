@@ -305,10 +305,50 @@
     margin: 0 auto;
 }
 
-/* PDF-specific logo sizing */
+/* PDF-specific logo sizing and page break controls */
 @media print {
     .cover-logo img {
         max-width: 50px !important;
+    }
+    
+    /* Force page breaks between major sections */
+    .report-page {
+        page-break-after: always;
+        page-break-inside: avoid;
+    }
+    
+    /* Prevent breaking inside these elements */
+    .risk-score-display,
+    .findings-section,
+    .recommendations-table,
+    .signature-section {
+        page-break-inside: avoid;
+    }
+    
+    /* Allow breaks before section titles */
+    .report-section-title {
+        page-break-before: auto;
+        page-break-after: avoid;
+    }
+    
+    h3 {
+        page-break-after: avoid;
+    }
+    
+    /* Keep table rows together */
+    .recommendations-table tr {
+        page-break-inside: avoid;
+    }
+    
+    /* Page margins for print */
+    @page {
+        size: letter;
+        margin: 0.5in;
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
     }
 }
 
