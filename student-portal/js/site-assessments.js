@@ -404,16 +404,26 @@ const SiteAssessments = {
             </details>
         `;
 
-        // Insert after risk assessment section header
-        const riskSection = document.getElementById('section-riskAssessment');
-        if (riskSection) {
-            const existingInfo = riskSection.querySelector('.risk-analysis-info');
+        // Insert right after the analyze button in Client Information section
+        const clientSection = document.getElementById('section-clientInfo');
+        if (clientSection) {
+            const existingInfo = clientSection.querySelector('.risk-analysis-info');
             if (existingInfo) {
                 existingInfo.replaceWith(infoPanel);
             } else {
-                const sectionFields = riskSection.querySelector('.section-fields');
-                if (sectionFields) {
-                    sectionFields.insertAdjacentElement('beforebegin', infoPanel);
+                // Find the analyze button and insert after it
+                const analyzeButton = clientSection.querySelector('.btn-analyze-risk');
+                if (analyzeButton) {
+                    const buttonField = analyzeButton.closest('.form-field');
+                    if (buttonField) {
+                        buttonField.insertAdjacentElement('afterend', infoPanel);
+                    }
+                } else {
+                    // Fallback: insert at end of section fields
+                    const sectionFields = clientSection.querySelector('.section-fields');
+                    if (sectionFields) {
+                        sectionFields.appendChild(infoPanel);
+                    }
                 }
             }
         }
