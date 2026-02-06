@@ -976,105 +976,43 @@ const SiteAssessments = {
                 compress: true
             });
             
-            const pages = reportContent.querySelectorAll('.report-page');
-            
-            // PDF dimensions with margins
-            const pdfWidth = 215.9; // Letter width in mm
-            const pdfHeight = 279.4; // Letter height in mm
-            const margin = 12.7; // 0.5 inch margins
-            const contentWidth = pdfWidth - (margin * 2);
-            const contentHeight = pdfHeight - (margin * 2);
-            
-            let isFirstPage = true;
-            
-            for (let i = 0; i < pages.length; i++) {
-                const canvas = await html2canvas(pages[i], {
-                    scale: 1.5,
+            // Use jsPDF's html() method with intelligent page breaking
+            await pdf.html(reportContent, {
+                callback: function(doc) {
+                    doc.save(fileName);
+                    document.body.removeChild(loadingDiv);
+                    
+                    const successDiv = document.createElement('div');
+                    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
+                    successDiv.innerHTML = '<i class="fas fa-check-circle"></i> PDF downloaded successfully!';
+                    document.body.appendChild(successDiv);
+                    setTimeout(() => document.body.removeChild(successDiv), 3000);
+                },
+                x: 12.7,
+                y: 12.7,
+                width: 190.5, // Letter width minus margins (215.9 - 25.4)
+                windowWidth: 850,
+                html2canvas: {
+                    scale: 0.75,
                     useCORS: true,
                     logging: false,
                     backgroundColor: '#ffffff',
-                    windowWidth: 850,
                     onclone: (clonedDoc) => {
-                        // Set logo to PDF size - much smaller
+                        // Set logo to PDF size
                         const logos = clonedDoc.querySelectorAll('.cover-logo img');
                         logos.forEach(logo => {
                             logo.style.maxWidth = '50px';
                             logo.style.width = '50px';
                             logo.style.height = 'auto';
                         });
-                        // Ensure all other images fit
-                        const allImgs = clonedDoc.querySelectorAll('img');
-                        allImgs.forEach(img => {
-                            const isCoverLogo = img.closest('.cover-logo');
-                            if (!isCoverLogo) {
-                                img.style.maxWidth = '100%';
-                            }
-                        });
                     }
-                });
-                
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                
-                // Calculate dimensions to fit width within margins
-                const canvasRatio = canvas.height / canvas.width;
-                const imgWidth = contentWidth;
-                const fullImgHeight = imgWidth * canvasRatio;
-                
-                // If content fits on one page, add it normally
-                if (fullImgHeight <= contentHeight) {
-                    if (!isFirstPage) pdf.addPage();
-                    isFirstPage = false;
-                    
-                    const xOffset = margin;
-                    pdf.addImage(imgData, 'JPEG', xOffset, margin, imgWidth, fullImgHeight, undefined, 'FAST');
-                } else {
-                    // Content is too tall - split across multiple pages
-                    let remainingHeight = fullImgHeight;
-                    let sourceY = 0;
-                    
-                    while (remainingHeight > 0) {
-                        if (!isFirstPage) pdf.addPage();
-                        isFirstPage = false;
-                        
-                        const pageHeight = Math.min(contentHeight, remainingHeight);
-                        
-                        // Calculate the portion of the canvas to use
-                        const sourceHeight = (pageHeight / fullImgHeight) * canvas.height;
-                        
-                        // Create a temporary canvas for this slice
-                        const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width = canvas.width;
-                        tempCanvas.height = sourceHeight;
-                        const tempCtx = tempCanvas.getContext('2d');
-                        
-                        // Draw the slice
-                        tempCtx.drawImage(
-                            canvas,
-                            0, sourceY,
-                            canvas.width, sourceHeight,
-                            0, 0,
-                            canvas.width, sourceHeight
-                        );
-                        
-                        const sliceData = tempCanvas.toDataURL('image/jpeg', 0.95);
-                        pdf.addImage(sliceData, 'JPEG', margin, margin, imgWidth, pageHeight, undefined, 'FAST');
-                        
-                        sourceY += sourceHeight;
-                        remainingHeight -= pageHeight;
-                    }
-                }
-            }
-            
-            pdf.save(fileName);
-            document.body.removeChild(loadingDiv);
-            
-            const successDiv = document.createElement('div');
-            successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
-            successDiv.innerHTML = '<i class="fas fa-check-circle"></i> PDF downloaded successfully!';
-            document.body.appendChild(successDiv);
-            setTimeout(() => document.body.removeChild(successDiv), 3000);
+                },
+                autoPaging: 'text' // Intelligent page breaking
+            });
         } catch (error) {
-            document.body.removeChild(loadingDiv);
+            if (document.body.contains(loadingDiv)) {
+                document.body.removeChild(loadingDiv);
+            }
             throw error;
         }
     }
