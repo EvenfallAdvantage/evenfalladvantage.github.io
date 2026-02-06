@@ -5899,3 +5899,164 @@ function closePastReview() {
     // Scroll to top
     window.scrollTo(0, 0);
 }
+
+/**
+ * Access Control for Premium Tools
+ * Grandfathers existing students - anyone with ANY active enrollment gets access
+ * New students need Contractor Certification course
+ */
+
+const AccessControl = {
+    CONTRACTOR_COURSE_ID: 'contractor-certification',
+    
+    async hasContractorAccess() {
+        try {
+            const currentUser = await Auth.getCurrentUser();
+            if (!currentUser) return false;
+
+            const { data: enrollments, error } = await supabase
+                .from('student_course_enrollments')
+                .select('*, courses(*)')
+                .eq('student_id', currentUser.id)
+                .in('enrollment_status', ['active', 'completed']);
+
+            if (error) {
+                console.error('Error checking enrollment:', error);
+                return false;
+            }
+
+            // GRANDFATHERED ACCESS: Any existing enrollment grants access
+            if (enrollments && enrollments.length > 0) {
+                console.log('✅ Access granted: Existing student (grandfathered)');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Access control error:', error);
+            return false;
+        }
+    },
+
+    async initializePracticeTabs() {
+        const hasAccess = await this.hasContractorAccess();
+        
+        const siteAssessmentsTab = document.querySelector('[data-tab="site-assessments-practice"]');
+        const invoiceGeneratorTab = document.querySelector('[data-tab="invoice-generator-practice"]');
+        
+        if (!hasAccess) {
+            if (siteAssessmentsTab) this.lockTab(siteAssessmentsTab, 'Site Assessments');
+            if (invoiceGeneratorTab) this.lockTab(invoiceGeneratorTab, 'Invoice Generator');
+            this.showLockedContent('site-assessments-practice-tab', 'Site Assessments');
+            this.showLockedContent('invoice-generator-practice-tab', 'Invoice Generator');
+        } else {
+            if (siteAssessmentsTab) this.unlockTab(siteAssessmentsTab);
+            if (invoiceGeneratorTab) this.unlockTab(invoiceGeneratorTab);
+        }
+    },
+
+    lockTab(tabElement, toolName) {
+        tabElement.classList.add('locked-tab');
+        tabElement.setAttribute('data-locked', 'true');
+        const icon = tabElement.querySelector('i');
+        if (icon) icon.className = 'fas fa-lock';
+        tabElement.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showEnrollmentPrompt(toolName);
+        };
+    },
+
+    unlockTab(tabElement) {
+        tabElement.classList.remove('locked-tab');
+        tabElement.removeAttribute('data-locked');
+    },
+
+    showLockedContent(tabId, toolName) {
+        const tabContent = document.getElementById(tabId);
+        if (!tabContent) return;
+
+        tabContent.innerHTML = `
+            <div class="locked-content">
+                <div class="locked-icon"><i class="fas fa-lock"></i></div>
+                <h2>${toolName} - Premium Tool</h2>
+                <p class="locked-description">
+                    This professional tool is available to students enrolled in our <strong>Contractor Certification Course</strong>.
+                </p>
+                <div class="locked-benefits">
+                    <h3>What You'll Learn:</h3>
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> Professional 1099 contractor practices</li>
+                        <li><i class="fas fa-check-circle"></i> Business formation and licensing</li>
+                        <li><i class="fas fa-check-circle"></i> Contract negotiation and management</li>
+                        <li><i class="fas fa-check-circle"></i> Invoicing and payment processing</li>
+                        <li><i class="fas fa-check-circle"></i> Tax obligations and deductions</li>
+                        <li><i class="fas fa-check-circle"></i> Professional security assessments</li>
+                    </ul>
+                </div>
+                <div class="locked-tools">
+                    <h3>Premium Tools Included:</h3>
+                    <div class="tool-cards">
+                        <div class="tool-card">
+                            <i class="fas fa-clipboard-list"></i>
+                            <h4>Site Security Assessments</h4>
+                            <p>Professional assessment tool with automated risk analysis and PDF reports</p>
+                        </div>
+                        <div class="tool-card">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <h4>Invoice Generator</h4>
+                            <p>Create professional invoices with automatic calculations and PDF export</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="locked-actions">
+                    <button class="btn btn-primary btn-large" onclick="navigateToSection('training')">
+                        <i class="fas fa-graduation-cap"></i> Browse Courses
+                    </button>
+                </div>
+                <div class="locked-footer">
+                    <p><i class="fas fa-info-circle"></i> Already enrolled? Refresh the page or contact support.</p>
+                </div>
+            </div>
+        `;
+    },
+
+    showEnrollmentPrompt(toolName) {
+        const modal = document.createElement('div');
+        modal.className = 'enrollment-modal';
+        modal.innerHTML = `
+            <div class="enrollment-modal-content">
+                <div class="enrollment-modal-header">
+                    <h2><i class="fas fa-lock"></i> Premium Tool Locked</h2>
+                    <button class="modal-close" onclick="this.closest('.enrollment-modal').remove()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="enrollment-modal-body">
+                    <p><strong>${toolName}</strong> is available to students enrolled in our Contractor Certification Course.</p>
+                    <div class="enrollment-benefits">
+                        <h3>Course Benefits:</h3>
+                        <ul>
+                            <li>Learn professional 1099 contractor practices</li>
+                            <li>Access premium business tools</li>
+                            <li>Professional certification upon completion</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="enrollment-modal-footer">
+                    <button class="btn btn-primary" onclick="navigateToSection('training'); this.closest('.enrollment-modal').remove();">
+                        <i class="fas fa-graduation-cap"></i> Browse Courses
+                    </button>
+                    <button class="btn btn-secondary" onclick="this.closest('.enrollment-modal').remove()">Maybe Later</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    }
+};
+
+// Initialize access control
+setTimeout(async () => {
+    if (typeof Auth !== 'undefined' && typeof supabase !== 'undefined') {
+        await AccessControl.initializePracticeTabs();
+    }
+}, 1500);

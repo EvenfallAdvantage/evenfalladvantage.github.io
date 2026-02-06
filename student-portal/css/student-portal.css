@@ -3070,6 +3070,270 @@ body {
     margin: 0;
 }
 
+/* Locked Content Styling */
+.locked-tab {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.locked-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.locked-icon {
+    font-size: 5rem;
+    color: #dd8c33;
+    margin-bottom: 2rem;
+}
+
+.locked-content h2 {
+    color: #1d3451;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.locked-description {
+    font-size: 1.2rem;
+    color: #6c757d;
+    margin-bottom: 3rem;
+    line-height: 1.6;
+}
+
+.locked-benefits,
+.locked-tools {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.locked-benefits h3,
+.locked-tools h3 {
+    color: #1d3451;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.locked-benefits ul {
+    list-style: none;
+    padding: 0;
+}
+
+.locked-benefits li {
+    padding: 0.75rem 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.locked-benefits li i {
+    color: #28a745;
+    margin-right: 0.75rem;
+}
+
+.tool-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.tool-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    border: 2px solid #dee2e6;
+}
+
+.tool-card i {
+    font-size: 3rem;
+    color: #dd8c33;
+    margin-bottom: 1rem;
+}
+
+.tool-card h4 {
+    color: #1d3451;
+    margin-bottom: 0.5rem;
+}
+
+.tool-card p {
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+.locked-actions {
+    margin: 3rem 0;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.locked-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px solid #dee2e6;
+    color: #6c757d;
+}
+
+/* Enrollment Modal */
+.enrollment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.enrollment-modal-content {
+    background: white;
+    border-radius: 1rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+.enrollment-modal-header {
+    background: linear-gradient(135deg, #1d3451 0%, #2a4a6a 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: 1rem 1rem 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.enrollment-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: transform 0.2s ease;
+}
+
+.modal-close:hover {
+    transform: scale(1.1);
+}
+
+.enrollment-modal-body {
+    padding: 2rem;
+}
+
+.enrollment-modal-body p {
+    font-size: 1.1rem;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+}
+
+.enrollment-benefits {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.enrollment-benefits h3 {
+    color: #1d3451;
+    margin-bottom: 1rem;
+}
+
+.enrollment-benefits ul {
+    list-style: none;
+    padding: 0;
+}
+
+.enrollment-benefits li {
+    padding: 0.5rem 0;
+    color: #2c3e50;
+}
+
+.enrollment-modal-footer {
+    padding: 1.5rem 2rem;
+    border-top: 2px solid #dee2e6;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .locked-content {
+        padding: 2rem 1rem;
+    }
+
+    .locked-icon {
+        font-size: 3.5rem;
+    }
+
+    .locked-content h2 {
+        font-size: 1.75rem;
+    }
+
+    .locked-description {
+        font-size: 1rem;
+    }
+
+    .tool-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .locked-actions {
+        flex-direction: column;
+    }
+
+    .locked-actions .btn {
+        width: 100%;
+    }
+
+    .enrollment-modal-content {
+        width: 95%;
+    }
+
+    .enrollment-modal-footer {
+        flex-direction: column;
+    }
+
+    .enrollment-modal-footer .btn {
+        width: 100%;
+    }
+}
+
 /* ElevenLabs AI Agent Custom Styling */
 elevenlabs-convai::part(button) {
     background-color: #dd8c33 !important;
