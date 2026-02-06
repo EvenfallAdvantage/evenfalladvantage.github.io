@@ -100,13 +100,48 @@ window.GeoRiskService = {
                 const result = data[0];
                 
                 const crimeData = {
+                    // Basic rates
                     violentCrimeRate: result.violent_crime_rate,
                     propertyCrimeRate: result.property_crime_rate,
+                    totalCrimeRate: result.total_crime_rate,
                     population: result.population,
                     overallRating: this.getCrimeRating(result.violent_crime_rate),
                     granularity: result.granularity,
                     source: result.location_name,
-                    dataSource: result.data_source
+                    dataSource: result.data_source,
+                    
+                    // Crime breakdowns
+                    crimeBreakdown: {
+                        murder_rate: result.murder_rate,
+                        rape_rate: result.rape_rate,
+                        robbery_rate: result.robbery_rate,
+                        aggravated_assault_rate: result.aggravated_assault_rate,
+                        burglary_rate: result.burglary_rate,
+                        larceny_theft_rate: result.larceny_theft_rate,
+                        motor_vehicle_theft_rate: result.motor_vehicle_theft_rate,
+                        arson_rate: result.arson_rate
+                    },
+                    
+                    // Clearance rates
+                    violent_clearance_rate: result.violent_clearance_rate,
+                    property_clearance_rate: result.property_clearance_rate,
+                    
+                    // Trends
+                    violent_crime_trend: result.violent_crime_trend,
+                    property_crime_trend: result.property_crime_trend,
+                    year_over_year_change: result.year_over_year_change,
+                    previous_year_violent_rate: result.previous_year_violent_rate,
+                    
+                    // Top crime types
+                    top_violent_crime_type: result.top_violent_crime_type,
+                    top_property_crime_type: result.top_property_crime_type,
+                    
+                    // Density
+                    area_square_miles: result.area_square_miles,
+                    crime_density: result.crime_density,
+                    
+                    // Data quality
+                    data_quality: result.data_quality
                 };
 
                 // Cache the result
@@ -221,60 +256,195 @@ window.GeoRiskService = {
     },
 
     /**
-     * Calculate enhanced risk assessment
+     * Calculate precision risk assessment using detailed crime breakdowns, trends, and clearance rates
      */
     calculateEnhancedRiskAssessment(crimeData, demographics, recentIncidents, addressData) {
-        let threatLikelihood = 'Possible';
-        const violentRate = crimeData.violentCrimeRate || 0;
-        
-        if (violentRate > 500 || crimeData.overallRating === 'High') {
-            threatLikelihood = 'Likely';
-        } else if (violentRate > 350) {
-            threatLikelihood = 'Possible';
-        } else if (violentRate < 250) {
-            threatLikelihood = 'Unlikely';
-        }
-
-        if (recentIncidents && recentIncidents.total > 0) {
-            if (recentIncidents.violent > 3) {
-                if (threatLikelihood === 'Unlikely') threatLikelihood = 'Possible';
-                else if (threatLikelihood === 'Possible') threatLikelihood = 'Likely';
-            }
-        }
-
-        let potentialImpact = 'Moderate';
         const facilityType = addressData.facilityType?.toLowerCase() || '';
         
-        if (facilityType.includes('school') || facilityType.includes('healthcare') || 
-            facilityType.includes('religious')) {
-            potentialImpact = 'Major';
-        } else if (facilityType.includes('office') || facilityType.includes('retail')) {
-            potentialImpact = 'Moderate';
-        } else if (facilityType.includes('venue') || facilityType.includes('event')) {
-            potentialImpact = 'Major';
+        // ========================================
+        // 1. THREAT LIKELIHOOD (Weighted Scoring)
+        // ========================================
+        let threatScore = 0;
+        
+        // Base violent crime rate (0-40 points)
+        const violentRate = crimeData.violentCrimeRate || 0;
+        if (violentRate >= 1000) threatScore += 40;
+        else if (violentRate >= 600) threatScore += 30;
+        else if (violentRate >= 350) threatScore += 20;
+        else if (violentRate >= 150) threatScore += 10;
+        
+        // Crime type relevance to facility (0-20 points)
+        const crimeBreakdown = crimeData.crimeBreakdown || {};
+        if (facilityType.includes('school') || facilityType.includes('religious')) {
+            // Schools/churches care more about active threats
+            if (crimeBreakdown.aggravated_assault_rate > 200) threatScore += 15;
+            if (crimeBreakdown.robbery_rate > 100) threatScore += 10;
+        } else if (facilityType.includes('retail') || facilityType.includes('office')) {
+            // Retail/offices care more about theft and burglary
+            if (crimeBreakdown.burglary_rate > 300) threatScore += 15;
+            if (crimeBreakdown.larceny_theft_rate > 1000) threatScore += 10;
         }
-
-        const overallVulnerability = 'Moderate';
-        const resilienceLevel = 'Fair';
-
+        
+        // Trend analysis (0-15 points)
+        if (crimeData.violent_crime_trend === 'increasing') {
+            threatScore += 15; // Getting worse
+        } else if (crimeData.violent_crime_trend === 'decreasing') {
+            threatScore -= 10; // Improving (reduce score)
+        }
+        
+        // Clearance rate (law enforcement effectiveness) (0-10 points)
+        const clearanceRate = crimeData.violent_clearance_rate || 50;
+        if (clearanceRate < 30) {
+            threatScore += 10; // Low enforcement = higher threat
+        } else if (clearanceRate > 60) {
+            threatScore -= 5; // Strong enforcement = lower threat
+        }
+        
+        // Recent incidents (0-15 points)
+        if (recentIncidents && recentIncidents.total > 0) {
+            if (recentIncidents.violent > 5) threatScore += 15;
+            else if (recentIncidents.violent > 2) threatScore += 10;
+            else if (recentIncidents.violent > 0) threatScore += 5;
+        }
+        
+        // Convert score to likelihood
+        let threatLikelihood;
+        if (threatScore >= 70) threatLikelihood = 'Certain';
+        else if (threatScore >= 50) threatLikelihood = 'Likely';
+        else if (threatScore >= 30) threatLikelihood = 'Possible';
+        else if (threatScore >= 15) threatLikelihood = 'Unlikely';
+        else threatLikelihood = 'Rare';
+        
+        // ========================================
+        // 2. POTENTIAL IMPACT (Facility-Specific)
+        // ========================================
+        let potentialImpact = 'Moderate';
+        let impactReasoning = [];
+        
+        if (facilityType.includes('school')) {
+            potentialImpact = 'Catastrophic'; // Children = highest impact
+            impactReasoning.push('Vulnerable population (children)');
+        } else if (facilityType.includes('healthcare')) {
+            potentialImpact = 'Major'; // Patients = high impact
+            impactReasoning.push('Vulnerable population (patients)');
+        } else if (facilityType.includes('religious')) {
+            potentialImpact = 'Major'; // Symbolic target
+            impactReasoning.push('High-profile symbolic target');
+        } else if (facilityType.includes('venue') || facilityType.includes('event')) {
+            potentialImpact = 'Major'; // Large gatherings
+            impactReasoning.push('Large public gatherings');
+        } else if (facilityType.includes('office')) {
+            potentialImpact = 'Moderate';
+            impactReasoning.push('Standard business operations');
+        } else if (facilityType.includes('retail')) {
+            potentialImpact = 'Moderate';
+            impactReasoning.push('Public access, cash handling');
+        }
+        
+        // ========================================
+        // 3. VULNERABILITY ASSESSMENT
+        // ========================================
+        let vulnerabilityScore = 50; // Start at moderate
+        
+        // High crime density increases vulnerability
+        if (crimeData.crime_density && crimeData.crime_density > 100) {
+            vulnerabilityScore += 15;
+        }
+        
+        // Top crime types relevant to facility
+        const topPropertyCrime = crimeData.top_property_crime_type || '';
+        if (topPropertyCrime.toLowerCase().includes('burglary')) {
+            vulnerabilityScore += 10; // Burglary = direct facility threat
+        }
+        
+        // Population density
+        if (demographics.populationDensity === 'High') {
+            vulnerabilityScore += 5; // More targets, but also more witnesses
+        }
+        
+        let overallVulnerability;
+        if (vulnerabilityScore >= 80) overallVulnerability = 'Critical';
+        else if (vulnerabilityScore >= 65) overallVulnerability = 'High';
+        else if (vulnerabilityScore >= 45) overallVulnerability = 'Moderate';
+        else if (vulnerabilityScore >= 30) overallVulnerability = 'Low';
+        else overallVulnerability = 'Minimal';
+        
+        // ========================================
+        // 4. RESILIENCE LEVEL
+        // ========================================
+        let resilienceScore = 50; // Start at fair
+        
+        // Good clearance rate = better resilience
+        if (clearanceRate > 60) {
+            resilienceScore += 20;
+        } else if (clearanceRate < 30) {
+            resilienceScore -= 20;
+        }
+        
+        // Improving trends = better resilience
+        if (crimeData.violent_crime_trend === 'decreasing') {
+            resilienceScore += 15;
+        } else if (crimeData.violent_crime_trend === 'increasing') {
+            resilienceScore -= 15;
+        }
+        
+        let resilienceLevel;
+        if (resilienceScore >= 75) resilienceLevel = 'Excellent';
+        else if (resilienceScore >= 60) resilienceLevel = 'Good';
+        else if (resilienceScore >= 40) resilienceLevel = 'Fair';
+        else if (resilienceScore >= 25) resilienceLevel = 'Poor';
+        else resilienceLevel = 'Critical';
+        
+        // ========================================
+        // 5. RETURN COMPREHENSIVE ASSESSMENT
+        // ========================================
         return {
             threatLikelihood,
             potentialImpact,
             overallVulnerability,
             resilienceLevel,
+            
+            // Detailed scoring for transparency
+            scoring: {
+                threatScore,
+                vulnerabilityScore,
+                resilienceScore,
+                impactReasoning
+            },
+            
+            // Enhanced crime data with breakdowns
             crimeData: {
                 violentCrimeRate: crimeData.violentCrimeRate,
                 propertyCrimeRate: crimeData.propertyCrimeRate,
                 overallRating: crimeData.overallRating,
                 source: crimeData.source,
-                granularity: crimeData.granularity
+                granularity: crimeData.granularity,
+                
+                // Crime breakdowns
+                crimeBreakdown: crimeData.crimeBreakdown,
+                topViolentCrime: crimeData.top_violent_crime_type,
+                topPropertyCrime: crimeData.top_property_crime_type,
+                
+                // Trends
+                violentTrend: crimeData.violent_crime_trend,
+                propertyTrend: crimeData.property_crime_trend,
+                yearOverYearChange: crimeData.year_over_year_change,
+                
+                // Enforcement
+                violentClearanceRate: crimeData.violent_clearance_rate,
+                propertyClearanceRate: crimeData.property_clearance_rate,
+                
+                // Density
+                crimeDensity: crimeData.crime_density
             },
+            
             recentIncidents: recentIncidents ? {
                 total: recentIncidents.total,
                 violent: recentIncidents.violent,
                 property: recentIncidents.property,
                 radius: recentIncidents.radius
             } : null,
+            
             demographics: demographics,
             autoPopulated: true,
             editable: true
