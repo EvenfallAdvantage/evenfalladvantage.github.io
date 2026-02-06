@@ -128,6 +128,18 @@ SiteAssessments.renderForm = function() {
             </div>
         `;
     });
+    
+    // Add action buttons at the bottom of the form
+    html += `
+        <div class="assessment-form-actions" style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+            <button class="btn btn-secondary" onclick="SiteAssessments.saveProgress()" style="flex: 1; min-width: 200px; max-width: 300px;">
+                <i class="fas fa-save"></i> Save Progress
+            </button>
+            <button class="btn btn-primary" onclick="SiteAssessments.generateReport()" style="flex: 1; min-width: 200px; max-width: 300px;">
+                <i class="fas fa-file-alt"></i> Generate Report
+            </button>
+        </div>
+    `;
 
     formContainer.innerHTML = html;
     this.attachEventListeners();
@@ -232,4 +244,30 @@ SiteAssessments.attachEventListeners = function() {
 SiteAssessments.saveProgress = function() {
     const formData = this.collectFormData();
     localStorage.setItem('siteAssessment_current', JSON.stringify(formData));
+    
+    // Show success feedback
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 10000;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.innerHTML = '<i class="fas fa-check-circle"></i> Assessment saved successfully!';
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
 };
