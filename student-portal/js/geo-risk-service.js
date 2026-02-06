@@ -49,7 +49,8 @@ const GeoRiskService = {
             const demographics = await this.fetchDemographics(location);
             
             // 4. Fetch recent incidents from SpotCrime (if coordinates available)
-            const recentIncidents = location.lat ? await this.fetchRecentIncidents(location) : null;
+            // Note: SpotCrime requires API key and has CORS restrictions - disabled for now
+            const recentIncidents = null; // await this.fetchRecentIncidents(location) when API key available
             
             // 5. Calculate enhanced risk assessment
             const riskAssessment = this.calculateEnhancedRiskAssessment(
