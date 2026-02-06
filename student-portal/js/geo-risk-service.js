@@ -77,6 +77,9 @@ const GeoRiskService = {
             return this.cache[cacheKey];
         }
 
+        // Add delay to respect Nominatim usage policy (1 request per second)
+        await this.delay(1000);
+
         try {
             const response = await fetch(
                 `${this.apis.nominatim}?` + new URLSearchParams({
@@ -94,22 +97,26 @@ const GeoRiskService = {
             );
 
             if (!response.ok) {
-                throw new Error('Geocoding failed');
+                console.warn('Geocoding API returned error status:', response.status);
+                throw new Error('Geocoding service unavailable');
             }
 
             const data = await response.json();
             
             if (!data || data.length === 0) {
-                throw new Error('Location not found');
+                console.warn('No geocoding results for:', query);
+                // Return fallback with city/state
+                return this.createFallbackLocation(city, state);
             }
 
             const result = {
                 lat: parseFloat(data[0].lat),
                 lon: parseFloat(data[0].lon),
-                county: data[0].address.county || '',
-                state: data[0].address.state || state,
-                city: data[0].address.city || data[0].address.town || city,
-                displayName: data[0].display_name
+                county: data[0].address?.county || '',
+                state: data[0].address?.state || state,
+                city: data[0].address?.city || data[0].address?.town || city,
+                displayName: data[0].display_name,
+                geocoded: true
             };
 
             // Cache result
@@ -117,18 +124,27 @@ const GeoRiskService = {
             return result;
 
         } catch (error) {
-            console.error('Geocoding error:', error);
-            // Return approximate data based on city/state
-            return {
-                lat: null,
-                lon: null,
-                county: '',
-                state: state,
-                city: city,
-                displayName: `${city}, ${state}`,
-                error: 'Geocoding unavailable'
-            };
+            console.warn('Geocoding error, using fallback:', error.message);
+            // Return fallback location data
+            return this.createFallbackLocation(city, state);
         }
+    },
+
+    createFallbackLocation(city, state) {
+        return {
+            lat: null,
+            lon: null,
+            county: '',
+            state: state,
+            city: city,
+            displayName: `${city}, ${state}`,
+            geocoded: false,
+            fallback: true
+        };
+    },
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     },
 
     /**
