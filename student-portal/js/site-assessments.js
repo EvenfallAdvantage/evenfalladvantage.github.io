@@ -466,23 +466,61 @@ const SiteAssessments = {
         });
 
         // Add specific recommendations based on assessment findings using facility-specific library
-        if (data.doorType === 'Hollow-core' || data.doorType === 'Glass') {
-            recs.priority1.push(recsLib.hollowDoors);
+        // Only recommend if current state is inadequate (not if good options already selected)
+        
+        // Door construction - only recommend if NOT solid-core/metal
+        if (data.doorType && data.doorType !== 'Solid-core/Metal') {
+            if (data.doorType === 'Hollow-core' || data.doorType === 'Glass' || data.doorType === 'Mixed' || data.doorType === 'Unknown') {
+                recs.priority1.push(recsLib.hollowDoors);
+            }
         }
-        if (data.interiorLocks === 'No interior locks' || data.interiorLocks === 'Partial coverage') {
+        
+        // Interior locks - only recommend if NOT comprehensive coverage
+        if (data.interiorLocks && data.interiorLocks !== 'Yes - all rooms') {
             recs.priority1.push(recsLib.noSecondaryLocks);
         }
-        if (data.alarmSystem === 'None' || data.alarmSystem === 'Fire alarm only') {
-            recs.priority1.push(recsLib.noAlarmSystem);
+        
+        // Alarm system - only recommend if NOT comprehensive
+        if (data.alarmSystem && data.alarmSystem !== 'Intercom-based with full coverage' && data.alarmSystem !== 'PA system with full coverage') {
+            if (data.alarmSystem === 'Limited alarm system' || data.alarmSystem === 'Fire alarm only' || data.alarmSystem === 'None') {
+                recs.priority1.push(recsLib.noAlarmSystem);
+            }
         }
-        if (data.cameraCoverage === 'Partial - significant gaps' || data.cameraCoverage === 'Minimal - limited coverage') {
-            recs.priority2.push(recsLib.coverageGaps);
+        
+        // Camera coverage - only recommend if NOT comprehensive or good
+        if (data.cameraCoverage && data.cameraCoverage !== 'Comprehensive - all critical areas' && data.cameraCoverage !== 'Good - most areas covered') {
+            if (data.cameraCoverage === 'Partial - significant gaps' || data.cameraCoverage === 'Minimal - limited coverage' || data.cameraCoverage === 'None') {
+                recs.priority2.push(recsLib.coverageGaps);
+            }
         }
-        if (data.crisisTeam === 'None' || data.crisisTeam === 'Ad-hoc response only') {
-            recs.priority2.push(recsLib.noCrisisTeam);
+        
+        // Crisis team - only recommend if NOT formalized
+        if (data.crisisTeam && data.crisisTeam !== 'Formalized team with defined roles') {
+            if (data.crisisTeam === 'Informal team' || data.crisisTeam === 'Ad-hoc response only' || data.crisisTeam === 'None') {
+                recs.priority2.push(recsLib.noCrisisTeam);
+            }
         }
-        if (data.staffTraining === 'Minimal training' || data.staffTraining === 'None') {
-            recs.priority3.push(recsLib.limitedDrills);
+        
+        // Staff training - only recommend if NOT comprehensive
+        if (data.staffTraining && data.staffTraining !== 'Comprehensive annual training') {
+            if (data.staffTraining === 'Initial training only' || data.staffTraining === 'Minimal training' || data.staffTraining === 'None') {
+                recs.priority3.push(recsLib.limitedDrills);
+            }
+        }
+        
+        // Additional checks for other critical areas
+        // Perimeter barriers
+        if (data.perimeterBarriers && data.perimeterBarriers !== 'Comprehensive fencing/barriers') {
+            if (data.perimeterBarriers === 'Minimal barriers' || data.perimeterBarriers === 'None') {
+                recs.priority1.push(recsLib.inadequateBarriers);
+            }
+        }
+        
+        // Visitor management
+        if (data.visitorManagement && data.visitorManagement !== 'Digital system with ID verification') {
+            if (data.visitorManagement === 'Sign-in only' || data.visitorManagement === 'None') {
+                recs.priority1.push(recsLib.uncontrolledEntry);
+            }
         }
 
         return recs;
