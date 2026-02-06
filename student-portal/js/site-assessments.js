@@ -8,6 +8,45 @@ const SiteAssessments = {
     currentAssessment: {},
     templates: [],
     
+    // Initialize the assessment tool
+    init() {
+        console.log('Site Assessments initialized');
+        this.renderForm();
+    },
+    
+    // Start a new assessment
+    startNewAssessment() {
+        // Clear any existing data
+        localStorage.removeItem('siteAssessment_current');
+        this.currentAssessment = {};
+        
+        // Show the form
+        document.getElementById('assessmentForm').style.display = 'block';
+        document.getElementById('reportContainer').style.display = 'none';
+        
+        // Render the form
+        this.renderForm();
+        
+        // Scroll to form
+        document.getElementById('assessmentForm').scrollIntoView({ behavior: 'smooth' });
+    },
+    
+    // Load a saved assessment
+    loadSavedAssessment() {
+        const saved = localStorage.getItem('siteAssessment_current');
+        if (saved) {
+            this.currentAssessment = JSON.parse(saved);
+            document.getElementById('assessmentForm').style.display = 'block';
+            document.getElementById('reportContainer').style.display = 'none';
+            this.renderForm();
+            this.restoreFormData(this.currentAssessment);
+            alert('Assessment loaded successfully!');
+        } else {
+            alert('No saved assessment found. Starting a new assessment.');
+            this.startNewAssessment();
+        }
+    },
+    
     // Advanced Risk Scoring Algorithm
     riskMatrix: {
         likelihood: {
