@@ -47,7 +47,7 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
             <!-- Cover Page -->
             <div class="report-page cover-page">
                 <div class="cover-logo">
-                    <img src="../images/logo-print.png" alt="Evenfall Advantage" style="max-width: 300px;">
+                    <img src="../images/logo-print.png" alt="Evenfall Advantage">
                 </div>
                 <h1 class="cover-title">Final Security Assessment<br>& Recommendations Report</h1>
                 <div class="cover-info">
