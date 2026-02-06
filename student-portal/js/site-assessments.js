@@ -595,17 +595,17 @@ const SiteAssessments = {
             ? `<div style="background: rgba(255, 193, 7, 0.2); padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
                 <i class="fas fa-info-circle" style="color: #f57c00;"></i> 
                 <strong>Note:</strong> Specific address not found in geocoding database. Using state-level crime statistics for 
-                <strong>${riskData.metadata.location.city}, ${riskData.metadata.location.state}</strong>. 
+                <strong>${locationRiskData.metadata.location.city}, ${locationRiskData.metadata.location.state}</strong>. 
                 This is normal and provides accurate risk assessment data.
             </div>`
             : '';
         
         // Recent incidents section
-        const incidentsSection = riskData.recentIncidents && riskData.recentIncidents.total > 0
+        const incidentsSection = locationRiskData.recentIncidents && locationRiskData.recentIncidents.total > 0
             ? `<div style="background: rgba(231, 76, 60, 0.1); padding: 0.75rem; border-radius: 0.25rem; margin-top: 1rem;">
                 <strong><i class="fas fa-exclamation-triangle"></i> Recent Incidents:</strong>
-                ${riskData.recentIncidents.total} crimes in ${riskData.recentIncidents.radius} mile radius 
-                (${riskData.recentIncidents.violent} violent, ${riskData.recentIncidents.property} property)
+                ${locationRiskData.recentIncidents.total} crimes in ${locationRiskData.recentIncidents.radius} mile radius 
+                (${locationRiskData.recentIncidents.violent} violent, ${locationRiskData.recentIncidents.property} property)
             </div>`
             : '';
         
