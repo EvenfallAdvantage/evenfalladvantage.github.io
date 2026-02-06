@@ -188,7 +188,6 @@ SiteAssessments.renderFields = function(fields) {
                 ${field.label ? `<label for="${field.name}">
                     ${field.label}
                     ${field.required ? '<span class="required">*</span>' : ''}
-                    ${field.riskFactor ? '<span class="risk-badge"><i class="fas fa-exclamation-triangle"></i> Risk Factor</span>' : ''}
                 </label>` : ''}
                 ${tutorialHtml}
                 ${inputHtml}
