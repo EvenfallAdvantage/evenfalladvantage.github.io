@@ -302,41 +302,228 @@ const SiteAssessments = {
         return recs;
     },
 
-    async analyzeLocationRisk() {
-        // Get address data from form
-        const addressData = {
-            address: document.getElementById('address')?.value || '',
-            city: document.getElementById('city')?.value || '',
-            state: document.getElementById('state')?.value || '',
-            facilityType: document.getElementById('facilityType')?.value || ''
-        };
-
+    async performHolisticAnalysis() {
         // Validate required fields
-        if (!addressData.city || !addressData.state) {
-            alert('Please enter City and State before analyzing location risk.');
+        const city = document.getElementById('city')?.value || '';
+        const state = document.getElementById('state')?.value || '';
+        
+        if (!city || !state) {
+            alert('Please enter City and State in the Client Information section before analyzing.');
             return;
         }
 
         try {
-            // Use GeoRiskService to analyze location
+            // Step 1: Perform location risk analysis
+            const addressData = {
+                address: document.getElementById('address')?.value || '',
+                city: city,
+                state: state,
+                facilityType: document.getElementById('facilityType')?.value || ''
+            };
+
             if (!window.GeoRiskService) {
                 throw new Error('GeoRiskService not loaded');
             }
 
-            const riskData = await window.GeoRiskService.analyzeLocationRisk(addressData);
+            const locationRiskData = await window.GeoRiskService.analyzeLocationRisk(addressData);
             
-            // Populate risk assessment fields
-            this.populateRiskAssessment(riskData);
+            // Step 2: Collect all form inputs for holistic analysis
+            const formData = this.collectAllFormData();
             
-            // Show success with data sources
-            this.showRiskAnalysisResults(riskData);
+            // Step 3: Perform comprehensive risk calculation
+            const holisticRisk = this.calculateHolisticRisk(formData, locationRiskData);
             
-            // No scrolling needed - card appears right after the analyze button
+            // Step 4: Populate risk assessment fields with calculated values
+            this.populateRiskAssessment(holisticRisk);
+            
+            // Step 5: Show analysis results
+            this.showRiskAnalysisResults(locationRiskData, holisticRisk);
+            
+            // Store metadata for report
+            this.currentAssessment.riskMetadata = locationRiskData.metadata;
+            this.currentAssessment.crimeData = locationRiskData.crimeData;
+            this.currentAssessment.holisticAnalysis = holisticRisk.analysis;
 
         } catch (error) {
-            console.error('Location risk analysis error:', error);
-            window.GeoRiskService?.showError('Unable to analyze location risk. Please enter values manually.');
+            console.error('Holistic analysis error:', error);
+            window.GeoRiskService?.showError('Unable to complete analysis. Please check your inputs and try again.');
         }
+    },
+
+    collectAllFormData() {
+        const data = {};
+        const inputs = document.querySelectorAll('#assessmentForm input, #assessmentForm select, #assessmentForm textarea');
+        inputs.forEach(input => {
+            if (input.type === 'checkbox') {
+                if (!data[input.name]) data[input.name] = [];
+                if (input.checked) data[input.name].push(input.value);
+            } else {
+                data[input.name] = input.value;
+            }
+        });
+        return data;
+    },
+
+    calculateHolisticRisk(formData, locationRiskData) {
+        // Initialize scores
+        let vulnerabilityScore = 0;
+        let resilienceScore = 0;
+        let threatScore = 0;
+        let impactScore = 0;
+        
+        const analysis = {
+            factors: [],
+            locationInfluence: 0,
+            physicalSecurityInfluence: 0,
+            accessControlInfluence: 0,
+            surveillanceInfluence: 0,
+            personnelInfluence: 0
+        };
+
+        // 1. Location-based threat likelihood (30% weight)
+        const crimeRating = locationRiskData.crimeData?.overallRating || 'Moderate';
+        const crimeToThreat = {
+            'Negligible': 1,
+            'Low': 2,
+            'Moderate': 3,
+            'High': 4,
+            'Critical': 5
+        };
+        threatScore = (crimeToThreat[crimeRating] || 3) * 0.3;
+        analysis.locationInfluence = crimeToThreat[crimeRating] || 3;
+        analysis.factors.push(`Location crime rating: ${crimeRating} (Threat +${(crimeToThreat[crimeRating] || 3) * 0.3})`);
+
+        // 2. Physical Security Assessment (25% weight on vulnerability)
+        const physicalFactors = {
+            doorType: { 'Solid-core/Metal': -1, 'Hollow-core': 2, 'Glass': 2, 'Mixed': 1, 'Unknown': 1 },
+            doorVisibility: { 'No windows': -1, 'High windows only': 0, 'Windows at handle height': 2, 'Full glass': 2 },
+            lockQuality: { 'Deadbolt + reinforced': -2, 'Deadbolt': -1, 'Standard keyed': 1, 'Push-button': 2, 'None/Unknown': 3 },
+            perimeterSecurity: { 'Fencing + lighting + cameras': -2, 'Fencing + lighting': -1, 'Fencing only': 0, 'Minimal': 2, 'None': 3 },
+            windowSecurity: { 'Security film + locks': -2, 'Security film or locks': -1, 'Standard': 1, 'No security': 2 }
+        };
+        
+        let physicalScore = 0;
+        let physicalCount = 0;
+        Object.keys(physicalFactors).forEach(key => {
+            if (formData[key] && physicalFactors[key][formData[key]] !== undefined) {
+                physicalScore += physicalFactors[key][formData[key]];
+                physicalCount++;
+            }
+        });
+        if (physicalCount > 0) {
+            const avgPhysical = physicalScore / physicalCount;
+            vulnerabilityScore += avgPhysical * 0.25;
+            analysis.physicalSecurityInfluence = avgPhysical;
+            analysis.factors.push(`Physical security: ${avgPhysical > 0 ? 'Weak' : 'Strong'} (Vulnerability ${avgPhysical > 0 ? '+' : ''}${(avgPhysical * 0.25).toFixed(2)})`);
+        }
+
+        // 3. Access Control (20% weight on vulnerability)
+        const accessFactors = {
+            visitorManagement: { 'Strict - ID + escort': -2, 'Moderate - sign-in': 0, 'Minimal - informal': 1, 'None': 3 },
+            accessPoints: { 'Single controlled': -1, 'Multiple controlled': 0, 'Multiple uncontrolled': 2, 'Unrestricted': 3 }
+        };
+        
+        let accessScore = 0;
+        let accessCount = 0;
+        Object.keys(accessFactors).forEach(key => {
+            if (formData[key] && accessFactors[key][formData[key]] !== undefined) {
+                accessScore += accessFactors[key][formData[key]];
+                accessCount++;
+            }
+        });
+        if (accessCount > 0) {
+            const avgAccess = accessScore / accessCount;
+            vulnerabilityScore += avgAccess * 0.2;
+            analysis.accessControlInfluence = avgAccess;
+            analysis.factors.push(`Access control: ${avgAccess > 0 ? 'Weak' : 'Strong'} (Vulnerability ${avgAccess > 0 ? '+' : ''}${(avgAccess * 0.2).toFixed(2)})`);
+        }
+
+        // 4. Surveillance (15% weight on vulnerability)
+        const surveillanceFactors = {
+            cameraSystem: { 'Comprehensive + monitored': -2, 'Comprehensive': -1, 'Partial': 1, 'Minimal': 2, 'None': 3 },
+            lighting: { 'Excellent - all areas': -1, 'Good - most areas': 0, 'Fair - some areas': 1, 'Poor': 2 }
+        };
+        
+        let surveillanceScore = 0;
+        let surveillanceCount = 0;
+        Object.keys(surveillanceFactors).forEach(key => {
+            if (formData[key] && surveillanceFactors[key][formData[key]] !== undefined) {
+                surveillanceScore += surveillanceFactors[key][formData[key]];
+                surveillanceCount++;
+            }
+        });
+        if (surveillanceCount > 0) {
+            const avgSurveillance = surveillanceScore / surveillanceCount;
+            vulnerabilityScore += avgSurveillance * 0.15;
+            analysis.surveillanceInfluence = avgSurveillance;
+            analysis.factors.push(`Surveillance: ${avgSurveillance > 0 ? 'Weak' : 'Strong'} (Vulnerability ${avgSurveillance > 0 ? '+' : ''}${(avgSurveillance * 0.15).toFixed(2)})`);
+        }
+
+        // 5. Personnel & Training (20% weight on resilience)
+        const personnelFactors = {
+            securityPersonnel: { 'Full-time professional': 2, 'Part-time': 1, 'Volunteer': 0, 'None': -2 },
+            securityCulture: { 'Strong - security is priority': 2, 'Good - security is valued': 1, 'Fair - security is acknowledged': 0, 'Weak - security is afterthought': -2 }
+        };
+        
+        let personnelScore = 0;
+        let personnelCount = 0;
+        Object.keys(personnelFactors).forEach(key => {
+            if (formData[key] && personnelFactors[key][formData[key]] !== undefined) {
+                personnelScore += personnelFactors[key][formData[key]];
+                personnelCount++;
+            }
+        });
+        if (personnelCount > 0) {
+            const avgPersonnel = personnelScore / personnelCount;
+            resilienceScore += avgPersonnel * 0.2;
+            analysis.personnelInfluence = avgPersonnel;
+            analysis.factors.push(`Personnel & culture: ${avgPersonnel > 0 ? 'Strong' : 'Weak'} (Resilience ${avgPersonnel > 0 ? '+' : ''}${(avgPersonnel * 0.2).toFixed(2)})`);
+        }
+
+        // 6. Facility type impact modifier
+        const facilityImpact = {
+            'School': 5,
+            'Religious Facility': 4,
+            'Healthcare': 5,
+            'Office Building': 3,
+            'Retail': 3,
+            'Venue/Event Space': 4,
+            'Single-family Home': 2,
+            'Multi-family Complex': 3,
+            'Other': 3
+        };
+        impactScore = facilityImpact[formData.facilityType] || 3;
+        analysis.factors.push(`Facility type (${formData.facilityType}): Impact level ${impactScore}`);
+
+        // Convert scores to risk levels
+        const threatLevels = ['Rare', 'Unlikely', 'Possible', 'Likely', 'Certain'];
+        const impactLevels = ['Negligible', 'Minor', 'Moderate', 'Major', 'Catastrophic'];
+        const vulnerabilityLevels = ['Minimal', 'Low', 'Moderate', 'High', 'Critical'];
+        const resilienceLevels = ['Excellent', 'Good', 'Fair', 'Poor', 'None'];
+
+        const threatIndex = Math.min(Math.max(Math.round(threatScore), 0), 4);
+        const impactIndex = Math.min(Math.max(impactScore - 1, 0), 4);
+        const vulnerabilityIndex = Math.min(Math.max(Math.round(vulnerabilityScore + 2), 0), 4);
+        const resilienceIndex = Math.min(Math.max(4 - Math.round(resilienceScore + 2), 0), 4);
+
+        return {
+            threatLikelihood: threatLevels[threatIndex],
+            potentialImpact: impactLevels[impactIndex],
+            overallVulnerability: vulnerabilityLevels[vulnerabilityIndex],
+            resilienceLevel: resilienceLevels[resilienceIndex],
+            analysis: analysis,
+            scores: {
+                threat: threatScore,
+                impact: impactScore,
+                vulnerability: vulnerabilityScore,
+                resilience: resilienceScore
+            }
+        };
+    },
+
+    async analyzeLocationRisk() {
+        // Legacy function - redirect to holistic analysis
+        await this.performHolisticAnalysis();
     },
 
     populateRiskAssessment(riskData) {
@@ -373,17 +560,17 @@ const SiteAssessments = {
         this.currentAssessment.crimeData = riskData.crimeData;
     },
 
-    showRiskAnalysisResults(riskData) {
+    showRiskAnalysisResults(locationRiskData, holisticRisk) {
         // Create info panel showing what was analyzed
         const infoPanel = document.createElement('div');
         infoPanel.className = 'risk-analysis-info';
         
-        const granularity = riskData.metadata?.granularity || 'state';
-        const isFallback = riskData.metadata?.location?.fallback;
-        const crimeRating = riskData.crimeData?.overallRating || 'Moderate';
-        const violentRate = riskData.crimeData?.violentCrimeRate || 'N/A';
-        const propertyRate = riskData.crimeData?.propertyCrimeRate || 'N/A';
-        const source = riskData.crimeData?.source || 'Unknown';
+        const granularity = locationRiskData.metadata?.granularity || 'state';
+        const isFallback = locationRiskData.metadata?.location?.fallback;
+        const crimeRating = locationRiskData.crimeData?.overallRating || 'Moderate';
+        const violentRate = locationRiskData.crimeData?.violentCrimeRate || 'N/A';
+        const propertyRate = locationRiskData.crimeData?.propertyCrimeRate || 'N/A';
+        const source = locationRiskData.crimeData?.source || 'Unknown';
         
         // Get color schemes from GeoRiskService
         const riskColors = window.GeoRiskService.getRiskColors(crimeRating);
@@ -452,8 +639,23 @@ const SiteAssessments = {
                 </div>
             </div>
             ${incidentsSection}
+            ${holisticRisk ? `
+                <div style="background: rgba(52, 152, 219, 0.1); padding: 1rem; border-radius: 0.25rem; margin-top: 1rem;">
+                    <strong><i class="fas fa-calculator"></i> Holistic Risk Analysis:</strong>
+                    <ul style="margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.9rem;">
+                        ${holisticRisk.analysis.factors.map(factor => `<li>${factor}</li>`).join('')}
+                    </ul>
+                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(0,0,0,0.1);">
+                        <strong>Calculated Risk Levels:</strong><br>
+                        <span style="display: inline-block; margin: 0.25rem 0.5rem 0.25rem 0;">Threat: <strong>${holisticRisk.threatLikelihood}</strong></span> |
+                        <span style="display: inline-block; margin: 0.25rem 0.5rem;">Impact: <strong>${holisticRisk.potentialImpact}</strong></span> |
+                        <span style="display: inline-block; margin: 0.25rem 0.5rem;">Vulnerability: <strong>${holisticRisk.overallVulnerability}</strong></span> |
+                        <span style="display: inline-block; margin: 0.25rem 0.5rem;">Resilience: <strong>${holisticRisk.resilienceLevel}</strong></span>
+                    </div>
+                </div>
+            ` : ''}
             <p style="margin: 0.5rem 0; font-size: 0.9rem; color: inherit;">
-                <i class="fas fa-info-circle"></i> Risk assessment fields have been auto-populated based on location data. 
+                <i class="fas fa-info-circle"></i> Risk assessment fields have been auto-populated based on ${holisticRisk ? 'location data and comprehensive form analysis' : 'location data'}. 
                 <strong>You can edit any field</strong> to refine the assessment based on your on-site observations.
             </p>
             <details style="margin-top: 1rem;">
@@ -461,13 +663,13 @@ const SiteAssessments = {
                     <i class="fas fa-database"></i> Data Sources & Methodology
                 </summary>
                 <ul style="margin: 0.5rem 0; padding-left: 2rem; font-size: 0.9rem; color: inherit;">
-                    ${riskData.metadata.dataSources.map(source => 
+                    ${locationRiskData.metadata.dataSources.map(source => 
                         `<li><strong>${source.name}</strong>${source.year ? ` (${source.year})` : ''} - ${source.description}</li>`
                     ).join('')}
                 </ul>
                 <p style="margin: 0.5rem 0; font-size: 0.85rem; opacity: 0.8;">
-                    Analysis Date: ${new Date(riskData.metadata.analysisDate).toLocaleDateString()} | 
-                    Confidence Level: ${riskData.metadata.confidence}
+                    Analysis Date: ${new Date(locationRiskData.metadata.analysisDate).toLocaleDateString()} | 
+                    Confidence Level: ${locationRiskData.metadata.confidence}
                 </p>
                 ${isFallback ? `<p style="margin: 0.5rem 0; font-size: 0.85rem; opacity: 0.8;">
                     <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> State-level statistics are appropriate for most security assessments. 
@@ -476,15 +678,15 @@ const SiteAssessments = {
             </details>
         `;
 
-        // Insert right after the analyze button in Client Information section
-        const clientSection = document.getElementById('section-clientInfo');
-        if (clientSection) {
-            const existingInfo = clientSection.querySelector('.risk-analysis-info');
+        // Insert right after the analyze button in Risk Assessment section
+        const riskSection = document.getElementById('section-riskAssessment');
+        if (riskSection) {
+            const existingInfo = riskSection.querySelector('.risk-analysis-info');
             if (existingInfo) {
                 existingInfo.replaceWith(infoPanel);
             } else {
                 // Find the analyze button and insert after it
-                const analyzeButton = clientSection.querySelector('.btn-analyze-risk');
+                const analyzeButton = riskSection.querySelector('.btn-analyze-risk');
                 if (analyzeButton) {
                     const buttonField = analyzeButton.closest('.form-field');
                     if (buttonField) {
@@ -492,7 +694,7 @@ const SiteAssessments = {
                     }
                 } else {
                     // Fallback: insert at end of section fields
-                    const sectionFields = clientSection.querySelector('.section-fields');
+                    const sectionFields = riskSection.querySelector('.section-fields');
                     if (sectionFields) {
                         sectionFields.appendChild(infoPanel);
                     }

@@ -17,8 +17,7 @@ SiteAssessments.formSections = [
             { name: 'state', label: 'State', type: 'text', required: true },
             { name: 'assessmentDate', label: 'Assessment Date', type: 'date', required: true, value: new Date().toISOString().split('T')[0] },
             { name: 'assessorName', label: 'Assessor Name', type: 'text', required: true },
-            { name: 'assessorTitle', label: 'Assessor Title', type: 'text', placeholder: 'e.g., Security Consultant' },
-            { name: 'analyzeButton', label: '', type: 'button', buttonText: 'Analyze Location Risk', buttonIcon: 'fa-map-marked-alt', buttonClass: 'btn-analyze-risk', onClick: 'SiteAssessments.analyzeLocationRisk()' }
+            { name: 'assessorTitle', label: 'Assessor Title', type: 'text', placeholder: 'e.g., Security Consultant' }
         ]
     },
     {
@@ -95,6 +94,7 @@ SiteAssessments.formSections = [
         icon: 'fa-chart-line',
         tutorial: 'Risk assessment combines likelihood, impact, vulnerability, and resilience to prioritize investments.',
         fields: [
+            { name: 'analyzeButton', label: '', type: 'button', buttonText: 'Analyze Location Risk & Calculate Assessment', buttonIcon: 'fa-calculator', buttonClass: 'btn-analyze-risk btn-primary', onClick: 'SiteAssessments.performHolisticAnalysis()', fullWidth: true },
             { name: 'threatLikelihood', label: 'Threat Likelihood', type: 'select', options: ['Rare', 'Unlikely', 'Possible', 'Likely', 'Certain'], tutorial: 'Consider historical incidents and local crime data.', riskFactor: true },
             { name: 'potentialImpact', label: 'Potential Impact', type: 'select', options: ['Negligible', 'Minor', 'Moderate', 'Major', 'Catastrophic'], tutorial: 'Impact considers life safety, property, operations, reputation.', riskFactor: true },
             { name: 'overallVulnerability', label: 'Overall Vulnerability Level', type: 'select', options: ['Minimal', 'Low', 'Moderate', 'High', 'Critical'], tutorial: 'Vulnerability is determined by gaps in security.', riskFactor: true },
@@ -200,20 +200,18 @@ SiteAssessments.renderFields = function(fields) {
             case 'button':
                 inputHtml = `<button type="button" 
                     class="btn btn-secondary ${field.buttonClass || ''}" 
-                    onclick="${field.onClick}">
+                    onclick="${field.onClick}"
+                    style="${field.fullWidth ? 'width: 100%; max-width: none;' : ''}">
                     <i class="fas ${field.buttonIcon || 'fa-check'}"></i> ${field.buttonText || 'Click'}
                 </button>`;
                 break;
         }
 
         return `
-            <div class="form-field ${field.riskFactor ? 'risk-factor' : ''} ${field.type === 'button' ? 'form-field-button' : ''}">
-                ${field.label ? `<label for="${field.name}">
-                    ${field.label}
-                    ${field.required ? '<span class="required">*</span>' : ''}
-                </label>` : ''}
-                ${tutorialHtml}
+            <div class="form-field ${field.type === 'button' ? 'button-field' : ''}" ${field.fullWidth ? 'style="grid-column: 1 / -1;"' : ''}>
+                ${field.label ? `<label>${field.label}${field.required ? '<span class="required">*</span>' : ''}</label>` : ''}
                 ${inputHtml}
+                ${tutorialHtml}
             </div>
         `;
     }).join('');

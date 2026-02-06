@@ -265,6 +265,7 @@ SiteAssessments.generateLocationRiskSection = function(data) {
 
     const crimeData = SiteAssessments.currentAssessment.crimeData;
     const metadata = SiteAssessments.currentAssessment.riskMetadata;
+    const holisticAnalysis = SiteAssessments.currentAssessment.holisticAnalysis;
 
     return `
         <h3><i class="fas fa-map-marked-alt"></i> Location-Based Risk Analysis</h3>
@@ -286,6 +287,30 @@ SiteAssessments.generateLocationRiskSection = function(data) {
                 </p>
             ` : ''}
         </div>
+        
+        ${holisticAnalysis ? `
+            <h3><i class="fas fa-calculator"></i> Comprehensive Risk Analysis</h3>
+            <div class="findings-section">
+                <p><strong>Analysis Methodology:</strong> This assessment combines location-based crime data with on-site security observations to provide a holistic risk evaluation.</p>
+                <p style="margin-top: 1rem;"><strong>Risk Factors Analyzed:</strong></p>
+                <ul style="margin: 0.5rem 0; padding-left: 2rem; font-size: 0.9rem;">
+                    ${holisticAnalysis.factors.map(factor => `<li>${factor}</li>`).join('')}
+                </ul>
+                <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-left: 4px solid #3498db; border-radius: 4px;">
+                    <p style="margin: 0;"><strong>Influence Summary:</strong></p>
+                    <ul style="margin: 0.5rem 0; padding-left: 2rem; font-size: 0.9rem;">
+                        <li><strong>Location Crime Data:</strong> ${holisticAnalysis.locationInfluence > 0 ? 'Increases' : 'Decreases'} threat likelihood (weight: 30%)</li>
+                        <li><strong>Physical Security:</strong> ${Math.abs(holisticAnalysis.physicalSecurityInfluence).toFixed(2)} impact on vulnerability (weight: 25%)</li>
+                        <li><strong>Access Control:</strong> ${Math.abs(holisticAnalysis.accessControlInfluence).toFixed(2)} impact on vulnerability (weight: 20%)</li>
+                        <li><strong>Surveillance Systems:</strong> ${Math.abs(holisticAnalysis.surveillanceInfluence).toFixed(2)} impact on vulnerability (weight: 15%)</li>
+                        <li><strong>Personnel & Culture:</strong> ${Math.abs(holisticAnalysis.personnelInfluence).toFixed(2)} impact on resilience (weight: 20%)</li>
+                    </ul>
+                </div>
+                <p style="margin-top: 1rem; font-size: 0.9rem; color: #6c757d;">
+                    <i class="fas fa-info-circle"></i> The final risk levels shown in the Risk Assessment section are calculated using this weighted analysis combined with facility-specific factors.
+                </p>
+            </div>
+        ` : ''}
     `;
 };
 
