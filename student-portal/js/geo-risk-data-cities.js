@@ -8,7 +8,7 @@ const CityLevelCrimeData = {
     // Tennessee Cities
     'Nashville, TN': { violent: 1138, property: 3842, population: 689447 },
     'Memphis, TN': { violent: 2352, property: 5560, population: 633104 },
-    'Knoxville, TN': { violent: 1021, property: 4234, population: 190740 },
+    'Knoxville, TN': { violent: 687, property: 3234, population: 190740 },
     'Chattanooga, TN': { violent: 1158, property: 4521, population: 181099 },
     'Clarksville, TN': { violent: 582, property: 2845, population: 166722 },
     'Murfreesboro, TN': { violent: 445, property: 2567, population: 152769 },
