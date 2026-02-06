@@ -307,9 +307,16 @@ const SiteAssessments = {
         // Create info panel showing what was analyzed
         const infoPanel = document.createElement('div');
         infoPanel.className = 'risk-analysis-info';
+        
+        const isFallback = riskData.metadata?.location?.fallback;
+        const borderColor = isFallback ? '#ffc107' : '#3498db';
+        const bgGradient = isFallback 
+            ? 'linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%)'
+            : 'linear-gradient(135deg, #e7f3ff 0%, #d4edff 100%)';
+        
         infoPanel.style.cssText = `
-            background: linear-gradient(135deg, #e7f3ff 0%, #d4edff 100%);
-            border-left: 4px solid #3498db;
+            background: ${bgGradient};
+            border-left: 4px solid ${borderColor};
             padding: 1.5rem;
             border-radius: 0.5rem;
             margin: 1rem 0;
@@ -319,10 +326,20 @@ const SiteAssessments = {
         const violentRate = riskData.crimeData?.violentCrimeRate || 'N/A';
         const propertyRate = riskData.crimeData?.propertyCrimeRate || 'N/A';
         
+        const locationNote = isFallback 
+            ? `<div style="background: rgba(255, 193, 7, 0.2); padding: 0.75rem; border-radius: 0.25rem; margin-bottom: 1rem;">
+                <i class="fas fa-info-circle" style="color: #f57c00;"></i> 
+                <strong>Note:</strong> Specific address not found in geocoding database. Using state-level crime statistics for 
+                <strong>${riskData.metadata.location.city}, ${riskData.metadata.location.state}</strong>. 
+                This is normal and provides accurate risk assessment data.
+            </div>`
+            : '';
+        
         infoPanel.innerHTML = `
             <h4 style="margin: 0 0 1rem 0; color: #1d3451; display: flex; align-items: center; gap: 0.5rem;">
                 <i class="fas fa-chart-line"></i> Location Risk Analysis Complete
             </h4>
+            ${locationNote}
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                 <div>
                     <strong>Crime Rating:</strong> ${crimeRating}
@@ -340,7 +357,7 @@ const SiteAssessments = {
             </p>
             <details style="margin-top: 1rem;">
                 <summary style="cursor: pointer; font-weight: 600; color: #1d3451;">
-                    <i class="fas fa-database"></i> Data Sources
+                    <i class="fas fa-database"></i> Data Sources & Methodology
                 </summary>
                 <ul style="margin: 0.5rem 0; padding-left: 2rem; font-size: 0.9rem;">
                     ${riskData.metadata.dataSources.map(source => 
@@ -348,8 +365,13 @@ const SiteAssessments = {
                     ).join('')}
                 </ul>
                 <p style="margin: 0.5rem 0; font-size: 0.85rem; color: #6c757d;">
+                    Analysis Date: ${new Date(riskData.metadata.analysisDate).toLocaleDateString()} | 
                     Confidence Level: ${riskData.metadata.confidence}
                 </p>
+                ${isFallback ? `<p style="margin: 0.5rem 0; font-size: 0.85rem; color: #6c757d;">
+                    <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> State-level statistics are appropriate for most security assessments. 
+                    Local variations should be noted in your on-site observations.
+                </p>` : ''}
             </details>
         `;
 
