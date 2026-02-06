@@ -104,6 +104,19 @@
     flex-direction: column;
 }
 
+.form-field-button {
+    grid-column: 1 / -1;
+    justify-content: center;
+    align-items: center;
+}
+
+.form-field-button .btn {
+    min-width: 250px;
+    padding: 0.875rem 2rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
 .form-field.risk-factor {
     background: #fff5f5;
     padding: 1.25rem;
@@ -531,6 +544,68 @@
     body {
         background: white;
     }
+}
+
+/* Auto-populated fields */
+.form-input.auto-populated,
+.form-select.auto-populated {
+    background: linear-gradient(135deg, #e7f3ff 0%, #f0f8ff 100%);
+    border-color: #3498db;
+    position: relative;
+}
+
+.form-input.auto-populated::after,
+.form-select.auto-populated::after {
+    content: '🤖 Auto-filled';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: #3498db;
+    pointer-events: none;
+}
+
+/* Analyze Risk Button */
+.btn-analyze-risk {
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-analyze-risk:hover {
+    background: linear-gradient(135deg, #2980b9 0%, #21618c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+/* Risk Analysis Info Panel */
+.risk-analysis-info {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.risk-analysis-info details summary {
+    transition: color 0.2s ease;
+}
+
+.risk-analysis-info details summary:hover {
+    color: #3498db;
+}
+
+.risk-analysis-info details[open] summary {
+    margin-bottom: 0.5rem;
 }
 
 /* Responsive */

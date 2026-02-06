@@ -231,10 +231,150 @@ const SiteAssessments = {
         return recs;
     },
 
+    async analyzeLocationRisk() {
+        // Get address data from form
+        const addressData = {
+            address: document.getElementById('address')?.value || '',
+            city: document.getElementById('city')?.value || '',
+            state: document.getElementById('state')?.value || '',
+            facilityType: document.getElementById('facilityType')?.value || ''
+        };
+
+        // Validate required fields
+        if (!addressData.city || !addressData.state) {
+            alert('Please enter City and State before analyzing location risk.');
+            return;
+        }
+
+        try {
+            // Use GeoRiskService to analyze location
+            if (!window.GeoRiskService) {
+                throw new Error('GeoRiskService not loaded');
+            }
+
+            const riskData = await window.GeoRiskService.analyzeLocationRisk(addressData);
+            
+            // Populate risk assessment fields
+            this.populateRiskAssessment(riskData);
+            
+            // Show success with data sources
+            this.showRiskAnalysisResults(riskData);
+            
+            // Scroll to risk assessment section
+            document.getElementById('section-riskAssessment')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        } catch (error) {
+            console.error('Location risk analysis error:', error);
+            window.GeoRiskService?.showError('Unable to analyze location risk. Please enter values manually.');
+        }
+    },
+
+    populateRiskAssessment(riskData) {
+        // Populate threat likelihood
+        const threatField = document.getElementById('threatLikelihood');
+        if (threatField && riskData.threatLikelihood) {
+            threatField.value = riskData.threatLikelihood;
+            threatField.classList.add('auto-populated');
+        }
+
+        // Populate potential impact
+        const impactField = document.getElementById('potentialImpact');
+        if (impactField && riskData.potentialImpact) {
+            impactField.value = riskData.potentialImpact;
+            impactField.classList.add('auto-populated');
+        }
+
+        // Populate vulnerability (with default that can be edited)
+        const vulnField = document.getElementById('overallVulnerability');
+        if (vulnField && riskData.overallVulnerability) {
+            vulnField.value = riskData.overallVulnerability;
+            vulnField.classList.add('auto-populated');
+        }
+
+        // Populate resilience (with default that can be edited)
+        const resField = document.getElementById('resilienceLevel');
+        if (resField && riskData.resilienceLevel) {
+            resField.value = riskData.resilienceLevel;
+            resField.classList.add('auto-populated');
+        }
+
+        // Store metadata for report
+        this.currentAssessment.riskMetadata = riskData.metadata;
+        this.currentAssessment.crimeData = riskData.crimeData;
+    },
+
+    showRiskAnalysisResults(riskData) {
+        // Create info panel showing what was analyzed
+        const infoPanel = document.createElement('div');
+        infoPanel.className = 'risk-analysis-info';
+        infoPanel.style.cssText = `
+            background: linear-gradient(135deg, #e7f3ff 0%, #d4edff 100%);
+            border-left: 4px solid #3498db;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        `;
+        
+        const crimeRating = riskData.crimeData?.overallRating || 'Unknown';
+        const violentRate = riskData.crimeData?.violentCrimeRate || 'N/A';
+        const propertyRate = riskData.crimeData?.propertyCrimeRate || 'N/A';
+        
+        infoPanel.innerHTML = `
+            <h4 style="margin: 0 0 1rem 0; color: #1d3451; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-chart-line"></i> Location Risk Analysis Complete
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <strong>Crime Rating:</strong> ${crimeRating}
+                </div>
+                <div>
+                    <strong>Violent Crime Rate:</strong> ${violentRate} per 100k
+                </div>
+                <div>
+                    <strong>Property Crime Rate:</strong> ${propertyRate} per 100k
+                </div>
+            </div>
+            <p style="margin: 0.5rem 0; font-size: 0.9rem;">
+                <i class="fas fa-info-circle"></i> Risk assessment fields have been auto-populated based on location data. 
+                <strong>You can edit any field</strong> to refine the assessment based on your on-site observations.
+            </p>
+            <details style="margin-top: 1rem;">
+                <summary style="cursor: pointer; font-weight: 600; color: #1d3451;">
+                    <i class="fas fa-database"></i> Data Sources
+                </summary>
+                <ul style="margin: 0.5rem 0; padding-left: 2rem; font-size: 0.9rem;">
+                    ${riskData.metadata.dataSources.map(source => 
+                        `<li><strong>${source.name}</strong>${source.year ? ` (${source.year})` : ''} - ${source.description}</li>`
+                    ).join('')}
+                </ul>
+                <p style="margin: 0.5rem 0; font-size: 0.85rem; color: #6c757d;">
+                    Confidence Level: ${riskData.metadata.confidence}
+                </p>
+            </details>
+        `;
+
+        // Insert after risk assessment section header
+        const riskSection = document.getElementById('section-riskAssessment');
+        if (riskSection) {
+            const existingInfo = riskSection.querySelector('.risk-analysis-info');
+            if (existingInfo) {
+                existingInfo.replaceWith(infoPanel);
+            } else {
+                const sectionFields = riskSection.querySelector('.section-fields');
+                if (sectionFields) {
+                    sectionFields.insertAdjacentElement('beforebegin', infoPanel);
+                }
+            }
+        }
+
+        window.GeoRiskService.showSuccess('Location risk analysis complete! Review and adjust as needed.');
+    },
+
     closeReport() {
         document.getElementById('reportContainer').style.display = 'none';
         document.getElementById('assessmentForm').style.display = 'block';
         document.querySelector('.assessment-actions').style.display = 'flex';
+        document.querySelector('.assessment-header').style.display = 'flex';
     },
 
     printReport() {

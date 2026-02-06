@@ -94,6 +94,8 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                     </div>
                 </div>
 
+                ${this.generateLocationRiskSection(data)}
+
                 <h3>Key Findings</h3>
                 <ul class="findings-list">
                     ${this.generateKeyFindings(data)}
@@ -241,6 +243,38 @@ SiteAssessments.generateKeyFindings = function(data) {
     }
     
     return findings.map(f => `<li>${f}</li>`).join('');
+};
+
+SiteAssessments.generateLocationRiskSection = function(data) {
+    // Check if geo-risk analysis was performed
+    if (!SiteAssessments.currentAssessment.crimeData) {
+        return '';
+    }
+
+    const crimeData = SiteAssessments.currentAssessment.crimeData;
+    const metadata = SiteAssessments.currentAssessment.riskMetadata;
+
+    return `
+        <h3><i class="fas fa-map-marked-alt"></i> Location-Based Risk Analysis</h3>
+        <div class="findings-section">
+            <p><strong>Location:</strong> ${data.city || 'N/A'}, ${data.state || 'N/A'}</p>
+            <p><strong>Crime Rating:</strong> ${crimeData.overallRating || 'Not available'}</p>
+            <p><strong>Violent Crime Rate:</strong> ${crimeData.violentCrimeRate || 'N/A'} per 100,000 population</p>
+            <p><strong>Property Crime Rate:</strong> ${crimeData.propertyCrimeRate || 'N/A'} per 100,000 population</p>
+            ${metadata ? `
+                <p style="margin-top: 1rem;"><strong>Data Sources:</strong></p>
+                <ul style="margin: 0.5rem 0; padding-left: 2rem; font-size: 0.9rem;">
+                    ${metadata.dataSources.map(source => 
+                        `<li>${source.name}${source.year ? ` (${source.year})` : ''} - ${source.description}</li>`
+                    ).join('')}
+                </ul>
+                <p style="font-size: 0.85rem; color: #6c757d; margin-top: 0.5rem;">
+                    Analysis Date: ${new Date(metadata.analysisDate).toLocaleDateString()} | 
+                    Confidence: ${metadata.confidence}
+                </p>
+            ` : ''}
+        </div>
+    `;
 };
 
 SiteAssessments.buildRecommendationsTable = function(title, recommendations) {

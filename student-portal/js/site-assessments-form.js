@@ -13,11 +13,12 @@ SiteAssessments.formSections = [
             { name: 'clientName', label: 'Client/Facility Name', type: 'text', required: true, placeholder: 'e.g., Antioch Christian Academy' },
             { name: 'facilityType', label: 'Facility Type', type: 'select', required: true, options: ['School', 'Office Building', 'Venue/Event Space', 'Religious Facility', 'Healthcare', 'Retail', 'Other'] },
             { name: 'address', label: 'Address', type: 'text', placeholder: 'Street Address' },
-            { name: 'city', label: 'City', type: 'text' },
-            { name: 'state', label: 'State', type: 'text' },
+            { name: 'city', label: 'City', type: 'text', required: true },
+            { name: 'state', label: 'State', type: 'text', required: true },
             { name: 'assessmentDate', label: 'Assessment Date', type: 'date', required: true },
             { name: 'assessorName', label: 'Assessor Name', type: 'text', required: true },
-            { name: 'assessorTitle', label: 'Assessor Title', type: 'text', placeholder: 'e.g., Security Consultant' }
+            { name: 'assessorTitle', label: 'Assessor Title', type: 'text', placeholder: 'e.g., Security Consultant' },
+            { name: 'analyzeButton', label: '', type: 'button', buttonText: 'Analyze Location Risk', buttonIcon: 'fa-map-marked-alt', buttonClass: 'btn-analyze-risk', onClick: 'SiteAssessments.analyzeLocationRisk()' }
         ]
     },
     {
@@ -172,15 +173,23 @@ SiteAssessments.renderFields = function(fields) {
                     ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
                     class="form-textarea"></textarea>`;
                 break;
+            
+            case 'button':
+                inputHtml = `<button type="button" 
+                    class="btn btn-secondary ${field.buttonClass || ''}" 
+                    onclick="${field.onClick}">
+                    <i class="fas ${field.buttonIcon || 'fa-check'}"></i> ${field.buttonText || 'Click'}
+                </button>`;
+                break;
         }
 
         return `
-            <div class="form-field ${field.riskFactor ? 'risk-factor' : ''}">
-                <label for="${field.name}">
+            <div class="form-field ${field.riskFactor ? 'risk-factor' : ''} ${field.type === 'button' ? 'form-field-button' : ''}">
+                ${field.label ? `<label for="${field.name}">
                     ${field.label}
                     ${field.required ? '<span class="required">*</span>' : ''}
                     ${field.riskFactor ? '<span class="risk-badge"><i class="fas fa-exclamation-triangle"></i> Risk Factor</span>' : ''}
-                </label>
+                </label>` : ''}
                 ${tutorialHtml}
                 ${inputHtml}
             </div>
