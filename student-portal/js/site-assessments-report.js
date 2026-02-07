@@ -43,9 +43,9 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
     const terms = config.terminology;
     
     return `
-        <div class="report-document">
-            <!-- Cover Page Only -->
-            <div class="report-page cover-page">
+        <div class="report-document" style="max-width: 850px; margin: 0 auto; padding: 20px; background: white;">
+            <!-- Cover Section -->
+            <div class="cover-section" style="margin-bottom: 40px;">
                 <div class="cover-logo">
                     <img src="../images/logo-print.png" alt="Evenfall Advantage">
                 </div>
@@ -64,8 +64,8 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                 </div>
             </div>
             
-            <!-- Executive Summary - Separate Page -->
-            <div class="report-page">
+            <!-- Executive Summary -->
+            <div class="section" style="margin-bottom: 30px;">
                 <h2 class="report-section-title"><i class="fas fa-file-alt"></i> Executive Summary</h2>
                 
                 <h3>Assessment Overview</h3>
@@ -114,8 +114,8 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                 </ol>
             </div>
             
-            <!-- Detailed Findings - Separate Page -->
-            <div class="report-page">
+            <!-- Detailed Findings -->
+            <div class="section" style="margin-bottom: 30px;">
                 <h2 class="report-section-title"><i class="fas fa-search"></i> Detailed Security Survey & Analysis</h2>
                 
                 <h3><i class="fas fa-shield-alt"></i> Physical Security</h3>
@@ -167,8 +167,8 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                 </div>
             </div>
             
-            <!-- Recommendations - Separate Page -->
-            <div class="report-page">
+            <!-- Recommendations -->
+            <div class="section" style="margin-bottom: 30px;">
                 <h2 class="report-section-title"><i class="fas fa-tasks"></i> Recommendations & Action Plan</h2>
                 
                 ${this.buildRecommendationsTable('Priority 1 – Immediate (0–3 Months)', recommendations.priority1)}
@@ -191,8 +191,8 @@ SiteAssessments.buildReportHTML = function(data, riskScore, recommendations) {
                 </ul>
             </div>
             
-            <!-- Conclusion - Separate Page -->
-            <div class="report-page">
+            <!-- Conclusion -->
+            <div class="section" style="margin-bottom: 30px;">
                 <h2 class="report-section-title"><i class="fas fa-check-circle"></i> Conclusion & Next Steps</h2>
                 
                 <p>${data.clientName || 'The facility'} has ${data.securityCulture === 'Strong - security is priority' ? 'a strong foundation and committed leadership' : 'opportunities to enhance its security posture'}. With targeted investments in physical security, communication systems, and training, the facility can significantly enhance its safety posture while preserving its mission.</p>

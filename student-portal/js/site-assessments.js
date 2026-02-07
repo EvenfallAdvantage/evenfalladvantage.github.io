@@ -964,38 +964,29 @@ const SiteAssessments = {
         
         const loadingDiv = document.createElement('div');
         loadingDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(29, 52, 81, 0.95); color: white; padding: 2rem 3rem; border-radius: 1rem; z-index: 10000; text-align: center;';
-        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i><br><strong>Generating PDF...</strong><br><small>Processing sections...</small>';
+        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i><br><strong>Generating PDF...</strong><br><small>This may take a moment...</small>';
         document.body.appendChild(loadingDiv);
         
         try {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'letter',
-                compress: true
+            // Import html2pdf library dynamically
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+            
+            await new Promise((resolve, reject) => {
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
             });
             
-            const pages = reportContent.querySelectorAll('.report-page');
-            const pdfWidth = 215.9;
-            const pdfHeight = 279.4;
-            const margin = 12.7;
-            const contentWidth = pdfWidth - (margin * 2);
-            const contentHeight = pdfHeight - (margin * 2);
-            
-            let isFirstPage = true;
-            
-            // Process each section separately
-            for (let i = 0; i < pages.length; i++) {
-                loadingDiv.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i><br><strong>Generating PDF...</strong><br><small>Processing section ${i + 1} of ${pages.length}...</small>`;
-                
-                // Capture this section as canvas
-                const canvas = await html2canvas(pages[i], {
+            // Configure html2pdf options
+            const opt = {
+                margin: [12.7, 12.7, 12.7, 12.7], // 0.5 inch margins
+                filename: fileName,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
                     scale: 2,
                     useCORS: true,
                     logging: false,
-                    backgroundColor: '#ffffff',
-                    windowWidth: 850,
                     onclone: (clonedDoc) => {
                         const logos = clonedDoc.querySelectorAll('.cover-logo img');
                         logos.forEach(logo => {
@@ -1004,54 +995,23 @@ const SiteAssessments = {
                             logo.style.height = 'auto';
                         });
                     }
-                });
-                
-                const imgData = canvas.toDataURL('image/png', 1.0);
-                const imgWidth = contentWidth;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
-                // If section fits on one page, add it
-                if (imgHeight <= contentHeight) {
-                    if (!isFirstPage) pdf.addPage();
-                    isFirstPage = false;
-                    pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
-                } else {
-                    // Section is too tall - split it across multiple pages
-                    const pxPerMm = canvas.height / imgHeight;
-                    const contentHeightPx = contentHeight * pxPerMm;
-                    const totalPages = Math.ceil(canvas.height / contentHeightPx);
-                    
-                    for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-                        if (!isFirstPage) pdf.addPage();
-                        isFirstPage = false;
-                        
-                        // Calculate source position in canvas pixels
-                        const sourceY = pageNum * contentHeightPx;
-                        const sourceHeight = Math.min(contentHeightPx, canvas.height - sourceY);
-                        
-                        // Create a slice of the canvas
-                        const sliceCanvas = document.createElement('canvas');
-                        sliceCanvas.width = canvas.width;
-                        sliceCanvas.height = sourceHeight;
-                        const ctx = sliceCanvas.getContext('2d');
-                        
-                        ctx.drawImage(
-                            canvas,
-                            0, sourceY,
-                            canvas.width, sourceHeight,
-                            0, 0,
-                            canvas.width, sourceHeight
-                        );
-                        
-                        const sliceData = sliceCanvas.toDataURL('image/png', 1.0);
-                        const sliceHeightMm = sourceHeight / pxPerMm;
-                        
-                        pdf.addImage(sliceData, 'PNG', margin, margin, imgWidth, sliceHeightMm);
-                    }
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'letter', 
+                    orientation: 'portrait',
+                    compress: true
+                },
+                pagebreak: { 
+                    mode: ['avoid-all', 'css', 'legacy'],
+                    before: '.section',
+                    avoid: ['h2', 'h3', '.risk-score-display', '.signature-section']
                 }
-            }
+            };
             
-            pdf.save(fileName);
+            // Generate PDF using html2pdf
+            await html2pdf().set(opt).from(reportContent).save();
+            
             document.body.removeChild(loadingDiv);
             
             const successDiv = document.createElement('div');
