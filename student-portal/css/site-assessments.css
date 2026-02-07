@@ -305,6 +305,29 @@
     margin: 0 auto;
 }
 
+/* Column layout for findings sections to better utilize space */
+.findings-section {
+    column-count: 2;
+    column-gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.findings-section p {
+    margin: 0.5rem 0;
+    break-inside: avoid;
+}
+
+/* Two-column layout for risk factors */
+.risk-factors {
+    column-count: 2;
+    column-gap: 2rem;
+}
+
+.risk-factor-item {
+    break-inside: avoid;
+    margin-bottom: 0.5rem;
+}
+
 /* PDF-specific logo sizing and page break controls */
 @media print {
     .cover-logo img {
@@ -327,6 +350,12 @@
     /* Allow natural breaks in large sections */
     .findings-section {
         page-break-inside: auto;
+        column-count: 2;
+        column-gap: 1.5rem;
+    }
+    
+    .findings-section p {
+        break-inside: avoid;
     }
     
     /* Don't break immediately after headings */
