@@ -435,6 +435,135 @@
     font-style: italic;
 }
 
+/* Preview Toggle Button for Mobile/Tablet */
+.preview-toggle-btn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #dd8c33;
+    color: white;
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(221, 140, 51, 0.4);
+    z-index: 1000;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.preview-toggle-btn:hover {
+    background: #c77a2a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(221, 140, 51, 0.5);
+}
+
+.preview-toggle-btn:active {
+    transform: translateY(0);
+}
+
+/* Preview Modal Overlay */
+.preview-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+}
+
+.preview-modal-overlay.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.preview-modal-content {
+    background: white;
+    border-radius: 1rem;
+    max-width: 900px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.preview-modal-header {
+    position: sticky;
+    top: 0;
+    background: #1d3451;
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 1rem 1rem 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+}
+
+.preview-modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.preview-modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.preview-modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.preview-modal-body {
+    padding: 1.5rem;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .invoice-layout {
@@ -442,8 +571,11 @@
     }
 
     .invoice-preview-section {
-        position: static;
-        max-height: none;
+        display: none;
+    }
+
+    .preview-toggle-btn {
+        display: flex;
     }
 }
 

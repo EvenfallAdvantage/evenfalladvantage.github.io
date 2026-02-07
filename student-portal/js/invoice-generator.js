@@ -29,6 +29,49 @@ const InvoiceGenerator = {
             addItemBtn.addEventListener('click', () => this.addLineItem());
         }
 
+        // Mobile/Tablet Preview Modal
+        const previewToggleBtn = document.getElementById('previewToggleBtn');
+        const previewModalOverlay = document.getElementById('previewModalOverlay');
+        const previewModalClose = document.getElementById('previewModalClose');
+        const previewModalBody = document.getElementById('previewModalBody');
+
+        if (previewToggleBtn && previewModalOverlay) {
+            // Open modal
+            previewToggleBtn.addEventListener('click', () => {
+                const invoicePreview = document.getElementById('invoice-preview');
+                if (invoicePreview && previewModalBody) {
+                    // Clone the preview content into modal
+                    previewModalBody.innerHTML = invoicePreview.innerHTML;
+                }
+                previewModalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            });
+
+            // Close modal
+            const closeModal = () => {
+                previewModalOverlay.classList.remove('active');
+                document.body.style.overflow = ''; // Restore scrolling
+            };
+
+            if (previewModalClose) {
+                previewModalClose.addEventListener('click', closeModal);
+            }
+
+            // Close on overlay click (but not on content click)
+            previewModalOverlay.addEventListener('click', (e) => {
+                if (e.target === previewModalOverlay) {
+                    closeModal();
+                }
+            });
+
+            // Close on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && previewModalOverlay.classList.contains('active')) {
+                    closeModal();
+                }
+            });
+        }
+
         // Form inputs - update preview on change
         const formInputs = document.querySelectorAll('.invoice-form input, .invoice-form select, .invoice-form textarea');
         formInputs.forEach(input => {
