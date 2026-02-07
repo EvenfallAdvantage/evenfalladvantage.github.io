@@ -1075,33 +1075,27 @@ body {
 
 .canvas-item {
     position: absolute;
-    background: var(--surface);
-    padding: 1rem;
-    border-radius: 0.5rem;
-    box-shadow: var(--shadow);
     cursor: move;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    min-width: 100px;
-    border: 2px solid var(--border-color);
-    transition: border-color 0.3s ease;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    transition: transform 0.2s ease;
 }
 
 .canvas-item:hover {
-    border-color: var(--primary-color);
+    transform: scale(1.2);
 }
 
 .canvas-item i {
     font-size: 2rem;
     color: var(--primary-color);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 
 .canvas-item span {
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-align: center;
+    display: none;
 }
 
 .canvas-item .delete-btn {

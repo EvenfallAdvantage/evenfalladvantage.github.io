@@ -2597,10 +2597,15 @@ function initializeDragAndDrop() {
 
     toolItems.forEach(item => {
         item.addEventListener('dragstart', handleDragStart);
+        // Add touch support for mobile/tablet
+        item.addEventListener('touchstart', handleTouchStart, { passive: false });
     });
 
     canvas.addEventListener('dragover', handleDragOver);
     canvas.addEventListener('drop', handleDrop);
+    // Add touch support for canvas
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd);
 }
 
 function handleDragStart(e) {
@@ -2626,6 +2631,65 @@ function handleDrop(e) {
     const y = e.clientY - rect.top;
 
     addCanvasItem(type, x, y);
+}
+
+// Touch event handlers for mobile/tablet
+let touchDragType = null;
+let touchDragElement = null;
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    const toolItem = e.target.closest('.tool-item');
+    if (!toolItem) return;
+    
+    touchDragType = toolItem.dataset.type;
+    
+    // Create a visual clone for dragging
+    touchDragElement = toolItem.cloneNode(true);
+    touchDragElement.style.position = 'fixed';
+    touchDragElement.style.pointerEvents = 'none';
+    touchDragElement.style.opacity = '0.7';
+    touchDragElement.style.zIndex = '10000';
+    touchDragElement.style.width = toolItem.offsetWidth + 'px';
+    
+    const touch = e.touches[0];
+    touchDragElement.style.left = (touch.clientX - toolItem.offsetWidth / 2) + 'px';
+    touchDragElement.style.top = (touch.clientY - 20) + 'px';
+    
+    document.body.appendChild(touchDragElement);
+}
+
+function handleTouchMove(e) {
+    if (!touchDragElement) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    touchDragElement.style.left = (touch.clientX - touchDragElement.offsetWidth / 2) + 'px';
+    touchDragElement.style.top = (touch.clientY - 20) + 'px';
+}
+
+function handleTouchEnd(e) {
+    if (!touchDragElement || !touchDragType) return;
+    
+    const touch = e.changedTouches[0];
+    const canvas = document.getElementById('canvas');
+    const rect = canvas.getBoundingClientRect();
+    
+    // Check if touch ended within canvas bounds
+    if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+        touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+        
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        addCanvasItem(touchDragType, x, y);
+    }
+    
+    // Clean up
+    if (touchDragElement && touchDragElement.parentNode) {
+        touchDragElement.parentNode.removeChild(touchDragElement);
+    }
+    touchDragElement = null;
+    touchDragType = null;
 }
 
 function addCanvasItem(type, x, y) {
@@ -2686,6 +2750,7 @@ function addCanvasItem(type, x, y) {
 
     // Make item draggable within canvas
     item.addEventListener('mousedown', startDragging);
+    item.addEventListener('touchstart', startTouchDragging, { passive: false });
 
     // Append to event map if it exists, otherwise to canvas
     const eventMap = canvas.querySelector('.event-map');
@@ -2755,6 +2820,47 @@ function stopDragging() {
     draggedItem = null;
     document.removeEventListener('mousemove', drag);
     document.removeEventListener('mouseup', stopDragging);
+}
+
+// Touch dragging for placed items
+function startTouchDragging(e) {
+    if (e.target.closest('.delete-btn')) return;
+    e.preventDefault();
+    
+    draggedItem = e.currentTarget;
+    const rect = draggedItem.getBoundingClientRect();
+    const touch = e.touches[0];
+    
+    dragOffset.x = touch.clientX - rect.left;
+    dragOffset.y = touch.clientY - rect.top;
+    
+    document.addEventListener('touchmove', touchDrag, { passive: false });
+    document.addEventListener('touchend', stopTouchDragging);
+}
+
+function touchDrag(e) {
+    if (!draggedItem) return;
+    e.preventDefault();
+    
+    const canvas = document.getElementById('canvas');
+    const canvasRect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    
+    let x = touch.clientX - canvasRect.left - dragOffset.x;
+    let y = touch.clientY - canvasRect.top - dragOffset.y;
+    
+    // Keep within canvas bounds
+    x = Math.max(0, Math.min(x, canvasRect.width - draggedItem.offsetWidth));
+    y = Math.max(0, Math.min(y, canvasRect.height - draggedItem.offsetHeight));
+    
+    draggedItem.style.left = `${x}px`;
+    draggedItem.style.top = `${y}px`;
+}
+
+function stopTouchDragging() {
+    draggedItem = null;
+    document.removeEventListener('touchmove', touchDrag);
+    document.removeEventListener('touchend', stopTouchDragging);
 }
 
 // ============= ASSESSMENTS =============
