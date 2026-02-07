@@ -194,9 +194,6 @@
                     </div>
                     
                     <div class="assessment-actions">
-                        <button class="btn btn-primary" onclick="SiteAssessments.startNewAssessment()">
-                            <i class="fas fa-plus"></i> New Assessment
-                        </button>
                         <button class="btn btn-secondary" onclick="SiteAssessments.loadSavedAssessment()">
                             <i class="fas fa-folder-open"></i> Load Saved
                         </button>
@@ -205,7 +202,7 @@
                         </button>
                     </div>
 
-                    <div id="assessmentForm" style="display: none;"></div>
+                    <div id="assessmentForm"></div>
                     <div id="reportContainer" style="display: none;">
                         <div class="report-actions">
                             <button class="btn btn-primary" onclick="SiteAssessments.downloadPDF()">

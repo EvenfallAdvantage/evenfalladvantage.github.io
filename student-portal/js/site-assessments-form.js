@@ -109,15 +109,19 @@ SiteAssessments.renderForm = function() {
     if (!formContainer) return;
 
     let html = '';
+    const facilityType = this.getCurrentFacilityType();
     
-    this.formSections.forEach(section => {
+    this.formSections.forEach((section, index) => {
+        // Show Client Information section always, hide others until facility type is selected
+        const shouldShow = section.id === 'clientInfo' || facilityType;
+        const displayStyle = shouldShow ? '' : 'style="display: none;"';
+        
         // Get facility-specific fields if facility type is selected
-        const facilityType = this.getCurrentFacilityType();
         const specificFields = facilityType ? FacilityTypeConfig.getSpecificFields(facilityType, section.id) : [];
         const allFields = [...section.fields, ...specificFields];
         
         html += `
-            <div class="assessment-section" id="section-${section.id}">
+            <div class="assessment-section" id="section-${section.id}" ${displayStyle}>
                 <div class="section-header-assessment">
                     <h3><i class="fas ${section.icon}"></i> ${section.title}</h3>
                     ${this.tutorialMode ? `<div class="tutorial-tip"><i class="fas fa-lightbulb"></i> ${section.tutorial}</div>` : ''}
@@ -129,17 +133,19 @@ SiteAssessments.renderForm = function() {
         `;
     });
     
-    // Add action buttons at the bottom of the form
-    html += `
-        <div class="assessment-form-actions" style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
-            <button class="btn btn-secondary" onclick="SiteAssessments.saveProgress()" style="flex: 1; min-width: 200px; max-width: 300px;">
-                <i class="fas fa-save"></i> Save Progress
-            </button>
-            <button class="btn btn-primary" onclick="SiteAssessments.generateReport()" style="flex: 1; min-width: 200px; max-width: 300px;">
-                <i class="fas fa-file-alt"></i> Generate Report
-            </button>
-        </div>
-    `;
+    // Add action buttons at the bottom of the form (only show if facility type selected)
+    if (facilityType) {
+        html += `
+            <div class="assessment-form-actions" style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+                <button class="btn btn-secondary" onclick="SiteAssessments.saveProgress()" style="flex: 1; min-width: 200px; max-width: 300px;">
+                    <i class="fas fa-save"></i> Save Progress
+                </button>
+                <button class="btn btn-primary" onclick="SiteAssessments.generateReport()" style="flex: 1; min-width: 200px; max-width: 300px;">
+                    <i class="fas fa-file-alt"></i> Generate Report
+                </button>
+            </div>
+        `;
+    }
 
     formContainer.innerHTML = html;
     this.attachEventListeners();
