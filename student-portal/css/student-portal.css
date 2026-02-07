@@ -1672,7 +1672,7 @@ body {
 .assessment-container {
     background: var(--surface);
     border-radius: 1rem;
-    padding: 2rem;
+    padding: 0;
     box-shadow: var(--shadow);
 }
 
