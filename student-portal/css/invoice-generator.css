@@ -32,27 +32,20 @@
 
 .invoice-layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 2rem;
 }
 
-.invoice-form-section,
-.invoice-preview-section {
+.invoice-form-section {
     background: white;
     border-radius: 1rem;
     padding: 2rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.invoice-form-section {
     height: fit-content;
 }
 
 .invoice-preview-section {
-    position: sticky;
-    top: 2rem;
-    max-height: calc(100vh - 4rem);
-    overflow-y: auto;
+    display: none;
 }
 
 /* Form Sections */
@@ -447,9 +440,8 @@
     font-style: italic;
 }
 
-/* Preview Toggle Button for Mobile/Tablet */
+/* Preview Toggle Button - Always Visible */
 .preview-toggle-btn {
-    display: none;
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -578,17 +570,7 @@
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-    .invoice-layout {
-        grid-template-columns: 1fr;
-    }
-
-    .invoice-preview-section {
-        display: none;
-    }
-
-    .preview-toggle-btn {
-        display: flex;
-    }
+    /* Layout is already single column by default */
 }
 
 @media (max-width: 768px) {
