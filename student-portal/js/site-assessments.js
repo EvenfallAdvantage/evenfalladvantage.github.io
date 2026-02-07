@@ -1017,18 +1017,17 @@ const SiteAssessments = {
                     pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
                 } else {
                     // Section is too tall - split it across multiple pages
-                    const totalPages = Math.ceil(imgHeight / contentHeight);
+                    const pxPerMm = canvas.height / imgHeight;
+                    const contentHeightPx = contentHeight * pxPerMm;
+                    const totalPages = Math.ceil(canvas.height / contentHeightPx);
                     
                     for (let pageNum = 0; pageNum < totalPages; pageNum++) {
                         if (!isFirstPage) pdf.addPage();
                         isFirstPage = false;
                         
-                        // Calculate source position in the canvas
-                        const sourceY = (pageNum * contentHeight * canvas.width) / imgWidth;
-                        const sourceHeight = Math.min(
-                            (contentHeight * canvas.width) / imgWidth,
-                            canvas.height - sourceY
-                        );
+                        // Calculate source position in canvas pixels
+                        const sourceY = pageNum * contentHeightPx;
+                        const sourceHeight = Math.min(contentHeightPx, canvas.height - sourceY);
                         
                         // Create a slice of the canvas
                         const sliceCanvas = document.createElement('canvas');
@@ -1045,9 +1044,9 @@ const SiteAssessments = {
                         );
                         
                         const sliceData = sliceCanvas.toDataURL('image/png', 1.0);
-                        const sliceHeight = (sourceHeight * imgWidth) / canvas.width;
+                        const sliceHeightMm = sourceHeight / pxPerMm;
                         
-                        pdf.addImage(sliceData, 'PNG', margin, margin, imgWidth, sliceHeight);
+                        pdf.addImage(sliceData, 'PNG', margin, margin, imgWidth, sliceHeightMm);
                     }
                 }
             }
