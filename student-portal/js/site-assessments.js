@@ -960,71 +960,12 @@ const SiteAssessments = {
     },
 
     async generatePDFDirect(reportContent, clientName) {
-        const fileName = `${clientName.replace(/\s+/g, '_')}_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-        
-        const loadingDiv = document.createElement('div');
-        loadingDiv.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(29, 52, 81, 0.95); color: white; padding: 2rem 3rem; border-radius: 1rem; z-index: 10000; text-align: center;';
-        loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 1rem;"></i><br><strong>Generating PDF...</strong><br><small>This may take a moment...</small>';
-        document.body.appendChild(loadingDiv);
-        
         try {
-            // Import html2pdf library dynamically
-            const script = document.createElement('script');
-            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-            
-            await new Promise((resolve, reject) => {
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-            
-            // Configure html2pdf options
-            const opt = {
-                margin: [12.7, 12.7, 12.7, 12.7], // 0.5 inch margins
-                filename: fileName,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    onclone: (clonedDoc) => {
-                        const logos = clonedDoc.querySelectorAll('.cover-logo img');
-                        logos.forEach(logo => {
-                            logo.style.maxWidth = '50px';
-                            logo.style.width = '50px';
-                            logo.style.height = 'auto';
-                        });
-                    }
-                },
-                jsPDF: { 
-                    unit: 'mm', 
-                    format: 'letter', 
-                    orientation: 'portrait',
-                    compress: true
-                },
-                pagebreak: { 
-                    mode: ['avoid-all', 'css', 'legacy'],
-                    before: '.section',
-                    avoid: ['h2', 'h3', '.risk-score-display', '.signature-section']
-                }
-            };
-            
-            // Generate PDF using html2pdf
-            await html2pdf().set(opt).from(reportContent).save();
-            
-            document.body.removeChild(loadingDiv);
-            
-            const successDiv = document.createElement('div');
-            successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 1rem 1.5rem; border-radius: 0.5rem; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.2);';
-            successDiv.innerHTML = '<i class="fas fa-check-circle"></i> PDF downloaded successfully!';
-            document.body.appendChild(successDiv);
-            setTimeout(() => document.body.removeChild(successDiv), 3000);
+            // Open browser print dialog - user can save as PDF
+            window.print();
         } catch (error) {
-            if (document.body.contains(loadingDiv)) {
-                document.body.removeChild(loadingDiv);
-            }
-            console.error('PDF generation error:', error);
-            alert('Error generating PDF: ' + error.message);
+            console.error('Print dialog error:', error);
+            alert('Error opening print dialog: ' + error.message);
         }
     }
 };
