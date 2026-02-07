@@ -32,20 +32,27 @@
 
 .invoice-layout {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 2rem;
 }
 
-.invoice-form-section {
+.invoice-form-section,
+.invoice-preview-section {
     background: white;
     border-radius: 1rem;
     padding: 2rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.invoice-form-section {
     height: fit-content;
 }
 
 .invoice-preview-section {
-    display: none;
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
 }
 
 /* Form Sections */
@@ -440,8 +447,9 @@
     font-style: italic;
 }
 
-/* Preview Toggle Button - Always Visible */
+/* Preview Toggle Button - Portrait Mode Only */
 .preview-toggle-btn {
+    display: none;
     position: fixed;
     bottom: 20px;
     right: 20px;
@@ -456,7 +464,6 @@
     box-shadow: 0 4px 12px rgba(221, 140, 51, 0.4);
     z-index: 1000;
     transition: all 0.3s ease;
-    display: flex;
     align-items: center;
     gap: 0.5rem;
 }
@@ -569,8 +576,34 @@
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
-    /* Layout is already single column by default */
+/* Portrait mode (mobile and tablet) - use floating modal */
+@media (max-width: 1024px) and (orientation: portrait), (max-width: 768px) {
+    .invoice-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .invoice-preview-section {
+        display: none;
+    }
+
+    .preview-toggle-btn {
+        display: flex;
+    }
+}
+
+/* Tablet landscape - keep side-by-side if width allows */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+    .invoice-layout {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .invoice-preview-section {
+        display: block;
+    }
+
+    .preview-toggle-btn {
+        display: none;
+    }
 }
 
 @media (max-width: 768px) {
