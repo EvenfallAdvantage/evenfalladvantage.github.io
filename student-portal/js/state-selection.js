@@ -615,7 +615,6 @@ let originalStartModuleFromSlideshow = null;
                 }
             };
             
-            console.log('✅ Module 7 state selection initialized successfully');
             clearInterval(checkAndOverride);
         } else if (attempts >= maxAttempts) {
             console.error('❌ Failed to find startModule function after', maxAttempts, 'attempts');

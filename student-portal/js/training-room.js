@@ -168,7 +168,6 @@ async function joinMeeting() {
             userName: displayName
         });
         
-        console.log('✅ Joined Daily.co meeting');
         addSystemMessage(`Joined training room`);
         addSystemMessage('Google Meet is now open in a new tab. Use this sidebar to ask Agent Westwood questions during your training!');
         

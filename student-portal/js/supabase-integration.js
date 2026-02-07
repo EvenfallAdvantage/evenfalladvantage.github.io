@@ -183,8 +183,6 @@ async function saveProgressToDatabase(studentId) {
             }
         }
         
-        console.log('✅ Database sync complete!');
-        
         // Show success notification
         showSyncSuccess();
     } catch (error) {

@@ -3742,7 +3742,6 @@ async function completeModule() {
     // Reload course assessments to unlock the assessment
     if (window.loadCourseAssessments && window.currentCourseId) {
         await window.loadCourseAssessments(window.currentCourseId);
-        console.log('✅ Reloaded course assessments to unlock assessment');
     }
     
     // Show appropriate completion message using the captured module ID

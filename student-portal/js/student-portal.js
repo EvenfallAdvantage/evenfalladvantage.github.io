@@ -1,11 +1,9 @@
 // Global State
-console.log('🚀 student-portal.js is loading...');
 let currentSection = 'home';
 let currentModule = null;
 let currentScenario = null;
 let canvasItems = [];
 let itemIdCounter = 0;
-console.log('✅ Global variables initialized');
 // Assessment State
 let currentAssessment = null;
 let currentQuestionIndex = 0;
@@ -754,11 +752,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeDragAndDrop();
     
     // Initialize scenario selector
-    console.log('🎯 Initializing scenario selector...');
     const scenarioSelect = document.getElementById('scenarioSelect');
-    console.log('Scenario select element:', scenarioSelect);
     if (scenarioSelect) {
-        console.log('✅ Scenario select found, adding event listener');
         scenarioSelect.addEventListener('change', (e) => {
             console.log('🔄 Scenario dropdown changed to:', e.target.value);
             loadScenario(e.target.value);
@@ -766,8 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error('❌ Scenario select element not found!');
     }
-    
-    console.log('✅ DOMContentLoaded initialization complete');
 });
 
 // Update assessment availability based on completed modules
@@ -4705,8 +4698,6 @@ async function loadAssessmentQuestions(moduleCode) {
             return null;
         }
         
-        console.log('✅ Found module:', module.id);
-        
         const { data: assessment, error: assessmentError } = await supabase
             .from('assessments')
             .select('id, assessment_name')
@@ -4717,8 +4708,6 @@ async function loadAssessmentQuestions(moduleCode) {
             console.warn('❌ No assessment found for module:', moduleCode, assessmentError);
             return null;
         }
-        
-        console.log('✅ Found assessment:', assessment.id, assessment.assessment_name);
         
         // Load questions from assessment_questions table
         const { data: questionRows, error: questionsError } = await supabase
@@ -4743,7 +4732,6 @@ async function loadAssessmentQuestions(moduleCode) {
                 correct: q.correct_answer === 'A' ? 0 : q.correct_answer === 'B' ? 1 : q.correct_answer === 'C' ? 2 : 3,
                 explanation: q.explanation || ''
             }));
-            console.log('✅ Converted questions to expected format');
         } else {
             console.warn('⚠️ No question rows returned from database');
         }
@@ -5602,15 +5590,12 @@ function updateProgressDisplay() {
 
 // Update module progress display with proper ordering
 async function updateModuleProgressDisplay() {
-    console.log('📚 updateModuleProgressDisplay called - v2');
     try {
         // Get modules from database, sorted by display_order
         const { data: modules, error } = await supabase
             .from('training_modules')
             .select('id, module_code, module_name, display_order, default_course_id')
             .order('display_order', { ascending: true });
-        
-        console.log('📊 Modules query result:', { modules, error });
         
         if (error) throw error;
         
@@ -5635,8 +5620,6 @@ async function updateModuleProgressDisplay() {
                 acc[courseTitle].push(module);
                 return acc;
             }, {});
-            
-            console.log('📦 Grouped modules:', Object.keys(groupedModules));
             
             // Build HTML with course groupings
             const moduleProgressHTML = Object.entries(groupedModules).map(([courseTitle, courseModules]) => {
@@ -5927,7 +5910,6 @@ const AccessControl = {
 
             // GRANDFATHERED ACCESS: Any existing enrollment grants access
             if (enrollments && enrollments.length > 0) {
-                console.log('✅ Access granted: Existing student (grandfathered)');
                 return true;
             }
 

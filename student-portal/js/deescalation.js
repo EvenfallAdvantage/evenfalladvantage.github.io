@@ -943,13 +943,11 @@ function showResults(step) {
         
         // Save completion with step count
         const scenarioId = Object.keys(deescalationScenarios).find(id => deescalationScenarios[id] === deescalationScenario);
-        console.log('🏆 Scenario completed successfully:', scenarioId, 'Steps:', stepCount);
         
         if (scenarioId && typeof progressData !== 'undefined') {
             // Initialize scenarioResults if it doesn't exist
             if (!progressData.scenarioResults) {
                 progressData.scenarioResults = {};
-                console.log('📊 Initialized scenarioResults object');
             }
             
             // Add to completedScenarios if not already there (do this regardless of personal best)
@@ -968,7 +966,6 @@ function showResults(step) {
                     date: new Date().toISOString(),
                     success: true
                 };
-                console.log('✅ New personal best saved!', progressData.scenarioResults[scenarioId]);
             } else {
                 console.log('⏭️ Not a new personal best, but scenario still completed');
             }
@@ -982,7 +979,6 @@ function showResults(step) {
             // Update progress display to reflect scenario completion
             if (typeof updateProgressDisplay !== 'undefined') {
                 updateProgressDisplay();
-                console.log('📊 Progress display updated');
             }
         } else {
             console.warn('⚠️ Could not save scenario result - scenarioId:', scenarioId, 'progressData available:', typeof progressData !== 'undefined');
@@ -1034,8 +1030,6 @@ function exitDeescalation() {
 
 // Update scenario cards with personal best scores
 function updateScenarioCards() {
-    console.log('🎯 Updating scenario cards...');
-    
     // Check if progressData is available
     if (typeof progressData === 'undefined') {
         console.warn('⚠️ progressData is not defined yet, retrying in 100ms...');
@@ -1043,11 +1037,7 @@ function updateScenarioCards() {
         return;
     }
     
-    console.log('📊 Current progressData:', progressData);
-    console.log('🏆 Scenario results:', progressData?.scenarioResults);
-    
     const scenarioCards = document.querySelectorAll('.scenario-card');
-    console.log('🃏 Found scenario cards:', scenarioCards.length);
     
     scenarioCards.forEach(card => {
         const scenarioId = card.getAttribute('data-scenario');
