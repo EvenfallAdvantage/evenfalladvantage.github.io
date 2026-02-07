@@ -59,7 +59,7 @@
 .form-section {
     margin-bottom: 2rem;
     padding-bottom: 2rem;
-    border-bottom: 2px solid #e9ecef;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .form-section:last-child {
@@ -73,6 +73,69 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+/* Logo Upload Section */
+.logo-upload-area {
+    border: 2px dashed #d0d0d0;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: #f9f9f9;
+}
+
+.logo-upload-area:hover {
+    border-color: #1d3451;
+    background: #f0f4f8;
+}
+
+.logo-upload-prompt i {
+    font-size: 3rem;
+    color: #1d3451;
+    margin-bottom: 1rem;
+}
+
+.logo-upload-prompt p {
+    margin: 0.5rem 0;
+    font-weight: 500;
+    color: #333;
+}
+
+.logo-upload-prompt small {
+    color: #666;
+}
+
+.logo-preview {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-preview img {
+    max-width: 200px;
+    max-height: 150px;
+    object-fit: contain;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.remove-logo-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.3s ease;
+}
+
+.remove-logo-btn:hover {
+    background: #c82333;
 }
 
 .form-grid {

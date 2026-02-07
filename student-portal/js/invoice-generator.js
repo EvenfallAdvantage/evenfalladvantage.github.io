@@ -8,6 +8,8 @@ const InvoiceGenerator = {
     lineItems: [],
     nextItemId: 1,
 
+    logoDataUrl: null,
+
     init() {
         console.log('Invoice Generator initialized');
         
@@ -19,6 +21,7 @@ const InvoiceGenerator = {
         
         this.loadFromLocalStorage();
         this.attachEventListeners();
+        this.setupLogoUpload();
         this.updatePreview();
     },
 
@@ -80,12 +83,6 @@ const InvoiceGenerator = {
                 this.updatePreview();
             });
         });
-
-        // Template selection
-        const templateSelect = document.getElementById('invoice-template');
-        if (templateSelect) {
-            templateSelect.addEventListener('change', () => this.updatePreview());
-        }
 
         // Action buttons
         const saveBtn = document.getElementById('save-invoice');
@@ -187,11 +184,73 @@ const InvoiceGenerator = {
         return { subtotal, tax, total };
     },
 
+    setupLogoUpload() {
+        const logoUploadInput = document.getElementById('logo-upload');
+        const logoUploadArea = document.getElementById('logo-upload-area');
+        const logoPreview = document.getElementById('logo-preview');
+        const logoPreviewImg = document.getElementById('logo-preview-img');
+        const logoUploadPrompt = document.getElementById('logo-upload-prompt');
+        const removeLogoBtn = document.getElementById('remove-logo-btn');
+
+        if (!logoUploadInput || !logoUploadArea) return;
+
+        // Click area to trigger file input
+        logoUploadArea.addEventListener('click', (e) => {
+            if (!e.target.closest('.remove-logo-btn')) {
+                logoUploadInput.click();
+            }
+        });
+
+        // Handle file selection
+        logoUploadInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file (PNG, JPG, or SVG)');
+                return;
+            }
+
+            // Validate file size (2MB max)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('File size must be less than 2MB');
+                return;
+            }
+
+            // Read and display the image
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                this.logoDataUrl = event.target.result;
+                logoPreviewImg.src = this.logoDataUrl;
+                logoPreview.style.display = 'flex';
+                logoUploadPrompt.style.display = 'none';
+                this.saveToLocalStorage();
+                this.updatePreview();
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Handle logo removal
+        if (removeLogoBtn) {
+            removeLogoBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.logoDataUrl = null;
+                logoPreviewImg.src = '';
+                logoPreview.style.display = 'none';
+                logoUploadPrompt.style.display = 'block';
+                logoUploadInput.value = '';
+                this.saveToLocalStorage();
+                this.updatePreview();
+            });
+        }
+    },
+
     updatePreview() {
         const preview = document.getElementById('invoice-preview');
         if (!preview) return;
 
-        const template = document.getElementById('invoice-template')?.value || 'professional';
+        const template = 'professional'; // Always use professional template
         const totals = this.calculateTotals();
 
         // Get form data
@@ -257,6 +316,7 @@ const InvoiceGenerator = {
             <div class="invoice-template professional">
                 <div class="invoice-header">
                     <div class="invoice-logo-section">
+                        ${this.logoDataUrl ? `<img src="${this.logoDataUrl}" alt="Business Logo" style="max-width: 150px; max-height: 80px; object-fit: contain; margin-bottom: 1rem;">` : ''}
                         <h1>INVOICE</h1>
                         ${data.yourBusiness ? `<div class="business-name">${data.yourBusiness}</div>` : ''}
                     </div>
@@ -414,7 +474,8 @@ const InvoiceGenerator = {
         const invoiceData = {
             lineItems: this.lineItems,
             nextItemId: this.nextItemId,
-            formData: this.collectFormData()
+            formData: this.collectFormData(),
+            logoDataUrl: this.logoDataUrl
         };
         localStorage.setItem('invoice_current', JSON.stringify(invoiceData));
     },
@@ -426,8 +487,22 @@ const InvoiceGenerator = {
                 const data = JSON.parse(saved);
                 this.lineItems = data.lineItems || [];
                 this.nextItemId = data.nextItemId || 1;
+                this.logoDataUrl = data.logoDataUrl || null;
                 this.restoreFormData(data.formData);
                 this.renderLineItems();
+                
+                // Restore logo preview if exists
+                if (this.logoDataUrl) {
+                    const logoPreview = document.getElementById('logo-preview');
+                    const logoPreviewImg = document.getElementById('logo-preview-img');
+                    const logoUploadPrompt = document.getElementById('logo-upload-prompt');
+                    if (logoPreview && logoPreviewImg && logoUploadPrompt) {
+                        logoPreviewImg.src = this.logoDataUrl;
+                        logoPreview.style.display = 'flex';
+                        logoUploadPrompt.style.display = 'none';
+                    }
+                }
+                
                 this.updatePreview();
             } catch (e) {
                 console.error('Error loading saved invoice:', e);
@@ -463,6 +538,7 @@ const InvoiceGenerator = {
 
         this.lineItems = [];
         this.nextItemId = 1;
+        this.logoDataUrl = null;
         
         const inputs = document.querySelectorAll('.invoice-form input, .invoice-form select, .invoice-form textarea');
         inputs.forEach(input => {
@@ -472,6 +548,18 @@ const InvoiceGenerator = {
                 input.value = '';
             }
         });
+
+        // Clear logo
+        const logoPreview = document.getElementById('logo-preview');
+        const logoPreviewImg = document.getElementById('logo-preview-img');
+        const logoUploadPrompt = document.getElementById('logo-upload-prompt');
+        const logoUploadInput = document.getElementById('logo-upload');
+        if (logoPreview && logoPreviewImg && logoUploadPrompt && logoUploadInput) {
+            logoPreviewImg.src = '';
+            logoPreview.style.display = 'none';
+            logoUploadPrompt.style.display = 'block';
+            logoUploadInput.value = '';
+        }
 
         localStorage.removeItem('invoice_current');
         this.renderLineItems();
