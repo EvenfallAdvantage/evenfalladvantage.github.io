@@ -66,6 +66,12 @@ export default function PatrolsPage() {
   const [scanStatus, setScanStatus] = useState("ok");
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState<PatrolLog | null>(null);
+  // Enhanced scan fields
+  const [scanWeather, setScanWeather] = useState("");
+  const [scanLighting, setScanLighting] = useState("");
+  const [doorStatus, setDoorStatus] = useState("");
+  const [scanObservations, setScanObservations] = useState<string[]>([]);
+  const [showScanDetails, setShowScanDetails] = useState(false);
 
   // Create checkpoint
   const [cpName, setCpName] = useState("");
@@ -94,18 +100,31 @@ export default function PatrolsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  function buildScanNotes() {
+    const parts: string[] = [];
+    if (scanNote.trim()) parts.push(scanNote.trim());
+    const details: string[] = [];
+    if (scanWeather) details.push(`Weather: ${scanWeather}`);
+    if (scanLighting) details.push(`Lighting: ${scanLighting}`);
+    if (doorStatus) details.push(`Doors/Gates: ${doorStatus}`);
+    if (scanObservations.length > 0) details.push(`Observations: ${scanObservations.join(", ")}`);
+    if (details.length > 0) parts.push(details.join(" | "));
+    return parts.join("\n") || undefined;
+  }
+
   async function handleScan() {
     if (!selectedCheckpoint || !activeCompanyId) return;
     setScanning(true);
     try {
       const result = await logPatrolScan(activeCompanyId, selectedCheckpoint, {
         routeId: selectedRoute || undefined,
-        notes: scanNote || undefined,
+        notes: buildScanNotes(),
         status: scanStatus,
       });
       setLastScan(result);
-      setScanNote("");
-      setScanStatus("ok");
+      setScanNote(""); setScanStatus("ok");
+      setScanWeather(""); setScanLighting(""); setDoorStatus("");
+      setScanObservations([]); setShowScanDetails(false);
       await load();
     } catch { /* */ } finally { setScanning(false); }
   }
@@ -237,7 +256,7 @@ export default function PatrolsPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Status</label>
+                        <label className="text-xs font-medium text-muted-foreground">Status *</label>
                         <select
                           className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={scanStatus}
@@ -250,9 +269,83 @@ export default function PatrolsPage() {
                       </div>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">Notes</label>
-                        <Input className="mt-1" placeholder="Optional notes..." value={scanNote} onChange={e => setScanNote(e.target.value)} />
+                        <Input className="mt-1" placeholder="Quick note (optional)" value={scanNote} onChange={e => setScanNote(e.target.value)} />
                       </div>
                     </div>
+
+                    {/* Expanded observations */}
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 text-xs font-semibold text-primary hover:underline"
+                      onClick={() => setShowScanDetails(!showScanDetails)}
+                    >
+                      {showScanDetails ? "▲ Hide" : "▼ Show"} Conditions &amp; Observations
+                    </button>
+
+                    {showScanDetails && (
+                      <div className="space-y-3 rounded-lg border border-border/50 bg-muted/20 p-3">
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Weather</label>
+                            <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={scanWeather} onChange={e => setScanWeather(e.target.value)}>
+                              <option value="">Select...</option>
+                              <option value="Clear">Clear</option>
+                              <option value="Cloudy">Cloudy</option>
+                              <option value="Rain">Rain</option>
+                              <option value="Snow">Snow</option>
+                              <option value="Fog">Fog</option>
+                              <option value="Extreme Heat">Extreme Heat</option>
+                              <option value="Extreme Cold">Extreme Cold</option>
+                              <option value="Indoors">N/A — Indoors</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Lighting</label>
+                            <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={scanLighting} onChange={e => setScanLighting(e.target.value)}>
+                              <option value="">Select...</option>
+                              <option value="Well-lit">Well-lit</option>
+                              <option value="Dim">Dim / Partial</option>
+                              <option value="Dark">Dark / No Lighting</option>
+                              <option value="Flickering">Flickering / Faulty</option>
+                              <option value="Daylight">Natural Daylight</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Doors / Gates</label>
+                            <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={doorStatus} onChange={e => setDoorStatus(e.target.value)}>
+                              <option value="">Select...</option>
+                              <option value="All Secured">All Secured</option>
+                              <option value="Unlocked — Expected">Unlocked — Expected</option>
+                              <option value="Unlocked — Unexpected">Unlocked — Unexpected</option>
+                              <option value="Propped Open">Propped Open</option>
+                              <option value="Damaged / Tampered">Damaged / Tampered</option>
+                              <option value="N/A">N/A</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Observations</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              "Area Clean & Orderly", "Graffiti / Vandalism", "Broken Glass",
+                              "Water Leak / Flooding", "Unusual Odor", "Suspicious Person(s)",
+                              "Abandoned Property", "Slip / Trip Hazard", "Fire Hazard",
+                              "Burnt Out Lights", "Alarm Activated", "Vehicle Parked Illegally",
+                              "Loitering", "Noise Complaint", "Wildlife / Pest",
+                            ].map(obs => (
+                              <label key={obs} className={`flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium border cursor-pointer transition-all ${
+                                scanObservations.includes(obs) ? "border-emerald-500 bg-emerald-500/15 text-emerald-700" : "border-border hover:border-primary/30 text-muted-foreground"
+                              }`}>
+                                <input type="checkbox" className="sr-only" checked={scanObservations.includes(obs)}
+                                  onChange={e => setScanObservations(prev => e.target.checked ? [...prev, obs] : prev.filter(x => x !== obs))} />
+                                {obs}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <Button
                       onClick={handleScan}
                       disabled={!selectedCheckpoint || scanning}
