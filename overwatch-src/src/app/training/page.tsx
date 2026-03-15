@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { BookOpen, Target, ChevronRight, Zap, ShieldCheck, AlertTriangle, TrendingUp, FileText, Plus, Loader2, Trash2 } from "lucide-react";
+import {
+  BookOpen, Target, ChevronRight, Zap, ShieldCheck, AlertTriangle,
+  TrendingUp, FileText, Plus, Loader2, Trash2, Clock, Play,
+  CheckCircle2, Lock, GraduationCap,
+} from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,10 +13,23 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getQuizzes, getKBFolders, getUserCertifications, addCertification, deleteCertification } from "@/lib/supabase/db";
+import {
+  getQuizzes, getKBFolders, getUserCertifications,
+  addCertification, deleteCertification,
+  getTrainingModules, getMyModuleProgress,
+} from "@/lib/supabase/db";
+import type { TrainingModule, StudentModuleProgress } from "@/types";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Cert = any;
+type Cert = {
+  id: string;
+  cert_type: string;
+  issue_date: string | null;
+  expiry_date: string | null;
+  status: string;
+};
+
+type LinkedQuiz = { id: string; title: string; passing_score: number };
+type ModuleWithProgress = TrainingModule & { progress: StudentModuleProgress | null; linkedQuiz: LinkedQuiz | null };
 
 function RadialGauge({ value, label, color }: { value: number; label: string; color: string }) {
   const circumference = 2 * Math.PI * 40;
@@ -35,8 +52,17 @@ function RadialGauge({ value, label, color }: { value: number; label: string; co
   );
 }
 
+const DIFFICULTY_COLORS: Record<string, string> = {
+  Beginner: "bg-green-500/15 text-green-600",
+  Intermediate: "bg-blue-500/15 text-blue-600",
+  Advanced: "bg-purple-500/15 text-purple-600",
+  Critical: "bg-red-500/15 text-red-600",
+  Essential: "bg-amber-500/15 text-amber-600",
+};
+
 export default function TrainingPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+  const [modules, setModules] = useState<ModuleWithProgress[]>([]);
   const [quizCount, setQuizCount] = useState(0);
   const [folderCount, setFolderCount] = useState(0);
   const [certs, setCerts] = useState<Cert[]>([]);
@@ -51,15 +77,33 @@ export default function TrainingPage() {
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoaded(true); return; }
     try {
-      const [q, f, c] = await Promise.all([
+      const [mods, progress, q, f, c] = await Promise.all([
+        getTrainingModules(activeCompanyId),
+        getMyModuleProgress(activeCompanyId),
         getQuizzes(activeCompanyId),
         getKBFolders(activeCompanyId),
         getUserCertifications(),
       ]);
+      const progressMap = new Map(
+        (progress as StudentModuleProgress[]).map((p) => [p.module_id, p])
+      );
+      // Build quiz-by-module map
+      const quizByModule = new Map<string, LinkedQuiz>();
+      for (const quiz of q) {
+        if (quiz.module_id) {
+          quizByModule.set(quiz.module_id, { id: quiz.id, title: quiz.title, passing_score: quiz.passing_score });
+        }
+      }
+      const withProgress: ModuleWithProgress[] = (mods as TrainingModule[]).map((m) => ({
+        ...m,
+        progress: progressMap.get(m.id) ?? null,
+        linkedQuiz: quizByModule.get(m.id) ?? null,
+      }));
+      setModules(withProgress);
       setQuizCount(q.length);
       setFolderCount(f.length);
-      setCerts(c);
-    } catch {} finally { setLoaded(true); }
+      setCerts(c as Cert[]);
+    } catch (err) { console.error("Training load error:", err); } finally { setLoaded(true); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
@@ -70,7 +114,7 @@ export default function TrainingPage() {
     try {
       await addCertification({ certType: certType.trim(), issueDate: certIssue || undefined, expiryDate: certExpiry || undefined });
       setCertType(""); setCertIssue(""); setCertExpiry(""); setShowAddCert(false);
-      setCerts(await getUserCertifications());
+      setCerts(await getUserCertifications() as Cert[]);
     } catch (err) { console.error(err); }
     finally { setAddingCert(false); }
   }
@@ -78,23 +122,29 @@ export default function TrainingPage() {
   async function handleDeleteCert(id: string) {
     if (!confirm("Delete this certification?")) return;
     setDeletingCert(id);
-    try { await deleteCertification(id); setCerts(await getUserCertifications()); }
+    try { await deleteCertification(id); setCerts(await getUserCertifications() as Cert[]); }
     catch (err) { console.error(err); }
     finally { setDeletingCert(null); }
   }
 
   const now = new Date();
-  const expiringSoon = certs.filter((c: Cert) => {
+  const expiringSoon = certs.filter((c) => {
     if (!c.expiry_date) return false;
     const diff = new Date(c.expiry_date).getTime() - now.getTime();
     return diff > 0 && diff < 90 * 24 * 60 * 60 * 1000;
   });
-  const activeCerts = certs.filter((c: Cert) => c.status === "active");
+  const activeCerts = certs.filter((c) => c.status === "active");
   const certPercent = activeCerts.length > 0
-    ? Math.round((activeCerts.filter((c: Cert) => !c.expiry_date || new Date(c.expiry_date) > now).length / activeCerts.length) * 100)
+    ? Math.round((activeCerts.filter((c) => !c.expiry_date || new Date(c.expiry_date) > now).length / activeCerts.length) * 100)
     : 0;
 
-  const readinessLevel = quizCount > 0 || folderCount > 0 ? "ACTIVE" : "STANDBY";
+  const completedModules = modules.filter((m) => m.progress?.status === "completed");
+  const inProgressModules = modules.filter((m) => m.progress?.status === "in_progress");
+  const overallProgress = modules.length > 0
+    ? Math.round((completedModules.length / modules.length) * 100)
+    : 0;
+
+  const readinessLevel = completedModules.length > 0 || quizCount > 0 ? "ACTIVE" : "STANDBY";
   const readinessColor = readinessLevel === "ACTIVE" ? "text-green-500" : "text-amber-500";
 
   return (
@@ -116,14 +166,131 @@ export default function TrainingPage() {
         <Card className="border-border/40 bg-gradient-to-br from-card to-card/80">
           <CardContent className="py-6">
             <div className="flex items-center justify-around">
-              <RadialGauge value={loaded ? (folderCount > 0 ? 100 : 0) : 0} label="SOPs Loaded" color="#3b82f6" />
+              <RadialGauge value={loaded ? overallProgress : 0} label="Module Progress" color="#3b82f6" />
               <RadialGauge value={loaded ? (quizCount > 0 ? Math.min(quizCount * 25, 100) : 0) : 0} label="Drill Readiness" color="#f59e0b" />
               <RadialGauge value={loaded ? certPercent : 0} label="Certs Current" color="#10b981" />
             </div>
           </CardContent>
         </Card>
 
-        {/* Action cards — larger, more tactile */}
+        {/* Training Modules section */}
+        {loaded && modules.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Training Modules</h2>
+                <p className="text-xs text-muted-foreground">
+                  {completedModules.length}/{modules.length} completed
+                  {inProgressModules.length > 0 && ` · ${inProgressModules.length} in progress`}
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {modules.map((mod) => {
+                const p = mod.progress;
+                const isCompleted = p?.status === "completed";
+                const isInProgress = p?.status === "in_progress";
+                const pct = p?.progress_percentage ?? 0;
+
+                return (
+                  <Link key={mod.id} href={`/training/viewer?id=${mod.id}`}>
+                    <Card className={`group relative h-full cursor-pointer overflow-hidden border-border/40 transition-all hover:shadow-lg hover:-translate-y-0.5 ${
+                      isCompleted ? "border-green-500/30 hover:border-green-500/50" :
+                      isInProgress ? "border-blue-500/30 hover:border-blue-500/50" :
+                      "hover:border-border"
+                    }`}>
+                      {isCompleted && (
+                        <div className="absolute top-2 right-2">
+                          <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        </div>
+                      )}
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-110 ${
+                            isCompleted ? "bg-green-500/10" : isInProgress ? "bg-blue-500/10" : "bg-muted"
+                          }`}>
+                            <GraduationCap className={`h-5 w-5 ${
+                              isCompleted ? "text-green-500" : isInProgress ? "text-blue-500" : "text-muted-foreground"
+                            }`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-semibold leading-tight truncate">{mod.module_name}</h3>
+                            {mod.description && (
+                              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{mod.description}</p>
+                            )}
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              <Badge className={`text-[9px] ${DIFFICULTY_COLORS[mod.difficulty_level] ?? "bg-muted text-muted-foreground"}`}>
+                                {mod.difficulty_level}
+                              </Badge>
+                              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                <Clock className="h-3 w-3" /> {mod.duration_minutes}m
+                              </span>
+                              {(mod.slide_count ?? 0) > 0 && (
+                                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                                  <FileText className="h-3 w-3" /> {mod.slide_count} slides
+                                </span>
+                              )}
+                              {mod.is_required && (
+                                <Badge className="text-[9px] bg-red-500/10 text-red-500">Required</Badge>
+                              )}
+                              {mod.linkedQuiz && (
+                                <span className="flex items-center gap-0.5 text-[10px] text-amber-600">
+                                  <Target className="h-3 w-3" /> Quiz
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-[10px] mb-1">
+                            <span className="text-muted-foreground font-mono">
+                              {isCompleted ? "Complete" : isInProgress ? `${pct}%` : "Not started"}
+                            </span>
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              {isCompleted ? (
+                                <CheckCircle2 className="h-3 w-3 text-green-500" />
+                              ) : isInProgress ? (
+                                <Play className="h-3 w-3 text-blue-500" />
+                              ) : (mod.slide_count ?? 0) === 0 ? (
+                                <Lock className="h-3 w-3" />
+                              ) : (
+                                <ChevronRight className="h-3 w-3" />
+                              )}
+                              {isCompleted ? "Done" : isInProgress ? "Continue" : (mod.slide_count ?? 0) === 0 ? "No content" : "Start"}
+                            </span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-border/40 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                isCompleted ? "bg-green-500" : isInProgress ? "bg-blue-500" : "bg-transparent"
+                              }`}
+                              style={{ width: `${isCompleted ? 100 : pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {loaded && modules.length === 0 && (
+          <Card className="border-dashed border-border/60">
+            <CardContent className="flex flex-col items-center gap-2 py-8 text-center">
+              <GraduationCap className="h-10 w-10 text-muted-foreground/30" />
+              <h3 className="text-sm font-semibold">No Training Modules Yet</h3>
+              <p className="text-xs text-muted-foreground max-w-xs">
+                Training modules will appear here once your company admin creates them.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Quick links — KB & Quizzes */}
         <div className="grid gap-4 sm:grid-cols-2">
           <Link href="/knowledge-base">
             <Card className="group relative h-full cursor-pointer overflow-hidden border-border/40 transition-all hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/5 hover:-translate-y-1">
@@ -197,8 +364,8 @@ export default function TrainingPage() {
           <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-card px-4 py-3">
             <TrendingUp className="h-5 w-5 text-blue-500" />
             <div>
-              <p className="text-xs text-muted-foreground">Completion Rate</p>
-              <p className="text-sm font-semibold font-mono">{loaded && quizCount > 0 ? `${Math.min(quizCount * 25, 100)}%` : "—"}</p>
+              <p className="text-xs text-muted-foreground">Module Progress</p>
+              <p className="text-sm font-semibold font-mono">{loaded ? `${overallProgress}%` : "—"}</p>
             </div>
           </div>
         </div>
@@ -245,7 +412,7 @@ export default function TrainingPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {certs.map((c: Cert) => {
+                {certs.map((c) => {
                   const isExpired = c.expiry_date && new Date(c.expiry_date) < now;
                   const isExpiringSoon = c.expiry_date && !isExpired && (new Date(c.expiry_date).getTime() - now.getTime()) < 90 * 24 * 60 * 60 * 1000;
                   return (

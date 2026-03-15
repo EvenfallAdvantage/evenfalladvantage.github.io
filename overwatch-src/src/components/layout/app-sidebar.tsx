@@ -27,6 +27,7 @@ import {
   QrCode,
   ClipboardList,
   GraduationCap,
+  HelpCircle,
   MapPin,
   BarChart3,
   Settings,
@@ -39,6 +40,14 @@ import {
   Menu,
   AlertTriangle,
   Footprints,
+  Target,
+  FileText,
+  Shield,
+  Scale,
+  Award,
+  MessageCircle,
+  BookOpen,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -55,6 +64,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   QrCode,
   ClipboardList,
   GraduationCap,
+  HelpCircle,
   MapPin,
   BarChart3,
   Settings,
@@ -62,6 +72,14 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Menu,
   AlertTriangle,
   Footprints,
+  Target,
+  FileText,
+  Shield,
+  Scale,
+  Award,
+  MessageCircle,
+  BookOpen,
+  Video,
 };
 
 interface AppSidebarProps {

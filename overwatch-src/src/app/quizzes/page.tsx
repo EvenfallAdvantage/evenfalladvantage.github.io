@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Target, Plus, Loader2, ChevronLeft, CheckCircle2, XCircle, Play, Trash2, PencilLine, Save, X } from "lucide-react";
+import { Target, Plus, Loader2, ChevronLeft, CheckCircle2, XCircle, Play, Trash2, PencilLine, Save, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getQuizzes, createQuiz, submitQuizAttempt, getUserQuizAttempts, deleteQuiz, updateQuiz } from "@/lib/supabase/db";
+import { getQuizzes, createQuiz, submitQuizAttempt, getUserQuizAttempts, deleteQuiz, updateQuiz, getAssessmentQuestions, importQuestionsToQuiz, getTrainingModules, completeModule } from "@/lib/supabase/db";
+import type { TrainingModule } from "@/types";
 
 type Question = { id: string; text: string; options: string[]; correctIndex: number };
+type BankQuestion = { id: string; question_text: string; options: string[]; correct_answer: string; difficulty: string; category: string | null };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Quiz = any;
@@ -21,11 +23,13 @@ export default function QuizzesPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [modules, setModules] = useState<TrainingModule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newPassScore, setNewPassScore] = useState("70");
+  const [newModuleId, setNewModuleId] = useState("");
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<Quiz | null>(null);
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -39,10 +43,19 @@ export default function QuizzesPage() {
   // Quiz taking
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [showResults, setShowResults] = useState(false);
+  // Import from question bank
+  const [showImport, setShowImport] = useState(false);
+  const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([]);
+  const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(new Set());
+  const [loadingBank, setLoadingBank] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
-    try { setQuizzes(await getQuizzes(activeCompanyId)); } catch {} finally { setLoading(false); }
+    try {
+      const [q, m] = await Promise.all([getQuizzes(activeCompanyId), getTrainingModules(activeCompanyId)]);
+      setQuizzes(q); setModules(m as TrainingModule[]);
+    } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
@@ -51,8 +64,8 @@ export default function QuizzesPage() {
     if (!newTitle.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
-      await createQuiz({ companyId: activeCompanyId, title: newTitle.trim(), description: newDesc.trim() || undefined, passingScore: parseInt(newPassScore) || 70 });
-      setNewTitle(""); setNewDesc(""); setNewPassScore("70"); setShowCreate(false); await load();
+      await createQuiz({ companyId: activeCompanyId, title: newTitle.trim(), description: newDesc.trim() || undefined, passingScore: parseInt(newPassScore) || 70, moduleId: newModuleId || undefined });
+      setNewTitle(""); setNewDesc(""); setNewPassScore("70"); setNewModuleId(""); setShowCreate(false); await load();
     } catch (err) { console.error("Create quiz failed:", err); }
     finally { setCreating(false); }
   }
@@ -79,6 +92,41 @@ export default function QuizzesPage() {
     if (!selected) return;
     setQuestions((selected.questions ?? []).map((q: Question, i: number) => ({ ...q, id: q.id || `q${i}` })));
     setEditingQuestions(true);
+  }
+
+  async function openImportPanel() {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    setShowImport(true);
+    setLoadingBank(true);
+    setSelectedBankIds(new Set());
+    try {
+      const qs = await getAssessmentQuestions(activeCompanyId);
+      setBankQuestions(qs as BankQuestion[]);
+    } catch (err) { console.error(err); }
+    finally { setLoadingBank(false); }
+  }
+
+  function toggleBankQuestion(id: string) {
+    setSelectedBankIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleImport() {
+    if (!selected || selectedBankIds.size === 0) return;
+    setImporting(true);
+    try {
+      await importQuestionsToQuiz(selected.id, [...selectedBankIds]);
+      setShowImport(false);
+      // Refresh the quiz data
+      const refreshed = await getQuizzes(activeCompanyId!);
+      const updated = refreshed.find((q: Quiz) => q.id === selected.id);
+      if (updated) { setSelected(updated); setQuestions((updated.questions ?? []).map((q: Question, i: number) => ({ ...q, id: q.id || `q${i}` }))); }
+      await load();
+    } catch (err) { console.error(err); }
+    finally { setImporting(false); }
   }
 
   function addQuestion() {
@@ -123,6 +171,10 @@ export default function QuizzesPage() {
       setSubmitting(true);
       try {
         await submitQuizAttempt({ quizId: selected.id, answers: { completed: true }, score: 100, passed: true });
+        // Auto-complete linked module
+        if (selected.module_id) {
+          try { await completeModule(selected.module_id); } catch {}
+        }
         setTaking(false);
         setAttempts(await getUserQuizAttempts(selected.id));
       } catch (err) { console.error(err); }
@@ -139,6 +191,10 @@ export default function QuizzesPage() {
     setSubmitting(true);
     try {
       await submitQuizAttempt({ quizId: selected.id, answers, score, passed });
+      // Auto-complete linked module when quiz is passed
+      if (passed && selected.module_id) {
+        try { await completeModule(selected.module_id); } catch {}
+      }
       setShowResults(true);
       setAttempts(await getUserQuizAttempts(selected.id));
     } catch (err) { console.error(err); }
@@ -175,10 +231,16 @@ export default function QuizzesPage() {
           <div className="space-y-2 rounded-xl border border-primary/30 bg-card p-4">
             <Input placeholder="Drill title *" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
             <Input placeholder="Description (optional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center flex-wrap">
               <label className="text-xs text-muted-foreground whitespace-nowrap">Pass score:</label>
               <Input type="number" min="0" max="100" value={newPassScore} onChange={(e) => setNewPassScore(e.target.value)} className="w-20 h-8 text-sm" />
               <span className="text-xs text-muted-foreground">%</span>
+              <label className="text-xs text-muted-foreground whitespace-nowrap ml-2">Link to module:</label>
+              <select value={newModuleId} onChange={(e) => setNewModuleId(e.target.value)}
+                className="h-8 rounded-md border border-input bg-transparent px-2 text-xs">
+                <option value="">None</option>
+                {modules.map((m) => <option key={m.id} value={m.id}>{m.module_name}</option>)}
+              </select>
             </div>
             <div className="flex gap-2">
               <Button size="sm" onClick={handleCreate} disabled={!newTitle.trim() || creating}>
@@ -223,10 +285,53 @@ export default function QuizzesPage() {
                 <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold">Questions</p>
-                    <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={addQuestion}>
-                      <Plus className="h-3 w-3" /> Add Question
-                    </Button>
+                    <div className="flex gap-1.5">
+                      <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={openImportPanel}>
+                        <Download className="h-3 w-3" /> Import from Bank
+                      </Button>
+                      <Button size="sm" variant="outline" className="gap-1 h-7 text-xs" onClick={addQuestion}>
+                        <Plus className="h-3 w-3" /> Add Question
+                      </Button>
+                    </div>
                   </div>
+                  {showImport && (
+                    <div className="space-y-2 rounded-lg border border-blue-500/30 bg-blue-500/5 p-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold">Question Bank</p>
+                        <span className="text-[10px] text-muted-foreground">{selectedBankIds.size} selected</span>
+                      </div>
+                      {loadingBank ? (
+                        <div className="flex justify-center py-3"><Loader2 className="h-4 w-4 animate-spin" /></div>
+                      ) : bankQuestions.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-2">No questions in the bank yet. Create some in Question Bank admin.</p>
+                      ) : (
+                        <div className="max-h-48 overflow-y-auto space-y-1">
+                          {bankQuestions.map((bq) => (
+                            <label key={bq.id} className={`flex items-start gap-2 rounded-md border p-2 cursor-pointer transition-colors ${
+                              selectedBankIds.has(bq.id) ? "border-blue-500/50 bg-blue-500/10" : "border-border/40"
+                            }`}>
+                              <input type="checkbox" checked={selectedBankIds.has(bq.id)} onChange={() => toggleBankQuestion(bq.id)}
+                                className="mt-0.5 rounded" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs leading-tight">{bq.question_text}</p>
+                                <div className="flex gap-1 mt-0.5">
+                                  <span className="text-[9px] text-muted-foreground">{bq.difficulty}</span>
+                                  {bq.category && <span className="text-[9px] text-muted-foreground">· {bq.category}</span>}
+                                </div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-1.5">
+                        <Button size="sm" className="h-6 text-xs gap-1" onClick={handleImport} disabled={selectedBankIds.size === 0 || importing}>
+                          {importing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                          Import {selectedBankIds.size > 0 ? `(${selectedBankIds.size})` : ""}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setShowImport(false)}>Cancel</Button>
+                      </div>
+                    </div>
+                  )}
                   {questions.map((q, qi) => (
                     <div key={q.id} className="space-y-2 rounded-lg border border-border/50 bg-card p-3">
                       <div className="flex items-center gap-2">

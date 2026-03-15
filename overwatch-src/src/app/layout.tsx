@@ -17,16 +17,27 @@ const barlow = Barlow({
 
 export const metadata: Metadata = {
   title: {
-    default: "Overwatch — Powered by Evenfall Advantage",
+    default: "Overwatch — Security Workforce Platform | Evenfall Advantage",
     template: "%s | Overwatch",
   },
   description:
-    "Workforce management platform for security companies. Scheduling, time tracking, communication, training, and more. Powered by Evenfall Advantage LLC.",
-  manifest: "/overwatch/manifest.json",
+    "Military-grade workforce management for security companies. LMS training, Stripe payments, geo-risk intel, de-escalation sims, site assessments, invoicing, certifications, and 50-state law database. Powered by Evenfall Advantage LLC.",
+  keywords: [
+    "security workforce management", "guard training LMS", "security company software",
+    "site security assessment", "geo risk analysis", "security certifications",
+    "Evenfall Advantage", "Overwatch security platform",
+  ],
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Overwatch",
+  },
+  openGraph: {
+    title: "Overwatch — Command Your Force",
+    description: "Unified workforce management, training, and field operations platform built for security professionals.",
+    type: "website",
+    siteName: "Overwatch by Evenfall Advantage",
   },
 };
 

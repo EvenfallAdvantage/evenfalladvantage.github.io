@@ -17,6 +17,13 @@ import {
   Footprints,
   FileText,
   TrendingUp,
+  MapPin,
+  Shield,
+  BookOpen,
+  MessageCircle,
+  Video,
+  Scale,
+  Award,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -62,6 +69,17 @@ const QUICK_ACTIONS = [
   { title: "Deployments", href: "/schedule", icon: CalendarDays, color: "text-amber-500", bg: "bg-amber-500/10" },
   { title: "Reports", href: "/forms", icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10" },
   { title: "Training", href: "/training", icon: GraduationCap, color: "text-violet-500", bg: "bg-violet-500/10" },
+];
+
+const TOOLS_GRID = [
+  { title: "Geo-Risk", href: "/geo-risk", icon: MapPin, color: "text-cyan-500", bg: "bg-cyan-500/10", desc: "Location risk intel" },
+  { title: "Site Assessment", href: "/site-assessment", icon: Shield, color: "text-teal-500", bg: "bg-teal-500/10", desc: "Security evaluations" },
+  { title: "Courses", href: "/courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-500/10", desc: "Enroll & certify" },
+  { title: "Scenarios", href: "/training/scenarios", icon: MessageCircle, color: "text-orange-500", bg: "bg-orange-500/10", desc: "De-escalation sims" },
+  { title: "Instructor", href: "/instructor", icon: Video, color: "text-pink-500", bg: "bg-pink-500/10", desc: "Live video sessions" },
+  { title: "State Laws", href: "/state-laws", icon: Scale, color: "text-slate-400", bg: "bg-slate-400/10", desc: "50-state database" },
+  { title: "Invoices", href: "/invoices", icon: FileText, color: "text-lime-500", bg: "bg-lime-500/10", desc: "Generate invoices" },
+  { title: "Certifications", href: "/certifications", icon: Award, color: "text-yellow-500", bg: "bg-yellow-500/10", desc: "Manage certs" },
 ];
 
 type Metrics = {
@@ -257,6 +275,32 @@ export default function FeedPage() {
                     <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
                       {action.title}
                     </span>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Professional Tools */}
+        <div>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Professional Tools
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {TOOLS_GRID.map((tool) => (
+              <Link key={tool.href} href={tool.href}>
+                <Card className="group cursor-pointer border-border/40 transition-all hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5">
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${tool.bg} transition-transform group-hover:scale-110`}>
+                        <tool.icon className={`h-4 w-4 ${tool.color}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate">{tool.title}</p>
+                        <p className="text-[9px] text-muted-foreground truncate">{tool.desc}</p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </Link>
