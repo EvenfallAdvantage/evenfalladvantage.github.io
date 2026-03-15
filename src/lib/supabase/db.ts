@@ -993,3 +993,164 @@ export async function getCompanyStats(companyId: string) {
     totalHoursLogged: Math.round(totalHours * 10) / 10,
   };
 }
+
+// ─── Time-off policy CRUD (admin) ────────────────────
+
+export async function createTimeOffPolicy(params: {
+  companyId: string;
+  name: string;
+  type: string;
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("time_off_policies")
+    .insert({
+      id: crypto.randomUUID(),
+      company_id: params.companyId,
+      name: params.name,
+      type: params.type,
+      ...ts(),
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Leave request approve / deny (admin) ────────────
+
+export async function reviewTimeOffRequest(requestId: string, status: "approved" | "denied") {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("time_off_requests")
+    .update({ status, reviewed_by_id: userId, reviewed_at: new Date().toISOString() })
+    .eq("id", requestId)
+    .select("*, time_off_policies(name, type)")
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getAllTimeOffRequests(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("time_off_requests")
+    .select("*, time_off_policies!inner(name, type, company_id), users(first_name, last_name)")
+    .eq("time_off_policies.company_id", companyId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+// ─── Timesheet approval (admin) ──────────────────────
+
+export async function getCompanyTimesheets(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("timesheets")
+    .select("*, users!timesheets_user_id_fkey(first_name, last_name, company_memberships!inner(company_id))")
+    .order("clock_in", { ascending: false })
+    .limit(50);
+  // Filter to company members
+  return (data ?? []).filter(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (t: any) => t.users?.company_memberships?.some((m: any) => m.company_id === companyId)
+  );
+}
+
+export async function approveTimesheet(timesheetId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("timesheets")
+    .update({ approved: true, approved_by_id: userId, approved_at: new Date().toISOString() })
+    .eq("id", timesheetId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Shift CRUD + assignment (admin) ─────────────────
+
+export async function getEventShifts(eventId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("shifts")
+    .select("*, users(first_name, last_name)")
+    .eq("event_id", eventId)
+    .order("start_time", { ascending: true });
+  return data ?? [];
+}
+
+export async function createShift(params: {
+  eventId: string;
+  role?: string;
+  startTime: string;
+  endTime: string;
+  assignedUserId?: string;
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("shifts")
+    .insert({
+      id: crypto.randomUUID(),
+      event_id: params.eventId,
+      role: params.role ?? null,
+      start_time: params.startTime,
+      end_time: params.endTime,
+      assigned_user_id: params.assignedUserId ?? null,
+      status: params.assignedUserId ? "confirmed" : "open",
+      ...ts(),
+    })
+    .select("*, users(first_name, last_name)")
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Asset checkout / checkin ────────────────────────
+
+export async function checkoutAsset(assetId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("assets")
+    .update({ status: "checked_out", current_holder_id: userId, updated_at: new Date().toISOString() })
+    .eq("id", assetId)
+    .select("*, users(first_name, last_name)")
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function checkinAsset(assetId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("assets")
+    .update({ status: "available", current_holder_id: null, updated_at: new Date().toISOString() })
+    .eq("id", assetId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Form submission review (admin) ──────────────────
+
+export async function reviewFormSubmission(submissionId: string, note: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("form_submissions")
+    .update({ status: "reviewed", reviewed_by_id: userId, reviewed_at: new Date().toISOString(), review_note: note })
+    .eq("id", submissionId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}

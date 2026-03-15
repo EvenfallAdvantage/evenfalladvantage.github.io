@@ -5,10 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Save, Loader2, Check, Copy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getCompanyDetails, updateCompany } from "@/lib/supabase/db";
+import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy } from "@/lib/supabase/db";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Policy = any;
+
+const LEAVE_TYPES = ["vacation", "sick", "personal", "bereavement", "parental", "unpaid"];
 
 export default function AdminSettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -19,17 +25,26 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [policies, setPolicies] = useState<Policy[]>([]);
+  const [showAddPolicy, setShowAddPolicy] = useState(false);
+  const [policyName, setPolicyName] = useState("");
+  const [policyType, setPolicyType] = useState("vacation");
+  const [creatingPolicy, setCreatingPolicy] = useState(false);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
     try {
-      const c = await getCompanyDetails(activeCompanyId);
+      const [c, p] = await Promise.all([
+        getCompanyDetails(activeCompanyId),
+        getTimeOffPolicies(activeCompanyId),
+      ]);
       if (c) {
         setName(c.name ?? "");
         setJoinCode(c.join_code ?? "");
         setTimezone(c.timezone ?? "");
         setBrandColor(c.brand_color ?? "#1d3451");
       }
+      setPolicies(p);
     } catch {}
   }, [activeCompanyId]);
 
@@ -52,11 +67,22 @@ export default function AdminSettingsPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function handleAddPolicy() {
+    if (!policyName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    setCreatingPolicy(true);
+    try {
+      await createTimeOffPolicy({ companyId: activeCompanyId, name: policyName.trim(), type: policyType });
+      setPolicyName(""); setPolicyType("vacation"); setShowAddPolicy(false);
+      setPolicies(await getTimeOffPolicies(activeCompanyId));
+    } catch (err) { console.error(err); }
+    finally { setCreatingPolicy(false); }
+  }
+
   return (
     <DashboardLayout>
       <div className="mx-auto max-w-lg space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">HQ Config</h1>
+          <h1 className="text-2xl font-bold tracking-tight font-mono">HQ CONFIG</h1>
           <p className="text-sm text-muted-foreground">Organization profile and settings</p>
         </div>
 
@@ -100,6 +126,56 @@ export default function AdminSettingsPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Leave Policies */}
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold">Leave Policies</h3>
+                <p className="text-xs text-muted-foreground">Configure leave types your team can request</p>
+              </div>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowAddPolicy(true)}>
+                <Plus className="h-3.5 w-3.5" /> Add
+              </Button>
+            </div>
+
+            {showAddPolicy && (
+              <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <Input placeholder="Policy name (e.g. Annual Leave)" value={policyName} onChange={(e) => setPolicyName(e.target.value)} />
+                <select value={policyType} onChange={(e) => setPolicyType(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                  {LEAVE_TYPES.map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                </select>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleAddPolicy} disabled={!policyName.trim() || creatingPolicy}>
+                    {creatingPolicy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Create"}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowAddPolicy(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
+
+            {policies.length === 0 ? (
+              <div className="flex items-center gap-3 rounded-lg border border-dashed border-border/60 p-4">
+                <CalendarOff className="h-5 w-5 text-muted-foreground/40" />
+                <p className="text-xs text-muted-foreground">No leave policies yet. Add one so your team can request time off.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {policies.map((p: Policy) => (
+                  <div key={p.id} className="flex items-center justify-between rounded-lg border border-border/40 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <CalendarOff className="h-4 w-4 text-orange-500" />
+                      <span className="text-sm font-medium">{p.name}</span>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] capitalize">{p.type}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

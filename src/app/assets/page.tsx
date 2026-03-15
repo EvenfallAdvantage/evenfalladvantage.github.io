@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Shield, Plus, Loader2 } from "lucide-react";
+import { QrCode, Plus, Loader2, ArrowUpFromLine, ArrowDownToLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getAssets, createAsset } from "@/lib/supabase/db";
+import { getAssets, createAsset, checkoutAsset, checkinAsset } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Asset = any;
@@ -23,6 +23,7 @@ export default function AssetsPage() {
   const [newType, setNewType] = useState("");
   const [newSerial, setNewSerial] = useState("");
   const [creating, setCreating] = useState(false);
+  const [acting, setActing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -40,6 +41,20 @@ export default function AssetsPage() {
     } catch (err) { console.error(err); } finally { setCreating(false); }
   }
 
+  async function handleCheckout(id: string) {
+    setActing(id);
+    try { await checkoutAsset(id); await load(); }
+    catch (err) { console.error(err); }
+    finally { setActing(null); }
+  }
+
+  async function handleCheckin(id: string) {
+    setActing(id);
+    try { await checkinAsset(id); await load(); }
+    catch (err) { console.error(err); }
+    finally { setActing(null); }
+  }
+
   const statusColor = (s: string) => {
     if (s === "available") return "bg-green-500/15 text-green-600";
     if (s === "checked_out") return "bg-amber-500/15 text-amber-600";
@@ -51,7 +66,7 @@ export default function AssetsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Armory</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono">ARMORY</h1>
             <p className="text-sm text-muted-foreground">Equipment inventory and gear tracking</p>
           </div>
           {isAdmin && (
@@ -81,7 +96,7 @@ export default function AssetsPage() {
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : assets.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
-            <Shield className="mb-3 h-10 w-10 text-muted-foreground/40" />
+            <QrCode className="mb-3 h-10 w-10 text-muted-foreground/40" />
             <p className="text-sm font-medium">No gear registered</p>
             <p className="mt-1 max-w-xs text-xs text-muted-foreground">
               {isAdmin ? "Add equipment to start tracking inventory." : "Your organization hasn't registered any gear yet."}
@@ -92,17 +107,30 @@ export default function AssetsPage() {
             {assets.map((a: Asset) => (
               <div key={a.id} className="flex items-center gap-4 rounded-xl border border-border/50 bg-card px-4 py-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
-                  <Shield className="h-5 w-5 text-emerald-500" />
+                  <QrCode className="h-5 w-5 text-emerald-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm">{a.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {a.asset_type && <span className="text-xs text-muted-foreground">{a.asset_type}</span>}
                     {a.serial_number && <span className="text-xs text-muted-foreground">SN: {a.serial_number}</span>}
+                    {a.users && <span className="text-xs text-primary font-medium">→ {a.users.first_name} {a.users.last_name}</span>}
                   </div>
                 </div>
-                <Badge className={`text-[10px] ${statusColor(a.status)}`}>{a.status}</Badge>
-                {a.users && <span className="text-xs text-muted-foreground">{a.users.first_name} {a.users.last_name}</span>}
+                <Badge className={`text-[10px] ${statusColor(a.status)}`}>
+                  {a.status === "checked_out" ? "Out" : a.status}
+                </Badge>
+                {a.status === "available" ? (
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => handleCheckout(a.id)} disabled={acting === a.id}>
+                    {acting === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowUpFromLine className="h-3 w-3" />}
+                    Check Out
+                  </Button>
+                ) : a.status === "checked_out" ? (
+                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => handleCheckin(a.id)} disabled={acting === a.id}>
+                    {acting === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <ArrowDownToLine className="h-3 w-3" />}
+                    Return
+                  </Button>
+                ) : null}
               </div>
             ))}
           </div>

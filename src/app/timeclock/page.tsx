@@ -14,7 +14,7 @@ import {
 } from "@/lib/supabase/db";
 
 function formatDuration(ms: number) {
-  const totalSec = Math.floor(ms / 1000);
+  const totalSec = Math.floor(Math.abs(ms) / 1000);
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
