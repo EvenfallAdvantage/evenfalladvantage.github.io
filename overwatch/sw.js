@@ -1,11 +1,11 @@
 const CACHE_NAME = "overwatch-v1";
 const STATIC_ASSETS = [
-  "/",
-  "/login",
-  "/feed",
-  "/images/logo-shield.png",
-  "/images/logo.png",
-  "/manifest.json",
+  "/overwatch/",
+  "/overwatch/login/",
+  "/overwatch/feed/",
+  "/overwatch/images/logo-shield.png",
+  "/overwatch/images/logo.png",
+  "/overwatch/manifest.json",
 ];
 
 self.addEventListener("install", (event) => {

@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register("/overwatch/sw.js").catch(() => {});
     }
   }, []);
   const [queryClient] = useState(

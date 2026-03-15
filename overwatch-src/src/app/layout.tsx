@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     "site security assessment", "geo risk analysis", "security certifications",
     "Evenfall Advantage", "Overwatch security platform",
   ],
-  manifest: "/manifest.json",
+  manifest: "/overwatch/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
