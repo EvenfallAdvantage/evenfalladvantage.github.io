@@ -48,6 +48,7 @@ import {
   MessageCircle,
   BookOpen,
   Video,
+  Search,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -177,6 +178,18 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           />
         </button>
       </div>
+
+      {/* Search hint */}
+      {!collapsed && (
+        <button
+          onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }))}
+          className="mx-3 mt-2 flex items-center gap-2 rounded-lg border border-border/40 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/60 transition-colors"
+        >
+          <Search className="h-3 w-3" />
+          <span className="flex-1 text-left">Search...</span>
+          <kbd className="rounded border border-border/60 bg-muted px-1 py-0.5 text-[9px] font-mono">Ctrl K</kbd>
+        </button>
+      )}
 
       {/* Navigation */}
       <ScrollArea className="flex-1 py-2">
