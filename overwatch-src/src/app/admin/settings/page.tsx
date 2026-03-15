@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2 } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy } from "@/lib/supabase/db";
@@ -95,7 +95,7 @@ export default function AdminSettingsPage() {
     <DashboardLayout>
       <div className="mx-auto max-w-lg space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono">HQ CONFIG</h1>
+          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Building2 className="h-6 w-6" /> HQ CONFIG</h1>
           <p className="text-sm text-muted-foreground">Organization profile and settings</p>
         </div>
 

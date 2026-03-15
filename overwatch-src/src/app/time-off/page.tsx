@@ -87,7 +87,7 @@ export default function TimeOffPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">LEAVE</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarOff className="h-6 w-6" /> LEAVE</h1>
             <p className="text-sm text-muted-foreground">Request and track leave days</p>
           </div>
           <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>

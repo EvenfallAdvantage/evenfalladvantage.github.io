@@ -83,7 +83,7 @@ export default function AdminStaffPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">PERSONNEL</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Users className="h-6 w-6" /> PERSONNEL</h1>
             <p className="text-sm text-muted-foreground">Manage team members and timesheets</p>
           </div>
           {joinCode && (

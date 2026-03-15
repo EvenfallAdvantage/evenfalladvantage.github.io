@@ -11,18 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getUserPayments } from "@/lib/supabase/db";
+import { getUserPayments, getActiveCourses } from "@/lib/supabase/db";
 
-type Course = {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  duration_hours: number;
-  difficulty_level: string;
-  is_required: boolean;
-  thumbnail_url: string | null;
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Course = any;
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   beginner: "bg-green-500/15 text-green-600",
@@ -31,83 +23,25 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   expert: "bg-red-500/15 text-red-600",
 };
 
-// Demo courses for the catalog — in production these come from Supabase
-const DEMO_COURSES: Course[] = [
-  {
-    id: "course-guard-fundamentals",
-    title: "Security Guard Fundamentals",
-    description: "Complete foundational course covering patrol techniques, report writing, legal authority, and professional conduct. Required for all new security professionals.",
-    price: 49.99,
-    duration_hours: 8,
-    difficulty_level: "beginner",
-    is_required: true,
-    thumbnail_url: null,
-  },
-  {
-    id: "course-use-of-force",
-    title: "Use of Force Continuum",
-    description: "Comprehensive training on the use of force continuum, legal considerations, documentation requirements, and de-escalation techniques that align with state regulations.",
-    price: 79.99,
-    duration_hours: 6,
-    difficulty_level: "intermediate",
-    is_required: true,
-    thumbnail_url: null,
-  },
-  {
-    id: "course-emergency-response",
-    title: "Emergency Response & Crisis Management",
-    description: "Advanced training in emergency procedures, crisis communication, evacuation protocols, and coordination with law enforcement and emergency services.",
-    price: 99.99,
-    duration_hours: 10,
-    difficulty_level: "advanced",
-    is_required: false,
-    thumbnail_url: null,
-  },
-  {
-    id: "course-event-security",
-    title: "Event Security Operations",
-    description: "Specialized training for large venue and event security including crowd management, VIP protection, access control, and incident response at scale.",
-    price: 129.99,
-    duration_hours: 12,
-    difficulty_level: "advanced",
-    is_required: false,
-    thumbnail_url: null,
-  },
-  {
-    id: "course-surveillance",
-    title: "Surveillance & CCTV Operations",
-    description: "Technical training on surveillance systems, CCTV monitoring, suspicious behavior identification, and evidence preservation for investigations.",
-    price: 59.99,
-    duration_hours: 4,
-    difficulty_level: "intermediate",
-    is_required: false,
-    thumbnail_url: null,
-  },
-  {
-    id: "course-firearms",
-    title: "Armed Security Certification Prep",
-    description: "Preparation course for armed security certification covering firearms safety, marksmanship fundamentals, legal liability, and weapons retention.",
-    price: 199.99,
-    duration_hours: 16,
-    difficulty_level: "expert",
-    is_required: false,
-    thumbnail_url: null,
-  },
-];
-
 function CoursesContent() {
   const user = useAuthStore((s) => s.user);
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const searchParams = useSearchParams();
+  const [courses, setCourses] = useState<Course[]>([]);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [purchasedCourses, setPurchasedCourses] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   const status = searchParams.get("status");
 
-  const loadPayments = useCallback(async () => {
+  const loadData = useCallback(async () => {
+    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
     try {
-      const payments = await getUserPayments();
+      const [coursesData, payments] = await Promise.all([
+        getActiveCourses(activeCompanyId),
+        getUserPayments(),
+      ]);
+      setCourses(coursesData);
       const purchased = new Set<string>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const p of payments as any[]) {
@@ -116,9 +50,9 @@ function CoursesContent() {
       setPurchasedCourses(purchased);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, []);
+  }, [activeCompanyId]);
 
-  useEffect(() => { loadPayments(); }, [loadPayments]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   async function handlePurchase(course: Course) {
     setPurchasing(course.id);
@@ -144,7 +78,7 @@ function CoursesContent() {
     finally { setPurchasing(null); }
   }
 
-  const totalCourses = DEMO_COURSES.length;
+  const totalCourses = courses.length;
   const ownedCount = purchasedCourses.size;
 
   return (
@@ -182,7 +116,7 @@ function CoursesContent() {
           </CardContent></Card>
           <Card className="border-border/40"><CardContent className="p-3 text-center">
             <p className="text-2xl font-bold font-mono text-primary">
-              {DEMO_COURSES.filter((c) => c.is_required).length}
+              {courses.filter((c: Course) => c.is_required).length}
             </p>
             <p className="text-[10px] text-muted-foreground">Required</p>
           </CardContent></Card>
@@ -192,8 +126,17 @@ function CoursesContent() {
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
+          courses.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
+            <BookOpen className="mb-3 h-10 w-10 text-muted-foreground/40" />
+            <p className="text-sm font-medium">No courses available</p>
+            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+              Your organization hasn&apos;t published any courses yet. Admins can create courses from the training admin panel.
+            </p>
+          </div>
+          ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {DEMO_COURSES.map((course) => {
+            {courses.map((course: Course) => {
               const owned = purchasedCourses.has(course.id);
               const diffColor = DIFFICULTY_COLORS[course.difficulty_level] || DIFFICULTY_COLORS.beginner;
               return (
@@ -247,6 +190,7 @@ function CoursesContent() {
               );
             })}
           </div>
+          )
         )}
 
         {/* Info */}

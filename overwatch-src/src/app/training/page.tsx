@@ -153,7 +153,7 @@ export default function TrainingPage() {
         {/* Header with readiness indicator */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">READINESS CENTER</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><GraduationCap className="h-6 w-6" /> READINESS CENTER</h1>
             <p className="text-sm text-muted-foreground">Tactical training, SOPs, and operational drills</p>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card px-3 py-1.5">

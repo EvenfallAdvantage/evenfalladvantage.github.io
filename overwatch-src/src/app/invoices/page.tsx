@@ -167,7 +167,7 @@ export default function InvoicesPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">INVOICE GENERATOR</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><FileText className="h-6 w-6" /> INVOICE GENERATOR</h1>
             <p className="text-sm text-muted-foreground">Professional invoicing for 1099 contractors</p>
           </div>
           <div className="flex gap-2">

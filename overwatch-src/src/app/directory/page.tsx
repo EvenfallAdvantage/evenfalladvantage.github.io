@@ -45,7 +45,7 @@ export default function DirectoryPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono uppercase">Roster</h1>
+          <h1 className="text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Users className="h-6 w-6" /> Roster</h1>
           <p className="text-sm text-muted-foreground">
             Personnel directory and contact info
           </p>

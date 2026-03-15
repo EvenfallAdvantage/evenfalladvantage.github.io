@@ -355,7 +355,7 @@ export default function SiteAssessmentPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">SITE SECURITY ASSESSMENT</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Shield className="h-6 w-6" /> SITE SECURITY ASSESSMENT</h1>
             <p className="text-sm text-muted-foreground">Professional security evaluation and risk scoring</p>
           </div>
           <div className="flex gap-2">

@@ -75,7 +75,7 @@ export default function AssetsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">ARMORY</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><QrCode className="h-6 w-6" /> ARMORY</h1>
             <p className="text-sm text-muted-foreground">Equipment inventory and gear tracking</p>
           </div>
           {isAdmin && (

@@ -209,7 +209,7 @@ export default function AdminTrainingPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">TRAINING ADMIN</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><GraduationCap className="h-6 w-6" /> TRAINING ADMIN</h1>
             <p className="text-sm text-muted-foreground">Manage training modules and slide content</p>
           </div>
           <Button onClick={() => setShowNewModule(true)} className="gap-1.5" disabled={showNewModule}>

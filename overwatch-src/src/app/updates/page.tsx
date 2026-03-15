@@ -252,7 +252,7 @@ export default function UpdatesPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono">BRIEFING</h1>
+          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Radar className="h-6 w-6" /> BRIEFING</h1>
           <p className="text-sm text-muted-foreground">Announcements, alerts, and team updates</p>
         </div>
 

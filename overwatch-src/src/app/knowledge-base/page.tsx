@@ -85,7 +85,7 @@ export default function KnowledgeBasePage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono uppercase">Field Manual</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><BookOpen className="h-6 w-6" /> Field Manual</h1>
             <p className="text-sm text-muted-foreground">SOPs, protocols, and training materials</p>
           </div>
           {isAdmin && (

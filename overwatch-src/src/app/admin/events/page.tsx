@@ -105,7 +105,7 @@ export default function AdminEventsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">OPERATIONS</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><MapPin className="h-6 w-6" /> OPERATIONS</h1>
             <p className="text-sm text-muted-foreground">Plan and manage security operations</p>
           </div>
           <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>

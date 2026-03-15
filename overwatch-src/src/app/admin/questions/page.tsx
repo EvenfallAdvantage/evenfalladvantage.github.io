@@ -153,7 +153,7 @@ export default function QuestionBankPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono">QUESTION BANK</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><HelpCircle className="h-6 w-6" /> QUESTION BANK</h1>
             <p className="text-sm text-muted-foreground">
               Reusable assessment questions — import into any drill
             </p>

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Check, Save, Loader2, User, Building2, Mail, Phone, Shield, KeyRound } from "lucide-react";
+import { Copy, Check, Save, Loader2, User, Building2, Mail, Phone, Shield, KeyRound, Settings } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { getCompanyDetails, updateUserProfile } from "@/lib/supabase/db";
 
@@ -65,7 +65,7 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono">SETTINGS</h1>
+          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Settings className="h-6 w-6" /> SETTINGS</h1>
           <p className="text-sm text-muted-foreground">Profile, organization, and preferences</p>
         </div>
 

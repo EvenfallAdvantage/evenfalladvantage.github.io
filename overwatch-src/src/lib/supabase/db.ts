@@ -2288,6 +2288,31 @@ export async function updatePaymentStatus(paymentId: string, status: string) {
   return data;
 }
 
+// ─── Courses ────────────────────────────────────────
+
+export async function getCourses(companyId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("courses")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getActiveCourses(companyId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("courses")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("is_active", true)
+    .order("title", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 // ─── Certificate Verification ───────────────────────
 
 export async function verifyCertificate(verificationCode: string) {
