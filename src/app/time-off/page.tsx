@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { CalendarOff, Plus, Loader2 } from "lucide-react";
+import { CalendarOff, Plus, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest } from "@/lib/supabase/db";
+import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest, deleteTimeOffRequest } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Request = any;
@@ -30,6 +30,7 @@ export default function TimeOffPage() {
   const [creating, setCreating] = useState(false);
   const [tab, setTab] = useState<"mine" | "team">("mine");
   const [reviewing, setReviewing] = useState<string | null>(null);
+  const [deletingReq, setDeletingReq] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -55,6 +56,14 @@ export default function TimeOffPage() {
       await load();
     } catch (err) { console.error("Leave request failed:", err); }
     finally { setCreating(false); }
+  }
+
+  async function handleCancelRequest(id: string) {
+    if (!confirm("Cancel this leave request?")) return;
+    setDeletingReq(id);
+    try { await deleteTimeOffRequest(id); await load(); }
+    catch (err) { console.error(err); }
+    finally { setDeletingReq(null); }
   }
 
   async function handleReview(id: string, status: "approved" | "denied") {
@@ -182,7 +191,15 @@ export default function TimeOffPage() {
                     </Button>
                   </div>
                 ) : (
-                  <Badge className={`text-[10px] ${statusColor(r.status)}`}>{r.status}</Badge>
+                  <div className="flex items-center gap-1.5">
+                    <Badge className={`text-[10px] ${statusColor(r.status)}`}>{r.status}</Badge>
+                    {r.status === "pending" && tab === "mine" && (
+                      <button onClick={() => handleCancelRequest(r.id)} disabled={deletingReq === r.id}
+                        className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Cancel request">
+                        {deletingReq === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             ))}

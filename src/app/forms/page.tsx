@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ClipboardList, Plus, Loader2, Send, ChevronLeft, CheckCircle2 } from "lucide-react";
+import { ClipboardList, Plus, Loader2, Send, ChevronLeft, CheckCircle2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getForms, createForm, submitForm, getFormSubmissions } from "@/lib/supabase/db";
+import { getForms, createForm, submitForm, getFormSubmissions, deleteForm } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Form = any;
@@ -28,6 +28,7 @@ export default function FormsPage() {
   const [reportText, setReportText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [deletingForm, setDeletingForm] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -44,6 +45,15 @@ export default function FormsPage() {
       setNewName(""); setShowCreate(false); await load();
     } catch (err) { console.error("Create form failed:", err); }
     finally { setCreating(false); }
+  }
+
+  async function handleDeleteForm(formId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm("Delete this form and all its submissions?")) return;
+    setDeletingForm(formId);
+    try { await deleteForm(formId); await load(); }
+    catch (err) { console.error(err); }
+    finally { setDeletingForm(null); }
   }
 
   async function selectForm(form: Form) {
@@ -162,6 +172,12 @@ export default function FormsPage() {
                     <p className="font-medium text-sm truncate">{form.name}</p>
                     {form.description && <p className="text-xs text-muted-foreground truncate">{form.description}</p>}
                   </div>
+                  {isAdmin && (
+                    <button onClick={(e) => handleDeleteForm(form.id, e)} disabled={deletingForm === form.id}
+                      className="rounded-md p-1 text-muted-foreground/40 hover:bg-red-500/10 hover:text-red-500 z-10" title="Delete form">
+                      {deletingForm === form.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

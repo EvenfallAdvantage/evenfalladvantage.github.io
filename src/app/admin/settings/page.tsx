@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy } from "@/lib/supabase/db";
+import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Policy = any;
@@ -31,6 +31,7 @@ export default function AdminSettingsPage() {
   const [policyName, setPolicyName] = useState("");
   const [policyType, setPolicyType] = useState("vacation");
   const [creatingPolicy, setCreatingPolicy] = useState(false);
+  const [deletingPolicy, setDeletingPolicy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
@@ -67,6 +68,16 @@ export default function AdminSettingsPage() {
     navigator.clipboard.writeText(joinCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleDeletePolicy(policyId: string) {
+    if (!confirm("Delete this leave policy?")) return;
+    setDeletingPolicy(policyId);
+    try {
+      await deleteTimeOffPolicy(policyId);
+      if (activeCompanyId) setPolicies(await getTimeOffPolicies(activeCompanyId));
+    } catch (err) { console.error(err); }
+    finally { setDeletingPolicy(null); }
   }
 
   async function handleAddPolicy() {
@@ -186,7 +197,13 @@ export default function AdminSettingsPage() {
                       <CalendarOff className="h-4 w-4 text-orange-500" />
                       <span className="text-sm font-medium">{p.name}</span>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] capitalize">{p.type}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px] capitalize">{p.type}</Badge>
+                      <button onClick={() => handleDeletePolicy(p.id)} disabled={deletingPolicy === p.id}
+                        className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete policy">
+                        {deletingPolicy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

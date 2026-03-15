@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { BookOpen, FolderOpen, FileText, Plus, Loader2 } from "lucide-react";
+import { BookOpen, FolderOpen, FileText, Plus, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getKBFolders, getKBDocuments, createKBFolder, createKBDocument } from "@/lib/supabase/db";
+import { getKBFolders, getKBDocuments, createKBFolder, createKBDocument, deleteKBFolder, deleteKBDocument } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Folder = any;
@@ -27,6 +27,8 @@ export default function KnowledgeBasePage() {
   const [newDocTitle, setNewDocTitle] = useState("");
   const [newDocContent, setNewDocContent] = useState("");
   const [creating, setCreating] = useState(false);
+  const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
+  const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
 
   const loadFolders = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -47,6 +49,25 @@ export default function KnowledgeBasePage() {
       await createKBFolder({ companyId: activeCompanyId, name: newName.trim() });
       setNewName(""); setShowCreateFolder(false); await loadFolders();
     } catch (err) { console.error(err); } finally { setCreating(false); }
+  }
+
+  async function handleDeleteFolder(folderId: string) {
+    if (!confirm("Delete this folder and all its documents?")) return;
+    setDeletingFolder(folderId);
+    try {
+      await deleteKBFolder(folderId);
+      if (selectedFolder?.id === folderId) { setSelectedFolder(null); setDocs([]); }
+      await loadFolders();
+    } catch (err) { console.error(err); }
+    finally { setDeletingFolder(null); }
+  }
+
+  async function handleDeleteDoc(docId: string) {
+    if (!confirm("Delete this document?")) return;
+    setDeletingDoc(docId);
+    try { await deleteKBDocument(docId); if (selectedFolder) setDocs(await getKBDocuments(selectedFolder.id)); }
+    catch (err) { console.error(err); }
+    finally { setDeletingDoc(null); }
   }
 
   async function handleCreateDoc() {
@@ -99,9 +120,15 @@ export default function KnowledgeBasePage() {
             <div className="space-y-1 rounded-xl border border-border/50 bg-card p-3">
               {folders.map((f: Folder) => (
                 <div key={f.id} onClick={() => selectFolder(f)}
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${selectedFolder?.id === f.id ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
+                  className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${selectedFolder?.id === f.id ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
                   <FolderOpen className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{f.name}</span>
+                  <span className="truncate flex-1">{f.name}</span>
+                  {isAdmin && (
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteFolder(f.id); }} disabled={deletingFolder === f.id}
+                      className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100" title="Delete folder">
+                      {deletingFolder === f.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -142,6 +169,12 @@ export default function KnowledgeBasePage() {
                               <p className="text-sm font-medium truncate">{d.title}</p>
                               {d.content && <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{d.content}</p>}
                             </div>
+                            {isAdmin && (
+                              <button onClick={() => handleDeleteDoc(d.id)} disabled={deletingDoc === d.id}
+                                className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete document">
+                                {deletingDoc === d.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}

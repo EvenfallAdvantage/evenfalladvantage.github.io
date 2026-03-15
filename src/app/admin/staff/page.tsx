@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, Copy, Check, Loader2, Clock } from "lucide-react";
+import { Users, Search, Copy, Check, Loader2, Clock, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet } from "@/lib/supabase/db";
+import { getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet, updateMemberRole, removeMember } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -24,6 +24,8 @@ export default function AdminStaffPage() {
   const [tab, setTab] = useState<"roster" | "timesheets">("roster");
   const [timesheets, setTimesheets] = useState<Sheet[]>([]);
   const [approving, setApproving] = useState<string | null>(null);
+  const [changingRole, setChangingRole] = useState<string | null>(null);
+  const [removingMember, setRemovingMember] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -45,6 +47,21 @@ export default function AdminStaffPage() {
     navigator.clipboard.writeText(joinCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleRoleChange(membershipId: string, newRole: string) {
+    setChangingRole(membershipId);
+    try { await updateMemberRole(membershipId, newRole); await load(); }
+    catch (err) { console.error(err); }
+    finally { setChangingRole(null); }
+  }
+
+  async function handleRemoveMember(membershipId: string, name: string) {
+    if (!confirm(`Remove ${name} from the organization?`)) return;
+    setRemovingMember(membershipId);
+    try { await removeMember(membershipId); await load(); }
+    catch (err) { console.error(err); }
+    finally { setRemovingMember(null); }
   }
 
   async function handleApprove(id: string) {
@@ -125,8 +142,26 @@ export default function AdminStaffPage() {
                         <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
                         <p className="text-xs text-muted-foreground">{u?.email}</p>
                       </div>
-                      <Badge variant="secondary" className="text-[10px] capitalize">{m.role}</Badge>
+                      <div className="relative">
+                        <select
+                          value={m.role}
+                          onChange={(e) => handleRoleChange(m.id, e.target.value)}
+                          disabled={changingRole === m.id || m.role === "owner"}
+                          className="h-6 appearance-none rounded border border-border/40 bg-background px-2 pr-5 text-[10px] font-medium capitalize cursor-pointer disabled:opacity-50"
+                        >
+                          {["owner", "admin", "manager", "staff"].map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+                      </div>
                       <Badge variant={m.status === "active" ? "default" : "outline"} className="text-[10px] capitalize">{m.status}</Badge>
+                      {m.role !== "owner" && (
+                        <button onClick={() => handleRemoveMember(m.id, `${u?.first_name} ${u?.last_name}`)} disabled={removingMember === m.id}
+                          className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Remove member">
+                          {removingMember === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
                     </div>
                   );
                 })}

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Radio, Plus, Send, Loader2 } from "lucide-react";
+import { Radio, Plus, Send, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getChatChannels, createChatChannel, getChatMessages, sendChatMessage } from "@/lib/supabase/db";
+import { getChatChannels, createChatChannel, getChatMessages, sendChatMessage, deleteChatChannel } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Channel = any;
@@ -26,6 +26,7 @@ export default function ChatPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const [deletingChannel, setDeletingChannel] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const loadChannels = useCallback(async () => {
@@ -55,6 +56,29 @@ export default function ChatPage() {
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     } catch (err) { console.error("Send failed:", err); }
     finally { setSending(false); }
+  }
+
+  // Auto-refresh messages every 5 seconds when a channel is selected
+  useEffect(() => {
+    if (!selected) return;
+    const interval = setInterval(async () => {
+      try {
+        const msgs = await getChatMessages(selected.id);
+        setMessages(msgs);
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [selected]);
+
+  async function handleDeleteChannel(chId: string) {
+    if (!confirm("Delete this channel and all messages?")) return;
+    setDeletingChannel(chId);
+    try {
+      await deleteChatChannel(chId);
+      if (selected?.id === chId) { setSelected(null); setMessages([]); }
+      await loadChannels();
+    } catch (err) { console.error(err); }
+    finally { setDeletingChannel(null); }
   }
 
   async function handleCreate() {
@@ -111,6 +135,12 @@ export default function ChatPage() {
                     {ch.name?.slice(0, 2).toUpperCase()}
                   </div>
                   <span className="truncate font-medium">{ch.name}</span>
+                  {isAdmin && (
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteChannel(ch.id); }} disabled={deletingChannel === ch.id}
+                      className="ml-auto rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete channel">
+                      {deletingChannel === ch.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

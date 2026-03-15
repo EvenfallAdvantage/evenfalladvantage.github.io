@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   Radar, Send, Loader2, ImageIcon, Link2, Pin, PinOff,
-  Megaphone, AlertTriangle, ChevronDown, ExternalLink, X,
+  Megaphone, AlertTriangle, ChevronDown, ExternalLink, X, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getPosts, createPost, togglePinPost } from "@/lib/supabase/db";
+import { getPosts, createPost, togglePinPost, deletePost } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Post = any;
@@ -143,6 +143,7 @@ export default function UpdatesPage() {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [togglingPin, setTogglingPin] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   // Composer state
   const [title, setTitle] = useState("");
@@ -184,6 +185,14 @@ export default function UpdatesPage() {
     try { await togglePinPost(postId, !currentlyPinned); await load(); }
     catch (err) { console.error(err); }
     finally { setTogglingPin(null); }
+  }
+
+  async function handleDelete(postId: string) {
+    if (!confirm("Delete this post? This cannot be undone.")) return;
+    setDeleting(postId);
+    try { await deletePost(postId); await load(); }
+    catch (err) { console.error(err); }
+    finally { setDeleting(null); }
   }
 
   const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
@@ -376,20 +385,34 @@ export default function UpdatesPage() {
                       </div>
                     </div>
                     {isAdmin && (
-                      <button
-                        onClick={() => handleTogglePin(post.id, post.is_pinned)}
-                        disabled={togglingPin === post.id}
-                        className="shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-accent hover:text-foreground"
-                        title={post.is_pinned ? "Unpin" : "Pin to top"}
-                      >
-                        {togglingPin === post.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : post.is_pinned ? (
-                          <PinOff className="h-4 w-4" />
-                        ) : (
-                          <Pin className="h-4 w-4" />
-                        )}
-                      </button>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <button
+                          onClick={() => handleTogglePin(post.id, post.is_pinned)}
+                          disabled={togglingPin === post.id}
+                          className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-accent hover:text-foreground"
+                          title={post.is_pinned ? "Unpin" : "Pin to top"}
+                        >
+                          {togglingPin === post.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : post.is_pinned ? (
+                            <PinOff className="h-4 w-4" />
+                          ) : (
+                            <Pin className="h-4 w-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(post.id)}
+                          disabled={deleting === post.id}
+                          className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-red-500/10 hover:text-red-500"
+                          title="Delete post"
+                        >
+                          {deleting === post.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
                     )}
                   </div>
 

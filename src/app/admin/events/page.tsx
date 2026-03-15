@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { MapPin, Plus, Loader2, Clock, ChevronDown, ChevronRight } from "lucide-react";
+import { MapPin, Plus, Loader2, Clock, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getEvents, createEvent, getEventShifts, createShift, getCompanyMembers } from "@/lib/supabase/db";
+import { getEvents, createEvent, getEventShifts, createShift, getCompanyMembers, deleteEvent, deleteShift } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Event = any;
@@ -35,6 +35,8 @@ export default function AdminEventsPage() {
   const [shiftEnd, setShiftEnd] = useState("");
   const [shiftAssign, setShiftAssign] = useState("");
   const [addingShift, setAddingShift] = useState(false);
+  const [deletingEvent, setDeletingEvent] = useState<string | null>(null);
+  const [deletingShift, setDeletingShift] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -64,6 +66,22 @@ export default function AdminEventsPage() {
       setShifts(s);
       setMembers(m);
     } catch { setShifts([]); }
+  }
+
+  async function handleDeleteEvent(eventId: string) {
+    if (!confirm("Delete this operation and all its shifts?")) return;
+    setDeletingEvent(eventId);
+    try { await deleteEvent(eventId); if (expanded === eventId) setExpanded(null); await load(); }
+    catch (err) { console.error(err); }
+    finally { setDeletingEvent(null); }
+  }
+
+  async function handleDeleteShift(shiftId: string) {
+    if (!confirm("Delete this shift?")) return;
+    setDeletingShift(shiftId);
+    try { await deleteShift(shiftId); if (expanded) setShifts(await getEventShifts(expanded)); }
+    catch (err) { console.error(err); }
+    finally { setDeletingShift(null); }
   }
 
   async function handleAddShift() {
@@ -128,6 +146,10 @@ export default function AdminEventsPage() {
                     <p className="text-xs text-muted-foreground">{ev.location ?? "No location"} · {new Date(ev.start_date).toLocaleDateString()}</p>
                   </div>
                   <Badge variant="secondary" className="text-[10px] capitalize">{ev.status}</Badge>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeleteEvent(ev.id); }} disabled={deletingEvent === ev.id}
+                    className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-red-500/10 hover:text-red-500" title="Delete operation">
+                    {deletingEvent === ev.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </button>
                   {expanded === ev.id ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                 </div>
 
@@ -181,6 +203,10 @@ export default function AdminEventsPage() {
                             ) : (
                               <Badge variant="outline" className="text-[9px]">Open</Badge>
                             )}
+                            <button onClick={() => handleDeleteShift(sh.id)} disabled={deletingShift === sh.id}
+                              className="rounded p-0.5 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete shift">
+                              {deletingShift === sh.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                            </button>
                           </div>
                         ))}
                       </div>

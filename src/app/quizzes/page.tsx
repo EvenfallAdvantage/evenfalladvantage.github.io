@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Target, Plus, Loader2, ChevronLeft, CheckCircle2, XCircle, Play } from "lucide-react";
+import { Target, Plus, Loader2, ChevronLeft, CheckCircle2, XCircle, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getQuizzes, createQuiz, submitQuizAttempt, getUserQuizAttempts } from "@/lib/supabase/db";
+import { getQuizzes, createQuiz, submitQuizAttempt, getUserQuizAttempts, deleteQuiz } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Quiz = any;
@@ -27,6 +27,7 @@ export default function QuizzesPage() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [taking, setTaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingQuiz, setDeletingQuiz] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -43,6 +44,15 @@ export default function QuizzesPage() {
       setNewTitle(""); setShowCreate(false); await load();
     } catch (err) { console.error("Create quiz failed:", err); }
     finally { setCreating(false); }
+  }
+
+  async function handleDeleteQuiz(quizId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm("Delete this drill and all attempt history?")) return;
+    setDeletingQuiz(quizId);
+    try { await deleteQuiz(quizId); await load(); }
+    catch (err) { console.error(err); }
+    finally { setDeletingQuiz(null); }
   }
 
   async function selectQuiz(q: Quiz) {
@@ -192,6 +202,12 @@ export default function QuizzesPage() {
                     {q.description && <p className="text-xs text-muted-foreground truncate">{q.description}</p>}
                     <p className="text-[10px] text-muted-foreground mt-0.5">Pass: {q.passing_score}%</p>
                   </div>
+                  {isAdmin && (
+                    <button onClick={(e) => handleDeleteQuiz(q.id, e)} disabled={deletingQuiz === q.id}
+                      className="rounded-md p-1 text-muted-foreground/40 hover:bg-red-500/10 hover:text-red-500 z-10" title="Delete drill">
+                      {deletingQuiz === q.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

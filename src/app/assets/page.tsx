@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { QrCode, Plus, Loader2, ArrowUpFromLine, ArrowDownToLine } from "lucide-react";
+import { QrCode, Plus, Loader2, ArrowUpFromLine, ArrowDownToLine, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getAssets, createAsset, checkoutAsset, checkinAsset } from "@/lib/supabase/db";
+import { getAssets, createAsset, checkoutAsset, checkinAsset, deleteAsset } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Asset = any;
@@ -24,6 +24,7 @@ export default function AssetsPage() {
   const [newSerial, setNewSerial] = useState("");
   const [creating, setCreating] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
+  const [deletingAsset, setDeletingAsset] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -53,6 +54,14 @@ export default function AssetsPage() {
     try { await checkinAsset(id); await load(); }
     catch (err) { console.error(err); }
     finally { setActing(null); }
+  }
+
+  async function handleDeleteAsset(id: string) {
+    if (!confirm("Delete this asset?")) return;
+    setDeletingAsset(id);
+    try { await deleteAsset(id); await load(); }
+    catch (err) { console.error(err); }
+    finally { setDeletingAsset(null); }
   }
 
   const statusColor = (s: string) => {
@@ -131,6 +140,12 @@ export default function AssetsPage() {
                     Return
                   </Button>
                 ) : null}
+                {isAdmin && (
+                  <button onClick={() => handleDeleteAsset(a.id)} disabled={deletingAsset === a.id}
+                    className="rounded-md p-1 text-muted-foreground/40 transition-colors hover:bg-red-500/10 hover:text-red-500" title="Delete asset">
+                    {deletingAsset === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  </button>
+                )}
               </div>
             ))}
           </div>

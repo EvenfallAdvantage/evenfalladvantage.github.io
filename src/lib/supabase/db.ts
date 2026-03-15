@@ -1220,3 +1220,92 @@ export async function reviewFormSubmission(submissionId: string, note: string) {
   if (error) throw error;
   return data;
 }
+
+// ─── DELETE functions ────────────────────────────────
+
+export async function deletePost(postId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("posts").delete().eq("id", postId);
+  if (error) throw error;
+}
+
+export async function deleteEvent(eventId: string) {
+  const supabase = createClient();
+  // Shifts cascade-delete via FK
+  const { error } = await supabase.from("events").delete().eq("id", eventId);
+  if (error) throw error;
+}
+
+export async function deleteShift(shiftId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("shifts").delete().eq("id", shiftId);
+  if (error) throw error;
+}
+
+export async function deleteAsset(assetId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("assets").delete().eq("id", assetId);
+  if (error) throw error;
+}
+
+export async function deleteForm(formId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("forms").delete().eq("id", formId);
+  if (error) throw error;
+}
+
+export async function deleteQuiz(quizId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("quizzes").delete().eq("id", quizId);
+  if (error) throw error;
+}
+
+export async function deleteKBFolder(folderId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("kb_folders").delete().eq("id", folderId);
+  if (error) throw error;
+}
+
+export async function deleteKBDocument(docId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("kb_documents").delete().eq("id", docId);
+  if (error) throw error;
+}
+
+export async function deleteChatChannel(channelId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("chat_channels").delete().eq("id", channelId);
+  if (error) throw error;
+}
+
+export async function deleteTimeOffPolicy(policyId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("time_off_policies").delete().eq("id", policyId);
+  if (error) throw error;
+}
+
+export async function deleteTimeOffRequest(requestId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("time_off_requests").delete().eq("id", requestId);
+  if (error) throw error;
+}
+
+// ─── Member management (admin) ──────────────────────
+
+export async function updateMemberRole(membershipId: string, role: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("company_memberships")
+    .update({ role })
+    .eq("id", membershipId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function removeMember(membershipId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("company_memberships").delete().eq("id", membershipId);
+  if (error) throw error;
+}
