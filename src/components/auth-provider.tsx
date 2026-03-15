@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { fetchUserProfile } from "@/lib/supabase/db";
+import { fetchUserProfile, registerUserInDB } from "@/lib/supabase/db";
 import { useAuthStore } from "@/stores/auth-store";
 import type { SessionUser, CompanyContext } from "@/types";
 
@@ -14,7 +14,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (authUser: any) => {
       // Try loading real profile from database
       try {
-        const profile = await fetchUserProfile();
+        let profile = await fetchUserProfile();
+
+        // If user exists but has NO memberships, and auth metadata has a
+        // company_name, auto-create the company + membership now.
+        // This handles the email-confirmation flow where registerUserInDB
+        // was skipped because signUp returned before a session existed.
+        const meta = authUser.user_metadata || {};
+        if (
+          profile?.user &&
+          (profile.memberships ?? []).length === 0 &&
+          meta.company_name
+        ) {
+          try {
+            await registerUserInDB({
+              supabaseId: authUser.id,
+              email: authUser.email ?? null,
+              phone: authUser.phone ?? meta.phone ?? null,
+              firstName: meta.first_name ?? profile.user.first_name ?? "",
+              lastName: meta.last_name ?? profile.user.last_name ?? "",
+              companyName: meta.company_name,
+            });
+            // Re-fetch profile to pick up the new membership
+            profile = await fetchUserProfile();
+          } catch (regErr) {
+            console.warn("Auto-register company failed:", regErr);
+          }
+        }
+
         if (profile?.user) {
           const companies: CompanyContext[] = (profile.memberships ?? []).map(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
