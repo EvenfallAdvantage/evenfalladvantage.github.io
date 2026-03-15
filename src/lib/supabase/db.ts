@@ -9,6 +9,42 @@ async function getAuthUserId() {
   return user?.id ?? null;
 }
 
+// Helper: get or create internal user ID from auth user
+async function ensureInternalUser() {
+  const supabase = createClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) return null;
+
+  // Try to find existing user
+  const { data: existing } = await supabase
+    .from("users")
+    .select("id")
+    .eq("supabase_id", authUser.id)
+    .maybeSingle();
+
+  if (existing) return existing.id;
+
+  // Auto-create user record from auth metadata
+  const meta = authUser.user_metadata || {};
+  const { data: created, error } = await supabase
+    .from("users")
+    .insert({
+      supabase_id: authUser.id,
+      email: authUser.email ?? null,
+      phone: authUser.phone ?? meta.phone ?? null,
+      first_name: meta.first_name ?? "",
+      last_name: meta.last_name ?? "",
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.warn("Auto-create user failed:", error.message);
+    return null;
+  }
+  return created.id;
+}
+
 // ─── Users ──────────────────────────────────────────────
 
 export async function upsertUser(data: {
@@ -34,7 +70,7 @@ export async function upsertUser(data: {
       { onConflict: "supabase_id" }
     )
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return user;
@@ -46,14 +82,32 @@ export async function fetchUserProfile() {
 
   const supabase = createClient();
 
-  // Get user record
-  const { data: user, error: userErr } = await supabase
+  // Get user record (or auto-create if missing)
+  let { data: user } = await supabase
     .from("users")
     .select("*")
     .eq("supabase_id", authId)
-    .single();
+    .maybeSingle();
 
-  if (userErr || !user) return null;
+  if (!user) {
+    // Auto-create from auth metadata
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) return null;
+    const meta = authUser.user_metadata || {};
+    const { data: created } = await supabase
+      .from("users")
+      .insert({
+        supabase_id: authId,
+        email: authUser.email ?? null,
+        phone: authUser.phone ?? meta.phone ?? null,
+        first_name: meta.first_name ?? "",
+        last_name: meta.last_name ?? "",
+      })
+      .select("*")
+      .maybeSingle();
+    if (!created) return null;
+    user = created;
+  }
 
   // Get memberships with company info
   const { data: memberships } = await supabase
@@ -149,7 +203,7 @@ export async function createMembership(data: {
       notification_days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return membership;
@@ -190,50 +244,37 @@ export async function registerUserInDB(params: {
 // ─── Timesheets (Watch Log) ──────────────────────────────
 
 export async function getActiveTimesheet() {
-  const authId = await getAuthUserId();
-  if (!authId) return null;
+  const userId = await ensureInternalUser();
+  if (!userId) return null;
 
   const supabase = createClient();
-  const { data: user } = await supabase
-    .from("users")
-    .select("id")
-    .eq("supabase_id", authId)
-    .single();
-  if (!user) return null;
-
   const { data } = await supabase
     .from("timesheets")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .is("clock_out", null)
     .order("clock_in", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   return data;
 }
 
 export async function clockIn() {
-  const authId = await getAuthUserId();
-  if (!authId) throw new Error("Not authenticated");
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
 
   const supabase = createClient();
-  const { data: user } = await supabase
-    .from("users")
-    .select("id")
-    .eq("supabase_id", authId)
-    .single();
-  if (!user) throw new Error("User not found in database");
 
   const { data, error } = await supabase
     .from("timesheets")
     .insert({
-      user_id: user.id,
+      user_id: userId,
       clock_in: new Date().toISOString(),
       clock_method: "app",
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -246,28 +287,22 @@ export async function clockOut(timesheetId: string) {
     .update({ clock_out: new Date().toISOString() })
     .eq("id", timesheetId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
 }
 
 export async function getRecentTimesheets(limit = 10) {
-  const authId = await getAuthUserId();
-  if (!authId) return [];
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
 
   const supabase = createClient();
-  const { data: user } = await supabase
-    .from("users")
-    .select("id")
-    .eq("supabase_id", authId)
-    .single();
-  if (!user) return [];
 
   const { data } = await supabase
     .from("timesheets")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("clock_in", { ascending: false })
     .limit(limit);
 
@@ -321,22 +356,16 @@ export async function createPost(data: {
   title?: string;
   type?: string;
 }) {
-  const authId = await getAuthUserId();
-  if (!authId) throw new Error("Not authenticated");
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
 
   const supabase = createClient();
-  const { data: user } = await supabase
-    .from("users")
-    .select("id")
-    .eq("supabase_id", authId)
-    .single();
-  if (!user) throw new Error("User not found");
 
   const { data: post, error } = await supabase
     .from("posts")
     .insert({
       company_id: data.companyId,
-      user_id: user.id,
+      user_id: userId,
       content: data.content,
       title: data.title ?? null,
       type: data.type ?? "update",
@@ -347,7 +376,7 @@ export async function createPost(data: {
       users (id, first_name, last_name, avatar_url)
     `
     )
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return post;
@@ -361,6 +390,8 @@ export async function updateUserProfile(updates: {
   phone?: string;
   avatarUrl?: string;
 }) {
+  // Ensure user exists first
+  await ensureInternalUser();
   const authId = await getAuthUserId();
   if (!authId) throw new Error("Not authenticated");
 
@@ -377,7 +408,7 @@ export async function updateUserProfile(updates: {
     .update(payload)
     .eq("supabase_id", authId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
