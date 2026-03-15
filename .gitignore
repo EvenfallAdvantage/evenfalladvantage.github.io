@@ -10,6 +10,12 @@
 # Node modules
 node_modules/
 
+# Next.js build artifacts (overwatch-src)
+overwatch-src/.next/
+overwatch-src/out/
+overwatch-src/.env
+overwatch-src/.env.local
+
 # Logs
 logs
 *.log
