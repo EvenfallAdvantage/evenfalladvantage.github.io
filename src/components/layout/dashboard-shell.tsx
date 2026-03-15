@@ -1,13 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { AppSidebar } from "./app-sidebar";
 import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
 
+const STORAGE_KEY = "overwatch-sidebar-collapsed";
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(STORAGE_KEY) === "true";
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, String(collapsed));
+  }, [collapsed]);
 
   return (
     <div className="min-h-screen bg-background">
