@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { ClipboardList, Plus, Loader2, Send, ChevronLeft, CheckCircle2, Trash2, PencilLine, Save, X } from "lucide-react";
+import { ClipboardList, Plus, Loader2, Send, ChevronLeft, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -131,11 +132,12 @@ export default function FormsPage() {
                 <ChevronLeft className="h-3 w-3" /> All Forms
               </button>
             ) : null}
-            <h1 className="text-2xl font-bold tracking-tight font-mono">
-              {selected ? selected.name : "FIELD REPORTS"}
+            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+              <ClipboardList className="h-6 w-6 text-primary" />
+              {selected ? selected.name : "Reports"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {selected ? "Fill out and submit this report" : "Submit and track incident reports and forms"}
+              {selected ? "Fill out and submit this report" : "Incident reports, field reports, and documentation"}
             </p>
           </div>
           {!selected && isAdmin && (
@@ -144,6 +146,23 @@ export default function FormsPage() {
             </Button>
           )}
         </div>
+
+        {/* Report type tabs */}
+        {!selected && (
+          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+            <Link
+              href="/incidents"
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Incidents
+            </Link>
+            <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
+              <ClipboardList className="h-3.5 w-3.5" />
+              Field Reports
+            </div>
+          </div>
+        )}
 
         {showCreate && !selected && (
           <div className="space-y-2 rounded-xl border border-primary/30 bg-card p-4">

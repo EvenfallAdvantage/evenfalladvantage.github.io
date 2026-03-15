@@ -36,7 +36,6 @@ import {
   LogOut,
   Building2,
   Plus,
-  Bell,
   Menu,
   AlertTriangle,
   Footprints,
@@ -48,11 +47,9 @@ import {
   MessageCircle,
   BookOpen,
   Video,
-  Search,
+  User,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getUnreadNotificationCount } from "@/lib/supabase/db";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard,
@@ -69,7 +66,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   MapPin,
   BarChart3,
   Settings,
-  Bell,
   Menu,
   AlertTriangle,
   Footprints,
@@ -108,15 +104,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
 
-  const [unreadCount, setUnreadCount] = useState(0);
-  useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
-    getUnreadNotificationCount(activeCompanyId).then(setUnreadCount).catch(() => {});
-    const interval = setInterval(() => {
-      getUnreadNotificationCount(activeCompanyId).then(setUnreadCount).catch(() => {});
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [activeCompanyId]);
 
   return (
     <aside
@@ -125,8 +112,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         collapsed ? "w-[68px]" : "w-[260px]"
       )}
     >
-      {/* Company Header */}
-      <div className="flex h-16 items-center gap-3 border-b border-border/50 px-4">
+      {/* Company Header — click logo to toggle sidebar */}
+      <button
+        onClick={onToggle}
+        className="flex h-16 w-full items-center gap-3 border-b border-border/50 px-4 transition-colors hover:bg-accent/50"
+      >
         {activeCompany?.companyLogo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -140,7 +130,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           </div>
         )}
         {!collapsed && (
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col text-left">
             <span className="truncate text-sm font-semibold">
               {activeCompany?.companyName ?? "Overwatch"}
             </span>
@@ -152,44 +142,10 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             </span>
           </div>
         )}
-        <Link
-          href="/notifications"
-          className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </Link>
-        <button
-          onClick={onToggle}
-          className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-            collapsed && "ml-0"
-          )}
-        >
-          <ChevronLeft
-            className={cn(
-              "h-4 w-4 transition-transform duration-300",
-              collapsed && "rotate-180"
-            )}
-          />
-        </button>
-      </div>
-
-      {/* Search hint */}
-      {!collapsed && (
-        <button
-          onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }))}
-          className="mx-3 mt-2 flex items-center gap-2 rounded-lg border border-border/40 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/60 transition-colors"
-        >
-          <Search className="h-3 w-3" />
-          <span className="flex-1 text-left">Search...</span>
-          <kbd className="rounded border border-border/60 bg-muted px-1 py-0.5 text-[9px] font-mono">Ctrl K</kbd>
-        </button>
-      )}
+        {!collapsed && (
+          <ChevronLeft className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300" />
+        )}
+      </button>
 
       {/* Navigation */}
       <ScrollArea className="flex-1 py-2">
@@ -316,10 +272,24 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               </>
             )}
 
+            <DropdownMenuItem className="gap-2" onClick={() => router.push("/profile")}>
+              <User className="h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+
             <DropdownMenuItem className="gap-2" onClick={() => router.push("/settings")}>
               <Settings className="h-4 w-4" />
-              Settings
+              My Settings
             </DropdownMenuItem>
+
+            {["owner", "admin"].includes(userRole) && (
+              <DropdownMenuItem className="gap-2" onClick={() => router.push("/admin/settings")}>
+                <Building2 className="h-4 w-4" />
+                Company Settings
+              </DropdownMenuItem>
+            )}
+
+            <DropdownMenuSeparator />
 
             <DropdownMenuItem className="gap-2" onClick={() => router.push("/join")}>
               <Plus className="h-4 w-4" />

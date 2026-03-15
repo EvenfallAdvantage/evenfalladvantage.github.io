@@ -18,7 +18,9 @@ import {
   CheckCircle2,
   Loader2,
   Trash2,
+  ClipboardList,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -174,13 +176,28 @@ export default function IncidentsPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
               <AlertTriangle className="h-6 w-6 text-amber-500" />
-              Incident Reports
+              Reports
             </h1>
-            <p className="text-sm text-muted-foreground">Log, track, and resolve security incidents</p>
+            <p className="text-sm text-muted-foreground">Incident reports, field reports, and documentation</p>
           </div>
           <Button onClick={() => setShowCreate(!showCreate)} className="gap-2">
             <Plus className="h-4 w-4" /> Report Incident
           </Button>
+        </div>
+
+        {/* Report type tabs */}
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Incidents
+          </div>
+          <Link
+            href="/forms"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
+            Field Reports
+          </Link>
         </div>
 
         {/* Create Form */}

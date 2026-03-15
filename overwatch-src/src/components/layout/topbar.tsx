@@ -1,15 +1,28 @@
 "use client";
 
+import Link from "next/link";
 import { Bell, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
+import { useEffect, useState } from "react";
+import { getUnreadNotificationCount } from "@/lib/supabase/db";
 
 interface TopbarProps {
   sidebarCollapsed: boolean;
 }
 
 export function Topbar({ sidebarCollapsed }: TopbarProps) {
-  const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+
+  const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    getUnreadNotificationCount(activeCompanyId).then(setUnreadCount).catch(() => {});
+    const interval = setInterval(() => {
+      getUnreadNotificationCount(activeCompanyId).then(setUnreadCount).catch(() => {});
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [activeCompanyId]);
 
   return (
     <header
@@ -19,35 +32,31 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
         "max-md:left-0"
       )}
     >
-      {/* Search */}
-      <div className="relative flex-1 max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input
-          type="text"
-          placeholder="Search anything..."
-          className="h-9 w-full rounded-lg border border-border/50 bg-muted/50 pl-9 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/50 focus:bg-background focus:ring-1 focus:ring-primary/20"
-        />
-        <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-block">
-          ⌘K
+      {/* Search — triggers command palette */}
+      <button
+        onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }))}
+        className="relative flex-1 max-w-md flex items-center gap-2 h-9 rounded-lg border border-border/50 bg-muted/50 px-3 text-sm text-muted-foreground/60 transition-colors hover:bg-muted/80 hover:border-primary/30 cursor-pointer"
+      >
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span className="flex-1 text-left">Search anything...</span>
+        <kbd className="hidden sm:inline-block rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground font-mono">
+          Ctrl K
         </kbd>
-      </div>
+      </button>
 
       <div className="flex items-center gap-2">
-        {/* Notifications */}
-        <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+        {/* Notifications — real link with live count */}
+        <Link
+          href="/notifications"
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
           <Bell className="h-[18px] w-[18px]" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
-        </button>
-
-        {/* Company badge - mobile only */}
-        <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1.5 md:hidden">
-          <div className="h-5 w-5 rounded bg-primary/20 text-[10px] font-bold text-primary flex items-center justify-center">
-            {activeCompany?.companyName?.[0] ?? "O"}
-          </div>
-          <span className="text-xs font-medium truncate max-w-[100px]">
-            {activeCompany?.companyName ?? "Overwatch"}
-          </span>
-        </div>
+          {unreadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </Link>
       </div>
     </header>
   );

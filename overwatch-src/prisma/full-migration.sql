@@ -71,19 +71,31 @@ ALTER TABLE training_modules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE module_slides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE student_module_progress ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "training_modules_select" ON training_modules;
 CREATE POLICY "training_modules_select" ON training_modules FOR SELECT TO authenticated USING (is_company_member(company_id));
+DROP POLICY IF EXISTS "training_modules_insert" ON training_modules;
 CREATE POLICY "training_modules_insert" ON training_modules FOR INSERT TO authenticated WITH CHECK (is_company_admin(company_id));
+DROP POLICY IF EXISTS "training_modules_update" ON training_modules;
 CREATE POLICY "training_modules_update" ON training_modules FOR UPDATE TO authenticated USING (is_company_admin(company_id));
+DROP POLICY IF EXISTS "training_modules_delete" ON training_modules;
 CREATE POLICY "training_modules_delete" ON training_modules FOR DELETE TO authenticated USING (is_company_admin(company_id));
 
+DROP POLICY IF EXISTS "module_slides_select" ON module_slides;
 CREATE POLICY "module_slides_select" ON module_slides FOR SELECT TO authenticated USING (module_id IN (SELECT id FROM training_modules WHERE is_company_member(company_id)));
+DROP POLICY IF EXISTS "module_slides_insert" ON module_slides;
 CREATE POLICY "module_slides_insert" ON module_slides FOR INSERT TO authenticated WITH CHECK (module_id IN (SELECT id FROM training_modules WHERE is_company_admin(company_id)));
+DROP POLICY IF EXISTS "module_slides_update" ON module_slides;
 CREATE POLICY "module_slides_update" ON module_slides FOR UPDATE TO authenticated USING (module_id IN (SELECT id FROM training_modules WHERE is_company_admin(company_id)));
+DROP POLICY IF EXISTS "module_slides_delete" ON module_slides;
 CREATE POLICY "module_slides_delete" ON module_slides FOR DELETE TO authenticated USING (module_id IN (SELECT id FROM training_modules WHERE is_company_admin(company_id)));
 
+DROP POLICY IF EXISTS "smp_select" ON student_module_progress;
 CREATE POLICY "smp_select" ON student_module_progress FOR SELECT TO authenticated USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+DROP POLICY IF EXISTS "smp_insert" ON student_module_progress;
 CREATE POLICY "smp_insert" ON student_module_progress FOR INSERT TO authenticated WITH CHECK (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+DROP POLICY IF EXISTS "smp_update" ON student_module_progress;
 CREATE POLICY "smp_update" ON student_module_progress FOR UPDATE TO authenticated USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
+DROP POLICY IF EXISTS "smp_delete" ON student_module_progress;
 CREATE POLICY "smp_delete" ON student_module_progress FOR DELETE TO authenticated USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));
 
 
@@ -115,9 +127,13 @@ CREATE INDEX IF NOT EXISTS idx_aq_difficulty ON assessment_questions(company_id,
 
 ALTER TABLE assessment_questions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "aq_select" ON assessment_questions;
 CREATE POLICY "aq_select" ON assessment_questions FOR SELECT TO authenticated USING (is_company_member(company_id));
+DROP POLICY IF EXISTS "aq_insert" ON assessment_questions;
 CREATE POLICY "aq_insert" ON assessment_questions FOR INSERT TO authenticated WITH CHECK (is_company_admin(company_id));
+DROP POLICY IF EXISTS "aq_update" ON assessment_questions;
 CREATE POLICY "aq_update" ON assessment_questions FOR UPDATE TO authenticated USING (is_company_admin(company_id));
+DROP POLICY IF EXISTS "aq_delete" ON assessment_questions;
 CREATE POLICY "aq_delete" ON assessment_questions FOR DELETE TO authenticated USING (is_company_admin(company_id));
 
 ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS state_code TEXT;
