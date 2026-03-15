@@ -184,7 +184,18 @@ export async function createCompany(data: {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Slug already exists — find and return the existing company
+    if (error.code === "23505") {
+      const { data: existing } = await supabase
+        .from("companies")
+        .select("*")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (existing) return existing;
+    }
+    throw error;
+  }
   return company;
 }
 
@@ -223,7 +234,19 @@ export async function createMembership(data: {
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    // Duplicate (user_id, company_id) — find and return existing
+    if (error.code === "23505") {
+      const { data: existing } = await supabase
+        .from("company_memberships")
+        .select("*")
+        .eq("user_id", data.userId)
+        .eq("company_id", data.companyId)
+        .maybeSingle();
+      if (existing) return existing;
+    }
+    throw error;
+  }
   return membership;
 }
 
