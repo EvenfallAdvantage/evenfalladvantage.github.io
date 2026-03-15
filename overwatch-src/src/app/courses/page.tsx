@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getUserPayments, getActiveCourses } from "@/lib/supabase/db";
+import { getUserPayments, getCatalogCourses } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Course = any;
@@ -23,41 +23,15 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   expert: "bg-red-500/15 text-red-600",
 };
 
-const EA_COURSES: Course[] = [
-  {
-    id: "ea-unarmed-guard-core",
-    title: "Unarmed Guard Core",
-    description:
-      "Comprehensive training covering 8 core modules: radio communications, STOP THE BLEED\u00ae hemorrhage control, threat assessment, NIMS/ICS incident command, diverse populations & accessibility, crowd management, and use of force. This online portion covers the classroom theory \u2014 pair with a licensed instructor for hands-on practical training and final certification.",
-    price: 50,
-    duration_hours: 16,
-    difficulty_level: "beginner",
-    is_required: true,
-    is_active: true,
-  },
-  {
-    id: "ea-systema-scout",
-    title: "Systema Scout",
-    description:
-      "Foundational experiential training rooted in Systema principles. Builds internal regulation, perceptual awareness, and self-accountability through the core cycle: Breathe \u2192 Relax \u2192 Structure \u2192 Move. Covers walking & breathing mechanics, observation & recall, tension management, and empathetic self-debrief. This online portion covers the theory \u2014 pair with a licensed instructor for in-person practice and final certification.",
-    price: 75,
-    duration_hours: 5,
-    difficulty_level: "beginner",
-    is_required: false,
-    is_active: true,
-  },
-  {
-    id: "ea-surveillance-detection",
-    title: "Advanced Surveillance & Stalking Recognition",
-    description:
-      "Master surveillance detection routes (SDRs), physical & technical surveillance recognition, cyber stalking indicators, OPSEC principles, and legal reporting procedures. Covers foot & vehicle surveillance patterns, GPS tracker & hidden camera detection, pre-attack indicators, and counter-surveillance techniques. This online portion covers the classroom theory \u2014 pair with a licensed instructor for field exercises and final certification.",
-    price: 89,
-    duration_hours: 14,
-    difficulty_level: "intermediate",
-    is_required: false,
-    is_active: true,
-  },
-];
+// Normalize Supabase course rows to a common shape
+// Course System schema uses course_name; Overwatch schema uses title
+function normalizeCourse(row: Record<string, unknown>): Course {
+  return {
+    ...row,
+    title: (row.title as string) || (row.course_name as string) || "Untitled",
+    difficulty_level: ((row.difficulty_level as string) || "beginner").toLowerCase(),
+  };
+}
 
 function CoursesContent() {
   const user = useAuthStore((s) => s.user);
@@ -72,18 +46,11 @@ function CoursesContent() {
 
   const loadData = useCallback(async () => {
     try {
-      let dbCourses: Course[] = [];
-      let payments: unknown[] = [];
-      if (activeCompanyId && activeCompanyId !== "pending") {
-        [dbCourses, payments] = await Promise.all([
-          getActiveCourses(activeCompanyId).catch(() => []),
-          getUserPayments().catch(() => []),
-        ]);
-      }
-      // Merge: show Evenfall Advantage catalog + any company-specific courses from Supabase
-      const dbIds = new Set(dbCourses.map((c: Course) => c.id));
-      const merged = [...EA_COURSES.filter((c) => !dbIds.has(c.id)), ...dbCourses];
-      setCourses(merged);
+      const [rawCourses, payments] = await Promise.all([
+        getCatalogCourses().catch(() => []),
+        getUserPayments().catch(() => []),
+      ]);
+      setCourses(rawCourses.map(normalizeCourse));
       const purchased = new Set<string>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const p of payments as any[]) {
@@ -92,7 +59,7 @@ function CoursesContent() {
       setPurchasedCourses(purchased);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [activeCompanyId]);
+  }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
 

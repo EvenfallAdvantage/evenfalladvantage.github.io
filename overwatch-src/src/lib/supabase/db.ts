@@ -2290,6 +2290,17 @@ export async function updatePaymentStatus(paymentId: string, status: string) {
 
 // ─── Courses ────────────────────────────────────────
 
+export async function getCatalogCourses() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("courses")
+    .select("*")
+    .eq("is_active", true)
+    .order("display_order", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function getCourses(companyId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
