@@ -1,0 +1,112 @@
+/* Message Styling for Dashboard */
+
+.profile-message,
+.password-message {
+    margin-top: 1.5rem;
+    padding: 1rem 1.5rem;
+    border-radius: 5px;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.success {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border-left: 4px solid #28a745;
+}
+
+.error-message,
+.password-error {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border-left: 4px solid #e74c3c;
+    margin-top: 1.5rem;
+    padding: 1rem 1.5rem;
+    border-radius: 5px;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.success i,
+.error-message i,
+.password-error i {
+    font-size: 1.8rem;
+}
+
+/* Login error message styling */
+.login-error {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border-left: 4px solid #e74c3c;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.5rem;
+    border-radius: 5px;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Change password button styles */
+#change-password {
+    margin-top: 1rem;
+    padding: 0.8rem 1.5rem;
+    background-color: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#change-password:hover {
+    background-color: #2980b9;
+}
+
+/* Highlight form with errors */
+.form-group.error input,
+.form-group.error select {
+    border-color: #e74c3c;
+    background-color: rgba(231, 76, 60, 0.05);
+}
+
+/* Animation for messages */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Document upload highlight */
+.upload-dropzone.highlight {
+    border-color: var(--accent);
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+/* Additional styles for message feedback in document upload */
+.upload-message {
+    margin-top: 1rem;
+    padding: 1rem 1.5rem;
+    border-radius: 5px;
+    font-size: 1.4rem;
+}
+
+.upload-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border-left: 4px solid #28a745;
+}
+
+.upload-error {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border-left: 4px solid #e74c3c;
+}

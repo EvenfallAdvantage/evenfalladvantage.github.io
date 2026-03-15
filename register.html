@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Evenfall Advantage - Client Registration">
+    <title>Register | Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/form-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div id="header-placeholder"></div>
+
+    <main>
+        <section class="register-section">
+            <div class="container">
+                <div class="register-container">
+                    <div class="register-form-container">
+                        <h2>Client Registration</h2>
+                        <p class="form-description">Complete this form to create your client portal account. All client accounts require verification by an Evenfall Advantage team member.</p>
+                        
+                        <form class="register-form" id="register-form">
+                            <div class="form-section">
+                                <h3>Personal Information</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="first-name">First Name *</label>
+                                        <input type="text" id="first-name" name="first-name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="last-name">Last Name *</label>
+                                        <input type="text" id="last-name" name="last-name" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="email">Email Address *</label>
+                                        <input type="email" id="email" name="email" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="phone">Phone Number *</label>
+                                        <input type="tel" id="phone" name="phone" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label for="job-title">Job Title *</label>
+                                        <input type="text" id="job-title" name="job-title" required>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-section">
+                                <h3>Company Information</h3>
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label for="company">Company/Organization Name *</label>
+                                        <input type="text" id="company" name="company" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="industry">Industry *</label>
+                                        <select id="industry" name="industry" required>
+                                            <option value="">Select Industry</option>
+                                            <option value="event">Event Management</option>
+                                            <option value="venue">Venue Operations</option>
+                                            <option value="education">Education</option>
+                                            <option value="healthcare">Healthcare</option>
+                                            <option value="retail">Retail</option>
+                                            <option value="corporate">Corporate</option>
+                                            <option value="government">Government</option>
+                                            <option value="nonprofit">Non-profit</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="company-size">Company Size *</label>
+                                        <select id="company-size" name="company-size" required>
+                                            <option value="">Select Size</option>
+                                            <option value="1-10">1-10 employees</option>
+                                            <option value="11-50">11-50 employees</option>
+                                            <option value="51-200">51-200 employees</option>
+                                            <option value="201-500">201-500 employees</option>
+                                            <option value="501+">501+ employees</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-section">
+                                <h3>Account Setup</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="password">Password *</label>
+                                        <input type="password" id="password" name="password" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="confirm-password">Confirm Password *</label>
+                                        <input type="password" id="confirm-password" name="confirm-password" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" name="terms" required>
+                                            I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" name="newsletter">
+                                            Subscribe to security updates and industry insights newsletter
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="register-button">Create Account</button>
+                        </form>
+                    </div>
+
+                </div>
+
+                <div class="login-redirect">
+                    <p>Already have an account? <a href="login.html">Log in here</a></p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="footer-placeholder"></div>
+
+    <script src="js/script.js"></script>
+    <script src="js/include-html.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/register.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Password match validation
+            const password = document.getElementById('password');
+            const confirmPassword = document.getElementById('confirm-password');
+            const registerForm = document.getElementById('register-form');
+            
+            registerForm.addEventListener('submit', function(event) {
+                if (password.value !== confirmPassword.value) {
+                    event.preventDefault();
+                    alert('Passwords do not match!');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+/* Custom styles for case study card images */
+
+.astroworld-image {
+    background-image: url('../images/astroworld.jpg') !important;
+}
+
+.beyond-wonderland-image {
+    background-image: url('../images/wonderland.jpg') !important;
+}
+
+.faster-horses-image {
+    background-image: url('../images/faster_horses.jpg') !important;
+}
+
+.indiana-state-fair-image {
+    background-image: url('../images/indiana_state_fair.jpg') !important;
+}
+
+.love-parade-image {
+    background-image: url('../images/love_parade.jpg') !important;
+}
+
+.nova-music-image {
+    background-image: url('../images/nova.jpg') !important;
+}
+
+.route-91-image {
+    background-image: url('../images/route_91_harvest.jpg') !important;
+}
+
+.sxsw-image {
+    background-image: url('../images/sxsw.jpg') !important;
+}
+
+.woodstock-image {
+    background-image: url('../images/woodstock_99.jpg') !important;
+}
+
+/* When we have actual event-specific images, we can update the URLs above */

@@ -1,0 +1,20 @@
+{
+  "name": "evenfall-meet-addon",
+  "version": "1.0.0",
+  "description": "Evenfall Advantage Google Meet Add-on with ElevenLabs AI",
+  "main": "src/backend/index.js",
+  "scripts": {
+    "deploy": "gcloud functions deploy evenfallMeetAddon --runtime nodejs18 --trigger-http --allow-unauthenticated",
+    "dev": "functions-framework --target=evenfallMeetAddon --port=8080",
+    "test": "node test/test.js"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.3.0",
+    "axios": "^1.6.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@google-cloud/functions-framework": "^3.3.0"
+  }
+}

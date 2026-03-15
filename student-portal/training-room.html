@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Training Room - Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/training-room.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script crossorigin src="https://unpkg.com/@daily-co/daily-js"></script>
+</head>
+<body>
+    <div class="training-room-container">
+        <!-- Header -->
+        <header class="training-header">
+            <div class="header-left">
+                <h1>🎓 Live Training Session</h1>
+                <span class="session-status">● Live</span>
+            </div>
+            <div class="header-right">
+                <button id="toggleClunt" class="toggle-btn">
+                    <i class="fas fa-robot"></i> Ask Agent Westwood
+                </button>
+                <button id="exitRoom" class="exit-btn">
+                    <i class="fas fa-sign-out-alt"></i> Exit
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Daily.co Video Container -->
+            <div class="meet-container" id="meetContainer">
+                <!-- Meeting will be embedded here -->
+                <div id="dailyVideo"></div>
+                
+                <!-- Join Form (shown before joining) -->
+                <div class="meet-info" id="meetInfo">
+                    <div class="meet-card">
+                        <i class="fas fa-video fa-4x"></i>
+                        <h2>Join Your Training Session</h2>
+                        <p>Enter your room URL to join the live training with your instructor.</p>
+                        
+                        <div class="input-group">
+                            <label for="roomUrl">Select Training Room</label>
+                            <select id="roomUrl" style="width: 100%; padding: 0.875rem; background: #253646; color: #fff; border: 2px solid #34495e; border-radius: 0.5rem; font-size: 1rem;">
+                                <option value="https://evenfalladvantage.daily.co/evenfalladvantage-training-1">Training Room 1</option>
+                                <option value="https://evenfalladvantage.daily.co/evenfalladvantage-training-2">Training Room 2</option>
+                                <option value="https://evenfalladvantage.daily.co/evenfalladvantage-training-3">Training Room 3</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="displayName">Your Name</label>
+                            <input type="text" id="displayName" placeholder="Your Name" />
+                        </div>
+                        
+                        <div class="meet-instructions">
+                            <p><strong>How it works:</strong></p>
+                            <ol>
+                                <li>Select the same training room as your instructor</li>
+                                <li>Enter your name</li>
+                                <li>Click "Join Training" to start the video call</li>
+                                <li>Use Agent Westwood AI sidebar to ask questions during training</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Westwood AI Sidebar -->
+            <aside class="clunt-sidebar" id="cluntSidebar">
+                <div class="sidebar-header">
+                    <div class="ai-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="ai-info">
+                        <h3>Agent Westwood</h3>
+                        <p class="ai-status">
+                            <span class="status-dot"></span>
+                            AI Assistant Ready
+                        </p>
+                    </div>
+                    <button id="closeSidebar" class="close-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <div class="sidebar-content">
+                    <!-- Welcome Message -->
+                    <div class="welcome-card">
+                        <p><strong>👋 Agent Westwood here.</strong></p>
+                        <p>I'm your AI training assistant with 40+ years of security experience. Ask me anything about:</p>
+                        <ul>
+                            <li>Training module content</li>
+                            <li>Security procedures</li>
+                            <li>Emergency response</li>
+                            <li>Legal requirements</li>
+                            <li>Real-world scenarios</li>
+                        </ul>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Messages will be added here dynamically -->
+                    </div>
+                </div>
+
+                <div class="sidebar-footer">
+                    <!-- Quick Questions -->
+                    <div class="quick-questions" id="quickQuestions">
+                        <button class="quick-btn" data-question="What is STOP THE BLEED?">
+                            STOP THE BLEED
+                        </button>
+                        <button class="quick-btn" data-question="Explain the ICS structure">
+                            ICS Structure
+                        </button>
+                        <button class="quick-btn" data-question="What are use of force laws?">
+                            Use of Force
+                        </button>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="input-area">
+                        <textarea 
+                            id="questionInput" 
+                            placeholder="Ask Agent Westwood a question..."
+                            rows="2"
+                        ></textarea>
+                        <button id="sendQuestion" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="js/training-room.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+/* Table Search Styles */
+
+.search-bar {
+    position: relative;
+    margin-right: 1rem;
+}
+
+.search-bar input {
+    padding: 0.8rem 1rem 0.8rem 2.5rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1.4rem;
+    width: 250px;
+    transition: all 0.3s ease;
+}
+
+.search-bar input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+    outline: none;
+}
+
+.search-bar::before {
+    content: '\f002';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    left: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    font-size: 1.4rem;
+}
+
+.contracts-header,
+.documents-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.contracts-header h3,
+.documents-header h3 {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.contracts-filter {
+    display: flex;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .contracts-header,
+    .documents-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .search-bar input {
+        width: 100%;
+    }
+    
+    .contracts-filter {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .contracts-filter select {
+        width: 100%;
+    }
+}

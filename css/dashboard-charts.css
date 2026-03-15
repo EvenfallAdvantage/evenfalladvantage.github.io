@@ -1,0 +1,40 @@
+/* Dashboard Charts Styles */
+
+.dashboard-charts {
+    margin: 3rem 0;
+}
+
+.chart-row {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.chart-container {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 2rem;
+    flex: 1;
+    min-height: 300px;
+    position: relative;
+}
+
+.chart-container.full-width {
+    width: 100%;
+    min-height: 350px;
+}
+
+@media (max-width: 768px) {
+    .chart-row {
+        flex-direction: column;
+    }
+    
+    .chart-container {
+        min-height: 250px;
+    }
+    
+    .chart-container.full-width {
+        min-height: 300px;
+    }
+}

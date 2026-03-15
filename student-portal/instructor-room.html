@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instructor Training Room - Evenfall Advantage</title>
+    <link rel="stylesheet" href="css/training-room.css">
+    <link rel="stylesheet" href="css/instructor-room.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script crossorigin src="https://unpkg.com/@daily-co/daily-js"></script>
+</head>
+<body>
+    <div class="training-room-container">
+        <!-- Header -->
+        <header class="training-header">
+            <div class="header-left">
+                <h1>🎓 Instructor Training Room</h1>
+                <span class="session-status" id="sessionStatus">● Ready</span>
+            </div>
+            <div class="header-right">
+                <button id="toggleSettings" class="toggle-btn">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+                <button id="copyLink" class="toggle-btn" style="display: none;">
+                    <i class="fas fa-link"></i> Copy Student Link
+                </button>
+                <button id="exitRoom" class="exit-btn">
+                    <i class="fas fa-sign-out-alt"></i> Exit
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Daily.co Video Container -->
+            <div class="meet-container" id="meetContainer">
+                <!-- Meeting will be embedded here -->
+                <div id="dailyVideo"></div>
+                
+                <!-- Setup Form (shown before starting) -->
+                <div class="meet-info" id="meetInfo">
+                    <div class="meet-card">
+                        <i class="fas fa-chalkboard-teacher fa-4x"></i>
+                        <h2>Start Your Training Session</h2>
+                        <p>Create a training room and invite your students to join.</p>
+                        
+                        <div class="input-group">
+                            <label for="roomUrl">Select Training Room</label>
+                            <select id="roomUrl" style="width: 100%; padding: 0.875rem; background: #253646; color: #fff; border: 2px solid #34495e; border-radius: 0.5rem; font-size: 1rem;">
+                                <option value="https://evenfalladvantage.daily.co/evenfalladvantage-training-1">Training Room 1</option>
+                                <option value="https://evenfalladvantage.daily.co/evenfalladvantage-training-2">Training Room 2</option>
+                                <option value="https://evenfalladvantage.daily.co/evenfalladvantage-training-3">Training Room 3</option>
+                            </select>
+                            <small style="color: #999; font-size: 0.85rem; margin-top: 0.5rem; display: block;">
+                                Choose an available training room
+                            </small>
+                        </div>
+                        
+                        <div class="input-group">
+                            <label for="instructorName">Your Name</label>
+                            <input type="text" id="instructorName" placeholder="Instructor Name" />
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3>Session Settings</h3>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="requirePassword" />
+                                <span>Require password to join</span>
+                            </label>
+                            <input type="text" id="roomPassword" placeholder="Password" style="display: none;" />
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="recordSession" />
+                                <span>Enable recording</span>
+                            </label>
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="muteOnEntry" checked />
+                                <span>Mute students on entry</span>
+                            </label>
+                        </div>
+                        
+                        <button id="startSession" class="join-btn">
+                            <i class="fas fa-play"></i> Start Training Session
+                        </button>
+                        
+                        <div class="meet-instructions">
+                            <p><strong>How it works:</strong></p>
+                            <ol>
+                                <li>Select a training room from the dropdown</li>
+                                <li>Enter your name</li>
+                                <li>Click "Start Training Session"</li>
+                                <li>Tell students which room number to join</li>
+                                <li>Everyone will have access to Agent Westwood AI assistant</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instructor Sidebar -->
+            <aside class="clunt-sidebar instructor-sidebar" id="instructorSidebar">
+                <div class="sidebar-header">
+                    <div class="ai-avatar">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="ai-info">
+                        <h3>Session Control</h3>
+                        <p class="ai-status">
+                            <span class="status-dot"></span>
+                            <span id="participantCount">0 Participants</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="sidebar-content">
+                    <!-- Session Info Card -->
+                    <div class="session-info-card" id="sessionInfoCard" style="display: none;">
+                        <h4>Session Details</h4>
+                        <div class="info-row">
+                            <strong>Room:</strong>
+                            <span id="displayRoomName">-</span>
+                        </div>
+                        <div class="info-row">
+                            <strong>Student Link:</strong>
+                            <div class="link-container">
+                                <input type="text" id="studentLink" readonly />
+                                <button class="copy-btn" onclick="copyStudentLink()">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <strong>Duration:</strong>
+                            <span id="sessionDuration">00:00:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Participants List -->
+                    <div class="participants-card">
+                        <h4>Participants</h4>
+                        <div id="participantsList" class="participants-list">
+                            <p class="empty-state">No participants yet</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions-card">
+                        <h4>Quick Actions</h4>
+                        <button class="action-btn" onclick="muteAll()">
+                            <i class="fas fa-microphone-slash"></i> Mute All
+                        </button>
+                        <button class="action-btn" onclick="toggleLobby()">
+                            <i class="fas fa-door-open"></i> Toggle Lobby
+                        </button>
+                        <button class="action-btn" onclick="shareScreen()">
+                            <i class="fas fa-desktop"></i> Share Screen
+                        </button>
+                    </div>
+
+                    <!-- Agent Westwood AI Chat -->
+                    <div class="clunt-status-card">
+                        <h4>Agent Westwood AI Assistant</h4>
+                        <p>Shared chat - all participants can see and ask questions.</p>
+                        
+                        <!-- Chat Messages -->
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Messages will be added here dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-footer">
+                    <!-- Input Area -->
+                    <div class="input-area">
+                        <textarea 
+                            id="questionInput" 
+                            placeholder="Ask Agent Westwood a question..."
+                            rows="2"
+                        ></textarea>
+                        <button id="sendQuestion" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="js/instructor-room.js"></script>
+</body>
+</html>
