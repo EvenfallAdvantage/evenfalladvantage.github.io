@@ -5,6 +5,7 @@ import { Radio, Plus, Send, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { ChatSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import { getChatChannels, createChatChannel, getChatMessages, sendChatMessage, deleteChatChannel } from "@/lib/supabase/db";
 
@@ -116,7 +117,7 @@ export default function ChatPage() {
         )}
 
         {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          <ChatSkeleton />
         ) : channels.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
             <Radio className="mb-3 h-10 w-10 text-muted-foreground/40" />

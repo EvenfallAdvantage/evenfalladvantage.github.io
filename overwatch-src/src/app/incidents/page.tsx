@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { ListSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getIncidents,
@@ -290,7 +291,7 @@ export default function IncidentsPage() {
 
         {/* Incident List */}
         {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          <ListSkeleton rows={4} />
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <AlertTriangle className="h-12 w-12 mx-auto mb-3 opacity-30" />

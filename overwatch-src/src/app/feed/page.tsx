@@ -29,6 +29,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getActiveTimesheet,
@@ -160,6 +161,14 @@ export default function FeedPage() {
     .reduce((sum: number, t: Timesheet) => {
       return sum + (new Date(t.clock_out).getTime() - new Date(t.clock_in).getTime());
     }, 0);
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <DashboardSkeleton />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
