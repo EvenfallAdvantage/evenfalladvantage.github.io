@@ -32,7 +32,7 @@ export default function AssetsPage() {
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
-    if (!newName.trim() || !activeCompanyId) return;
+    if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
       await createAsset({ companyId: activeCompanyId, name: newName.trim(), assetType: newType || undefined, serialNumber: newSerial || undefined });

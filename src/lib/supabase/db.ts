@@ -26,9 +26,11 @@ async function ensureInternalUser() {
 
   // Auto-create user record from auth metadata
   const meta = authUser.user_metadata || {};
+  const newId = crypto.randomUUID();
   const { data: created, error } = await supabase
     .from("users")
     .insert({
+      id: newId,
       supabase_id: authUser.id,
       email: authUser.email ?? null,
       phone: authUser.phone ?? meta.phone ?? null,
@@ -94,9 +96,11 @@ export async function fetchUserProfile() {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) return null;
     const meta = authUser.user_metadata || {};
+    const newId = crypto.randomUUID();
     const { data: created } = await supabase
       .from("users")
       .insert({
+        id: newId,
         supabase_id: authId,
         email: authUser.email ?? null,
         phone: authUser.phone ?? meta.phone ?? null,
@@ -158,6 +162,7 @@ export async function createCompany(data: {
   const { data: company, error } = await supabase
     .from("companies")
     .insert({
+      id: crypto.randomUUID(),
       name: data.name,
       slug,
       join_code: generateJoinCode(),
@@ -195,6 +200,7 @@ export async function createMembership(data: {
   const { data: membership, error } = await supabase
     .from("company_memberships")
     .insert({
+      id: crypto.randomUUID(),
       user_id: data.userId,
       company_id: data.companyId,
       role: data.role ?? "staff",
@@ -269,6 +275,7 @@ export async function clockIn() {
   const { data, error } = await supabase
     .from("timesheets")
     .insert({
+      id: crypto.randomUUID(),
       user_id: userId,
       clock_in: new Date().toISOString(),
       clock_method: "app",
@@ -364,6 +371,7 @@ export async function createPost(data: {
   const { data: post, error } = await supabase
     .from("posts")
     .insert({
+      id: crypto.randomUUID(),
       company_id: data.companyId,
       user_id: userId,
       content: data.content,
@@ -437,6 +445,7 @@ export async function createForm(params: {
   const { data, error } = await supabase
     .from("forms")
     .insert({
+      id: crypto.randomUUID(),
       company_id: params.companyId,
       name: params.name,
       description: params.description ?? null,
@@ -470,6 +479,7 @@ export async function submitForm(params: {
   const { data, error } = await supabase
     .from("form_submissions")
     .insert({
+      id: crypto.randomUUID(),
       form_id: params.formId,
       user_id: userId,
       data: params.data,
@@ -504,6 +514,7 @@ export async function createQuiz(params: {
   const { data, error } = await supabase
     .from("quizzes")
     .insert({
+      id: crypto.randomUUID(),
       company_id: params.companyId,
       title: params.title,
       description: params.description ?? null,
@@ -547,6 +558,7 @@ export async function createKBFolder(params: {
   const { data, error } = await supabase
     .from("kb_folders")
     .insert({
+      id: crypto.randomUUID(),
       company_id: params.companyId,
       name: params.name,
       parent_id: params.parentId ?? null,
@@ -570,6 +582,7 @@ export async function createKBDocument(params: {
   const { data, error } = await supabase
     .from("kb_documents")
     .insert({
+      id: crypto.randomUUID(),
       folder_id: params.folderId,
       title: params.title,
       content: params.content ?? null,
@@ -605,6 +618,7 @@ export async function createChatChannel(params: {
   const { data, error } = await supabase
     .from("chat_channels")
     .insert({
+      id: crypto.randomUUID(),
       company_id: params.companyId,
       name: params.name,
       description: params.description ?? null,
@@ -636,6 +650,7 @@ export async function sendChatMessage(params: {
   const { data, error } = await supabase
     .from("chat_messages")
     .insert({
+      id: crypto.randomUUID(),
       channel_id: params.channelId,
       user_id: userId,
       content: params.content,
@@ -670,6 +685,7 @@ export async function createEvent(params: {
   const { data, error } = await supabase
     .from("events")
     .insert({
+      id: crypto.randomUUID(),
       company_id: params.companyId,
       name: params.name,
       description: params.description ?? null,
@@ -707,6 +723,7 @@ export async function createAsset(params: {
   const { data, error } = await supabase
     .from("assets")
     .insert({
+      id: crypto.randomUUID(),
       company_id: params.companyId,
       name: params.name,
       asset_type: params.assetType ?? null,

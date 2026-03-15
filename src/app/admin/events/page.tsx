@@ -31,7 +31,7 @@ export default function AdminEventsPage() {
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
-    if (!name.trim() || !startDate || !endDate || !activeCompanyId) return;
+    if (!name.trim() || !startDate || !endDate || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
       await createEvent({ companyId: activeCompanyId, name: name.trim(), location: location || undefined, startDate, endDate });

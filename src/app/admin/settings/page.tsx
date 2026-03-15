@@ -36,7 +36,7 @@ export default function AdminSettingsPage() {
   useEffect(() => { load(); }, [load]);
 
   async function handleSave() {
-    if (!activeCompanyId) return;
+    if (!activeCompanyId || activeCompanyId === "pending") return;
     setSaving(true);
     try {
       await updateCompany(activeCompanyId, { name, brandColor, timezone });

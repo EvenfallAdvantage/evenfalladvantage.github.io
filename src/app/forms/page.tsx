@@ -29,7 +29,7 @@ export default function FormsPage() {
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
-    if (!newName.trim() || !activeCompanyId) return;
+    if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
       await createForm({ companyId: activeCompanyId, name: newName.trim() });

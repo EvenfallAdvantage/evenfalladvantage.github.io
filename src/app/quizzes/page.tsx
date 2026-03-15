@@ -29,7 +29,7 @@ export default function QuizzesPage() {
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
-    if (!newTitle.trim() || !activeCompanyId) return;
+    if (!newTitle.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
       await createQuiz({ companyId: activeCompanyId, title: newTitle.trim() });

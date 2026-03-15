@@ -41,7 +41,7 @@ export default function KnowledgeBasePage() {
   }
 
   async function handleCreateFolder() {
-    if (!newName.trim() || !activeCompanyId) return;
+    if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
       await createKBFolder({ companyId: activeCompanyId, name: newName.trim() });

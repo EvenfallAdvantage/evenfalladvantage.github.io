@@ -58,7 +58,7 @@ export default function ChatPage() {
   }
 
   async function handleCreate() {
-    if (!newName.trim() || !activeCompanyId) return;
+    if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
       await createChatChannel({ companyId: activeCompanyId, name: newName.trim() });
