@@ -10,6 +10,8 @@ import {
   Shield,
   ClipboardList,
   GraduationCap,
+  CalendarOff,
+  Users,
   MapPin,
   BarChart3,
   Settings,
@@ -23,8 +25,10 @@ type MoreItem = { title: string; href: string; icon: LucideIcon };
 
 const FIELD_OPS: MoreItem[] = [
   { title: "Briefing", href: "/updates", icon: Radar },
+  { title: "Roster", href: "/directory", icon: Users },
   { title: "Armory", href: "/assets", icon: Shield },
   { title: "Field Reports", href: "/forms", icon: ClipboardList },
+  { title: "Leave", href: "/time-off", icon: CalendarOff },
   { title: "Training", href: "/training", icon: GraduationCap },
 ];
 

@@ -838,3 +838,158 @@ export async function joinCompanyByCode(params: {
 
   return { user, company, membership };
 }
+
+// ─── Schedule (Shifts + Events for user) ─────────────
+
+export async function getUserShifts(companyId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("shifts")
+    .select("*, events(id, name, location, company_id)")
+    .eq("assigned_user_id", userId)
+    .order("start_time", { ascending: true });
+  return (data ?? []).filter(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (s: any) => s.events?.company_id === companyId
+  );
+}
+
+export async function getUpcomingEvents(companyId: string) {
+  const supabase = createClient();
+  const now = new Date().toISOString();
+  const { data } = await supabase
+    .from("events")
+    .select("*")
+    .eq("company_id", companyId)
+    .gte("end_date", now)
+    .order("start_date", { ascending: true })
+    .limit(20);
+  return data ?? [];
+}
+
+// ─── Time Off (create request) ───────────────────────
+
+export async function getTimeOffPolicies(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("time_off_policies")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("name", { ascending: true });
+  return data ?? [];
+}
+
+export async function createTimeOffRequest(params: {
+  policyId: string;
+  startDate: string;
+  endDate: string;
+  note?: string;
+}) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("time_off_requests")
+    .insert({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      policy_id: params.policyId,
+      start_date: params.startDate,
+      end_date: params.endDate,
+      note: params.note ?? null,
+      status: "pending",
+      ...ts(),
+    })
+    .select("*, time_off_policies(name, type)")
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Form submissions by user (for Profile tab) ─────
+
+export async function getUserFormSubmissions() {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("form_submissions")
+    .select("*, forms(name)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  return data ?? [];
+}
+
+// ─── Quiz attempts ──────────────────────────────────
+
+export async function submitQuizAttempt(params: {
+  quizId: string;
+  answers: Record<string, unknown>;
+  score: number;
+  passed: boolean;
+}) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("quiz_attempts")
+    .insert({
+      id: crypto.randomUUID(),
+      quiz_id: params.quizId,
+      user_id: userId,
+      answers: params.answers,
+      score: params.score,
+      passed: params.passed,
+      started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(),
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getUserQuizAttempts(quizId?: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  let query = supabase
+    .from("quiz_attempts")
+    .select("*, quizzes(title)")
+    .eq("user_id", userId)
+    .order("started_at", { ascending: false });
+  if (quizId) query = query.eq("quiz_id", quizId);
+  const { data } = await query.limit(20);
+  return data ?? [];
+}
+
+// ─── Company stats (for Intel page) ─────────────────
+
+export async function getCompanyStats(companyId: string) {
+  const supabase = createClient();
+  const [members, events, assets, forms, sheets] = await Promise.all([
+    supabase.from("company_memberships").select("id", { count: "exact", head: true }).eq("company_id", companyId).eq("status", "active"),
+    supabase.from("events").select("id", { count: "exact", head: true }).eq("company_id", companyId),
+    supabase.from("assets").select("id", { count: "exact", head: true }).eq("company_id", companyId),
+    supabase.from("forms").select("id", { count: "exact", head: true }).eq("company_id", companyId).eq("is_active", true),
+    supabase.from("timesheets").select("id, clock_in, clock_out").not("clock_out", "is", null).limit(500),
+  ]);
+
+  let totalHours = 0;
+  for (const t of sheets.data ?? []) {
+    if (t.clock_in && t.clock_out) {
+      totalHours += (new Date(t.clock_out).getTime() - new Date(t.clock_in).getTime()) / 3600000;
+    }
+  }
+
+  return {
+    memberCount: members.count ?? 0,
+    eventCount: events.count ?? 0,
+    assetCount: assets.count ?? 0,
+    formCount: forms.count ?? 0,
+    totalHoursLogged: Math.round(totalHours * 10) / 10,
+  };
+}
