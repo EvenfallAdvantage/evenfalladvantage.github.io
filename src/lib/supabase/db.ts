@@ -1,5 +1,11 @@
 import { createClient } from "./client";
 
+// Helper: generate timestamps for INSERTs (DB defaults don't fire via PostgREST)
+function ts() {
+  const now = new Date().toISOString();
+  return { created_at: now, updated_at: now };
+}
+
 // ─── Helper: get current Supabase auth user ID ─────────
 async function getAuthUserId() {
   const supabase = createClient();
@@ -36,6 +42,7 @@ async function ensureInternalUser() {
       phone: authUser.phone ?? meta.phone ?? null,
       first_name: meta.first_name ?? "",
       last_name: meta.last_name ?? "",
+      ...ts(),
     })
     .select("id")
     .single();
@@ -62,14 +69,16 @@ export async function upsertUser(data: {
     .from("users")
     .upsert(
       {
+        id: crypto.randomUUID(),
         supabase_id: data.supabaseId,
         email: data.email ?? null,
         phone: data.phone ?? null,
         first_name: data.firstName,
         last_name: data.lastName,
         avatar_url: data.avatarUrl ?? null,
+        ...ts(),
       },
-      { onConflict: "supabase_id" }
+      { onConflict: "supabase_id", ignoreDuplicates: false }
     )
     .select()
     .maybeSingle();
@@ -106,6 +115,7 @@ export async function fetchUserProfile() {
         phone: authUser.phone ?? meta.phone ?? null,
         first_name: meta.first_name ?? "",
         last_name: meta.last_name ?? "",
+        ...ts(),
       })
       .select("*")
       .maybeSingle();
@@ -169,6 +179,7 @@ export async function createCompany(data: {
       brand_color: data.brandColor ?? "#1d3451",
       timezone: "America/Los_Angeles",
       settings: {},
+      ...ts(),
     })
     .select()
     .single();
@@ -207,6 +218,7 @@ export async function createMembership(data: {
       status: "active",
       work_preferences: [],
       notification_days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      ...ts(),
     })
     .select()
     .maybeSingle();
@@ -279,6 +291,7 @@ export async function clockIn() {
       user_id: userId,
       clock_in: new Date().toISOString(),
       clock_method: "app",
+      ...ts(),
     })
     .select()
     .maybeSingle();
@@ -377,6 +390,7 @@ export async function createPost(data: {
       content: data.content,
       title: data.title ?? null,
       type: data.type ?? "update",
+      ...ts(),
     })
     .select(
       `
@@ -450,6 +464,7 @@ export async function createForm(params: {
       name: params.name,
       description: params.description ?? null,
       fields: params.fields ?? [],
+      ...ts(),
     })
     .select()
     .maybeSingle();
@@ -483,6 +498,7 @@ export async function submitForm(params: {
       form_id: params.formId,
       user_id: userId,
       data: params.data,
+      ...ts(),
     })
     .select()
     .maybeSingle();
@@ -520,6 +536,7 @@ export async function createQuiz(params: {
       description: params.description ?? null,
       questions: params.questions ?? [],
       passing_score: params.passingScore ?? 70,
+      ...ts(),
     })
     .select()
     .maybeSingle();
@@ -562,6 +579,7 @@ export async function createKBFolder(params: {
       company_id: params.companyId,
       name: params.name,
       parent_id: params.parentId ?? null,
+      ...ts(),
     })
     .select()
     .maybeSingle();
@@ -589,6 +607,7 @@ export async function createKBDocument(params: {
       file_url: params.fileUrl ?? null,
       type: params.type ?? "page",
       created_by_id: userId,
+      ...ts(),
     })
     .select()
     .maybeSingle();
@@ -622,6 +641,7 @@ export async function createChatChannel(params: {
       company_id: params.companyId,
       name: params.name,
       description: params.description ?? null,
+      ...ts(),
     })
     .select()
     .maybeSingle();
@@ -654,6 +674,7 @@ export async function sendChatMessage(params: {
       channel_id: params.channelId,
       user_id: userId,
       content: params.content,
+      ...ts(),
     })
     .select("*, users(id, first_name, last_name, avatar_url)")
     .maybeSingle();
@@ -693,6 +714,7 @@ export async function createEvent(params: {
       start_date: params.startDate,
       end_date: params.endDate,
       status: "draft",
+      ...ts(),
     })
     .select()
     .maybeSingle();
@@ -729,6 +751,7 @@ export async function createAsset(params: {
       asset_type: params.assetType ?? null,
       serial_number: params.serialNumber ?? null,
       qr_code: qrCode,
+      ...ts(),
     })
     .select()
     .maybeSingle();
