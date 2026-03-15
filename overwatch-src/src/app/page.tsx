@@ -171,7 +171,7 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-4xl px-6 text-center">
           <Image src="/images/overwatch_logo.png" alt="Overwatch" width={100} height={100} className="mx-auto mb-6" style={{ width: 100, height: "auto" }} />
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dd8c33]/20 bg-[#dd8c33]/10 px-4 py-1.5 text-xs text-[#dd8c33]">
-            <Lock className="h-3 w-3" /> Military-Grade Security Workforce Platform
+            <Lock className="h-3 w-3" /> Professional Security Workforce Platform
           </div>
           <h1 className="text-5xl sm:text-7xl font-bold tracking-tight font-mono leading-[1.1] mb-6">
             <span className="text-white">COMMAND</span>

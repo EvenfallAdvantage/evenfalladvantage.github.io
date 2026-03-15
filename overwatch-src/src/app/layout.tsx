@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | Overwatch",
   },
   description:
-    "Military-grade workforce management for security companies. LMS training, Stripe payments, geo-risk intel, de-escalation sims, site assessments, invoicing, certifications, and 50-state law database. Powered by Evenfall Advantage LLC.",
+    "Professional workforce management for security companies. LMS training, payments, geo-risk intel, de-escalation sims, site assessments, invoicing, certifications, and 50-state law database. Powered by Evenfall Advantage LLC.",
   keywords: [
     "security workforce management", "guard training LMS", "security company software",
     "site security assessment", "geo risk analysis", "security certifications",
