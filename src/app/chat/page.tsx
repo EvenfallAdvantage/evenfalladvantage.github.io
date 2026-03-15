@@ -71,7 +71,7 @@ export default function ChatPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Comms</h1>
+            <h1 className="text-2xl font-bold tracking-tight font-mono uppercase">Comms</h1>
             <p className="text-sm text-muted-foreground">Secure channels and team communications</p>
           </div>
           {isAdmin && (

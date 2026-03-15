@@ -1,18 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat, Raleway } from "next/font/google";
+import { Oswald, Barlow } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
+const oswald = Oswald({
+  variable: "--font-oswald",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
-const raleway = Raleway({
-  variable: "--font-raleway",
+const barlow = Barlow({
+  variable: "--font-barlow",
   subsets: ["latin"],
-  weight: ["300", "400", "600", "700"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -49,7 +49,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${montserrat.variable} ${raleway.variable} antialiased`}
+        className={`${oswald.variable} ${barlow.variable} antialiased`}
       >
         <Providers>{children}</Providers>
       </body>

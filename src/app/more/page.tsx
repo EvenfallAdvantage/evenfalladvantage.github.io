@@ -41,7 +41,7 @@ const COMMAND: MoreItem[] = [
 function NavGroup({ label, items }: { label: string; items: MoreItem[] }) {
   return (
     <div>
-      <h3 className="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+      <h3 className="mb-1 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 font-mono">
         {label}
       </h3>
       <div className="space-y-0.5">

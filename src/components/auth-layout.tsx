@@ -13,13 +13,13 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
           className="rounded-xl"
           style={{ width: 64, height: "auto" }}
         />
-        <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-montserrat)" }}>
+        <h1 className="text-2xl font-bold tracking-tight font-mono uppercase">
           Overwatch
         </h1>
         <p className="text-sm text-muted-foreground">
           Workforce management for security teams
         </p>
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60">
+        <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-mono">
           Powered by Evenfall Advantage LLC
         </p>
       </div>

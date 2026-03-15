@@ -141,7 +141,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             return (
               <div key={section.label || "main"} className="space-y-0.5">
                 {section.label && !collapsed && (
-                  <div className="mb-1 mt-4 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <div className="mb-1 mt-4 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 font-mono">
                     {section.label}
                   </div>
                 )}
@@ -281,7 +281,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       {/* Branding */}
       {!collapsed && (
         <div className="px-4 py-2 text-center space-y-0.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 font-mono">
             Overwatch
           </p>
           <p className="text-[8px] uppercase tracking-widest text-muted-foreground/30">
