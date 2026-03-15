@@ -67,10 +67,9 @@ export default function RootLayout({
         {/* NIST 800-171 §3.13 — Content Security Policy */}
         <meta
           httpEquiv="Content-Security-Policy"
-          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.daily.co https://api.stripe.com; frame-src https://*.daily.co https://*.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self';"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: ; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.daily.co https://api.stripe.com https://cloudflareinsights.com; frame-src https://*.daily.co https://*.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self';"
         />
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
-        <meta httpEquiv="X-Frame-Options" content="SAMEORIGIN" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
       </head>
       <body
