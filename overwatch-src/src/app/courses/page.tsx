@@ -25,10 +25,10 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 
 const EA_COURSES: Course[] = [
   {
-    id: "ea-unarmed-security",
-    title: "Unarmed Security Officer",
+    id: "ea-unarmed-guard-core",
+    title: "Unarmed Guard Core",
     description:
-      "Foundational training for unarmed security professionals. Covers legal authority, report writing, emergency procedures, de-escalation techniques, and post orders. This online module is the classroom portion — pair with a licensed instructor for hands-on training and final certification.",
+      "Comprehensive training covering 8 core modules: radio communications, STOP THE BLEED\u00ae hemorrhage control, threat assessment, NIMS/ICS incident command, diverse populations & accessibility, crowd management, and use of force. This online portion covers the classroom theory \u2014 pair with a licensed instructor for hands-on practical training and final certification.",
     price: 50,
     duration_hours: 16,
     difficulty_level: "beginner",
@@ -36,24 +36,24 @@ const EA_COURSES: Course[] = [
     is_active: true,
   },
   {
-    id: "ea-armed-security",
-    title: "Armed Security Officer",
+    id: "ea-systema-scout",
+    title: "Systema Scout",
     description:
-      "Advanced training for armed security personnel. Covers firearm safety & marksmanship fundamentals, use-of-force continuum, legal liability, tactical positioning, and threat assessment. This online module is the classroom portion — pair with a licensed instructor for live-fire qualification and final certification.",
+      "Foundational experiential training rooted in Systema principles. Builds internal regulation, perceptual awareness, and self-accountability through the core cycle: Breathe \u2192 Relax \u2192 Structure \u2192 Move. Covers walking & breathing mechanics, observation & recall, tension management, and empathetic self-debrief. This online portion covers the theory \u2014 pair with a licensed instructor for in-person practice and final certification.",
     price: 75,
-    duration_hours: 24,
-    difficulty_level: "intermediate",
+    duration_hours: 5,
+    difficulty_level: "beginner",
     is_required: false,
     is_active: true,
   },
   {
-    id: "ea-security-supervisor",
-    title: "Security Supervisor / Site Lead",
+    id: "ea-surveillance-detection",
+    title: "Advanced Surveillance & Stalking Recognition",
     description:
-      "Leadership certification for supervisory roles. Covers operational planning, team management, client relations, incident command, scheduling, compliance auditing, and performance evaluation. This online module is the classroom portion — pair with a licensed instructor for scenario-based assessment and final certification.",
-    price: 99,
-    duration_hours: 20,
-    difficulty_level: "advanced",
+      "Master surveillance detection routes (SDRs), physical & technical surveillance recognition, cyber stalking indicators, OPSEC principles, and legal reporting procedures. Covers foot & vehicle surveillance patterns, GPS tracker & hidden camera detection, pre-attack indicators, and counter-surveillance techniques. This online portion covers the classroom theory \u2014 pair with a licensed instructor for field exercises and final certification.",
+    price: 89,
+    duration_hours: 14,
+    difficulty_level: "intermediate",
     is_required: false,
     is_active: true,
   },
