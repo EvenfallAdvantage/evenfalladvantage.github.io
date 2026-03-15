@@ -414,6 +414,358 @@ export async function updateUserProfile(updates: {
   return data;
 }
 
+// ─── Forms (Field Reports) ─────────────────────────────
+
+export async function getForms(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("forms")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+export async function createForm(params: {
+  companyId: string;
+  name: string;
+  description?: string;
+  fields?: unknown[];
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("forms")
+    .insert({
+      company_id: params.companyId,
+      name: params.name,
+      description: params.description ?? null,
+      fields: params.fields ?? [],
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getFormSubmissions(formId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("form_submissions")
+    .select("*, users(first_name, last_name)")
+    .eq("form_id", formId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+export async function submitForm(params: {
+  formId: string;
+  data: Record<string, unknown>;
+}) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("form_submissions")
+    .insert({
+      form_id: params.formId,
+      user_id: userId,
+      data: params.data,
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Quizzes (Drills) ──────────────────────────────────
+
+export async function getQuizzes(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("quizzes")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+export async function createQuiz(params: {
+  companyId: string;
+  title: string;
+  description?: string;
+  questions?: unknown[];
+  passingScore?: number;
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("quizzes")
+    .insert({
+      company_id: params.companyId,
+      title: params.title,
+      description: params.description ?? null,
+      questions: params.questions ?? [],
+      passing_score: params.passingScore ?? 70,
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Knowledge Base (Field Manual) ─────────────────────
+
+export async function getKBFolders(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("kb_folders")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("sort_order", { ascending: true });
+  return data ?? [];
+}
+
+export async function getKBDocuments(folderId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("kb_documents")
+    .select("*, users(first_name, last_name)")
+    .eq("folder_id", folderId)
+    .order("sort_order", { ascending: true });
+  return data ?? [];
+}
+
+export async function createKBFolder(params: {
+  companyId: string;
+  name: string;
+  parentId?: string;
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("kb_folders")
+    .insert({
+      company_id: params.companyId,
+      name: params.name,
+      parent_id: params.parentId ?? null,
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function createKBDocument(params: {
+  folderId: string;
+  title: string;
+  content?: string;
+  fileUrl?: string;
+  type?: string;
+}) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("kb_documents")
+    .insert({
+      folder_id: params.folderId,
+      title: params.title,
+      content: params.content ?? null,
+      file_url: params.fileUrl ?? null,
+      type: params.type ?? "page",
+      created_by_id: userId,
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Chat Channels (Comms) ─────────────────────────────
+
+export async function getChatChannels(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("chat_channels")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("is_archived", false)
+    .order("created_at", { ascending: true });
+  return data ?? [];
+}
+
+export async function createChatChannel(params: {
+  companyId: string;
+  name: string;
+  description?: string;
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("chat_channels")
+    .insert({
+      company_id: params.companyId,
+      name: params.name,
+      description: params.description ?? null,
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getChatMessages(channelId: string, limit = 50) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("chat_messages")
+    .select("*, users(id, first_name, last_name, avatar_url)")
+    .eq("channel_id", channelId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []).reverse();
+}
+
+export async function sendChatMessage(params: {
+  channelId: string;
+  content: string;
+}) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .insert({
+      channel_id: params.channelId,
+      user_id: userId,
+      content: params.content,
+    })
+    .select("*, users(id, first_name, last_name, avatar_url)")
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Events (Operations) ──────────────────────────────
+
+export async function getEvents(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("events")
+    .select("*, clients(name)")
+    .eq("company_id", companyId)
+    .order("start_date", { ascending: true });
+  return data ?? [];
+}
+
+export async function createEvent(params: {
+  companyId: string;
+  name: string;
+  description?: string;
+  location?: string;
+  startDate: string;
+  endDate: string;
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .insert({
+      company_id: params.companyId,
+      name: params.name,
+      description: params.description ?? null,
+      location: params.location ?? null,
+      start_date: params.startDate,
+      end_date: params.endDate,
+      status: "draft",
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Assets (Armory) ──────────────────────────────────
+
+export async function getAssets(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("assets")
+    .select("*, users(first_name, last_name)")
+    .eq("company_id", companyId)
+    .order("name", { ascending: true });
+  return data ?? [];
+}
+
+export async function createAsset(params: {
+  companyId: string;
+  name: string;
+  assetType?: string;
+  serialNumber?: string;
+}) {
+  const supabase = createClient();
+  const qrCode = `ASSET-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const { data, error } = await supabase
+    .from("assets")
+    .insert({
+      company_id: params.companyId,
+      name: params.name,
+      asset_type: params.assetType ?? null,
+      serial_number: params.serialNumber ?? null,
+      qr_code: qrCode,
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Time Off ─────────────────────────────────────────
+
+export async function getTimeOffRequests() {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("time_off_requests")
+    .select("*, time_off_policies(name, type)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+// ─── Company settings ─────────────────────────────────
+
+export async function getCompanyDetails(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("companies")
+    .select("*")
+    .eq("id", companyId)
+    .maybeSingle();
+  return data;
+}
+
+export async function updateCompany(companyId: string, updates: {
+  name?: string;
+  brandColor?: string;
+  timezone?: string;
+}) {
+  const supabase = createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const payload: any = {};
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.brandColor !== undefined) payload.brand_color = updates.brandColor;
+  if (updates.timezone !== undefined) payload.timezone = updates.timezone;
+  const { data, error } = await supabase
+    .from("companies")
+    .update(payload)
+    .eq("id", companyId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 // ─── Join company flow ──────────────────────────────────
 
 export async function joinCompanyByCode(params: {
