@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchUserProfile, registerUserInDB } from "@/lib/supabase/db";
 import { useAuthStore } from "@/stores/auth-store";
@@ -8,6 +8,7 @@ import type { SessionUser, CompanyContext } from "@/types";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, clearSession } = useAuthStore();
+  const autoRegAttempted = useRef(false);
 
   const loadProfile = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,12 +21,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // company_name, auto-create the company + membership now.
         // This handles the email-confirmation flow where registerUserInDB
         // was skipped because signUp returned before a session existed.
+        // Only attempt once per session to prevent infinite retry loops.
         const meta = authUser.user_metadata || {};
         if (
           profile?.user &&
           (profile.memberships ?? []).length === 0 &&
-          meta.company_name
+          meta.company_name &&
+          !autoRegAttempted.current
         ) {
+          autoRegAttempted.current = true;
           try {
             await registerUserInDB({
               supabaseId: authUser.id,

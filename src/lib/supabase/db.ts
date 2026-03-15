@@ -65,26 +65,51 @@ export async function upsertUser(data: {
   avatarUrl?: string | null;
 }) {
   const supabase = createClient();
-  const { data: user, error } = await supabase
+
+  // Try to find existing user first (don't overwrite primary key)
+  const { data: existing } = await supabase
     .from("users")
-    .upsert(
-      {
-        id: crypto.randomUUID(),
-        supabase_id: data.supabaseId,
-        email: data.email ?? null,
-        phone: data.phone ?? null,
+    .select("*")
+    .eq("supabase_id", data.supabaseId)
+    .maybeSingle();
+
+  if (existing) {
+    // Update mutable fields only — never touch id or supabase_id
+    const { data: updated, error } = await supabase
+      .from("users")
+      .update({
+        email: data.email ?? existing.email,
+        phone: data.phone ?? existing.phone,
         first_name: data.firstName,
         last_name: data.lastName,
-        avatar_url: data.avatarUrl ?? null,
-        ...ts(),
-      },
-      { onConflict: "supabase_id", ignoreDuplicates: false }
-    )
+        avatar_url: data.avatarUrl ?? existing.avatar_url,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existing.id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return updated ?? existing;
+  }
+
+  // No existing user — create new
+  const { data: created, error } = await supabase
+    .from("users")
+    .insert({
+      id: crypto.randomUUID(),
+      supabase_id: data.supabaseId,
+      email: data.email ?? null,
+      phone: data.phone ?? null,
+      first_name: data.firstName,
+      last_name: data.lastName,
+      avatar_url: data.avatarUrl ?? null,
+      ...ts(),
+    })
     .select()
     .maybeSingle();
 
   if (error) throw error;
-  return user;
+  return created;
 }
 
 export async function fetchUserProfile() {
