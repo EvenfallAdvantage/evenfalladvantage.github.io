@@ -27,6 +27,10 @@ export const metadata: Metadata = {
     "site security assessment", "geo risk analysis", "security certifications",
     "Evenfall Advantage", "Overwatch security platform",
   ],
+  icons: {
+    icon: "/overwatch/images/overwatch_logo.png",
+    apple: "/overwatch/images/overwatch_logo.png",
+  },
   manifest: "/overwatch/manifest.json",
   appleWebApp: {
     capable: true,
