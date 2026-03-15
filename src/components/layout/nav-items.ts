@@ -25,7 +25,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: "Watch Log", href: "/timeclock", icon: "Clock" },
       { title: "Deployments", href: "/schedule", icon: "CalendarDays" },
-      { title: "Armory", href: "/assets", icon: "Shield" },
+      { title: "Armory", href: "/assets", icon: "QrCode" },
       { title: "Field Reports", href: "/forms", icon: "ClipboardList" },
     ],
   },
