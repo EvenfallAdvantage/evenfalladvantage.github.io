@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MOBILE_NAV_ITEMS } from "./nav-items";
 import {
-  Radar,
+  LayoutDashboard,
   Radio,
   Clock,
   CalendarDays,
@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 const MOBILE_ICON_MAP: Record<string, LucideIcon> = {
-  Radar,
+  LayoutDashboard,
   Radio,
   Clock,
   CalendarDays,

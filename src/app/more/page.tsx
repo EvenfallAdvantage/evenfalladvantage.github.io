@@ -6,12 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  BookOpen,
-  ClipboardList,
-  Target,
-  CalendarOff,
+  Radar,
   Shield,
-  UserCog,
+  ClipboardList,
+  GraduationCap,
   MapPin,
   BarChart3,
   Settings,
@@ -24,18 +22,16 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 type MoreItem = { title: string; href: string; icon: LucideIcon };
 
 const FIELD_OPS: MoreItem[] = [
-  { title: "Field Manual", href: "/knowledge-base", icon: BookOpen },
-  { title: "Field Reports", href: "/forms", icon: ClipboardList },
-  { title: "Drills", href: "/quizzes", icon: Target },
-  { title: "Leave", href: "/time-off", icon: CalendarOff },
+  { title: "Briefing", href: "/updates", icon: Radar },
   { title: "Armory", href: "/assets", icon: Shield },
+  { title: "Field Reports", href: "/forms", icon: ClipboardList },
+  { title: "Training", href: "/training", icon: GraduationCap },
 ];
 
 const COMMAND: MoreItem[] = [
-  { title: "Personnel", href: "/admin/staff", icon: UserCog },
   { title: "Operations", href: "/admin/events", icon: MapPin },
   { title: "Intel", href: "/admin/reports", icon: BarChart3 },
-  { title: "HQ Config", href: "/admin/settings", icon: Settings },
+  { title: "Settings", href: "/settings", icon: Settings },
 ];
 
 function NavGroup({ label, items }: { label: string; items: MoreItem[] }) {

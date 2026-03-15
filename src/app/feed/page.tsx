@@ -1,15 +1,44 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Radar, Send, Loader2 } from "lucide-react";
+import {
+  Clock,
+  LogIn,
+  LogOut,
+  Radio,
+  CalendarDays,
+  Shield,
+  ClipboardList,
+  GraduationCap,
+  Users,
+  Loader2,
+  ChevronRight,
+  Zap,
+} from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
-import { getPosts, createPost } from "@/lib/supabase/db";
+import {
+  getActiveTimesheet,
+  clockIn,
+  clockOut,
+  getRecentTimesheets,
+  getPosts,
+} from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Timesheet = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Post = any;
+
+function formatDuration(ms: number) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -18,25 +47,40 @@ function timeAgo(iso: string) {
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
+
+const QUICK_ACTIONS = [
+  { title: "Comms", href: "/chat", icon: Radio, color: "text-blue-500", bg: "bg-blue-500/10" },
+  { title: "Deployments", href: "/schedule", icon: CalendarDays, color: "text-amber-500", bg: "bg-amber-500/10" },
+  { title: "Armory", href: "/assets", icon: Shield, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  { title: "Field Reports", href: "/forms", icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10" },
+  { title: "Training", href: "/training", icon: GraduationCap, color: "text-violet-500", bg: "bg-violet-500/10" },
+  { title: "Roster", href: "/directory", icon: Users, color: "text-cyan-500", bg: "bg-cyan-500/10" },
+];
 
 export default function FeedPage() {
   const { user, activeCompanyId } = useAuthStore();
+  const [active, setActive] = useState<Timesheet | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const [recentShifts, setRecentShifts] = useState<Timesheet[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [content, setContent] = useState("");
-  const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(false);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") {
-      setLoading(false);
-      return;
-    }
     try {
-      const data = await getPosts(activeCompanyId);
-      setPosts(data);
+      const [ts, history] = await Promise.all([
+        getActiveTimesheet(),
+        getRecentTimesheets(3),
+      ]);
+      setActive(ts);
+      setRecentShifts(history.filter((t: Timesheet) => t.clock_out));
+
+      if (activeCompanyId && activeCompanyId !== "pending") {
+        const p = await getPosts(activeCompanyId, 5);
+        setPosts(p);
+      }
     } catch {
       // DB may not be ready
     } finally {
@@ -44,124 +88,157 @@ export default function FeedPage() {
     }
   }, [activeCompanyId]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  async function handlePost() {
-    if (!content.trim() || !activeCompanyId || activeCompanyId === "pending") return;
-    setPosting(true);
+  useEffect(() => {
+    if (!active) { setElapsed(0); return; }
+    const tick = () => setElapsed(Date.now() - new Date(active.clock_in).getTime());
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [active]);
+
+  async function handleClock() {
+    setActing(true);
     try {
-      await createPost({ companyId: activeCompanyId, content: content.trim() });
-      setContent("");
+      if (active) { await clockOut(active.id); }
+      else { await clockIn(); }
       await load();
     } catch (err) {
-      console.error("Post failed:", err);
-    } finally {
-      setPosting(false);
-    }
+      console.error("Clock action failed:", err);
+    } finally { setActing(false); }
   }
 
-  const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
+  const isClockedIn = !!active;
+  const greeting = user?.firstName
+    ? `Welcome back, ${user.firstName}`
+    : "Welcome back";
+
+  const todayHours = recentShifts
+    .filter((t: Timesheet) => {
+      const d = new Date(t.clock_in);
+      const now = new Date();
+      return d.toDateString() === now.toDateString();
+    })
+    .reduce((sum: number, t: Timesheet) => {
+      return sum + (new Date(t.clock_out).getTime() - new Date(t.clock_in).getTime());
+    }, 0);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Briefing</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{greeting}</h1>
           <p className="text-sm text-muted-foreground">
-            Situational updates and team activity
+            {new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
           </p>
         </div>
 
-        {/* Compose */}
-        <div className="rounded-xl border border-border/50 bg-card p-4">
-          <div className="flex gap-3">
-            <Avatar className="h-9 w-9 shrink-0">
-              <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 space-y-2">
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Post an update to your team..."
-                className="w-full resize-none rounded-lg border border-border/50 bg-muted/50 px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/50 focus:bg-background focus:ring-1 focus:ring-primary/20 min-h-[60px]"
-                rows={2}
-              />
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={handlePost}
-                  disabled={!content.trim() || posting}
-                >
-                  {posting ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Send className="h-3.5 w-3.5" />
-                  )}
-                  Post
-                </Button>
+        {/* Duty Status — THE hero widget */}
+        <Card className={`overflow-hidden ${isClockedIn ? "border-green-500/30" : "border-border/50"}`}>
+          <CardContent className="p-0">
+            <div className={`flex items-center gap-4 p-5 ${isClockedIn ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent" : "bg-gradient-to-r from-primary/5 to-transparent"}`}>
+              <div className={`relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl ${isClockedIn ? "bg-green-500/15" : "bg-primary/10"}`}>
+                {loading ? (
+                  <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+                ) : (
+                  <Clock className={`h-7 w-7 ${isClockedIn ? "text-green-500" : "text-primary"}`} />
+                )}
+                {isClockedIn && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-4 w-4 rounded-full bg-green-500" />
+                  </span>
+                )}
               </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${isClockedIn ? "bg-green-500/20 text-green-600" : "bg-muted text-muted-foreground"}`}>
+                    <Zap className="h-3 w-3" />
+                    {isClockedIn ? "ON DUTY" : "OFF DUTY"}
+                  </span>
+                </div>
+                {isClockedIn ? (
+                  <p className="mt-1 font-mono text-2xl font-bold tracking-wider text-green-600">
+                    {formatDuration(elapsed)}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {todayHours > 0
+                      ? `${(todayHours / 3600000).toFixed(1)}h logged today`
+                      : "No hours logged today"}
+                  </p>
+                )}
+              </div>
+              {!loading && (
+                <Button
+                  size="lg"
+                  className={`shrink-0 gap-2 rounded-xl px-6 font-semibold ${isClockedIn ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
+                  onClick={handleClock}
+                  disabled={acting}
+                >
+                  {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : isClockedIn ? <LogOut className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                  {isClockedIn ? "Clock Out" : "Clock In"}
+                </Button>
+              )}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions Grid */}
+        <div>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+            Quick Actions
+          </h2>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
+            {QUICK_ACTIONS.map((action) => (
+              <Link key={action.href} href={action.href}>
+                <Card className="group cursor-pointer border-border/40 transition-all hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5">
+                  <CardContent className="flex flex-col items-center gap-2 p-4">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${action.bg} transition-transform group-hover:scale-110`}>
+                      <action.icon className={`h-5 w-5 ${action.color}`} />
+                    </div>
+                    <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
+                      {action.title}
+                    </span>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         </div>
 
-        {/* Feed */}
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Radar className="h-6 w-6 text-primary" />
+        {/* Recent Activity */}
+        {posts.length > 0 && (
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+                Recent Briefing
+              </h2>
+              <Link href="/updates" className="flex items-center gap-1 text-xs text-primary hover:underline">
+                View all <ChevronRight className="h-3 w-3" />
+              </Link>
             </div>
-            <h3 className="text-lg font-semibold">Welcome to Overwatch</h3>
-            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Your briefing feed is clear. Post an update above to get your team started!
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {posts.map((post: Post) => {
-              const author = post.users;
-              const pi =
-                (author?.first_name?.[0] ?? "") +
-                (author?.last_name?.[0] ?? "");
-              return (
-                <div
-                  key={post.id}
-                  className="rounded-xl border border-border/50 bg-card p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="bg-primary/20 text-[10px] font-semibold text-primary">
-                        {pi}
-                      </AvatarFallback>
-                    </Avatar>
+            <div className="space-y-2">
+              {posts.map((post: Post) => {
+                const author = post.users;
+                return (
+                  <div key={post.id} className="flex items-start gap-3 rounded-lg border border-border/40 bg-card p-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                      {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">
-                          {author?.first_name} {author?.last_name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {timeAgo(post.created_at)}
-                        </span>
+                        <span className="text-sm font-medium">{author?.first_name} {author?.last_name}</span>
+                        <span className="text-[10px] text-muted-foreground">{timeAgo(post.created_at)}</span>
                       </div>
-                      {post.title && (
-                        <h3 className="mt-1 font-semibold">{post.title}</h3>
-                      )}
-                      <p className="mt-1 text-sm text-foreground/90 whitespace-pre-wrap">
-                        {post.content}
-                      </p>
+                      <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{post.content}</p>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

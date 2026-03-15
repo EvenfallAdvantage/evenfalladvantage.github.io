@@ -9,15 +9,14 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "",
     items: [
-      { title: "Briefing", href: "/feed", icon: "Radar" },
-      { title: "Dossier", href: "/profile", icon: "UserCircle" },
+      { title: "Dashboard", href: "/feed", icon: "LayoutDashboard" },
+      { title: "Briefing", href: "/updates", icon: "Radar" },
     ],
   },
   {
     label: "Comms",
     items: [
       { title: "Comms", href: "/chat", icon: "Radio" },
-      { title: "Dispatch", href: "/updates", icon: "Siren" },
       { title: "Roster", href: "/directory", icon: "Users" },
     ],
   },
@@ -28,20 +27,17 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: "Deployments", href: "/schedule", icon: "CalendarDays" },
       { title: "Armory", href: "/assets", icon: "Shield" },
       { title: "Field Reports", href: "/forms", icon: "ClipboardList" },
-      { title: "Drills", href: "/quizzes", icon: "Target" },
-      { title: "Field Manual", href: "/knowledge-base", icon: "BookOpen" },
-      { title: "Leave", href: "/time-off", icon: "CalendarOff" },
+    ],
+  },
+  {
+    label: "Readiness",
+    items: [
+      { title: "Training", href: "/training", icon: "GraduationCap" },
     ],
   },
   {
     label: "Command",
     items: [
-      {
-        title: "Personnel",
-        href: "/admin/staff",
-        icon: "UserCog",
-        roles: ["owner", "admin", "manager"],
-      },
       {
         title: "Operations",
         href: "/admin/events",
@@ -55,8 +51,8 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: ["owner", "admin", "manager"],
       },
       {
-        title: "HQ Config",
-        href: "/admin/settings",
+        title: "Settings",
+        href: "/settings",
         icon: "Settings",
         roles: ["owner", "admin"],
       },
@@ -65,9 +61,9 @@ export const NAV_SECTIONS: NavSection[] = [
 ];
 
 export const MOBILE_NAV_ITEMS: NavItem[] = [
-  { title: "Briefing", href: "/feed", icon: "Radar" },
+  { title: "Home", href: "/feed", icon: "LayoutDashboard" },
   { title: "Comms", href: "/chat", icon: "Radio" },
   { title: "Watch", href: "/timeclock", icon: "Clock" },
   { title: "Deploy", href: "/schedule", icon: "CalendarDays" },
-  { title: "Command", href: "/more", icon: "Menu" },
+  { title: "More", href: "/more", icon: "Menu" },
 ];
