@@ -7,7 +7,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Radar,
-  Shield,
+  QrCode,
   ClipboardList,
   GraduationCap,
   CalendarOff,
@@ -26,7 +26,7 @@ type MoreItem = { title: string; href: string; icon: LucideIcon };
 const FIELD_OPS: MoreItem[] = [
   { title: "Briefing", href: "/updates", icon: Radar },
   { title: "Roster", href: "/directory", icon: Users },
-  { title: "Armory", href: "/assets", icon: Shield },
+  { title: "Armory", href: "/assets", icon: QrCode },
   { title: "Field Reports", href: "/forms", icon: ClipboardList },
   { title: "Leave", href: "/time-off", icon: CalendarOff },
   { title: "Training", href: "/training", icon: GraduationCap },

@@ -498,7 +498,7 @@ export async function submitForm(params: {
       form_id: params.formId,
       user_id: userId,
       data: params.data,
-      ...ts(),
+      created_at: new Date().toISOString(),
     })
     .select()
     .maybeSingle();
@@ -579,7 +579,7 @@ export async function createKBFolder(params: {
       company_id: params.companyId,
       name: params.name,
       parent_id: params.parentId ?? null,
-      ...ts(),
+      created_at: new Date().toISOString(),
     })
     .select()
     .maybeSingle();
@@ -641,7 +641,7 @@ export async function createChatChannel(params: {
       company_id: params.companyId,
       name: params.name,
       description: params.description ?? null,
-      ...ts(),
+      created_at: new Date().toISOString(),
     })
     .select()
     .maybeSingle();
@@ -674,7 +674,7 @@ export async function sendChatMessage(params: {
       channel_id: params.channelId,
       user_id: userId,
       content: params.content,
-      ...ts(),
+      created_at: new Date().toISOString(),
     })
     .select("*, users(id, first_name, last_name, avatar_url)")
     .maybeSingle();
@@ -902,7 +902,7 @@ export async function createTimeOffRequest(params: {
       end_date: params.endDate,
       note: params.note ?? null,
       status: "pending",
-      ...ts(),
+      created_at: new Date().toISOString(),
     })
     .select("*, time_off_policies(name, type)")
     .maybeSingle();
@@ -1011,7 +1011,7 @@ export async function createTimeOffPolicy(params: {
       company_id: params.companyId,
       name: params.name,
       type: params.type,
-      ...ts(),
+      created_at: new Date().toISOString(),
     })
     .select()
     .maybeSingle();
