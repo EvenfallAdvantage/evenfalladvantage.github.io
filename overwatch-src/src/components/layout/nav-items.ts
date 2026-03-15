@@ -11,11 +11,6 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: "Dashboard", href: "/feed", icon: "LayoutDashboard" },
       { title: "Briefing", href: "/updates", icon: "Radar" },
-    ],
-  },
-  {
-    label: "Comms",
-    items: [
       { title: "Comms", href: "/chat", icon: "Radio" },
       { title: "Roster", href: "/directory", icon: "Users" },
     ],
@@ -33,14 +28,28 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Readiness",
     items: [
-      { title: "Training", href: "/training", icon: "GraduationCap" },
-      { title: "Drills", href: "/quizzes", icon: "Target" },
-      { title: "Courses", href: "/courses", icon: "BookOpen" },
-      { title: "Certifications", href: "/certifications", icon: "Award" },
-      { title: "Geo-Risk", href: "/geo-risk", icon: "MapPin" },
-      { title: "Site Assessment", href: "/site-assessment", icon: "Shield" },
-      { title: "State Laws", href: "/state-laws", icon: "Scale" },
-      { title: "Invoices", href: "/invoices", icon: "FileText" },
+      {
+        title: "Training",
+        href: "/training",
+        icon: "GraduationCap",
+        children: [
+          { title: "Modules", href: "/training", icon: "GraduationCap" },
+          { title: "Drills", href: "/quizzes", icon: "Target" },
+          { title: "Courses", href: "/courses", icon: "BookOpen" },
+          { title: "Certifications", href: "/certifications", icon: "Award" },
+        ],
+      },
+      {
+        title: "Tools",
+        href: "/geo-risk",
+        icon: "Shield",
+        children: [
+          { title: "Geo-Risk", href: "/geo-risk", icon: "MapPin" },
+          { title: "Site Assessment", href: "/site-assessment", icon: "Shield" },
+          { title: "State Laws", href: "/state-laws", icon: "Scale" },
+          { title: "Invoices", href: "/invoices", icon: "FileText" },
+        ],
+      },
       { title: "Leave", href: "/time-off", icon: "CalendarOff" },
     ],
   },

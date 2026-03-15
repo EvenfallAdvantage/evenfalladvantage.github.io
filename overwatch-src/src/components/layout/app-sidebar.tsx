@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { NAV_SECTIONS } from "./nav-items";
 import { useAuthStore } from "@/stores/auth-store";
+import type { NavItem } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -32,6 +34,7 @@ import {
   BarChart3,
   Settings,
   ChevronLeft,
+  ChevronRight,
   ChevronsUpDown,
   LogOut,
   Building2,
@@ -84,10 +87,22 @@ interface AppSidebarProps {
   onToggle: () => void;
 }
 
+function isChildActive(item: NavItem, pathname: string): boolean {
+  if (!item.children) return false;
+  return item.children.some(
+    (c) => pathname === c.href || pathname.startsWith(c.href + "/")
+  );
+}
+
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, activeCompanyId, setActiveCompany, clearSession } = useAuthStore();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  function toggleGroup(key: string) {
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -103,7 +118,6 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const userRole = activeCompany?.role ?? "staff";
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
-
 
   return (
     <aside
@@ -168,9 +182,86 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                 )}
                 {visibleItems.map((item) => {
                   const Icon = ICON_MAP[item.icon];
+                  const hasChildren = item.children && item.children.length > 0;
+                  const childActive = hasChildren && isChildActive(item, pathname);
+                  const isOpen = expanded[item.title] ?? childActive;
                   const isActive =
-                    pathname === item.href ||
-                    pathname.startsWith(item.href + "/");
+                    !hasChildren &&
+                    (pathname === item.href ||
+                      pathname.startsWith(item.href + "/"));
+
+                  if (hasChildren) {
+                    return (
+                      <div key={item.title}>
+                        <button
+                          onClick={() => toggleGroup(item.title)}
+                          className={cn(
+                            "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+                            childActive
+                              ? "text-primary"
+                              : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                            collapsed && "justify-center px-2"
+                          )}
+                        >
+                          {Icon && (
+                            <Icon
+                              className={cn(
+                                "h-[18px] w-[18px] shrink-0 transition-colors",
+                                childActive
+                                  ? "text-primary"
+                                  : "text-muted-foreground group-hover:text-foreground"
+                              )}
+                            />
+                          )}
+                          {!collapsed && (
+                            <>
+                              <span className="truncate flex-1 text-left">{item.title}</span>
+                              <ChevronRight
+                                className={cn(
+                                  "h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform duration-200",
+                                  isOpen && "rotate-90"
+                                )}
+                              />
+                            </>
+                          )}
+                        </button>
+                        {isOpen && !collapsed && (
+                          <div className="ml-3 space-y-0.5 border-l border-border/40 pl-3 mt-0.5">
+                            {item.children!.map((child) => {
+                              const ChildIcon = ICON_MAP[child.icon];
+                              const childIsActive =
+                                pathname === child.href ||
+                                pathname.startsWith(child.href + "/");
+                              return (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  className={cn(
+                                    "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all duration-200",
+                                    childIsActive
+                                      ? "bg-primary/10 text-primary"
+                                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                  )}
+                                >
+                                  {ChildIcon && (
+                                    <ChildIcon
+                                      className={cn(
+                                        "h-4 w-4 shrink-0 transition-colors",
+                                        childIsActive
+                                          ? "text-primary"
+                                          : "text-muted-foreground/70 group-hover:text-foreground"
+                                      )}
+                                    />
+                                  )}
+                                  <span className="truncate">{child.title}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
 
                   return (
                     <Link

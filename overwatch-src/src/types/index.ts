@@ -5,6 +5,7 @@ export type NavItem = {
   badge?: number;
   roles?: string[];
   section?: string;
+  children?: NavItem[];
 };
 
 export type CompanyContext = {

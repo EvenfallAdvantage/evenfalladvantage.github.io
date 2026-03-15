@@ -176,8 +176,8 @@ export default function IncidentsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <AlertTriangle className="h-6 w-6 text-amber-500" />
-              Reports
+              <AlertTriangle className="h-6 w-6" />
+              REPORTS
             </h1>
             <p className="text-sm text-muted-foreground">Incident reports, field reports, and documentation</p>
           </div>

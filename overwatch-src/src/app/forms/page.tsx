@@ -133,8 +133,8 @@ export default function FormsPage() {
               </button>
             ) : null}
             <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <ClipboardList className="h-6 w-6 text-primary" />
-              {selected ? selected.name : "Reports"}
+              <ClipboardList className="h-6 w-6" />
+              {selected ? selected.name : "REPORTS"}
             </h1>
             <p className="text-sm text-muted-foreground">
               {selected ? "Fill out and submit this report" : "Incident reports, field reports, and documentation"}
