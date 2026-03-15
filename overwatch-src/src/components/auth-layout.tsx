@@ -3,15 +3,14 @@ import Image from "next/image";
 export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="mb-8 flex flex-col items-center gap-3">
+      <div className="mb-8 flex flex-col items-center gap-2">
         <Image
-          src="/images/logo-shield.png"
+          src="/images/overwatch_logo.png"
           alt="Overwatch"
-          width={64}
-          height={64}
+          width={120}
+          height={120}
           priority
-          className="rounded-xl"
-          style={{ width: 64, height: "auto" }}
+          style={{ width: 120, height: "auto" }}
         />
         <h1 className="text-2xl font-bold tracking-tight font-mono uppercase">
           Overwatch

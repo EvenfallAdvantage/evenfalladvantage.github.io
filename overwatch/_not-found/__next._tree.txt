@@ -1,3 +1,3 @@
 :HL["/overwatch/_next/static/chunks/065beaa3034baa10.css","style"]
-:HL["/overwatch/_next/static/chunks/14a8c4a1cd714428.css","style"]
-0:{"buildId":"-853MHrujQ0mQmHxpdLAy","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"/_not-found","paramType":null,"paramKey":"/_not-found","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
+:HL["/overwatch/_next/static/chunks/9694932797b8bbbc.css","style"]
+0:{"buildId":"wWwfZkpvhcKW7cX3ciuJr","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"/_not-found","paramType":null,"paramKey":"/_not-found","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}

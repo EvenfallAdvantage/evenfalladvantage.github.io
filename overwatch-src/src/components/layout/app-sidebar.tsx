@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -401,7 +402,8 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
       {/* Branding */}
       {!collapsed && (
-        <div className="px-4 py-2 text-center space-y-0.5">
+        <div className="px-4 py-2 flex flex-col items-center space-y-1">
+          <Image src="/images/overwatch_logo.png" alt="" width={24} height={24} className="h-6 w-auto opacity-40" />
           <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 font-mono">
             Overwatch
           </p>
