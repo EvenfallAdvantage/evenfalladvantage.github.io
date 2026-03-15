@@ -88,12 +88,18 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     >
       {/* Company Header */}
       <div className="flex h-16 items-center gap-3 border-b border-border/50 px-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/logo-shield.png"
-          alt="Overwatch"
-          className="h-9 w-9 shrink-0 rounded-lg object-contain"
-        />
+        {activeCompany?.companyLogo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={activeCompany.companyLogo}
+            alt={activeCompany.companyName}
+            className="h-9 w-9 shrink-0 rounded-lg object-cover"
+          />
+        ) : (
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-sm font-bold text-primary">
+            {activeCompany?.companyName?.[0] ?? "O"}
+          </div>
+        )}
         {!collapsed && (
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-semibold">
@@ -272,10 +278,13 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         </DropdownMenu>
       </div>
 
-      {/* Powered by */}
+      {/* Branding */}
       {!collapsed && (
-        <div className="px-4 py-2 text-center">
-          <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40">
+        <div className="px-4 py-2 text-center space-y-0.5">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+            Overwatch
+          </p>
+          <p className="text-[8px] uppercase tracking-widest text-muted-foreground/30">
             Powered by Evenfall Advantage LLC
           </p>
         </div>

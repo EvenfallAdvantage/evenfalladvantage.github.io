@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy } from "@/lib/supabase/db";
@@ -22,6 +22,7 @@ export default function AdminSettingsPage() {
   const [joinCode, setJoinCode] = useState("");
   const [timezone, setTimezone] = useState("");
   const [brandColor, setBrandColor] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -43,6 +44,7 @@ export default function AdminSettingsPage() {
         setJoinCode(c.join_code ?? "");
         setTimezone(c.timezone ?? "");
         setBrandColor(c.brand_color ?? "#1d3451");
+        setLogoUrl(c.logo_url ?? "");
       }
       setPolicies(p);
     } catch {}
@@ -54,7 +56,7 @@ export default function AdminSettingsPage() {
     if (!activeCompanyId || activeCompanyId === "pending") return;
     setSaving(true);
     try {
-      await updateCompany(activeCompanyId, { name, brandColor, timezone });
+      await updateCompany(activeCompanyId, { name, brandColor, timezone, logoUrl: logoUrl || undefined });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) { console.error(err); }
@@ -92,6 +94,21 @@ export default function AdminSettingsPage() {
             <div>
               <Label className="text-xs text-muted-foreground">Company Name</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Company Logo URL</Label>
+              <div className="flex items-center gap-2 mt-1">
+                {logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoUrl} alt="Logo" className="h-9 w-9 rounded-lg object-cover border border-border" />
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted border border-border">
+                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+                <Input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="flex-1" placeholder="https://example.com/logo.png" />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">Paste a URL to your company logo. It will appear in the sidebar.</p>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Timezone</Label>

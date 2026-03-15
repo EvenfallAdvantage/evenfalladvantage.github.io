@@ -789,6 +789,7 @@ export async function updateCompany(companyId: string, updates: {
   name?: string;
   brandColor?: string;
   timezone?: string;
+  logoUrl?: string;
 }) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -796,6 +797,7 @@ export async function updateCompany(companyId: string, updates: {
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.brandColor !== undefined) payload.brand_color = updates.brandColor;
   if (updates.timezone !== undefined) payload.timezone = updates.timezone;
+  if (updates.logoUrl !== undefined) payload.logo_url = updates.logoUrl;
   const { data, error } = await supabase
     .from("companies")
     .update(payload)
