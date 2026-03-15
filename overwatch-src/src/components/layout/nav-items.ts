@@ -86,6 +86,12 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: "BarChart3",
         roles: ["owner", "admin", "manager"],
       },
+      {
+        title: "Security",
+        href: "/admin/security",
+        icon: "Shield",
+        roles: ["owner", "admin"],
+      },
     ],
   },
 ];

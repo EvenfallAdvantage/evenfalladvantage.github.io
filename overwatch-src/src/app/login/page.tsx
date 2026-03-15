@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Phone, Mail, ArrowRight, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AuthLayout } from "@/components/auth-layout";
+import { logSecurityEvent, checkLoginAttempts, recordFailedAttempt, clearLoginAttempts } from "@/lib/security/audit";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,6 +28,13 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      const { allowed } = await checkLoginAttempts(phone);
+      if (!allowed) {
+        setError("Too many attempts. Account locked for 15 minutes.");
+        logSecurityEvent({ event_type: "security.lockout", outcome: "blocked", metadata: { method: "phone", identifier: phone } });
+        return;
+      }
+
       const supabase = createClient();
       const { error: otpError } = await supabase.auth.signInWithOtp({
         phone: phone.startsWith("+") ? phone : `+1${phone.replace(/\D/g, "")}`,
@@ -36,6 +44,8 @@ export default function LoginPage() {
 
       router.push(`/verify?phone=${encodeURIComponent(phone)}`);
     } catch (err) {
+      recordFailedAttempt(phone);
+      logSecurityEvent({ event_type: "auth.login.failed", outcome: "failure", metadata: { method: "phone" } });
       setError(err instanceof Error ? err.message : "Failed to send code");
     } finally {
       setIsLoading(false);
@@ -48,17 +58,28 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      const { allowed } = await checkLoginAttempts(email);
+      if (!allowed) {
+        setError("Too many attempts. Account locked for 15 minutes.");
+        logSecurityEvent({ event_type: "security.lockout", outcome: "blocked", metadata: { method: "email", identifier: email } });
+        return;
+      }
+
       const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) throw signInError;
 
+      clearLoginAttempts(email);
+      logSecurityEvent({ event_type: "auth.login.success", user_id: data.user?.id, outcome: "success", metadata: { method: "email" } });
       router.push("/feed");
       router.refresh();
     } catch (err) {
+      recordFailedAttempt(email);
+      logSecurityEvent({ event_type: "auth.login.failed", outcome: "failure", metadata: { method: "email", identifier: email } });
       setError(err instanceof Error ? err.message : "Invalid credentials");
     } finally {
       setIsLoading(false);

@@ -7,10 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, ArrowRight, CheckCircle2, Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { registerUserInDB } from "@/lib/supabase/db";
 import { AuthLayout } from "@/components/auth-layout";
+import { checkPasswordStrength, type PasswordCheck } from "@/lib/security";
+
+const STRENGTH_COLORS: Record<PasswordCheck["strength"], string> = {
+  weak: "bg-red-500",
+  fair: "bg-orange-500",
+  good: "bg-yellow-500",
+  strong: "bg-green-500",
+  military: "bg-emerald-400",
+};
+
+const STRENGTH_WIDTH: Record<PasswordCheck["strength"], string> = {
+  weak: "w-1/5",
+  fair: "w-2/5",
+  good: "w-3/5",
+  strong: "w-4/5",
+  military: "w-full",
+};
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -23,6 +40,12 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [pwCheck, setPwCheck] = useState<PasswordCheck | null>(null);
+
+  function handlePasswordChange(val: string) {
+    setPassword(val);
+    setPwCheck(val.length > 0 ? checkPasswordStrength(val) : null);
+  }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -168,20 +191,41 @@ export default function RegisterPage() {
                   <Input
                     id="regPassword"
                     type="password"
-                    placeholder="Min 8 characters"
+                    placeholder="Min 12 characters (military-grade)"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => handlePasswordChange(e.target.value)}
                     autoComplete="new-password"
                     required
-                    minLength={8}
+                    minLength={12}
                   />
+                  {pwCheck && (
+                    <div className="space-y-1.5">
+                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-300 ${STRENGTH_COLORS[pwCheck.strength]} ${STRENGTH_WIDTH[pwCheck.strength]}`} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                          {pwCheck.strength === "military" && <Shield className="inline h-3 w-3 mr-0.5 text-emerald-400" />}
+                          {pwCheck.strength}
+                        </span>
+                        {pwCheck.strength === "military" && (
+                          <span className="text-[10px] text-emerald-400 font-mono">NIST 800-63B ✓</span>
+                        )}
+                      </div>
+                      {pwCheck.errors.length > 0 && (
+                        <ul className="text-[11px] text-destructive space-y-0.5">
+                          {pwCheck.errors.map((err) => <li key={err}>• {err}</li>)}
+                        </ul>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <Button
                   type="button"
                   className="w-full gap-2"
                   onClick={() => setStep("company")}
-                  disabled={!firstName || !lastName || !email || !password}
+                  disabled={!firstName || !lastName || !email || !password || (pwCheck ? !pwCheck.valid : true)}
                 >
                   Continue
                   <ArrowRight className="h-4 w-4" />
