@@ -352,6 +352,8 @@ CREATE TABLE IF NOT EXISTS posts (
   type        TEXT DEFAULT 'update',
   title       TEXT,
   content     TEXT NOT NULL,
+  image_url   TEXT,
+  link_url    TEXT,
   is_pinned   BOOLEAN DEFAULT false,
   publish_at  TIMESTAMPTZ,
   created_at  TIMESTAMPTZ DEFAULT now(),

@@ -381,7 +381,7 @@ export async function getPosts(companyId: string, limit = 20) {
     .from("posts")
     .select(
       `
-      id, type, title, content, is_pinned, created_at,
+      id, type, title, content, image_url, link_url, is_pinned, created_at,
       users (id, first_name, last_name, avatar_url)
     `
     )
@@ -398,6 +398,8 @@ export async function createPost(data: {
   content: string;
   title?: string;
   type?: string;
+  imageUrl?: string;
+  linkUrl?: string;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
@@ -413,11 +415,13 @@ export async function createPost(data: {
       content: data.content,
       title: data.title ?? null,
       type: data.type ?? "update",
+      image_url: data.imageUrl ?? null,
+      link_url: data.linkUrl ?? null,
       ...ts(),
     })
     .select(
       `
-      id, type, title, content, is_pinned, created_at,
+      id, type, title, content, image_url, link_url, is_pinned, created_at,
       users (id, first_name, last_name, avatar_url)
     `
     )
@@ -425,6 +429,18 @@ export async function createPost(data: {
 
   if (error) throw error;
   return post;
+}
+
+export async function togglePinPost(postId: string, pinned: boolean) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("posts")
+    .update({ is_pinned: pinned, updated_at: new Date().toISOString() })
+    .eq("id", postId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 // ─── Profile update ─────────────────────────────────────
