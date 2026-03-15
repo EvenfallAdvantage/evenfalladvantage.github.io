@@ -91,6 +91,11 @@
     color: #ccc;
 }
 
+.no-courses-message p {
+    text-align: center;
+    margin: 0;
+}
+
 /* Course Card */
 .course-card {
     background: white;
@@ -144,8 +149,8 @@
 }
 
 .course-thumbnail i {
-    font-size: 4rem;
-    color: rgba(255,255,255,0.3);
+    font-size: 6rem;
+    color: rgba(255,255,255,0.4);
 }
 
 .course-content {
@@ -214,7 +219,7 @@
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--secondary-color), #ff8c42);
+    background: linear-gradient(90deg, var(--secondary-color), #e0a84d);
     transition: width 0.3s ease;
 }
 
@@ -260,7 +265,7 @@
 }
 
 .btn-primary:hover {
-    background: #ff6b1a;
+    background: #c48a33;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(255, 107, 26, 0.3);
 }

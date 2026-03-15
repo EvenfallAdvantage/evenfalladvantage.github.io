@@ -1,0 +1,112 @@
+ADVANCED SURVEILLANCE & STALKING RECOGNITION COURSE
+MODULE 6: OPSEC & PERSONAL SECURITY
+Audio Narration Scripts
+
+==============================================
+m6s1 - Welcome to Module 6
+==============================================
+Welcome to Module 6: OPSEC and Personal Security. In this module, you'll learn operational security principles originally developed by the military and apply them to your personal life. You'll discover how to analyze your routines, break predictable patterns, and create effective security protocols.
+
+==============================================
+m6s2 - Learning Objectives
+==============================================
+By the end of this module, you'll understand OPSEC fundamentals and the five-step process, be able to analyze and break predictable patterns, implement social media security best practices, develop personal security protocols, and practice information compartmentalization.
+
+==============================================
+m6s3 - What is OPSEC?
+==============================================
+Operations Security, or OPSEC, is a process that identifies critical information and analyzes friendly actions to prevent adversaries from detecting information that could be used against you. Originally developed by the military, OPSEC principles apply equally to personal security. It's about protecting information before it becomes a vulnerability.
+
+==============================================
+m6s4 - Step 1: Identify Critical Information
+==============================================
+The first step in OPSEC is identifying what information, if obtained by adversaries, could harm you. This includes your home address and layout, daily routines and schedules, travel plans, family member information, workplace details, security measures in place, and vulnerabilities and weaknesses. Make a list of what needs protection.
+
+==============================================
+m6s5 - Step 2: Analyze Threats
+==============================================
+The second step is analyzing who might want this information and why. Potential threats include former partners, criminals, competitors, stalkers, and identity thieves. Understanding your threat landscape helps prioritize protection efforts.
+
+==============================================
+m6s6 - Step 3: Analyze Vulnerabilities
+==============================================
+The third step is analyzing how adversaries could obtain critical information. Common vulnerabilities include social media posts, predictable routines, public records, unsecured communications, loose talk, and visible patterns. Each vulnerability is a potential avenue of attack.
+
+==============================================
+m6s7 - Step 4: Assess Risk
+==============================================
+The fourth step is assessing the likelihood and impact of information compromise. High risk means immediate safety threat. Medium risk indicates potential for harm. Low risk suggests minimal impact. This assessment guides your countermeasure priorities.
+
+==============================================
+m6s8 - Step 5: Apply Countermeasures
+==============================================
+The fifth step is implementing measures to protect critical information. Countermeasures include limiting information sharing, varying routines, enhancing physical security, improving digital hygiene, and training family members. Countermeasures must be practical and sustainable.
+
+==============================================
+m6s9 - Common Predictable Patterns
+==============================================
+Most people follow predictable patterns that make surveillance easy. These include taking the same route to work daily, regular gym or shopping times, predictable lunch locations, consistent social activities, and fixed travel schedules. Predictability is vulnerability.
+
+==============================================
+m6s10 - Pattern Breaking Techniques
+==============================================
+Break patterns by varying departure times by fifteen to thirty minutes, using different routes and maintaining three to four alternatives, changing parking locations, alternating service providers, randomizing routine activities, and avoiding announcing plans publicly. Unpredictability is protection.
+
+==============================================
+m6s11 - What NOT to Post on Social Media
+==============================================
+Never post real-time location updates, vacation plans before or during travel, photos showing your home address, vehicle license plates, children's school information, daily routines, security system details, or expensive purchases. Each post is intelligence for potential adversaries.
+
+==============================================
+m6s12 - Safe Social Media Posting
+==============================================
+Post safely by sharing about events after they occur, disabling location tagging, reviewing photos for identifying details, limiting audience to trusted connections, using privacy settings effectively, and thinking before you share. Delay is your friend.
+
+==============================================
+m6s13 - Travel Security: Before Travel
+==============================================
+Before traveling, don't announce travel plans publicly, arrange mail and package hold, set timers for lights, inform trusted neighbors only, and secure valuables. Preparation prevents opportunistic crimes.
+
+==============================================
+m6s14 - Travel Security: During Travel
+==============================================
+During travel, vary hotel arrival and departure times, use different entrances and exits, don't advertise your room number, be aware of surveillance in hotels, and secure devices and documents. Maintain security awareness even when away from home.
+
+==============================================
+m6s15 - Home Security Measures
+==============================================
+Enhance home security with quality locks on all entry points, a security system with monitoring, exterior lighting, trimmed bushes near windows, reinforced door frames, window security film, and safe room considerations. Layers of security provide defense in depth.
+
+==============================================
+m6s16 - Vehicle Security
+==============================================
+Protect your vehicle by parking in well-lit areas, checking for tracking devices regularly, varying parking locations, keeping valuables out of sight, maintaining situational awareness, and having emergency supplies. Your vehicle is both transportation and potential vulnerability.
+
+==============================================
+m6s17 - Information Compartmentalization
+==============================================
+The principle of need to know means limiting information sharing based on necessity. Compartmentalization strategies include using different email addresses for different purposes, separating work and personal communications, limiting who knows your full schedule, not sharing all details with everyone, using code words for sensitive information, and maintaining operational security in conversations.
+
+==============================================
+m6s18 - Daily Security Checklist
+==============================================
+Implement a daily security routine. In the morning, check for signs of tampering. Vary your routine with different routes and timing. Maintain awareness at yellow alert baseline. In the evening, secure your home perimeter. At night, verify locks and set alarms. Consistency in security creates safety.
+
+==============================================
+m6s19 - Communication Security
+==============================================
+Secure your communications by using encrypted messaging for sensitive topics, verifying identity before sharing information, being cautious on phone calls in public, using secure networks only, and avoiding discussing security measures publicly. Assume all communications can be intercepted.
+
+==============================================
+m6s20 - Family Security Training
+==============================================
+Everyone in your household should understand what information not to share, how to recognize suspicious behavior, emergency procedures, code words for danger, and safe people to contact. Security is a team effort.
+
+==============================================
+m6s21 - Key Takeaway
+==============================================
+OPSEC is not about paranoia, it's about being smart with information. By identifying what's critical, understanding threats, and implementing practical countermeasures, you significantly reduce your vulnerability to surveillance and stalking. The key is consistency: security protocols only work if practiced regularly. Make OPSEC a habit, not an afterthought. Your safety depends on the information you protect.
+
+==============================================
+END OF MODULE 6 SCRIPTS
+==============================================

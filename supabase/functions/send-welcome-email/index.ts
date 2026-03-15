@@ -44,10 +44,10 @@ Deno.serve(async (req) => {
     .header { background: #253646; color: white; padding: 30px 20px; text-align: center; }
     .header h1 { margin: 0; font-size: 28px; }
     .content { padding: 30px 20px; background: #f9f9f9; }
-    .credentials { background: white; padding: 20px; border-left: 4px solid #e74c3c; margin: 20px 0; border-radius: 5px; }
+    .credentials { background: white; padding: 20px; border-left: 4px solid #d59b3c; margin: 20px 0; border-radius: 5px; }
     .credentials strong { color: #253646; }
-    .button { display: inline-block; padding: 15px 30px; background: #e74c3c; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
-    .button:hover { background: #c0392b; }
+    .button { display: inline-block; padding: 15px 30px; background: #d59b3c; color: white !important; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+    .button:hover { background: #c48a33; }
     .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
     .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px; }
   </style>

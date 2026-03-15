@@ -3,6 +3,7 @@ let currentSection = 'home';
 let currentModule = null;
 let currentScenario = null;
 let canvasItems = [];
+let itemIdCounter = 0;
 // Assessment State
 let currentAssessment = null;
 let currentQuestionIndex = 0;
@@ -16,6 +17,7 @@ let assessmentAttempts = {}; // Track attempts per assessment
 let allCourses = [];
 let myEnrollments = [];
 let currentSelectedCourse = null;
+let currentCourseId = null; // Track current course ID globally for module reloading
 
 // Load courses instead of direct module access
 async function loadCourses() {
@@ -60,7 +62,7 @@ async function loadCourses() {
 }
 
 // Render enrolled courses
-function renderMyCourses() {
+async function renderMyCourses() {
     const container = document.getElementById('myCoursesContainer');
 
     if (myEnrollments.length === 0) {
@@ -74,9 +76,51 @@ function renderMyCourses() {
         return;
     }
 
+    // Fetch module completion data for all courses
+    const currentUser = await Auth.getCurrentUser();
+    const courseModuleData = await Promise.all(myEnrollments.map(async (enrollment) => {
+        const course = enrollment.courses;
+        try {
+            // Get course modules
+            const { data: courseModules } = await supabase
+                .from('course_modules')
+                .select('module_id')
+                .eq('course_id', course.id);
+            
+            if (!courseModules || courseModules.length === 0) {
+                return { courseId: course.id, completed: 0, total: 0 };
+            }
+            
+            const moduleIds = courseModules.map(cm => cm.module_id);
+            const totalModules = moduleIds.length;
+            
+            // Get completed modules
+            const { data: completedModules } = await supabase
+                .from('student_module_progress')
+                .select('module_id')
+                .eq('student_id', currentUser.id)
+                .in('module_id', moduleIds)
+                .not('completed_at', 'is', null);
+            
+            const completedCount = completedModules?.length || 0;
+            
+            return { courseId: course.id, completed: completedCount, total: totalModules };
+        } catch (error) {
+            console.error('Error fetching module progress for course:', course.id, error);
+            return { courseId: course.id, completed: 0, total: 0 };
+        }
+    }));
+    
+    // Create module progress map
+    const moduleProgressMap = {};
+    courseModuleData.forEach(p => {
+        moduleProgressMap[p.courseId] = p;
+    });
+
     container.innerHTML = myEnrollments.map(enrollment => {
         const course = enrollment.courses;
-        const progress = enrollment.completion_percentage || 0;
+        const moduleProgress = moduleProgressMap[course.id] || { completed: 0, total: 0 };
+        const progressPercent = moduleProgress.total > 0 ? Math.min(100, Math.round((moduleProgress.completed / moduleProgress.total) * 100)) : 0;
         
         return `
             <div class="course-card-inline enrolled" onclick="selectCourse('${course.id}')">
@@ -93,11 +137,11 @@ function renderMyCourses() {
                     <p class="course-card-description">${course.short_description || course.description || ''}</p>
                     <div class="course-progress-inline">
                         <div class="progress-label-inline">
-                            <span>Progress</span>
-                            <span>${Math.round(progress)}%</span>
+                            <span>Modules: ${moduleProgress.completed}/${moduleProgress.total}</span>
+                            <span>${progressPercent}%</span>
                         </div>
                         <div class="progress-bar-inline">
-                            <div class="progress-fill-inline" style="width: ${progress}%"></div>
+                            <div class="progress-fill-inline" style="width: ${progressPercent}%"></div>
                         </div>
                     </div>
                 </div>
@@ -141,8 +185,8 @@ function renderAvailableCourses() {
                         <div class="course-price-inline ${isFree ? 'free' : ''}">
                             ${isFree ? 'FREE' : `$${course.price.toFixed(2)}`}
                         </div>
-                        <button class="btn btn-secondary" onclick="alert('Please contact support to enroll in this course.')">
-                            <i class="fas fa-envelope"></i> Contact Support
+                        <button class="btn ${isFree ? 'btn-primary' : 'btn-secondary'}" onclick="${isFree ? `enrollInCourse('${course.id}')` : `alert('Please contact support to enroll in this course.')`}">
+                            <i class="fas ${isFree ? 'fa-user-plus' : 'fa-envelope'}"></i> ${isFree ? 'Enroll Now' : 'Contact Support'}
                         </button>
                     </div>
                 </div>
@@ -155,6 +199,10 @@ function renderAvailableCourses() {
 async function selectCourse(courseId) {
     currentSelectedCourse = allCourses.find(c => c.id === courseId);
     if (!currentSelectedCourse) return;
+
+    // Store current course ID globally for module reloading
+    currentCourseId = courseId;
+    window.currentCourseId = courseId; // Make it accessible to slideshow.js
 
     // Hide courses, show modules view
     document.getElementById('myCoursesContainer').style.display = 'none';
@@ -177,18 +225,49 @@ function backToCourses() {
     currentSelectedCourse = null;
 }
 
+// Enroll in a free course
+async function enrollInCourse(courseId) {
+    try {
+        const currentUser = await Auth.getCurrentUser();
+        if (!currentUser) {
+            alert('Please log in to enroll in courses.');
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('student_course_enrollments')
+            .insert({
+                student_id: currentUser.id,
+                course_id: courseId,
+                enrollment_status: 'active',
+                enrollment_type: 'free',
+                amount_paid: 0,
+                currency: 'USD'
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        alert('Successfully enrolled! Refreshing page...');
+        window.location.reload();
+    } catch (error) {
+        console.error('Error enrolling in course:', error);
+        alert('Error enrolling in course. Please try again.');
+    }
+}
+
 // Load training modules for a specific course
 async function loadTrainingModules(courseId) {
     const container = document.getElementById('trainingModulesContainer');
     
     try {
-        // Get course modules
+        const currentUser = await Auth.getCurrentUser();
+        
+        // Get course modules with their training module details
         const { data: courseModules, error: cmError } = await supabase
             .from('course_modules')
-            .select(`
-                *,
-                training_modules (*)
-            `)
+            .select('*')
             .eq('course_id', courseId)
             .order('module_order');
 
@@ -198,6 +277,48 @@ async function loadTrainingModules(courseId) {
             container.innerHTML = '<p style="text-align: center; padding: 2rem;">No modules in this course yet.</p>';
             return;
         }
+
+        // Fetch training module details separately
+        const moduleIds = courseModules.map(cm => cm.module_id);
+        const { data: trainingModules, error: tmError } = await supabase
+            .from('training_modules')
+            .select('*')
+            .in('id', moduleIds);
+
+        if (tmError) throw tmError;
+
+        // Fetch student progress for these modules
+        const { data: progressData, error: progressError } = await supabase
+            .from('student_module_progress')
+            .select('*')
+            .eq('student_id', currentUser.id)
+            .in('module_id', moduleIds);
+
+        if (progressError) console.error('Error fetching progress:', progressError);
+
+        // Create a map of module details and progress
+        const moduleMap = {};
+        trainingModules.forEach(tm => {
+            moduleMap[tm.id] = tm;
+        });
+
+        const progressMap = {};
+        if (progressData) {
+            progressData.forEach(p => {
+                progressMap[p.module_id] = p;
+            });
+            console.log('Progress data loaded:', progressData);
+            console.log('Progress map:', progressMap);
+        }
+
+        // Combine course_modules with training_modules data and progress
+        const enrichedModules = courseModules.map(cm => ({
+            ...cm,
+            training_modules: moduleMap[cm.module_id],
+            progress: progressMap[cm.module_id]
+        }));
+        
+        console.log('Enriched modules with progress:', enrichedModules);
 
         // Module number mapping
         const moduleNumbers = {
@@ -213,29 +334,39 @@ async function loadTrainingModules(courseId) {
         };
         
         // Generate module cards
-        container.innerHTML = courseModules.map((cm, index) => {
+        container.innerHTML = enrichedModules.map((cm, index) => {
             const module = cm.training_modules;
-            const completionStatus = getModuleCompletionStatus(module.module_code);
-            const isCompleted = completionStatus.completed && !completionStatus.expired;
-            const isExpired = completionStatus.expired;
+            const progress = cm.progress;
+            
+            console.log(`Module ${module.module_code}:`, {
+                progress: progress,
+                completed_at: progress?.completed_at,
+                progress_percentage: progress?.progress_percentage
+            });
+            
+            // Check if module is completed from database
+            const isCompleted = progress && progress.completed_at !== null;
+            const progressPercentage = progress ? progress.progress_percentage : 0;
+            
+            console.log(`Module ${module.module_code} - isCompleted: ${isCompleted}, progressPercentage: ${progressPercentage}`);
             
             let statusClass = '';
             let statusBadge = '';
             let buttonText = 'Start Module';
             let buttonIcon = 'fa-play';
             
-            if (isExpired) {
-                statusClass = 'expired';
-                statusBadge = `<div class="completion-badge expired"><i class="fas fa-exclamation-triangle"></i> Expired - Recertify</div>`;
-                buttonText = 'Recertify';
-                buttonIcon = 'fa-redo';
-            } else if (isCompleted) {
+            if (isCompleted) {
                 statusClass = 'completed';
-                const expiresText = completionStatus.expiresIn ? ` (Expires in ${completionStatus.expiresIn})` : '';
-                const badgeText = module.module_code === 'welcome-materials' ? 'Completed' : 'Certified';
-                statusBadge = `<div class="completion-badge"><i class="fas fa-check-circle"></i> ${badgeText}${expiresText}</div>`;
+                statusBadge = `<div class="completion-badge"><i class="fas fa-check-circle"></i> Completed</div>`;
                 buttonText = 'Review Module';
                 buttonIcon = 'fa-check-circle';
+                console.log(`Module ${module.module_code} - Setting as COMPLETED`);
+            } else if (progressPercentage > 0) {
+                statusClass = 'in-progress';
+                statusBadge = `<div class="completion-badge in-progress"><i class="fas fa-spinner"></i> ${progressPercentage}% Complete</div>`;
+                buttonText = 'Continue Module';
+                buttonIcon = 'fa-play';
+                console.log(`Module ${module.module_code} - Setting as IN PROGRESS`);
             }
             
             const moduleNum = moduleNumbers[module.module_code] !== undefined ? moduleNumbers[module.module_code] : cm.module_order;
@@ -260,7 +391,7 @@ async function loadTrainingModules(courseId) {
             `;
         }).join('');
         
-        console.log(`Loaded ${courseModules.length} modules for course`);
+        console.log(`Loaded ${enrichedModules.length} modules for course`);
     } catch (error) {
         console.error('Error loading course modules:', error);
         container.innerHTML = '<p style="text-align: center; padding: 2rem; color: red;">Error loading modules. Please refresh the page.</p>';
@@ -405,7 +536,8 @@ let progressData = {
     completedModules: [],
     completedScenarios: [],
     assessmentResults: [],
-    activities: []
+    activities: [],
+    scenarioResults: {}
 };
 
 // Module expiration periods (in months)
@@ -483,6 +615,7 @@ function loadProgress() {
     if (!progressData.completedScenarios) progressData.completedScenarios = [];
     if (!progressData.assessmentResults) progressData.assessmentResults = [];
     if (!progressData.activities) progressData.activities = [];
+    if (!progressData.scenarioResults) progressData.scenarioResults = {};
     
     // Migrate old assessment results that use assessment names instead of module codes
     migrateAssessmentResults();
@@ -559,6 +692,41 @@ function navigateToSection(sectionId) {
     });
 
     currentSection = sectionId;
+    
+    // Load assessment courses when navigating to assessment section
+    if (sectionId === 'assessment' && typeof loadAssessmentCourses === 'function') {
+        loadAssessmentCourses();
+    }
+    
+    // Set default tab for Practice section (site assessments)
+    if (sectionId === 'sandtable') {
+        const sandtableTabs = document.querySelectorAll('#sandtable .profile-tab');
+        const sandtableContents = document.querySelectorAll('#sandtable .profile-tab-content');
+        
+        sandtableTabs.forEach(tab => tab.classList.remove('active'));
+        sandtableContents.forEach(content => content.classList.remove('active'));
+        
+        const defaultTab = document.querySelector('#sandtable .profile-tab[data-tab="site-assessments-practice"]');
+        const defaultContent = document.getElementById('site-assessments-practice-tab');
+        
+        if (defaultTab) defaultTab.classList.add('active');
+        if (defaultContent) defaultContent.classList.add('active');
+    }
+    
+    // Set default tab for Profile section (about)
+    if (sectionId === 'profile') {
+        const profileTabs = document.querySelectorAll('#profile .profile-tab');
+        const profileContents = document.querySelectorAll('#profile .profile-tab-content');
+        
+        profileTabs.forEach(tab => tab.classList.remove('active'));
+        profileContents.forEach(content => content.classList.remove('active'));
+        
+        const defaultTab = document.querySelector('#profile .profile-tab[data-tab="about"]');
+        const defaultContent = document.getElementById('about-tab');
+        
+        if (defaultTab) defaultTab.classList.add('active');
+        if (defaultContent) defaultContent.classList.add('active');
+    }
 }
 
 // Event Listeners for Navigation
@@ -582,6 +750,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     initializeDragAndDrop();
+    
+    // Initialize scenario selector
+    const scenarioSelect = document.getElementById('scenarioSelect');
+    if (scenarioSelect) {
+        scenarioSelect.addEventListener('change', (e) => {
+            console.log('🔄 Scenario dropdown changed to:', e.target.value);
+            loadScenario(e.target.value);
+        });
+    } else {
+        console.error('❌ Scenario select element not found!');
+    }
 });
 
 // Update assessment availability based on completed modules
@@ -2135,7 +2314,21 @@ const scenarios = {
             'Set up first aid station with medical staff'
         ],
         requiredComponents: ['guard', 'checkpoint', 'metal-detector', 'barrier', 'command-post', 'first-aid'],
-        optionalComponents: ['camera', 'supervisor', 'emergency-exit', 'medic']
+        optionalComponents: ['camera', 'supervisor', 'emergency-exit', 'medic'],
+        mapLayout: {
+            type: 'concert',
+            locations: [
+                { type: 'stage', label: 'Main Stage', x: 50, y: 15, width: 30, height: 15 },
+                { type: 'entry', label: 'Main Entrance', x: 45, y: 85, width: 10, height: 8 },
+                { type: 'entry', label: 'Side Entrance', x: 10, y: 50, width: 8, height: 8 },
+                { type: 'entry', label: 'Side Entrance', x: 82, y: 50, width: 8, height: 8 },
+                { type: 'exit', label: 'Emergency Exit', x: 5, y: 20, width: 6, height: 6 },
+                { type: 'exit', label: 'Emergency Exit', x: 89, y: 20, width: 6, height: 6 },
+                { type: 'zone', label: 'General Admission', x: 20, y: 35, width: 60, height: 40 },
+                { type: 'zone', label: 'VIP Area', x: 35, y: 30, width: 30, height: 10 },
+                { type: 'parking', label: 'Parking Area', x: 10, y: 75, width: 80, height: 15 }
+            ]
+        }
     },
     'sports-event': {
         title: 'Stadium Sports Event',
@@ -2149,7 +2342,26 @@ const scenarios = {
             'Station medical staff throughout venue'
         ],
         requiredComponents: ['guard', 'supervisor', 'gate', 'command-post', 'emergency-exit', 'medic'],
-        optionalComponents: ['camera', 'checkpoint', 'barrier', 'usher', 'first-aid']
+        optionalComponents: ['camera', 'checkpoint', 'barrier', 'usher', 'first-aid'],
+        mapLayout: {
+            type: 'stadium',
+            locations: [
+                { type: 'field', label: 'Playing Field', x: 30, y: 30, width: 40, height: 30 },
+                { type: 'entry', label: 'North Gate', x: 45, y: 5, width: 10, height: 6 },
+                { type: 'entry', label: 'South Gate', x: 45, y: 89, width: 10, height: 6 },
+                { type: 'entry', label: 'East Gate', x: 85, y: 45, width: 10, height: 6 },
+                { type: 'entry', label: 'West Gate', x: 5, y: 45, width: 10, height: 6 },
+                { type: 'zone', label: 'Section A', x: 15, y: 15, width: 12, height: 20 },
+                { type: 'zone', label: 'Section B', x: 73, y: 15, width: 12, height: 20 },
+                { type: 'zone', label: 'Section C', x: 15, y: 65, width: 12, height: 20 },
+                { type: 'zone', label: 'Section D', x: 73, y: 65, width: 12, height: 20 },
+                { type: 'exit', label: 'Emergency Exit', x: 8, y: 25, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 87, y: 25, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 8, y: 70, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 87, y: 70, width: 5, height: 5 },
+                { type: 'concourse', label: 'Main Concourse', x: 10, y: 40, width: 80, height: 8 }
+            ]
+        }
     },
     'conference-center': {
         title: 'Conference/Convention Security',
@@ -2163,7 +2375,23 @@ const scenarios = {
             'Set up first aid station'
         ],
         requiredComponents: ['checkpoint', 'guard', 'command-post', 'camera', 'usher', 'first-aid'],
-        optionalComponents: ['supervisor', 'gate', 'barrier', 'medic']
+        optionalComponents: ['supervisor', 'gate', 'barrier', 'medic'],
+        mapLayout: {
+            type: 'conference',
+            locations: [
+                { type: 'entry', label: 'Main Lobby', x: 45, y: 85, width: 10, height: 10 },
+                { type: 'zone', label: 'Main Hall', x: 20, y: 30, width: 60, height: 30 },
+                { type: 'zone', label: 'VIP Lounge', x: 25, y: 15, width: 20, height: 12 },
+                { type: 'zone', label: 'Breakout Room 1', x: 55, y: 15, width: 20, height: 12 },
+                { type: 'zone', label: 'Breakout Room 2', x: 10, y: 65, width: 15, height: 12 },
+                { type: 'zone', label: 'Breakout Room 3', x: 75, y: 65, width: 15, height: 12 },
+                { type: 'zone', label: 'Exhibition Area', x: 30, y: 65, width: 40, height: 15 },
+                { type: 'entry', label: 'Side Entrance', x: 5, y: 45, width: 8, height: 8 },
+                { type: 'entry', label: 'Side Entrance', x: 87, y: 45, width: 8, height: 8 },
+                { type: 'exit', label: 'Emergency Exit', x: 10, y: 20, width: 6, height: 6 },
+                { type: 'exit', label: 'Emergency Exit', x: 84, y: 20, width: 6, height: 6 }
+            ]
+        }
     },
     'festival-grounds': {
         title: 'Multi-Day Festival',
@@ -2179,11 +2407,31 @@ const scenarios = {
             'Mark all emergency exits clearly'
         ],
         requiredComponents: ['guard', 'checkpoint', 'metal-detector', 'barrier', 'command-post', 'supervisor', 'first-aid', 'emergency-exit'],
-        optionalComponents: ['camera', 'medic', 'usher', 'gate']
+        optionalComponents: ['camera', 'medic', 'usher', 'gate'],
+        mapLayout: {
+            type: 'festival',
+            locations: [
+                { type: 'stage', label: 'Main Stage', x: 50, y: 15, width: 25, height: 12 },
+                { type: 'stage', label: 'Secondary Stage', x: 20, y: 40, width: 20, height: 10 },
+                { type: 'stage', label: 'Acoustic Stage', x: 65, y: 40, width: 20, height: 10 },
+                { type: 'entry', label: 'Main Gate', x: 45, y: 88, width: 10, height: 8 },
+                { type: 'entry', label: 'North Gate', x: 20, y: 5, width: 8, height: 6 },
+                { type: 'entry', label: 'South Gate', x: 72, y: 5, width: 8, height: 6 },
+                { type: 'zone', label: 'Food Court', x: 10, y: 60, width: 30, height: 20 },
+                { type: 'zone', label: 'Vendor Area', x: 60, y: 60, width: 30, height: 20 },
+                { type: 'zone', label: 'Camping Area', x: 5, y: 15, width: 15, height: 20 },
+                { type: 'zone', label: 'Camping Area', x: 80, y: 15, width: 15, height: 20 },
+                { type: 'exit', label: 'Emergency Exit', x: 5, y: 45, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 90, y: 45, width: 5, height: 5 },
+                { type: 'exit', label: 'Emergency Exit', x: 45, y: 5, width: 5, height: 5 }
+            ]
+        }
     }
 };
 
 function loadScenario(scenarioId) {
+    console.log('loadScenario called with:', scenarioId);
+    
     if (!scenarioId) {
         clearCanvas();
         document.getElementById('scenarioTitle').textContent = 'Select a scenario to begin';
@@ -2193,8 +2441,15 @@ function loadScenario(scenarioId) {
 
     currentScenario = scenarioId;
     const scenario = scenarios[scenarioId];
+    console.log('Scenario loaded:', scenario);
     
-    clearCanvas();
+    // Clear any placed items but don't reset canvas HTML yet
+    canvasItems = [];
+    
+    // Generate the event map
+    console.log('About to generate event map...');
+    generateEventMap(scenario);
+    console.log('Event map generation completed');
     document.getElementById('scenarioTitle').textContent = scenario.title;
     
     let descriptionHTML = `
@@ -2209,10 +2464,62 @@ function loadScenario(scenarioId) {
     document.getElementById('scenarioDescription').innerHTML = descriptionHTML;
 }
 
+function generateEventMap(scenario) {
+    console.log('generateEventMap called');
+    const canvas = document.getElementById('canvas');
+    console.log('Canvas element:', canvas);
+    
+    const mapLayout = scenario.mapLayout;
+    console.log('Map layout:', mapLayout);
+    
+    if (!mapLayout || !mapLayout.locations) {
+        console.error('No map layout or locations found in scenario!');
+        return;
+    }
+    
+    let mapHTML = '<div class="event-map">';
+    
+    // Generate map locations based on scenario type
+    mapLayout.locations.forEach((location, index) => {
+        const locationClass = `map-location map-${location.type}`;
+        const style = `left: ${location.x}%; top: ${location.y}%; width: ${location.width}%; height: ${location.height}%;`;
+        
+        mapHTML += `
+            <div class="${locationClass}" style="${style}" data-location-id="${index}">
+                <span class="location-label">${location.label}</span>
+            </div>
+        `;
+    });
+    
+    mapHTML += '</div>';
+    console.log('Generated map HTML length:', mapHTML.length);
+    console.log('Map HTML preview:', mapHTML.substring(0, 200));
+    
+    canvas.innerHTML = mapHTML;
+    console.log('Canvas innerHTML set, new content:', canvas.innerHTML.substring(0, 200));
+    
+    // Make canvas droppable
+    canvas.addEventListener('dragover', handleDragOver);
+    canvas.addEventListener('drop', handleDrop);
+    console.log('Event listeners added to canvas');
+}
+
 function clearCanvas() {
     canvasItems = [];
     const canvas = document.getElementById('canvas');
-    canvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-hand-pointer"></i><p>Drag security resources to the event layout to create your security plan</p></div>';
+    
+    // Remove all canvas items but keep the event map if it exists
+    const eventMap = canvas.querySelector('.event-map');
+    if (eventMap) {
+        // Remove only canvas-item elements, keep the map
+        const items = canvas.querySelectorAll('.canvas-item');
+        items.forEach(item => item.remove());
+    } else {
+        // No map exists, show placeholder
+        canvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-hand-pointer"></i><p>Drag security resources to the event layout to create your security plan</p></div>';
+        canvas.removeEventListener('dragover', handleDragOver);
+        canvas.removeEventListener('drop', handleDrop);
+    }
 }
 
 function validateSolution() {
@@ -2290,10 +2597,15 @@ function initializeDragAndDrop() {
 
     toolItems.forEach(item => {
         item.addEventListener('dragstart', handleDragStart);
+        // Add touch support for mobile/tablet
+        item.addEventListener('touchstart', handleTouchStart, { passive: false });
     });
 
     canvas.addEventListener('dragover', handleDragOver);
     canvas.addEventListener('drop', handleDrop);
+    // Add touch support for canvas
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd);
 }
 
 function handleDragStart(e) {
@@ -2321,6 +2633,65 @@ function handleDrop(e) {
     addCanvasItem(type, x, y);
 }
 
+// Touch event handlers for mobile/tablet
+let touchDragType = null;
+let touchDragElement = null;
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    const toolItem = e.target.closest('.tool-item');
+    if (!toolItem) return;
+    
+    touchDragType = toolItem.dataset.type;
+    
+    // Create a visual clone for dragging
+    touchDragElement = toolItem.cloneNode(true);
+    touchDragElement.style.position = 'fixed';
+    touchDragElement.style.pointerEvents = 'none';
+    touchDragElement.style.opacity = '0.7';
+    touchDragElement.style.zIndex = '10000';
+    touchDragElement.style.width = toolItem.offsetWidth + 'px';
+    
+    const touch = e.touches[0];
+    touchDragElement.style.left = (touch.clientX - toolItem.offsetWidth / 2) + 'px';
+    touchDragElement.style.top = (touch.clientY - 20) + 'px';
+    
+    document.body.appendChild(touchDragElement);
+}
+
+function handleTouchMove(e) {
+    if (!touchDragElement) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    touchDragElement.style.left = (touch.clientX - touchDragElement.offsetWidth / 2) + 'px';
+    touchDragElement.style.top = (touch.clientY - 20) + 'px';
+}
+
+function handleTouchEnd(e) {
+    if (!touchDragElement || !touchDragType) return;
+    
+    const touch = e.changedTouches[0];
+    const canvas = document.getElementById('canvas');
+    const rect = canvas.getBoundingClientRect();
+    
+    // Check if touch ended within canvas bounds
+    if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+        touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+        
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        addCanvasItem(touchDragType, x, y);
+    }
+    
+    // Clean up
+    if (touchDragElement && touchDragElement.parentNode) {
+        touchDragElement.parentNode.removeChild(touchDragElement);
+    }
+    touchDragElement = null;
+    touchDragType = null;
+}
+
 function addCanvasItem(type, x, y) {
     const canvas = document.getElementById('canvas');
     
@@ -2334,6 +2705,7 @@ function addCanvasItem(type, x, y) {
     item.className = 'canvas-item';
     item.style.left = `${x}px`;
     item.style.top = `${y}px`;
+    item.style.position = 'absolute';
     
     const iconMap = {
         'guard': 'fa-user-shield',
@@ -2378,8 +2750,15 @@ function addCanvasItem(type, x, y) {
 
     // Make item draggable within canvas
     item.addEventListener('mousedown', startDragging);
+    item.addEventListener('touchstart', startTouchDragging, { passive: false });
 
-    canvas.appendChild(item);
+    // Append to event map if it exists, otherwise to canvas
+    const eventMap = canvas.querySelector('.event-map');
+    if (eventMap) {
+        eventMap.appendChild(item);
+    } else {
+        canvas.appendChild(item);
+    }
     
     canvasItems.push({ id: itemId, type, x, y });
 }
@@ -2390,10 +2769,13 @@ function removeCanvasItem(itemId) {
         item.remove();
         canvasItems = canvasItems.filter(i => i.id !== itemId);
         
-        // Add placeholder back if canvas is empty
+        // Don't add placeholder back if event map exists
         if (canvasItems.length === 0) {
             const canvas = document.getElementById('canvas');
-            canvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-hand-pointer"></i><p>Drag components from the toolbox to build your solution</p></div>';
+            const eventMap = canvas.querySelector('.event-map');
+            if (!eventMap) {
+                canvas.innerHTML = '<div class="canvas-placeholder"><i class="fas fa-hand-pointer"></i><p>Drag components from the toolbox to build your solution</p></div>';
+            }
         }
     }
 }
@@ -2438,6 +2820,47 @@ function stopDragging() {
     draggedItem = null;
     document.removeEventListener('mousemove', drag);
     document.removeEventListener('mouseup', stopDragging);
+}
+
+// Touch dragging for placed items
+function startTouchDragging(e) {
+    if (e.target.closest('.delete-btn')) return;
+    e.preventDefault();
+    
+    draggedItem = e.currentTarget;
+    const rect = draggedItem.getBoundingClientRect();
+    const touch = e.touches[0];
+    
+    dragOffset.x = touch.clientX - rect.left;
+    dragOffset.y = touch.clientY - rect.top;
+    
+    document.addEventListener('touchmove', touchDrag, { passive: false });
+    document.addEventListener('touchend', stopTouchDragging);
+}
+
+function touchDrag(e) {
+    if (!draggedItem) return;
+    e.preventDefault();
+    
+    const canvas = document.getElementById('canvas');
+    const canvasRect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    
+    let x = touch.clientX - canvasRect.left - dragOffset.x;
+    let y = touch.clientY - canvasRect.top - dragOffset.y;
+    
+    // Keep within canvas bounds
+    x = Math.max(0, Math.min(x, canvasRect.width - draggedItem.offsetWidth));
+    y = Math.max(0, Math.min(y, canvasRect.height - draggedItem.offsetHeight));
+    
+    draggedItem.style.left = `${x}px`;
+    draggedItem.style.top = `${y}px`;
+}
+
+function stopTouchDragging() {
+    draggedItem = null;
+    document.removeEventListener('touchmove', touchDrag);
+    document.removeEventListener('touchend', stopTouchDragging);
 }
 
 // ============= ASSESSMENTS =============
@@ -4367,6 +4790,8 @@ async function loadStateLaws() {
 // Load assessment questions from database
 async function loadAssessmentQuestions(moduleCode) {
     try {
+        console.log('🔍 Loading assessment questions for module:', moduleCode);
+        
         // Get module and assessment
         const { data: module, error: moduleError } = await supabase
             .from('training_modules')
@@ -4375,30 +4800,46 @@ async function loadAssessmentQuestions(moduleCode) {
             .single();
         
         if (moduleError || !module) {
-            console.warn('No module found for code:', moduleCode);
+            console.warn('❌ No module found for code:', moduleCode, moduleError);
             return null;
         }
         
         const { data: assessment, error: assessmentError } = await supabase
             .from('assessments')
-            .select('id, questions_json, assessment_name')
+            .select('id, assessment_name')
             .eq('module_id', module.id)
             .single();
         
         if (assessmentError || !assessment) {
-            console.warn('No assessment found for module:', moduleCode);
+            console.warn('❌ No assessment found for module:', moduleCode, assessmentError);
             return null;
         }
         
-        // Parse questions from JSON column
+        // Load questions from assessment_questions table
+        const { data: questionRows, error: questionsError } = await supabase
+            .from('assessment_questions')
+            .select('*')
+            .eq('assessment_id', assessment.id)
+            .order('question_number', { ascending: true });
+        
+        if (questionsError) {
+            console.error('❌ Error loading questions:', questionsError);
+            return null;
+        }
+        
+        console.log(`✅ Loaded ${questionRows?.length || 0} questions from database`);
+        
+        // Convert to expected format
         let questions = [];
-        if (assessment.questions_json && Array.isArray(assessment.questions_json)) {
-            questions = assessment.questions_json.map(q => ({
-                question: q.question,
-                options: q.options,
-                correct: q.correctAnswer,
+        if (questionRows && questionRows.length > 0) {
+            questions = questionRows.map(q => ({
+                question: q.question_text,
+                options: [q.option_a, q.option_b, q.option_c, q.option_d],
+                correct: q.correct_answer === 'A' ? 0 : q.correct_answer === 'B' ? 1 : q.correct_answer === 'C' ? 2 : 3,
                 explanation: q.explanation || ''
             }));
+        } else {
+            console.warn('⚠️ No question rows returned from database');
         }
         
         // Special handling for Module 7 (Use of Force) - combine with state-specific questions
@@ -4743,7 +5184,9 @@ function submitAssessment() {
             module: currentAssessment,
             assessment: currentAssessment,
             score: percentage,
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            questions: shuffledQuestions,
+            userAnswers: userAnswers
         });
         addActivity(`Passed assessment: ${document.getElementById('quizTitle').textContent} (${percentage}%)`);
         saveProgress();
@@ -5055,7 +5498,31 @@ function updateProgressDisplay() {
             'diverse-population': 'Module 5: Interacting with Diverse Populations',
             'crowd-management': 'Module 6: Crowd Management & Public Safety',
             'use-of-force': 'Module 7: Legal Aspects & Use of Force',
-            'comprehensive': 'Comprehensive Guard Certification'
+            'comprehensive': 'Comprehensive Guard Certification',
+            'systema-scout-orientation': 'Module 0: Orientation & Philosophy',
+            'systema-scout-walking': 'Module 1: Walking, Breathing, and Choice',
+            'systema-scout-observation': 'Module 2: Security Assessment',
+            'systema-scout-tension': 'Module 3: Glove Work & Tension Management',
+            'systema-scout-integration': 'Module 4: Integration & Self-Regulation',
+            'systema-scout-closing': 'Module 5: Closing Aim & Continued Practice'
+        };
+        
+        const courseTitles = {
+            'welcome-materials': 'Unarmed Guard Core',
+            'communication-protocols': 'Unarmed Guard Core',
+            'stop-the-bleed': 'Unarmed Guard Core',
+            'threat-assessment': 'Unarmed Guard Core',
+            'ics-100': 'Unarmed Guard Core',
+            'diverse-population': 'Unarmed Guard Core',
+            'crowd-management': 'Unarmed Guard Core',
+            'use-of-force': 'Unarmed Guard Core',
+            'comprehensive': 'Unarmed Guard Core',
+            'systema-scout-orientation': 'Systema Scout',
+            'systema-scout-walking': 'Systema Scout',
+            'systema-scout-observation': 'Systema Scout',
+            'systema-scout-tension': 'Systema Scout',
+            'systema-scout-integration': 'Systema Scout',
+            'systema-scout-closing': 'Systema Scout'
         };
         
         // Get best attempts (deduplicated by module and state)
@@ -5074,6 +5541,7 @@ function updateProgressDisplay() {
                 // Use module or assessment property for lookup
                 const moduleCode = result.module || result.assessment;
                 let title = assessmentTitles[moduleCode] || moduleCode || 'Unknown Assessment';
+                const courseTitle = courseTitles[moduleCode] || 'Unknown Course';
                 
                 // For Module 7, append the state code if available
                 if (moduleCode === 'use-of-force' && result.state_code) {
@@ -5084,6 +5552,9 @@ function updateProgressDisplay() {
                     <div class="assessment-history-item">
                         <div class="assessment-history-header">
                             <div>
+                                <span style="color: #d4a574; font-weight: 600; font-size: 1.75rem; display: block; margin-bottom: 0.5rem;">
+                                    ${courseTitle}
+                                </span>
                                 <h4>${title}</h4>
                                 <span style="color: var(--text-secondary); font-size: 0.875rem;">
                                     ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}
@@ -5105,6 +5576,85 @@ function updateProgressDisplay() {
                 `;
             }).join('');
         document.getElementById('assessmentHistory').innerHTML = assessmentHistoryHTML;
+    }
+    
+    // Update de-escalation practice results
+    if (progressData.scenarioResults && Object.keys(progressData.scenarioResults).length > 0) {
+        const scenarioTitles = {
+            'lost-wristband': 'Lost Wristband at the Gate',
+            'intoxicated-patron': 'Intoxicated Patron at Bar',
+            'denied-entry-id': 'Denied Entry - Invalid ID'
+        };
+        
+        // Optimal steps for each scenario (minimum to pass)
+        const optimalSteps = {
+            'lost-wristband': 4,
+            'intoxicated-patron': 4,
+            'denied-entry-id': 5
+        };
+        
+        // Calculate grade: 80% for any pass, 100% for optimal, interpolate between
+        function calculateGrade(steps, scenarioId) {
+            const optimal = optimalSteps[scenarioId];
+            if (!optimal) return 80; // Default if scenario not found
+            
+            if (steps <= optimal) {
+                return 100; // Perfect score for optimal or better
+            }
+            
+            // Interpolate between 80% and 100%
+            // Assume reasonable max steps is optimal * 2.5
+            const maxSteps = Math.ceil(optimal * 2.5);
+            const extraSteps = steps - optimal;
+            const maxExtraSteps = maxSteps - optimal;
+            
+            // Linear interpolation from 100% to 80%
+            const grade = 100 - ((extraSteps / maxExtraSteps) * 20);
+            return Math.max(80, Math.round(grade)); // Minimum 80% for passing
+        }
+        
+        const deescalationHTML = Object.entries(progressData.scenarioResults)
+            .filter(([id, result]) => result.success) // Only show successful completions
+            .sort((a, b) => new Date(b[1].date) - new Date(a[1].date)) // Sort by date
+            .map(([scenarioId, result]) => {
+                const title = scenarioTitles[scenarioId] || scenarioId;
+                const date = new Date(result.date);
+                const grade = calculateGrade(result.steps, scenarioId);
+                const optimal = optimalSteps[scenarioId];
+                
+                // Use same formatting as assessments - success class and check icon
+                const statusClass = 'success';
+                const statusIcon = 'fa-check-circle';
+                const statusText = 'Passed';
+                
+                return `
+                    <div class="assessment-history-item">
+                        <div class="assessment-history-header">
+                            <div>
+                                <h4>${title}</h4>
+                                <span style="color: var(--text-secondary); font-size: 0.875rem;">
+                                    ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}
+                                </span>
+                            </div>
+                            <div class="assessment-history-score">
+                                <span class="score-badge ${statusClass}">
+                                    <i class="fas ${statusIcon}"></i> ${grade}%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="assessment-history-actions">
+                            <span class="status-text ${statusClass}">${statusText}</span>
+                            <span style="color: var(--text-secondary); font-size: 0.875rem;">
+                                ${result.steps} steps (Optimal: ${optimal})
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        
+        if (deescalationHTML) {
+            document.getElementById('deescalationProgress').innerHTML = deescalationHTML;
+        }
     }
     
     // Update activity list
@@ -5150,28 +5700,61 @@ async function updateModuleProgressDisplay() {
         // Get modules from database, sorted by display_order
         const { data: modules, error } = await supabase
             .from('training_modules')
-            .select('id, module_code, module_name, display_order')
+            .select('id, module_code, module_name, display_order, default_course_id')
             .order('display_order', { ascending: true });
         
         if (error) throw error;
         
         if (modules && modules.length > 0) {
-            // Use database modules (properly ordered)
-            const moduleProgressHTML = modules.map(module => {
-                const completed = progressData.completedModules.includes(module.module_code);
-                const percentage = completed ? 100 : 0;
-                return `
-                    <div class="progress-item">
-                        <div class="progress-item-header">
-                            <span>${module.module_name}</span>
-                            <span>${percentage}%</span>
+            console.log(`✅ Loaded ${modules.length} modules from database`);
+            
+            // Determine course based on module_code prefix
+            const getCourseTitle = (moduleCode) => {
+                if (moduleCode.startsWith('systema-scout')) {
+                    return 'Systema Scout';
+                } else {
+                    return 'Unarmed Guard Core';
+                }
+            };
+            
+            // Group modules by course
+            const groupedModules = modules.reduce((acc, module) => {
+                const courseTitle = getCourseTitle(module.module_code);
+                if (!acc[courseTitle]) {
+                    acc[courseTitle] = [];
+                }
+                acc[courseTitle].push(module);
+                return acc;
+            }, {});
+            
+            // Build HTML with course groupings
+            const moduleProgressHTML = Object.entries(groupedModules).map(([courseTitle, courseModules]) => {
+                const modulesHTML = courseModules.map(module => {
+                    const completed = progressData.completedModules.includes(module.module_code);
+                    const percentage = completed ? 100 : 0;
+                    return `
+                        <div class="progress-item">
+                            <div class="progress-item-header">
+                                <span>${module.module_name}</span>
+                                <span>${percentage}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                            </div>
                         </div>
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill" style="width: ${percentage}%"></div>
+                    `;
+                }).join('');
+                
+                return `
+                    <div class="course-group">
+                        <h4 class="course-title">${courseTitle}</h4>
+                        <div class="course-modules">
+                            ${modulesHTML}
                         </div>
                     </div>
                 `;
             }).join('');
+            
             document.getElementById('moduleProgress').innerHTML = moduleProgressHTML;
         } else {
             // Fallback to static moduleContent if database is unavailable
@@ -5262,7 +5845,13 @@ function reviewPastAssessment(resultIndex, fromBestAttempts = false) {
         'diverse-population': 'Module 5: Interacting with Diverse Populations Assessment',
         'crowd-management': 'Module 6: Crowd Management & Public Safety Assessment',
         'use-of-force': 'Module 7: Legal Aspects & Use of Force Assessment',
-        'comprehensive': 'Comprehensive Guard Certification Exam'
+        'comprehensive': 'Comprehensive Guard Certification Exam',
+        'systema-scout-orientation': 'Module 0: Orientation & Philosophy',
+        'systema-scout-walking': 'Module 1: Walking, Breathing, and Choice',
+        'systema-scout-observation': 'Module 2: Security Assessment',
+        'systema-scout-tension': 'Module 3: Glove Work & Tension Management',
+        'systema-scout-integration': 'Module 4: Integration & Self-Regulation',
+        'systema-scout-closing': 'Module 5: Closing Aim & Continued Practice'
     };
     
     let reviewHTML = `
@@ -5331,23 +5920,29 @@ function reviewPastAssessment(resultIndex, fromBestAttempts = false) {
     // Show in a modal or overlay
     console.log('Showing review modal...');
     
-    // Hide progress section, show assessment section
-    document.getElementById('progress').classList.remove('active');
-    document.getElementById('assessment').classList.add('active');
+    // Navigate to assessment section
+    const profileSection = document.getElementById('profile');
+    const assessmentSection = document.getElementById('assessment');
+    
+    if (profileSection) profileSection.classList.remove('active');
+    if (assessmentSection) assessmentSection.classList.add('active');
     
     // Update nav
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
-        const onclick = link.getAttribute('onclick');
-        if (onclick && onclick.includes('assessment')) {
+        if (link.getAttribute('data-section') === 'assessment') {
             link.classList.add('active');
         }
     });
     
     // Hide assessment selector, show quiz
-    document.querySelector('.assessment-selector').style.display = 'none';
-    document.getElementById('assessmentResults').classList.add('hidden');
-    document.getElementById('assessmentQuiz').classList.remove('hidden');
+    const assessmentSelector = document.querySelector('.assessment-selector');
+    const assessmentResults = document.getElementById('assessmentResults');
+    const assessmentQuiz = document.getElementById('assessmentQuiz');
+    
+    if (assessmentSelector) assessmentSelector.style.display = 'none';
+    if (assessmentResults) assessmentResults.classList.add('hidden');
+    if (assessmentQuiz) assessmentQuiz.classList.remove('hidden');
     
     // Hide quiz header and footer, show review content
     const quizHeader = document.querySelector('.quiz-header');
@@ -5393,3 +5988,163 @@ function closePastReview() {
     // Scroll to top
     window.scrollTo(0, 0);
 }
+
+/**
+ * Access Control for Premium Tools
+ * Grandfathers existing students - anyone with ANY active enrollment gets access
+ * New students need Contractor Certification course
+ */
+
+const AccessControl = {
+    CONTRACTOR_COURSE_ID: 'contractor-certification',
+    
+    async hasContractorAccess() {
+        try {
+            const currentUser = await Auth.getCurrentUser();
+            if (!currentUser) return false;
+
+            const { data: enrollments, error } = await supabase
+                .from('student_course_enrollments')
+                .select('*, courses(*)')
+                .eq('student_id', currentUser.id)
+                .in('enrollment_status', ['active', 'completed']);
+
+            if (error) {
+                console.error('Error checking enrollment:', error);
+                return false;
+            }
+
+            // GRANDFATHERED ACCESS: Any existing enrollment grants access
+            if (enrollments && enrollments.length > 0) {
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Access control error:', error);
+            return false;
+        }
+    },
+
+    async initializePracticeTabs() {
+        const hasAccess = await this.hasContractorAccess();
+        
+        const siteAssessmentsTab = document.querySelector('[data-tab="site-assessments-practice"]');
+        const invoiceGeneratorTab = document.querySelector('[data-tab="invoice-generator-practice"]');
+        
+        if (!hasAccess) {
+            if (siteAssessmentsTab) this.lockTab(siteAssessmentsTab, 'Site Assessments');
+            if (invoiceGeneratorTab) this.lockTab(invoiceGeneratorTab, 'Invoice Generator');
+            this.showLockedContent('site-assessments-practice-tab', 'Site Assessments');
+            this.showLockedContent('invoice-generator-practice-tab', 'Invoice Generator');
+        } else {
+            if (siteAssessmentsTab) this.unlockTab(siteAssessmentsTab);
+            if (invoiceGeneratorTab) this.unlockTab(invoiceGeneratorTab);
+        }
+    },
+
+    lockTab(tabElement, toolName) {
+        tabElement.classList.add('locked-tab');
+        tabElement.setAttribute('data-locked', 'true');
+        const icon = tabElement.querySelector('i');
+        if (icon) icon.className = 'fas fa-lock';
+        tabElement.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showEnrollmentPrompt(toolName);
+        };
+    },
+
+    unlockTab(tabElement) {
+        tabElement.classList.remove('locked-tab');
+        tabElement.removeAttribute('data-locked');
+    },
+
+    showLockedContent(tabId, toolName) {
+        const tabContent = document.getElementById(tabId);
+        if (!tabContent) return;
+
+        tabContent.innerHTML = `
+            <div class="locked-content">
+                <div class="locked-icon"><i class="fas fa-lock"></i></div>
+                <h2>${toolName} - Premium Tool</h2>
+                <p class="locked-description">
+                    This professional tool is available to students enrolled in our <strong>Contractor Certification Course</strong>.
+                </p>
+                <div class="locked-benefits">
+                    <h3>What You'll Learn:</h3>
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> Professional 1099 contractor practices</li>
+                        <li><i class="fas fa-check-circle"></i> Business formation and licensing</li>
+                        <li><i class="fas fa-check-circle"></i> Contract negotiation and management</li>
+                        <li><i class="fas fa-check-circle"></i> Invoicing and payment processing</li>
+                        <li><i class="fas fa-check-circle"></i> Tax obligations and deductions</li>
+                        <li><i class="fas fa-check-circle"></i> Professional security assessments</li>
+                    </ul>
+                </div>
+                <div class="locked-tools">
+                    <h3>Premium Tools Included:</h3>
+                    <div class="tool-cards">
+                        <div class="tool-card">
+                            <i class="fas fa-clipboard-list"></i>
+                            <h4>Site Security Assessments</h4>
+                            <p>Professional assessment tool with automated risk analysis and PDF reports</p>
+                        </div>
+                        <div class="tool-card">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <h4>Invoice Generator</h4>
+                            <p>Create professional invoices with automatic calculations and PDF export</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="locked-actions">
+                    <button class="btn btn-primary btn-large" onclick="navigateToSection('training')">
+                        <i class="fas fa-graduation-cap"></i> Browse Courses
+                    </button>
+                </div>
+                <div class="locked-footer">
+                    <p><i class="fas fa-info-circle"></i> Already enrolled? Refresh the page or contact support.</p>
+                </div>
+            </div>
+        `;
+    },
+
+    showEnrollmentPrompt(toolName) {
+        const modal = document.createElement('div');
+        modal.className = 'enrollment-modal';
+        modal.innerHTML = `
+            <div class="enrollment-modal-content">
+                <div class="enrollment-modal-header">
+                    <h2><i class="fas fa-lock"></i> Premium Tool Locked</h2>
+                    <button class="modal-close" onclick="this.closest('.enrollment-modal').remove()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="enrollment-modal-body">
+                    <p><strong>${toolName}</strong> is available to students enrolled in our Contractor Certification Course.</p>
+                    <div class="enrollment-benefits">
+                        <h3>Course Benefits:</h3>
+                        <ul>
+                            <li>Learn professional 1099 contractor practices</li>
+                            <li>Access premium business tools</li>
+                            <li>Professional certification upon completion</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="enrollment-modal-footer">
+                    <button class="btn btn-primary" onclick="navigateToSection('training'); this.closest('.enrollment-modal').remove();">
+                        <i class="fas fa-graduation-cap"></i> Browse Courses
+                    </button>
+                    <button class="btn btn-secondary" onclick="this.closest('.enrollment-modal').remove()">Maybe Later</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    }
+};
+
+// Initialize access control
+setTimeout(async () => {
+    if (typeof Auth !== 'undefined' && typeof supabase !== 'undefined') {
+        await AccessControl.initializePracticeTabs();
+    }
+}, 1500);

@@ -3349,7 +3349,7 @@ function generateWelcomeModuleContent(stateCode) {
                 <h3>✅ Summary: How to Prepare</h3>
                 <table style="width: 100%; border-collapse: collapse; margin: 1rem 0;">
                     <thead>
-                        <tr style="background: rgba(255, 107, 53, 0.1);">
+                        <tr style="background: rgba(213, 155, 60, 0.1);">
                             <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Task</th>
                             <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Description</th>
                             <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Link</th>
@@ -3735,8 +3735,13 @@ async function completeModule() {
     navigateToSection('training');
     
     // Reload training modules to show updated completion status
-    if (window.loadTrainingModules) {
-        await window.loadTrainingModules();
+    if (window.loadTrainingModules && window.currentCourseId) {
+        await window.loadTrainingModules(window.currentCourseId);
+    }
+    
+    // Reload course assessments to unlock the assessment
+    if (window.loadCourseAssessments && window.currentCourseId) {
+        await window.loadCourseAssessments(window.currentCourseId);
     }
     
     // Show appropriate completion message using the captured module ID

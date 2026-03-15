@@ -120,7 +120,6 @@ async function startSession() {
         return;
     }
     
-    console.log('🚀 Starting training session:', roomUrl);
     currentRoomUrl = roomUrl;
     
     // Extract room name from URL for display
@@ -184,8 +183,6 @@ async function startSession() {
             url: roomUrl,
             userName: instructorName
         });
-        
-        console.log('✅ Instructor joined session');
         
         // Event listeners
         dailyCallObject.on('joined-meeting', (event) => {

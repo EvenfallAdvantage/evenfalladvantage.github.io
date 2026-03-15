@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="../css/styles.css">
     <link rel="stylesheet" href="css/student-portal.css">
     <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="css/site-assessments.css">
+    <link rel="stylesheet" href="css/invoice-generator.css">
     <link rel="stylesheet" href="../css/messaging.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +20,10 @@
     
     <!-- Supabase JavaScript Client -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body style="margin:0;padding:0;">
     <!-- Navigation -->
@@ -160,18 +166,263 @@
             </div>
         </section>
 
-        <!-- Sand Table Section -->
+        <!-- Practice Section -->
+        <!-- Updated: 2026-02-02 23:13 -->
         <section id="sandtable" class="section">
-            <div class="section-header">
-                <h2>Interactive Event Planning</h2>
-                <p>Design security layouts and position personnel for various event scenarios</p>
+            <!-- Practice Tabs -->
+            <div class="profile-tabs">
+                <button class="profile-tab active" data-tab="site-assessments-practice">
+                    <i class="fas fa-clipboard-list"></i> Evaluation
+                </button>
+                <button class="profile-tab" data-tab="invoice-generator-practice">
+                    <i class="fas fa-file-invoice-dollar"></i> Invoice
+                </button>
+                <button class="profile-tab" data-tab="sandtable-practice">
+                    <i class="fas fa-map-marked-alt"></i> Sand Table
+                </button>
+                <button class="profile-tab" data-tab="deescalation-practice">
+                    <i class="fas fa-hands-helping"></i> De-escalation
+                </button>
             </div>
-            
-            <div class="sandtable-container">
+
+            <!-- Site Assessments Tab (Now Default) -->
+            <div class="profile-tab-content active" id="site-assessments-practice-tab">
+                <div class="assessment-header">
+                    <h2><i class="fas fa-clipboard-list"></i> Site Security Assessment Tool</h2>
+                    <p>Conduct comprehensive security assessments with automated risk analysis and professional reporting.</p>
+                </div>
+                
+                <div class="assessment-container">
+                    <div class="assessment-actions">
+                        <button class="btn btn-secondary" onclick="SiteAssessments.loadSavedAssessment()">
+                            <i class="fas fa-folder-open"></i> Load Saved
+                        </button>
+                        <button class="btn btn-secondary" onclick="SiteAssessments.toggleTutorialMode()">
+                            <i class="fas fa-question-circle"></i> <span id="tutorialToggleText">Enable Tutorial Mode</span>
+                        </button>
+                    </div>
+
+                    <div id="assessmentForm"></div>
+                    <div id="reportContainer" style="display: none;">
+                        <div class="report-actions">
+                            <button class="btn btn-primary" onclick="SiteAssessments.downloadPDF()">
+                                <i class="fas fa-file-pdf"></i> Download PDF
+                            </button>
+                            <button class="btn btn-secondary" onclick="SiteAssessments.closeReport()">
+                                <i class="fas fa-arrow-left"></i> Back to Assessment
+                            </button>
+                        </div>
+                        <div id="reportContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice Generator Tab -->
+            <div class="profile-tab-content" id="invoice-generator-practice-tab">
+                <div class="invoice-generator-container" id="invoice-generator-container">
+                    <div class="invoice-header-section">
+                        <h2><i class="fas fa-file-invoice-dollar"></i> Professional Invoice Generator</h2>
+                        <p>Create professional invoices for your 1099 contractor services with automatic calculations and PDF export.</p>
+                    </div>
+
+                    <div class="invoice-layout">
+                        <!-- Form Section -->
+                        <div class="invoice-form-section">
+                            <div class="invoice-form">
+                                <!-- Logo Upload -->
+                                <div class="form-section logo-upload-section">
+                                    <h3><i class="fas fa-image"></i> Business Logo</h3>
+                                    <div class="form-group">
+                                        <label for="logo-upload">Upload Logo (Optional)</label>
+                                        <input type="file" id="logo-upload" accept="image/*" style="display: none;">
+                                        <div class="logo-upload-area" id="logo-upload-area">
+                                            <div class="logo-preview" id="logo-preview" style="display: none;">
+                                                <img id="logo-preview-img" src="" alt="Logo Preview">
+                                                <button type="button" class="remove-logo-btn" id="remove-logo-btn">
+                                                    <i class="fas fa-times"></i> Remove
+                                                </button>
+                                            </div>
+                                            <div class="logo-upload-prompt" id="logo-upload-prompt">
+                                                <i class="fas fa-cloud-upload-alt"></i>
+                                                <p>Click to upload your business logo</p>
+                                                <small>PNG, JPG, or SVG (Max 2MB)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Your Information -->
+                                <div class="form-section">
+                                    <h3><i class="fas fa-user"></i> Your Information</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group col-2">
+                                            <label for="your-name">Your Name *</label>
+                                            <input type="text" id="your-name" placeholder="John Doe" required>
+                                        </div>
+                                        <div class="form-group col-2">
+                                            <label for="your-business">Business Name</label>
+                                            <input type="text" id="your-business" placeholder="Doe Security Services">
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label for="your-address">Address</label>
+                                            <input type="text" id="your-address" placeholder="123 Main Street">
+                                        </div>
+                                        <div class="form-group col-2">
+                                            <label for="your-city">City</label>
+                                            <input type="text" id="your-city" placeholder="New York">
+                                        </div>
+                                        <div class="form-group col-1">
+                                            <label for="your-state">State</label>
+                                            <input type="text" id="your-state" placeholder="NY" maxlength="2">
+                                        </div>
+                                        <div class="form-group col-1">
+                                            <label for="your-zip">ZIP Code</label>
+                                            <input type="text" id="your-zip" placeholder="10001" maxlength="10">
+                                        </div>
+                                        <div class="form-group col-2">
+                                            <label for="your-email">Email</label>
+                                            <input type="email" id="your-email" placeholder="john@example.com">
+                                        </div>
+                                        <div class="form-group col-2">
+                                            <label for="your-phone">Phone</label>
+                                            <input type="tel" id="your-phone" placeholder="(555) 123-4567">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Client Information -->
+                                <div class="form-section">
+                                    <h3><i class="fas fa-building"></i> Client Information</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group col-2">
+                                            <label for="client-name">Client Name *</label>
+                                            <input type="text" id="client-name" placeholder="Jane Smith" required>
+                                        </div>
+                                        <div class="form-group col-2">
+                                            <label for="client-company">Company Name</label>
+                                            <input type="text" id="client-company" placeholder="ABC Corporation">
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label for="client-address">Address</label>
+                                            <input type="text" id="client-address" placeholder="456 Business Ave">
+                                        </div>
+                                        <div class="form-group col-2">
+                                            <label for="client-city">City</label>
+                                            <input type="text" id="client-city" placeholder="Los Angeles">
+                                        </div>
+                                        <div class="form-group col-1">
+                                            <label for="client-state">State</label>
+                                            <input type="text" id="client-state" placeholder="CA" maxlength="2">
+                                        </div>
+                                        <div class="form-group col-1">
+                                            <label for="client-zip">ZIP Code</label>
+                                            <input type="text" id="client-zip" placeholder="90001" maxlength="10">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Invoice Details -->
+                                <div class="form-section">
+                                    <h3><i class="fas fa-file-alt"></i> Invoice Details</h3>
+                                    <div class="form-grid">
+                                        <div class="form-group col-2">
+                                            <label for="invoice-number">Invoice Number *</label>
+                                            <input type="text" id="invoice-number" placeholder="INV-001" required>
+                                        </div>
+                                        <div class="form-group col-2">
+                                            <label for="tax-rate">Tax Rate (%)</label>
+                                            <input type="number" id="tax-rate" placeholder="0" min="0" max="100" step="0.01" value="0">
+                                        </div>
+                                        <div class="form-group col-2">
+                                            <label for="invoice-date">Invoice Date *</label>
+                                            <input type="date" id="invoice-date" required>
+                                        </div>
+                                        <div class="form-group col-2">
+                                            <label for="due-date">Due Date</label>
+                                            <input type="date" id="due-date">
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label for="payment-terms">Payment Terms</label>
+                                            <textarea id="payment-terms" placeholder="Payment due within 30 days. Accepted methods: Check, Bank Transfer, PayPal."></textarea>
+                                        </div>
+                                        <div class="form-group full-width">
+                                            <label for="invoice-notes">Notes</label>
+                                            <textarea id="invoice-notes" placeholder="Thank you for your business!"></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Line Items -->
+                                <div class="form-section">
+                                    <div class="line-items-section">
+                                        <div class="line-items-header">
+                                            <h4><i class="fas fa-list"></i> Line Items</h4>
+                                            <button class="btn btn-primary" id="add-line-item">
+                                                <i class="fas fa-plus"></i> Add Line Item
+                                            </button>
+                                        </div>
+                                        <div id="line-items-container"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="invoice-actions">
+                                    <button class="btn btn-secondary" id="save-invoice">
+                                        <i class="fas fa-save"></i> Save Invoice
+                                    </button>
+                                    <button class="btn btn-primary" id="download-invoice">
+                                        <i class="fas fa-download"></i> Download PDF
+                                    </button>
+                                    <button class="btn btn-secondary" id="clear-invoice">
+                                        <i class="fas fa-trash"></i> Clear Form
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div class="invoice-preview-section">
+                            <h3 style="margin: 0 0 1.5rem 0; color: #1d3451;">
+                                <i class="fas fa-eye"></i> Live Preview
+                            </h3>
+                            <div id="invoice-preview">
+                                <p style="text-align: center; color: #6c757d; padding: 3rem;">
+                                    Fill out the form to see your invoice preview
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile/Tablet Preview Button -->
+                    <button class="preview-toggle-btn" id="previewToggleBtn">
+                        <i class="fas fa-eye"></i>
+                        Preview Invoice
+                    </button>
+
+                    <!-- Preview Modal Overlay -->
+                    <div class="preview-modal-overlay" id="previewModalOverlay">
+                        <div class="preview-modal-content">
+                            <div class="preview-modal-header">
+                                <h3><i class="fas fa-eye"></i> Invoice Preview</h3>
+                                <button class="preview-modal-close" id="previewModalClose">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="preview-modal-body" id="previewModalBody">
+                                <!-- Preview content will be cloned here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sand Table Tab -->
+            <div class="profile-tab-content" id="sandtable-practice-tab">
+                <div class="sandtable-container">
                 <!-- Scenario Selector -->
                 <div class="scenario-selector">
                     <h3>Select Scenario</h3>
-                    <select id="scenarioSelect" onchange="loadScenario(this.value)">
+                    <select id="scenarioSelect">
                         <option value="">Choose a scenario...</option>
                         <option value="concert-venue">Outdoor Concert Security</option>
                         <option value="sports-event">Stadium Sports Event</option>
@@ -284,83 +535,168 @@
                         <button class="btn btn-primary" onclick="closeFeedback()">Continue</button>
                     </div>
                 </div>
+                </div>
+            </div>
+
+            <!-- De-Escalation Training Tab -->
+            <div class="profile-tab-content" id="deescalation-practice-tab">
+                <div class="deescalation-container">
+                    <!-- Scenario Selection Screen -->
+                    <div id="deescalation-menu" class="deescalation-menu">
+                        <h3>Select a Scenario</h3>
+                        <div class="scenario-cards">
+                            <div class="scenario-card" data-scenario="lost-wristband">
+                                <i class="fas fa-ticket-alt"></i>
+                                <h4>Lost Wristband at the Gate</h4>
+                                <p>A patron claims they lost their entry wristband and wants to enter the venue.</p>
+                                <div class="scenario-meta">
+                                    <span><i class="fas fa-clock"></i> 10-15 min</span>
+                                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                                </div>
+                                <button class="btn btn-primary">Start Scenario</button>
+                            </div>
+                            
+                            <div class="scenario-card" data-scenario="intoxicated-patron">
+                                <i class="fas fa-wine-glass"></i>
+                                <h4>Intoxicated Patron at Bar</h4>
+                                <p>A female patron has been cut off from alcohol service and is becoming confrontational.</p>
+                                <div class="scenario-meta">
+                                    <span><i class="fas fa-clock"></i> 10-15 min</span>
+                                    <span><i class="fas fa-signal"></i> Advanced</span>
+                                </div>
+                                <button class="btn btn-primary">Start Scenario</button>
+                            </div>
+                            
+                            <div class="scenario-card" data-scenario="denied-entry-id">
+                                <i class="fas fa-id-card"></i>
+                                <h4>Denied Entry - Invalid ID</h4>
+                                <p>A patron is being denied entry because his ID appears to be fake or expired.</p>
+                                <div class="scenario-meta">
+                                    <span><i class="fas fa-clock"></i> 10-15 min</span>
+                                    <span><i class="fas fa-signal"></i> Intermediate</span>
+                                </div>
+                                <button class="btn btn-primary">Start Scenario</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Training Screen -->
+                    <div id="deescalation-training" class="deescalation-training hidden">
+                        <!-- Header with Back Button -->
+                        <div class="training-header">
+                            <h3 id="scenario-title">Lost Wristband at the Gate</h3>
+                            <button class="btn btn-secondary" id="exit-scenario-btn">
+                                <i class="fas fa-arrow-left"></i> Exit Scenario
+                            </button>
+                        </div>
+
+                        <!-- Emotional Meter -->
+                        <div class="emotional-meter">
+                            <div class="meter-label">
+                                <span>Emotional State</span>
+                                <span id="meter-percentage">40%</span>
+                            </div>
+                            <div class="meter-bar">
+                                <div class="meter-fill" id="meter-fill" style="width: 40%"></div>
+                            </div>
+                            <div class="meter-states">
+                                <span class="state-calm">Calm</span>
+                                <span class="state-elevated">Elevated</span>
+                                <span class="state-critical">Critical</span>
+                            </div>
+                        </div>
+
+                        <!-- Subject Photo and Dialogue -->
+                        <div class="subject-interaction">
+                            <div class="subject-photo">
+                                <img id="subject-image" src="/images/de_escalation/1-Distressed.jpg" alt="Subject">
+                                <div class="subject-state-label" id="subject-state">Distressed</div>
+                            </div>
+                            <div class="subject-dialogue">
+                                <div class="dialogue-bubble" id="subject-dialogue">
+                                    Look man, I swear I had my wristband... I think it fell off when I was in the bathroom line. My friends are already inside. I paid $180 for this ticket. You gotta let me in, please.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Response Choices -->
+                        <div class="response-choices" id="response-choices">
+                            <!-- Choices will be populated by JavaScript -->
+                        </div>
+
+                        <!-- Progress Indicator -->
+                        <div class="progress-indicator">
+                            <span>Step <span id="current-step">1</span> of <span id="total-steps">4-5</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Results Screen -->
+                    <div id="deescalation-results" class="deescalation-results hidden">
+                        <div class="results-content">
+                            <div class="results-icon" id="results-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h3 id="results-title">De-escalation Successful!</h3>
+                            <div class="results-photo">
+                                <img id="results-image" src="/images/de_escalation/1-Happy.jpg" alt="Final State">
+                            </div>
+                            <p id="results-message"></p>
+                            <div class="results-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Final Emotional State</span>
+                                    <span class="stat-value" id="final-state">Happy</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Steps Taken</span>
+                                    <span class="stat-value" id="steps-taken">4</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Force Avoided</span>
+                                    <span class="stat-value" id="force-avoided">100%</span>
+                                </div>
+                            </div>
+                            <div class="results-actions">
+                                <button class="btn btn-primary" id="restart-scenario-btn">
+                                    <i class="fas fa-redo"></i> Try Again
+                                </button>
+                                <button class="btn btn-secondary" id="exit-results-btn">
+                                    <i class="fas fa-list"></i> Back to Scenarios
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
         <!-- Assessment Section -->
         <section id="assessment" class="section">
+            <!-- My Assessments -->
             <div class="section-header">
-                <h2>Knowledge Assessment</h2>
-                <p>Test your knowledge of event security guard procedures and protocols</p>
+                <h2>My Assessments</h2>
+                <p>Select a course to view and take its assessments</p>
+            </div>
+            <div id="myAssessmentCoursesContainer" class="assessment-courses-container">
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--secondary);"></i>
+                    <p>Loading your courses...</p>
+                </div>
             </div>
 
-            <div class="assessment-container">
-                <div class="assessment-selector">
-                    <h3>Available Assessments</h3>
-                    <div class="assessment-list">
-                        <div class="assessment-item" data-assessment="communication-protocols" data-required-module="communication-protocols" onclick="startAssessment('communication-protocols')">
-                            <i class="fas fa-walkie-talkie"></i>
-                            <div>
-                                <h4>Module 1: Security Radio Communications</h4>
-                                <p>20 questions • 30 minutes</p>
-                            </div>
-                            <button class="btn btn-small btn-primary">Start</button>
-                        </div>
-                        <div class="assessment-item" data-assessment="stop-the-bleed" data-required-module="stop-the-bleed" onclick="startAssessment('stop-the-bleed')">
-                            <i class="fas fa-hand-holding-medical"></i>
-                            <div>
-                                <h4>Module 2: STOP THE BLEED® Emergency Medical Response</h4>
-                                <p>20 questions • 30 minutes</p>
-                            </div>
-                            <button class="btn btn-small btn-primary">Start</button>
-                        </div>
-                        <div class="assessment-item" data-assessment="threat-assessment" data-required-module="threat-assessment" onclick="startAssessment('threat-assessment')">
-                            <i class="fas fa-eye"></i>
-                            <div>
-                                <h4>Module 3: Threat Assessment & Situational Awareness</h4>
-                                <p>20 questions • 30 minutes</p>
-                            </div>
-                            <button class="btn btn-small btn-primary">Start</button>
-                        </div>
-                        <div class="assessment-item" data-assessment="ics-100" data-required-module="ics-100" onclick="startAssessment('ics-100')">
-                            <i class="fas fa-sitemap"></i>
-                            <div>
-                                <h4>Module 4: Emergency Response & ICS</h4>
-                                <p>15 questions • 20 minutes</p>
-                            </div>
-                            <button class="btn btn-small btn-primary">Start</button>
-                        </div>
-                        <div class="assessment-item" data-assessment="diverse-population" data-required-module="diverse-population" onclick="startAssessment('diverse-population')">
-                            <i class="fas fa-users"></i>
-                            <div>
-                                <h4>Module 5: Interacting with Diverse Populations</h4>
-                                <p>15 questions • 20 minutes</p>
-                            </div>
-                            <button class="btn btn-small btn-primary">Start</button>
-                        </div>
-                        <div class="assessment-item" data-assessment="crowd-management" data-required-module="crowd-management" onclick="startAssessment('crowd-management')">
-                            <i class="fas fa-users-cog"></i>
-                            <div>
-                                <h4>Module 6: Crowd Management & Public Safety</h4>
-                                <p>15 questions • 20 minutes</p>
-                            </div>
-                            <button class="btn btn-small btn-primary">Start</button>
-                        </div>
-                        <div class="assessment-item" data-assessment="use-of-force" data-required-module="use-of-force" onclick="startAssessment('use-of-force')">
-                            <i class="fas fa-balance-scale"></i>
-                            <div>
-                                <h4>Module 7: Legal Aspects & Use of Force</h4>
-                                <p>15 questions • 20 minutes</p>
-                            </div>
-                            <button class="btn btn-small btn-primary">Start</button>
-                        </div>
-                        <div class="assessment-item" data-assessment="comprehensive" data-required-all="true" onclick="startAssessment('comprehensive')">
-                            <i class="fas fa-certificate"></i>
-                            <div>
-                                <h4>Comprehensive Guard Certification</h4>
-                                <p>50 questions • 75 minutes</p>
-                            </div>
-                            <button class="btn btn-small btn-primary">Start</button>
+            <!-- Course Assessments View (shown when course is selected) -->
+            <div id="courseAssessmentsView" class="course-modules-view" style="display: none;">
+                <div class="section-header">
+                    <button class="btn btn-secondary" onclick="backToAssessmentCourses()">
+                        <i class="fas fa-arrow-left"></i> Back to Courses
+                    </button>
+                    <h2 id="selectedAssessmentCourseName">Course Assessments</h2>
+                    <p id="selectedAssessmentCourseDescription"></p>
+                </div>
+                <div class="assessment-container">
+                    <div class="assessment-selector">
+                        <h3>Available Assessments</h3>
+                        <div class="assessment-list" id="assessmentListContainer">
+                            <!-- Assessments will be loaded dynamically when course is selected -->
                         </div>
                     </div>
                 </div>
@@ -463,11 +799,6 @@
 
         <!-- Profile Section -->
         <section id="profile" class="section">
-            <div class="section-header">
-                <h2>Your Profile</h2>
-                <p>Manage your professional identity</p>
-            </div>
-
             <!-- Profile Tabs -->
             <div class="profile-tabs">
                 <button class="profile-tab active" data-tab="about">
@@ -647,6 +978,16 @@
                         </div>
 
                         <div class="progress-section">
+                            <h3>De-escalation Practice</h3>
+                            <div class="deescalation-progress" id="deescalationProgress">
+                                <div class="activity-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <p>Complete de-escalation scenarios to see your results here</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="progress-section">
                             <h3>Recent Activity</h3>
                             <div class="activity-list" id="activityList">
                                 <div class="activity-item">
@@ -724,12 +1065,22 @@
 
     <script src="js/supabase-config.js"></script>
     <script src="js/auth-check.js"></script>
-    <script src="js/student-portal.js"></script>
+    <script src="js/student-portal.js?v=2"></script>
+    <script src="js/assessment-courses.js"></script>
     <script src="js/supabase-integration.js"></script>
     <script src="js/slideshow.js"></script>
     <script src="js/state-laws.js"></script>
     <script src="js/state-selection.js"></script>
     <script src="js/profile.js"></script>
+    <script src="js/deescalation.js"></script>
+    <script src="js/pdf-generator.js"></script>
+    <script src="js/geo-risk-data-cities.js"></script>
+    <script src="js/geo-risk-service.js"></script>
+    <script src="js/facility-type-config.js"></script>
+    <script src="js/site-assessments.js"></script>
+    <script src="js/site-assessments-form.js"></script>
+    <script src="js/site-assessments-report.js"></script>
+    <script src="js/invoice-generator.js"></script>
     <script src="js/messages.js"></script>
     
     <!-- ElevenLabs AI Agent -->

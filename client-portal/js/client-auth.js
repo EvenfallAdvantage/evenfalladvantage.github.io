@@ -1,10 +1,5 @@
 // Client Portal Authentication
-
-// Initialize Supabase
-const SUPABASE_URL = 'https://vaagvairvwmgyzsmymhs.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_IPcFlKw8LEGnk2NYg5qrsw_Rq8yIhR1';
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Note: supabase client is initialized in client-config.js
 
 // Tab switching
 document.querySelectorAll('.auth-tab').forEach(tab => {

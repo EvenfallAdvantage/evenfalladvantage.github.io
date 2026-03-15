@@ -1,8 +1,16 @@
 // Admin Dashboard JavaScript
 
-// Check authentication on load
-window.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOM Content Loaded');
+// Capture hash immediately before anything else
+const initialHash = window.location.hash;
+console.log('=== INITIAL HASH CAPTURED ===', initialHash);
+console.log('Script continuing to execute...');
+
+// Initialize function
+async function initializeDashboard() {
+    console.log('Initializing dashboard...');
+    console.log('Hash at initialization:', window.location.hash);
+    console.log('Initial hash captured:', initialHash);
+    
     try {
         await checkAuth();
         console.log('Auth check complete');
@@ -13,7 +21,80 @@ window.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         console.error('Error during initialization:', error);
     }
-});
+    
+    // Handle hash navigation OUTSIDE the try-catch to ensure it always runs
+    try {
+        console.log('=== STARTING HASH NAVIGATION CHECK ===');
+        // Handle hash navigation from external links (e.g., from assessments page)
+        // Use the initially captured hash in case it gets lost
+        const hash = initialHash || window.location.hash;
+        console.log('Using hash for navigation:', hash);
+        
+        if (hash && hash.length > 1) {
+            const section = hash.substring(1); // Remove the #
+            console.log('Hash detected, will navigate to section:', section);
+            // Use longer delay to ensure all sections are loaded
+            setTimeout(() => {
+                console.log('NOW attempting to switch to section:', section);
+                const targetSection = document.getElementById(`${section}-section`);
+                console.log('Target section element found:', !!targetSection);
+                if (targetSection) {
+                    console.log('Calling switchSection for:', section);
+                    switchSection(section);
+                } else {
+                    console.error('Section not found:', section + '-section');
+                }
+            }, 500);
+        } else {
+            console.log('No hash detected, staying on overview');
+        }
+    } catch (hashError) {
+        console.error('Error during hash navigation:', hashError);
+    }
+}
+
+// Immediate hash navigation - runs before async initialization
+console.log('Checking for immediate hash navigation...');
+if (initialHash && initialHash.length > 1) {
+    console.log('Hash found, will navigate after DOM loads');
+    // Wait for DOM to be ready, then navigate
+    const navigateToHash = () => {
+        const section = initialHash.substring(1);
+        console.log('Navigating to section from hash:', section);
+        const targetSection = document.getElementById(`${section}-section`);
+        if (targetSection) {
+            // Hide all sections
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            // Show target section
+            targetSection.classList.add('active');
+            // Update nav
+            document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.section === section) {
+                    link.classList.add('active');
+                }
+            });
+            console.log('Successfully navigated to:', section);
+        } else {
+            console.error('Section not found:', section);
+        }
+    };
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', navigateToHash);
+    } else {
+        navigateToHash();
+    }
+}
+
+// Check if DOM is already loaded for main initialization
+if (document.readyState === 'loading') {
+    console.log('DOM still loading, adding event listener');
+    document.addEventListener('DOMContentLoaded', initializeDashboard);
+} else {
+    console.log('DOM already loaded, initializing immediately');
+    initializeDashboard();
+}
 
 // Show alert message
 function showAlert(message, type = 'info') {
@@ -136,6 +217,9 @@ function setupEventListeners() {
 
 // Switch between sections
 function switchSection(sectionName) {
+    // Update URL hash
+    window.location.hash = sectionName;
+    
     // Update nav - both sidebar and header
     document.querySelectorAll('.nav-item, .nav-link[data-section]').forEach(item => {
         item.classList.remove('active');
@@ -158,7 +242,9 @@ function switchSection(sectionName) {
     }
 
     // Load section data
+    console.log('About to call loadSectionData for:', sectionName);
     loadSectionData(sectionName);
+    console.log('Called loadSectionData for:', sectionName);
 }
 
 // Load dashboard data
@@ -426,39 +512,92 @@ async function loadRosters() {
     `;
 }
 
-// Load courses
+// Load courses for admin course selection
 async function loadCourses() {
     try {
-        const { data: modules, error } = await supabase
-            .from('training_modules')
-            .select('*');
+        // Load all active courses
+        const { data: courses, error } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('is_active', true)
+            .order('display_order');
 
         if (error) throw error;
 
-        // Define correct module order
-        const moduleOrder = [
-            'welcome-materials',       // Module 0
-            'communication-protocols',  // Module 1
-            'stop-the-bleed',          // Module 2
-            'threat-assessment',       // Module 3
-            'ics-100',                 // Module 4
-            'diverse-population',      // Module 5
-            'crowd-management',        // Module 6
-            'use-of-force',           // Module 7
-            'comprehensive'            // Module 8
-        ];
-
-        // Sort modules by the defined order
-        const sortedModules = modules.sort((a, b) => {
-            const indexA = moduleOrder.indexOf(a.module_code);
-            const indexB = moduleOrder.indexOf(b.module_code);
-            return indexA - indexB;
-        });
-
-        displayCourses(sortedModules);
+        displayAdminCourses(courses || []);
     } catch (error) {
         console.error('Error loading courses:', error);
     }
+}
+
+// Display courses in admin portal
+function displayAdminCourses(courses) {
+    const grid = document.getElementById('adminCoursesGrid');
+    if (!grid) return;
+
+    if (!courses || courses.length === 0) {
+        grid.innerHTML = '<p>No courses found</p>';
+        return;
+    }
+
+    grid.innerHTML = courses.map(course => {
+        return `
+            <div class="course-card" onclick="selectAdminCourse('${course.id}', '${course.course_name}')" style="cursor: pointer;">
+                <div class="course-card-header">
+                    <h3>${course.course_name}</h3>
+                    <span class="badge badge-primary">${course.course_code}</span>
+                </div>
+                <div class="course-card-body">
+                    <p>${course.description || 'No description available'}</p>
+                    <div class="course-meta">
+                        <span><i class="fas ${course.icon || 'fa-graduation-cap'}"></i> ${course.difficulty_level || 'Course'}</span>
+                        <span><i class="fas fa-clock"></i> ${course.duration_hours || 'TBD'} hours</span>
+                        <span><i class="fas fa-check-circle"></i> Active</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Select a course to view its modules
+async function selectAdminCourse(courseId, courseName) {
+    try {
+        // Hide course selection, show module management
+        document.getElementById('courseSelectionView').style.display = 'none';
+        document.getElementById('moduleManagementView').style.display = 'block';
+        document.getElementById('selectedCourseTitle').textContent = courseName;
+
+        // Load modules for this course
+        const { data: courseModules, error: cmError } = await supabase
+            .from('course_modules')
+            .select('module_id')
+            .eq('course_id', courseId)
+            .order('module_order');
+
+        if (cmError) throw cmError;
+
+        const moduleIds = courseModules.map(cm => cm.module_id);
+
+        // Fetch training module details
+        const { data: modules, error: modulesError } = await supabase
+            .from('training_modules')
+            .select('*')
+            .in('id', moduleIds)
+            .order('display_order');
+
+        if (modulesError) throw modulesError;
+
+        displayCourses(modules || []);
+    } catch (error) {
+        console.error('Error loading course modules:', error);
+    }
+}
+
+// Back to course selection
+function backToAdminCourses() {
+    document.getElementById('courseSelectionView').style.display = 'block';
+    document.getElementById('moduleManagementView').style.display = 'none';
 }
 
 // Display courses
@@ -471,36 +610,30 @@ function displayCourses(courses) {
         return;
     }
 
-    // Module number mapping
-    const moduleNumbers = {
-        'welcome-materials': 0,
-        'communication-protocols': 1,
-        'stop-the-bleed': 2,
-        'threat-assessment': 3,
-        'ics-100': 4,
-        'diverse-population': 5,
-        'crowd-management': 6,
-        'use-of-force': 7,
-        'comprehensive': 8
-    };
-
     grid.innerHTML = courses.map(course => {
-        const moduleNum = moduleNumbers[course.module_code];
-        const displayName = moduleNum ? `Module ${moduleNum}: ${course.module_name}` : course.module_name;
+        // Determine course category based on module_code
+        const isSystemaScout = course.module_code?.startsWith('systema-scout');
+        const categoryBadge = isSystemaScout 
+            ? '<span class="badge badge-success">Systema Scout</span>' 
+            : '<span class="badge badge-primary">Unarmed Guard Core</span>';
         
         return `
             <div class="course-card">
                 <div class="course-card-header">
-                    <h3>${displayName}</h3>
-                    <span class="badge badge-primary">${course.module_code}</span>
+                    <h3>${course.module_name}</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        ${categoryBadge}
+                        <span class="badge badge-secondary">${course.module_code}</span>
+                    </div>
                 </div>
                 <div class="course-card-body">
                     <p>${course.description || 'No description available'}</p>
                     <div class="course-meta">
-                        <span><i class="fas fa-book"></i> Module</span>
-                        <span><i class="fas fa-users"></i> Active</span>
+                        <span><i class="fas ${course.icon || 'fa-book'}"></i> ${course.difficulty_level || 'Module'}</span>
+                        <span><i class="fas fa-clock"></i> ${course.estimated_time || 'TBD'}</span>
+                        <span><i class="fas ${course.is_active ? 'fa-check-circle' : 'fa-times-circle'}"></i> ${course.is_active ? 'Active' : 'Inactive'}</span>
                     </div>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                         <button class="btn btn-secondary btn-small" onclick="editCourse('${course.id}')">
                             <i class="fas fa-edit"></i> Edit Module
                         </button>
@@ -548,6 +681,7 @@ async function deleteCourse(id, moduleName) {
 
 // Load section data when switching
 function loadSectionData(section) {
+    console.log('loadSectionData called for section:', section);
     switch(section) {
         case 'overview':
             loadOverviewStats();
@@ -566,6 +700,17 @@ function loadSectionData(section) {
             break;
         case 'courses':
             loadCourses();
+            break;
+        case 'assessments':
+            console.log('Assessments case triggered');
+            console.log('loadAssessments function exists:', typeof loadAssessments === 'function');
+            // Load assessments (function from assessment-editor.js)
+            if (typeof loadAssessments === 'function') {
+                console.log('Calling loadAssessments()');
+                loadAssessments();
+            } else {
+                console.error('loadAssessments function not found!');
+            }
             break;
     }
 }
@@ -1197,6 +1342,8 @@ window.showCreateCourseModal = showCreateCourseModal;
 window.closeModal = closeModal;
 window.createStudent = createStudent;
 window.createClient = createClient;
+window.selectAdminCourse = selectAdminCourse;
+window.backToAdminCourses = backToAdminCourses;
 window.issueCertificate = issueCertificate;
 window.viewStudent = viewStudent;
 window.editStudent = editStudent;

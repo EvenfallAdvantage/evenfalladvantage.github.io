@@ -48,10 +48,10 @@ body > nav:first-child {
 
 :root {
     /* Evenfall Advantage Official Color Scheme */
-    --primary-color: #162029;  /* Dark blue-gray */
-    --secondary-color: #e74c3c;  /* Red accent */
+    --primary-color: #1d3451;  /* Dark blue-gray */
+    --secondary-color: #dd8c33;  /* Evenfall Advantage Orange */
     --accent-color: #3498db;  /* Blue accent */
-    --orange: #ff6b35;  /* Evenfall Advantage Orange */
+    --orange: #dd8c33;  /* Evenfall Advantage Orange */
     --light: #f8f9fa;
     --dark: #212529;
     --gray: #6c757d;
@@ -150,7 +150,7 @@ body {
 .nav-logo {
     width: auto;
     height: auto;
-    min-width: 286px;
+    min-width: 257px;
     max-width: 100%;
     max-height: 154px;
     display: block;
@@ -292,6 +292,7 @@ body {
 .section {
     display: none;
     animation: fadeIn 0.3s ease;
+    padding-top: 0;
 }
 
 .section.active {
@@ -364,12 +365,12 @@ body {
 
 .hero-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
 .hero-card:hover i {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 .hero-card i {
@@ -386,7 +387,7 @@ body {
 }
 
 .hero-card:hover h3 {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 .hero-card p {
@@ -394,29 +395,33 @@ body {
 }
 
 @keyframes border-pulse {
-    0% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.5); }
-    50% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 20px rgba(231, 76, 60, 0.8); }
-    100% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.5); }
+    0% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.5); }
+    50% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 20px rgba(213, 155, 60, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.5); }
 }
 
 @keyframes icon-pulse {
-    0% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.5); }
-    50% { box-shadow: 0 0 18px rgba(231, 76, 60, 0.8); }
-    100% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.5); }
+    0% { box-shadow: 0 0 12px rgba(213, 155, 60, 0.5); }
+    50% { box-shadow: 0 0 18px rgba(213, 155, 60, 0.8); }
+    100% { box-shadow: 0 0 12px rgba(213, 155, 60, 0.5); }
 }
 
 /* Buttons */
 .btn {
-    padding: 0.75rem 1.5rem;
+    padding: 0.875rem 1.5rem;
     border: none;
     border-radius: 0.5rem;
-    font-size: 1rem;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
+    min-height: 44px;
+    text-align: center;
+    -webkit-tap-highlight-color: rgba(0,0,0,0.1);
 }
 
 .btn-primary {
@@ -440,9 +445,9 @@ body {
 }
 
 .btn-secondary:hover {
-    background: #e74c3c;
+    background: #dd8c33;
     transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.5);
 }
 
 .btn-large {
@@ -641,7 +646,7 @@ body {
 
 .progress-bar-container .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--orange), #ff8c5a);
+    background: linear-gradient(90deg, var(--orange), #e0a84d);
     transition: width 0.3s ease;
 }
 
@@ -796,8 +801,8 @@ body {
 }
 
 .slide-quiz-option.selected {
-    border-color: #162029 !important;
-    background-color: #162029 !important;
+    border-color: #1d3451 !important;
+    background-color: #1d3451 !important;
     color: #ffffff !important;
 }
 
@@ -1070,33 +1075,28 @@ body {
 
 .canvas-item {
     position: absolute;
-    background: var(--surface);
-    padding: 1rem;
-    border-radius: 0.5rem;
-    box-shadow: var(--shadow);
     cursor: move;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    min-width: 100px;
-    border: 2px solid var(--border-color);
-    transition: border-color 0.3s ease;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    transition: transform 0.2s ease;
+    z-index: 100;
 }
 
 .canvas-item:hover {
-    border-color: var(--primary-color);
+    transform: scale(1.2);
 }
 
 .canvas-item i {
     font-size: 2rem;
     color: var(--primary-color);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 
 .canvas-item span {
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-align: center;
+    display: none;
 }
 
 .canvas-item .delete-btn {
@@ -1123,9 +1123,9 @@ body {
 .scenario-description {
     margin-top: 1.5rem;
     padding: 1.5rem;
-    background: var(--background);
+    background: var(--surface);
     border-radius: 0.5rem;
-    border-left: 4px solid var(--primary-color);
+    border-left: 4px solid var(--secondary-color);
 }
 
 .scenario-description h4 {
@@ -1140,6 +1140,465 @@ body {
 
 .scenario-description li {
     margin-bottom: 0.5rem;
+}
+
+/* Event Map Styles */
+.event-map {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    min-height: 500px;
+}
+
+.map-location {
+    position: absolute;
+    border: 2px solid;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+.map-location:hover {
+    opacity: 1;
+    transform: scale(1.02);
+    z-index: 10;
+}
+
+.location-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 0.25rem;
+    color: #333;
+    text-shadow: 0 0 3px white;
+}
+
+/* Map location types */
+.map-stage {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: #e74c3c;
+}
+
+.map-entry {
+    background: rgba(52, 152, 219, 0.2);
+    border-color: #3498db;
+}
+
+.map-exit {
+    background: rgba(46, 204, 113, 0.2);
+    border-color: #2ecc71;
+}
+
+.map-zone {
+    background: rgba(155, 89, 182, 0.15);
+    border-color: #9b59b6;
+    border-style: dashed;
+}
+
+.map-field {
+    background: rgba(39, 174, 96, 0.2);
+    border-color: #27ae60;
+}
+
+.map-parking {
+    background: rgba(149, 165, 166, 0.2);
+    border-color: #95a5a6;
+    border-style: dashed;
+}
+
+.map-concourse {
+    background: rgba(241, 196, 15, 0.2);
+    border-color: #f1c40f;
+}
+
+/* De-Escalation Training Styles */
+.deescalation-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Scenario Selection Menu */
+.deescalation-menu {
+    text-align: center;
+}
+
+.deescalation-menu h3 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.scenario-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.scenario-card {
+    background: var(--surface);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: center;
+}
+
+.scenario-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
+    animation: border-pulse 2s infinite;
+}
+
+.scenario-card i {
+    font-size: 3rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    transition: color 0.3s ease;
+}
+
+.scenario-card:hover i {
+    color: #dd8c33;
+}
+
+.scenario-card h4 {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
+}
+
+.scenario-card:hover h4 {
+    color: #dd8c33;
+}
+
+.scenario-card p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.scenario-meta {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.scenario-meta i {
+    font-size: 1rem;
+    margin-right: 0.5rem;
+}
+
+.personal-best-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #1d3451;
+    color: #ffffff;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin: 1rem 0;
+    box-shadow: 0 2px 8px rgba(22, 32, 41, 0.4);
+}
+
+.personal-best-badge i {
+    font-size: 1.1rem;
+    color: #d4a574 !important;
+    display: flex;
+    align-items: center;
+    margin: 0;
+}
+
+.scenario-card:hover .personal-best-badge i {
+    color: #d4a574 !important;
+}
+
+/* Active Training Screen */
+.deescalation-training {
+    background: var(--card-background);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: var(--card-shadow);
+}
+
+.training-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.training-header h3 {
+    flex: 1;
+    font-size: 3.2rem;
+    color: var(--text-primary);
+}
+
+/* Emotional Meter */
+.emotional-meter {
+    margin-bottom: 2rem;
+}
+
+.meter-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.meter-bar {
+    width: 100%;
+    height: 30px;
+    background: linear-gradient(to right, #27ae60 0%, #f39c12 50%, #e74c3c 100%);
+    border-radius: 15px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.meter-fill {
+    height: 100%;
+    background: rgba(255,255,255,0.3);
+    border-right: 3px solid white;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.meter-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 10px;
+    height: 100%;
+    background: white;
+    box-shadow: 0 0 10px rgba(255,255,255,0.8);
+}
+
+.meter-states {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.state-calm { color: #27ae60; }
+.state-elevated { color: #f39c12; }
+.state-critical { color: #e74c3c; }
+
+/* Subject Interaction */
+.subject-interaction {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.subject-photo {
+    position: relative;
+}
+
+.subject-photo img {
+    width: 100%;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.subject-state-label {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.subject-dialogue {
+    display: flex;
+    align-items: center;
+}
+
+.dialogue-bubble {
+    background: #f8f9fa;
+    border-left: 4px solid var(--primary-color);
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Response Choices */
+.response-choices {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.choice-button {
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.choice-button:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+    transform: translateX(5px);
+}
+
+.choice-button::before {
+    content: attr(data-choice);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.choice-button:hover::before {
+    background: white;
+    color: var(--primary-color);
+}
+
+/* Progress Indicator */
+.progress-indicator {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Results Screen */
+.deescalation-results {
+    background: var(--card-background);
+    border-radius: 1rem;
+    padding: 3rem;
+    box-shadow: var(--card-shadow);
+}
+
+.results-content {
+    max-width: 700px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.results-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+}
+
+.results-icon.success i {
+    color: #27ae60;
+}
+
+.results-icon.fail i {
+    color: #e74c3c;
+}
+
+.results-content h3 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.results-photo {
+    margin-bottom: 2rem;
+}
+
+.results-photo img {
+    max-width: 300px;
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.results-content p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.results-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.results-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .results-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .scenario-cards {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Feedback Panel */
@@ -1546,7 +2005,7 @@ body {
 }
 
 .stat-card {
-    background: linear-gradient(135deg, var(--orange), #ff8c5a);
+    background: linear-gradient(135deg, var(--orange), #e0a84d);
     color: white;
     padding: 2rem;
     border-radius: 1rem;
@@ -1591,6 +2050,28 @@ body {
     gap: 1.5rem;
 }
 
+.course-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.course-title {
+    color: #d4a574;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.course-modules {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-left: 1rem;
+}
+
 .progress-item {
     display: flex;
     flex-direction: column;
@@ -1621,7 +2102,7 @@ body {
 
 .progress-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--orange), #ff8c5a);
+    background: linear-gradient(90deg, var(--orange), #e0a84d);
     transition: width 0.5s ease;
 }
 
@@ -1958,7 +2439,7 @@ body {
 .message-modal textarea:focus {
     outline: none;
     border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+    box-shadow: 0 0 0 3px rgba(213, 155, 60, 0.1);
 }
 
 .message-modal textarea {
@@ -1991,7 +2472,7 @@ body {
     .nav-logo {
         position: static !important;
         left: auto !important;
-        min-width: 220px !important;
+        min-width: 198px !important;
         max-height: 121px !important;
     }
 
@@ -2300,6 +2781,12 @@ body {
     gap: 1rem;
 }
 
+.deescalation-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
 .assessment-history-item {
     background: white;
     border: 1px solid var(--border);
@@ -2338,6 +2825,17 @@ body {
     color: var(--success);
 }
 
+.score-badge.perfect {
+    background: linear-gradient(135deg, #dd8c33 0%, #ff9d47 100%);
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.score-badge.warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
 .score-badge.danger {
     background: #fee2e2;
     color: var(--danger);
@@ -2371,13 +2869,42 @@ body {
 }
 
 .assessment-history-actions .btn-secondary:hover {
-    background: #ff8c5a;
-    border-color: #ff8c5a;
+    background: #e0a84d;
+    border-color: #e0a84d;
     transform: translateY(-2px);
 }
 
 /* Course Cards in Learn Section */
 .courses-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.courses-container .no-courses-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    color: #666;
+}
+
+.courses-container .no-courses-message i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    display: block;
+    color: #ccc;
+}
+
+.courses-container .no-courses-message p {
+    text-align: center;
+    margin: 0;
+}
+
+/* Assessment Courses Container - Grid Layout (matching Learn tab) */
+.assessment-courses-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 2rem;
@@ -2399,13 +2926,9 @@ body {
     transform: translateY(-4px);
 }
 
-.course-card-inline.enrolled {
-    border: 2px solid var(--secondary);
-}
-
 .course-thumbnail-inline {
     width: 100%;
-    height: 180px;
+    height: 200px;
     background: linear-gradient(135deg, var(--primary) 0%, #1a252f 100%);
     display: flex;
     align-items: center;
@@ -2414,8 +2937,8 @@ body {
 }
 
 .course-thumbnail-inline i {
-    font-size: 3.5rem;
-    color: rgba(255,255,255,0.3);
+    font-size: 12rem;
+    color: rgba(255,255,255,0.4);
 }
 
 .course-card-content {
@@ -2472,7 +2995,7 @@ body {
 
 .progress-fill-inline {
     height: 100%;
-    background: linear-gradient(90deg, var(--secondary), #ff8c42);
+    background: linear-gradient(90deg, #dd8c33, #ff9d47);
     transition: width 0.3s ease;
 }
 
@@ -2537,9 +3060,278 @@ body {
     color: #ccc;
 }
 
+.no-courses-message p {
+    text-align: center;
+    margin: 0;
+}
+
+/* Locked Content Styling */
+.locked-tab {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.locked-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.locked-icon {
+    font-size: 5rem;
+    color: #dd8c33;
+    margin-bottom: 2rem;
+}
+
+.locked-content h2 {
+    color: #1d3451;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.locked-description {
+    font-size: 1.2rem;
+    color: #6c757d;
+    margin-bottom: 3rem;
+    line-height: 1.6;
+}
+
+.locked-benefits,
+.locked-tools {
+    background: #f8f9fa;
+    padding: 2rem;
+    border-radius: 1rem;
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.locked-benefits h3,
+.locked-tools h3 {
+    color: #1d3451;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.locked-benefits ul {
+    list-style: none;
+    padding: 0;
+}
+
+.locked-benefits li {
+    padding: 0.75rem 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.locked-benefits li i {
+    color: #28a745;
+    margin-right: 0.75rem;
+}
+
+.tool-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.tool-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    border: 2px solid #dee2e6;
+}
+
+.tool-card i {
+    font-size: 3rem;
+    color: #dd8c33;
+    margin-bottom: 1rem;
+}
+
+.tool-card h4 {
+    color: #1d3451;
+    margin-bottom: 0.5rem;
+}
+
+.tool-card p {
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+.locked-actions {
+    margin: 3rem 0;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.locked-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px solid #dee2e6;
+    color: #6c757d;
+}
+
+/* Enrollment Modal */
+.enrollment-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.enrollment-modal-content {
+    background: white;
+    border-radius: 1rem;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+.enrollment-modal-header {
+    background: linear-gradient(135deg, #1d3451 0%, #2a4a6a 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: 1rem 1rem 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.enrollment-modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: transform 0.2s ease;
+}
+
+.modal-close:hover {
+    transform: scale(1.1);
+}
+
+.enrollment-modal-body {
+    padding: 2rem;
+}
+
+.enrollment-modal-body p {
+    font-size: 1.1rem;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+}
+
+.enrollment-benefits {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.enrollment-benefits h3 {
+    color: #1d3451;
+    margin-bottom: 1rem;
+}
+
+.enrollment-benefits ul {
+    list-style: none;
+    padding: 0;
+}
+
+.enrollment-benefits li {
+    padding: 0.5rem 0;
+    color: #2c3e50;
+}
+
+.enrollment-modal-footer {
+    padding: 1.5rem 2rem;
+    border-top: 2px solid #dee2e6;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .locked-content {
+        padding: 2rem 1rem;
+    }
+
+    .locked-icon {
+        font-size: 3.5rem;
+    }
+
+    .locked-content h2 {
+        font-size: 1.75rem;
+    }
+
+    .locked-description {
+        font-size: 1rem;
+    }
+
+    .tool-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .locked-actions {
+        flex-direction: column;
+    }
+
+    .locked-actions .btn {
+        width: 100%;
+    }
+
+    .enrollment-modal-content {
+        width: 95%;
+    }
+
+    .enrollment-modal-footer {
+        flex-direction: column;
+    }
+
+    .enrollment-modal-footer .btn {
+        width: 100%;
+    }
+}
+
 /* ElevenLabs AI Agent Custom Styling */
 elevenlabs-convai::part(button) {
-    background-color: #e74c3c !important;
+    background-color: #dd8c33 !important;
 }
 
 elevenlabs-convai::part(button):hover {

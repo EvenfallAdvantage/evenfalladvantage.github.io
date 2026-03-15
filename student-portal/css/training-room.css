@@ -25,8 +25,8 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    background: #162029;
-    border-bottom: 2px solid #e74c3c;
+    background: #1d3451;
+    border-bottom: 2px solid #dd8c33;
     z-index: 100;
 }
 
@@ -66,7 +66,7 @@ body {
 }
 
 .toggle-btn {
-    background: #e74c3c;
+    background: #dd8c33;
     color: white;
 }
 
@@ -128,7 +128,7 @@ body {
 }
 
 .meet-card {
-    background: #162029;
+    background: #1d3451;
     border-radius: 1rem;
     padding: 3rem 2rem;
     text-align: center;
@@ -136,7 +136,7 @@ body {
 }
 
 .meet-card i {
-    color: #e74c3c;
+    color: #dd8c33;
     margin-bottom: 1.5rem;
 }
 
@@ -172,12 +172,12 @@ body {
 
 .input-group input:focus {
     outline: none;
-    border-color: #e74c3c;
+    border-color: #dd8c33;
 }
 
 .join-btn {
     padding: 0.875rem 1.5rem;
-    background: #e74c3c;
+    background: #dd8c33;
     color: white;
     border: none;
     border-radius: 0.5rem;
@@ -206,7 +206,7 @@ body {
 
 .meet-instructions p {
     margin-bottom: 0.75rem;
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 .meet-instructions ol {
@@ -253,7 +253,7 @@ body {
 /* Agent Westwood Sidebar */
 .clunt-sidebar {
     width: 400px;
-    background: #162029;
+    background: #1d3451;
     display: flex;
     flex-direction: column;
     border-left: 2px solid #34495e;
@@ -272,14 +272,14 @@ body {
     gap: 1rem;
     padding: 1.5rem;
     background: #1e2d3d;
-    border-bottom: 2px solid #e74c3c;
+    border-bottom: 2px solid #dd8c33;
     flex-shrink: 0;
 }
 
 .ai-avatar {
     width: 50px;
     height: 50px;
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    background: linear-gradient(135deg, #dd8c33, #c48a33);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -330,7 +330,7 @@ body {
 }
 
 .close-btn:hover {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 /* Sidebar Content */
@@ -343,7 +343,7 @@ body {
 
 .welcome-card {
     background: #1e2d3d;
-    border-left: 4px solid #e74c3c;
+    border-left: 4px solid #dd8c33;
     padding: 1rem;
     border-radius: 0.5rem;
     margin-bottom: 1rem;
@@ -406,7 +406,7 @@ body {
 }
 
 .message.user .message-bubble {
-    background: #e74c3c;
+    background: #dd8c33;
     color: white;
     border-bottom-right-radius: 0.25rem;
 }
@@ -472,7 +472,7 @@ body {
 
 .quick-btn {
     padding: 0.5rem 0.75rem;
-    background: #162029;
+    background: #1d3451;
     color: #fff;
     border: 1px solid #34495e;
     border-radius: 1rem;
@@ -482,8 +482,8 @@ body {
 }
 
 .quick-btn:hover {
-    background: #e74c3c;
-    border-color: #e74c3c;
+    background: #dd8c33;
+    border-color: #dd8c33;
 }
 
 /* Input Area */
@@ -497,7 +497,7 @@ body {
     padding: 0.75rem;
     border: 2px solid #34495e;
     border-radius: 0.5rem;
-    background: #162029;
+    background: #1d3451;
     color: #fff;
     font-size: 0.9rem;
     font-family: inherit;
@@ -507,13 +507,13 @@ body {
 
 #questionInput:focus {
     outline: none;
-    border-color: #e74c3c;
+    border-color: #dd8c33;
 }
 
 .send-btn {
     width: 50px;
     height: 50px;
-    background: #e74c3c;
+    background: #dd8c33;
     color: white;
     border: none;
     border-radius: 0.5rem;

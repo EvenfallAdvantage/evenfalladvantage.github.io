@@ -112,7 +112,11 @@ async function saveProgressToDatabase(studentId) {
                                 score: result.score,
                                 passed: passed,
                                 time_taken_minutes: result.timeTaken || 0,
-                                answers_json: result.answers || {}
+                                answers_json: {
+                                    questions: result.questions || [],
+                                    userAnswers: result.userAnswers || [],
+                                    answers: result.answers || {}
+                                }
                             };
                             
                             // Add state code if this is Module 7
@@ -131,7 +135,6 @@ async function saveProgressToDatabase(studentId) {
                             if (passed) {
                                 await StudentData.updateModuleProgress(studentId, moduleResult.data.id, {
                                     progress_percentage: 100,
-                                    last_accessed: new Date().toISOString(),
                                     completed_at: new Date().toISOString()
                                 });
                                 console.log(`✅ Marked module as completed: ${result.module}`);
@@ -148,7 +151,37 @@ async function saveProgressToDatabase(studentId) {
             }
         }
         
-        console.log('✅ Database sync complete!');
+        // Save scenario results (de-escalation personal bests)
+        if (progressData.scenarioResults && Object.keys(progressData.scenarioResults).length > 0) {
+            for (const [scenarioId, result] of Object.entries(progressData.scenarioResults)) {
+                try {
+                    // Check if a result already exists for this scenario
+                    const { data: existingResults } = await supabase
+                        .from('scenario_results')
+                        .select('*')
+                        .eq('student_id', studentId)
+                        .eq('scenario_id', scenarioId)
+                        .order('steps', { ascending: true })
+                        .limit(1);
+                    
+                    // Only save if this is a new personal best (fewer steps) or first attempt
+                    if (!existingResults || existingResults.length === 0 || result.steps < existingResults[0].steps) {
+                        await supabase
+                            .from('scenario_results')
+                            .insert({
+                                student_id: studentId,
+                                scenario_id: scenarioId,
+                                steps: result.steps,
+                                success: result.success,
+                                completed_at: result.date
+                            });
+                        console.log(`✅ Saved scenario result: ${scenarioId} (${result.steps} steps)`);
+                    }
+                } catch (err) {
+                    console.warn(`Failed to save scenario ${scenarioId}:`, err.message);
+                }
+            }
+        }
         
         // Show success notification
         showSyncSuccess();
@@ -213,7 +246,8 @@ async function loadProgressFromDatabase() {
             completedModules: [],
             completedScenarios: [],
             assessmentResults: [],
-            activities: []
+            activities: [],
+            scenarioResults: {}
         };
         
         // Get module progress from database
@@ -254,6 +288,9 @@ async function loadProgressFromDatabase() {
                         console.warn('Could not find module code for module_id:', moduleId, 'Assessment:', r.assessments?.assessment_name);
                     }
                     
+                    // Extract questions and userAnswers from answers_json if available
+                    const answersData = r.answers_json || {};
+                    
                     return {
                         module: moduleCode || 'unknown',
                         assessment: moduleCode || 'unknown',
@@ -261,7 +298,9 @@ async function loadProgressFromDatabase() {
                         passed: r.passed,
                         date: r.completed_at,
                         timeTaken: r.time_taken_minutes,
-                        state_code: r.state_code // Include state code for Module 7
+                        state_code: r.state_code, // Include state code for Module 7
+                        questions: answersData.questions || [],
+                        userAnswers: answersData.userAnswers || []
                     };
                 });
             
@@ -286,6 +325,42 @@ async function loadProgressFromDatabase() {
             console.log('Loaded assessment results:', validAttempts.length, '(deduplicated from', assessmentResults.length, 'total)');
         }
         
+        // Get scenario results from database
+        const { data: scenarioResults, error: scenarioError } = await supabase
+            .from('scenario_results')
+            .select('*')
+            .eq('student_id', user.id)
+            .order('completed_at', { ascending: false });
+        
+        if (!scenarioError && scenarioResults && scenarioResults.length > 0) {
+            console.log('Raw scenario results from DB:', scenarioResults.length);
+            
+            // Keep only the best (lowest steps) for each scenario
+            const bestScenarios = {};
+            const completedScenarioIds = new Set();
+            
+            scenarioResults.forEach(result => {
+                // Add to completed scenarios list (any successful completion)
+                if (result.success) {
+                    completedScenarioIds.add(result.scenario_id);
+                }
+                
+                // Track best attempt
+                if (!bestScenarios[result.scenario_id] || result.steps < bestScenarios[result.scenario_id].steps) {
+                    bestScenarios[result.scenario_id] = {
+                        steps: result.steps,
+                        date: result.completed_at,
+                        success: result.success
+                    };
+                }
+            });
+            
+            localProgress.scenarioResults = bestScenarios;
+            localProgress.completedScenarios = Array.from(completedScenarioIds);
+            console.log('Loaded scenario results:', Object.keys(bestScenarios).length);
+            console.log('Loaded completed scenarios:', localProgress.completedScenarios.length);
+        }
+        
         // Save to localStorage (as cache)
         localStorage.setItem('securityTrainingProgress', JSON.stringify(localProgress));
         
@@ -302,7 +377,8 @@ async function loadProgressFromDatabase() {
             completedModules: [],
             completedScenarios: [],
             assessmentResults: [],
-            activities: []
+            activities: [],
+            scenarioResults: {}
         };
         localStorage.setItem('securityTrainingProgress', JSON.stringify(emptyProgress));
     }

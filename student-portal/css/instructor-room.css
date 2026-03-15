@@ -21,7 +21,7 @@
     font-size: 0.9rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: #e74c3c;
+    color: #dd8c33;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -49,7 +49,7 @@
 .link-container input {
     flex: 1;
     padding: 0.5rem;
-    background: #162029;
+    background: #1d3451;
     border: 1px solid #34495e;
     border-radius: 0.25rem;
     color: #fff;
@@ -58,7 +58,7 @@
 
 .copy-btn {
     padding: 0.5rem;
-    background: #e74c3c;
+    background: #dd8c33;
     border: none;
     border-radius: 0.25rem;
     color: white;
@@ -81,7 +81,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem;
-    background: #162029;
+    background: #1d3451;
     border-radius: 0.25rem;
     margin-bottom: 0.5rem;
     font-size: 0.85rem;
@@ -92,7 +92,7 @@
 }
 
 .participant-item.muted i {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 .empty-state {
@@ -106,7 +106,7 @@
 .action-btn {
     width: 100%;
     padding: 0.75rem;
-    background: #162029;
+    background: #1d3451;
     border: 1px solid #34495e;
     border-radius: 0.25rem;
     color: #fff;
@@ -121,11 +121,11 @@
 
 .action-btn:hover {
     background: #34495e;
-    border-color: #e74c3c;
+    border-color: #dd8c33;
 }
 
 .action-btn i {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 /* Agent Westwood Stats */
@@ -142,12 +142,12 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.75rem;
-    background: #162029;
+    background: #1d3451;
     border-radius: 0.25rem;
 }
 
 .stat i {
-    color: #e74c3c;
+    color: #dd8c33;
     font-size: 1.2rem;
 }
 
@@ -176,7 +176,7 @@
     font-size: 0.9rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 .checkbox-label {
@@ -197,7 +197,7 @@
 .settings-group input[type="text"] {
     width: 100%;
     padding: 0.5rem;
-    background: #162029;
+    background: #1d3451;
     border: 1px solid #34495e;
     border-radius: 0.25rem;
     color: #fff;

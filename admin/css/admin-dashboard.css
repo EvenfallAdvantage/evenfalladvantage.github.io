@@ -1,11 +1,11 @@
 /* Admin Dashboard Styles */
 :root {
-    --admin-primary: #162029;
-    --admin-secondary: #e74c3c;
+    --admin-primary: #1d3451;
+    --admin-secondary: #d59b3c;
     --admin-accent: #3498db;
     --admin-success: #28a745;
     --admin-warning: #f39c12;
-    --admin-danger: #e74c3c;
+    --admin-danger: #d59b3c;
     --admin-bg: #f8f9fa;
     --admin-sidebar: #1a252f;
     --admin-text: #212529;
@@ -377,19 +377,19 @@ body {
 }
 
 .data-table .btn-icon {
-    color: #162029 !important;
+    color: #1d3451 !important;
     background: rgba(37, 54, 70, 0.05) !important;
 }
 
 .btn-icon:hover {
-    background: rgba(255, 107, 53, 0.1) !important;
-    color: #FF6B35 !important;
-    box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+    background: rgba(213, 155, 60, 0.1) !important;
+    color: #d59b3c !important;
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.4);
     transform: translateY(-2px);
 }
 
 .data-table .btn-icon:hover {
-    color: #FF6B35 !important;
+    color: #d59b3c !important;
 }
 
 .btn-icon.danger:hover {
@@ -754,7 +754,7 @@ body {
 .alert-message.warning {
     background: #fff3cd;
     color: #856404;
-    border-left: 4px solid #ffc107;
+    border-left: 4px solid #dd8c33;
 }
 
 .alert-message i {

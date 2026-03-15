@@ -1,9 +1,9 @@
 /* Base Styles */
 :root {
-    --primary: #162029;
-    --primary-color: #162029;
-    --secondary: #e74c3c;
-    --secondary-color: #e74c3c;
+    --primary: #1d3451;
+    --primary-color: #1d3451;
+    --secondary: #dd8c33;
+    --secondary-color: #dd8c33;
     --accent: #3498db;
     --light: #f8f9fa;
     --dark: #212529;
@@ -134,7 +134,7 @@ nav, .navbar {
 .nav-logo {
     width: auto;
     height: auto;
-    min-width: 286px;
+    min-width: 257px;
     max-width: 100%;
     max-height: 154px;
     display: block;
@@ -243,7 +243,7 @@ nav, .navbar {
 .site-logo {
     width: auto;
     height: auto;
-    min-width: 286px;
+    min-width: 257px;
     max-width: 100%;
     max-height: 154px;
     display: block;
@@ -259,7 +259,7 @@ nav, .navbar {
     }
     
     .site-logo {
-        min-width: 220px;
+        min-width: 198px;
         max-height: 121px;
         margin: 0 auto;
     }
@@ -390,7 +390,7 @@ nav, .navbar {
 
 .header-badge:hover, .header-badge:focus, .header-badge.active {
     transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
     color: white !important;
 }
 
@@ -401,9 +401,9 @@ nav, .navbar {
 }
 
 @keyframes border-pulse {
-    0% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.5); }
-    50% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 20px rgba(231, 76, 60, 0.8); }
-    100% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.5); }
+    0% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.5); }
+    50% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 20px rgba(213, 155, 60, 0.8); }
+    100% { box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.5); }
 }
 
 /* Section Styles */
@@ -457,10 +457,10 @@ section:nth-child(even) {
 }
 
 .estimate-button:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
     color: white;
     transform: translateY(-3px);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
 }
 
 .button-container {
@@ -506,20 +506,20 @@ section:nth-child(even) {
 
 .service-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
 .service-card:hover .service-icon {
-    box-shadow: 0 0 12px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 0 12px rgba(213, 155, 60, 0.7);
     transform: scale(1.1);
     animation: icon-pulse 2s infinite;
 }
 
 @keyframes icon-pulse {
-    0% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.5); }
-    50% { box-shadow: 0 0 18px rgba(231, 76, 60, 0.8); }
-    100% { box-shadow: 0 0 12px rgba(231, 76, 60, 0.5); }
+    0% { box-shadow: 0 0 12px rgba(213, 155, 60, 0.5); }
+    50% { box-shadow: 0 0 18px rgba(213, 155, 60, 0.8); }
+    100% { box-shadow: 0 0 12px rgba(213, 155, 60, 0.5); }
 }
 
 .card-image-container {
@@ -578,7 +578,7 @@ section:nth-child(even) {
 .expanded-content p[align="right"] {
     margin-top: 1.5rem;
     padding-top: 0.5rem;
-    border-top: 1px solid rgba(231, 76, 60, 0.2);
+    border-top: 1px solid rgba(213, 155, 60, 0.2);
 }
 
 .expanded-content p:last-child {
@@ -588,7 +588,7 @@ section:nth-child(even) {
 .service-icon {
     font-size: 2.4rem;
     color: var(--secondary);
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -609,7 +609,7 @@ section:nth-child(even) {
 }
 
 .service-card:hover h4 {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 .service-card p {
@@ -662,7 +662,7 @@ section:nth-child(even) {
 
 .badge.service-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
@@ -674,7 +674,7 @@ section:nth-child(even) {
 }
 
 .badge.service-card:hover .badge-icon i {
-    color: #e74c3c;
+    color: #dd8c33;
     transform: scale(1.1);
 }
 
@@ -703,7 +703,7 @@ section:nth-child(even) {
 }
 
 .badge.service-card:hover .badge-title {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 .badge .expanded-content {
@@ -829,12 +829,12 @@ section:nth-child(even) {
 
 .division-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
 #pathfinder:hover, #vanguard:hover {
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1), 0 0 15px rgba(213, 155, 60, 0.7);
     animation: border-pulse 2s infinite;
 }
 
@@ -862,43 +862,43 @@ section:nth-child(even) {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
     border-radius: 50%;
     transition: transform 0.3s ease;
 }
 
 .division-card:hover .division-icon i {
-    color: #e74c3c;
+    color: #dd8c33;
     transform: scale(1.1);
 }
 
 .division-card:hover .division-icon {
-    box-shadow: 0 0 12px rgba(231, 76, 60, 0.7);
+    box-shadow: 0 0 12px rgba(213, 155, 60, 0.7);
     animation: icon-pulse 2s infinite;
 }
 
 #pathfinder .division-icon {
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
 }
 
 #pathfinder .division-icon i {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 #pathfinder:hover .division-icon i {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 #vanguard .division-icon {
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
 }
 
 #vanguard .division-icon i {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 #vanguard:hover .division-icon i {
-    color: #e74c3c;
+    color: #dd8c33;
 }
 
 .division-header h4 {
@@ -1278,10 +1278,10 @@ section:nth-child(even) {
 }
 
 .cta-button:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
     color: white;
     transform: translateY(-3px);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
 }
 
 /* Login Page Styles */
@@ -1400,7 +1400,7 @@ section:nth-child(even) {
 }
 
 .login-button:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
     transform: translateY(-3px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1480,14 +1480,14 @@ section:nth-child(even) {
 
 .portal-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15), 0 0 15px rgba(231, 76, 60, 0.3);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15), 0 0 15px rgba(213, 155, 60, 0.3);
 }
 
 .portal-icon {
     width: 80px;
     height: 80px;
     margin: 0 auto 2rem;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
+    background: var(--secondary);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1554,34 +1554,34 @@ section:nth-child(even) {
 }
 
 .student-button:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
     color: white !important;
     transform: translateY(-3px);
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
 }
 
 .client-button {
-    background-color: var(--primary);
+    background-color: var(--secondary);
     color: white;
 }
 
 .client-button:hover {
-    background-color: #1e2b38;
+    background-color: #c48a33;
     color: white !important;
     transform: translateY(-3px);
-    box-shadow: 0 0 15px rgba(37, 54, 70, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
 }
 
 .instructor-button {
-    background-color: #f39c12;
+    background-color: var(--secondary);
     color: white;
 }
 
 .instructor-button:hover {
-    background-color: #e67e22;
+    background-color: #c48a33;
     color: white !important;
     transform: translateY(-3px);
-    box-shadow: 0 0 15px rgba(243, 156, 18, 0.8);
+    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
 }
 
 .back-button {
@@ -1944,11 +1944,11 @@ footer {
 }
 
 .form-group.error input, .form-group.error select {
-    border-color: #e74c3c;
+    border-color: #dd8c33;
 }
 
 .error-message {
-    color: #e74c3c;
+    color: #dd8c33;
     font-size: 1.2rem;
     margin-top: 0.5rem;
 }
@@ -2023,7 +2023,7 @@ footer {
 }
 
 .next-button:hover, .submit-button:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
 }
 
 .terms {
@@ -2154,7 +2154,7 @@ footer {
 }
 
 .return-login:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
 }
 
 .login-redirect {
@@ -2340,7 +2340,7 @@ footer {
 .card-icon {
     width: 60px;
     height: 60px;
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2412,7 +2412,7 @@ footer {
 .activity-icon {
     width: 40px;
     height: 40px;
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: rgba(213, 155, 60, 0.1);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2602,7 +2602,7 @@ footer {
 }
 
 .action-button.delete:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
 }
 
 /* Documents Section */
@@ -2635,7 +2635,7 @@ footer {
 }
 
 .upload-button:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
 }
 
 .document-categories {
@@ -2771,7 +2771,7 @@ footer {
 }
 
 .submit-upload:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
 }
 
 .document-info {
@@ -3099,7 +3099,7 @@ footer {
 }
 
 .send-message:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
 }
 
 /* Profile Section */
@@ -3163,7 +3163,7 @@ footer {
 }
 
 .change-avatar:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
 }
 
 .profile-info h4 {
@@ -3271,7 +3271,7 @@ footer {
 }
 
 .save-button:hover {
-    background-color: #e74c3c;
+    background-color: #dd8c33;
 }
 
 /* Responsive Dashboard */
@@ -3321,7 +3321,7 @@ footer {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: #e74c3c !important;
+    color: #dd8c33 !important;
 }
 
 .logout-link:hover {
@@ -3346,7 +3346,7 @@ footer {
     .nav-logo {
         position: static !important;
         left: auto !important;
-        min-width: 220px !important;
+        min-width: 198px !important;
         max-height: 121px !important;
     }
 
@@ -3381,7 +3381,7 @@ footer {
 
 /* ElevenLabs AI Agent Custom Styling */
 elevenlabs-convai::part(button) {
-    background-color: #e74c3c !important;
+    background-color: #dd8c33 !important;
 }
 
 elevenlabs-convai::part(button):hover {

@@ -20,9 +20,9 @@
 
 .error-message,
 .password-error {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
-    border-left: 4px solid #e74c3c;
+    background-color: rgba(213, 155, 60, 0.1);
+    color: #d59b3c;
+    border-left: 4px solid #d59b3c;
     margin-top: 1.5rem;
     padding: 1rem 1.5rem;
     border-radius: 5px;
@@ -41,9 +41,9 @@
 
 /* Login error message styling */
 .login-error {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
-    border-left: 4px solid #e74c3c;
+    background-color: rgba(213, 155, 60, 0.1);
+    color: #d59b3c;
+    border-left: 4px solid #d59b3c;
     margin-bottom: 1.5rem;
     padding: 1rem 1.5rem;
     border-radius: 5px;
@@ -75,8 +75,8 @@
 /* Highlight form with errors */
 .form-group.error input,
 .form-group.error select {
-    border-color: #e74c3c;
-    background-color: rgba(231, 76, 60, 0.05);
+    border-color: #d59b3c;
+    background-color: rgba(213, 155, 60, 0.05);
 }
 
 /* Animation for messages */
@@ -106,7 +106,7 @@
 }
 
 .upload-error {
-    background-color: rgba(231, 76, 60, 0.1);
-    color: #e74c3c;
-    border-left: 4px solid #e74c3c;
+    background-color: rgba(213, 155, 60, 0.1);
+    color: #d59b3c;
+    border-left: 4px solid #d59b3c;
 }

@@ -32,8 +32,8 @@
                             <a href="#overview" class="nav-link active" data-section="overview">Overview</a>
                             <a href="#students" class="nav-link" data-section="students">Students</a>
                             <a href="#clients" class="nav-link" data-section="clients">Clients</a>
-                            <a href="#courses" class="nav-link" data-section="courses">Modules</a>
-                            <a href="assessments.html" class="nav-link">Assessments</a>
+                            <a href="#courses" class="nav-link" data-section="courses">Courses</a>
+                            <a href="#assessments" class="nav-link" data-section="assessments">Assessments</a>
                             <a href="#certifications" class="nav-link" data-section="certifications">Certifications</a>
                             <a href="#messages" class="nav-link" data-section="messages">Messages</a>
                             <a href="javascript:void(0)" class="nav-link" onclick="logout()">
@@ -239,20 +239,69 @@
 
             <!-- Modules Section -->
             <section class="admin-section" id="courses-section">
-                <div class="section-header">
-                    <h1>Module Management</h1>
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="btn btn-secondary" onclick="importExistingSlidesToDatabase()" title="Import slides from student portal">
-                            <i class="fas fa-file-import"></i> Import Existing Slides
+                <!-- Course Selection View -->
+                <div id="courseSelectionView">
+                    <div class="section-header">
+                        <h1>Course Management</h1>
+                        <div style="display: flex; gap: 1rem;">
+                            <button class="btn btn-secondary" onclick="importExistingSlidesToDatabase()" title="Import slides from student portal">
+                                <i class="fas fa-file-import"></i> Import Existing Slides
+                            </button>
+                            <button class="btn btn-primary" onclick="showCreateCourseModal()">
+                                <i class="fas fa-plus"></i> Add Module
+                            </button>
+                        </div>
+                    </div>
+                    <div class="courses-grid" id="adminCoursesGrid">
+                        <!-- Course cards will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Module Management View (shown when course is selected) -->
+                <div id="moduleManagementView" style="display: none;">
+                    <div class="section-header">
+                        <button class="btn btn-secondary" onclick="backToAdminCourses()">
+                            <i class="fas fa-arrow-left"></i> Back to Courses
                         </button>
+                        <h1 id="selectedCourseTitle">Course Modules</h1>
                         <button class="btn btn-primary" onclick="showCreateCourseModal()">
                             <i class="fas fa-plus"></i> Add Module
                         </button>
                     </div>
+                    <div class="courses-grid" id="coursesGrid">
+                        <!-- Module cards will be loaded here when course is selected -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Assessments Section -->
+            <section class="admin-section" id="assessments-section">
+                <!-- Course Selection View -->
+                <div id="assessmentCourseSelectionView">
+                    <div class="section-header">
+                        <h1>Course Assessments</h1>
+                        <p>Select a course to view and manage its assessments</p>
+                    </div>
+                    <div class="courses-grid" id="assessmentCoursesGrid">
+                        <!-- Course cards will be loaded here -->
+                    </div>
                 </div>
 
-                <div class="courses-grid" id="coursesGrid">
-                    <!-- Module cards will be loaded here -->
+                <!-- Assessments List (shown when course is selected) -->
+                <div id="assessmentManagementView" style="display: none;">
+                    <div class="section-header">
+                        <button class="btn btn-secondary" onclick="backToAssessmentCourses()">
+                            <i class="fas fa-arrow-left"></i> Back to Courses
+                        </button>
+                        <h1 id="selectedAssessmentCourseTitle">Course Assessments</h1>
+                        <div class="search-box" style="max-width: 300px;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchAssessments" placeholder="Search assessments..." onkeyup="filterAssessments()">
+                        </div>
+                    </div>
+                    <div id="assessmentsList" class="table-container">
+                        <!-- Assessments table will be loaded here -->
+                    </div>
                 </div>
             </section>
         </main>
@@ -274,25 +323,36 @@
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="js/admin-dashboard.js"></script>
     <script src="js/course-editor.js"></script>
+    <script src="js/assessment-editor.js?v=2"></script>
     <script src="js/ai-question-generator-free.js"></script>
     <script src="js/import-slides.js"></script>
     <script>
-        console.log('Admin dashboard script loaded');
-        
-        // Force initialization after a short delay to ensure DOM is ready
-        setTimeout(async () => {
-            console.log('Forcing initialization...');
-            try {
-                await checkAuth();
-                console.log('Auth check complete');
-                await loadDashboardData();
-                console.log('Dashboard data loaded');
-                setupEventListeners();
-                console.log('Setup complete');
-            } catch (error) {
-                console.error('Error during initialization:', error);
+        // Simple hash navigation handler
+        window.addEventListener('load', function() {
+            const hash = window.location.hash;
+            console.log('Window loaded, checking hash:', hash);
+            if (hash && hash.length > 1) {
+                const section = hash.substring(1);
+                console.log('Navigating to section:', section);
+                setTimeout(() => {
+                    const targetSection = document.getElementById(section + '-section');
+                    if (targetSection) {
+                        // Hide all sections
+                        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+                        // Show target section
+                        targetSection.classList.add('active');
+                        // Update nav
+                        document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+                            link.classList.remove('active');
+                            if (link.dataset.section === section) {
+                                link.classList.add('active');
+                            }
+                        });
+                        console.log('Hash navigation complete');
+                    }
+                }, 100);
             }
-        }, 100);
+        });
     </script>
 </body>
 </html>

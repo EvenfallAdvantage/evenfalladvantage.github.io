@@ -3,12 +3,79 @@
 let currentAssessment = null;
 let currentQuestions = [];
 let selectedStateCode = null; // For Use of Force assessment
-let stateLaws = {}; // Store state laws data
+let assessmentStateLaws = {}; // Store state laws data
 
-// Load all assessments
+// Load courses for assessment course selection
 async function loadAssessments() {
+    console.log('loadAssessments() called');
     try {
-        const { data: assessments, error } = await supabase
+        // Load all active courses
+        const { data: courses, error } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('is_active', true)
+            .order('display_order');
+
+        if (error) throw error;
+
+        console.log('Loaded courses for assessments:', courses);
+        displayAssessmentCourses(courses || []);
+    } catch (error) {
+        console.error('Error loading courses:', error);
+        document.getElementById('assessmentCoursesGrid').innerHTML = '<p class="error">Error loading courses</p>';
+    }
+}
+
+// Display courses for assessment selection
+function displayAssessmentCourses(courses) {
+    const grid = document.getElementById('assessmentCoursesGrid');
+    if (!grid) return;
+
+    if (!courses || courses.length === 0) {
+        grid.innerHTML = '<p>No courses found</p>';
+        return;
+    }
+
+    grid.innerHTML = courses.map(course => {
+        return `
+            <div class="course-card" onclick="selectAssessmentCourse('${course.id}', '${course.course_name}')" style="cursor: pointer;">
+                <div class="course-card-header">
+                    <h3>${course.course_name}</h3>
+                    <span class="badge badge-primary">${course.course_code}</span>
+                </div>
+                <div class="course-card-body">
+                    <p>${course.description || 'No description available'}</p>
+                    <div class="course-meta">
+                        <span><i class="fas fa-trophy"></i> Assessments</span>
+                        <span><i class="fas fa-check-circle"></i> Active</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Select a course to view its assessments
+async function selectAssessmentCourse(courseId, courseName) {
+    try {
+        // Hide course selection, show assessment management
+        document.getElementById('assessmentCourseSelectionView').style.display = 'none';
+        document.getElementById('assessmentManagementView').style.display = 'block';
+        document.getElementById('selectedAssessmentCourseTitle').textContent = courseName;
+
+        // Load modules for this course
+        const { data: courseModules, error: cmError } = await supabase
+            .from('course_modules')
+            .select('module_id')
+            .eq('course_id', courseId)
+            .order('module_order');
+
+        if (cmError) throw cmError;
+
+        const moduleIds = courseModules.map(cm => cm.module_id);
+
+        // Fetch assessments for these modules
+        const { data: assessments, error: assessError } = await supabase
             .from('assessments')
             .select(`
                 *,
@@ -18,16 +85,26 @@ async function loadAssessments() {
                     display_order
                 )
             `)
-            .order('training_modules(display_order)', { ascending: true });
+            .in('module_id', moduleIds);
 
-        if (error) throw error;
+        if (assessError) throw assessError;
 
         displayAssessments(assessments || []);
     } catch (error) {
-        console.error('Error loading assessments:', error);
+        console.error('Error loading course assessments:', error);
         document.getElementById('assessmentsList').innerHTML = '<p class="error">Error loading assessments</p>';
     }
 }
+
+// Back to course selection
+function backToAssessmentCourses() {
+    document.getElementById('assessmentCourseSelectionView').style.display = 'block';
+    document.getElementById('assessmentManagementView').style.display = 'none';
+}
+
+// Make functions globally accessible
+window.selectAssessmentCourse = selectAssessmentCourse;
+window.backToAssessmentCourses = backToAssessmentCourses;
 
 // Display assessments in table
 function displayAssessments(assessments) {
@@ -94,12 +171,12 @@ async function loadStateLaws() {
         if (error) throw error;
         
         // Convert to object keyed by state_code
-        stateLaws = {};
+        assessmentStateLaws = {};
         states.forEach(state => {
-            stateLaws[state.state_code] = state;
+            assessmentStateLaws[state.state_code] = state;
         });
         
-        console.log('Loaded state laws:', Object.keys(stateLaws).length, 'states');
+        console.log('Loaded state laws:', Object.keys(assessmentStateLaws).length, 'states');
     } catch (error) {
         console.error('Error loading state laws:', error);
     }
@@ -109,7 +186,7 @@ async function loadStateLaws() {
 async function editAssessment(id) {
     try {
         // Load state laws if not already loaded
-        if (Object.keys(stateLaws).length === 0) {
+        if (Object.keys(assessmentStateLaws).length === 0) {
             await loadStateLaws();
         }
         
@@ -155,9 +232,9 @@ function showAssessmentEditorModal() {
             </p>
             <select id="stateSelector" onchange="changeState(this.value)" style="width: 100%; padding: 0.75rem; border: 2px solid #2196F3; border-radius: 0.5rem; font-size: 1rem;">
                 <option value="">-- Select a State --</option>
-                ${Object.keys(stateLaws).sort((a, b) => stateLaws[a].state_name.localeCompare(stateLaws[b].state_name)).map(code => `
+                ${Object.keys(assessmentStateLaws).sort((a, b) => assessmentStateLaws[a].state_name.localeCompare(assessmentStateLaws[b].state_name)).map(code => `
                     <option value="${code}" ${selectedStateCode === code ? 'selected' : ''}>
-                        ${stateLaws[code].state_name} (${code})
+                        ${assessmentStateLaws[code].state_name} (${code})
                     </option>
                 `).join('')}
             </select>
@@ -309,10 +386,10 @@ async function changeState(stateCode) {
     }
     
     selectedStateCode = stateCode;
-    console.log('Changed to state:', stateCode, stateLaws[stateCode].state_name);
+    console.log('Changed to state:', stateCode, assessmentStateLaws[stateCode].state_name);
     
     // Generate state-specific questions based on the selected state
-    const stateInfo = stateLaws[stateCode];
+    const stateInfo = assessmentStateLaws[stateCode];
     currentQuestions = generateStateSpecificQuestions(stateInfo, stateCode);
     
     // Refresh the questions list
