@@ -23,6 +23,42 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   expert: "bg-red-500/15 text-red-600",
 };
 
+const EA_COURSES: Course[] = [
+  {
+    id: "ea-unarmed-security",
+    title: "Unarmed Security Officer",
+    description:
+      "Foundational training for unarmed security professionals. Covers legal authority, report writing, emergency procedures, de-escalation techniques, and post orders. This online module is the classroom portion — pair with a licensed instructor for hands-on training and final certification.",
+    price: 50,
+    duration_hours: 16,
+    difficulty_level: "beginner",
+    is_required: true,
+    is_active: true,
+  },
+  {
+    id: "ea-armed-security",
+    title: "Armed Security Officer",
+    description:
+      "Advanced training for armed security personnel. Covers firearm safety & marksmanship fundamentals, use-of-force continuum, legal liability, tactical positioning, and threat assessment. This online module is the classroom portion — pair with a licensed instructor for live-fire qualification and final certification.",
+    price: 75,
+    duration_hours: 24,
+    difficulty_level: "intermediate",
+    is_required: false,
+    is_active: true,
+  },
+  {
+    id: "ea-security-supervisor",
+    title: "Security Supervisor / Site Lead",
+    description:
+      "Leadership certification for supervisory roles. Covers operational planning, team management, client relations, incident command, scheduling, compliance auditing, and performance evaluation. This online module is the classroom portion — pair with a licensed instructor for scenario-based assessment and final certification.",
+    price: 99,
+    duration_hours: 20,
+    difficulty_level: "advanced",
+    is_required: false,
+    is_active: true,
+  },
+];
+
 function CoursesContent() {
   const user = useAuthStore((s) => s.user);
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -35,13 +71,19 @@ function CoursesContent() {
   const status = searchParams.get("status");
 
   const loadData = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
     try {
-      const [coursesData, payments] = await Promise.all([
-        getActiveCourses(activeCompanyId),
-        getUserPayments(),
-      ]);
-      setCourses(coursesData);
+      let dbCourses: Course[] = [];
+      let payments: unknown[] = [];
+      if (activeCompanyId && activeCompanyId !== "pending") {
+        [dbCourses, payments] = await Promise.all([
+          getActiveCourses(activeCompanyId).catch(() => []),
+          getUserPayments().catch(() => []),
+        ]);
+      }
+      // Merge: show Evenfall Advantage catalog + any company-specific courses from Supabase
+      const dbIds = new Set(dbCourses.map((c: Course) => c.id));
+      const merged = [...EA_COURSES.filter((c) => !dbIds.has(c.id)), ...dbCourses];
+      setCourses(merged);
       const purchased = new Set<string>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const p of payments as any[]) {
@@ -199,8 +241,10 @@ function CoursesContent() {
             <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5"><DollarSign className="h-4 w-4" /> Payment Info</h3>
             <div className="text-xs text-muted-foreground space-y-1">
               <p>- Payments are securely processed by <strong>Stripe</strong></p>
-              <p>- All purchases include a certificate of completion</p>
-              <p>- Courses are accessible immediately after purchase</p>
+              <p>- <strong>Online portion only</strong> — prices listed cover the classroom/theory modules</p>
+              <p>- To receive your final certification, you must also complete in-person practical training with a <strong>licensed Evenfall Advantage instructor</strong></p>
+              <p>- Instructor fees are paid separately and vary by location</p>
+              <p>- Course materials are accessible immediately after purchase</p>
               <p>- Company admins can bulk-enroll team members separately</p>
             </div>
           </CardContent>
