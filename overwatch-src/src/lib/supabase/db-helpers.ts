@@ -57,6 +57,16 @@ export async function ensureInternalUser() {
     .single();
 
   if (error) {
+    // 409 / 23505 = unique constraint conflict — another caller already created it
+    const { data: retry } = await supabase
+      .from("users")
+      .select("id")
+      .eq("supabase_id", authUser.id)
+      .maybeSingle();
+    if (retry) {
+      _cachedInternalId = retry.id;
+      return retry.id;
+    }
     console.warn("Auto-create user failed:", error.message);
     return null;
   }

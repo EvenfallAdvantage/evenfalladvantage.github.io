@@ -87,7 +87,7 @@ export async function fetchUserProfile(knownAuthId?: string) {
     if (!authUser) return null;
     const meta = authUser.user_metadata || {};
     const newId = crypto.randomUUID();
-    const { data: created } = await supabase
+    const { data: created, error: insertErr } = await supabase
       .from("users")
       .insert({
         id: newId,
@@ -100,8 +100,20 @@ export async function fetchUserProfile(knownAuthId?: string) {
       })
       .select("*")
       .maybeSingle();
-    if (!created) return null;
-    user = created;
+
+    if (insertErr) {
+      // 409 / 23505 = unique constraint conflict — another caller already created it
+      const { data: retry } = await supabase
+        .from("users")
+        .select("*")
+        .eq("supabase_id", authId)
+        .maybeSingle();
+      if (!retry) return null;
+      user = retry;
+    } else {
+      if (!created) return null;
+      user = created;
+    }
   }
 
   // Get memberships with company info

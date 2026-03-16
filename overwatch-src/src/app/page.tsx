@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -13,7 +13,10 @@ import {
 } from "lucide-react";
 import { TOSModal } from "@/components/terms-of-service";
 import { createClient } from "@/lib/supabase/client";
+import { registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
+import { useAuthStore } from "@/stores/auth-store";
 import { checkPasswordStrength } from "@/lib/security";
+import { logSecurityEvent, checkLoginAttempts, recordFailedAttempt, clearLoginAttempts } from "@/lib/security/audit";
 
 const FEATURES = [
   { icon: Radio, title: "Live Comms", desc: "Encrypted team channels, WhatsApp & Signal integration, reactions, read receipts, and real-time messaging" },
@@ -41,7 +44,7 @@ const STATS = [
   { value: "24/7", label: "Operational Uptime" },
 ];
 
-function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onClose: () => void; onSwitchToRegister: () => void }) {
   const router = useRouter();
   const [tab, setTab] = useState<"phone" | "email">("phone");
   const [phone, setPhone] = useState("");
@@ -56,6 +59,12 @@ function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
+      const { allowed } = await checkLoginAttempts(phone);
+      if (!allowed) {
+        setError("Too many attempts. Account locked for 15 minutes.");
+        logSecurityEvent({ event_type: "security.lockout", outcome: "blocked", metadata: { method: "phone", identifier: phone } });
+        return;
+      }
       const supabase = createClient();
       const { error: otpError } = await supabase.auth.signInWithOtp({
         phone: phone.startsWith("+") ? phone : `+1${phone.replace(/\D/g, "")}`,
@@ -63,6 +72,8 @@ function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
       if (otpError) throw otpError;
       router.push(`/verify?phone=${encodeURIComponent(phone)}`);
     } catch (err) {
+      recordFailedAttempt(phone);
+      logSecurityEvent({ event_type: "auth.login.failed", outcome: "failure", metadata: { method: "phone" } });
       setError(err instanceof Error ? err.message : "Failed to send code");
     } finally { setLoading(false); }
   }
@@ -71,12 +82,22 @@ function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
+      const { allowed } = await checkLoginAttempts(email);
+      if (!allowed) {
+        setError("Too many attempts. Account locked for 15 minutes.");
+        logSecurityEvent({ event_type: "security.lockout", outcome: "blocked", metadata: { method: "email", identifier: email } });
+        return;
+      }
       const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
+      clearLoginAttempts(email);
+      logSecurityEvent({ event_type: "auth.login.success", user_id: data.user?.id, outcome: "success", metadata: { method: "email" } });
       router.push("/feed");
       router.refresh();
     } catch (err) {
+      recordFailedAttempt(email);
+      logSecurityEvent({ event_type: "auth.login.failed", outcome: "failure", metadata: { method: "email" } });
       setError(err instanceof Error ? err.message : "Invalid credentials");
     } finally { setLoading(false); }
   }
@@ -139,7 +160,7 @@ function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
         )}
 
         <div className="mt-4 text-center space-y-2">
-          <p className="text-xs text-white/40">Don&apos;t have an account? <Link href="/register" className="text-[#dd8c33] hover:underline font-medium">Create one</Link></p>
+          <p className="text-xs text-white/40">Don&apos;t have an account? <button onClick={() => { onClose(); onSwitchToRegister(); }} className="text-[#dd8c33] hover:underline font-medium">Create one</button></p>
           <p className="text-xs text-white/30"><Link href="/join" className="hover:text-white/50">Have a company code? Join here</Link></p>
         </div>
       </div>
@@ -147,15 +168,16 @@ function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   );
 }
 
-function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onClose: () => void; onSwitchToLogin: () => void }) {
+function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open: boolean; onClose: () => void; onSwitchToLogin: () => void; joinCode?: string }) {
   const router = useRouter();
+  const { clearSession } = useAuthStore();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setRegPhone] = useState("");
   const [password, setPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [step, setStep] = useState<"info" | "company" | "done">("info");
+  const [step, setStep] = useState<"info" | "company" | "done">(joinCode ? "info" : "info");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [tosAccepted, setTosAccepted] = useState(false);
@@ -169,16 +191,53 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
     setError(""); setLoading(true);
     try {
       const supabase = createClient();
+
+      // SECURITY: Sign out any existing session before creating a new account
+      await supabase.auth.signOut();
+      clearSession();
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
         options: {
-          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: companyName, tos_accepted_at: new Date().toISOString() },
+          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: joinCode ? "" : companyName, tos_accepted_at: new Date().toISOString() },
           emailRedirectTo: `${window.location.origin}/overwatch/auth/callback/`,
         },
       });
       if (signUpError) throw signUpError;
-      if (data.user && !data.session) { setStep("done"); return; }
-      if (data.user) { router.push("/feed"); router.refresh(); }
+
+      if (data.user && !data.session) {
+        // Email confirmation required — persist join code for after verification
+        if (joinCode && data.user) {
+          localStorage.setItem("pending_join", JSON.stringify({
+            code: joinCode, supabaseId: data.user.id,
+            email: data.user.email, phone: phone || null, firstName, lastName,
+          }));
+        }
+        setStep("done");
+        return;
+      }
+
+      // Session available — create DB records now
+      if (data.user) {
+        try {
+          if (joinCode) {
+            await joinCompanyByCode({
+              supabaseId: data.user.id, email: data.user.email,
+              phone: phone || null, firstName, lastName, joinCode,
+            });
+          } else {
+            await registerUserInDB({
+              supabaseId: data.user.id, email: data.user.email,
+              phone: phone || null, firstName, lastName, companyName,
+            });
+          }
+        } catch (dbErr) {
+          console.warn("DB registration deferred:", dbErr);
+        }
+      }
+
+      router.push("/feed");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally { setLoading(false); }
@@ -195,6 +254,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
         <div className="flex flex-col items-center mb-5">
           <Image src="/images/overwatch_logo.png" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
           <h2 className="mt-2 text-lg font-bold font-mono text-white">CREATE ACCOUNT</h2>
+          {joinCode && <p className="text-[10px] text-[#dd8c33] mt-1 font-mono">JOIN CODE: {joinCode}</p>}
         </div>
 
         {step === "done" ? (
@@ -204,7 +264,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
             <button onClick={onSwitchToLogin} className="text-xs text-[#dd8c33] hover:underline">Back to Sign In</button>
           </div>
         ) : step === "info" ? (
-          <form onSubmit={(e) => { e.preventDefault(); setStep("company"); }} className="space-y-3">
+          <form onSubmit={(e) => { e.preventDefault(); if (joinCode) { handleRegister(e); } else { setStep("company"); } }} className="space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs font-medium text-white/60 block mb-1">First name</label>
@@ -238,9 +298,9 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
                 </div>
               )}
             </div>
-            <button type="submit" disabled={!infoValid}
+            <button type="submit" disabled={!infoValid || loading}
               className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
-              Continue <ArrowRight className="h-4 w-4" />
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : joinCode ? "Create Account & Join" : <>Continue <ArrowRight className="h-4 w-4" /></>}
             </button>
             <div className="text-center">
               <button type="button" onClick={onSwitchToLogin} className="text-xs text-white/40 hover:text-white/60">Already have an account? <span className="text-[#dd8c33]">Sign in</span></button>
@@ -299,8 +359,19 @@ const INTEGRATIONS_LOGOS = [
 ];
 
 export default function HomePage() {
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [registerOpen, setRegisterOpen] = useState(false);
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0b1422]" />}>
+      <HomePageInner />
+    </Suspense>
+  );
+}
+
+function HomePageInner() {
+  const searchParams = useSearchParams();
+  const authParam = searchParams.get("auth");
+  const codeParam = searchParams.get("code") ?? "";
+  const [loginOpen, setLoginOpen] = useState(authParam === "login");
+  const [registerOpen, setRegisterOpen] = useState(authParam === "register" || !!codeParam);
   const [tosOpen, setTosOpen] = useState(false);
 
   return (
@@ -440,7 +511,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-6 text-xs text-white/30">
             <button onClick={() => setLoginOpen(true)} className="hover:text-white/60 transition-colors">Sign In</button>
-            <Link href="/register" className="hover:text-white/60 transition-colors">Register</Link>
+            <button onClick={() => setRegisterOpen(true)} className="hover:text-white/60 transition-colors">Register</button>
             <Link href="/join" className="hover:text-white/60 transition-colors">Join Company</Link>
             <button onClick={() => setTosOpen(true)} className="hover:text-white/60 transition-colors flex items-center gap-1">
               <FileCheck className="h-3 w-3" /> Terms of Service
@@ -450,8 +521,8 @@ export default function HomePage() {
       </footer>
 
       {/* Modals */}
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
-      <RegisterModal open={registerOpen} onClose={() => setRegisterOpen(false)} onSwitchToLogin={() => { setRegisterOpen(false); setLoginOpen(true); }} />
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} onSwitchToRegister={() => { setLoginOpen(false); setRegisterOpen(true); }} />
+      <RegisterModal open={registerOpen} onClose={() => setRegisterOpen(false)} onSwitchToLogin={() => { setRegisterOpen(false); setLoginOpen(true); }} joinCode={codeParam} />
       <TOSModal open={tosOpen} onClose={() => setTosOpen(false)} />
     </div>
   );
