@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2 } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy } from "@/lib/supabase/db";
 
@@ -14,6 +14,21 @@ import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPoli
 type Policy = any;
 
 const LEAVE_TYPES = ["vacation", "sick", "personal", "bereavement", "parental", "unpaid"];
+
+// Get all IANA timezone names (browser Intl API)
+const ALL_TIMEZONES: string[] = typeof Intl !== "undefined" && Intl.supportedValuesOf
+  ? Intl.supportedValuesOf("timeZone")
+  : [
+      "America/New_York","America/Chicago","America/Denver","America/Los_Angeles",
+      "America/Anchorage","Pacific/Honolulu","America/Phoenix","America/Indiana/Indianapolis",
+      "America/Detroit","America/Kentucky/Louisville","America/Toronto","America/Vancouver",
+      "Europe/London","Europe/Paris","Europe/Berlin","Europe/Moscow",
+      "Asia/Tokyo","Asia/Shanghai","Asia/Kolkata","Asia/Dubai",
+      "Australia/Sydney","Australia/Melbourne","Pacific/Auckland",
+      "America/Sao_Paulo","America/Mexico_City","Africa/Cairo","Africa/Johannesburg",
+    ];
+
+const DEVICE_TZ = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "";
 
 export default function AdminSettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -31,6 +46,9 @@ export default function AdminSettingsPage() {
   const [policyType, setPolicyType] = useState("vacation");
   const [creatingPolicy, setCreatingPolicy] = useState(false);
   const [deletingPolicy, setDeletingPolicy] = useState<string | null>(null);
+  const [tzSearch, setTzSearch] = useState("");
+  const [tzOpen, setTzOpen] = useState(false);
+  const tzRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
@@ -51,6 +69,15 @@ export default function AdminSettingsPage() {
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Close timezone dropdown on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (tzRef.current && !tzRef.current.contains(e.target as Node)) setTzOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   async function handleSave() {
     if (!activeCompanyId || activeCompanyId === "pending") return;
@@ -120,9 +147,54 @@ export default function AdminSettingsPage() {
               </div>
               <p className="text-[10px] text-muted-foreground mt-1">Paste a URL to your company logo. It will appear in the sidebar.</p>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Timezone</Label>
-              <Input value={timezone} onChange={(e) => setTimezone(e.target.value)} className="mt-1" placeholder="America/Los_Angeles" />
+            <div ref={tzRef}>
+              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Globe className="h-3 w-3" /> Timezone
+              </Label>
+              <div className="relative mt-1">
+                <div className="flex gap-1.5">
+                  <div className="relative flex-1">
+                    <Input
+                      value={tzOpen ? tzSearch : timezone}
+                      onChange={(e) => { setTzSearch(e.target.value); setTzOpen(true); }}
+                      onFocus={() => { setTzSearch(""); setTzOpen(true); }}
+                      placeholder="Search timezones..."
+                      className="pr-8"
+                    />
+                    {timezone && !tzOpen && (
+                      <MapPin className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                    )}
+                  </div>
+                  <Button
+                    type="button" size="sm" variant="outline"
+                    className="shrink-0 text-[10px] gap-1"
+                    onClick={() => { setTimezone(DEVICE_TZ); setTzOpen(false); }}
+                    title={`Detect: ${DEVICE_TZ}`}
+                  >
+                    <MapPin className="h-3 w-3" /> Detect
+                  </Button>
+                </div>
+                {tzOpen && (
+                  <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-border bg-background shadow-lg">
+                    {ALL_TIMEZONES
+                      .filter((tz) => tz.toLowerCase().includes(tzSearch.toLowerCase()))
+                      .slice(0, 50)
+                      .map((tz) => (
+                        <button
+                          key={tz}
+                          type="button"
+                          className={`w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors ${tz === timezone ? "bg-primary/10 text-primary font-medium" : "text-foreground"}`}
+                          onClick={() => { setTimezone(tz); setTzOpen(false); setTzSearch(""); }}
+                        >
+                          {tz}
+                        </button>
+                      ))}
+                    {ALL_TIMEZONES.filter((tz) => tz.toLowerCase().includes(tzSearch.toLowerCase())).length === 0 && (
+                      <p className="px-3 py-2 text-xs text-muted-foreground">No timezones match &ldquo;{tzSearch}&rdquo;</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Brand Color</Label>
