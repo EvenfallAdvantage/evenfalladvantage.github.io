@@ -221,6 +221,15 @@ export default function LoginPage() {
               Have a company code? Join here
             </Link>
           </div>
+
+          <div className="mt-2 text-center">
+            <a
+              href="/student-portal/login.html"
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Individual student? Use the Student Portal
+            </a>
+          </div>
         </CardContent>
       </Card>
     </AuthLayout>
