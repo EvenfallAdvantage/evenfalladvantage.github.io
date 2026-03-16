@@ -57,6 +57,7 @@ const ALL_ITEMS: PaletteItem[] = [
   { title: "Company Settings", href: "/admin/settings", icon: "Settings", section: "Account" },
   { title: "Notifications", href: "/notifications", icon: "Radar", section: "Account" },
   { title: "Knowledge Base", href: "/knowledge-base", icon: "BookOpen", section: "Account" },
+  { title: "Join Company", href: "/join", icon: "Users", section: "Account" },
 ];
 
 export function CommandPalette() {
