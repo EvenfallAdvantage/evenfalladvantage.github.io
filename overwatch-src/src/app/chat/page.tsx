@@ -3,8 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Radio, Plus, Send, Loader2, Trash2, Search, ExternalLink,
-  Reply, X, Hash, Settings, MessageSquare, Phone,
-  Smile, Paperclip, Save,
+  Reply, X, Hash, MessageSquare,
+  Smile, Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import {
   getChatChannels, createChatChannel, getChatMessages,
   sendChatMessage, deleteChatChannel, toggleReaction,
-  updateLastRead, getUnreadCounts, getIntegrationsConfig, saveIntegrationConfig,
+  updateLastRead, getUnreadCounts,
 } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 
@@ -22,7 +22,7 @@ import { createClient } from "@/lib/supabase/client";
 type Channel = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Message = any;
-type Tab = "channels" | "external" | "whatsapp";
+type Tab = "channels" | "external";
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "✅"];
 
@@ -76,9 +76,6 @@ export default function ChatPage() {
   const [extPlat, setExtPlat] = useState<"whatsapp" | "signal">("whatsapp");
   const [extUrl, setExtUrl] = useState("");
   const [creatingExt, setCreatingExt] = useState(false);
-  const [waConfig, setWaConfig] = useState({ wabaId: "", phoneNumberId: "", accessToken: "", businessPhone: "" });
-  const [waSaving, setWaSaving] = useState(false);
-  const [waLoaded, setWaLoaded] = useState(false);
   const [unread, setUnread] = useState<Record<string, number>>({});
   const [emojiPicker, setEmojiPicker] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
@@ -99,18 +96,6 @@ export default function ChatPage() {
 
   useEffect(() => { loadChannels(); }, [loadChannels]);
 
-  // Load WA config when tab switches to whatsapp
-  useEffect(() => {
-    if (tab !== "whatsapp" || waLoaded || !activeCompanyId || activeCompanyId === "pending" || !isAdmin) return;
-    (async () => {
-      try {
-        const ints = await getIntegrationsConfig(activeCompanyId);
-        const waCfg = ints.find((i: { provider: string }) => i.provider === "whatsapp");
-        if (waCfg?.config) setWaConfig({ wabaId: waCfg.config.waba_id ?? "", phoneNumberId: waCfg.config.phone_number_id ?? "", accessToken: waCfg.config.access_token ?? "", businessPhone: waCfg.config.business_phone ?? "" });
-      } catch {}
-      setWaLoaded(true);
-    })();
-  }, [tab, waLoaded, activeCompanyId, isAdmin]);
 
   // Supabase Realtime subscription for new messages
   useEffect(() => {
@@ -199,18 +184,6 @@ export default function ChatPage() {
     } catch (err) { console.error(err); } finally { setCreatingExt(false); }
   }
 
-  async function handleSaveWaConfig() {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
-    setWaSaving(true);
-    try {
-      await saveIntegrationConfig(activeCompanyId, "whatsapp", {
-        waba_id: waConfig.wabaId,
-        phone_number_id: waConfig.phoneNumberId,
-        access_token: waConfig.accessToken,
-        business_phone: waConfig.businessPhone,
-      }, true);
-    } catch (err) { console.error(err); } finally { setWaSaving(false); }
-  }
 
   const filteredMsgs = showSearch && searchQ
     ? messages.filter((m: Message) => m.content?.toLowerCase().includes(searchQ.toLowerCase()))
@@ -231,7 +204,6 @@ export default function ChatPage() {
         {([
           { key: "channels" as Tab, label: "Channels", count: internal.length },
           { key: "external" as Tab, label: "External Groups", count: external.length },
-          { key: "whatsapp" as Tab, label: "WhatsApp API", count: 0 },
         ]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -262,9 +234,6 @@ export default function ChatPage() {
         handleDeleteCh={handleDeleteCh}
       />)}
 
-      {/* ────────── WHATSAPP API TAB ────────── */}
-      {tab === "whatsapp" && (<WhatsAppTab isAdmin={isAdmin} waConfig={waConfig} setWaConfig={setWaConfig}
-        handleSaveWaConfig={handleSaveWaConfig} waSaving={waSaving} />)}
     </div>
   );
 }
@@ -593,94 +562,3 @@ function ExternalTab({ isAdmin, external, showAddExt, setShowAddExt, extName, se
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function WhatsAppTab({ isAdmin, waConfig, setWaConfig, handleSaveWaConfig, waSaving }: any) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-        <div className="flex items-start gap-3">
-          <Settings className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-          <div>
-            <p className="font-medium text-sm">WhatsApp Business API Integration</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Connect Overwatch to the WhatsApp Business Platform to send shift notifications, alerts, and broadcasts directly to your team&apos;s WhatsApp. Replies appear here in Comms.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {isAdmin ? (
-        <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
-          <h3 className="font-semibold text-sm">Setup Guide</h3>
-          <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
-            <li>Create a <a href="https://business.facebook.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">Meta Business Account</a> (free)</li>
-            <li>Create a WhatsApp Business Account (WABA) in Meta Business Suite</li>
-            <li>Register a dedicated phone number for your business</li>
-            <li>Generate a permanent access token in the Meta Developer Console</li>
-            <li>Enter your credentials below and activate the integration</li>
-          </ol>
-
-          <form onSubmit={(e) => e.preventDefault()} autoComplete="off" className="space-y-3 pt-2 border-t border-border/30">
-            <p className="text-xs font-medium text-muted-foreground">API Configuration</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">WABA ID</label>
-                <Input placeholder="e.g. 123456789012345" value={waConfig.wabaId}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWaConfig((p: typeof waConfig) => ({ ...p, wabaId: e.target.value }))} className="mt-1" />
-              </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Phone Number ID</label>
-                <Input placeholder="e.g. 987654321098765" value={waConfig.phoneNumberId}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWaConfig((p: typeof waConfig) => ({ ...p, phoneNumberId: e.target.value }))} className="mt-1" />
-              </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Business Phone</label>
-                <Input placeholder="+1 555 123 4567" value={waConfig.businessPhone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWaConfig((p: typeof waConfig) => ({ ...p, businessPhone: e.target.value }))} className="mt-1" />
-              </div>
-              <div>
-                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Access Token</label>
-                <Input type="password" placeholder="EAAx..." value={waConfig.accessToken}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWaConfig((p: typeof waConfig) => ({ ...p, accessToken: e.target.value }))} className="mt-1" />
-              </div>
-            </div>
-            <div className="flex items-center gap-3 pt-2">
-              <Button size="sm" onClick={handleSaveWaConfig} disabled={waSaving} className="gap-1.5">
-                {waSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save Config
-              </Button>
-              <Button size="sm" disabled className="gap-1.5" variant="outline">
-                <Phone className="h-3.5 w-3.5" /> Connect WhatsApp
-              </Button>
-              <span className="text-[10px] text-muted-foreground">Connect requires Supabase Edge Functions &mdash; coming soon</span>
-            </div>
-          </form>
-
-          <div className="space-y-2 pt-3 border-t border-border/30">
-            <p className="text-xs font-medium text-muted-foreground">Estimated Pricing (US Numbers)</p>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: "Service (replies)", cost: "Free", desc: "24hr window" },
-                { label: "Utility (shifts)", cost: "~$0.015/msg", desc: "Confirmations" },
-                { label: "Marketing", cost: "~$0.025/msg", desc: "Announcements" },
-              ].map(p => (
-                <div key={p.label} className="rounded-lg bg-muted/30 p-2.5">
-                  <p className="text-[10px] font-medium">{p.label}</p>
-                  <p className="text-sm font-mono font-bold">{p.cost}</p>
-                  <p className="text-[9px] text-muted-foreground">{p.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
-          <Phone className="mb-3 h-10 w-10 text-muted-foreground/40" />
-          <p className="text-sm font-medium">WhatsApp Integration</p>
-          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-            Your organization admin can connect WhatsApp Business API to send notifications and receive replies.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
