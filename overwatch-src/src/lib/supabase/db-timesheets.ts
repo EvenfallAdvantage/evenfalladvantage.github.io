@@ -105,3 +105,106 @@ export async function approveTimesheet(timesheetId: string) {
   if (error) throw error;
   return data;
 }
+
+export async function getTimesheetsForDateRange(startISO: string, endISO: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("timesheets")
+    .select("*")
+    .eq("user_id", userId)
+    .not("clock_out", "is", null)
+    .gte("clock_in", startISO)
+    .lte("clock_in", endISO)
+    .order("clock_in", { ascending: true });
+  return data ?? [];
+}
+
+// ─── Time Change Requests ────────────────────────────
+
+export async function createTimeChangeRequest(params: {
+  timesheetId: string;
+  companyId: string;
+  requestedClockIn?: string;
+  requestedClockOut?: string;
+  reason: string;
+}) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("time_change_requests")
+    .insert({
+      id: crypto.randomUUID(),
+      timesheet_id: params.timesheetId,
+      user_id: userId,
+      company_id: params.companyId,
+      requested_clock_in: params.requestedClockIn ?? null,
+      requested_clock_out: params.requestedClockOut ?? null,
+      reason: params.reason,
+      status: "pending",
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getMyTimeChangeRequests() {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("time_change_requests")
+    .select("*, timesheets(clock_in, clock_out)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  return data ?? [];
+}
+
+export async function getCompanyTimeChangeRequests(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("time_change_requests")
+    .select("*, timesheets(clock_in, clock_out), users(first_name, last_name)")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  return data ?? [];
+}
+
+export async function reviewTimeChangeRequest(requestId: string, status: "approved" | "denied") {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+
+  const { data: req, error: fetchErr } = await supabase
+    .from("time_change_requests")
+    .update({
+      status,
+      reviewed_by: userId,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", requestId)
+    .select("*, timesheets(id)")
+    .maybeSingle();
+  if (fetchErr) throw fetchErr;
+
+  // If approved, update the actual timesheet
+  if (status === "approved" && req) {
+    const updates: Record<string, unknown> = {};
+    if (req.requested_clock_in) updates.clock_in = req.requested_clock_in;
+    if (req.requested_clock_out) updates.clock_out = req.requested_clock_out;
+    if (Object.keys(updates).length > 0) {
+      await supabase
+        .from("timesheets")
+        .update(updates)
+        .eq("id", req.timesheet_id);
+    }
+  }
+
+  return req;
+}
