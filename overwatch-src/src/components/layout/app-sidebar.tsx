@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { NAV_SECTIONS } from "./nav-items";
 import { useAuthStore } from "@/stores/auth-store";
+import { isSuperAdmin } from "@/lib/security/super-admin";
 import type { NavItem } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -167,7 +168,9 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         <nav className="space-y-1 px-2">
           {NAV_SECTIONS.map((section) => {
             const visibleItems = section.items.filter(
-              (item) => !item.roles || item.roles.includes(userRole)
+              (item) =>
+                (!item.roles || item.roles.includes(userRole)) &&
+                (!item.superAdminOnly || isSuperAdmin(user?.email))
             );
             if (visibleItems.length === 0) return null;
 

@@ -12,11 +12,13 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { getAuditLogs, getSecurityStats } from "@/lib/security/audit";
+import { isSuperAdmin } from "@/lib/security/super-admin";
 import {
   Shield, Lock, AlertTriangle, Eye, CheckCircle2, XCircle,
-  Clock, Activity, ShieldCheck, Key, RefreshCw,
+  Clock, Activity, ShieldCheck, Key, RefreshCw, ShieldOff,
 } from "lucide-react";
 
 interface AuditLog {
@@ -62,12 +64,14 @@ const SECURITY_CONTROLS = [
 ];
 
 export default function SecurityDashboardPage() {
+  const router = useRouter();
   const { user } = useAuthStore();
   const activeCompanyId = user?.companies?.[0]?.companyId;
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [stats, setStats] = useState({ events24h: 0, failedLogins7d: 0, lockouts7d: 0 });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const superAdmin = isSuperAdmin(user?.email);
 
   const load = useCallback(async () => {
     if (!activeCompanyId) return;
@@ -87,6 +91,26 @@ export default function SecurityDashboardPage() {
   }, [activeCompanyId, filter]);
 
   useEffect(() => { load(); }, [load]);
+
+  if (user && !superAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <ShieldOff className="h-16 w-16 text-red-500/50 mx-auto" />
+          <h1 className="text-xl font-bold font-mono text-red-500">ACCESS DENIED</h1>
+          <p className="text-sm text-muted-foreground">
+            The Security Center is restricted to platform administrators.
+          </p>
+          <button
+            onClick={() => router.push("/feed")}
+            className="text-xs text-amber-500 hover:text-amber-400 font-medium"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const threatLevel = stats.lockouts7d > 3 ? "HIGH" : stats.failedLogins7d > 10 ? "ELEVATED" : "NORMAL";
   const threatColor = threatLevel === "HIGH" ? "text-red-500" : threatLevel === "ELEVATED" ? "text-amber-500" : "text-green-500";

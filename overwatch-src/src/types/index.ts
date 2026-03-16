@@ -4,6 +4,7 @@ export type NavItem = {
   icon: string;
   badge?: number;
   roles?: string[];
+  superAdminOnly?: boolean;
   section?: string;
   children?: NavItem[];
 };
