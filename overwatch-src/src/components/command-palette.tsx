@@ -37,7 +37,7 @@ const ALL_ITEMS: PaletteItem[] = [
   { title: "Deployments", href: "/schedule", icon: "CalendarDays", section: "Field Ops" },
   { title: "Armory", href: "/assets", icon: "QrCode", section: "Field Ops" },
   { title: "Academy", href: "/academy", icon: "GraduationCap", section: "Readiness" },
-  { title: "Training Modules", href: "/training", icon: "GraduationCap", section: "Readiness" },
+  { title: "Field Manual", href: "/knowledge-base", icon: "BookOpen", section: "Readiness" },
   { title: "Drills", href: "/quizzes", icon: "Target", section: "Readiness" },
   { title: "De-Escalation", href: "/training/scenarios", icon: "MessageCircle", section: "Readiness" },
   { title: "Courses", href: "/courses", icon: "BookOpen", section: "Readiness" },

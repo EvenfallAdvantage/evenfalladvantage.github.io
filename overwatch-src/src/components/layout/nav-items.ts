@@ -34,7 +34,7 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: "GraduationCap",
         children: [
           { title: "Academy Hub", href: "/academy", icon: "Compass" },
-          { title: "Modules", href: "/training", icon: "BookOpen" },
+          { title: "Field Manual", href: "/knowledge-base", icon: "BookOpen" },
           { title: "Drills", href: "/quizzes", icon: "Target" },
           { title: "De-Escalation", href: "/training/scenarios", icon: "MessageCircle" },
           { title: "Courses", href: "/courses", icon: "Video" },
