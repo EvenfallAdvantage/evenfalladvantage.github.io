@@ -22,11 +22,13 @@ export default function JoinPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user: u } }) => {
       setIsLoggedIn(!!u);
+      setCurrentUserEmail(u?.email ?? null);
     });
   }, []);
 
@@ -132,6 +134,26 @@ export default function JoinPage() {
                 Enter the company code provided by your manager
               </p>
 
+              {isLoggedIn && currentUserEmail && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 mb-4">
+                  <p className="text-xs text-muted-foreground">
+                    Joining as <strong className="text-foreground">{currentUserEmail}</strong>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const supabase = createClient();
+                      await supabase.auth.signOut();
+                      useAuthStore.getState().clearSession();
+                      router.push(`/register?code=${encodeURIComponent(companyCode || "")}`);
+                    }}
+                    className="text-[10px] text-primary hover:underline mt-0.5"
+                  >
+                    Not you? Sign out &amp; create a new account
+                  </button>
+                </div>
+              )}
+
               <form onSubmit={handleJoin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="code">Company code</Label>
@@ -158,7 +180,7 @@ export default function JoinPage() {
                   ) : (
                     <UserPlus className="h-4 w-4" />
                   )}
-                  Join Company
+                  {isLoggedIn ? "Join Company" : "Continue"}
                 </Button>
               </form>
 

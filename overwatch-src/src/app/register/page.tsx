@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Loader2, ArrowRight, CheckCircle2, Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
+import { useAuthStore } from "@/stores/auth-store";
 import { AuthLayout } from "@/components/auth-layout";
 import { checkPasswordStrength, type PasswordCheck } from "@/lib/security";
 import { TOSModal } from "@/components/terms-of-service";
@@ -41,6 +42,7 @@ export default function RegisterPage() {
 function RegisterInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { clearSession } = useAuthStore();
   const joinCode = searchParams.get("code") ?? "";
   const [step, setStep] = useState<"info" | "company" | "confirm">("info");
   const [firstName, setFirstName] = useState("");
@@ -67,6 +69,13 @@ function RegisterInner() {
 
     try {
       const supabase = createClient();
+
+      // SECURITY: Sign out any existing session before creating a new account.
+      // Without this, the new user inherits the old session cookies and gets
+      // logged in as the previous user — a critical security vulnerability.
+      await supabase.auth.signOut();
+      clearSession();
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,

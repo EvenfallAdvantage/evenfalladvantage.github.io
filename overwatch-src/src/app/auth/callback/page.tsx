@@ -19,14 +19,27 @@ export default function AuthCallbackPage() {
           if (raw) {
             const pending = JSON.parse(raw);
             localStorage.removeItem("pending_join");
-            await joinCompanyByCode({
-              supabaseId: session.user.id,
-              email: session.user.email,
-              phone: pending.phone ?? null,
-              firstName: pending.firstName ?? "",
-              lastName: pending.lastName ?? "",
-              joinCode: pending.code,
-            });
+
+            // SECURITY: Only process the join if the session user matches
+            // the user who originally registered. This prevents a stale
+            // pending_join from being applied to the wrong account.
+            if (pending.supabaseId === session.user.id) {
+              await joinCompanyByCode({
+                supabaseId: session.user.id,
+                email: session.user.email,
+                phone: pending.phone ?? null,
+                firstName: pending.firstName ?? "",
+                lastName: pending.lastName ?? "",
+                joinCode: pending.code,
+              });
+            } else {
+              console.warn(
+                "Pending join discarded: session user",
+                session.user.id,
+                "does not match pending user",
+                pending.supabaseId
+              );
+            }
           }
         } catch (err) {
           console.warn("Pending join failed (will retry on next login):", err);
