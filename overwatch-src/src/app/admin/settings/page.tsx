@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, Phone, ShieldCheck, DollarSign, PenTool, Bell } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
 
@@ -36,6 +36,36 @@ const INTEGRATIONS = [
     { key: "api_key", label: "API Key", type: "password", placeholder: "pm_..." },
     { key: "from_email", label: "From Email", type: "email", placeholder: "noreply@yourcompany.com" },
     { key: "from_name", label: "From Name", type: "text", placeholder: "TGT Security" },
+  ]},
+  { provider: "signal", label: "Signal", logo: "/images/integrations/signal.png", desc: "Secure encrypted messaging for sensitive operations and executive protection", fields: [
+    { key: "signal_group_link", label: "Signal Group Invite Link", type: "text", placeholder: "https://signal.group/#..." },
+  ]},
+  { provider: "twilio", label: "Twilio", logo: null, icon: "Phone", desc: "SMS dispatch alerts, shift reminders, emergency notifications, and OTP verification", fields: [
+    { key: "account_sid", label: "Account SID", type: "text", placeholder: "AC..." },
+    { key: "auth_token", label: "Auth Token", type: "password", placeholder: "your_auth_token" },
+    { key: "from_number", label: "From Number", type: "text", placeholder: "+15551234567" },
+    { key: "messaging_service_sid", label: "Messaging Service SID (optional)", type: "text", placeholder: "MG..." },
+  ]},
+  { provider: "checkr", label: "Checkr", logo: null, icon: "ShieldCheck", desc: "Automated background checks triggered from the applicant pipeline on hire", fields: [
+    { key: "api_key", label: "API Key", type: "password", placeholder: "checkr_..." },
+    { key: "package_slug", label: "Default Package", type: "select", options: ["tasker_standard", "tasker_plus", "driver_standard", "driver_plus", "basic_criminal", "essential_criminal"] },
+    { key: "webhook_url", label: "Webhook URL (auto-generated)", type: "text", placeholder: "Set after first save" },
+  ]},
+  { provider: "gusto", label: "Gusto", logo: null, icon: "DollarSign", desc: "Sync timesheets to payroll runs, manage tax filing and direct deposits", fields: [
+    { key: "client_id", label: "OAuth Client ID", type: "text", placeholder: "your_client_id" },
+    { key: "client_secret", label: "OAuth Client Secret", type: "password", placeholder: "your_client_secret" },
+    { key: "company_uuid", label: "Gusto Company UUID", type: "text", placeholder: "uuid-from-gusto" },
+    { key: "sync_frequency", label: "Sync Frequency", type: "select", options: ["manual", "daily", "weekly", "per_pay_period"] },
+  ]},
+  { provider: "docusign", label: "DocuSign", logo: null, icon: "PenTool", desc: "E-signatures for employment agreements, NDAs, and policy acknowledgments during onboarding", fields: [
+    { key: "integration_key", label: "Integration Key", type: "text", placeholder: "your_integration_key" },
+    { key: "secret_key", label: "Secret Key", type: "password", placeholder: "your_secret_key" },
+    { key: "account_id", label: "Account ID", type: "text", placeholder: "your_account_id" },
+    { key: "base_url", label: "Base URL", type: "select", options: ["https://demo.docusign.net", "https://app.docusign.com"] },
+  ]},
+  { provider: "onesignal", label: "OneSignal", logo: null, icon: "Bell", desc: "Push notifications for shift alerts, incident updates, and company announcements", fields: [
+    { key: "app_id", label: "App ID", type: "text", placeholder: "your_onesignal_app_id" },
+    { key: "rest_api_key", label: "REST API Key", type: "password", placeholder: "your_rest_api_key" },
   ]},
 ];
 
@@ -374,7 +404,8 @@ export default function AdminSettingsPage() {
 
             {INTEGRATIONS.map(def => {
               const form = intForms[def.provider];
-              const FallbackIcon = def.icon === "Mail" ? Mail : Plug;
+              const FALLBACK_ICONS: Record<string, React.ElementType> = { Mail, Phone, ShieldCheck, DollarSign, PenTool, Bell };
+              const FallbackIcon = (def.icon && FALLBACK_ICONS[def.icon]) ? FALLBACK_ICONS[def.icon] : Plug;
               const existing = integrations.find((i: IntConfig) => i.provider === def.provider);
               const isConfigured = !!existing;
 
@@ -448,7 +479,7 @@ export default function AdminSettingsPage() {
             })}
 
             <div className="rounded-lg border border-dashed border-border/40 p-3 text-center">
-              <p className="text-[10px] text-muted-foreground">More integrations coming soon: WhatsApp Business API, OneSignal push, QuickBooks payroll</p>
+              <p className="text-[10px] text-muted-foreground">More integrations coming soon: Verkada cameras, Brivo access control, Samsara fleet GPS, QuickBooks</p>
             </div>
           </CardContent>
         </Card>
