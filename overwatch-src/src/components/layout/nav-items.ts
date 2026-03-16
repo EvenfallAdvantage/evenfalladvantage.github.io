@@ -65,15 +65,15 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: ["owner", "admin", "manager"],
       },
       {
-        title: "Personnel",
-        href: "/admin/staff",
-        icon: "UserCog",
-        roles: ["owner", "admin", "manager"],
-      },
-      {
         title: "Training Admin",
         href: "/admin/training",
         icon: "NotebookPen",
+        roles: ["owner", "admin", "manager"],
+      },
+      {
+        title: "Personnel",
+        href: "/admin/staff",
+        icon: "UserCog",
         roles: ["owner", "admin", "manager"],
       },
       {
