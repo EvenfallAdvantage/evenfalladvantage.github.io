@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -101,9 +101,40 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const router = useRouter();
   const { user, activeCompanyId, setActiveCompany, clearSession } = useAuthStore();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [flyoutPos, setFlyoutPos] = useState<{ top: number; left: number } | null>(null);
+  const flyoutRef = useRef<HTMLDivElement>(null);
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  function toggleGroup(key: string) {
-    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  // Close flyout when clicking outside
+  const handleClickOutside = useCallback((e: MouseEvent) => {
+    if (flyoutRef.current && !flyoutRef.current.contains(e.target as Node)) {
+      // Check if click was on one of the toggle buttons
+      const clickedBtn = Object.values(btnRefs.current).some(b => b?.contains(e.target as Node));
+      if (!clickedBtn) {
+        setExpanded({});
+        setFlyoutPos(null);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [handleClickOutside]);
+
+  function toggleGroup(key: string, btnEl?: HTMLButtonElement | null) {
+    const wasOpen = expanded[key];
+    if (wasOpen) {
+      setExpanded((prev) => ({ ...prev, [key]: false }));
+      setFlyoutPos(null);
+    } else {
+      setExpanded((prev) => ({ ...prev, [key]: true }));
+      // Position flyout next to the button for collapsed mode
+      if (collapsed && btnEl) {
+        const rect = btnEl.getBoundingClientRect();
+        setFlyoutPos({ top: rect.top, left: rect.right + 8 });
+      }
+    }
   }
 
   async function handleSignOut() {
@@ -198,7 +229,8 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                     return (
                       <div key={item.title} className="relative">
                         <button
-                          onClick={() => toggleGroup(item.title)}
+                          ref={(el) => { btnRefs.current[item.title] = el; }}
+                          onClick={(e) => toggleGroup(item.title, e.currentTarget)}
                           className={cn(
                             "group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                             childActive
@@ -264,9 +296,13 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                             })}
                           </div>
                         )}
-                        {/* Collapsed mode: flyout panel */}
-                        {isOpen && collapsed && (
-                          <div className="absolute left-full top-0 z-50 ml-2 min-w-[160px] rounded-lg border border-border bg-popover p-1.5 shadow-lg">
+                        {/* Collapsed mode: fixed flyout panel (escapes ScrollArea overflow) */}
+                        {isOpen && collapsed && flyoutPos && (
+                          <div
+                            ref={flyoutRef}
+                            className="fixed z-[9999] min-w-[180px] rounded-lg border border-border bg-popover p-1.5 shadow-xl"
+                            style={{ top: flyoutPos.top, left: flyoutPos.left }}
+                          >
                             <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{item.title}</p>
                             {item.children!.map((child) => {
                               const ChildIcon = ICON_MAP[child.icon];
@@ -277,7 +313,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                                 <Link
                                   key={child.href}
                                   href={child.href}
-                                  onClick={() => toggleGroup(item.title)}
+                                  onClick={() => { setExpanded({}); setFlyoutPos(null); }}
                                   className={cn(
                                     "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
                                     childIsActive
