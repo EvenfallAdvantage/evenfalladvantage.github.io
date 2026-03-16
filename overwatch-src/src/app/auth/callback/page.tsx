@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { joinCompanyByCode } from "@/lib/supabase/db";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -10,10 +11,26 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const supabase = createClient();
 
-    // Supabase client automatically picks up the auth tokens from the URL hash
-    // when using PKCE flow (default for email confirmation links)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
+        // Check for pending company join from registration
+        try {
+          const raw = localStorage.getItem("pending_join");
+          if (raw) {
+            const pending = JSON.parse(raw);
+            localStorage.removeItem("pending_join");
+            await joinCompanyByCode({
+              supabaseId: session.user.id,
+              email: session.user.email,
+              phone: pending.phone ?? null,
+              firstName: pending.firstName ?? "",
+              lastName: pending.lastName ?? "",
+              joinCode: pending.code,
+            });
+          }
+        } catch (err) {
+          console.warn("Pending join failed (will retry on next login):", err);
+        }
         router.replace("/feed");
       } else {
         router.replace("/login?error=auth_callback_failed");

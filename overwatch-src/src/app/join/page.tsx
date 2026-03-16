@@ -27,7 +27,8 @@ export default function JoinPage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        setError("You must be logged in to join a company. Please register first.");
+        // Not logged in — redirect to register with code preserved
+        router.push(`/register?code=${encodeURIComponent(companyCode)}`);
         return;
       }
 

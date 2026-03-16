@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Loader2, ArrowRight, CheckCircle2, Shield } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { registerUserInDB } from "@/lib/supabase/db";
+import { registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
 import { AuthLayout } from "@/components/auth-layout";
 import { checkPasswordStrength, type PasswordCheck } from "@/lib/security";
 
@@ -30,7 +30,17 @@ const STRENGTH_WIDTH: Record<PasswordCheck["strength"], string> = {
 };
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<AuthLayout><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></AuthLayout>}>
+      <RegisterInner />
+    </Suspense>
+  );
+}
+
+function RegisterInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const joinCode = searchParams.get("code") ?? "";
   const [step, setStep] = useState<"info" | "company" | "confirm">("info");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -71,21 +81,45 @@ export default function RegisterPage() {
       if (signUpError) throw signUpError;
 
       if (data.user && !data.session) {
-        setStep("confirm");
-        return;
-      }
-
-      // Create User + Company + Membership in database
-      if (data.user) {
-        try {
-          await registerUserInDB({
+        // Email confirmation required — persist join code for after verification
+        if (joinCode && data.user) {
+          localStorage.setItem("pending_join", JSON.stringify({
+            code: joinCode,
             supabaseId: data.user.id,
             email: data.user.email,
             phone: phone || null,
             firstName,
             lastName,
-            companyName,
-          });
+          }));
+        }
+        setStep("confirm");
+        return;
+      }
+
+      // Create User + Company/Join in database
+      if (data.user) {
+        try {
+          if (joinCode) {
+            // Join existing company by code
+            await joinCompanyByCode({
+              supabaseId: data.user.id,
+              email: data.user.email,
+              phone: phone || null,
+              firstName,
+              lastName,
+              joinCode,
+            });
+          } else {
+            // Create new company
+            await registerUserInDB({
+              supabaseId: data.user.id,
+              email: data.user.email,
+              phone: phone || null,
+              firstName,
+              lastName,
+              companyName,
+            });
+          }
         } catch (dbErr) {
           console.warn("DB registration deferred:", dbErr);
           // Non-fatal: AuthProvider will retry on next login
@@ -133,7 +167,9 @@ export default function RegisterPage() {
               <h2 className="mb-1 text-lg font-semibold">Create your account</h2>
               <p className="mb-6 text-sm text-muted-foreground">
                 {step === "info"
-                  ? "Enter your details to get started"
+                  ? joinCode
+                    ? `Enter your details to join with code ${joinCode}`
+                    : "Enter your details to get started"
                   : "Set up your company"}
               </p>
             </>
@@ -171,6 +207,7 @@ export default function RegisterPage() {
                     placeholder="you@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -221,15 +258,29 @@ export default function RegisterPage() {
                   )}
                 </div>
 
-                <Button
-                  type="button"
-                  className="w-full gap-2"
-                  onClick={() => setStep("company")}
-                  disabled={!firstName || !lastName || !email || !password || (pwCheck ? !pwCheck.valid : true)}
-                >
-                  Continue
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                {joinCode ? (
+                  <Button
+                    type="submit"
+                    className="w-full gap-2"
+                    disabled={isLoading || !firstName || !lastName || !email || !password || (pwCheck ? !pwCheck.valid : true)}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Create Account & Join Company"
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    className="w-full gap-2"
+                    onClick={() => setStep("company")}
+                    disabled={!firstName || !lastName || !email || !password || (pwCheck ? !pwCheck.valid : true)}
+                  >
+                    Continue
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                )}
               </>
             )}
 
