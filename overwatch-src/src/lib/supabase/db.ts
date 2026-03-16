@@ -2234,20 +2234,24 @@ export async function deleteTimeOffRequest(requestId: string) {
 
 export async function updateMemberRole(membershipId: string, role: string) {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("company_memberships")
-    .update({ role })
-    .eq("id", membershipId)
-    .select()
-    .maybeSingle();
-  if (error) throw error;
+  const { data, error } = await supabase.rpc("update_member_role", {
+    p_membership_id: membershipId,
+    p_new_role: role,
+  });
+  if (error) {
+    throw new Error(error.message || "Failed to update role");
+  }
   return data;
 }
 
 export async function removeMember(membershipId: string) {
   const supabase = createClient();
-  const { error } = await supabase.from("company_memberships").delete().eq("id", membershipId);
-  if (error) throw error;
+  const { error } = await supabase.rpc("remove_company_member", {
+    p_membership_id: membershipId,
+  });
+  if (error) {
+    throw new Error(error.message || "Failed to remove member");
+  }
 }
 
 // ─── Payment Transactions ───────────────────────────

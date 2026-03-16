@@ -15,6 +15,7 @@ type Sheet = any;
 
 export default function AdminStaffPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+  const user = useAuthStore((s) => s.user);
   const [members, setMembers] = useState<Member[]>([]);
   const [joinCode, setJoinCode] = useState("");
   const [search, setSearch] = useState("");
@@ -25,6 +26,11 @@ export default function AdminStaffPage() {
   const [approving, setApproving] = useState<string | null>(null);
   const [changingRole, setChangingRole] = useState<string | null>(null);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Current user's role in this company
+  const myRole = user?.companies.find((c) => c.companyId === activeCompanyId)?.role ?? "staff";
+  const canManageRoles = myRole === "owner" || myRole === "admin";
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -50,16 +56,18 @@ export default function AdminStaffPage() {
 
   async function handleRoleChange(membershipId: string, newRole: string) {
     setChangingRole(membershipId);
+    setError(null);
     try { await updateMemberRole(membershipId, newRole); await load(); }
-    catch (err) { console.error(err); }
+    catch (err: unknown) { const msg = err instanceof Error ? err.message : "Failed to update role"; setError(msg); console.error(err); }
     finally { setChangingRole(null); }
   }
 
   async function handleRemoveMember(membershipId: string, name: string) {
     if (!confirm(`Remove ${name} from the organization?`)) return;
     setRemovingMember(membershipId);
+    setError(null);
     try { await removeMember(membershipId); await load(); }
-    catch (err) { console.error(err); }
+    catch (err: unknown) { const msg = err instanceof Error ? err.message : "Failed to remove member"; setError(msg); console.error(err); }
     finally { setRemovingMember(null); }
   }
 
@@ -96,6 +104,13 @@ export default function AdminStaffPage() {
         {joinCode && (
           <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-2 text-xs text-muted-foreground">
             Share the code <span className="font-mono font-bold text-foreground">{joinCode}</span> with team members so they can join your organization.
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-2 text-xs text-red-500 flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="ml-2 font-bold hover:text-red-400">&times;</button>
           </div>
         )}
 
@@ -142,20 +157,29 @@ export default function AdminStaffPage() {
                         <p className="text-xs text-muted-foreground">{u?.email}</p>
                       </div>
                       <div className="relative">
-                        <select
-                          value={m.role}
-                          onChange={(e) => handleRoleChange(m.id, e.target.value)}
-                          disabled={changingRole === m.id || m.role === "owner"}
-                          className="h-6 appearance-none rounded border border-border/40 bg-background px-2 pr-5 text-[10px] font-medium capitalize cursor-pointer disabled:opacity-50"
-                        >
-                          {["owner", "admin", "manager", "staff"].map((r) => (
-                            <option key={r} value={r}>{r}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+                        {canManageRoles ? (
+                          <>
+                            <select
+                              value={m.role}
+                              onChange={(e) => handleRoleChange(m.id, e.target.value)}
+                              disabled={changingRole === m.id || (m.role === "owner" && myRole !== "owner")}
+                              className="h-6 appearance-none rounded border border-border/40 bg-background px-2 pr-5 text-[10px] font-medium capitalize cursor-pointer disabled:opacity-50"
+                            >
+                              {(myRole === "owner"
+                                ? ["owner", "admin", "manager", "staff"]
+                                : ["manager", "staff"]
+                              ).map((r) => (
+                                <option key={r} value={r}>{r}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+                          </>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
+                        )}
                       </div>
                       <Badge variant={m.status === "active" ? "default" : "outline"} className="text-[10px] capitalize">{m.status}</Badge>
-                      {m.role !== "owner" && (
+                      {canManageRoles && m.role !== "owner" && (
                         <button onClick={() => handleRemoveMember(m.id, `${u?.first_name} ${u?.last_name}`)} disabled={removingMember === m.id}
                           className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Remove member">
                           {removingMember === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
