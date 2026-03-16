@@ -77,27 +77,27 @@ export async function getSecurityStats(companyId: string) {
     const [recentEvents, failedLogins, lockouts] = await Promise.all([
       supabase
         .from("audit_logs")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .eq("company_id", companyId)
         .gte("created_at", last24h),
       supabase
         .from("audit_logs")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .eq("company_id", companyId)
         .eq("event_type", "auth.login.failed")
         .gte("created_at", last7d),
       supabase
         .from("audit_logs")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .eq("company_id", companyId)
         .eq("event_type", "security.lockout")
         .gte("created_at", last7d),
     ]);
 
     return {
-      events24h: recentEvents.count ?? 0,
-      failedLogins7d: failedLogins.count ?? 0,
-      lockouts7d: lockouts.count ?? 0,
+      events24h: recentEvents.data?.length ?? 0,
+      failedLogins7d: failedLogins.data?.length ?? 0,
+      lockouts7d: lockouts.data?.length ?? 0,
     };
   } catch {
     return { events24h: 0, failedLogins7d: 0, lockouts7d: 0 };
