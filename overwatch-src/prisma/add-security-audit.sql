@@ -42,7 +42,7 @@ CREATE POLICY "Admins can read company audit logs"
   TO authenticated
   USING (
     company_id IN (
-      SELECT company_id FROM user_companies
+      SELECT company_id FROM company_memberships
       WHERE user_id = auth.uid()
       AND role IN ('owner', 'admin')
     )
