@@ -8,8 +8,9 @@ import {
   Shield, Radio, GraduationCap, MapPin, FileText,
   BarChart3, Users, Clock, Video, BookOpen,
   ChevronRight, Zap, Lock, Globe,
-  X, Phone, Mail, ArrowRight, Loader2,
+  X, Phone, Mail, ArrowRight, Loader2, FileCheck,
 } from "lucide-react";
+import { TOSModal } from "@/components/terms-of-service";
 import { createClient } from "@/lib/supabase/client";
 import { checkPasswordStrength } from "@/lib/security";
 
@@ -265,9 +266,19 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
   );
 }
 
+const INTEGRATIONS_LOGOS = [
+  { name: "WhatsApp", src: "https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg", alt: "WhatsApp Business" },
+  { name: "Signal", src: "https://upload.wikimedia.org/wikipedia/commons/8/8d/Signal-Logo.svg", alt: "Signal" },
+  { name: "Airtable", src: "https://upload.wikimedia.org/wikipedia/commons/4/4b/Airtable_Logo.svg", alt: "Airtable" },
+  { name: "Fillout", src: "/images/integrations/fillout-icon.svg", alt: "Fillout" },
+  { name: "Stripe", src: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg", alt: "Stripe" },
+  { name: "Supabase", src: "https://cf-assets.www.cloudflare.com/slt3lc6tev37/5vMWFJXCQdx6Gal6fgGwjP/0ed2a1e28b34a602beea2fdb91dabd67/supabase-logo-icon_1.svg", alt: "Supabase" },
+];
+
 export default function HomePage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [registerOpen, setRegisterOpen] = useState(false);
+  const [tosOpen, setTosOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#0b1422] text-white">
@@ -350,6 +361,27 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Integrations */}
+      <section className="py-16 border-t border-white/5 bg-white/[0.01]">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">INTEGRATES WITH YOUR STACK</h2>
+            <p className="text-white/40 max-w-lg mx-auto text-sm">Connect Overwatch with the tools your team already uses — or go fully native.</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
+            {INTEGRATIONS_LOGOS.map((int) => (
+              <div key={int.name} className="flex flex-col items-center gap-2 group">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all p-2.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={int.src} alt={int.alt} className="h-8 w-8 object-contain" />
+                </div>
+                <span className="text-[10px] text-white/30 font-medium">{int.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="py-20 border-t border-white/5">
         <div className="mx-auto max-w-3xl px-6 text-center">
@@ -374,6 +406,9 @@ export default function HomePage() {
             <button onClick={() => setLoginOpen(true)} className="hover:text-white/60 transition-colors">Sign In</button>
             <Link href="/register" className="hover:text-white/60 transition-colors">Register</Link>
             <Link href="/join" className="hover:text-white/60 transition-colors">Join Company</Link>
+            <button onClick={() => setTosOpen(true)} className="hover:text-white/60 transition-colors flex items-center gap-1">
+              <FileCheck className="h-3 w-3" /> Terms of Service
+            </button>
           </div>
         </div>
       </footer>
@@ -381,6 +416,7 @@ export default function HomePage() {
       {/* Modals */}
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
       <RegisterModal open={registerOpen} onClose={() => setRegisterOpen(false)} onSwitchToLogin={() => { setRegisterOpen(false); setLoginOpen(true); }} />
+      <TOSModal open={tosOpen} onClose={() => setTosOpen(false)} />
     </div>
   );
 }

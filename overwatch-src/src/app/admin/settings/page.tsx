@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Webhook, Database, Mail, Eye, EyeOff } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
 
@@ -18,23 +18,26 @@ type IntConfig = any;
 const LEAVE_TYPES = ["vacation", "sick", "personal", "bereavement", "parental", "unpaid"];
 
 const INTEGRATIONS = [
-  { provider: "fillout", label: "Fillout", icon: "Webhook", desc: "Receive employment applications via Fillout webhook", fields: [
+  { provider: "fillout", label: "Fillout", logo: "/images/integrations/fillout-icon.svg", desc: "Receive employment applications via Fillout webhook", fields: [
     { key: "webhook_secret", label: "Webhook Secret", type: "password", placeholder: "whsec_..." },
   ]},
-  { provider: "airtable", label: "Airtable", icon: "Database", desc: "Sync applicant records with Airtable", fields: [
+  { provider: "airtable", label: "Airtable", logo: "https://upload.wikimedia.org/wikipedia/commons/4/4b/Airtable_Logo.svg", desc: "Sync applicant records with Airtable", fields: [
     { key: "api_key", label: "API Key", type: "password", placeholder: "pat..." },
     { key: "base_id", label: "Base ID", type: "text", placeholder: "app..." },
     { key: "table_name", label: "Table Name", type: "text", placeholder: "Staff" },
   ]},
-  { provider: "email", label: "Email (Postmark / Resend)", icon: "Mail", desc: "Auto-send onboarding emails when applicants are hired", fields: [
+  { provider: "whatsapp", label: "WhatsApp Business", logo: "https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg", desc: "Auto-invite new hires to WhatsApp community and send notifications", fields: [
+    { key: "phone_number_id", label: "Phone Number ID", type: "text", placeholder: "1234567890" },
+    { key: "access_token", label: "Permanent Access Token", type: "password", placeholder: "EAAx..." },
+    { key: "community_invite_link", label: "Community Invite Link", type: "text", placeholder: "https://chat.whatsapp.com/..." },
+  ]},
+  { provider: "email", label: "Email (Postmark / Resend)", logo: null, icon: "Mail", desc: "Auto-send onboarding emails when applicants are hired", fields: [
     { key: "provider", label: "Provider", type: "select", options: ["postmark", "resend"] },
     { key: "api_key", label: "API Key", type: "password", placeholder: "pm_..." },
     { key: "from_email", label: "From Email", type: "email", placeholder: "noreply@yourcompany.com" },
     { key: "from_name", label: "From Name", type: "text", placeholder: "TGT Security" },
   ]},
 ];
-
-const INT_ICONS: Record<string, React.ElementType> = { Webhook, Database, Mail };
 
 // Get all IANA timezone names (browser Intl API)
 const ALL_TIMEZONES: string[] = typeof Intl !== "undefined" && Intl.supportedValuesOf
@@ -371,7 +374,7 @@ export default function AdminSettingsPage() {
 
             {INTEGRATIONS.map(def => {
               const form = intForms[def.provider];
-              const Icon = INT_ICONS[def.icon] ?? Plug;
+              const FallbackIcon = def.icon === "Mail" ? Mail : Plug;
               const existing = integrations.find((i: IntConfig) => i.provider === def.provider);
               const isConfigured = !!existing;
 
@@ -381,7 +384,12 @@ export default function AdminSettingsPage() {
                 }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-primary" />
+                      {def.logo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={def.logo} alt={def.label} className="h-5 w-5 object-contain" />
+                      ) : (
+                        <FallbackIcon className="h-4 w-4 text-primary" />
+                      )}
                       <span className="text-sm font-semibold">{def.label}</span>
                       {isConfigured && form?.isActive && <Badge className="text-[9px] bg-green-500/15 text-green-500">Active</Badge>}
                       {isConfigured && !form?.isActive && <Badge variant="outline" className="text-[9px]">Configured</Badge>}
@@ -399,7 +407,7 @@ export default function AdminSettingsPage() {
                     {def.fields.map(field => (
                       <div key={field.key}>
                         <Label className="text-[10px] text-muted-foreground">{field.label}</Label>
-                        {field.type === "select" && field.options ? (
+                        {field.type === "select" && "options" in field && field.options ? (
                           <select
                             value={form?.config?.[field.key] ?? ""}
                             onChange={(e) => updateIntField(def.provider, field.key, e.target.value)}
