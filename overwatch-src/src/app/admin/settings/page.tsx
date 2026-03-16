@@ -478,46 +478,49 @@ export default function AdminSettingsPage() {
                             </div>
                             <p className="text-[10px] text-muted-foreground">{def.desc}</p>
 
-                            <div className="space-y-2">
-                              {def.fields.map(field => (
-                                <div key={field.key}>
-                                  <Label className="text-[10px] text-muted-foreground">{field.label}</Label>
-                                  {field.type === "select" && "options" in field && field.options ? (
-                                    <select
-                                      value={form?.config?.[field.key] ?? ""}
-                                      onChange={(e) => updateIntField(def.provider, field.key, e.target.value)}
-                                      className="mt-0.5 h-8 w-full rounded border border-border/40 bg-background px-2 text-xs">
-                                      <option value="">Select...</option>
-                                      {field.options.map((o: string) => <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>)}
-                                    </select>
-                                  ) : (
-                                    <div className="relative mt-0.5">
-                                      <Input
-                                        type={field.type === "password" && !showSecret[`${def.provider}.${field.key}`] ? "password" : "text"}
+                            <form onSubmit={(e) => { e.preventDefault(); handleSaveIntegration(def.provider); }} autoComplete="off">
+                              <div className="space-y-2">
+                                {def.fields.map(field => (
+                                  <div key={field.key}>
+                                    <Label className="text-[10px] text-muted-foreground">{field.label}</Label>
+                                    {field.type === "select" && "options" in field && field.options ? (
+                                      <select
                                         value={form?.config?.[field.key] ?? ""}
                                         onChange={(e) => updateIntField(def.provider, field.key, e.target.value)}
-                                        placeholder={field.placeholder ?? ""}
-                                        className="h-8 text-xs pr-8" />
-                                      {field.type === "password" && (
-                                        <button type="button"
-                                          onClick={() => setShowSecret(p => ({ ...p, [`${def.provider}.${field.key}`]: !p[`${def.provider}.${field.key}`] }))}
-                                          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground">
-                                          {showSecret[`${def.provider}.${field.key}`] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
+                                        className="mt-0.5 h-8 w-full rounded border border-border/40 bg-background px-2 text-xs">
+                                        <option value="">Select...</option>
+                                        {field.options.map((o: string) => <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>)}
+                                      </select>
+                                    ) : (
+                                      <div className="relative mt-0.5">
+                                        <Input
+                                          type={field.type === "password" && !showSecret[`${def.provider}.${field.key}`] ? "password" : "text"}
+                                          value={form?.config?.[field.key] ?? ""}
+                                          onChange={(e) => updateIntField(def.provider, field.key, e.target.value)}
+                                          placeholder={field.placeholder ?? ""}
+                                          autoComplete="off"
+                                          className="h-8 text-xs pr-8" />
+                                        {field.type === "password" && (
+                                          <button type="button"
+                                            onClick={() => setShowSecret(p => ({ ...p, [`${def.provider}.${field.key}`]: !p[`${def.provider}.${field.key}`] }))}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground">
+                                            {showSecret[`${def.provider}.${field.key}`] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
 
-                            <Button size="sm" className="gap-1.5 text-xs" onClick={() => handleSaveIntegration(def.provider)}
-                              disabled={savingInt === def.provider}>
-                              {savingInt === def.provider ? <Loader2 className="h-3 w-3 animate-spin" />
-                                : savedInt === def.provider ? <Check className="h-3 w-3 text-green-500" />
-                                : <Save className="h-3 w-3" />}
-                              {savedInt === def.provider ? "Saved!" : "Save"}
-                            </Button>
+                              <Button type="submit" size="sm" className="gap-1.5 text-xs mt-3"
+                                disabled={savingInt === def.provider}>
+                                {savingInt === def.provider ? <Loader2 className="h-3 w-3 animate-spin" />
+                                  : savedInt === def.provider ? <Check className="h-3 w-3 text-green-500" />
+                                  : <Save className="h-3 w-3" />}
+                                {savedInt === def.provider ? "Saved!" : "Save"}
+                              </Button>
+                            </form>
                           </div>
                         );
                       })}

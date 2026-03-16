@@ -620,7 +620,7 @@ function WhatsAppTab({ isAdmin, waConfig, setWaConfig, handleSaveWaConfig, waSav
             <li>Enter your credentials below and activate the integration</li>
           </ol>
 
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-3 pt-2 border-t border-border/30">
+          <form onSubmit={(e) => e.preventDefault()} autoComplete="off" className="space-y-3 pt-2 border-t border-border/30">
             <p className="text-xs font-medium text-muted-foreground">API Configuration</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
