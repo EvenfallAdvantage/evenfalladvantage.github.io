@@ -11,6 +11,7 @@ import {
   X, Phone, Mail, ArrowRight, Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { checkPasswordStrength } from "@/lib/security";
 
 const FEATURES = [
   { icon: Radio, title: "Live Comms", desc: "Encrypted team channels with real-time messaging" },
@@ -140,8 +141,133 @@ function LoginModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   );
 }
 
+function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onClose: () => void; onSwitchToLogin: () => void }) {
+  const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setRegPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [step, setStep] = useState<"info" | "company" | "done">("info");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const pwCheck = password.length > 0 ? checkPasswordStrength(password) : null;
+
+  if (!open) return null;
+
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      const supabase = createClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email, password,
+        options: {
+          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: companyName },
+          emailRedirectTo: `${window.location.origin}/overwatch/auth/callback/`,
+        },
+      });
+      if (signUpError) throw signUpError;
+      if (data.user && !data.session) { setStep("done"); return; }
+      if (data.user) { router.push("/feed"); router.refresh(); }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally { setLoading(false); }
+  }
+
+  const strengthColors: Record<string, string> = { weak: "bg-red-500 w-1/5", fair: "bg-orange-500 w-2/5", good: "bg-yellow-500 w-3/5", strong: "bg-green-500 w-4/5", military: "bg-emerald-400 w-full" };
+  const infoValid = firstName && lastName && email && password && (pwCheck?.valid ?? false);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="relative w-full max-w-sm mx-4 rounded-2xl border border-[#dd8c33]/30 bg-[#0f1a2e] p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-3 right-3 text-white/40 hover:text-white"><X className="h-5 w-5" /></button>
+
+        <div className="flex flex-col items-center mb-5">
+          <Image src="/images/overwatch_logo.png" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
+          <h2 className="mt-2 text-lg font-bold font-mono text-white">CREATE ACCOUNT</h2>
+        </div>
+
+        {step === "done" ? (
+          <div className="text-center space-y-3 py-4">
+            <div className="mx-auto w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center"><ArrowRight className="h-5 w-5 text-green-400" /></div>
+            <p className="text-sm text-white/70">Check your email at <strong className="text-white">{email}</strong> to confirm your account.</p>
+            <button onClick={onSwitchToLogin} className="text-xs text-[#dd8c33] hover:underline">Back to Sign In</button>
+          </div>
+        ) : step === "info" ? (
+          <form onSubmit={(e) => { e.preventDefault(); setStep("company"); }} className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium text-white/60 block mb-1">First name</label>
+                <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} required
+                  className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-white/60 block mb-1">Last name</label>
+                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} required
+                  className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-white/60 block mb-1">Email</label>
+              <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"
+                className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-white/60 block mb-1">Phone (optional)</label>
+              <input type="tel" placeholder="+1 (555) 123-4567" value={phone} onChange={e => setRegPhone(e.target.value)}
+                className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-white/60 block mb-1">Password</label>
+              <input type="password" placeholder="Min 12 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={12} autoComplete="new-password"
+                className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+              {pwCheck && (
+                <div className="mt-1.5">
+                  <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden"><div className={`h-full rounded-full transition-all ${strengthColors[pwCheck.strength] ?? ""}`} /></div>
+                  <p className="text-[10px] text-white/40 mt-0.5 uppercase tracking-wider">{pwCheck.strength}</p>
+                </div>
+              )}
+            </div>
+            <button type="submit" disabled={!infoValid}
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
+              Continue <ArrowRight className="h-4 w-4" />
+            </button>
+            <div className="text-center">
+              <button type="button" onClick={onSwitchToLogin} className="text-xs text-white/40 hover:text-white/60">Already have an account? <span className="text-[#dd8c33]">Sign in</span></button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleRegister} className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-white/60 block mb-1">Company name</label>
+              <input type="text" placeholder="e.g. Apex Security Services" value={companyName} onChange={e => setCompanyName(e.target.value)} required
+                className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+              <p className="text-[10px] text-white/30 mt-1">This creates a new company. To join an existing one, use a company code.</p>
+            </div>
+            {error && <p className="text-xs text-red-400">{error}</p>}
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setStep("info")}
+                className="flex-1 h-10 rounded-lg border border-white/10 text-white/60 text-sm hover:bg-white/5 transition-colors">Back</button>
+              <button type="submit" disabled={loading || !companyName}
+                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Deploy <ArrowRight className="h-4 w-4" /></>}
+              </button>
+            </div>
+            <div className="text-center">
+              <Link href="/join" className="text-xs text-white/30 hover:text-white/50">Have a company code? Join here</Link>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [loginOpen, setLoginOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#0b1422] text-white">
@@ -156,7 +282,7 @@ export default function HomePage() {
             <button onClick={() => setLoginOpen(true)} className="text-sm text-white/60 hover:text-white transition-colors px-3 py-1.5">
               Sign In
             </button>
-            <button onClick={() => setLoginOpen(true)} className="text-sm font-medium bg-[#dd8c33] text-white px-4 py-1.5 rounded-lg hover:bg-[#c47a2a] transition-colors">
+            <button onClick={() => setRegisterOpen(true)} className="text-sm font-medium bg-[#dd8c33] text-white px-4 py-1.5 rounded-lg hover:bg-[#c47a2a] transition-colors">
               Get Started
             </button>
           </div>
@@ -183,7 +309,7 @@ export default function HomePage() {
             into one tactical platform built for security professionals.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
+            <button onClick={() => setRegisterOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
               Deploy Now <ChevronRight className="h-4 w-4" />
             </button>
             <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 border border-[#dd8c33]/30 text-white/80 px-8 py-3 rounded-xl hover:bg-[#dd8c33]/10 transition-all text-sm">
@@ -230,7 +356,7 @@ export default function HomePage() {
           <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight mb-4">READY TO DEPLOY?</h2>
           <p className="text-white/40 mb-8 max-w-lg mx-auto">Join security companies already using Overwatch to manage their workforce, training, and operations.</p>
           <div className="flex items-center justify-center gap-4">
-            <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
+            <button onClick={() => setRegisterOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
               Create Free Account <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -252,8 +378,9 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {/* Login Modal */}
+      {/* Modals */}
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <RegisterModal open={registerOpen} onClose={() => setRegisterOpen(false)} onSwitchToLogin={() => { setRegisterOpen(false); setLoginOpen(true); }} />
     </div>
   );
 }
