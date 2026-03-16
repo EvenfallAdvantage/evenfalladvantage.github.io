@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -8,9 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Pencil, Check, X, Settings, FileText, Activity, FolderOpen, Loader2, Clock } from "lucide-react";
+import {
+  Pencil, Check, X, Settings, FileText, Activity, FolderOpen, Loader2, Clock,
+  Lock, Shield, AlertTriangle, CheckCircle2, ListChecks,
+} from "lucide-react";
 import Link from "next/link";
-import { updateUserProfile, getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts } from "@/lib/supabase/db";
+import {
+  updateUserProfile, getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts,
+  getMemberProfile, updateMemberProfile, getMyOnboardingProgress, toggleOnboardingTask, completeOnboarding,
+} from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sub = any;
@@ -20,10 +26,17 @@ import { parseUTC } from "@/lib/parse-utc";
 type Sheet = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Attempt = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MemberProfile = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type OProgress = any;
+
+const WORK_PREF_OPTIONS = ["Weekdays", "Weekends", "Nights", "Mornings", "Events", "Overtime", "Holidays"];
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.lastName ?? "");
@@ -33,9 +46,61 @@ export default function ProfilePage() {
   const [timesheets, setTimesheets] = useState<Sheet[]>([]);
   const [quizAttempts, setQuizAttempts] = useState<Attempt[]>([]);
   const [tabLoaded, setTabLoaded] = useState<Record<string, boolean>>({});
+  // Enhanced profile
+  const [mp, setMp] = useState<MemberProfile>(null);
+  const [mpLoaded, setMpLoaded] = useState(false);
+  const [editingCompany, setEditingCompany] = useState(false);
+  const [compForm, setCompForm] = useState({ bio: "", address: "", shirtSize: "", jacketSize: "", emergencyContactName: "", emergencyContactPhone: "", whatsappOptedIn: false, workPreferences: [] as string[] });
+  const [savingComp, setSavingComp] = useState(false);
+  // Onboarding
+  const [onboardingProgress, setOnboardingProgress] = useState<OProgress[]>([]);
+  const [togglingTask, setTogglingTask] = useState<string | null>(null);
 
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
+
+  // Load member profile + onboarding progress
+  useEffect(() => {
+    if (!activeCompanyId || activeCompanyId === "pending" || mpLoaded) return;
+    (async () => {
+      try {
+        const profile = await getMemberProfile(activeCompanyId);
+        setMp(profile);
+        if (profile) {
+          setCompForm({
+            bio: profile.bio ?? "", address: profile.address ?? "",
+            shirtSize: profile.shirt_size ?? "", jacketSize: profile.jacket_size ?? "",
+            emergencyContactName: profile.emergency_contact_name ?? "",
+            emergencyContactPhone: profile.emergency_contact_phone ?? "",
+            whatsappOptedIn: profile.whatsapp_opted_in ?? false,
+            workPreferences: profile.work_preferences ?? [],
+          });
+        }
+      } catch {}
+      try { setOnboardingProgress(await getMyOnboardingProgress(activeCompanyId)); } catch {}
+      setMpLoaded(true);
+    })();
+  }, [activeCompanyId, mpLoaded]);
+
+  // Profile completeness calculation
+  const completenessFields = [
+    !!user?.firstName, !!user?.lastName, !!user?.email, !!user?.phone,
+    !!mp?.bio, !!mp?.address, !!mp?.guard_card_number, !!mp?.emergency_contact_name,
+    !!mp?.emergency_contact_phone, (mp?.work_preferences?.length ?? 0) > 0,
+  ];
+  const completeness = Math.round((completenessFields.filter(Boolean).length / completenessFields.length) * 100);
+
+  // Guard card expiry
+  const gcExpiry = mp?.guard_card_expiry ? new Date(mp.guard_card_expiry) : null;
+  const gcDaysLeft = gcExpiry ? Math.ceil((gcExpiry.getTime() - Date.now()) / 86400000) : null;
+  const gcExpired = gcDaysLeft !== null && gcDaysLeft < 0;
+  const gcExpiringSoon = gcDaysLeft !== null && gcDaysLeft >= 0 && gcDaysLeft <= 30;
+
+  // Onboarding status
+  const isOnboarding = mp?.status === "onboarding" && !mp?.onboarding_complete;
+  const requiredTasks = onboardingProgress.filter((p: OProgress) => p.onboarding_tasks?.is_required);
+  const completedRequired = requiredTasks.filter((p: OProgress) => p.completed);
+  const allRequiredDone = requiredTasks.length > 0 && completedRequired.length === requiredTasks.length;
 
   function startEdit() {
     setFirstName(user?.firstName ?? "");
@@ -52,6 +117,44 @@ export default function ProfilePage() {
       setEditing(false);
     } catch (err) { console.error("Save profile failed:", err); }
     finally { setSaving(false); }
+  }
+
+  async function handleSaveCompany() {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    setSavingComp(true);
+    try {
+      await updateMemberProfile(activeCompanyId, compForm);
+      setMp(await getMemberProfile(activeCompanyId));
+      setEditingCompany(false);
+    } catch (err) { console.error(err); }
+    finally { setSavingComp(false); }
+  }
+
+  async function handleToggleOnboarding(taskId: string, completed: boolean) {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    setTogglingTask(taskId);
+    try {
+      await toggleOnboardingTask(taskId, completed);
+      setOnboardingProgress(await getMyOnboardingProgress(activeCompanyId));
+    } catch (err) { console.error(err); }
+    finally { setTogglingTask(null); }
+  }
+
+  async function handleCompleteOnboarding() {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    try {
+      await completeOnboarding(activeCompanyId);
+      setMp(await getMemberProfile(activeCompanyId));
+    } catch (err) { console.error(err); }
+  }
+
+  function togglePref(pref: string) {
+    setCompForm(p => ({
+      ...p,
+      workPreferences: p.workPreferences.includes(pref)
+        ? p.workPreferences.filter(w => w !== pref)
+        : [...p.workPreferences, pref],
+    }));
   }
 
   const loadSubmissions = useCallback(async () => {
@@ -94,6 +197,7 @@ export default function ProfilePage() {
                 <Badge variant="secondary" className="text-xs capitalize">
                   {activeCompany?.role ?? "Staff"}
                 </Badge>
+                {isOnboarding && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Onboarding</Badge>}
               </div>
             </div>
           </div>
@@ -105,71 +209,256 @@ export default function ProfilePage() {
           </Link>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-[260px_1fr]">
-          {/* Personal Details */}
+        {/* Profile Completeness */}
+        {mpLoaded && (
+          <div className="rounded-xl border border-border/50 bg-card px-4 py-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-medium">Profile Completeness</span>
+              <span className={`text-xs font-bold ${completeness === 100 ? "text-green-500" : completeness >= 70 ? "text-amber-500" : "text-red-500"}`}>{completeness}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${completeness === 100 ? "bg-green-500" : completeness >= 70 ? "bg-amber-500" : "bg-red-500"}`}
+                style={{ width: `${completeness}%` }} />
+            </div>
+            {completeness < 100 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Complete your profile to help your team identify you. Missing: {completenessFields.map((v, i) => !v ? ["first name", "last name", "email", "phone", "bio", "address", "guard card", "emergency name", "emergency phone", "work preferences"][i] : null).filter(Boolean).join(", ")}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Guard Card Warning */}
+        {(gcExpired || gcExpiringSoon) && (
+          <div className={`rounded-xl border px-4 py-3 flex items-center gap-3 ${gcExpired ? "border-red-500/30 bg-red-500/5" : "border-amber-500/30 bg-amber-500/5"}`}>
+            <AlertTriangle className={`h-5 w-5 shrink-0 ${gcExpired ? "text-red-500" : "text-amber-500"}`} />
+            <div>
+              <p className={`text-sm font-medium ${gcExpired ? "text-red-500" : "text-amber-600"}`}>
+                {gcExpired ? "Guard Card Expired" : `Guard Card Expires in ${gcDaysLeft} Days`}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {gcExpired ? "Your guard card has expired. Contact your admin to update." : "Renew your guard card before it expires."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Onboarding Checklist */}
+        {isOnboarding && onboardingProgress.length > 0 && (
           <Card>
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium">Personal details</CardTitle>
-              {!editing && (
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={startEdit}>
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-              )}
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <ListChecks className="h-4 w-4" /> Onboarding Checklist
+                <Badge className="ml-auto text-[10px] bg-primary/15 text-primary">{completedRequired.length}/{requiredTasks.length} required</Badge>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {editing ? (
-                <>
-                  <div>
-                    <span className="text-muted-foreground text-xs">First name</span>
-                    <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="mt-1 h-8 text-sm" />
+            <CardContent className="space-y-1.5">
+              {onboardingProgress.map((p: OProgress) => {
+                const task = p.onboarding_tasks;
+                if (!task) return null;
+                return (
+                  <div key={p.id} className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2">
+                    <button onClick={() => handleToggleOnboarding(p.task_id, !p.completed)}
+                      disabled={togglingTask === p.task_id}
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors ${p.completed ? "bg-green-500 border-green-500 text-white" : "border-border/60 hover:border-primary"}`}>
+                      {togglingTask === p.task_id ? <Loader2 className="h-3 w-3 animate-spin" /> : p.completed ? <Check className="h-3 w-3" /> : null}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm ${p.completed ? "line-through text-muted-foreground" : "font-medium"}`}>{task.title}</p>
+                      {task.description && <p className="text-[10px] text-muted-foreground">{task.description}</p>}
+                    </div>
+                    {task.is_required && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Required</Badge>}
+                    <Badge variant="outline" className="text-[9px] capitalize">{task.category}</Badge>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground text-xs">Last name</span>
-                    <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="mt-1 h-8 text-sm" />
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-xs">Email</span>
-                    <p className="font-medium truncate text-muted-foreground">{user?.email ?? "—"}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-xs">Phone</span>
-                    <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1 h-8 text-sm" placeholder="(555) 123-4567" />
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleSave} disabled={saving}>
-                      {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => setEditing(false)}>
-                      <X className="h-3 w-3" /> Cancel
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <span className="text-muted-foreground text-xs">First name</span>
-                    <p className="font-medium">{user?.firstName ?? "—"}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-xs">Last name</span>
-                    <p className="font-medium">{user?.lastName ?? "—"}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-xs">Email</span>
-                    <p className="font-medium truncate">{user?.email ?? "—"}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-xs">Phone</span>
-                    <p className="font-medium">{user?.phone ?? "—"}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground text-xs">Nickname / Callsign</span>
-                    <p className="font-medium">{activeCompany?.membership?.nickname ?? "—"}</p>
-                  </div>
-                </>
+                );
+              })}
+              {allRequiredDone && (
+                <Button size="sm" className="w-full mt-2 gap-1.5" onClick={handleCompleteOnboarding}>
+                  <CheckCircle2 className="h-4 w-4" /> Complete Onboarding
+                </Button>
               )}
             </CardContent>
           </Card>
+        )}
+
+        <div className="grid gap-6 md:grid-cols-[280px_1fr]">
+          {/* Sidebar: Personal + Company Details */}
+          <div className="space-y-4">
+            {/* Personal Details */}
+            <Card>
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium">Personal Details</CardTitle>
+                {!editing && (
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={startEdit}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                {editing ? (
+                  <>
+                    <div>
+                      <span className="text-muted-foreground text-xs">First name</span>
+                      <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="mt-1 h-8 text-sm" />
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Last name</span>
+                      <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="mt-1 h-8 text-sm" />
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs flex items-center gap-1">Email <Lock className="h-2.5 w-2.5" /></span>
+                      <p className="font-medium truncate text-muted-foreground">{user?.email ?? "—"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Phone</span>
+                      <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1 h-8 text-sm" placeholder="(555) 123-4567" />
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleSave} disabled={saving}>
+                        {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => setEditing(false)}>
+                        <X className="h-3 w-3" /> Cancel
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <span className="text-muted-foreground text-xs">First name</span>
+                      <p className="font-medium">{user?.firstName ?? "—"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Last name</span>
+                      <p className="font-medium">{user?.lastName ?? "—"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs flex items-center gap-1">Email <Lock className="h-2.5 w-2.5" /></span>
+                      <p className="font-medium truncate">{user?.email ?? "—"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-xs">Phone</span>
+                      <p className="font-medium">{user?.phone ?? "—"}</p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Company Profile */}
+            {mpLoaded && mp && (
+              <Card>
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-medium">Company Profile</CardTitle>
+                  {!editingCompany && (
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditingCompany(true)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  {editingCompany ? (
+                    <>
+                      <div>
+                        <span className="text-muted-foreground text-xs">Bio</span>
+                        <Input value={compForm.bio} onChange={(e) => setCompForm(p => ({ ...p, bio: e.target.value }))} className="mt-1 h-8 text-sm" placeholder="Short bio..." />
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs flex items-center gap-1">Address <Lock className="h-2.5 w-2.5 text-amber-500" /></span>
+                        <Input value={compForm.address} onChange={(e) => setCompForm(p => ({ ...p, address: e.target.value }))} className="mt-1 h-8 text-sm" placeholder="123 Main St..." />
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs">Emergency Contact</span>
+                        <Input value={compForm.emergencyContactName} onChange={(e) => setCompForm(p => ({ ...p, emergencyContactName: e.target.value }))} className="mt-1 h-8 text-sm" placeholder="Name" />
+                        <Input value={compForm.emergencyContactPhone} onChange={(e) => setCompForm(p => ({ ...p, emergencyContactPhone: e.target.value }))} className="mt-1 h-8 text-sm" placeholder="Phone" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-muted-foreground text-xs">Shirt Size</span>
+                          <select value={compForm.shirtSize} onChange={(e) => setCompForm(p => ({ ...p, shirtSize: e.target.value }))}
+                            className="mt-1 h-8 w-full rounded border border-border/40 bg-background px-2 text-xs">
+                            <option value="">—</option>
+                            {["XS", "S", "M", "L", "XL", "2XL", "3XL"].map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground text-xs">Jacket Size</span>
+                          <select value={compForm.jacketSize} onChange={(e) => setCompForm(p => ({ ...p, jacketSize: e.target.value }))}
+                            className="mt-1 h-8 w-full rounded border border-border/40 bg-background px-2 text-xs">
+                            <option value="">—</option>
+                            {["XS", "S", "M", "L", "XL", "2XL", "3XL"].map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs">Work Preferences</span>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {WORK_PREF_OPTIONS.map(pref => (
+                            <button key={pref} onClick={() => togglePref(pref)}
+                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium border transition-colors ${compForm.workPreferences.includes(pref) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:text-foreground"}`}>
+                              {pref}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs">
+                        <input type="checkbox" checked={compForm.whatsappOptedIn}
+                          onChange={(e) => setCompForm(p => ({ ...p, whatsappOptedIn: e.target.checked }))}
+                          className="rounded" />
+                        WhatsApp notifications opted in
+                      </label>
+                      <div className="flex gap-2 pt-1">
+                        <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleSaveCompany} disabled={savingComp}>
+                          {savingComp ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => setEditingCompany(false)}>
+                          <X className="h-3 w-3" /> Cancel
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {mp.bio && <div><span className="text-muted-foreground text-xs">Bio</span><p className="font-medium">{mp.bio}</p></div>}
+                      <div>
+                        <span className="text-muted-foreground text-xs flex items-center gap-1"><Shield className="h-2.5 w-2.5" /> Guard Card <Lock className="h-2.5 w-2.5 text-amber-500" /></span>
+                        <p className="font-medium">{mp.guard_card_number ?? "—"}</p>
+                        {gcExpiry && (
+                          <p className={`text-[10px] ${gcExpired ? "text-red-500" : gcExpiringSoon ? "text-amber-500" : "text-muted-foreground"}`}>
+                            Expires {gcExpiry.toLocaleDateString()}{gcDaysLeft !== null ? ` (${gcDaysLeft < 0 ? "expired" : `${gcDaysLeft}d`})` : ""}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs flex items-center gap-1">Address <Lock className="h-2.5 w-2.5 text-amber-500" /></span>
+                        <p className="font-medium">{mp.address ?? "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-xs">Emergency Contact</span>
+                        <p className="font-medium">{mp.emergency_contact_name ?? "—"}{mp.emergency_contact_phone ? ` · ${mp.emergency_contact_phone}` : ""}</p>
+                      </div>
+                      {(mp.work_preferences?.length ?? 0) > 0 && (
+                        <div>
+                          <span className="text-muted-foreground text-xs">Work Preferences</span>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {mp.work_preferences.map((w: string) => (
+                              <Badge key={w} variant="outline" className="text-[9px]">{w}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><span className="text-muted-foreground text-xs">Shirt</span><p className="font-medium">{mp.shirt_size ?? "—"}</p></div>
+                        <div><span className="text-muted-foreground text-xs">Jacket</span><p className="font-medium">{mp.jacket_size ?? "—"}</p></div>
+                      </div>
+                      {mp.hire_date && (
+                        <div><span className="text-muted-foreground text-xs">Hire Date</span><p className="font-medium">{new Date(mp.hire_date).toLocaleDateString()}</p></div>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
           {/* Tabs */}
           <Tabs defaultValue="shared" onValueChange={onTabChange}>
