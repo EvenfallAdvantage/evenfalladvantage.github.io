@@ -182,6 +182,8 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
   const [error, setError] = useState("");
   const [tosAccepted, setTosAccepted] = useState(false);
   const [showTos, setShowTos] = useState(false);
+  const [useJoinCode, setUseJoinCode] = useState(false);
+  const [joinCodeInput, setJoinCodeInput] = useState(joinCode);
   const pwCheck = password.length > 0 ? checkPasswordStrength(password) : null;
 
   if (!open) return null;
@@ -196,10 +198,12 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
       await supabase.auth.signOut();
       clearSession();
 
+      const effectiveJoinCode = joinCode || joinCodeInput;
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
         options: {
-          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: joinCode ? "" : companyName, tos_accepted_at: new Date().toISOString() },
+          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: effectiveJoinCode ? "" : companyName, tos_accepted_at: new Date().toISOString() },
           emailRedirectTo: `${window.location.origin}/overwatch/auth/callback/`,
         },
       });
@@ -207,9 +211,9 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
 
       if (data.user && !data.session) {
         // Email confirmation required — persist join code for after verification
-        if (joinCode && data.user) {
+        if (effectiveJoinCode && data.user) {
           localStorage.setItem("pending_join", JSON.stringify({
-            code: joinCode, supabaseId: data.user.id,
+            code: effectiveJoinCode, supabaseId: data.user.id,
             email: data.user.email, phone: phone || null, firstName, lastName,
           }));
         }
@@ -220,10 +224,10 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
       // Session available — create DB records now
       if (data.user) {
         try {
-          if (joinCode) {
+          if (effectiveJoinCode) {
             await joinCompanyByCode({
               supabaseId: data.user.id, email: data.user.email,
-              phone: phone || null, firstName, lastName, joinCode,
+              phone: phone || null, firstName, lastName, joinCode: effectiveJoinCode,
             });
           } else {
             await registerUserInDB({
@@ -308,34 +312,62 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-white/60 block mb-1">Company name</label>
-              <input type="text" placeholder="e.g. Apex Security Services" value={companyName} onChange={e => setCompanyName(e.target.value)} required
-                className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
-              <p className="text-[10px] text-white/30 mt-1">This creates a new company. To join an existing one, use a company code.</p>
-            </div>
-            {/* TOS Acceptance */}
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)}
-                className="mt-0.5 rounded border-white/20" />
-              <span className="text-[11px] text-white/50 leading-tight">
-                I have read and agree to the{" "}
-                <button type="button" onClick={() => setShowTos(true)} className="text-[#dd8c33] hover:underline font-medium">Terms of Service</button>
-              </span>
-            </label>
-
-            {error && <p className="text-xs text-red-400">{error}</p>}
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setStep("info")}
-                className="flex-1 h-10 rounded-lg border border-white/10 text-white/60 text-sm hover:bg-white/5 transition-colors">Back</button>
-              <button type="submit" disabled={loading || !companyName || !tosAccepted}
-                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Deploy <ArrowRight className="h-4 w-4" /></>}
-              </button>
-            </div>
-            <div className="text-center">
-              <Link href="/join" className="text-xs text-white/30 hover:text-white/50">Have a company code? Join here</Link>
-            </div>
+            {useJoinCode ? (
+              <>
+                <div>
+                  <label className="text-xs font-medium text-white/60 block mb-1">Company code</label>
+                  <input type="text" placeholder="e.g. S7WJ7V" value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value.toUpperCase())} required
+                    className="w-full h-10 rounded-lg border border-[#dd8c33]/30 bg-[#dd8c33]/10 px-3 text-sm text-white font-mono text-center tracking-widest outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+                  <p className="text-[10px] text-white/30 mt-1">Enter the code provided by your manager or company admin.</p>
+                </div>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)}
+                    className="mt-0.5 rounded border-white/20" />
+                  <span className="text-[11px] text-white/50 leading-tight">
+                    I have read and agree to the{" "}
+                    <button type="button" onClick={() => setShowTos(true)} className="text-[#dd8c33] hover:underline font-medium">Terms of Service</button>
+                  </span>
+                </label>
+                {error && <p className="text-xs text-red-400">{error}</p>}
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { setUseJoinCode(false); setJoinCodeInput(""); }}
+                    className="flex-1 h-10 rounded-lg border border-white/10 text-white/60 text-sm hover:bg-white/5 transition-colors">Back</button>
+                  <button type="submit" disabled={loading || !joinCodeInput || !tosAccepted}
+                    className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Join Company <ArrowRight className="h-4 w-4" /></>}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="text-xs font-medium text-white/60 block mb-1">Company name</label>
+                  <input type="text" placeholder="e.g. Apex Security Services" value={companyName} onChange={e => setCompanyName(e.target.value)} required
+                    className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+                  <p className="text-[10px] text-white/30 mt-1">This creates a new company. To join an existing one, use a company code.</p>
+                </div>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)}
+                    className="mt-0.5 rounded border-white/20" />
+                  <span className="text-[11px] text-white/50 leading-tight">
+                    I have read and agree to the{" "}
+                    <button type="button" onClick={() => setShowTos(true)} className="text-[#dd8c33] hover:underline font-medium">Terms of Service</button>
+                  </span>
+                </label>
+                {error && <p className="text-xs text-red-400">{error}</p>}
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setStep("info")}
+                    className="flex-1 h-10 rounded-lg border border-white/10 text-white/60 text-sm hover:bg-white/5 transition-colors">Back</button>
+                  <button type="submit" disabled={loading || !companyName || !tosAccepted}
+                    className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Deploy <ArrowRight className="h-4 w-4" /></>}
+                  </button>
+                </div>
+                <div className="text-center">
+                  <button type="button" onClick={() => setUseJoinCode(true)} className="text-xs text-white/30 hover:text-white/50">Have a company code? Join here</button>
+                </div>
+              </>
+            )}
           </form>
         )}
       </div>
