@@ -248,7 +248,9 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                   const Icon = ICON_MAP[item.icon];
                   const hasChildren = item.children && item.children.length > 0;
                   const childActive = hasChildren && isChildActive(item, pathname);
-                  const isOpen = expanded[item.title] ?? childActive;
+                  const isOpen = collapsed
+                    ? expanded[item.title] === true
+                    : (expanded[item.title] ?? childActive);
                   const isActive =
                     !hasChildren &&
                     (pathname === item.href ||
