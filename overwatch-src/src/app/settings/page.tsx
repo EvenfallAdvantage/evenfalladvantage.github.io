@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Check, Save, Loader2, User, Building2, Mail, Phone, Shield, KeyRound, Settings } from "lucide-react";
-import { getCompanyDetails, updateUserProfile } from "@/lib/supabase/db";
+import { Copy, Check, Save, Loader2, User, Building2, Mail, Phone, Shield, KeyRound, Settings, Camera } from "lucide-react";
+import { getCompanyDetails, updateUserProfile, uploadAvatar } from "@/lib/supabase/db";
 
 export default function SettingsPage() {
   const { user, setUser } = useAuthStore();
@@ -23,8 +23,27 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
 
   const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError("");
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadAvatar(file);
+      if (user) setUser({ ...user, avatarUrl: url });
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   const loadCompany = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
@@ -73,9 +92,21 @@ export default function SettingsPage() {
           <div className="h-16 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
           <CardContent className="-mt-8 space-y-5 pb-6">
             <div className="flex items-end gap-4">
-              <Avatar className="h-16 w-16 border-4 border-card shadow-lg">
-                <AvatarFallback className="bg-primary/20 text-lg font-bold text-primary">{initials || "?"}</AvatarFallback>
-              </Avatar>
+              <div className="relative group">
+                <Avatar className="h-16 w-16 border-4 border-card shadow-lg cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                  <AvatarImage src={user?.avatarUrl ?? undefined} />
+                  <AvatarFallback className="bg-primary/20 text-lg font-bold text-primary">{initials || "?"}</AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity border-4 border-transparent"
+                >
+                  {uploadingAvatar ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleAvatarUpload} />
+                {avatarError && <p className="absolute -bottom-5 left-0 text-[10px] text-red-500 whitespace-nowrap">{avatarError}</p>}
+              </div>
               <div className="pb-0.5">
                 <h2 className="text-lg font-semibold leading-tight">
                   {user?.firstName || "Your"} {user?.lastName || "Name"}

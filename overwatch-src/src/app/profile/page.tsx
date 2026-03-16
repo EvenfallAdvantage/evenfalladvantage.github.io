@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Pencil, Check, X, Settings, FileText, Activity, FolderOpen, Loader2, Clock,
-  Lock, Shield, AlertTriangle, CheckCircle2, ListChecks,
+  Lock, Shield, AlertTriangle, CheckCircle2, ListChecks, Camera,
 } from "lucide-react";
 import Link from "next/link";
 import {
-  updateUserProfile, getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts,
+  updateUserProfile, uploadAvatar, getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts,
   getMemberProfile, updateMemberProfile, getMyOnboardingProgress, toggleOnboardingTask, completeOnboarding,
 } from "@/lib/supabase/db";
 
@@ -58,6 +58,25 @@ export default function ProfilePage() {
 
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError("");
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadAvatar(file);
+      if (user) setUser({ ...user, avatarUrl: url });
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   // Load member profile + onboarding progress
   useEffect(() => {
@@ -183,12 +202,23 @@ export default function ProfilePage() {
       <div className="space-y-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src={user?.avatarUrl ?? undefined} />
-              <AvatarFallback className="bg-primary/20 text-lg font-semibold text-primary">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative group">
+              <Avatar className="h-16 w-16 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <AvatarImage src={user?.avatarUrl ?? undefined} />
+                <AvatarFallback className="bg-primary/20 text-lg font-semibold text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                {uploadingAvatar ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleAvatarUpload} />
+              {avatarError && <p className="absolute -bottom-5 left-0 text-[10px] text-red-500 whitespace-nowrap">{avatarError}</p>}
+            </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono">
                 {user?.firstName ?? "Your"} {user?.lastName ?? "Name"}

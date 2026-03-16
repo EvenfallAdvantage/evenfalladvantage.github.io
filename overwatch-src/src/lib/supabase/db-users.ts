@@ -296,6 +296,39 @@ export async function getCompanyMembers(companyId: string) {
   return data ?? [];
 }
 
+// ─── Avatar upload ───────────────────────────────────────
+
+export async function uploadAvatar(file: File): Promise<string> {
+  const authId = await getAuthUserId();
+  if (!authId) throw new Error("Not authenticated");
+
+  // Validate file
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (!ALLOWED.includes(file.type)) throw new Error("Only JPEG, PNG, WebP, and GIF images are allowed");
+  if (file.size > MAX_SIZE) throw new Error("Image must be under 5MB");
+
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${authId}/avatar-${Date.now()}.${ext}`;
+
+  const supabase = createClient();
+
+  // Upload to storage
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { cacheControl: "3600", upsert: true });
+  if (uploadError) throw uploadError;
+
+  // Get public URL
+  const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+  const avatarUrl = urlData.publicUrl;
+
+  // Update user record
+  await updateUserProfile({ avatarUrl });
+
+  return avatarUrl;
+}
+
 // ─── Profile update ─────────────────────────────────────
 
 export async function updateUserProfile(updates: {
