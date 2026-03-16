@@ -8,6 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet, updateMemberRole, removeMember } from "@/lib/supabase/db";
 
+// Supabase TIMESTAMPTZ can come back without 'Z' — ensure UTC parse
+function parseUTC(iso: string) {
+  if (!iso) return new Date();
+  if (!iso.endsWith("Z") && !iso.includes("+") && !/\d{2}:\d{2}$/.test(iso.slice(-6))) {
+    return new Date(iso + "Z");
+  }
+  return new Date(iso);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,7 +215,7 @@ export default function AdminStaffPage() {
             ) : (
               <div className="space-y-2">
                 {timesheets.map((t: Sheet) => {
-                  const hrs = ((new Date(t.clock_out).getTime() - new Date(t.clock_in).getTime()) / 3600000).toFixed(1);
+                  const hrs = ((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1);
                   const u = t.users;
                   return (
                     <div key={t.id} className="flex items-center gap-4 rounded-xl border border-border/50 bg-card px-4 py-3">
@@ -216,7 +225,7 @@ export default function AdminStaffPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(t.clock_in).toLocaleDateString()} · {new Date(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {new Date(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {parseUTC(t.clock_in).toLocaleDateString()} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
                       <span className="font-mono text-sm font-semibold">{hrs}h</span>

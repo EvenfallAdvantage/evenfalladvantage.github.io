@@ -44,13 +44,22 @@ import {
   getCompanyStats,
 } from "@/lib/supabase/db";
 
+// Supabase TIMESTAMPTZ can come back without 'Z' — ensure UTC parse
+function parseUTC(iso: string) {
+  if (!iso) return new Date();
+  if (!iso.endsWith("Z") && !iso.includes("+") && !/\d{2}:\d{2}$/.test(iso.slice(-6))) {
+    return new Date(iso + "Z");
+  }
+  return new Date(iso);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Timesheet = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Post = any;
 
 function formatDuration(ms: number) {
-  const abs = Math.abs(ms);
+  const abs = Math.max(0, ms);
   const h = Math.floor(abs / 3600000);
   const m = Math.floor((abs % 3600000) / 60000);
   const s = Math.floor((abs % 60000) / 1000);
@@ -103,7 +112,7 @@ function DonutChart({ segments }: { segments: { value: number; color: string; la
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
+  const diff = Date.now() - parseUTC(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -190,7 +199,7 @@ export default function FeedPage() {
 
   useEffect(() => {
     if (!active) { setElapsed(0); return; }
-    const tick = () => setElapsed(Date.now() - new Date(active.clock_in).getTime());
+    const tick = () => setElapsed(Date.now() - parseUTC(active.clock_in).getTime());
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
@@ -214,12 +223,12 @@ export default function FeedPage() {
 
   const todayHours = recentShifts
     .filter((t: Timesheet) => {
-      const d = new Date(t.clock_in);
+      const d = parseUTC(t.clock_in);
       const now = new Date();
       return d.toDateString() === now.toDateString();
     })
     .reduce((sum: number, t: Timesheet) => {
-      return sum + (new Date(t.clock_out).getTime() - new Date(t.clock_in).getTime());
+      return sum + (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime());
     }, 0);
 
   if (loading) {

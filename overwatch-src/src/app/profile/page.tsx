@@ -14,6 +14,15 @@ import { updateUserProfile, getUserFormSubmissions, getRecentTimesheets, getUser
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sub = any;
+// Supabase TIMESTAMPTZ can come back without 'Z' — ensure UTC parse
+function parseUTC(iso: string) {
+  if (!iso) return new Date();
+  if (!iso.endsWith("Z") && !iso.includes("+") && !/\d{2}:\d{2}$/.test(iso.slice(-6))) {
+    return new Date(iso + "Z");
+  }
+  return new Date(iso);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sheet = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -246,13 +255,13 @@ export default function ProfilePage() {
                   ) : (
                     <div className="space-y-2">
                       {timesheets.map((t: Sheet) => {
-                        const hrs = ((new Date(t.clock_out).getTime() - new Date(t.clock_in).getTime()) / 3600000).toFixed(1);
+                        const hrs = ((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1);
                         return (
                           <div key={t.id} className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2.5">
                             <Clock className="h-4 w-4 text-green-500 shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium">Shift — {hrs}h</p>
-                              <p className="text-[10px] text-muted-foreground">{new Date(t.clock_in).toLocaleDateString()}</p>
+                              <p className="text-[10px] text-muted-foreground">{parseUTC(t.clock_in).toLocaleDateString()}</p>
                             </div>
                             <Badge variant={t.approved ? "default" : "secondary"} className="text-[10px]">
                               {t.approved ? "Approved" : "Pending"}
