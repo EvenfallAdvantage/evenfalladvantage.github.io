@@ -1,33 +1,86 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Radio, Plus, Send, Loader2, Trash2 } from "lucide-react";
+import {
+  Radio, Plus, Send, Loader2, Trash2, Search, ExternalLink,
+  Reply, X, Hash, Settings, MessageSquare, Phone, Shield,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { ChatSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
-import { getChatChannels, createChatChannel, getChatMessages, sendChatMessage, deleteChatChannel } from "@/lib/supabase/db";
+import {
+  getChatChannels, createChatChannel, getChatMessages,
+  sendChatMessage, deleteChatChannel,
+} from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Channel = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Message = any;
+type Tab = "channels" | "external" | "whatsapp";
+
+/* ── helpers ────────────────────────────────────── */
+
+function timeAgo(iso: string) {
+  const ms = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return "now";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
+
+type ExtMeta = { external: true; platform: "whatsapp" | "signal"; url: string };
+
+function parseExt(desc: string | null): ExtMeta | null {
+  if (!desc) return null;
+  try { const m = JSON.parse(desc); if (m?.external && m?.url) return m; } catch {}
+  return null;
+}
+
+function parseReply(content: string) {
+  const m = content.match(/^<<reply:([^:]*):(.{0,80})>>\n([\s\S]*)$/);
+  return m ? { author: m[1], snippet: m[2], body: m[3] } : null;
+}
+
+const PLAT: Record<string, { color: string; bg: string; label: string }> = {
+  whatsapp: { color: "text-green-500", bg: "bg-green-500/10", label: "WhatsApp" },
+  signal: { color: "text-blue-400", bg: "bg-blue-400/10", label: "Signal" },
+};
 
 export default function ChatPage() {
   const { user, activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selected, setSelected] = useState<Channel | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [msgText, setMsgText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [tab, setTab] = useState<Tab>("channels");
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [searchQ, setSearchQ] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [deletingChannel, setDeletingChannel] = useState<string | null>(null);
+  const [deletingCh, setDeletingCh] = useState<string | null>(null);
+  const [showAddExt, setShowAddExt] = useState(false);
+  const [extName, setExtName] = useState("");
+  const [extPlat, setExtPlat] = useState<"whatsapp" | "signal">("whatsapp");
+  const [extUrl, setExtUrl] = useState("");
+  const [creatingExt, setCreatingExt] = useState(false);
+  const [waConfig, setWaConfig] = useState({ wabaId: "", phoneNumberId: "", accessToken: "", businessPhone: "" });
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const internal = channels.filter((c: Channel) => !parseExt(c.description));
+  const external = channels.filter((c: Channel) => parseExt(c.description)).map((c: Channel) => ({ ...c, meta: parseExt(c.description)! }));
 
   const loadChannels = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -36,163 +89,443 @@ export default function ChatPage() {
 
   useEffect(() => { loadChannels(); }, [loadChannels]);
 
-  async function selectChannel(ch: Channel) {
-    setSelected(ch);
-    try {
-      const msgs = await getChatMessages(ch.id);
-      setMessages(msgs);
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    } catch { setMessages([]); }
+  async function selectCh(ch: Channel) {
+    setSelected(ch); setReplyTo(null); setSearchQ(""); setShowSearch(false);
+    try { setMessages(await getChatMessages(ch.id)); setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
+    catch { setMessages([]); }
   }
+
+  useEffect(() => {
+    if (!selected) return;
+    const iv = setInterval(async () => { try { setMessages(await getChatMessages(selected.id)); } catch {} }, 5000);
+    return () => clearInterval(iv);
+  }, [selected]);
 
   async function handleSend() {
     if (!msgText.trim() || !selected) return;
     setSending(true);
     try {
-      await sendChatMessage({ channelId: selected.id, content: msgText.trim() });
-      setMsgText("");
-      const msgs = await getChatMessages(selected.id);
-      setMessages(msgs);
+      let content = msgText.trim();
+      if (replyTo) {
+        const author = `${replyTo.users?.first_name ?? ""} ${replyTo.users?.last_name ?? ""}`.trim();
+        const snippet = (replyTo.content ?? "").replace(/^<<reply:[^>]*>>\n/, "").slice(0, 80);
+        content = `<<reply:${author}:${snippet}>>\n${content}`;
+      }
+      await sendChatMessage({ channelId: selected.id, content });
+      setMsgText(""); setReplyTo(null);
+      setMessages(await getChatMessages(selected.id));
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    } catch (err) { console.error("Send failed:", err); }
-    finally { setSending(false); }
-  }
-
-  // Auto-refresh messages every 5 seconds when a channel is selected
-  useEffect(() => {
-    if (!selected) return;
-    const interval = setInterval(async () => {
-      try {
-        const msgs = await getChatMessages(selected.id);
-        setMessages(msgs);
-      } catch {}
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [selected]);
-
-  async function handleDeleteChannel(chId: string) {
-    if (!confirm("Delete this channel and all messages?")) return;
-    setDeletingChannel(chId);
-    try {
-      await deleteChatChannel(chId);
-      if (selected?.id === chId) { setSelected(null); setMessages([]); }
-      await loadChannels();
-    } catch (err) { console.error(err); }
-    finally { setDeletingChannel(null); }
+    } catch (err) { console.error(err); } finally { setSending(false); }
   }
 
   async function handleCreate() {
     if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
-    try {
-      await createChatChannel({ companyId: activeCompanyId, name: newName.trim() });
-      setNewName(""); setShowCreate(false); await loadChannels();
-    } catch (err) { console.error(err); } finally { setCreating(false); }
+    try { await createChatChannel({ companyId: activeCompanyId, name: newName.trim() }); setNewName(""); setShowCreate(false); await loadChannels(); }
+    catch (err) { console.error(err); } finally { setCreating(false); }
   }
 
+  async function handleDeleteCh(id: string) {
+    if (!confirm("Delete this channel and all messages?")) return;
+    setDeletingCh(id);
+    try { await deleteChatChannel(id); if (selected?.id === id) { setSelected(null); setMessages([]); } await loadChannels(); }
+    catch (err) { console.error(err); } finally { setDeletingCh(null); }
+  }
+
+  async function handleAddExternal() {
+    if (!extName.trim() || !extUrl.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    setCreatingExt(true);
+    try {
+      const desc = JSON.stringify({ external: true, platform: extPlat, url: extUrl.trim() });
+      await createChatChannel({ companyId: activeCompanyId, name: extName.trim(), description: desc });
+      setExtName(""); setExtUrl(""); setShowAddExt(false); await loadChannels();
+    } catch (err) { console.error(err); } finally { setCreatingExt(false); }
+  }
+
+  const filteredMsgs = showSearch && searchQ
+    ? messages.filter((m: Message) => m.content?.toLowerCase().includes(searchQ.toLowerCase()))
+    : messages;
+
+  /* ── RENDER ── */
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2">
+          <Radio className="h-5 w-5 sm:h-6 sm:w-6" /> Comms
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground">Team channels, external groups, and messaging</p>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
+        {([
+          { key: "channels" as Tab, label: "Channels", count: internal.length },
+          { key: "external" as Tab, label: "External Groups", count: external.length },
+          { key: "whatsapp" as Tab, label: "WhatsApp API", count: 0 },
+        ]).map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            {t.label}
+            {t.count > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{t.count}</Badge>}
+          </button>
+        ))}
+      </div>
+
+      {/* ────────── CHANNELS TAB ────────── */}
+      {tab === "channels" && (<ChannelsTab
+        loading={loading} internal={internal} external={external} selected={selected}
+        showCreate={showCreate} setShowCreate={setShowCreate} newName={newName} setNewName={setNewName}
+        creating={creating} handleCreate={handleCreate} selectCh={selectCh} deletingCh={deletingCh}
+        handleDeleteCh={handleDeleteCh} isAdmin={isAdmin} showSearch={showSearch} setShowSearch={setShowSearch}
+        searchQ={searchQ} setSearchQ={setSearchQ} filteredMsgs={filteredMsgs} user={user}
+        replyTo={replyTo} setReplyTo={setReplyTo} msgText={msgText} setMsgText={setMsgText}
+        sending={sending} handleSend={handleSend} bottomRef={bottomRef}
+      />)}
+
+      {/* ────────── EXTERNAL GROUPS TAB ────────── */}
+      {tab === "external" && (<ExternalTab
+        isAdmin={isAdmin} external={external} showAddExt={showAddExt} setShowAddExt={setShowAddExt}
+        extName={extName} setExtName={setExtName} extPlat={extPlat} setExtPlat={setExtPlat}
+        extUrl={extUrl} setExtUrl={setExtUrl} creatingExt={creatingExt} handleAddExternal={handleAddExternal}
+        handleDeleteCh={handleDeleteCh}
+      />)}
+
+      {/* ────────── WHATSAPP API TAB ────────── */}
+      {tab === "whatsapp" && (<WhatsAppTab isAdmin={isAdmin} waConfig={waConfig} setWaConfig={setWaConfig} />)}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   SUB-COMPONENTS (keep file organized)
+   ══════════════════════════════════════════════════ */
+
+function ChannelsTab({ loading, internal, external, selected, showCreate, setShowCreate, newName, setNewName,
+  creating, handleCreate, selectCh, deletingCh, handleDeleteCh, isAdmin, showSearch, setShowSearch,
+  searchQ, setSearchQ, filteredMsgs, user, replyTo, setReplyTo, msgText, setMsgText, sending, handleSend, bottomRef,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+}: any) {
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Radio className="h-5 w-5 sm:h-6 sm:w-6" /> Comms</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Secure channels and team communications</p>
+      {showCreate && (
+        <div className="flex gap-2 rounded-xl border border-primary/30 bg-card p-4">
+          <Input placeholder="Channel name..." value={newName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewName(e.target.value)} className="flex-1"
+            onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") handleCreate(); }} />
+          <Button size="sm" onClick={handleCreate} disabled={!newName.trim() || creating}>
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
+        </div>
+      )}
+
+      {loading ? <ChatSkeleton /> : internal.length === 0 && !showCreate ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
+          <Radio className="mb-3 h-10 w-10 text-muted-foreground/40" />
+          <p className="text-sm font-medium">No channels yet</p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            {isAdmin ? "Create a channel to start team communications." : "Your organization hasn't set up any channels yet."}
+          </p>
+          {isAdmin && <Button size="sm" className="mt-4 gap-1.5" onClick={() => setShowCreate(true)}><Plus className="h-4 w-4" /> New Channel</Button>}
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-[260px_1fr]" style={{ minHeight: "60vh" }}>
+          {/* Sidebar */}
+          <div className="space-y-1 rounded-xl border border-border/50 bg-card p-3 overflow-y-auto max-h-[70vh]">
+            {isAdmin && (
+              <button onClick={() => setShowCreate(true)}
+                className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border/50 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors mb-1">
+                <Plus className="h-3.5 w-3.5" /> New Channel
+              </button>
+            )}
+            {internal.map((ch: Channel) => (
+              <div key={ch.id} onClick={() => selectCh(ch)}
+                className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${selected?.id === ch.id ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
+                  <Hash className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="truncate font-medium flex-1">{ch.name}</span>
+                {isAdmin && (
+                  <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleDeleteCh(ch.id); }} disabled={deletingCh === ch.id}
+                    className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {deletingCh === ch.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                  </button>
+                )}
+              </div>
+            ))}
+            {external.length > 0 && (
+              <>
+                <div className="mt-3 mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">External Groups</div>
+                {external.map((g: Channel & { meta: ExtMeta }) => {
+                  const p = PLAT[g.meta.platform] ?? PLAT.whatsapp;
+                  return (
+                    <a key={g.id} href={g.meta.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent">
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${p.bg}`}>
+                        {g.meta.platform === "whatsapp" ? <Phone className={`h-3.5 w-3.5 ${p.color}`} /> : <Shield className={`h-3.5 w-3.5 ${p.color}`} />}
+                      </div>
+                      <span className="truncate font-medium flex-1">{g.name}</span>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground/40" />
+                    </a>
+                  );
+                })}
+              </>
+            )}
           </div>
-          {isAdmin && (
-            <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4" /> New Channel
-            </Button>
+
+          {/* Chat area */}
+          {selected ? (
+            <div className="flex flex-col rounded-xl border border-border/50 bg-card">
+              <div className="flex items-center gap-3 border-b border-border/50 px-4 py-3">
+                <Hash className="h-4 w-4 text-primary shrink-0" />
+                <h2 className="font-semibold text-sm flex-1 min-w-0">{selected.name}</h2>
+                <button onClick={() => { setShowSearch(!showSearch); setSearchQ(""); }}
+                  className={`rounded p-1.5 transition-colors ${showSearch ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}`}>
+                  <Search className="h-4 w-4" />
+                </button>
+              </div>
+              {showSearch && (
+                <div className="flex items-center gap-2 border-b border-border/50 px-4 py-2">
+                  <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <Input placeholder="Search messages..." value={searchQ} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQ(e.target.value)}
+                    className="h-7 text-xs flex-1" autoFocus />
+                  {searchQ && <span className="text-[10px] text-muted-foreground shrink-0">{filteredMsgs.length} found</span>}
+                  <button onClick={() => { setShowSearch(false); setSearchQ(""); }} className="text-muted-foreground hover:text-foreground shrink-0"><X className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
+              <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 max-h-[50vh]">
+                {filteredMsgs.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">{showSearch ? "No messages match your search." : "No messages yet. Start the conversation!"}</p>
+                ) : filteredMsgs.map((msg: Message) => {
+                  const author = msg.users;
+                  const isMe = author?.id === user?.id;
+                  const reply = parseReply(msg.content ?? "");
+                  const displayContent = reply ? reply.body : msg.content;
+                  return (
+                    <div key={msg.id} className={`group flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-1">
+                        {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
+                      </div>
+                      <div className={`max-w-[70%] flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                        <div className={`flex items-center gap-2 mb-0.5 ${isMe ? "flex-row-reverse" : ""}`}>
+                          {!isMe && <span className="text-[10px] font-semibold text-muted-foreground">{author?.first_name} {author?.last_name}</span>}
+                          <span className="text-[9px] text-muted-foreground/50">{timeAgo(msg.created_at)}</span>
+                        </div>
+                        {reply && (
+                          <div className={`rounded-lg px-2.5 py-1 mb-1 text-[10px] border-l-2 border-primary/40 max-w-full ${isMe ? "bg-primary/20" : "bg-muted/70"}`}>
+                            <span className="font-semibold">{reply.author}</span>
+                            <p className="truncate text-muted-foreground">{reply.snippet}</p>
+                          </div>
+                        )}
+                        <div className={`rounded-xl px-3 py-2 text-sm ${isMe ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                          <p className="whitespace-pre-wrap break-words">{displayContent}</p>
+                        </div>
+                        <button onClick={() => setReplyTo(msg)}
+                          className="mt-0.5 flex items-center gap-1 text-[9px] text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Reply className="h-3 w-3" /> Reply
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={bottomRef} />
+              </div>
+              {replyTo && (
+                <div className="flex items-center gap-2 border-t border-border/50 bg-muted/30 px-4 py-2">
+                  <Reply className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-semibold">{replyTo.users?.first_name} {replyTo.users?.last_name}</span>
+                    <p className="text-[10px] text-muted-foreground truncate">{(replyTo.content ?? "").replace(/^<<reply:[^>]*>>\n/, "").slice(0, 80)}</p>
+                  </div>
+                  <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground shrink-0"><X className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
+              <div className="border-t border-border/50 p-3">
+                <div className="flex gap-2">
+                  <Input placeholder={replyTo ? "Type your reply..." : "Type a message..."} value={msgText}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMsgText(e.target.value)}
+                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                    className="flex-1" />
+                  <Button size="sm" onClick={handleSend} disabled={!msgText.trim() || sending}>
+                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
+              <MessageSquare className="mb-3 h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm font-medium">Select a channel</p>
+              <p className="mt-1 text-xs text-muted-foreground">Choose a channel from the sidebar to start messaging</p>
+            </div>
           )}
         </div>
+      )}
+    </>
+  );
+}
 
-        {showCreate && (
-          <div className="flex gap-2 rounded-xl border border-primary/30 bg-card p-4">
-            <Input placeholder="Channel name..." value={newName} onChange={(e) => setNewName(e.target.value)} className="flex-1" />
-            <Button size="sm" onClick={handleCreate} disabled={!newName.trim() || creating}>
-              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function ExternalTab({ isAdmin, external, showAddExt, setShowAddExt, extName, setExtName, extPlat, setExtPlat, extUrl, setExtUrl, creatingExt, handleAddExternal, handleDeleteCh }: any) {
+  return (
+    <div className="space-y-4">
+      {isAdmin && !showAddExt && (
+        <Button size="sm" className="gap-1.5" onClick={() => setShowAddExt(true)}>
+          <Plus className="h-4 w-4" /> Add External Group
+        </Button>
+      )}
+      {showAddExt && (
+        <div className="rounded-xl border border-primary/30 bg-card p-4 space-y-3">
+          <p className="text-sm font-medium">Link an External Group</p>
+          <p className="text-xs text-muted-foreground">Add a WhatsApp or Signal group link so your team can jump in with one tap.</p>
+          <div className="flex gap-2">
+            <button onClick={() => setExtPlat("whatsapp")}
+              className={`flex-1 rounded-lg border px-3 py-2.5 text-xs font-medium transition-colors ${extPlat === "whatsapp" ? "border-green-500 bg-green-500/10 text-green-500" : "border-border/40 text-muted-foreground hover:text-foreground"}`}>
+              <Phone className="h-4 w-4 mx-auto mb-1" /> WhatsApp
+            </button>
+            <button onClick={() => setExtPlat("signal")}
+              className={`flex-1 rounded-lg border px-3 py-2.5 text-xs font-medium transition-colors ${extPlat === "signal" ? "border-blue-400 bg-blue-400/10 text-blue-400" : "border-border/40 text-muted-foreground hover:text-foreground"}`}>
+              <Shield className="h-4 w-4 mx-auto mb-1" /> Signal
+            </button>
+          </div>
+          <Input placeholder="Group name (e.g. Ops Chat, Night Shift)" value={extName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtName(e.target.value)} />
+          <Input placeholder={extPlat === "whatsapp" ? "https://chat.whatsapp.com/..." : "https://signal.group/..."} value={extUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtUrl(e.target.value)} />
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleAddExternal} disabled={!extName.trim() || !extUrl.trim() || creatingExt}>
+              {creatingExt ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Group"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowAddExt(false)}>Cancel</Button>
           </div>
-        )}
-
-        {loading ? (
-          <ChatSkeleton />
-        ) : channels.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
-            <Radio className="mb-3 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-sm font-medium">No channels yet</p>
-            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-              {isAdmin ? "Create a channel to start team communications." : "Your organization hasn't set up any channels yet."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-[240px_1fr]" style={{ minHeight: "60vh" }}>
-            <div className="space-y-1 rounded-xl border border-border/50 bg-card p-3">
-              {channels.map((ch: Channel) => (
-                <div key={ch.id} onClick={() => selectChannel(ch)}
-                  className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${selected?.id === ch.id ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">
-                    {ch.name?.slice(0, 2).toUpperCase()}
+        </div>
+      )}
+      {external.length === 0 && !showAddExt ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
+          <ExternalLink className="mb-3 h-10 w-10 text-muted-foreground/40" />
+          <p className="text-sm font-medium">No external groups linked</p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            {isAdmin ? "Link your WhatsApp or Signal groups so your team can jump in with one tap." : "No external messaging groups have been configured yet."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {external.map((g: Channel & { meta: ExtMeta }) => {
+            const p = PLAT[g.meta.platform] ?? PLAT.whatsapp;
+            return (
+              <div key={g.id} className="rounded-xl border border-border/50 bg-card p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${p.bg}`}>
+                    {g.meta.platform === "whatsapp" ? <Phone className={`h-5 w-5 ${p.color}`} /> : <Shield className={`h-5 w-5 ${p.color}`} />}
                   </div>
-                  <span className="truncate font-medium">{ch.name}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{g.name}</p>
+                    <p className={`text-xs ${p.color}`}>{p.label} Group</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <a href={g.meta.url} target="_blank" rel="noopener noreferrer"
+                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg ${p.bg} ${p.color} px-3 py-2 text-xs font-medium hover:opacity-80 transition-opacity`}>
+                    <ExternalLink className="h-3.5 w-3.5" /> Open in {p.label}
+                  </a>
                   {isAdmin && (
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteChannel(ch.id); }} disabled={deletingChannel === ch.id}
-                      className="ml-auto rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete channel">
-                      {deletingChannel === ch.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                    <button onClick={() => handleDeleteCh(g.id)}
+                      className="rounded-lg border border-border/40 px-2.5 text-muted-foreground/40 hover:text-red-500 hover:border-red-500/30 transition-colors">
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function WhatsAppTab({ isAdmin, waConfig, setWaConfig }: any) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+        <div className="flex items-start gap-3">
+          <Settings className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium text-sm">WhatsApp Business API Integration</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Connect Overwatch to the WhatsApp Business Platform to send shift notifications, alerts, and broadcasts directly to your team&apos;s WhatsApp. Replies appear here in Comms.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {isAdmin ? (
+        <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
+          <h3 className="font-semibold text-sm">Setup Guide</h3>
+          <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
+            <li>Create a <a href="https://business.facebook.com" target="_blank" rel="noopener noreferrer" className="text-primary underline">Meta Business Account</a> (free)</li>
+            <li>Create a WhatsApp Business Account (WABA) in Meta Business Suite</li>
+            <li>Register a dedicated phone number for your business</li>
+            <li>Generate a permanent access token in the Meta Developer Console</li>
+            <li>Enter your credentials below and activate the integration</li>
+          </ol>
+
+          <div className="space-y-3 pt-2 border-t border-border/30">
+            <p className="text-xs font-medium text-muted-foreground">API Configuration</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">WABA ID</label>
+                <Input placeholder="e.g. 123456789012345" value={waConfig.wabaId}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWaConfig((p: typeof waConfig) => ({ ...p, wabaId: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Phone Number ID</label>
+                <Input placeholder="e.g. 987654321098765" value={waConfig.phoneNumberId}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWaConfig((p: typeof waConfig) => ({ ...p, phoneNumberId: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Business Phone</label>
+                <Input placeholder="+1 555 123 4567" value={waConfig.businessPhone}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWaConfig((p: typeof waConfig) => ({ ...p, businessPhone: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Access Token</label>
+                <Input type="password" placeholder="EAAx..." value={waConfig.accessToken}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWaConfig((p: typeof waConfig) => ({ ...p, accessToken: e.target.value }))} className="mt-1" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-2">
+              <Button size="sm" disabled className="gap-1.5">
+                <Phone className="h-3.5 w-3.5" /> Connect WhatsApp
+              </Button>
+              <span className="text-[10px] text-muted-foreground">Requires Supabase Edge Functions &mdash; coming soon</span>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-3 border-t border-border/30">
+            <p className="text-xs font-medium text-muted-foreground">Estimated Pricing (US Numbers)</p>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: "Service (replies)", cost: "Free", desc: "24hr window" },
+                { label: "Utility (shifts)", cost: "~$0.015/msg", desc: "Confirmations" },
+                { label: "Marketing", cost: "~$0.025/msg", desc: "Announcements" },
+              ].map(p => (
+                <div key={p.label} className="rounded-lg bg-muted/30 p-2.5">
+                  <p className="text-[10px] font-medium">{p.label}</p>
+                  <p className="text-sm font-mono font-bold">{p.cost}</p>
+                  <p className="text-[9px] text-muted-foreground">{p.desc}</p>
+                </div>
               ))}
             </div>
-
-            {selected ? (
-              <div className="flex flex-col rounded-xl border border-border/50 bg-card">
-                <div className="border-b border-border/50 px-4 py-3">
-                  <h2 className="font-semibold text-sm">{selected.name}</h2>
-                  {selected.description && <p className="text-xs text-muted-foreground">{selected.description}</p>}
-                </div>
-                <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 max-h-[50vh]">
-                  {messages.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">No messages yet. Start the conversation!</p>
-                  ) : messages.map((msg: Message) => {
-                    const author = msg.users;
-                    const isMe = author?.id === user?.id;
-                    return (
-                      <div key={msg.id} className={`flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">
-                          {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
-                        </div>
-                        <div className={`max-w-[70%] rounded-xl px-3 py-2 text-sm ${isMe ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                          {!isMe && <p className="text-[10px] font-semibold mb-0.5">{author?.first_name} {author?.last_name}</p>}
-                          <p>{msg.content}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={bottomRef} />
-                </div>
-                <div className="border-t border-border/50 p-3">
-                  <div className="flex gap-2">
-                    <Input placeholder="Type a message..." value={msgText}
-                      onChange={(e) => setMsgText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                      className="flex-1" />
-                    <Button size="sm" onClick={handleSend} disabled={!msgText.trim() || sending}>
-                      {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
-                <Radio className="mb-3 h-10 w-10 text-muted-foreground/40" />
-                <p className="text-sm font-medium">Select a channel</p>
-                <p className="mt-1 text-xs text-muted-foreground">Choose a channel to start messaging</p>
-              </div>
-            )}
           </div>
-        )}
-      </div>
-    </>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
+          <Phone className="mb-3 h-10 w-10 text-muted-foreground/40" />
+          <p className="text-sm font-medium">WhatsApp Integration</p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            Your organization admin can connect WhatsApp Business API to send notifications and receive replies.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
