@@ -151,10 +151,10 @@ export default function QuestionBankPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><HelpCircle className="h-6 w-6" /> QUESTION BANK</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><HelpCircle className="h-5 w-5 sm:h-6 sm:w-6" /> QUESTION BANK</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Reusable assessment questions — import into any drill
             </p>
           </div>

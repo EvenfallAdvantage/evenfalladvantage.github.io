@@ -81,10 +81,10 @@ export default function AdminStaffPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Users className="h-6 w-6" /> PERSONNEL</h1>
-            <p className="text-sm text-muted-foreground">Manage team members and timesheets</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Users className="h-5 w-5 sm:h-6 sm:w-6" /> PERSONNEL</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Manage team members and timesheets</p>
           </div>
           {joinCode && (
             <Button size="sm" variant="outline" className="gap-1.5 font-mono" onClick={copyCode}>

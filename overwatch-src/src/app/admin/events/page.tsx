@@ -103,10 +103,10 @@ export default function AdminEventsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><MapPin className="h-6 w-6" /> OPERATIONS</h1>
-            <p className="text-sm text-muted-foreground">Plan and manage security operations</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><MapPin className="h-5 w-5 sm:h-6 sm:w-6" /> OPERATIONS</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Plan and manage security operations</p>
           </div>
           <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4" /> New Operation

@@ -94,10 +94,10 @@ export default function ChatPage() {
   return (
     <DashboardLayout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Radio className="h-6 w-6" /> Comms</h1>
-            <p className="text-sm text-muted-foreground">Secure channels and team communications</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Radio className="h-5 w-5 sm:h-6 sm:w-6" /> Comms</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Secure channels and team communications</p>
           </div>
           {isAdmin && (
             <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>

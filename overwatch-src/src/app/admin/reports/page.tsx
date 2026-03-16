@@ -130,12 +130,12 @@ export default function AdminReportsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <Activity className="h-6 w-6" /> INTEL CENTER
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+              <Activity className="h-5 w-5 sm:h-6 sm:w-6" /> INTEL CENTER
             </h1>
-            <p className="text-sm text-muted-foreground">Operational analytics and organizational intelligence</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Operational analytics and organizational intelligence</p>
           </div>
           <Badge className="bg-primary/10 text-primary text-xs">
             {new Date().toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}

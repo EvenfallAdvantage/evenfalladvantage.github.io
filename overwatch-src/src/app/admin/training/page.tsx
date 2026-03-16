@@ -321,8 +321,8 @@ export default function AdminTrainingPage() {
       <div className="space-y-6">
         {/* Header + Tabs */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><GraduationCap className="h-6 w-6" /> TRAINING ADMIN</h1>
-          <p className="text-sm text-muted-foreground mb-4">Manage training modules, slides, and assessment questions</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><GraduationCap className="h-5 w-5 sm:h-6 sm:w-6" /> TRAINING ADMIN</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mb-4">Manage training modules, slides, and assessment questions</p>
           <div className="flex items-center gap-1 border-b border-border/40">
             <button onClick={() => setTab("modules")}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "modules" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
