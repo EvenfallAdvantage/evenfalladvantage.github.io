@@ -24,15 +24,16 @@ export interface AuditEntry {
  */
 export async function logSecurityEvent(entry: AuditEntry): Promise<void> {
   try {
+    // company_id is NOT NULL with FK to companies — skip if no real company
+    if (!entry.company_id) return;
+
     const supabase = createClient();
-    // The audit_logs table has NOT NULL columns: action, entity_type, company_id
-    // Map security event fields to the existing schema
     await supabase.from("audit_logs").insert({
       action: entry.event_type,
       entity_type: "auth",
       event_type: entry.event_type,
       user_id: entry.user_id || null,
-      company_id: entry.company_id || "00000000-0000-0000-0000-000000000000",
+      company_id: entry.company_id,
       ip_address: entry.ip_address || null,
       user_agent: entry.user_agent || (typeof navigator !== "undefined" ? navigator.userAgent : null),
       metadata: entry.metadata || {},

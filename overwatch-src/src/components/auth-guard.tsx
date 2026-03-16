@@ -1,17 +1,33 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
+import { createClient } from "@/lib/supabase/client";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const redirected = useRef(false);
 
+  // Listen for sign-out events directly from Supabase
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace("/login");
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT" && !redirected.current) {
+        redirected.current = true;
+        router.replace("/");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  // Redirect when store shows no user
+  useEffect(() => {
+    if (!isLoading && !user && !redirected.current) {
+      redirected.current = true;
+      router.replace("/");
     }
   }, [isLoading, user, router]);
 
