@@ -82,8 +82,8 @@ BEGIN
       v_company.id,
       'staff',
       'active',
-      '[]'::jsonb,
-      '["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]'::jsonb,
+      '{}'::text[],
+      ARRAY['Mon','Tue','Wed','Thu','Fri','Sat','Sun']::text[],
       now(),
       now()
     )
