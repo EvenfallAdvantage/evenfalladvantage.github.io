@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Shield, Building2, DoorOpen, Video, AlertTriangle, Users,
+  Shield, Building2, DoorOpen, Video, AlertTriangle, Users, ClipboardCheck,
   BarChart3, Save, FileDown, RotateCcw, ChevronRight, ChevronDown,
   CheckCircle2, XCircle, AlertCircle, Info,
 } from "lucide-react";
@@ -354,7 +354,7 @@ export default function SiteAssessmentPage() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Shield className="h-5 w-5 sm:h-6 sm:w-6" /> SITE ASSESSMENT</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6" /> SITE ASSESSMENT</h1>
             <p className="text-xs sm:text-sm text-muted-foreground">Professional security evaluation and risk scoring</p>
           </div>
           <div className="flex gap-2">

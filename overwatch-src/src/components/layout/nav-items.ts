@@ -20,7 +20,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: "Watch Log", href: "/timeclock", icon: "Clock" },
       { title: "Patrols", href: "/patrols", icon: "Footprints" },
-      { title: "Reports", href: "/incidents", icon: "ClipboardList" },
+      { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
       { title: "Deployments", href: "/schedule", icon: "CalendarDays" },
       { title: "Armory", href: "/assets", icon: "QrCode" },
     ],
@@ -73,19 +73,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         title: "Training Admin",
         href: "/admin/training",
-        icon: "SlidersHorizontal",
-        roles: ["owner", "admin", "manager"],
-      },
-      {
-        title: "Question Bank",
-        href: "/admin/questions",
-        icon: "HelpCircle",
-        roles: ["owner", "admin", "manager"],
-      },
-      {
-        title: "Intel Center",
-        href: "/admin/reports",
-        icon: "BarChart3",
+        icon: "NotebookPen",
         roles: ["owner", "admin", "manager"],
       },
       {

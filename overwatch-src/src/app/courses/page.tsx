@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import {
-  BookOpen, Clock, Loader2, CheckCircle2,
+  Video, BookOpen, Clock, Loader2, CheckCircle2,
   GraduationCap, BarChart3, ShoppingCart, XCircle, Star, DollarSign,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -110,7 +110,7 @@ function CoursesContent() {
         {/* Header */}
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <BookOpen className="h-5 w-5 sm:h-6 sm:w-6" /> COURSES
+            <Video className="h-5 w-5 sm:h-6 sm:w-6" /> COURSES
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Professional security training courses</p>
         </div>

@@ -61,6 +61,7 @@ import {
   SlidersHorizontal,
   ShieldAlert,
   Activity,
+  NotebookPen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -98,6 +99,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   SlidersHorizontal,
   ShieldAlert,
   Activity,
+  NotebookPen,
 };
 
 interface AppSidebarProps {

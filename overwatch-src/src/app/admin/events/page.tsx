@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { MapPin, Plus, Loader2, Clock, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { MapPin, Flag, Plus, Loader2, Clock, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -104,7 +104,7 @@ export default function AdminEventsPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><MapPin className="h-5 w-5 sm:h-6 sm:w-6" /> OPERATIONS</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Flag className="h-5 w-5 sm:h-6 sm:w-6" /> OPERATIONS</h1>
             <p className="text-xs sm:text-sm text-muted-foreground">Plan and manage security operations</p>
           </div>
           <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>

@@ -5,7 +5,7 @@ import {
   GraduationCap, Plus, Trash2, Loader2, ChevronDown, ChevronUp,
   FileText, Pencil, Save, X, ArrowUp, ArrowDown, Clock,
   HelpCircle, Filter, BookOpen, CheckCircle2, Tag,
-  BarChart3, Users, Award, AlertTriangle,
+  BarChart3, Users, Award, AlertTriangle, NotebookPen,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -369,7 +369,7 @@ export default function AdminTrainingPage() {
       <div className="space-y-6">
         {/* Header + Tabs */}
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><GraduationCap className="h-5 w-5 sm:h-6 sm:w-6" /> TRAINING ADMIN</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><NotebookPen className="h-5 w-5 sm:h-6 sm:w-6" /> TRAINING ADMIN</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mb-4">Manage training modules, slides, and assessment questions</p>
           <div className="flex items-center gap-1 border-b border-border/40">
             <button onClick={() => setTab("modules")}

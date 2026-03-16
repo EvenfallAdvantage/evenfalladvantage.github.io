@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, Copy, Check, Loader2, Clock, Trash2, ChevronDown } from "lucide-react";
+import { Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -91,7 +91,7 @@ export default function AdminStaffPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Users className="h-5 w-5 sm:h-6 sm:w-6" /> PERSONNEL</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><UserCog className="h-5 w-5 sm:h-6 sm:w-6" /> PERSONNEL</h1>
             <p className="text-xs sm:text-sm text-muted-foreground">Manage team members and timesheets</p>
           </div>
           {joinCode && (

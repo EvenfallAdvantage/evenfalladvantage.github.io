@@ -174,7 +174,7 @@ export default function PatrolsPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
             <Footprints className="h-5 w-5 sm:h-6 sm:w-6" />
-            GUARD TOUR
+            PATROLS
           </h1>
           <p className="text-sm text-muted-foreground">Checkpoint verification & patrol tracking</p>
         </div>
