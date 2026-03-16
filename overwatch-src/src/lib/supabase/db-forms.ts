@@ -89,6 +89,18 @@ export async function submitForm(params: {
   return data;
 }
 
+// ─── All form submissions for company (admin) ───────
+
+export async function getAllFormSubmissions(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("form_submissions")
+    .select("*, users(first_name, last_name), forms!inner(name, company_id)")
+    .eq("forms.company_id", companyId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
 // ─── Form submissions by user (for Profile tab) ─────
 
 export async function getUserFormSubmissions() {
