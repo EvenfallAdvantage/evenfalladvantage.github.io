@@ -53,6 +53,13 @@ import {
   BookOpen,
   Video,
   User,
+  Compass,
+  Briefcase,
+  ClipboardCheck,
+  Flag,
+  UserCog,
+  SlidersHorizontal,
+  ShieldAlert,
   type LucideIcon,
 } from "lucide-react";
 
@@ -82,6 +89,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   MessageCircle,
   BookOpen,
   Video,
+  Compass,
+  Briefcase,
+  ClipboardCheck,
+  Flag,
+  UserCog,
+  SlidersHorizontal,
+  ShieldAlert,
 };
 
 interface AppSidebarProps {
