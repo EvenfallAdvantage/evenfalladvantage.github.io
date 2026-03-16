@@ -126,6 +126,15 @@ export async function createShift(params: {
   return data;
 }
 
+export async function assignShift(shiftId: string, userId: string | null) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("shifts")
+    .update({ assigned_user_id: userId })
+    .eq("id", shiftId);
+  if (error) throw error;
+}
+
 export async function deleteShift(shiftId: string) {
   const supabase = createClient();
   const { error } = await supabase.from("shifts").delete().eq("id", shiftId);
