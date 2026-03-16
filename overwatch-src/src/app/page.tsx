@@ -267,12 +267,12 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
 }
 
 const INTEGRATIONS_LOGOS = [
-  { name: "WhatsApp", src: "/images/integrations/whatsapp/WhatsApp_Logo_Alternative_0.svg", alt: "WhatsApp Business" },
-  { name: "Signal", src: "/images/integrations/signal/Signal_Messenger_Symbol_0.svg", alt: "Signal" },
-  { name: "Airtable", src: "/images/integrations/airtable/Airtable_idfELID3VH_0.svg", alt: "Airtable" },
-  { name: "Fillout", src: "/images/integrations/fillout-icon.png", alt: "Fillout" },
-  { name: "Stripe", src: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg", alt: "Stripe" },
-  { name: "Supabase", src: "https://cf-assets.www.cloudflare.com/slt3lc6tev37/5vMWFJXCQdx6Gal6fgGwjP/0ed2a1e28b34a602beea2fdb91dabd67/supabase-logo-icon_1.svg", alt: "Supabase" },
+  { name: "WhatsApp", src: "/images/integrations/whatsapp.png", alt: "WhatsApp Business" },
+  { name: "Signal", src: "/images/integrations/signal.png", alt: "Signal" },
+  { name: "Airtable", src: "/images/integrations/airtable.jpeg", alt: "Airtable" },
+  { name: "Fillout", src: "/images/integrations/fillout.png", alt: "Fillout" },
+  { name: "Stripe", src: "/images/integrations/stripe.jpeg", alt: "Stripe" },
+  { name: "Supabase", src: "/images/integrations/supabase.jpeg", alt: "Supabase" },
 ];
 
 export default function HomePage() {
