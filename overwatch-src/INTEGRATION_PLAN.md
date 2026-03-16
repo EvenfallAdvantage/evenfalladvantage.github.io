@@ -82,12 +82,29 @@ Enable Overwatch to **write** to the legacy DB:
 - Purchasing a course → creates `student_course_enrollments` in legacy
 - This means the legacy portals still work independently but stay in sync
 
-### Phase 4: Legacy Portal Sunset (Future)
+### Phase 4: Connected Dual-Path Architecture (Revised)
 
-Once all features are accessible through Overwatch:
-- Legacy portals become read-only or redirect to Overwatch
-- Eventually all data migrates to Overwatch Supabase
-- Legacy Supabase becomes archive-only
+**The legacy portals stay alive.** Overwatch and the legacy portals serve different audiences:
+
+| Platform | Audience | Purpose |
+|----------|----------|---------|
+| **Overwatch** | Security companies, managers, company employees | Workforce management, company training, scheduling, payroll, incidents |
+| **Student Portal** | Individual students (no company) | Self-enrollment in training courses, assessments, certifications, de-escalation |
+| **Instructor Portal** | Instructors | In-person class scheduling, attendance, student management, certificate issuance |
+| **Admin Portal** | Evenfall Advantage staff | Course editor, slide management, assessment builder, client management |
+
+**Connection model (not decommission):**
+- Both systems read/write to the **same legacy Supabase** for training data
+- Overwatch users get auto-linked to legacy student/instructor accounts via the bridge
+- Progress, enrollments, certificates, and attendance sync bidirectionally
+- A student who signs up individually can later join a company in Overwatch — their training history carries over
+- An instructor who schedules a class in the legacy portal sees the same class in Overwatch Instructor HQ
+
+**What this means:**
+- Legacy portal login pages keep the "Upgrade to Overwatch" banner for company users
+- Individual students continue using the Student Portal directly
+- Instructors can use either the legacy Instructor Portal or Overwatch Instructor HQ
+- No data migration needed — both systems share the same training database
 
 ## What Gets Built This Session
 
