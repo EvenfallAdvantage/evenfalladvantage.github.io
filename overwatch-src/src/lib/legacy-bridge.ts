@@ -314,8 +314,7 @@ export async function getLegacyCertificates(studentId: string): Promise<LegacyCe
   const { data, error } = await client
     .from("certificates")
     .select(`
-      *,
-      issued_by_instructor:instructors(first_name, last_name)
+      *
     `)
     .eq("student_id", studentId)
     .order("issue_date", { ascending: false });
@@ -426,15 +425,15 @@ export async function createLegacyStudentProfile(
     return { success: true }; // Already exists
   }
 
-  // Create student record
+  // Create student record (upsert to handle race conditions)
   const { error: studentError } = await client
     .from("students")
-    .insert({
+    .upsert({
       id: userId,
       email,
       first_name: firstName,
       last_name: lastName,
-    });
+    }, { onConflict: "id" });
 
   if (studentError) {
     // 23505 = duplicate key — student already exists, treat as success

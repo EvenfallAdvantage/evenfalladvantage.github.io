@@ -27,13 +27,14 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
-  // Skip non-GET and cross-origin
+  // Skip non-GET, cross-origin, and navigation requests (let browser handle pages)
   if (request.method !== "GET" || !request.url.startsWith(self.location.origin)) return;
+  if (request.mode === "navigate") return;
 
-  // Network-first for API/data, cache-first for static
+  // Network-first for API/data, cache-first for static assets
   if (request.url.includes("/api/") || request.url.includes("supabase")) {
     event.respondWith(
-      fetch(request).catch(() => caches.match(request))
+      fetch(request).catch(() => caches.match(request).then((r) => r || new Response("Offline", { status: 503 })))
     );
   } else {
     event.respondWith(
@@ -44,7 +45,7 @@ self.addEventListener("fetch", (event) => {
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }
           return response;
-        }).catch(() => cached);
+        }).catch(() => cached || new Response("Offline", { status: 503 }));
         return cached || networkFetch;
       })
     );

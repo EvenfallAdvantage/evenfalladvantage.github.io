@@ -33,7 +33,7 @@ RETURNS void AS $$
 BEGIN
   DELETE FROM audit_logs WHERE created_at < now() - INTERVAL '90 days';
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- ============================================================================
 -- ✅ Done! Security columns added to audit_logs.

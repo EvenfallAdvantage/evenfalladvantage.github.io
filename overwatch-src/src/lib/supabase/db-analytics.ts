@@ -223,21 +223,25 @@ export async function getOwnerIntel(companyId: string) {
     })),
   };
 
-  // --- Pending Approvals ---
+  // --- Pending Approvals (graceful: tables may not exist yet) ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const safeCount = async (p: any): Promise<{ count: number | null }> => {
+    try { return await p; } catch { return { count: 0 }; }
+  };
   const [
     { count: pendingTimeCorrections },
     { count: pendingLeave },
     { count: pendingForms },
     { count: unapprovedTimesheets },
   ] = await Promise.all([
-    supabase.from("time_change_requests").select("id", { count: "exact", head: true })
-      .eq("company_id", companyId).eq("status", "pending"),
-    supabase.from("time_off_requests").select("id", { count: "exact", head: true })
-      .eq("company_id", companyId).eq("status", "pending"),
-    supabase.from("form_submissions").select("id", { count: "exact", head: true })
-      .eq("status", "submitted"),
-    supabase.from("timesheets").select("id", { count: "exact", head: true })
-      .eq("approved", false).not("clock_out", "is", null),
+    safeCount(supabase.from("time_change_requests").select("id", { count: "exact", head: true })
+      .eq("company_id", companyId).eq("status", "pending")),
+    safeCount(supabase.from("time_off_requests").select("id", { count: "exact", head: true })
+      .eq("company_id", companyId).eq("status", "pending")),
+    safeCount(supabase.from("form_submissions").select("id", { count: "exact", head: true })
+      .eq("status", "submitted")),
+    safeCount(supabase.from("timesheets").select("id", { count: "exact", head: true })
+      .eq("approved", false).not("clock_out", "is", null)),
   ]);
   const approvals = {
     timeCorrections: pendingTimeCorrections ?? 0,

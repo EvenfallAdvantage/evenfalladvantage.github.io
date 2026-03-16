@@ -153,27 +153,33 @@ export async function createTimeChangeRequest(params: {
 }
 
 export async function getMyTimeChangeRequests() {
-  const userId = await ensureInternalUser();
-  if (!userId) return [];
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("time_change_requests")
-    .select("*, timesheets(clock_in, clock_out)")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(20);
-  return data ?? [];
+  try {
+    const userId = await ensureInternalUser();
+    if (!userId) return [];
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("time_change_requests")
+      .select("*, timesheets(clock_in, clock_out)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error) return [];
+    return data ?? [];
+  } catch { return []; }
 }
 
 export async function getCompanyTimeChangeRequests(companyId: string) {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("time_change_requests")
-    .select("*, timesheets(clock_in, clock_out), users(first_name, last_name)")
-    .eq("company_id", companyId)
-    .order("created_at", { ascending: false })
-    .limit(50);
-  return data ?? [];
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("time_change_requests")
+      .select("*, timesheets(clock_in, clock_out), users(first_name, last_name)")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) return [];
+    return data ?? [];
+  } catch { return []; }
 }
 
 export async function reviewTimeChangeRequest(requestId: string, status: "approved" | "denied") {
