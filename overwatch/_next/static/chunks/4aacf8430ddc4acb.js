@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,19322,e=>{"use strict";var t=e.i(932),u=e.i(71645),c=e.i(18566);function l(){let e,l,i=(0,t.c)(3),o=(0,c.useRouter)();return i[0]!==o?(e=()=>{o.replace("/schedule")},l=[o],i[0]=o,i[1]=e,i[2]=l):(e=i[1],l=i[2]),(0,u.useEffect)(e,l),null}e.s(["default",()=>l])}]);

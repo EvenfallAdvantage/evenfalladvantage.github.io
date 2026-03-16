@@ -22,7 +22,6 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: "Patrols", href: "/patrols", icon: "Footprints" },
       { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
       { title: "Deployments", href: "/schedule", icon: "CalendarDays" },
-      { title: "Armory", href: "/assets", icon: "QrCode" },
     ],
   },
   {
