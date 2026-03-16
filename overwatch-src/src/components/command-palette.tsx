@@ -7,6 +7,7 @@ import {
   Footprints, CalendarDays, QrCode, ClipboardList, GraduationCap,
   Target, MessageCircle, FileText, Shield, MapPin, Scale, BookOpen,
   Video, Award, CalendarOff, BarChart3, Settings, HelpCircle,
+  Flag, UserCog, SlidersHorizontal, Building2, ShieldAlert, Activity,
   Search, Command, ArrowRight,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -16,6 +17,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Footprints, CalendarDays, QrCode, ClipboardList, GraduationCap,
   Target, MessageCircle, FileText, Shield, MapPin, Scale, BookOpen,
   Video, Award, CalendarOff, BarChart3, Settings, HelpCircle,
+  Flag, UserCog, SlidersHorizontal, Building2, ShieldAlert, Activity,
 };
 
 type PaletteItem = {
@@ -51,12 +53,12 @@ const ALL_ITEMS: PaletteItem[] = [
   { title: "Personnel", href: "/admin/staff", icon: "UserCog", section: "Command" },
   { title: "Training Admin", href: "/admin/training", icon: "SlidersHorizontal", section: "Command" },
   { title: "Question Bank", href: "/admin/questions", icon: "HelpCircle", section: "Command" },
-  { title: "Intel Center", href: "/admin/reports", icon: "BarChart3", section: "Command" },
+  { title: "Intel Center", href: "/admin/reports", icon: "Activity", section: "Command" },
+  { title: "Security", href: "/admin/security", icon: "ShieldAlert", section: "Command" },
   { title: "Profile", href: "/profile", icon: "Users", section: "Account" },
   { title: "My Settings", href: "/settings", icon: "Settings", section: "Account" },
-  { title: "Company Settings", href: "/admin/settings", icon: "Settings", section: "Account" },
+  { title: "HQ Config", href: "/admin/settings", icon: "Building2", section: "Account" },
   { title: "Notifications", href: "/notifications", icon: "Radar", section: "Account" },
-  { title: "Knowledge Base", href: "/knowledge-base", icon: "BookOpen", section: "Account" },
   { title: "Join Company", href: "/join", icon: "Users", section: "Account" },
 ];
 
