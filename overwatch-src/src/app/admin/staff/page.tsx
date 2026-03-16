@@ -705,9 +705,15 @@ export default function AdminStaffPage() {
               </p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 rounded-lg bg-muted/50 px-3 py-2 text-xs font-mono text-muted-foreground truncate">
-                  /apply/{activeCompanyId?.slice(0, 8) ?? "..."}
+                  {typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname.replace(/\/admin\/staff.*/, "")}/apply?c=${activeCompanyId ?? ""}` : `/apply?c=${activeCompanyId ?? ""}`}
                 </code>
-                <Badge variant="outline" className="text-[10px]">Coming Soon</Badge>
+                <Button size="sm" variant="outline" className="shrink-0 text-xs gap-1"
+                  onClick={() => {
+                    const url = `${window.location.origin}${window.location.pathname.replace(/\/admin\/staff.*/, "")}/apply?c=${activeCompanyId ?? ""}`;
+                    navigator.clipboard.writeText(url);
+                  }}>
+                  <Copy className="h-3 w-3" /> Copy
+                </Button>
               </div>
             </div>
 
