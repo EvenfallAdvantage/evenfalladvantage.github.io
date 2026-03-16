@@ -36,11 +36,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <main
         className={cn(
-          "min-h-screen pt-16 pb-20 transition-all duration-300 md:pb-0",
+          "min-h-screen pt-14 sm:pt-16 pb-20 transition-all duration-300 md:pb-0",
           collapsed ? "md:pl-[68px]" : "md:pl-[260px]"
         )}
       >
-        <div className="mx-auto max-w-7xl p-6">{children}</div>
+        <div className="mx-auto max-w-7xl px-3 py-4 sm:p-6">{children}</div>
       </main>
 
       {/* Mobile bottom nav */}

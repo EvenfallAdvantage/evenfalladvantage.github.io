@@ -163,10 +163,10 @@ export default function InstructorPage() {
     <DashboardLayout>
       <div className="max-w-xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <Video className="h-6 w-6" /> INSTRUCTOR ROOM
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+            <Video className="h-5 w-5 sm:h-6 sm:w-6" /> INSTRUCTOR ROOM
           </h1>
-          <p className="text-sm text-muted-foreground">Host live training sessions with video conferencing</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Host live training sessions with video conferencing</p>
         </div>
 
         <Card className="border-border/40">

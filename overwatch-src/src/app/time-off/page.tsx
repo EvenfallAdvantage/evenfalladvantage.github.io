@@ -85,12 +85,12 @@ export default function TimeOffPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarOff className="h-6 w-6" /> LEAVE</h1>
-            <p className="text-sm text-muted-foreground">Request and track leave days</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarOff className="h-5 w-5 sm:h-6 sm:w-6" /> LEAVE</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Request and track leave days</p>
           </div>
-          <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
+          <Button size="sm" className="gap-1.5 w-full sm:w-auto" onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4" /> Request Leave
           </Button>
         </div>

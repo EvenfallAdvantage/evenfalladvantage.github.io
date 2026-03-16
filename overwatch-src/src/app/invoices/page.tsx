@@ -165,22 +165,22 @@ export default function InvoicesPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><FileText className="h-6 w-6" /> INVOICE GENERATOR</h1>
-            <p className="text-sm text-muted-foreground">Professional invoicing for 1099 contractors</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><FileText className="h-5 w-5 sm:h-6 sm:w-6" /> INVOICES</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Professional invoicing for 1099 contractors</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowPreview(!showPreview)}>
               {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              {showPreview ? "Hide" : "Show"} Preview
+              <span className="hidden sm:inline">{showPreview ? "Hide" : "Show"}</span> Preview
             </Button>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={clearForm}>
               <RotateCcw className="h-3.5 w-3.5" /> Clear
             </Button>
             <Button size="sm" className="gap-1.5" onClick={downloadPDF} disabled={generating}>
               {generating ? <Save className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
-              Download PDF
+              PDF
             </Button>
           </div>
         </div>

@@ -213,10 +213,10 @@ export default function QuizzesPage() {
                 <ChevronLeft className="h-3 w-3" /> All Drills
               </button>
             )}
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <Target className="h-6 w-6" /> {selected ? selected.title : "DRILLS"}
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+              <Target className="h-5 w-5 sm:h-6 sm:w-6" /> {selected ? selected.title : "DRILLS"}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {selected ? (selected.description || "Complete this training drill") : "Training assessments and readiness checks"}
             </p>
           </div>

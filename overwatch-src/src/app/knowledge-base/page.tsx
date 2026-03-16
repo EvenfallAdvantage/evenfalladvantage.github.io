@@ -83,10 +83,10 @@ export default function KnowledgeBasePage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><BookOpen className="h-6 w-6" /> Field Manual</h1>
-            <p className="text-sm text-muted-foreground">SOPs, protocols, and training materials</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><BookOpen className="h-5 w-5 sm:h-6 sm:w-6" /> Field Manual</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">SOPs, protocols, and training materials</p>
           </div>
           {isAdmin && (
             <Button size="sm" className="gap-1.5" onClick={() => setShowCreateFolder(true)}>

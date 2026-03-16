@@ -173,8 +173,8 @@ export default function PatrolsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <Footprints className="h-6 w-6" />
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+            <Footprints className="h-5 w-5 sm:h-6 sm:w-6" />
             GUARD TOUR
           </h1>
           <p className="text-sm text-muted-foreground">Checkpoint verification & patrol tracking</p>

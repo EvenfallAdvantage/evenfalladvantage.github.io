@@ -110,10 +110,10 @@ function CoursesContent() {
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <BookOpen className="h-6 w-6" /> COURSE CATALOG
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+            <BookOpen className="h-5 w-5 sm:h-6 sm:w-6" /> COURSES
           </h1>
-          <p className="text-sm text-muted-foreground">Professional security training courses with certification</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Professional security training courses</p>
         </div>
 
         {/* Stats */}

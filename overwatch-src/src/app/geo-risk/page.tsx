@@ -256,10 +256,10 @@ export default function GeoRiskPage() {
     <DashboardLayout>
       <div className="max-w-xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <MapPin className="h-6 w-6" /> GEO-RISK ASSESSMENT
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+            <MapPin className="h-5 w-5 sm:h-6 sm:w-6" /> GEO-RISK
           </h1>
-          <p className="text-sm text-muted-foreground">FBI crime data + facility risk scoring powered by location intelligence</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">FBI crime data + facility risk scoring</p>
         </div>
 
         {/* Form */}

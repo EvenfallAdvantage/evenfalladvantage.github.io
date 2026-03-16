@@ -353,10 +353,10 @@ export default function SiteAssessmentPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Shield className="h-6 w-6" /> SITE SECURITY ASSESSMENT</h1>
-            <p className="text-sm text-muted-foreground">Professional security evaluation and risk scoring</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Shield className="h-5 w-5 sm:h-6 sm:w-6" /> SITE ASSESSMENT</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Professional security evaluation and risk scoring</p>
           </div>
           <div className="flex gap-2">
             <Badge variant="outline" className="text-[10px] font-mono">{completionPct}% complete</Badge>

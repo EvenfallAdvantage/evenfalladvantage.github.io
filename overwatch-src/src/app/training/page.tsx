@@ -151,10 +151,10 @@ export default function TrainingPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header with readiness indicator */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><GraduationCap className="h-6 w-6" /> READINESS CENTER</h1>
-            <p className="text-sm text-muted-foreground">Tactical training, SOPs, and operational drills</p>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><GraduationCap className="h-5 w-5 sm:h-6 sm:w-6" /> READINESS CENTER</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">Tactical training, SOPs, and operational drills</p>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card px-3 py-1.5">
             <span className={`h-2 w-2 rounded-full ${readinessLevel === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-amber-500"}`} />

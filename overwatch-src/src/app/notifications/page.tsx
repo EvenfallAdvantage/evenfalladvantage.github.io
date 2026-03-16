@@ -69,9 +69,9 @@ export default function NotificationsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Bell className="h-6 w-6" /> NOTIFICATIONS</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Bell className="h-5 w-5 sm:h-6 sm:w-6" /> NOTIFICATIONS</h1>
             <p className="text-sm text-muted-foreground">
               {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
             </p>

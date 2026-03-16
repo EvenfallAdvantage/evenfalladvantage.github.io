@@ -228,15 +228,15 @@ export default function IncidentsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <AlertTriangle className="h-6 w-6" />
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6" />
               REPORTS
             </h1>
-            <p className="text-sm text-muted-foreground">Incident reports, field reports, and documentation</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Incident reports, field reports, and documentation</p>
           </div>
-          <Button onClick={() => setShowCreate(!showCreate)} className="gap-2">
+          <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" /> Report Incident
           </Button>
         </div>

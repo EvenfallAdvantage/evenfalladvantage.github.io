@@ -27,7 +27,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 z-30 flex h-16 items-center gap-4 border-b border-border/50 bg-background/80 px-6 backdrop-blur-xl transition-all duration-300",
+        "fixed top-0 right-0 z-30 flex h-14 sm:h-16 items-center gap-2 sm:gap-4 border-b border-border/50 bg-background/80 px-3 sm:px-6 backdrop-blur-xl transition-all duration-300",
         sidebarCollapsed ? "left-[68px]" : "left-[260px]",
         "max-md:left-0"
       )}

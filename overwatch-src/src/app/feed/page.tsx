@@ -237,7 +237,7 @@ export default function FeedPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono">{greeting}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono">{greeting}</h1>
           <p className="text-sm text-muted-foreground">
             {new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
           </p>

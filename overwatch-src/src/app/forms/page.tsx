@@ -132,8 +132,8 @@ export default function FormsPage() {
                 <ChevronLeft className="h-3 w-3" /> All Forms
               </button>
             ) : null}
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <ClipboardList className="h-6 w-6" />
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />
               {selected ? selected.name : "REPORTS"}
             </h1>
             <p className="text-sm text-muted-foreground">

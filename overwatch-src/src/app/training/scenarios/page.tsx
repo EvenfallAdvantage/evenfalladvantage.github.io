@@ -210,10 +210,10 @@ export default function ScenariosPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <MessageCircle className="h-6 w-6" /> DE-ESCALATION TRAINING
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" /> DE-ESCALATION
           </h1>
-          <p className="text-sm text-muted-foreground">Interactive scenario-based conflict resolution practice</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Interactive scenario-based conflict resolution</p>
         </div>
 
         {/* Stats */}

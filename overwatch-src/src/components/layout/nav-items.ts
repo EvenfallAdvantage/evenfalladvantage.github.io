@@ -86,8 +86,8 @@ export const NAV_SECTIONS: NavSection[] = [
 
 export const MOBILE_NAV_ITEMS: NavItem[] = [
   { title: "Home", href: "/feed", icon: "LayoutDashboard" },
-  { title: "Comms", href: "/chat", icon: "Radio" },
+  { title: "Briefing", href: "/updates", icon: "Radar" },
   { title: "Watch", href: "/timeclock", icon: "Clock" },
-  { title: "Deploy", href: "/schedule", icon: "CalendarDays" },
+  { title: "Comms", href: "/chat", icon: "Radio" },
   { title: "More", href: "/more", icon: "Menu" },
 ];

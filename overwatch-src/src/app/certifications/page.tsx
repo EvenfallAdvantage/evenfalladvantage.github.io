@@ -203,12 +203,12 @@ export default function CertificationsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <Award className="h-6 w-6" /> CERTIFICATIONS
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+              <Award className="h-5 w-5 sm:h-6 sm:w-6" /> CERTIFICATIONS
             </h1>
-            <p className="text-sm text-muted-foreground">Manage credentials, generate certificates, and verify</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Manage credentials, generate certificates, and verify</p>
           </div>
           <Button size="sm" className="gap-1.5" onClick={() => setShowAdd(true)}>
             <Plus className="h-3.5 w-3.5" /> Add Certification
@@ -216,7 +216,7 @@ export default function CertificationsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card className="border-border/40"><CardContent className="p-3 text-center">
             <p className="text-2xl font-bold font-mono">{certs.length}</p>
             <p className="text-[10px] text-muted-foreground">Total</p>

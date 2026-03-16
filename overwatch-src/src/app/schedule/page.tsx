@@ -50,8 +50,8 @@ export default function SchedulePage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarDays className="h-6 w-6" /> DEPLOYMENTS</h1>
-          <p className="text-sm text-muted-foreground">Your assigned shifts and upcoming operations</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarDays className="h-5 w-5 sm:h-6 sm:w-6" /> DEPLOYMENTS</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Your assigned shifts and upcoming operations</p>
         </div>
 
         {loading ? (

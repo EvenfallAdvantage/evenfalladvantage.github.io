@@ -52,10 +52,10 @@ export default function StateLawsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <Scale className="h-6 w-6" /> STATE GUARD LAWS
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
+            <Scale className="h-5 w-5 sm:h-6 sm:w-6" /> STATE GUARD LAWS
           </h1>
-          <p className="text-sm text-muted-foreground">Security guard licensing requirements by state</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Security guard licensing requirements by state</p>
         </div>
 
         {/* Stats */}

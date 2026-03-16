@@ -124,8 +124,32 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* iOS safe area for bottom nav */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Smooth scrolling for mobile */
+@media (max-width: 768px) {
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Touch-friendly select elements */
+select {
+  min-height: 44px;
+}
+
+@media (min-width: 640px) {
+  select {
+    min-height: unset;
   }
 }

@@ -86,7 +86,7 @@ export default function ProfilePage() {
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight font-mono">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono">
                 {user?.firstName ?? "Your"} {user?.lastName ?? "Name"}
               </h1>
               <div className="flex items-center gap-2 mt-1">
