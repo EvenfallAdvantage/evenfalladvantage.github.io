@@ -342,7 +342,7 @@ export default function UpdatesPage() {
                   <ChevronDown className="h-3 w-3" />
                 </button>
                 {showTypeMenu && (
-                  <div className="absolute left-0 top-full z-10 mt-1 min-w-[160px] rounded-lg border border-border/50 bg-card p-1 shadow-xl">
+                  <div className="absolute left-0 bottom-full z-10 mb-1 min-w-[160px] rounded-lg border border-border/50 bg-card p-1 shadow-xl">
                     {POST_TYPES.map((t) => (
                       <button
                         key={t.value}
