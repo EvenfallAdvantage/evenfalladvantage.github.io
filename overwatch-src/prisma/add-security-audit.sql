@@ -1,58 +1,40 @@
 -- ============================================================================
 -- Overwatch Security Audit Logging (NIST 800-171 §3.3)
 -- Run this in Supabase SQL Editor
+--
+-- NOTE: audit_logs table already exists from supabase-setup.sql
+-- This migration ADDS the security columns needed by the Security Center.
 -- ============================================================================
 
--- Audit logs table
-CREATE TABLE IF NOT EXISTS audit_logs (
-  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  event_type    TEXT NOT NULL,
-  user_id       UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  company_id    UUID,
-  ip_address    TEXT,
-  user_agent    TEXT,
-  metadata      JSONB DEFAULT '{}'::jsonb,
-  outcome       TEXT NOT NULL CHECK (outcome IN ('success', 'failure', 'blocked')),
-  created_at    TIMESTAMPTZ DEFAULT now()
-);
+-- Add missing security columns to the existing audit_logs table
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS event_type TEXT;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS outcome TEXT;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS ip_address TEXT;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS user_agent TEXT;
 
--- Indexes for fast querying
-CREATE INDEX IF NOT EXISTS idx_audit_logs_company_id ON audit_logs(company_id);
+-- Backfill event_type from existing 'action' column where null
+UPDATE audit_logs SET event_type = action WHERE event_type IS NULL AND action IS NOT NULL;
+
+-- Indexes for security queries
 CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs(event_type);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_outcome ON audit_logs(outcome);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
 
--- Composite index for common dashboard queries
-CREATE INDEX IF NOT EXISTS idx_audit_logs_company_created
-  ON audit_logs(company_id, created_at DESC);
+-- Policy: users can insert their own audit logs (skip if exists)
+DO $$ BEGIN
+  CREATE POLICY "Users can insert audit logs"
+    ON audit_logs FOR INSERT TO authenticated WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Enable RLS
-ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
-
--- Policy: users can insert their own audit logs
-CREATE POLICY "Users can insert audit logs"
-  ON audit_logs FOR INSERT
-  TO authenticated
-  WITH CHECK (true);
-
--- Policy: admins can read audit logs for their company
-CREATE POLICY "Admins can read company audit logs"
-  ON audit_logs FOR SELECT
-  TO authenticated
-  USING (
-    company_id IN (
-      SELECT company_id FROM company_memberships
-      WHERE user_id = auth.uid()
-      AND role IN ('owner', 'admin')
-    )
-  );
-
--- Auto-cleanup: delete audit logs older than 90 days (retention policy)
--- Run this as a cron job or Supabase scheduled function
+-- Auto-cleanup: delete audit logs older than 90 days
 CREATE OR REPLACE FUNCTION cleanup_old_audit_logs()
 RETURNS void AS $$
 BEGIN
   DELETE FROM audit_logs WHERE created_at < now() - INTERVAL '90 days';
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
+-- ✅ Done! Security columns added to audit_logs.
+-- ============================================================================

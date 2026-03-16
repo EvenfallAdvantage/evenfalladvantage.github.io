@@ -196,7 +196,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
                   if (hasChildren) {
                     return (
-                      <div key={item.title}>
+                      <div key={item.title} className="relative">
                         <button
                           onClick={() => toggleGroup(item.title)}
                           className={cn(
@@ -229,6 +229,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                             </>
                           )}
                         </button>
+                        {/* Expanded mode: inline children */}
                         {isOpen && !collapsed && (
                           <div className="ml-3 space-y-0.5 border-l border-border/40 pl-3 mt-0.5">
                             {item.children!.map((child) => {
@@ -258,6 +259,34 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                                     />
                                   )}
                                   <span className="truncate">{child.title}</span>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {/* Collapsed mode: flyout panel */}
+                        {isOpen && collapsed && (
+                          <div className="absolute left-full top-0 z-50 ml-2 min-w-[160px] rounded-lg border border-border bg-popover p-1.5 shadow-lg">
+                            <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{item.title}</p>
+                            {item.children!.map((child) => {
+                              const ChildIcon = ICON_MAP[child.icon];
+                              const childIsActive =
+                                pathname === child.href ||
+                                pathname.startsWith(child.href + "/");
+                              return (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  onClick={() => toggleGroup(item.title)}
+                                  className={cn(
+                                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                                    childIsActive
+                                      ? "bg-primary/10 text-primary"
+                                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                  )}
+                                >
+                                  {ChildIcon && <ChildIcon className={cn("h-3.5 w-3.5 shrink-0", childIsActive ? "text-primary" : "text-muted-foreground/70")} />}
+                                  <span>{child.title}</span>
                                 </Link>
                               );
                             })}
