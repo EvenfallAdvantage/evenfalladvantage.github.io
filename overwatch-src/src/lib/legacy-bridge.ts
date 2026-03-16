@@ -437,6 +437,10 @@ export async function createLegacyStudentProfile(
     });
 
   if (studentError) {
+    // 23505 = duplicate key — student already exists, treat as success
+    if (studentError.code === "23505") {
+      return { success: true };
+    }
     console.error("Legacy: createStudent error:", studentError);
     return { success: false, error: studentError.message };
   }
