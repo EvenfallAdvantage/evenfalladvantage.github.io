@@ -313,7 +313,7 @@ export async function updateUserProfile(updates: {
   const payload: UserProfilePayload = {};
   if (updates.firstName !== undefined) payload.first_name = updates.firstName;
   if (updates.lastName !== undefined) payload.last_name = updates.lastName;
-  if (updates.phone !== undefined) payload.phone = updates.phone;
+  if (updates.phone !== undefined) payload.phone = updates.phone?.trim() || null;
   if (updates.avatarUrl !== undefined) payload.avatar_url = updates.avatarUrl;
 
   const { data, error } = await supabase

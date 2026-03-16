@@ -293,11 +293,13 @@ export async function sendChatMessage(params: {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
   const supabase = createClient();
-  // Ensure user is a member of this channel
-  await supabase.from("chat_members").upsert(
-    { id: crypto.randomUUID(), channel_id: params.channelId, user_id: userId, role: "member", joined_at: new Date().toISOString() },
-    { onConflict: "channel_id,user_id" }
-  );
+  // Ensure user is a member of this channel (best-effort; RLS may block for some roles)
+  try {
+    await supabase.from("chat_members").upsert(
+      { id: crypto.randomUUID(), channel_id: params.channelId, user_id: userId, role: "member", joined_at: new Date().toISOString() },
+      { onConflict: "channel_id,user_id" }
+    );
+  } catch {}
   const { data, error } = await supabase
     .from("chat_messages")
     .insert({
@@ -355,10 +357,12 @@ export async function updateLastRead(channelId: string) {
   const userId = await ensureInternalUser();
   if (!userId) return;
   const supabase = createClient();
-  await supabase.from("chat_members").upsert(
-    { id: crypto.randomUUID(), channel_id: channelId, user_id: userId, last_read_at: new Date().toISOString(), role: "member", joined_at: new Date().toISOString() },
-    { onConflict: "channel_id,user_id" }
-  );
+  try {
+    await supabase.from("chat_members").upsert(
+      { id: crypto.randomUUID(), channel_id: channelId, user_id: userId, last_read_at: new Date().toISOString(), role: "member", joined_at: new Date().toISOString() },
+      { onConflict: "channel_id,user_id" }
+    );
+  } catch {}
 }
 
 export async function getUnreadCounts(companyId: string) {
