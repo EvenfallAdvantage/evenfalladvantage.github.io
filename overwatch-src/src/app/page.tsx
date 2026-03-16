@@ -391,8 +391,21 @@ export default function HomePage() {
             <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">INTEGRATES WITH YOUR STACK</h2>
             <p className="text-white/40 max-w-lg mx-auto text-sm">Connect Overwatch with the tools your team already uses — or go fully native.</p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
-            {INTEGRATIONS_LOGOS.map((int) => (
+          {/* Row 1: first 6 */}
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-6 sm:gap-8 justify-items-center max-w-2xl mx-auto">
+            {INTEGRATIONS_LOGOS.slice(0, 6).map((int) => (
+              <div key={int.name} className="flex flex-col items-center gap-2 group">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all p-2.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={int.src} alt={int.alt} className="h-8 w-8 object-contain" />
+                </div>
+                <span className="text-[10px] text-white/30 font-medium">{int.name}</span>
+              </div>
+            ))}
+          </div>
+          {/* Row 2: remaining 5, centered */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-6 sm:gap-8 justify-items-center max-w-[520px] mx-auto mt-6">
+            {INTEGRATIONS_LOGOS.slice(6).map((int) => (
               <div key={int.name} className="flex flex-col items-center gap-2 group">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all p-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
