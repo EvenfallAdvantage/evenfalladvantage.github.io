@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Radio, Plus, Send, Loader2, Trash2, Search, ExternalLink,
-  Reply, X, Hash, Settings, MessageSquare, Phone, Shield,
+  Reply, X, Hash, Settings, MessageSquare, Phone,
   Smile, Paperclip, Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,9 +47,9 @@ function parseExt(desc: string | null): ExtMeta | null {
   return null;
 }
 
-const PLAT: Record<string, { color: string; bg: string; label: string }> = {
-  whatsapp: { color: "text-green-500", bg: "bg-green-500/10", label: "WhatsApp" },
-  signal: { color: "text-blue-400", bg: "bg-blue-400/10", label: "Signal" },
+const PLAT: Record<string, { color: string; bg: string; label: string; logo: string }> = {
+  whatsapp: { color: "text-green-500", bg: "bg-green-500/10", label: "WhatsApp", logo: "/overwatch/images/integrations/whatsapp.svg" },
+  signal: { color: "text-blue-400", bg: "bg-blue-400/10", label: "Signal", logo: "/overwatch/images/integrations/signal.svg" },
 };
 
 export default function ChatPage() {
@@ -356,8 +356,9 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                   return (
                     <a key={g.id} href={g.meta.url} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent">
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${p.bg}`}>
-                        {g.meta.platform === "whatsapp" ? <Phone className={`h-3.5 w-3.5 ${p.color}`} /> : <Shield className={`h-3.5 w-3.5 ${p.color}`} />}
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${p.bg} overflow-hidden`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.logo} alt={p.label} className="h-5 w-5 object-contain" />
                       </div>
                       <span className="truncate font-medium flex-1">{g.name}</span>
                       <ExternalLink className="h-3 w-3 text-muted-foreground/40" />
@@ -527,12 +528,14 @@ function ExternalTab({ isAdmin, external, showAddExt, setShowAddExt, extName, se
           <p className="text-xs text-muted-foreground">Add a WhatsApp or Signal group link so your team can jump in with one tap.</p>
           <div className="flex gap-2">
             <button onClick={() => setExtPlat("whatsapp")}
-              className={`flex-1 rounded-lg border px-3 py-2.5 text-xs font-medium transition-colors ${extPlat === "whatsapp" ? "border-green-500 bg-green-500/10 text-green-500" : "border-border/40 text-muted-foreground hover:text-foreground"}`}>
-              <Phone className="h-4 w-4 mx-auto mb-1" /> WhatsApp
+              className={`flex-1 rounded-lg border px-3 py-2.5 text-xs font-medium transition-colors flex flex-col items-center gap-1 ${extPlat === "whatsapp" ? "border-green-500 bg-green-500/10 text-green-500" : "border-border/40 text-muted-foreground hover:text-foreground"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={PLAT.whatsapp.logo} alt="WhatsApp" className="h-5 w-5" /> WhatsApp
             </button>
             <button onClick={() => setExtPlat("signal")}
-              className={`flex-1 rounded-lg border px-3 py-2.5 text-xs font-medium transition-colors ${extPlat === "signal" ? "border-blue-400 bg-blue-400/10 text-blue-400" : "border-border/40 text-muted-foreground hover:text-foreground"}`}>
-              <Shield className="h-4 w-4 mx-auto mb-1" /> Signal
+              className={`flex-1 rounded-lg border px-3 py-2.5 text-xs font-medium transition-colors flex flex-col items-center gap-1 ${extPlat === "signal" ? "border-blue-400 bg-blue-400/10 text-blue-400" : "border-border/40 text-muted-foreground hover:text-foreground"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={PLAT.signal.logo} alt="Signal" className="h-5 w-5" /> Signal
             </button>
           </div>
           <Input placeholder="Group name (e.g. Ops Chat, Night Shift)" value={extName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtName(e.target.value)} />
@@ -560,8 +563,9 @@ function ExternalTab({ isAdmin, external, showAddExt, setShowAddExt, extName, se
             return (
               <div key={g.id} className="rounded-xl border border-border/50 bg-card p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${p.bg}`}>
-                    {g.meta.platform === "whatsapp" ? <Phone className={`h-5 w-5 ${p.color}`} /> : <Shield className={`h-5 w-5 ${p.color}`} />}
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${p.bg} overflow-hidden`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.logo} alt={p.label} className="h-6 w-6 object-contain" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{g.name}</p>
