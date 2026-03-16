@@ -19,8 +19,8 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Field Ops",
     items: [
       { title: "Watch Log", href: "/timeclock", icon: "Clock" },
-      { title: "Reports", href: "/incidents", icon: "ClipboardList" },
       { title: "Patrols", href: "/patrols", icon: "Footprints" },
+      { title: "Reports", href: "/incidents", icon: "ClipboardList" },
       { title: "Deployments", href: "/schedule", icon: "CalendarDays" },
       { title: "Armory", href: "/assets", icon: "QrCode" },
     ],
