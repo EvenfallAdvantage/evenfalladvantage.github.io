@@ -7,15 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet, updateMemberRole, removeMember } from "@/lib/supabase/db";
-
-// Supabase TIMESTAMPTZ can come back without 'Z' — ensure UTC parse
-function parseUTC(iso: string) {
-  if (!iso) return new Date();
-  if (!iso.endsWith("Z") && !iso.includes("+") && !/\d{2}:\d{2}$/.test(iso.slice(-6))) {
-    return new Date(iso + "Z");
-  }
-  return new Date(iso);
-}
+import { parseUTC } from "@/lib/parse-utc";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;

@@ -11,16 +11,7 @@ import {
   clockOut,
   getRecentTimesheets,
 } from "@/lib/supabase/db";
-
-// Supabase TIMESTAMPTZ can come back without 'Z' — ensure UTC parse
-function parseUTC(iso: string) {
-  if (!iso) return new Date();
-  // If no timezone indicator, append Z so JS parses as UTC
-  if (!iso.endsWith("Z") && !iso.includes("+") && !/\d{2}:\d{2}$/.test(iso.slice(-6))) {
-    return new Date(iso + "Z");
-  }
-  return new Date(iso);
-}
+import { parseUTC } from "@/lib/parse-utc";
 
 function formatDuration(ms: number) {
   const totalSec = Math.floor(Math.max(0, ms) / 1000);

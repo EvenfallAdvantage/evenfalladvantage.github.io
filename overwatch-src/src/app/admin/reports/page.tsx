@@ -3,13 +3,13 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   BarChart3, Users, MapPin, Shield, ClipboardList, Clock, Loader2,
-  TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Footprints,
+  AlertTriangle, CheckCircle2, Footprints,
   GraduationCap, FileText, Calendar, Activity,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
-import { getCompanyStats } from "@/lib/supabase/db";
+import { getCompanyStats, getIntelData } from "@/lib/supabase/db";
 
 type Stats = {
   memberCount: number;
@@ -67,49 +67,47 @@ function DonutChart({ segments }: { segments: { value: number; color: string; la
   );
 }
 
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+type IntelData = {
+  weeklyHours: number[];
+  weeklyIncidents: number[];
+  dayLabels: string[];
+  personnel: { onDuty: number; offDuty: number; onLeave: number; total: number };
+  activity: { patrols: number; training: number; shifts: number };
+};
 
 export default function AdminReportsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [intel, setIntel] = useState<IntelData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
-    try { setStats(await getCompanyStats(activeCompanyId)); } catch {} finally { setLoading(false); }
+    try {
+      const [s, i] = await Promise.all([
+        getCompanyStats(activeCompanyId),
+        getIntelData(activeCompanyId),
+      ]);
+      setStats(s);
+      setIntel(i);
+    } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Derived analytics (seeded from real data when available, with smart defaults)
   const memberCount = stats?.memberCount ?? 0;
   const eventCount = stats?.eventCount ?? 0;
   const assetCount = stats?.assetCount ?? 0;
   const formCount = stats?.formCount ?? 0;
   const hoursLogged = stats?.totalHoursLogged ?? 0;
 
-  // Simulate weekly activity pattern based on actual totals
-  const weeklyHours = Array.from({ length: 7 }, (_, i) => {
-    const base = hoursLogged > 0 ? hoursLogged / 7 : 0;
-    const variation = [1.1, 1.2, 1.0, 1.15, 0.95, 0.4, 0.2];
-    return Math.round(base * variation[i] * 10) / 10;
-  });
-
-  const weeklyIncidents = Array.from({ length: 7 }, (_, i) => {
-    const base = eventCount > 0 ? eventCount / 14 : 0;
-    const variation = [0.8, 1.1, 1.3, 1.0, 1.2, 0.6, 0.3];
-    return Math.round(base * variation[i]);
-  });
-
-  const complianceRate = memberCount > 0 ? Math.min(100, Math.round(70 + (hoursLogged / (memberCount * 2)) * 10)) : 0;
-
   const kpiCards = [
-    { label: "Personnel", value: memberCount, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", trend: "+2", up: true },
-    { label: "Operations", value: eventCount, icon: MapPin, color: "text-violet-500", bg: "bg-violet-500/10", trend: eventCount > 5 ? "+3" : "0", up: eventCount > 5 },
-    { label: "Assets Tracked", value: assetCount, icon: Shield, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "+1", up: true },
-    { label: "Active Forms", value: formCount, icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10", trend: formCount > 3 ? "-1" : "0", up: false },
-    { label: "Hours Logged", value: hoursLogged, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", trend: "+8.5h", up: true },
-    { label: "Compliance", value: `${complianceRate}%`, icon: CheckCircle2, color: complianceRate >= 80 ? "text-green-500" : "text-amber-500", bg: complianceRate >= 80 ? "bg-green-500/10" : "bg-amber-500/10", trend: complianceRate >= 80 ? "+5%" : "-2%", up: complianceRate >= 80 },
+    { label: "Personnel", value: memberCount, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { label: "Operations", value: eventCount, icon: MapPin, color: "text-violet-500", bg: "bg-violet-500/10" },
+    { label: "Assets Tracked", value: assetCount, icon: Shield, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { label: "Active Forms", value: formCount, icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10" },
+    { label: "Hours Logged", value: hoursLogged, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
+    { label: "On Duty", value: intel?.personnel.onDuty ?? 0, icon: CheckCircle2, color: (intel?.personnel.onDuty ?? 0) > 0 ? "text-green-500" : "text-muted-foreground", bg: (intel?.personnel.onDuty ?? 0) > 0 ? "bg-green-500/10" : "bg-muted" },
   ];
 
   const compositionSegments = [
@@ -119,10 +117,11 @@ export default function AdminReportsPage() {
     { value: eventCount, color: "#8b5cf6", label: "Operations" },
   ];
 
+  const p = intel?.personnel ?? { onDuty: 0, offDuty: 0, onLeave: 0, total: 0 };
   const statusBreakdown = [
-    { label: "On Duty", count: Math.ceil(memberCount * 0.6), color: "bg-green-500", pct: 60 },
-    { label: "Off Duty", count: Math.floor(memberCount * 0.3), color: "bg-slate-400", pct: 30 },
-    { label: "On Leave", count: Math.max(0, memberCount - Math.ceil(memberCount * 0.6) - Math.floor(memberCount * 0.3)), color: "bg-amber-500", pct: 10 },
+    { label: "On Duty", count: p.onDuty, color: "bg-green-500", pct: p.total > 0 ? Math.round((p.onDuty / p.total) * 100) : 0 },
+    { label: "Off Duty", count: p.offDuty, color: "bg-slate-400", pct: p.total > 0 ? Math.round((p.offDuty / p.total) * 100) : 0 },
+    { label: "On Leave", count: p.onLeave, color: "bg-amber-500", pct: p.total > 0 ? Math.round((p.onLeave / p.total) * 100) : 0 },
   ];
 
   return (
@@ -154,10 +153,6 @@ export default function AdminReportsPage() {
                       <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${kpi.bg}`}>
                         <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
                       </div>
-                      <span className={`flex items-center gap-0.5 text-[10px] font-medium ${kpi.up ? "text-green-500" : "text-red-400"}`}>
-                        {kpi.up ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
-                        {kpi.trend}
-                      </span>
                     </div>
                     <p className={`text-xl font-bold font-mono ${kpi.color}`}>{kpi.value}</p>
                     <p className="text-[9px] text-muted-foreground uppercase tracking-wider mt-0.5">{kpi.label}</p>
@@ -175,9 +170,9 @@ export default function AdminReportsPage() {
                     <h3 className="text-sm font-semibold flex items-center gap-1.5"><Clock className="h-4 w-4 text-amber-500" /> Weekly Hours</h3>
                     <span className="text-xs text-muted-foreground">{hoursLogged}h total</span>
                   </div>
-                  <MiniBarChart data={weeklyHours} color="#f59e0b" />
+                  <MiniBarChart data={intel?.weeklyHours ?? [0,0,0,0,0,0,0]} color="#f59e0b" />
                   <div className="flex justify-between mt-1">
-                    {WEEKDAY_LABELS.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
+                    {(intel?.dayLabels ?? ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]).map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
                   </div>
                 </CardContent>
               </Card>
@@ -209,11 +204,11 @@ export default function AdminReportsPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold flex items-center gap-1.5"><AlertTriangle className="h-4 w-4 text-red-500" /> Incidents</h3>
-                    <span className="text-xs text-muted-foreground">{eventCount} ops</span>
+                    <span className="text-xs text-muted-foreground">{eventCount} total</span>
                   </div>
-                  <MiniBarChart data={weeklyIncidents} color="#ef4444" />
+                  <MiniBarChart data={intel?.weeklyIncidents ?? [0,0,0,0,0,0,0]} color="#ef4444" />
                   <div className="flex justify-between mt-1">
-                    {WEEKDAY_LABELS.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
+                    {(intel?.dayLabels ?? ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]).map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
                   </div>
                 </CardContent>
               </Card>
@@ -222,7 +217,7 @@ export default function AdminReportsPage() {
               <Card className="border-border/40">
                 <CardContent className="p-4">
                   <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5"><Users className="h-4 w-4 text-blue-500" /> Personnel Status</h3>
-                  {memberCount > 0 ? (
+                  {p.total > 0 ? (
                     <div className="space-y-2.5">
                       {/* Stacked bar */}
                       <div className="flex h-3 rounded-full overflow-hidden">
@@ -252,10 +247,10 @@ export default function AdminReportsPage() {
                   <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5"><FileText className="h-4 w-4 text-rose-500" /> Activity Summary</h3>
                   <div className="space-y-2.5">
                     {[
-                      { label: "Patrols Completed", value: Math.round(eventCount * 0.7), icon: Footprints, color: "text-emerald-500" },
-                      { label: "Training Modules", value: Math.max(0, Math.round(memberCount * 1.5)), icon: GraduationCap, color: "text-violet-500" },
+                      { label: "Patrols Today", value: intel?.activity.patrols ?? 0, icon: Footprints, color: "text-emerald-500" },
+                      { label: "Training Done", value: intel?.activity.training ?? 0, icon: GraduationCap, color: "text-violet-500" },
                       { label: "Reports Filed", value: formCount, icon: FileText, color: "text-rose-500" },
-                      { label: "Shifts Scheduled", value: Math.round(memberCount * 5.2), icon: Calendar, color: "text-blue-500" },
+                      { label: "Shifts (7d)", value: intel?.activity.shifts ?? 0, icon: Calendar, color: "text-blue-500" },
                     ].map((item) => (
                       <div key={item.label} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-1.5">
@@ -272,7 +267,7 @@ export default function AdminReportsPage() {
 
             {/* Data note */}
             <p className="text-[10px] text-center text-muted-foreground/50">
-              Analytics are derived from organizational data. Trends and breakdowns update as activity accumulates.
+              All data is queried live from your organization&apos;s database.
             </p>
           </>
         )}

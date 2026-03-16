@@ -16,8 +16,6 @@ import {
   AlertTriangle,
   Footprints,
   FileText,
-  TrendingUp,
-  TrendingDown,
   MapPin,
   Shield,
   MessageCircle,
@@ -42,16 +40,9 @@ import {
   getPosts,
   getDashboardMetrics,
   getCompanyStats,
+  getIntelData,
 } from "@/lib/supabase/db";
-
-// Supabase TIMESTAMPTZ can come back without 'Z' — ensure UTC parse
-function parseUTC(iso: string) {
-  if (!iso) return new Date();
-  if (!iso.endsWith("Z") && !iso.includes("+") && !/\d{2}:\d{2}$/.test(iso.slice(-6))) {
-    return new Date(iso + "Z");
-  }
-  return new Date(iso);
-}
+import { parseUTC } from "@/lib/parse-utc";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Timesheet = any;
@@ -109,8 +100,6 @@ function DonutChart({ segments }: { segments: { value: number; color: string; la
   );
 }
 
-const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
 function timeAgo(iso: string) {
   const diff = Date.now() - parseUTC(iso).getTime();
   const mins = Math.floor(diff / 60000);
@@ -158,6 +147,14 @@ type CompanyStats = {
   totalHoursLogged: number;
 };
 
+type IntelData = {
+  weeklyHours: number[];
+  weeklyIncidents: number[];
+  dayLabels: string[];
+  personnel: { onDuty: number; offDuty: number; onLeave: number; total: number };
+  activity: { patrols: number; training: number; shifts: number };
+};
+
 export default function FeedPage() {
   const { user, activeCompanyId } = useAuthStore();
   const [active, setActive] = useState<Timesheet | null>(null);
@@ -166,6 +163,7 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [companyStats, setCompanyStats] = useState<CompanyStats | null>(null);
+  const [intel, setIntel] = useState<IntelData | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
 
@@ -179,14 +177,16 @@ export default function FeedPage() {
       setRecentShifts(history.filter((t: Timesheet) => t.clock_out));
 
       if (activeCompanyId && activeCompanyId !== "pending") {
-        const [p, m, cs] = await Promise.all([
+        const [p, m, cs, id] = await Promise.all([
           getPosts(activeCompanyId, 5),
           getDashboardMetrics(activeCompanyId),
           getCompanyStats(activeCompanyId),
+          getIntelData(activeCompanyId),
         ]);
         setPosts(p);
         setMetrics(m);
         setCompanyStats(cs);
+        setIntel(id);
       }
     } catch {
       // DB may not be ready
@@ -314,7 +314,7 @@ export default function FeedPage() {
                 { label: "Patrols Today", value: metrics.todayPatrols, icon: Footprints, color: "text-emerald-500", bg: "bg-emerald-500/10", href: "/patrols" },
                 { label: "Pending Reports", value: metrics.pendingReports, icon: FileText, color: metrics.pendingReports > 0 ? "text-amber-500" : "text-muted-foreground", bg: metrics.pendingReports > 0 ? "bg-amber-500/10" : "bg-muted", href: "/forms" },
                 { label: "Open Shifts", value: metrics.upcomingShifts, icon: CalendarDays, color: "text-blue-500", bg: "bg-blue-500/10", href: "/schedule" },
-                { label: "Total Staff", value: metrics.totalStaff, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", href: "/directory" },
+                { label: "Total Staff", value: metrics.totalStaff, icon: Users, color: "text-primary", bg: "bg-primary/10", href: "/directory" },
               ].map((kpi) => (
                 <Link key={kpi.label} href={kpi.href}>
                   <Card className="group cursor-pointer border-border/40 transition-all hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5">
@@ -361,30 +361,19 @@ export default function FeedPage() {
         </div>
 
         {/* Intel Center */}
-        {companyStats && (() => {
+        {companyStats && intel && (() => {
           const mc = companyStats.memberCount;
           const ec = companyStats.eventCount;
           const ac = companyStats.assetCount;
           const fc = companyStats.formCount;
           const hrs = companyStats.totalHoursLogged;
-          const complianceRate = mc > 0 ? Math.min(100, Math.round(70 + (hrs / (mc * 2)) * 10)) : 0;
-          const weeklyHrs = Array.from({ length: 7 }, (_, i) => {
-            const base = hrs > 0 ? hrs / 7 : 0;
-            const variation = [1.1, 1.2, 1.0, 1.15, 0.95, 0.4, 0.2];
-            return Math.round(base * variation[i] * 10) / 10;
-          });
-          const weeklyInc = Array.from({ length: 7 }, (_, i) => {
-            const base = ec > 0 ? ec / 14 : 0;
-            const variation = [0.8, 1.1, 1.3, 1.0, 1.2, 0.6, 0.3];
-            return Math.round(base * variation[i]);
-          });
           const intelKpis = [
-            { label: "Personnel", value: mc, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", trend: "+2", up: true },
-            { label: "Operations", value: ec, icon: MapPin, color: "text-violet-500", bg: "bg-violet-500/10", trend: ec > 5 ? "+3" : "0", up: ec > 5 },
-            { label: "Assets", value: ac, icon: Shield, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "+1", up: true },
-            { label: "Forms", value: fc, icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10", trend: fc > 3 ? "-1" : "0", up: false },
-            { label: "Hours", value: hrs, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", trend: "+8.5h", up: true },
-            { label: "Compliance", value: `${complianceRate}%`, icon: CheckCircle2, color: complianceRate >= 80 ? "text-green-500" : "text-amber-500", bg: complianceRate >= 80 ? "bg-green-500/10" : "bg-amber-500/10", trend: complianceRate >= 80 ? "+5%" : "-2%", up: complianceRate >= 80 },
+            { label: "Personnel", value: mc, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+            { label: "Operations", value: ec, icon: MapPin, color: "text-violet-500", bg: "bg-violet-500/10" },
+            { label: "Assets", value: ac, icon: Shield, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+            { label: "Forms", value: fc, icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10" },
+            { label: "Hours", value: hrs, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
+            { label: "On Duty", value: intel.personnel.onDuty, icon: CheckCircle2, color: intel.personnel.onDuty > 0 ? "text-green-500" : "text-muted-foreground", bg: intel.personnel.onDuty > 0 ? "bg-green-500/10" : "bg-muted" },
           ];
           const compositionSegs = [
             { value: mc, color: "#3b82f6", label: "Personnel" },
@@ -392,10 +381,11 @@ export default function FeedPage() {
             { value: fc, color: "#f43f5e", label: "Forms" },
             { value: ec, color: "#8b5cf6", label: "Operations" },
           ];
+          const p = intel.personnel;
           const statusBkdn = [
-            { label: "On Duty", count: Math.ceil(mc * 0.6), color: "bg-green-500", pct: 60 },
-            { label: "Off Duty", count: Math.floor(mc * 0.3), color: "bg-slate-400", pct: 30 },
-            { label: "On Leave", count: Math.max(0, mc - Math.ceil(mc * 0.6) - Math.floor(mc * 0.3)), color: "bg-amber-500", pct: 10 },
+            { label: "On Duty", count: p.onDuty, color: "bg-green-500", pct: p.total > 0 ? Math.round((p.onDuty / p.total) * 100) : 0 },
+            { label: "Off Duty", count: p.offDuty, color: "bg-slate-400", pct: p.total > 0 ? Math.round((p.offDuty / p.total) * 100) : 0 },
+            { label: "On Leave", count: p.onLeave, color: "bg-amber-500", pct: p.total > 0 ? Math.round((p.onLeave / p.total) * 100) : 0 },
           ];
           return (
             <div>
@@ -416,10 +406,6 @@ export default function FeedPage() {
                         <div className={`flex h-6 w-6 items-center justify-center rounded-md ${kpi.bg}`}>
                           <kpi.icon className={`h-3 w-3 ${kpi.color}`} />
                         </div>
-                        <span className={`flex items-center gap-0.5 text-[9px] font-medium ${kpi.up ? "text-green-500" : "text-red-400"}`}>
-                          {kpi.up ? <TrendingUp className="h-2 w-2" /> : <TrendingDown className="h-2 w-2" />}
-                          {kpi.trend}
-                        </span>
                       </div>
                       <p className={`text-lg font-bold font-mono ${kpi.color}`}>{kpi.value}</p>
                       <p className="text-[8px] text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
@@ -435,9 +421,9 @@ export default function FeedPage() {
                       <h3 className="text-xs font-semibold flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-amber-500" /> Weekly Hours</h3>
                       <span className="text-[10px] text-muted-foreground">{hrs}h total</span>
                     </div>
-                    <MiniBarChart data={weeklyHrs} color="#f59e0b" />
+                    <MiniBarChart data={intel.weeklyHours} color="#f59e0b" />
                     <div className="flex justify-between mt-1">
-                      {WEEKDAY_LABELS.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
+                      {intel.dayLabels.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
                     </div>
                   </CardContent>
                 </Card>
@@ -465,18 +451,18 @@ export default function FeedPage() {
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-xs font-semibold flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-red-500" /> Incidents</h3>
-                      <span className="text-[10px] text-muted-foreground">{ec} ops</span>
+                      <span className="text-[10px] text-muted-foreground">{ec} total</span>
                     </div>
-                    <MiniBarChart data={weeklyInc} color="#ef4444" />
+                    <MiniBarChart data={intel.weeklyIncidents} color="#ef4444" />
                     <div className="flex justify-between mt-1">
-                      {WEEKDAY_LABELS.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
+                      {intel.dayLabels.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
                     </div>
                   </CardContent>
                 </Card>
                 <Card className="border-border/40">
                   <CardContent className="p-3">
                     <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-blue-500" /> Personnel Status</h3>
-                    {mc > 0 ? (
+                    {p.total > 0 ? (
                       <div className="space-y-2">
                         <div className="flex h-2.5 rounded-full overflow-hidden">
                           {statusBkdn.map((s) => (
@@ -494,7 +480,7 @@ export default function FeedPage() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[10px] text-muted-foreground text-center py-3">No data yet</p>
+                      <p className="text-[10px] text-muted-foreground text-center py-3">No personnel data</p>
                     )}
                   </CardContent>
                 </Card>
@@ -503,10 +489,10 @@ export default function FeedPage() {
                     <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-rose-500" /> Activity Summary</h3>
                     <div className="space-y-2">
                       {[
-                        { label: "Patrols", value: Math.round(ec * 0.7), icon: Footprints, color: "text-emerald-500" },
-                        { label: "Training", value: Math.max(0, Math.round(mc * 1.5)), icon: GraduationCap, color: "text-violet-500" },
-                        { label: "Reports", value: fc, icon: FileText, color: "text-rose-500" },
-                        { label: "Shifts", value: Math.round(mc * 5.2), icon: Calendar, color: "text-blue-500" },
+                        { label: "Patrols Today", value: intel.activity.patrols, icon: Footprints, color: "text-emerald-500" },
+                        { label: "Training Done", value: intel.activity.training, icon: GraduationCap, color: "text-violet-500" },
+                        { label: "Reports Filed", value: fc, icon: FileText, color: "text-rose-500" },
+                        { label: "Shifts (7d)", value: intel.activity.shifts, icon: Calendar, color: "text-blue-500" },
                       ].map((item) => (
                         <div key={item.label} className="flex items-center justify-between text-[10px]">
                           <div className="flex items-center gap-1">
