@@ -189,8 +189,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Organization card */}
-        {joinCode && (
+        {/* Organization card — leadership only */}
+        {joinCode && ["owner", "admin", "manager"].includes(activeCompany?.role ?? "") && (
           <Card className="border-border/40">
             <CardContent className="space-y-4 pt-6 pb-6">
               <div className="flex items-center gap-2">
