@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Radio, Plus, Send, Loader2, Trash2, Search, ExternalLink,
   Reply, X, Hash, Settings, MessageSquare, Phone, Shield,
+  Smile, Paperclip, Save,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,14 +13,18 @@ import { ChatSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getChatChannels, createChatChannel, getChatMessages,
-  sendChatMessage, deleteChatChannel,
+  sendChatMessage, deleteChatChannel, toggleReaction,
+  updateLastRead, getUnreadCounts, getWaConfig, saveWaConfig,
 } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Channel = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Message = any;
 type Tab = "channels" | "external" | "whatsapp";
+
+const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "✅"];
 
 /* ── helpers ────────────────────────────────────── */
 
@@ -40,11 +45,6 @@ function parseExt(desc: string | null): ExtMeta | null {
   if (!desc) return null;
   try { const m = JSON.parse(desc); if (m?.external && m?.url) return m; } catch {}
   return null;
-}
-
-function parseReply(content: string) {
-  const m = content.match(/^<<reply:([^:]*):(.{0,80})>>\n([\s\S]*)$/);
-  return m ? { author: m[1], snippet: m[2], body: m[3] } : null;
 }
 
 const PLAT: Record<string, { color: string; bg: string; label: string }> = {
@@ -77,45 +77,101 @@ export default function ChatPage() {
   const [extUrl, setExtUrl] = useState("");
   const [creatingExt, setCreatingExt] = useState(false);
   const [waConfig, setWaConfig] = useState({ wabaId: "", phoneNumberId: "", accessToken: "", businessPhone: "" });
+  const [waSaving, setWaSaving] = useState(false);
+  const [waLoaded, setWaLoaded] = useState(false);
+  const [unread, setUnread] = useState<Record<string, number>>({});
+  const [emojiPicker, setEmojiPicker] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const realtimeRef = useRef<ReturnType<typeof createClient> | null>(null);
 
   const internal = channels.filter((c: Channel) => !parseExt(c.description));
   const external = channels.filter((c: Channel) => parseExt(c.description)).map((c: Channel) => ({ ...c, meta: parseExt(c.description)! }));
 
   const loadChannels = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
-    try { setChannels(await getChatChannels(activeCompanyId)); } catch {} finally { setLoading(false); }
+    try {
+      setChannels(await getChatChannels(activeCompanyId));
+      try { setUnread(await getUnreadCounts(activeCompanyId)); } catch {}
+    } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { loadChannels(); }, [loadChannels]);
 
-  async function selectCh(ch: Channel) {
-    setSelected(ch); setReplyTo(null); setSearchQ(""); setShowSearch(false);
-    try { setMessages(await getChatMessages(ch.id)); setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); }
-    catch { setMessages([]); }
-  }
+  // Load WA config when tab switches to whatsapp
+  useEffect(() => {
+    if (tab !== "whatsapp" || waLoaded || !activeCompanyId || activeCompanyId === "pending" || !isAdmin) return;
+    (async () => {
+      try {
+        const cfg = await getWaConfig(activeCompanyId);
+        if (cfg) setWaConfig({ wabaId: cfg.waba_id ?? "", phoneNumberId: cfg.phone_number_id ?? "", accessToken: cfg.access_token ?? "", businessPhone: cfg.business_phone ?? "" });
+      } catch {}
+      setWaLoaded(true);
+    })();
+  }, [tab, waLoaded, activeCompanyId, isAdmin]);
 
+  // Supabase Realtime subscription for new messages
   useEffect(() => {
     if (!selected) return;
-    const iv = setInterval(async () => { try { setMessages(await getChatMessages(selected.id)); } catch {} }, 5000);
-    return () => clearInterval(iv);
-  }, [selected]);
+    const supabase = createClient();
+    realtimeRef.current = supabase;
+    const channel = supabase.channel(`chat:${selected.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `channel_id=eq.${selected.id}` },
+        async () => {
+          try { setMessages(await getChatMessages(selected.id)); setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {}
+        })
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_reactions", filter: `message_id=in.(${messages.map(m => m.id).join(",")})` },
+        async () => {
+          try { setMessages(await getChatMessages(selected.id)); } catch {}
+        })
+      .on("broadcast", { event: "typing" }, (payload) => {
+        const name = payload?.payload?.name;
+        if (name && name !== `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim()) {
+          setTypingUsers(prev => prev.includes(name) ? prev : [...prev, name]);
+          setTimeout(() => setTypingUsers(prev => prev.filter(n => n !== name)), 3000);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
+
+  async function selectCh(ch: Channel) {
+    setSelected(ch); setReplyTo(null); setSearchQ(""); setShowSearch(false); setEmojiPicker(null);
+    try {
+      setMessages(await getChatMessages(ch.id));
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      updateLastRead(ch.id).then(() => setUnread(prev => { const n = { ...prev }; delete n[ch.id]; return n; })).catch(() => {});
+    } catch { setMessages([]); }
+  }
+
+  function broadcastTyping() {
+    if (!selected || !realtimeRef.current) return;
+    const name = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
+    realtimeRef.current.channel(`chat:${selected.id}`).send({ type: "broadcast", event: "typing", payload: { name } }).catch(() => {});
+    if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    typingTimeout.current = setTimeout(() => {}, 3000);
+  }
 
   async function handleSend() {
     if (!msgText.trim() || !selected) return;
     setSending(true);
     try {
-      let content = msgText.trim();
-      if (replyTo) {
-        const author = `${replyTo.users?.first_name ?? ""} ${replyTo.users?.last_name ?? ""}`.trim();
-        const snippet = (replyTo.content ?? "").replace(/^<<reply:[^>]*>>\n/, "").slice(0, 80);
-        content = `<<reply:${author}:${snippet}>>\n${content}`;
-      }
-      await sendChatMessage({ channelId: selected.id, content });
+      await sendChatMessage({ channelId: selected.id, content: msgText.trim(), replyToId: replyTo?.id });
       setMsgText(""); setReplyTo(null);
       setMessages(await getChatMessages(selected.id));
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      updateLastRead(selected.id).catch(() => {});
     } catch (err) { console.error(err); } finally { setSending(false); }
+  }
+
+  async function handleReaction(messageId: string, emoji: string) {
+    try {
+      await toggleReaction(messageId, emoji);
+      setEmojiPicker(null);
+      setMessages(await getChatMessages(selected!.id));
+    } catch (err) { console.error(err); }
   }
 
   async function handleCreate() {
@@ -140,6 +196,12 @@ export default function ChatPage() {
       await createChatChannel({ companyId: activeCompanyId, name: extName.trim(), description: desc });
       setExtName(""); setExtUrl(""); setShowAddExt(false); await loadChannels();
     } catch (err) { console.error(err); } finally { setCreatingExt(false); }
+  }
+
+  async function handleSaveWaConfig() {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    setWaSaving(true);
+    try { await saveWaConfig(activeCompanyId, waConfig); } catch (err) { console.error(err); } finally { setWaSaving(false); }
   }
 
   const filteredMsgs = showSearch && searchQ
@@ -180,6 +242,8 @@ export default function ChatPage() {
         searchQ={searchQ} setSearchQ={setSearchQ} filteredMsgs={filteredMsgs} user={user}
         replyTo={replyTo} setReplyTo={setReplyTo} msgText={msgText} setMsgText={setMsgText}
         sending={sending} handleSend={handleSend} bottomRef={bottomRef}
+        unread={unread} emojiPicker={emojiPicker} setEmojiPicker={setEmojiPicker}
+        handleReaction={handleReaction} typingUsers={typingUsers} broadcastTyping={broadcastTyping}
       />)}
 
       {/* ────────── EXTERNAL GROUPS TAB ────────── */}
@@ -191,7 +255,8 @@ export default function ChatPage() {
       />)}
 
       {/* ────────── WHATSAPP API TAB ────────── */}
-      {tab === "whatsapp" && (<WhatsAppTab isAdmin={isAdmin} waConfig={waConfig} setWaConfig={setWaConfig} />)}
+      {tab === "whatsapp" && (<WhatsAppTab isAdmin={isAdmin} waConfig={waConfig} setWaConfig={setWaConfig}
+        handleSaveWaConfig={handleSaveWaConfig} waSaving={waSaving} />)}
     </div>
   );
 }
@@ -203,8 +268,23 @@ export default function ChatPage() {
 function ChannelsTab({ loading, internal, external, selected, showCreate, setShowCreate, newName, setNewName,
   creating, handleCreate, selectCh, deletingCh, handleDeleteCh, isAdmin, showSearch, setShowSearch,
   searchQ, setSearchQ, filteredMsgs, user, replyTo, setReplyTo, msgText, setMsgText, sending, handleSend, bottomRef,
+  unread, emojiPicker, setEmojiPicker, handleReaction, typingUsers, broadcastTyping,
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }: any) {
+
+  // Group reactions by emoji for a message
+  function groupReactions(reactions: { id: string; emoji: string; user_id: string; users: { first_name: string; last_name: string } }[] | null) {
+    if (!reactions?.length) return [];
+    const map: Record<string, { emoji: string; count: number; userIds: string[]; names: string[] }> = {};
+    for (const r of reactions) {
+      if (!map[r.emoji]) map[r.emoji] = { emoji: r.emoji, count: 0, userIds: [], names: [] };
+      map[r.emoji].count++;
+      map[r.emoji].userIds.push(r.user_id);
+      map[r.emoji].names.push(`${r.users?.first_name ?? ""} ${r.users?.last_name ?? ""}`.trim());
+    }
+    return Object.values(map);
+  }
+
   return (
     <>
       {showCreate && (
@@ -237,21 +317,29 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                 <Plus className="h-3.5 w-3.5" /> New Channel
               </button>
             )}
-            {internal.map((ch: Channel) => (
-              <div key={ch.id} onClick={() => selectCh(ch)}
-                className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${selected?.id === ch.id ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15">
-                  <Hash className="h-3.5 w-3.5 text-primary" />
+            {internal.map((ch: Channel) => {
+              const unreadCount = unread[ch.id] ?? 0;
+              return (
+                <div key={ch.id} onClick={() => selectCh(ch)}
+                  className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${selected?.id === ch.id ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 relative">
+                    <Hash className="h-3.5 w-3.5 text-primary" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className={`truncate flex-1 ${unreadCount > 0 ? "font-bold" : "font-medium"}`}>{ch.name}</span>
+                  {isAdmin && (
+                    <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleDeleteCh(ch.id); }} disabled={deletingCh === ch.id}
+                      className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {deletingCh === ch.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                    </button>
+                  )}
                 </div>
-                <span className="truncate font-medium flex-1">{ch.name}</span>
-                {isAdmin && (
-                  <button onClick={(e: React.MouseEvent) => { e.stopPropagation(); handleDeleteCh(ch.id); }} disabled={deletingCh === ch.id}
-                    className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {deletingCh === ch.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
             {external.length > 0 && (
               <>
                 <div className="mt-3 mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">External Groups</div>
@@ -298,8 +386,8 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                 ) : filteredMsgs.map((msg: Message) => {
                   const author = msg.users;
                   const isMe = author?.id === user?.id;
-                  const reply = parseReply(msg.content ?? "");
-                  const displayContent = reply ? reply.body : msg.content;
+                  const replyData = msg.reply;
+                  const reactions = groupReactions(msg.chat_reactions);
                   return (
                     <div key={msg.id} className={`group flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-1">
@@ -310,31 +398,83 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                           {!isMe && <span className="text-[10px] font-semibold text-muted-foreground">{author?.first_name} {author?.last_name}</span>}
                           <span className="text-[9px] text-muted-foreground/50">{timeAgo(msg.created_at)}</span>
                         </div>
-                        {reply && (
+                        {replyData && (
                           <div className={`rounded-lg px-2.5 py-1 mb-1 text-[10px] border-l-2 border-primary/40 max-w-full ${isMe ? "bg-primary/20" : "bg-muted/70"}`}>
-                            <span className="font-semibold">{reply.author}</span>
-                            <p className="truncate text-muted-foreground">{reply.snippet}</p>
+                            <span className="font-semibold">{replyData.users?.first_name} {replyData.users?.last_name}</span>
+                            <p className="truncate text-muted-foreground">{(replyData.content ?? "").slice(0, 80)}</p>
+                          </div>
+                        )}
+                        {msg.file_url && (
+                          <div className="mb-1">
+                            {/\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file_url) ? (
+                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
+                                <img src={msg.file_url} alt="attachment" className="max-w-[200px] max-h-[200px] rounded-lg object-cover border border-border/50" />
+                              </a>
+                            ) : (
+                              <a href={msg.file_url} target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs text-primary hover:underline">
+                                <Paperclip className="h-3 w-3" /> Attachment
+                              </a>
+                            )}
                           </div>
                         )}
                         <div className={`rounded-xl px-3 py-2 text-sm ${isMe ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                          <p className="whitespace-pre-wrap break-words">{displayContent}</p>
+                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                         </div>
-                        <button onClick={() => setReplyTo(msg)}
-                          className="mt-0.5 flex items-center gap-1 text-[9px] text-muted-foreground/40 hover:text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Reply className="h-3 w-3" /> Reply
-                        </button>
+                        {/* Reactions display */}
+                        {reactions.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {reactions.map(r => (
+                              <button key={r.emoji} onClick={() => handleReaction(msg.id, r.emoji)}
+                                title={r.names.join(", ")}
+                                className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] border transition-colors ${r.userIds.includes(user?.id) ? "border-primary/40 bg-primary/10" : "border-border/40 bg-muted/30 hover:bg-muted/50"}`}>
+                                <span>{r.emoji}</span>
+                                <span className="font-medium">{r.count}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {/* Action bar */}
+                        <div className="flex items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => setReplyTo(msg)}
+                            className="flex items-center gap-1 text-[9px] text-muted-foreground/40 hover:text-muted-foreground rounded px-1 py-0.5 hover:bg-accent">
+                            <Reply className="h-3 w-3" /> Reply
+                          </button>
+                          <div className="relative">
+                            <button onClick={() => setEmojiPicker(emojiPicker === msg.id ? null : msg.id)}
+                              className="flex items-center gap-1 text-[9px] text-muted-foreground/40 hover:text-muted-foreground rounded px-1 py-0.5 hover:bg-accent">
+                              <Smile className="h-3 w-3" /> React
+                            </button>
+                            {emojiPicker === msg.id && (
+                              <div className={`absolute z-10 top-full mt-1 flex gap-0.5 rounded-lg border border-border bg-popover p-1 shadow-lg ${isMe ? "right-0" : "left-0"}`}>
+                                {QUICK_EMOJIS.map(e => (
+                                  <button key={e} onClick={() => handleReaction(msg.id, e)}
+                                    className="rounded px-1.5 py-1 text-sm hover:bg-accent transition-colors">{e}</button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
                 <div ref={bottomRef} />
               </div>
+              {/* Typing indicator */}
+              {typingUsers.length > 0 && (
+                <div className="px-4 py-1 border-t border-border/30">
+                  <p className="text-[10px] text-muted-foreground animate-pulse">
+                    {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing...
+                  </p>
+                </div>
+              )}
               {replyTo && (
                 <div className="flex items-center gap-2 border-t border-border/50 bg-muted/30 px-4 py-2">
                   <Reply className="h-3.5 w-3.5 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] font-semibold">{replyTo.users?.first_name} {replyTo.users?.last_name}</span>
-                    <p className="text-[10px] text-muted-foreground truncate">{(replyTo.content ?? "").replace(/^<<reply:[^>]*>>\n/, "").slice(0, 80)}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{(replyTo.content ?? "").slice(0, 80)}</p>
                   </div>
                   <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground shrink-0"><X className="h-3.5 w-3.5" /></button>
                 </div>
@@ -342,7 +482,7 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
               <div className="border-t border-border/50 p-3">
                 <div className="flex gap-2">
                   <Input placeholder={replyTo ? "Type your reply..." : "Type a message..."} value={msgText}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMsgText(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setMsgText(e.target.value); broadcastTyping(); }}
                     onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                     className="flex-1" />
                   <Button size="sm" onClick={handleSend} disabled={!msgText.trim() || sending}>
@@ -442,7 +582,7 @@ function ExternalTab({ isAdmin, external, showAddExt, setShowAddExt, extName, se
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function WhatsAppTab({ isAdmin, waConfig, setWaConfig }: any) {
+function WhatsAppTab({ isAdmin, waConfig, setWaConfig, handleSaveWaConfig, waSaving }: any) {
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
@@ -493,10 +633,13 @@ function WhatsAppTab({ isAdmin, waConfig, setWaConfig }: any) {
               </div>
             </div>
             <div className="flex items-center gap-3 pt-2">
-              <Button size="sm" disabled className="gap-1.5">
+              <Button size="sm" onClick={handleSaveWaConfig} disabled={waSaving} className="gap-1.5">
+                {waSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save Config
+              </Button>
+              <Button size="sm" disabled className="gap-1.5" variant="outline">
                 <Phone className="h-3.5 w-3.5" /> Connect WhatsApp
               </Button>
-              <span className="text-[10px] text-muted-foreground">Requires Supabase Edge Functions &mdash; coming soon</span>
+              <span className="text-[10px] text-muted-foreground">Connect requires Supabase Edge Functions &mdash; coming soon</span>
             </div>
           </form>
 

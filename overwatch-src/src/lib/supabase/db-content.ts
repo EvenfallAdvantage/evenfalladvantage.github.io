@@ -277,7 +277,7 @@ export async function getChatMessages(channelId: string, limit = 50) {
   const supabase = createClient();
   const { data } = await supabase
     .from("chat_messages")
-    .select("*, users(id, first_name, last_name, avatar_url)")
+    .select("*, users(id, first_name, last_name, avatar_url), reply:chat_messages!reply_to_id(id, content, users(first_name, last_name)), chat_reactions(id, emoji, user_id, users(first_name, last_name))")
     .eq("channel_id", channelId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -287,10 +287,17 @@ export async function getChatMessages(channelId: string, limit = 50) {
 export async function sendChatMessage(params: {
   channelId: string;
   content: string;
+  replyToId?: string;
+  fileUrl?: string;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
   const supabase = createClient();
+  // Ensure user is a member of this channel
+  await supabase.from("chat_members").upsert(
+    { id: crypto.randomUUID(), channel_id: params.channelId, user_id: userId, role: "member", joined_at: new Date().toISOString() },
+    { onConflict: "channel_id,user_id" }
+  );
   const { data, error } = await supabase
     .from("chat_messages")
     .insert({
@@ -298,6 +305,8 @@ export async function sendChatMessage(params: {
       channel_id: params.channelId,
       user_id: userId,
       content: params.content,
+      reply_to_id: params.replyToId ?? null,
+      file_url: params.fileUrl ?? null,
       created_at: new Date().toISOString(),
     })
     .select("*, users(id, first_name, last_name, avatar_url)")
@@ -310,6 +319,114 @@ export async function deleteChatChannel(channelId: string) {
   const supabase = createClient();
   const { error } = await supabase.from("chat_channels").delete().eq("id", channelId);
   if (error) throw error;
+}
+
+// ─── Chat Reactions ─────────────────────────────────────
+
+export async function toggleReaction(messageId: string, emoji: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  // Check if reaction already exists
+  const { data: existing } = await supabase
+    .from("chat_reactions")
+    .select("id")
+    .eq("message_id", messageId)
+    .eq("user_id", userId)
+    .eq("emoji", emoji)
+    .maybeSingle();
+  if (existing) {
+    await supabase.from("chat_reactions").delete().eq("id", existing.id);
+    return { action: "removed" as const };
+  } else {
+    await supabase.from("chat_reactions").insert({
+      id: crypto.randomUUID(),
+      message_id: messageId,
+      user_id: userId,
+      emoji,
+    });
+    return { action: "added" as const };
+  }
+}
+
+// ─── Read Receipts ──────────────────────────────────────
+
+export async function updateLastRead(channelId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) return;
+  const supabase = createClient();
+  await supabase.from("chat_members").upsert(
+    { id: crypto.randomUUID(), channel_id: channelId, user_id: userId, last_read_at: new Date().toISOString(), role: "member", joined_at: new Date().toISOString() },
+    { onConflict: "channel_id,user_id" }
+  );
+}
+
+export async function getUnreadCounts(companyId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) return {};
+  const supabase = createClient();
+  // Get all channels for the company
+  const { data: channels } = await supabase
+    .from("chat_channels")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("is_archived", false);
+  if (!channels?.length) return {};
+  const counts: Record<string, number> = {};
+  for (const ch of channels) {
+    // Get member's last_read_at
+    const { data: member } = await supabase
+      .from("chat_members")
+      .select("last_read_at")
+      .eq("channel_id", ch.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    const lastRead = member?.last_read_at;
+    let query = supabase
+      .from("chat_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("channel_id", ch.id)
+      .neq("user_id", userId);
+    if (lastRead) query = query.gt("created_at", lastRead);
+    const { count } = await query;
+    if (count && count > 0) counts[ch.id] = count;
+  }
+  return counts;
+}
+
+// ─── WhatsApp Business API Config ───────────────────────
+
+export async function getWaConfig(companyId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("wa_config")
+    .select("*")
+    .eq("company_id", companyId)
+    .maybeSingle();
+  return data;
+}
+
+export async function saveWaConfig(companyId: string, config: {
+  wabaId: string;
+  phoneNumberId: string;
+  accessToken: string;
+  businessPhone: string;
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("wa_config")
+    .upsert({
+      company_id: companyId,
+      waba_id: config.wabaId,
+      phone_number_id: config.phoneNumberId,
+      access_token: config.accessToken,
+      business_phone: config.businessPhone,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "company_id" })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 // ─── Notifications ──────────────────────────────────
