@@ -1118,36 +1118,33 @@ export async function joinCompanyByCode(params: {
   lastName: string;
   joinCode: string;
 }) {
-  // 1. Find company
-  const company = await findCompanyByJoinCode(params.joinCode);
-  if (!company) throw new Error("Invalid company code");
-
-  // 2. Find or create user — check existing first to avoid unnecessary updates
   const supabase = createClient();
-  const { data: existingUser } = await supabase
-    .from("users")
-    .select("*")
-    .eq("supabase_id", params.supabaseId)
-    .maybeSingle();
 
-  const user = existingUser ?? await upsertUser({
-    supabaseId: params.supabaseId,
-    email: params.email,
-    phone: params.phone,
-    firstName: params.firstName,
-    lastName: params.lastName,
+  // Use RPC function (SECURITY DEFINER) to bypass RLS
+  const { data, error } = await supabase.rpc("join_company_by_code", {
+    p_join_code: params.joinCode,
+    p_supabase_id: params.supabaseId,
+    p_email: params.email ?? null,
+    p_phone: params.phone ?? null,
+    p_first_name: params.firstName ?? "",
+    p_last_name: params.lastName ?? "",
   });
 
-  if (!user) throw new Error("Failed to resolve user account");
+  if (error) {
+    // Map Postgres exception to user-friendly message
+    if (error.message?.includes("Invalid company code")) {
+      throw new Error("Invalid company code");
+    }
+    throw new Error(error.message || "Failed to join company");
+  }
 
-  // 3. Create membership as staff
-  const membership = await createMembership({
-    userId: user.id,
-    companyId: company.id,
-    role: "staff",
-  });
+  if (!data) throw new Error("Failed to join company");
 
-  return { user, company, membership };
+  return {
+    user: data.user,
+    company: data.company,
+    membership: data.membership,
+  };
 }
 
 // ─── Schedule (Shifts + Events for user) ─────────────
