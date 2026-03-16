@@ -40,30 +40,30 @@ const INTEGRATIONS = [
   { provider: "signal", label: "Signal", logo: "/images/integrations/signal.png", desc: "Secure encrypted messaging for sensitive operations and executive protection", fields: [
     { key: "signal_group_link", label: "Signal Group Invite Link", type: "text", placeholder: "https://signal.group/#..." },
   ]},
-  { provider: "twilio", label: "Twilio", logo: null, icon: "Phone", desc: "SMS dispatch alerts, shift reminders, emergency notifications, and OTP verification", fields: [
+  { provider: "twilio", label: "Twilio", logo: "/images/integrations/twilio.jpeg", desc: "SMS dispatch alerts, shift reminders, emergency notifications, and OTP verification", fields: [
     { key: "account_sid", label: "Account SID", type: "text", placeholder: "AC..." },
     { key: "auth_token", label: "Auth Token", type: "password", placeholder: "your_auth_token" },
     { key: "from_number", label: "From Number", type: "text", placeholder: "+15551234567" },
     { key: "messaging_service_sid", label: "Messaging Service SID (optional)", type: "text", placeholder: "MG..." },
   ]},
-  { provider: "checkr", label: "Checkr", logo: null, icon: "ShieldCheck", desc: "Automated background checks triggered from the applicant pipeline on hire", fields: [
+  { provider: "checkr", label: "Checkr", logo: "/images/integrations/checkr.jpeg", desc: "Automated background checks triggered from the applicant pipeline on hire", fields: [
     { key: "api_key", label: "API Key", type: "password", placeholder: "checkr_..." },
     { key: "package_slug", label: "Default Package", type: "select", options: ["tasker_standard", "tasker_plus", "driver_standard", "driver_plus", "basic_criminal", "essential_criminal"] },
     { key: "webhook_url", label: "Webhook URL (auto-generated)", type: "text", placeholder: "Set after first save" },
   ]},
-  { provider: "gusto", label: "Gusto", logo: null, icon: "DollarSign", desc: "Sync timesheets to payroll runs, manage tax filing and direct deposits", fields: [
+  { provider: "gusto", label: "Gusto", logo: "/images/integrations/gusto.jpeg", desc: "Sync timesheets to payroll runs, manage tax filing and direct deposits", fields: [
     { key: "client_id", label: "OAuth Client ID", type: "text", placeholder: "your_client_id" },
     { key: "client_secret", label: "OAuth Client Secret", type: "password", placeholder: "your_client_secret" },
     { key: "company_uuid", label: "Gusto Company UUID", type: "text", placeholder: "uuid-from-gusto" },
     { key: "sync_frequency", label: "Sync Frequency", type: "select", options: ["manual", "daily", "weekly", "per_pay_period"] },
   ]},
-  { provider: "docusign", label: "DocuSign", logo: null, icon: "PenTool", desc: "E-signatures for employment agreements, NDAs, and policy acknowledgments during onboarding", fields: [
+  { provider: "docusign", label: "DocuSign", logo: "/images/integrations/docusign.jpeg", desc: "E-signatures for employment agreements, NDAs, and policy acknowledgments during onboarding", fields: [
     { key: "integration_key", label: "Integration Key", type: "text", placeholder: "your_integration_key" },
     { key: "secret_key", label: "Secret Key", type: "password", placeholder: "your_secret_key" },
     { key: "account_id", label: "Account ID", type: "text", placeholder: "your_account_id" },
     { key: "base_url", label: "Base URL", type: "select", options: ["https://demo.docusign.net", "https://app.docusign.com"] },
   ]},
-  { provider: "onesignal", label: "OneSignal", logo: null, icon: "Bell", desc: "Push notifications for shift alerts, incident updates, and company announcements", fields: [
+  { provider: "onesignal", label: "OneSignal", logo: "/images/integrations/onesignal.jpeg", desc: "Push notifications for shift alerts, incident updates, and company announcements", fields: [
     { key: "app_id", label: "App ID", type: "text", placeholder: "your_onesignal_app_id" },
     { key: "rest_api_key", label: "REST API Key", type: "password", placeholder: "your_rest_api_key" },
   ]},

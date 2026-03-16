@@ -9,30 +9,35 @@ import {
   BarChart3, Users, Clock, Video, BookOpen,
   ChevronRight, Zap, Lock, Globe,
   X, Phone, Mail, ArrowRight, Loader2, FileCheck,
+  UserPlus, Plug, Search, Smartphone,
 } from "lucide-react";
 import { TOSModal } from "@/components/terms-of-service";
 import { createClient } from "@/lib/supabase/client";
 import { checkPasswordStrength } from "@/lib/security";
 
 const FEATURES = [
-  { icon: Radio, title: "Live Comms", desc: "Encrypted team channels with real-time messaging" },
-  { icon: GraduationCap, title: "LMS Training", desc: "Slideshow courses, quizzes, and certification tracking" },
-  { icon: Shield, title: "Site Assessment", desc: "7-section security evaluations with PDF risk reports" },
-  { icon: MapPin, title: "Geo-Risk Intel", desc: "FBI UCR crime data for any US location with risk scoring" },
-  { icon: FileText, title: "Invoice Generator", desc: "Professional invoices with line items and PDF export" },
-  { icon: Clock, title: "Time Clock", desc: "GPS-verified clock in/out with patrol route logging" },
-  { icon: Video, title: "Instructor Room", desc: "Live video training sessions with Daily.co integration" },
-  { icon: BookOpen, title: "Course Catalog", desc: "Stripe-powered course enrollment with certificates" },
-  { icon: Users, title: "Workforce Mgmt", desc: "Roster, scheduling, leave requests, and shift management" },
-  { icon: BarChart3, title: "Incident Reports", desc: "Field reports with custom forms and analytics" },
-  { icon: Globe, title: "State Laws DB", desc: "All 50 states — licensing, training, and use-of-force laws" },
-  { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with emotional tension meters" },
+  { icon: Radio, title: "Live Comms", desc: "Encrypted team channels, WhatsApp & Signal integration, reactions, read receipts, and real-time messaging" },
+  { icon: UserPlus, title: "Onboarding Pipeline", desc: "Public application form, applicant tracking with status stages, onboarding checklists, and auto-hire workflows" },
+  { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out, patrol route logging, timesheet exports, and payroll sync via Gusto" },
+  { icon: GraduationCap, title: "Academy LMS", desc: "Slideshow courses, quizzes, certification tracking, de-escalation sims, and legacy system bridge" },
+  { icon: Shield, title: "Site Assessment", desc: "7-section security evaluations with risk matrix scoring, auto-recommendations, and multi-page PDF reports" },
+  { icon: MapPin, title: "Geo-Risk Intel", desc: "FBI UCR crime data for any US location with composite risk scoring and threat analysis" },
+  { icon: Plug, title: "Integrations Hub", desc: "10+ connectors: Twilio SMS, Checkr background checks, DocuSign e-sign, Gusto payroll, OneSignal push, and more" },
+  { icon: FileText, title: "Invoice Generator", desc: "Professional invoices with line items, live preview, PDF export, and localStorage persistence" },
+  { icon: Users, title: "Personnel Command", desc: "Roster, scheduling, leave management, applicant pipeline, onboarding admin, and role-based access control" },
+  { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, incident reports, personnel stats, weekly trends, org composition, and custom forms" },
+  { icon: Video, title: "Instructor Room", desc: "Live video training with Daily.co, class scheduling, attendance tracking, and certificate generation" },
+  { icon: Globe, title: "State Laws DB", desc: "All 50 states — guard licensing, training hours, use-of-force laws, weapons regs, and agency contacts" },
+  { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with emotional tension meters and performance scoring" },
+  { icon: Search, title: "Command Palette", desc: "Ctrl+K instant search across 30+ pages, keyboard navigation, and grouped results by section" },
+  { icon: BookOpen, title: "Knowledge Base", desc: "Field manuals, SOPs, company policies, and searchable documentation for your entire operation" },
+  { icon: Smartphone, title: "Mobile PWA", desc: "Installable progressive web app with offline caching, push notifications, and thumb-optimized mobile nav" },
 ];
 
 const STATS = [
-  { value: "12+", label: "Operations Tools" },
+  { value: "16+", label: "Operations Modules" },
   { value: "50", label: "States Covered" },
-  { value: "256-bit", label: "AES Encryption" },
+  { value: "10+", label: "Integrations" },
   { value: "24/7", label: "Operational Uptime" },
 ];
 
@@ -282,6 +287,11 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
 const INTEGRATIONS_LOGOS = [
   { name: "WhatsApp", src: "/images/integrations/whatsapp.png", alt: "WhatsApp Business" },
   { name: "Signal", src: "/images/integrations/signal.png", alt: "Signal" },
+  { name: "Twilio", src: "/images/integrations/twilio.jpeg", alt: "Twilio" },
+  { name: "Checkr", src: "/images/integrations/checkr.jpeg", alt: "Checkr" },
+  { name: "Gusto", src: "/images/integrations/gusto.jpeg", alt: "Gusto" },
+  { name: "DocuSign", src: "/images/integrations/docusign.jpeg", alt: "DocuSign" },
+  { name: "OneSignal", src: "/images/integrations/onesignal.jpeg", alt: "OneSignal" },
   { name: "Airtable", src: "/images/integrations/airtable.jpeg", alt: "Airtable" },
   { name: "Fillout", src: "/images/integrations/fillout.png", alt: "Fillout" },
   { name: "Stripe", src: "/images/integrations/stripe.jpeg", alt: "Stripe" },
@@ -360,9 +370,9 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight mb-4">FULL-SPECTRUM OPERATIONS</h2>
-            <p className="text-white/40 max-w-xl mx-auto">Everything your security operation needs — from onboarding to field deployment — in one platform.</p>
+            <p className="text-white/40 max-w-xl mx-auto">Everything your security operation needs — from applicant intake to field deployment — in one platform.</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => (
               <div key={f.title} className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 hover:border-[#dd8c33]/20 hover:bg-[#dd8c33]/5 transition-all">
                 <f.icon className="h-8 w-8 text-[#dd8c33]/80 mb-4" />
@@ -381,7 +391,7 @@ export default function HomePage() {
             <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">INTEGRATES WITH YOUR STACK</h2>
             <p className="text-white/40 max-w-lg mx-auto text-sm">Connect Overwatch with the tools your team already uses — or go fully native.</p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12">
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10">
             {INTEGRATIONS_LOGOS.map((int) => (
               <div key={int.name} className="flex flex-col items-center gap-2 group">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all p-2.5">
