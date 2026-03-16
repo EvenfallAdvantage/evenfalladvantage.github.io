@@ -9,12 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Pencil, Check, X, Settings, FileText, Activity, FolderOpen, Loader2, Clock,
-  Lock, Shield, AlertTriangle, CheckCircle2, ListChecks, Camera,
+  Pencil, Check, X, FileText, Activity, FolderOpen, Loader2, Clock,
+  Lock, Shield, AlertTriangle, CheckCircle2, ListChecks, Camera, Copy, KeyRound,
 } from "lucide-react";
-import Link from "next/link";
 import {
-  updateUserProfile, uploadAvatar, getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts,
+  updateUserProfile, uploadAvatar, getCompanyDetails, getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts,
   getMemberProfile, updateMemberProfile, getMyOnboardingProgress, toggleOnboardingTask, completeOnboarding,
 } from "@/lib/supabase/db";
 
@@ -55,6 +54,9 @@ export default function ProfilePage() {
   // Onboarding
   const [onboardingProgress, setOnboardingProgress] = useState<OProgress[]>([]);
   const [togglingTask, setTogglingTask] = useState<string | null>(null);
+  const [joinCode, setJoinCode] = useState("");
+  const [copied, setCopied] = useState(false);
+  const isLeadership = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
 
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
@@ -76,6 +78,23 @@ export default function ProfilePage() {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  }
+
+  // Load company join code (leadership only)
+  useEffect(() => {
+    if (!activeCompanyId || activeCompanyId === "pending" || !isLeadership) return;
+    (async () => {
+      try {
+        const company = await getCompanyDetails(activeCompanyId);
+        setJoinCode(company?.join_code ?? "");
+      } catch {}
+    })();
+  }, [activeCompanyId, isLeadership]);
+
+  function copyCode() {
+    navigator.clipboard.writeText(joinCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   // Load member profile + onboarding progress
@@ -231,12 +250,6 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          <Link href="/settings">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Settings className="h-3.5 w-3.5" />
-              Settings
-            </Button>
-          </Link>
         </div>
 
         {/* Profile Completeness */}
@@ -307,6 +320,28 @@ export default function ProfilePage() {
                   <CheckCircle2 className="h-4 w-4" /> Complete Onboarding
                 </Button>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Team Join Code — leadership only */}
+        {joinCode && isLeadership && (
+          <Card className="border-border/40">
+            <CardContent className="space-y-4 pt-6 pb-6">
+              <div className="flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-amber-500" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Team Join Code</span>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 px-5 py-4">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Share this code to invite team members</p>
+                  <p className="text-2xl font-mono font-bold tracking-[0.3em] text-amber-500">{joinCode}</p>
+                </div>
+                <Button size="sm" variant="outline" className="gap-1.5 shrink-0" onClick={copyCode}>
+                  {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? "Copied!" : "Copy"}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
