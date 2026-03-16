@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2,
   ChevronDown, CalendarOff, ClipboardList, CheckCircle2, XCircle,
+  UserPlus, ListChecks, Plus, ArrowRight, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,8 @@ import {
   getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet,
   updateMemberRole, removeMember, getAllTimeOffRequests, reviewTimeOffRequest,
   getAllFormSubmissions, reviewFormSubmission,
+  getApplicants, createApplicant, updateApplicantStatus, deleteApplicant, convertApplicantToUser,
+  getOnboardingTasks, createOnboardingTask, deleteOnboardingTask,
 } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 
@@ -24,8 +27,12 @@ type Sheet = any;
 type LeaveReq = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FormSub = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Applicant = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type OTask = any;
 
-type Tab = "roster" | "timesheets" | "leave" | "forms";
+type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding";
 
 export default function AdminStaffPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -47,6 +54,18 @@ export default function AdminStaffPage() {
   const [reviewNote, setReviewNote] = useState("");
   const [leaveFilter, setLeaveFilter] = useState<"pending" | "all">("pending");
   const [error, setError] = useState<string | null>(null);
+  // Applicants
+  const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [appFilter, setAppFilter] = useState("all");
+  const [showAddApp, setShowAddApp] = useState(false);
+  const [appForm, setAppForm] = useState({ firstName: "", lastName: "", email: "", phone: "", guardCardNumber: "", experience: "", availability: "" });
+  const [savingApp, setSavingApp] = useState(false);
+  const [updatingApp, setUpdatingApp] = useState<string | null>(null);
+  // Onboarding tasks
+  const [oTasks, setOTasks] = useState<OTask[]>([]);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [taskForm, setTaskForm] = useState({ title: "", description: "", category: "general", isRequired: true });
+  const [savingTask, setSavingTask] = useState(false);
 
   const myRole = user?.companies.find((c) => c.companyId === activeCompanyId)?.role ?? "staff";
   const canManageRoles = myRole === "owner" || myRole === "admin";
@@ -67,6 +86,9 @@ export default function AdminStaffPage() {
       setTimesheets(ts.filter((t: Sheet) => t.clock_out));
       setLeaveRequests(leave);
       setFormSubmissions(forms);
+      // Load applicants and onboarding tasks (non-blocking)
+      try { setApplicants(await getApplicants(activeCompanyId)); } catch {}
+      try { setOTasks(await getOnboardingTasks(activeCompanyId)); } catch {}
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -112,6 +134,65 @@ export default function AdminStaffPage() {
     try { await reviewFormSubmission(id, reviewNote || "Reviewed"); setReviewNote(""); await load(); } catch (err) { console.error(err); }
     finally { setReviewingForm(null); }
   }
+
+  async function handleAddApplicant() {
+    if (!appForm.firstName.trim() || !appForm.email.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    setSavingApp(true);
+    try {
+      await createApplicant(activeCompanyId, appForm);
+      setAppForm({ firstName: "", lastName: "", email: "", phone: "", guardCardNumber: "", experience: "", availability: "" });
+      setShowAddApp(false);
+      setApplicants(await getApplicants(activeCompanyId));
+    } catch (err) { console.error(err); } finally { setSavingApp(false); }
+  }
+
+  async function handleAppStatus(id: string, status: string) {
+    setUpdatingApp(id);
+    try {
+      await updateApplicantStatus(id, status);
+      if (status === "hired" && activeCompanyId && activeCompanyId !== "pending") {
+        try { await convertApplicantToUser(id, activeCompanyId); } catch (err) { console.error("Convert failed:", err); }
+      }
+      if (activeCompanyId && activeCompanyId !== "pending") setApplicants(await getApplicants(activeCompanyId));
+      await load();
+    } catch (err) { console.error(err); } finally { setUpdatingApp(null); }
+  }
+
+  async function handleDeleteApp(id: string) {
+    if (!confirm("Delete this applicant?")) return;
+    try {
+      await deleteApplicant(id);
+      if (activeCompanyId && activeCompanyId !== "pending") setApplicants(await getApplicants(activeCompanyId));
+    } catch (err) { console.error(err); }
+  }
+
+  async function handleAddTask() {
+    if (!taskForm.title.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    setSavingTask(true);
+    try {
+      await createOnboardingTask(activeCompanyId, taskForm);
+      setTaskForm({ title: "", description: "", category: "general", isRequired: true });
+      setShowAddTask(false);
+      setOTasks(await getOnboardingTasks(activeCompanyId));
+    } catch (err) { console.error(err); } finally { setSavingTask(false); }
+  }
+
+  async function handleDeleteTask(id: string) {
+    if (!confirm("Delete this onboarding task?")) return;
+    try {
+      await deleteOnboardingTask(id);
+      if (activeCompanyId && activeCompanyId !== "pending") setOTasks(await getOnboardingTasks(activeCompanyId));
+    } catch (err) { console.error(err); }
+  }
+
+  const STATUSES = ["applied", "reviewing", "interviewing", "offered", "hired", "rejected", "withdrawn"];
+  const STATUS_COLORS: Record<string, string> = {
+    applied: "bg-blue-500/15 text-blue-500", reviewing: "bg-amber-500/15 text-amber-600",
+    interviewing: "bg-violet-500/15 text-violet-500", offered: "bg-cyan-500/15 text-cyan-500",
+    hired: "bg-green-500/15 text-green-600", rejected: "bg-red-500/15 text-red-500",
+    withdrawn: "bg-zinc-500/15 text-zinc-400",
+  };
+  const filteredApplicants = appFilter === "all" ? applicants : applicants.filter((a: Applicant) => a.status === appFilter);
 
   const filtered = members.filter((m: Member) => {
     const name = `${m.users?.first_name ?? ""} ${m.users?.last_name ?? ""}`.toLowerCase();
@@ -159,15 +240,17 @@ export default function AdminStaffPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto">
           {([
             { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0 },
+            { key: "applicants" as Tab, label: "Applicants", badge: applicants.filter((a: Applicant) => a.status === "applied").length },
+            { key: "onboarding" as Tab, label: "Onboarding", badge: 0 },
             { key: "timesheets" as Tab, label: "Timesheets", badge: pendingSheets.length },
             { key: "leave" as Tab, label: "Leave", badge: pendingLeave.length },
             { key: "forms" as Tab, label: "Forms", badge: pendingForms.length },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
               {t.label}
               {t.badge > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-amber-500/20 text-amber-600">{t.badge}</Badge>}
             </button>
@@ -419,6 +502,235 @@ export default function AdminStaffPage() {
                 })}
               </div>
             )}
+          </>
+        )}
+
+        {/* ── Applicants Tab ── */}
+        {tab === "applicants" && (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              {["all", ...STATUSES].map(s => (
+                <button key={s} onClick={() => setAppFilter(s)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors capitalize ${appFilter === s ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground"}`}>
+                  {s === "all" ? `All (${applicants.length})` : `${s} (${applicants.filter((a: Applicant) => a.status === s).length})`}
+                </button>
+              ))}
+              {canManage && (
+                <Button size="sm" className="ml-auto gap-1.5" onClick={() => setShowAddApp(!showAddApp)}>
+                  {showAddApp ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                  {showAddApp ? "Cancel" : "Add Applicant"}
+                </Button>
+              )}
+            </div>
+
+            {showAddApp && (
+              <div className="rounded-xl border border-primary/30 bg-card p-4 space-y-3">
+                <p className="text-sm font-medium flex items-center gap-2"><UserPlus className="h-4 w-4" /> Add Applicant Manually</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input placeholder="First name *" value={appForm.firstName}
+                    onChange={(e) => setAppForm(p => ({ ...p, firstName: e.target.value }))} />
+                  <Input placeholder="Last name" value={appForm.lastName}
+                    onChange={(e) => setAppForm(p => ({ ...p, lastName: e.target.value }))} />
+                  <Input placeholder="Email *" type="email" value={appForm.email}
+                    onChange={(e) => setAppForm(p => ({ ...p, email: e.target.value }))} />
+                  <Input placeholder="Phone" value={appForm.phone}
+                    onChange={(e) => setAppForm(p => ({ ...p, phone: e.target.value }))} />
+                  <Input placeholder="Guard card #" value={appForm.guardCardNumber}
+                    onChange={(e) => setAppForm(p => ({ ...p, guardCardNumber: e.target.value }))} />
+                  <Input placeholder="Availability (e.g. Weekends, Nights)" value={appForm.availability}
+                    onChange={(e) => setAppForm(p => ({ ...p, availability: e.target.value }))} />
+                </div>
+                <Input placeholder="Experience / background" value={appForm.experience}
+                  onChange={(e) => setAppForm(p => ({ ...p, experience: e.target.value }))} />
+                <Button size="sm" onClick={handleAddApplicant} disabled={!appForm.firstName.trim() || !appForm.email.trim() || savingApp}>
+                  {savingApp ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Applicant"}
+                </Button>
+              </div>
+            )}
+
+            {filteredApplicants.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
+                <UserPlus className="mb-3 h-10 w-10 text-muted-foreground/40" />
+                <p className="text-sm font-medium">No applicants{appFilter !== "all" ? ` with status "${appFilter}"` : ""}</p>
+                <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                  Applicants from your public form or manual entry will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredApplicants.map((a: Applicant) => (
+                  <div key={a.id} className={`rounded-xl border bg-card px-4 py-3 ${a.status === "applied" ? "border-blue-500/30" : "border-border/50"}`}>
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-xs font-bold text-blue-500">
+                        {(a.first_name?.[0] ?? "")}{(a.last_name?.[0] ?? "")}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{a.first_name} {a.last_name}</p>
+                        <p className="text-xs text-muted-foreground">{a.email}{a.phone ? ` · ${a.phone}` : ""}</p>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                          {a.guard_card_number && <span className="text-[10px] text-muted-foreground/70"><span className="font-medium">Guard Card:</span> {a.guard_card_number}</span>}
+                          {a.availability && <span className="text-[10px] text-muted-foreground/70"><span className="font-medium">Availability:</span> {a.availability}</span>}
+                          {a.experience && <span className="text-[10px] text-muted-foreground/70"><span className="font-medium">Experience:</span> {a.experience.slice(0, 60)}</span>}
+                          {a.source && a.source !== "overwatch" && <span className="text-[10px] text-muted-foreground/70"><span className="font-medium">Source:</span> {a.source}</span>}
+                        </div>
+                        <p className="text-[9px] text-muted-foreground/50 mt-0.5">Applied {new Date(a.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <Badge className={`text-[10px] capitalize ${STATUS_COLORS[a.status] ?? "bg-muted text-muted-foreground"}`}>{a.status}</Badge>
+                      {canManage && a.status !== "hired" && a.status !== "rejected" && a.status !== "withdrawn" && (
+                        <div className="flex items-center gap-1">
+                          {a.status === "applied" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                              onClick={() => handleAppStatus(a.id, "reviewing")} disabled={updatingApp === a.id}>
+                              {updatingApp === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Review"}
+                            </Button>
+                          )}
+                          {a.status === "reviewing" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                              onClick={() => handleAppStatus(a.id, "interviewing")} disabled={updatingApp === a.id}>
+                              {updatingApp === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Interview"}
+                            </Button>
+                          )}
+                          {a.status === "interviewing" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                              onClick={() => handleAppStatus(a.id, "offered")} disabled={updatingApp === a.id}>
+                              {updatingApp === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Offer"}
+                            </Button>
+                          )}
+                          {(a.status === "offered" || a.status === "interviewing") && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-green-600 border-green-500/30 hover:bg-green-500/10"
+                              onClick={() => handleAppStatus(a.id, "hired")} disabled={updatingApp === a.id}>
+                              {updatingApp === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <><ArrowRight className="h-3 w-3" /> Hire</>}
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10"
+                            onClick={() => handleAppStatus(a.id, "rejected")} disabled={updatingApp === a.id}>
+                            <XCircle className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                      {canManage && (a.status === "hired" || a.status === "rejected" || a.status === "withdrawn") && (
+                        <button onClick={() => handleDeleteApp(a.id)}
+                          className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Onboarding Tasks Tab ── */}
+        {tab === "onboarding" && (
+          <>
+            <div className="rounded-xl border border-border/50 bg-card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="font-medium text-sm flex items-center gap-2"><ListChecks className="h-4 w-4" /> Onboarding Checklist</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Configure tasks that new hires must complete. These are auto-assigned when an applicant is hired.</p>
+                </div>
+                {canManage && (
+                  <Button size="sm" className="gap-1.5" onClick={() => setShowAddTask(!showAddTask)}>
+                    {showAddTask ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                    {showAddTask ? "Cancel" : "Add Task"}
+                  </Button>
+                )}
+              </div>
+
+              {showAddTask && (
+                <div className="rounded-lg border border-primary/30 bg-muted/30 p-3 space-y-2 mb-3">
+                  <Input placeholder="Task title (e.g. Complete guard card upload)" value={taskForm.title}
+                    onChange={(e) => setTaskForm(p => ({ ...p, title: e.target.value }))} />
+                  <Input placeholder="Description (optional)" value={taskForm.description}
+                    onChange={(e) => setTaskForm(p => ({ ...p, description: e.target.value }))} />
+                  <div className="flex gap-2 items-center">
+                    <select value={taskForm.category}
+                      onChange={(e) => setTaskForm(p => ({ ...p, category: e.target.value }))}
+                      className="h-8 rounded border border-border/40 bg-background px-2 text-xs">
+                      <option value="general">General</option>
+                      <option value="documents">Documents</option>
+                      <option value="training">Training</option>
+                      <option value="equipment">Equipment</option>
+                      <option value="accounts">Accounts</option>
+                    </select>
+                    <label className="flex items-center gap-1.5 text-xs">
+                      <input type="checkbox" checked={taskForm.isRequired}
+                        onChange={(e) => setTaskForm(p => ({ ...p, isRequired: e.target.checked }))}
+                        className="rounded" />
+                      Required
+                    </label>
+                    <Button size="sm" onClick={handleAddTask} disabled={!taskForm.title.trim() || savingTask} className="ml-auto">
+                      {savingTask ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {oTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border/60 bg-card/50 p-8 text-center">
+                  <ListChecks className="mb-2 h-8 w-8 text-muted-foreground/40" />
+                  <p className="text-xs font-medium">No onboarding tasks configured</p>
+                  <p className="mt-1 max-w-xs text-[10px] text-muted-foreground">Add tasks like &ldquo;Upload guard card&rdquo;, &ldquo;Complete safety training&rdquo;, &ldquo;Join WhatsApp community&rdquo;.</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {oTasks.map((t: OTask, i: number) => (
+                    <div key={t.id} className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2.5">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{t.title}</p>
+                        {t.description && <p className="text-[10px] text-muted-foreground">{t.description}</p>}
+                      </div>
+                      <Badge variant="outline" className="text-[9px] capitalize">{t.category}</Badge>
+                      {t.is_required && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Required</Badge>}
+                      {canManage && (
+                        <button onClick={() => handleDeleteTask(t.id)}
+                          className="rounded p-1 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Public application form link */}
+            <div className="rounded-xl border border-border/50 bg-card p-4 space-y-2">
+              <p className="font-medium text-sm">Public Application Form</p>
+              <p className="text-xs text-muted-foreground">
+                Share this link with potential applicants. Submissions appear in the Applicants tab.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-lg bg-muted/50 px-3 py-2 text-xs font-mono text-muted-foreground truncate">
+                  /apply/{activeCompanyId?.slice(0, 8) ?? "..."}
+                </code>
+                <Badge variant="outline" className="text-[10px]">Coming Soon</Badge>
+              </div>
+            </div>
+
+            {/* Integrations config preview */}
+            <div className="rounded-xl border border-border/50 bg-card p-4 space-y-2">
+              <p className="font-medium text-sm">External Integrations</p>
+              <p className="text-xs text-muted-foreground">
+                Connect Fillout, Airtable, or other tools to auto-import applicants via webhooks.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {[
+                  { name: "Fillout", desc: "Receive form submissions via webhook", status: "planned" },
+                  { name: "Airtable", desc: "Sync applicant records bidirectionally", status: "planned" },
+                  { name: "Email (Postmark)", desc: "Auto-send onboarding emails on hire", status: "planned" },
+                ].map(int => (
+                  <div key={int.name} className="rounded-lg border border-border/40 p-3">
+                    <p className="text-xs font-medium">{int.name}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{int.desc}</p>
+                    <Badge variant="outline" className="text-[9px] mt-1.5">{int.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
           </>
         )}
       </div>
