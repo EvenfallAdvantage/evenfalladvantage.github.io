@@ -28,9 +28,9 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: "45+", label: "Platform Pages" },
-  { value: "50", label: "State Law Database" },
-  { value: "6", label: "Training Courses" },
+  { value: "12+", label: "Operations Tools" },
+  { value: "50", label: "States Covered" },
+  { value: "256-bit", label: "AES Encryption" },
   { value: "24/7", label: "Operational Uptime" },
 ];
 
@@ -156,9 +156,9 @@ export default function HomePage() {
             <button onClick={() => setLoginOpen(true)} className="text-sm text-white/60 hover:text-white transition-colors px-3 py-1.5">
               Sign In
             </button>
-            <Link href="/register" className="text-sm font-medium bg-[#dd8c33] text-white px-4 py-1.5 rounded-lg hover:bg-[#c47a2a] transition-colors">
+            <button onClick={() => setLoginOpen(true)} className="text-sm font-medium bg-[#dd8c33] text-white px-4 py-1.5 rounded-lg hover:bg-[#c47a2a] transition-colors">
               Get Started
-            </Link>
+            </button>
           </div>
         </div>
       </nav>
@@ -183,9 +183,9 @@ export default function HomePage() {
             into one tactical platform built for security professionals.
           </p>
           <div className="flex items-center justify-center gap-4">
-            <Link href="/register" className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
+            <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
               Deploy Now <ChevronRight className="h-4 w-4" />
-            </Link>
+            </button>
             <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 border border-[#dd8c33]/30 text-white/80 px-8 py-3 rounded-xl hover:bg-[#dd8c33]/10 transition-all text-sm">
               Sign In
             </button>
@@ -230,9 +230,9 @@ export default function HomePage() {
           <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight mb-4">READY TO DEPLOY?</h2>
           <p className="text-white/40 mb-8 max-w-lg mx-auto">Join security companies already using Overwatch to manage their workforce, training, and operations.</p>
           <div className="flex items-center justify-center gap-4">
-            <Link href="/register" className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
+            <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
               Create Free Account <ChevronRight className="h-4 w-4" />
-            </Link>
+            </button>
           </div>
         </div>
       </section>
