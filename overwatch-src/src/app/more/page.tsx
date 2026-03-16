@@ -35,6 +35,15 @@ import {
   MessageCircle,
   Video,
   HelpCircle,
+  AlertTriangle,
+  Compass,
+  Briefcase,
+  ClipboardCheck,
+  Flag,
+  UserCog,
+  ShieldAlert,
+  Activity,
+  NotebookPen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -42,7 +51,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Radar, Radio, Users, Clock, CalendarDays, CalendarOff,
   QrCode, ClipboardList, GraduationCap, Footprints, Target, BookOpen, Award,
   MapPin, Shield, Scale, FileText, BarChart3, Settings, Bell, MessageCircle,
-  Video, HelpCircle,
+  Video, HelpCircle, AlertTriangle, Compass, Briefcase, ClipboardCheck,
+  Flag, UserCog, ShieldAlert, Activity, NotebookPen,
 };
 
 export default function MorePage() {

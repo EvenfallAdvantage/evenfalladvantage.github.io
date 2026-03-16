@@ -6,20 +6,18 @@ import { cn } from "@/lib/utils";
 import { MOBILE_NAV_ITEMS } from "./nav-items";
 import {
   LayoutDashboard,
-  Radar,
   Radio,
   Clock,
-  CalendarDays,
+  AlertTriangle,
   Menu,
   type LucideIcon,
 } from "lucide-react";
 
 const MOBILE_ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard,
-  Radar,
   Radio,
   Clock,
-  CalendarDays,
+  AlertTriangle,
   Menu,
 };
 
