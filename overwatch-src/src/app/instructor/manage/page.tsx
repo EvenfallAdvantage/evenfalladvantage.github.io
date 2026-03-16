@@ -2,147 +2,106 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Users, CalendarDays, Award, CheckCircle2, Clock,
-  Plus, Loader2, ChevronRight, MapPin, UserCheck,
-  UserX, RefreshCw, GraduationCap, ArrowLeft,
+  Users, BookOpen, Award, CheckCircle2,
+  Loader2, RefreshCw, ClipboardList, BarChart3,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth-store";
-import { ensureInstructorLinked } from "@/lib/account-linker";
-import {
-  getAllLegacyClasses,
-  getLegacyStudents,
-  createLegacyClass,
-  getClassEnrollments,
-  getClassAttendance,
-  markAttendance,
-  enrollStudentInClass,
-  issueLegacyCertificate,
-  type LegacyScheduledClass,
-  type LegacyStudent,
-  type ClassEnrollmentRow,
-  type ClassAttendanceRow,
-} from "@/lib/legacy-bridge";
+import { getCompanyMembers, getTrainingModules, getAllModuleProgress, getQuizzes } from "@/lib/supabase/db";
 
-type Tab = "classes" | "students" | "certificates";
+type Tab = "staff" | "modules" | "overview";
 
-export default function InstructorManagePage() {
-  const user = useAuthStore((s) => s.user);
-  const [tab, setTab] = useState<Tab>("classes");
+interface StaffMember {
+  id: string;
+  user: { id: string; first_name: string; last_name: string; email: string } | null;
+  role: string;
+  status: string;
+}
+
+interface TrainingModule {
+  id: string;
+  module_name: string;
+  module_code: string;
+  description: string | null;
+  is_required: boolean;
+  slide_count: number;
+}
+
+interface ProgressRecord {
+  module_id: string;
+  user_id: string;
+  status: string;
+  progress_percentage: number;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface Quiz { id: string; title: string; description: string | null; questions: any[]; passing_score: number }
+
+export default function TrainingManagerPage() {
+  const companyId = useAuthStore((s) => s.activeCompanyId);
+  const [tab, setTab] = useState<Tab>("overview");
   const [loading, setLoading] = useState(true);
-  const [instructorId, setInstructorId] = useState<string | null>(null);
 
-  // Data
-  const [classes, setClasses] = useState<LegacyScheduledClass[]>([]);
-  const [students, setStudents] = useState<LegacyStudent[]>([]);
-
-  // Class detail
-  const [selectedClass, setSelectedClass] = useState<LegacyScheduledClass | null>(null);
-  const [classEnrollments, setClassEnrollments] = useState<ClassEnrollmentRow[]>([]);
-  const [classAttendance, setClassAttendance] = useState<ClassAttendanceRow[]>([]);
-  const [classLoading, setClassLoading] = useState(false);
-
-  // New class form
-  const [showNewClass, setShowNewClass] = useState(false);
-  const [newClass, setNewClass] = useState({ class_name: "", description: "", scheduled_date: "", start_time: "", end_time: "", location: "", max_students: "20" });
-  const [saving, setSaving] = useState(false);
-
-  // Certificate form
-  const [certStudent, setCertStudent] = useState("");
-  const [certName, setCertName] = useState("");
-  const [certType, setCertType] = useState("completion");
-  const [certState, setCertState] = useState("");
-  const [issuingCert, setIssuingCert] = useState(false);
-  const [certSuccess, setCertSuccess] = useState(false);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [modules, setModules] = useState<TrainingModule[]>([]);
+  const [progress, setProgress] = useState<ProgressRecord[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
 
   const loadData = useCallback(async () => {
-    if (!user?.email) return;
+    if (!companyId) return;
     setLoading(true);
     try {
-      const iId = await ensureInstructorLinked({
-        id: user.id,
-        email: user.email,
-        firstName: (user as Record<string, unknown>).firstName as string | undefined,
-        lastName: (user as Record<string, unknown>).lastName as string | undefined,
-      });
-      setInstructorId(iId);
-      if (iId) {
-        const [c, s] = await Promise.all([getAllLegacyClasses(iId), getLegacyStudents()]);
-        setClasses(c);
-        setStudents(s);
-      }
+      const [membersRaw, modulesRaw, progressRaw, quizzesRaw] = await Promise.all([
+        getCompanyMembers(companyId),
+        getTrainingModules(companyId),
+        getAllModuleProgress(companyId),
+        getQuizzes(companyId),
+      ]);
+      setStaff((membersRaw ?? []) as unknown as StaffMember[]);
+      setModules((modulesRaw ?? []).map((m: Record<string, unknown>) => ({
+        id: m.id as string,
+        module_name: m.module_name as string,
+        module_code: m.module_code as string,
+        description: m.description as string | null,
+        is_required: m.is_required as boolean,
+        slide_count: m.slide_count as number,
+      })));
+      setProgress((progressRaw ?? []) as unknown as ProgressRecord[]);
+      setQuizzes((quizzesRaw ?? []) as unknown as Quiz[]);
     } catch (err) {
-      console.error("Instructor load error:", err);
+      console.error("Training manager load error:", err);
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [companyId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  async function openClassDetail(cls: LegacyScheduledClass) {
-    setSelectedClass(cls);
-    setClassLoading(true);
-    try {
-      const [enr, att] = await Promise.all([getClassEnrollments(cls.id), getClassAttendance(cls.id)]);
-      setClassEnrollments(enr);
-      setClassAttendance(att);
-    } catch { /* ignore */ }
-    setClassLoading(false);
+  // ─── Computed stats ───
+  const totalStaff = staff.length;
+  const requiredModules = modules.filter((m) => m.is_required);
+  const completedProgress = progress.filter((p) => p.status === "completed");
+  const inProgressCount = progress.filter((p) => p.status === "in_progress").length;
+
+  // Per-staff completion rate for required modules
+  function getStaffCompletion(userId: string) {
+    if (requiredModules.length === 0) return { completed: 0, total: 0, pct: 100 };
+    const completed = requiredModules.filter((m) =>
+      progress.some((p) => p.user_id === userId && p.module_id === m.id && p.status === "completed")
+    ).length;
+    return { completed, total: requiredModules.length, pct: Math.round((completed / requiredModules.length) * 100) };
   }
 
-  async function handleCreateClass() {
-    if (!instructorId || !newClass.class_name || !newClass.scheduled_date || !newClass.start_time) return;
-    setSaving(true);
-    const res = await createLegacyClass({
-      instructor_id: instructorId,
-      class_name: newClass.class_name,
-      description: newClass.description || undefined,
-      scheduled_date: newClass.scheduled_date,
-      start_time: newClass.start_time,
-      end_time: newClass.end_time || undefined,
-      location: newClass.location || undefined,
-      max_students: parseInt(newClass.max_students) || 20,
-    });
-    if (res.success) {
-      setShowNewClass(false);
-      setNewClass({ class_name: "", description: "", scheduled_date: "", start_time: "", end_time: "", location: "", max_students: "20" });
-      await loadData();
-    }
-    setSaving(false);
-  }
-
-  async function handleMarkAttendance(classId: string, studentId: string, status: "present" | "absent" | "late" | "excused") {
-    await markAttendance(classId, studentId, status);
-    if (selectedClass) openClassDetail(selectedClass);
-  }
-
-  async function handleEnrollStudent(classId: string, studentId: string) {
-    await enrollStudentInClass(classId, studentId);
-    if (selectedClass) openClassDetail(selectedClass);
-  }
-
-  async function handleIssueCert() {
-    if (!instructorId || !certStudent || !certName) return;
-    setIssuingCert(true);
-    const res = await issueLegacyCertificate({
-      student_id: certStudent,
-      issued_by: instructorId,
-      certificate_type: certType,
-      certificate_name: certName,
-      state_issued: certState || undefined,
-    });
-    if (res.success) {
-      setCertSuccess(true);
-      setCertStudent("");
-      setCertName("");
-      setCertState("");
-      setTimeout(() => setCertSuccess(false), 3000);
-    }
-    setIssuingCert(false);
+  // Per-module completion rate
+  function getModuleCompletion(moduleId: string) {
+    if (totalStaff === 0) return { completed: 0, total: totalStaff, pct: 0 };
+    const completed = staff.filter((s) =>
+      progress.some((p) => p.user_id === (s.user?.id ?? "") && p.module_id === moduleId && p.status === "completed")
+    ).length;
+    return { completed, total: totalStaff, pct: Math.round((completed / totalStaff) * 100) };
   }
 
   if (loading) {
@@ -153,126 +112,20 @@ export default function InstructorManagePage() {
     );
   }
 
-  if (!instructorId) {
+  if (!companyId) {
     return (
       <div className="text-center py-20 space-y-3">
-        <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground/30" />
-        <h2 className="text-lg font-bold">Instructor Access Required</h2>
-        <p className="text-sm text-muted-foreground">This feature requires admin or manager role.</p>
+        <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground/30" />
+        <h2 className="text-lg font-bold">No Company Found</h2>
+        <p className="text-sm text-muted-foreground">Training Manager requires a company account.</p>
       </div>
     );
   }
 
-  // ─── Class Detail View ───
-  if (selectedClass) {
-    const enrolledIds = new Set(classEnrollments.map((e) => e.student_id));
-    const attendanceMap = new Map(classAttendance.map((a) => [a.student_id, a]));
-    const unenrolledStudents = students.filter((s) => !enrolledIds.has(s.id));
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setSelectedClass(null)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h2 className="text-lg font-bold font-mono">{selectedClass.class_name}</h2>
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              <CalendarDays className="h-3 w-3" /> {selectedClass.scheduled_date}
-              <Clock className="h-3 w-3 ml-1" /> {selectedClass.start_time}{selectedClass.end_time ? ` - ${selectedClass.end_time}` : ""}
-              {selectedClass.location && <><MapPin className="h-3 w-3 ml-1" /> {selectedClass.location}</>}
-            </p>
-          </div>
-        </div>
-
-        {classLoading ? (
-          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-        ) : (
-          <>
-            <div className="grid grid-cols-3 gap-3">
-              <Card className="border-border/40"><CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold font-mono">{classEnrollments.length}</p>
-                <p className="text-[10px] text-muted-foreground">Enrolled</p>
-              </CardContent></Card>
-              <Card className="border-border/40"><CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold font-mono text-green-500">{classAttendance.filter((a) => a.status === "present").length}</p>
-                <p className="text-[10px] text-muted-foreground">Present</p>
-              </CardContent></Card>
-              <Card className="border-border/40"><CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold font-mono text-red-500">{classAttendance.filter((a) => a.status === "absent").length}</p>
-                <p className="text-[10px] text-muted-foreground">Absent</p>
-              </CardContent></Card>
-            </div>
-
-            <Card className="border-border/40">
-              <CardContent className="p-4">
-                <h3 className="text-sm font-semibold mb-3">Enrolled Students & Attendance</h3>
-                {classEnrollments.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No students enrolled yet.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {classEnrollments.map((enr) => {
-                      const att = attendanceMap.get(enr.student_id);
-                      return (
-                        <div key={enr.student_id} className="flex items-center justify-between p-2 rounded-lg border border-border/30">
-                          <div>
-                            <p className="text-sm font-medium">
-                              {enr.student?.first_name} {enr.student?.last_name}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">{enr.student?.email}</p>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {att && (
-                              <Badge className={`text-[9px] mr-1 ${att.status === "present" ? "bg-green-500/15 text-green-600" : att.status === "absent" ? "bg-red-500/15 text-red-600" : att.status === "late" ? "bg-amber-500/15 text-amber-600" : "bg-blue-500/15 text-blue-600"}`}>
-                                {att.status}
-                              </Badge>
-                            )}
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-green-500" title="Present"
-                              onClick={() => handleMarkAttendance(selectedClass.id, enr.student_id, "present")}>
-                              <UserCheck className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" title="Absent"
-                              onClick={() => handleMarkAttendance(selectedClass.id, enr.student_id, "absent")}>
-                              <UserX className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {unenrolledStudents.length > 0 && (
-              <Card className="border-border/40">
-                <CardContent className="p-4">
-                  <h3 className="text-sm font-semibold mb-3">Add Students</h3>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {unenrolledStudents.slice(0, 20).map((s) => (
-                      <div key={s.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30">
-                        <p className="text-xs">{s.first_name} {s.last_name} <span className="text-muted-foreground">({s.email})</span></p>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1"
-                          onClick={() => handleEnrollStudent(selectedClass.id, s.id)}>
-                          <Plus className="h-3 w-3" /> Add
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </>
-        )}
-      </div>
-    );
-  }
-
-  // ─── Tabs ───
   const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "classes", label: "Classes", icon: <CalendarDays className="h-3.5 w-3.5" /> },
-    { id: "students", label: "Students", icon: <Users className="h-3.5 w-3.5" /> },
-    { id: "certificates", label: "Certificates", icon: <Award className="h-3.5 w-3.5" /> },
+    { id: "overview", label: "Overview", icon: <BarChart3 className="h-3.5 w-3.5" /> },
+    { id: "staff", label: "Staff", icon: <Users className="h-3.5 w-3.5" /> },
+    { id: "modules", label: "Modules", icon: <BookOpen className="h-3.5 w-3.5" /> },
   ];
 
   return (
@@ -280,9 +133,9 @@ export default function InstructorManagePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" /> INSTRUCTOR HQ
+            <ClipboardList className="h-5 w-5" /> TRAINING MANAGER
           </h1>
-          <p className="text-xs text-muted-foreground">Manage classes, students, and certifications</p>
+          <p className="text-xs text-muted-foreground">Track staff training progress and module completion</p>
         </div>
         <Button size="sm" variant="ghost" className="gap-1" onClick={loadData}>
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
@@ -299,186 +152,182 @@ export default function InstructorManagePage() {
         ))}
       </div>
 
-      {/* ─── Classes Tab ─── */}
-      {tab === "classes" && (
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <p className="text-xs text-muted-foreground">{classes.length} classes</p>
-            <Button size="sm" className="gap-1 h-7 text-xs" onClick={() => setShowNewClass(!showNewClass)}>
-              <Plus className="h-3 w-3" /> New Class
-            </Button>
+      {/* ─── Overview Tab ─── */}
+      {tab === "overview" && (
+        <div className="space-y-4">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card className="border-border/40"><CardContent className="p-3 text-center">
+              <p className="text-2xl font-bold font-mono">{totalStaff}</p>
+              <p className="text-[10px] text-muted-foreground">Staff Members</p>
+            </CardContent></Card>
+            <Card className="border-border/40"><CardContent className="p-3 text-center">
+              <p className="text-2xl font-bold font-mono">{modules.length}</p>
+              <p className="text-[10px] text-muted-foreground">Training Modules</p>
+            </CardContent></Card>
+            <Card className="border-border/40"><CardContent className="p-3 text-center">
+              <p className="text-2xl font-bold font-mono text-green-500">{completedProgress.length}</p>
+              <p className="text-[10px] text-muted-foreground">Completions</p>
+            </CardContent></Card>
+            <Card className="border-border/40"><CardContent className="p-3 text-center">
+              <p className="text-2xl font-bold font-mono text-amber-500">{inProgressCount}</p>
+              <p className="text-[10px] text-muted-foreground">In Progress</p>
+            </CardContent></Card>
           </div>
 
-          {showNewClass && (
-            <Card className="border-primary/30">
-              <CardContent className="p-4 space-y-3">
-                <h3 className="text-sm font-semibold">Schedule New Class</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2">
-                    <label className="text-[10px] font-semibold block mb-1">Class Name *</label>
-                    <Input placeholder="e.g. Unarmed Guard Core - Session 5" value={newClass.class_name}
-                      onChange={(e) => setNewClass({ ...newClass, class_name: e.target.value })} className="h-8 text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold block mb-1">Date *</label>
-                    <Input type="date" value={newClass.scheduled_date}
-                      onChange={(e) => setNewClass({ ...newClass, scheduled_date: e.target.value })} className="h-8 text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold block mb-1">Start Time *</label>
-                    <Input type="time" value={newClass.start_time}
-                      onChange={(e) => setNewClass({ ...newClass, start_time: e.target.value })} className="h-8 text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold block mb-1">End Time</label>
-                    <Input type="time" value={newClass.end_time}
-                      onChange={(e) => setNewClass({ ...newClass, end_time: e.target.value })} className="h-8 text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold block mb-1">Location</label>
-                    <Input placeholder="Room / Address" value={newClass.location}
-                      onChange={(e) => setNewClass({ ...newClass, location: e.target.value })} className="h-8 text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold block mb-1">Max Students</label>
-                    <Input type="number" value={newClass.max_students}
-                      onChange={(e) => setNewClass({ ...newClass, max_students: e.target.value })} className="h-8 text-xs" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-semibold block mb-1">Description</label>
-                    <Input placeholder="Optional notes" value={newClass.description}
-                      onChange={(e) => setNewClass({ ...newClass, description: e.target.value })} className="h-8 text-xs" />
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <Button size="sm" className="gap-1 text-xs" onClick={handleCreateClass} disabled={saving || !newClass.class_name || !newClass.scheduled_date || !newClass.start_time}>
-                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Create
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-xs" onClick={() => setShowNewClass(false)}>Cancel</Button>
+          {/* Overall Company Compliance */}
+          {requiredModules.length > 0 && (
+            <Card className="border-border/40">
+              <CardContent className="p-4">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5"><Award className="h-4 w-4" /> Required Training Compliance</h3>
+                <div className="space-y-2">
+                  {requiredModules.map((m) => {
+                    const mc = getModuleCompletion(m.id);
+                    return (
+                      <div key={m.id} className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{m.module_name}</p>
+                          <div className="mt-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${mc.pct === 100 ? "bg-green-500" : mc.pct >= 50 ? "bg-amber-500" : "bg-red-500"}`}
+                              style={{ width: `${mc.pct}%` }} />
+                          </div>
+                        </div>
+                        <span className={`text-xs font-mono font-bold ${mc.pct === 100 ? "text-green-500" : mc.pct >= 50 ? "text-amber-500" : "text-red-500"}`}>
+                          {mc.completed}/{mc.total}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {classes.length === 0 ? (
-            <Card className="border-dashed border-border/60">
-              <CardContent className="py-8 text-center">
-                <CalendarDays className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-                <p className="text-sm font-semibold">No classes yet</p>
-                <p className="text-xs text-muted-foreground">Schedule your first class above</p>
-              </CardContent>
-            </Card>
-          ) : (
-            classes.map((cls) => {
-              const isPast = new Date(cls.scheduled_date) < new Date();
-              const enrollCount = Array.isArray(cls.enrollments) && cls.enrollments[0] ? (cls.enrollments[0] as { count: number }).count : 0;
-              return (
-                <Card key={cls.id} className={`border-border/40 hover:border-primary/30 cursor-pointer transition-all ${isPast ? "opacity-60" : ""}`}
-                  onClick={() => openClassDetail(cls)}>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold">{cls.class_name}</h3>
-                        <Badge className={`text-[9px] ${cls.status === "scheduled" ? "bg-blue-500/15 text-blue-600" : cls.status === "completed" ? "bg-green-500/15 text-green-600" : "bg-muted text-muted-foreground"}`}>
-                          {cls.status}
-                        </Badge>
+          {/* Quizzes summary */}
+          {quizzes.length > 0 && (
+            <Card className="border-border/40">
+              <CardContent className="p-4">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5"><BookOpen className="h-4 w-4" /> Company Quizzes</h3>
+                <div className="space-y-1">
+                  {quizzes.map((q) => (
+                    <div key={q.id} className="flex items-center justify-between p-2 rounded-lg border border-border/30">
+                      <div>
+                        <p className="text-xs font-medium">{q.title}</p>
+                        {q.description && <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{q.description}</p>}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
-                        <span className="flex items-center gap-0.5"><CalendarDays className="h-3 w-3" /> {cls.scheduled_date}</span>
-                        <span className="flex items-center gap-0.5"><Clock className="h-3 w-3" /> {cls.start_time}</span>
-                        {cls.location && <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3" /> {cls.location}</span>}
-                        <span className="flex items-center gap-0.5"><Users className="h-3 w-3" /> {enrollCount}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge className="text-[9px] bg-muted">{q.questions?.length ?? 0} Q&apos;s</Badge>
+                        <Badge className="text-[9px] bg-primary/10 text-primary">Pass: {q.passing_score}%</Badge>
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </CardContent>
-                </Card>
-              );
-            })
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {modules.length === 0 && quizzes.length === 0 && (
+            <Card className="border-dashed border-border/60">
+              <CardContent className="py-10 text-center">
+                <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                <p className="text-sm font-semibold">No training content yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Create modules in Training Admin and quizzes in Drills to track staff progress here.</p>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
 
-      {/* ─── Students Tab ─── */}
-      {tab === "students" && (
+      {/* ─── Staff Tab ─── */}
+      {tab === "staff" && (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">{students.length} students in legacy system</p>
-          {students.length === 0 ? (
+          <p className="text-xs text-muted-foreground">{totalStaff} staff members</p>
+          {staff.length === 0 ? (
             <Card className="border-dashed border-border/60">
               <CardContent className="py-8 text-center">
                 <Users className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-                <p className="text-sm font-semibold">No students found</p>
+                <p className="text-sm font-semibold">No staff found</p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-1">
-              {students.map((s) => (
-                <Card key={s.id} className="border-border/40">
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{s.first_name} {s.last_name}</p>
-                      <p className="text-[10px] text-muted-foreground">{s.email}</p>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</p>
-                  </CardContent>
-                </Card>
-              ))}
+              {staff.map((s) => {
+                const comp = getStaffCompletion(s.user?.id ?? "");
+                const name = s.user ? `${s.user.first_name ?? ""} ${s.user.last_name ?? ""}`.trim() : "Unknown";
+                return (
+                  <Card key={s.id} className="border-border/40">
+                    <CardContent className="p-3 flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">{name || s.user?.email}</p>
+                          <Badge className="text-[9px] bg-muted">{s.role}</Badge>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">{s.user?.email}</p>
+                        {requiredModules.length > 0 && (
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden max-w-[120px]">
+                              <div className={`h-full rounded-full ${comp.pct === 100 ? "bg-green-500" : comp.pct >= 50 ? "bg-amber-500" : "bg-red-500"}`}
+                                style={{ width: `${comp.pct}%` }} />
+                            </div>
+                            <span className="text-[10px] font-mono text-muted-foreground">{comp.completed}/{comp.total}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {comp.pct === 100 ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        ) : comp.total > 0 ? (
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        ) : null}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* ─── Certificates Tab ─── */}
-      {tab === "certificates" && (
-        <div className="space-y-4">
-          <Card className="border-border/40">
-            <CardContent className="p-4 space-y-3">
-              <h3 className="text-sm font-semibold flex items-center gap-1.5"><Award className="h-4 w-4" /> Issue Certificate</h3>
-              {certSuccess && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-green-500/10 border border-green-500/20">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <p className="text-xs text-green-600 font-medium">Certificate issued successfully!</p>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="text-[10px] font-semibold block mb-1">Student *</label>
-                  <select value={certStudent} onChange={(e) => setCertStudent(e.target.value)}
-                    className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs">
-                    <option value="">Select student...</option>
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>{s.first_name} {s.last_name} ({s.email})</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-2">
-                  <label className="text-[10px] font-semibold block mb-1">Certificate Name *</label>
-                  <Input placeholder="e.g. Unarmed Guard Core Completion" value={certName}
-                    onChange={(e) => setCertName(e.target.value)} className="h-8 text-xs" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold block mb-1">Type</label>
-                  <select value={certType} onChange={(e) => setCertType(e.target.value)}
-                    className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs">
-                    <option value="completion">Completion</option>
-                    <option value="training">Training</option>
-                    <option value="license">License</option>
-                    <option value="certification">Certification</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold block mb-1">State</label>
-                  <Input placeholder="e.g. FL, TX" value={certState}
-                    onChange={(e) => setCertState(e.target.value)} className="h-8 text-xs" />
-                </div>
-              </div>
-              <Button size="sm" className="gap-1 text-xs" onClick={handleIssueCert}
-                disabled={issuingCert || !certStudent || !certName}>
-                {issuingCert ? <Loader2 className="h-3 w-3 animate-spin" /> : <Award className="h-3 w-3" />}
-                Issue Certificate
-              </Button>
-            </CardContent>
-          </Card>
+      {/* ─── Modules Tab ─── */}
+      {tab === "modules" && (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">{modules.length} modules ({requiredModules.length} required)</p>
+          {modules.length === 0 ? (
+            <Card className="border-dashed border-border/60">
+              <CardContent className="py-8 text-center">
+                <BookOpen className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+                <p className="text-sm font-semibold">No modules yet</p>
+                <p className="text-xs text-muted-foreground">Create modules in Training Admin</p>
+              </CardContent>
+            </Card>
+          ) : (
+            modules.map((m) => {
+              const mc = getModuleCompletion(m.id);
+              return (
+                <Card key={m.id} className="border-border/40">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold">{m.module_name}</h3>
+                        {m.is_required && <Badge className="text-[9px] bg-red-500/15 text-red-600">Required</Badge>}
+                        <Badge className="text-[9px] bg-muted">{m.slide_count} slides</Badge>
+                      </div>
+                      <span className={`text-xs font-mono font-bold ${mc.pct === 100 ? "text-green-500" : mc.pct > 0 ? "text-amber-500" : "text-muted-foreground"}`}>
+                        {mc.pct}%
+                      </span>
+                    </div>
+                    {m.description && <p className="text-[10px] text-muted-foreground mb-2">{m.description}</p>}
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${mc.pct === 100 ? "bg-green-500" : mc.pct > 0 ? "bg-amber-500" : "bg-muted"}`}
+                        style={{ width: `${mc.pct}%` }} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">{mc.completed} of {mc.total} staff completed</p>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
         </div>
       )}
     </div>

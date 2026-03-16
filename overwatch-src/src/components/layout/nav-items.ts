@@ -59,9 +59,9 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Command",
     items: [
       {
-        title: "Instructor HQ",
+        title: "Training Manager",
         href: "/instructor/manage",
-        icon: "GraduationCap",
+        icon: "ClipboardList",
         roles: ["owner", "admin", "manager"],
       },
       {

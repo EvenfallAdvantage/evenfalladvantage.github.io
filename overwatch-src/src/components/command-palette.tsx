@@ -47,7 +47,7 @@ const ALL_ITEMS: PaletteItem[] = [
   { title: "State Laws", href: "/state-laws", icon: "Scale", section: "Readiness" },
   { title: "Invoices", href: "/invoices", icon: "FileText", section: "Readiness" },
   { title: "Leave", href: "/time-off", icon: "CalendarOff", section: "Readiness" },
-  { title: "Instructor HQ", href: "/instructor/manage", icon: "GraduationCap", section: "Command" },
+  { title: "Training Manager", href: "/instructor/manage", icon: "ClipboardList", section: "Command" },
   { title: "Operations", href: "/admin/events", icon: "MapPin", section: "Command" },
   { title: "Personnel", href: "/admin/staff", icon: "Users", section: "Command" },
   { title: "Training Admin", href: "/admin/training", icon: "GraduationCap", section: "Command" },

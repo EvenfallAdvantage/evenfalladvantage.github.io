@@ -1788,6 +1788,16 @@ export async function getMyModuleProgress(companyId: string) {
   return (data ?? []).map((d) => ({ ...d, training_modules: undefined }));
 }
 
+export async function getAllModuleProgress(companyId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("student_module_progress")
+    .select("*, training_modules!inner(company_id)")
+    .eq("training_modules.company_id", companyId);
+  if (error) throw error;
+  return (data ?? []).map((d) => ({ ...d, training_modules: undefined }));
+}
+
 export async function upsertModuleProgress(moduleId: string, params: {
   currentSlide: number; totalSlides: number; completed?: boolean;
 }) {
