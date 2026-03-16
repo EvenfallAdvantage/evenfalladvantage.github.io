@@ -154,11 +154,14 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       setExpanded((prev) => ({ ...prev, [key]: false }));
       setFlyoutPos(null);
     } else {
-      setExpanded((prev) => ({ ...prev, [key]: true }));
+      // Close all other groups first, then open this one
+      setExpanded({ [key]: true });
       // Position flyout next to the button for collapsed mode
       if (collapsed && btnEl) {
         const rect = btnEl.getBoundingClientRect();
         setFlyoutPos({ top: rect.top, left: rect.right + 8 });
+      } else {
+        setFlyoutPos(null);
       }
     }
   }
