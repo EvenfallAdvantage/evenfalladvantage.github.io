@@ -75,18 +75,6 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: ["owner", "admin", "manager"],
       },
       {
-        title: "Question Bank",
-        href: "/admin/questions",
-        icon: "HelpCircle",
-        roles: ["owner", "admin", "manager"],
-      },
-      {
-        title: "Intel",
-        href: "/admin/reports",
-        icon: "BarChart3",
-        roles: ["owner", "admin", "manager"],
-      },
-      {
         title: "Security",
         href: "/admin/security",
         icon: "Shield",
