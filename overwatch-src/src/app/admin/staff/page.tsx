@@ -16,6 +16,7 @@ import {
   getAllFormSubmissions, reviewFormSubmission,
   getApplicants, createApplicant, updateApplicantStatus, deleteApplicant, convertApplicantToUser,
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask,
+  getCompanyTimeChangeRequests, reviewTimeChangeRequest,
 } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 
@@ -31,8 +32,10 @@ type FormSub = any;
 type Applicant = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OTask = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TCR = any;
 
-type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding";
+type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections";
 
 export default function AdminStaffPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -66,6 +69,9 @@ export default function AdminStaffPage() {
   const [showAddTask, setShowAddTask] = useState(false);
   const [taskForm, setTaskForm] = useState({ title: "", description: "", category: "general", isRequired: true });
   const [savingTask, setSavingTask] = useState(false);
+  // Time change requests
+  const [timeChangeReqs, setTimeChangeReqs] = useState<TCR[]>([]);
+  const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
 
   const myRole = user?.companies.find((c) => c.companyId === activeCompanyId)?.role ?? "staff";
   const canManageRoles = myRole === "owner" || myRole === "admin";
@@ -86,9 +92,10 @@ export default function AdminStaffPage() {
       setTimesheets(ts.filter((t: Sheet) => t.clock_out));
       setLeaveRequests(leave);
       setFormSubmissions(forms);
-      // Load applicants and onboarding tasks (non-blocking)
+      // Load applicants, onboarding tasks, and time change requests (non-blocking)
       try { setApplicants(await getApplicants(activeCompanyId)); } catch {}
       try { setOTasks(await getOnboardingTasks(activeCompanyId)); } catch {}
+      try { setTimeChangeReqs(await getCompanyTimeChangeRequests(activeCompanyId)); } catch {}
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -177,6 +184,12 @@ export default function AdminStaffPage() {
     } catch (err) { console.error(err); } finally { setSavingTask(false); }
   }
 
+  async function handleTCRReview(id: string, status: "approved" | "denied") {
+    setReviewingTCR(id);
+    try { await reviewTimeChangeRequest(id, status); await load(); } catch (err) { console.error(err); }
+    finally { setReviewingTCR(null); }
+  }
+
   async function handleDeleteTask(id: string) {
     if (!confirm("Delete this onboarding task?")) return;
     try {
@@ -203,6 +216,7 @@ export default function AdminStaffPage() {
   const pendingLeave = leaveRequests.filter((r: LeaveReq) => r.status === "pending");
   const filteredLeave = leaveFilter === "pending" ? pendingLeave : leaveRequests;
   const pendingForms = formSubmissions.filter((f: FormSub) => f.status !== "reviewed");
+  const pendingTCR = timeChangeReqs.filter((r: TCR) => r.status === "pending");
 
   const leaveStatusColor = (s: string) => {
     if (s === "approved") return "bg-green-500/15 text-green-600";
@@ -246,6 +260,7 @@ export default function AdminStaffPage() {
             { key: "applicants" as Tab, label: "Applicants", badge: applicants.filter((a: Applicant) => a.status === "applied").length },
             { key: "onboarding" as Tab, label: "Onboarding", badge: 0 },
             { key: "timesheets" as Tab, label: "Timesheets", badge: pendingSheets.length },
+            { key: "corrections" as Tab, label: "Corrections", badge: pendingTCR.length },
             { key: "leave" as Tab, label: "Leave", badge: pendingLeave.length },
             { key: "forms" as Tab, label: "Forms", badge: pendingForms.length },
           ]).map(t => (
@@ -356,6 +371,74 @@ export default function AdminStaffPage() {
                           {approving === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
                         </Button>
                       )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Time Corrections Tab ── */}
+        {tab === "corrections" && (
+          <>
+            {loading ? (
+              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : timeChangeReqs.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
+                <Clock className="mb-3 h-10 w-10 text-muted-foreground/40" />
+                <p className="text-sm font-medium">No time correction requests</p>
+                <p className="mt-1 max-w-xs text-xs text-muted-foreground">When employees request changes to their timesheet entries, they&apos;ll appear here for review.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {timeChangeReqs.map((r: TCR) => {
+                  const u = r.users;
+                  const ts = r.timesheets;
+                  const statusColor = r.status === "approved" ? "bg-green-500/15 text-green-600" : r.status === "denied" ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600";
+                  return (
+                    <div key={r.id} className={`rounded-xl border bg-card px-4 py-3 ${
+                      r.status === "pending" ? "border-orange-500/30" : "border-border/50"
+                    }`}>
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500/10 text-xs font-bold text-orange-500">
+                          {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Original: {ts?.clock_in ? parseUTC(ts.clock_in).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} → {ts?.clock_out ? parseUTC(ts.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+                          </p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                            {r.requested_clock_in && (
+                              <span className="text-[10px]"><span className="text-muted-foreground">New In:</span> <span className="font-mono font-medium text-blue-400">{parseUTC(r.requested_clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
+                            )}
+                            {r.requested_clock_out && (
+                              <span className="text-[10px]"><span className="text-muted-foreground">New Out:</span> <span className="font-mono font-medium text-blue-400">{parseUTC(r.requested_clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
+                            )}
+                          </div>
+                          {r.reason && <p className="text-[10px] text-muted-foreground/70 mt-1 italic">&ldquo;{r.reason}&rdquo;</p>}
+                          <p className="text-[9px] text-muted-foreground/50 mt-0.5">Submitted {new Date(r.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                        </div>
+                        <Badge className={`text-[10px] capitalize shrink-0 ${statusColor}`}>{r.status}</Badge>
+                        {r.status === "pending" && canManage && (
+                          <div className="flex gap-1 shrink-0">
+                            <Button size="sm" variant="outline"
+                              className="h-7 gap-1 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
+                              onClick={() => handleTCRReview(r.id, "approved")}
+                              disabled={reviewingTCR === r.id}>
+                              {reviewingTCR === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                              Approve
+                            </Button>
+                            <Button size="sm" variant="outline"
+                              className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10"
+                              onClick={() => handleTCRReview(r.id, "denied")}
+                              disabled={reviewingTCR === r.id}>
+                              <XCircle className="h-3 w-3" /> Deny
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
