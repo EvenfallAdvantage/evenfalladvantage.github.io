@@ -255,8 +255,8 @@ export default function UpdatesPage() {
           <p className="text-xs sm:text-sm text-muted-foreground">Announcements, alerts, and team updates</p>
         </div>
 
-        {/* Composer */}
-        <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+        {/* Composer — leadership only */}
+        {isAdmin && <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
           <div className="p-4 space-y-3">
             <div className="flex gap-3">
               <Avatar className="h-9 w-9 shrink-0">
@@ -370,7 +370,7 @@ export default function UpdatesPage() {
               Publish
             </Button>
           </div>
-        </div>
+        </div>}
 
         {/* Feed */}
         {loading ? (
