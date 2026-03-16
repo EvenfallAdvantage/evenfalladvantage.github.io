@@ -20,6 +20,8 @@ export async function createEvent(params: {
   location?: string;
   startDate: string;
   endDate: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  opsGuide?: Record<string, any>;
 }) {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -32,9 +34,40 @@ export async function createEvent(params: {
       location: params.location ?? null,
       start_date: params.startDate,
       end_date: params.endDate,
+      ops_guide: params.opsGuide ?? null,
       status: "draft",
       ...ts(),
     })
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateEvent(eventId: string, updates: {
+  name?: string;
+  description?: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  opsGuide?: Record<string, any>;
+}) {
+  const supabase = createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const row: Record<string, any> = { updated_at: new Date().toISOString() };
+  if (updates.name !== undefined) row.name = updates.name;
+  if (updates.description !== undefined) row.description = updates.description;
+  if (updates.location !== undefined) row.location = updates.location;
+  if (updates.startDate !== undefined) row.start_date = updates.startDate;
+  if (updates.endDate !== undefined) row.end_date = updates.endDate;
+  if (updates.status !== undefined) row.status = updates.status;
+  if (updates.opsGuide !== undefined) row.ops_guide = updates.opsGuide;
+  const { data, error } = await supabase
+    .from("events")
+    .update(row)
+    .eq("id", eventId)
     .select()
     .maybeSingle();
   if (error) throw error;
