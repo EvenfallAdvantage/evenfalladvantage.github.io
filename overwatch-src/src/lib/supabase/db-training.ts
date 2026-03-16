@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
+import type { QuizPayload, UserName, CertificationRow } from "@/types";
 
 // ─── Quizzes (Drills) ──────────────────────────────────
 
@@ -43,8 +44,7 @@ export async function createQuiz(params: {
 
 export async function updateQuiz(quizId: string, updates: { questions?: unknown[]; title?: string; description?: string; passingScore?: number; moduleId?: string | null }) {
   const supabase = createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const payload: any = { updated_at: new Date().toISOString() };
+  const payload: QuizPayload = { updated_at: new Date().toISOString() };
   if (updates.questions !== undefined) payload.questions = updates.questions;
   if (updates.title !== undefined) payload.title = updates.title;
   if (updates.description !== undefined) payload.description = updates.description;
@@ -511,14 +511,11 @@ export async function getCompanyCertifications(companyId: string) {
     .in("user_id", userIds)
     .order("expiry_date", { ascending: true });
   // Attach user names
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const userMap: Record<string, any> = {};
+  const userMap: Record<string, UserName | null> = {};
   for (const m of members) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    userMap[m.user_id] = (m as any).users;
+    userMap[m.user_id] = (m as unknown as { users: UserName | null }).users;
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (certs ?? []).map((c: any) => ({ ...c, users: userMap[c.user_id] ?? null }));
+  return (certs ?? []).map((c: CertificationRow) => ({ ...c, users: userMap[c.user_id] ?? null }));
 }
 
 export async function addCertification(params: {

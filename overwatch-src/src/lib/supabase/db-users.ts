@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { ts, getAuthUserId, ensureInternalUser } from "./db-helpers";
+import type { UserProfilePayload, CompanyPayload } from "@/types";
 
 // ─── Users ──────────────────────────────────────────────
 
@@ -297,8 +298,7 @@ export async function updateUserProfile(updates: {
   if (!authId) throw new Error("Not authenticated");
 
   const supabase = createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const payload: any = {};
+  const payload: UserProfilePayload = {};
   if (updates.firstName !== undefined) payload.first_name = updates.firstName;
   if (updates.lastName !== undefined) payload.last_name = updates.lastName;
   if (updates.phone !== undefined) payload.phone = updates.phone;
@@ -334,8 +334,7 @@ export async function updateCompany(companyId: string, updates: {
   logoUrl?: string;
 }) {
   const supabase = createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const payload: any = {};
+  const payload: CompanyPayload = {};
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.brandColor !== undefined) payload.brand_color = updates.brandColor;
   if (updates.timezone !== undefined) payload.timezone = updates.timezone;

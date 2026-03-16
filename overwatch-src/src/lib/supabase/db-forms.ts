@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
+import type { FormPayload } from "@/types";
 
 // ─── Forms (Field Reports) ─────────────────────────────
 
@@ -39,8 +40,7 @@ export async function createForm(params: {
 
 export async function updateForm(formId: string, updates: { fields?: unknown[]; name?: string; description?: string }) {
   const supabase = createClient();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const payload: any = { updated_at: new Date().toISOString() };
+  const payload: FormPayload = { updated_at: new Date().toISOString() };
   if (updates.fields !== undefined) payload.fields = updates.fields;
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.description !== undefined) payload.description = updates.description;
