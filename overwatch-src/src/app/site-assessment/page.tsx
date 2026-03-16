@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 
 /* ── Types ──────────────────────────────────────────────── */
 
@@ -350,7 +349,7 @@ export default function SiteAssessmentPage() {
   const completionPct = Math.round((completedFields / totalFields) * 100);
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -582,6 +581,6 @@ export default function SiteAssessmentPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

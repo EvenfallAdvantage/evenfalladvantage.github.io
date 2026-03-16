@@ -18,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getCheckpoints,
@@ -170,7 +169,7 @@ export default function PatrolsPage() {
   ];
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
@@ -578,6 +577,6 @@ export default function PatrolsPage() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

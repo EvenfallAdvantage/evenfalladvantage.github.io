@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updateForm } from "@/lib/supabase/db";
 
@@ -123,7 +122,7 @@ export default function FormsPage() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -332,6 +331,6 @@ export default function FormsPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

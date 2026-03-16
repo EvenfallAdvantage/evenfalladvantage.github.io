@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Oswald, Barlow } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 const oswald = Oswald({
@@ -75,7 +76,7 @@ export default function RootLayout({
       <body
         className={`${oswald.variable} ${barlow.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers><AppShell>{children}</AppShell></Providers>
       </body>
     </html>
   );

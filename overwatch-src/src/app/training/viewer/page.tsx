@@ -9,30 +9,48 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import {
   getTrainingModule, getModuleSlides, upsertModuleProgress, completeModule,
 } from "@/lib/supabase/db";
+import { getLegacyModules, getLegacySlides, updateLegacyProgress, type LegacySlide } from "@/lib/legacy-bridge";
+import { ensureStudentLinked } from "@/lib/account-linker";
+import { useAuthStore } from "@/stores/auth-store";
 import type { TrainingModule, ModuleSlide } from "@/types";
 
 export default function ModuleViewerPage() {
   return (
     <Suspense fallback={
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </DashboardLayout>
+      </>
     }>
       <ModuleViewerInner />
     </Suspense>
   );
 }
 
+function legacySlidesToModuleSlides(ls: LegacySlide[]): ModuleSlide[] {
+  const now = new Date().toISOString();
+  return ls.map((s) => ({
+    id: s.id,
+    module_id: s.module_id,
+    title: s.title,
+    content_html: s.content_html ?? s.content ?? "",
+    sort_order: s.slide_order,
+    image_url: s.image_url,
+    audio_url: s.audio_url,
+    created_at: now,
+    updated_at: now,
+  }));
+}
+
 function ModuleViewerInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const moduleId = searchParams.get("id") ?? "";
+  const user = useAuthStore((s: { user: unknown }) => s.user) as { id: string; email: string; user_metadata?: Record<string, string> } | null;
 
   const [mod, setMod] = useState<TrainingModule | null>(null);
   const [slides, setSlides] = useState<ModuleSlide[]>([]);
@@ -41,37 +59,100 @@ function ModuleViewerInner() {
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [legacyStudentId, setLegacyStudentId] = useState<string | null>(null);
+  const [isLegacyModule, setIsLegacyModule] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const load = useCallback(async () => {
     if (!moduleId) { setLoading(false); return; }
     try {
+      // Try Overwatch DB first
       const [moduleData, slideData] = await Promise.all([
         getTrainingModule(moduleId),
         getModuleSlides(moduleId),
       ]);
-      setMod(moduleData as TrainingModule | null);
-      setSlides(slideData as ModuleSlide[]);
+
+      if (moduleData && slideData && slideData.length > 0) {
+        setMod(moduleData as TrainingModule | null);
+        setSlides(slideData as ModuleSlide[]);
+      } else {
+        // Fallback: try legacy DB
+        const legacySlides = await getLegacySlides(moduleId);
+        if (legacySlides.length > 0) {
+          setIsLegacyModule(true);
+          setSlides(legacySlidesToModuleSlides(legacySlides));
+
+          // Try to get module metadata from legacy
+          if (!moduleData) {
+            const legacyModules = await getLegacyModules();
+            const found = legacyModules.find((m) => m.id === moduleId);
+            if (found) {
+              setMod({
+                id: found.id,
+                module_name: found.module_name,
+                module_code: found.module_code,
+                description: found.description,
+                icon: found.icon,
+                difficulty_level: found.difficulty_level,
+                estimated_time: found.estimated_time,
+                duration_minutes: found.duration_minutes,
+                is_active: found.is_active,
+                display_order: found.display_order,
+                company_id: "",
+                is_required: false,
+                created_at: "",
+                updated_at: "",
+              } as unknown as TrainingModule);
+            }
+          } else {
+            setMod(moduleData as TrainingModule | null);
+          }
+        } else {
+          setMod(moduleData as TrainingModule | null);
+          setSlides(slideData as ModuleSlide[]);
+        }
+      }
+
+      // Auto-link legacy student for progress sync
+      if (user?.email) {
+        const sId = await ensureStudentLinked({
+          id: user.id,
+          email: user.email,
+          firstName: user.user_metadata?.first_name,
+          lastName: user.user_metadata?.last_name,
+        });
+        setLegacyStudentId(sId);
+      }
     } catch (err) {
       console.error("Failed to load module:", err);
     } finally {
       setLoading(false);
     }
-  }, [moduleId]);
+  }, [moduleId, user]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Save progress whenever slide changes
+  // Save progress whenever slide changes (both Overwatch + legacy)
   useEffect(() => {
     if (slides.length === 0 || loading || !moduleId) return;
+    const pct = Math.round(((currentSlide + 1) / slides.length) * 100);
     const timeout = setTimeout(() => {
       upsertModuleProgress(moduleId, {
         currentSlide,
         totalSlides: slides.length,
       }).catch(console.error);
+
+      // Write-through to legacy DB
+      if (legacyStudentId && isLegacyModule) {
+        updateLegacyProgress(legacyStudentId, moduleId, {
+          progress_percentage: pct,
+          current_slide: currentSlide,
+          completed_at: pct === 100 ? new Date().toISOString() : null,
+        }).catch(console.error);
+      }
     }, 500);
     return () => clearTimeout(timeout);
-  }, [currentSlide, slides.length, moduleId, loading]);
+  }, [currentSlide, slides.length, moduleId, loading, legacyStudentId, isLegacyModule]);
 
   // Handle audio
   useEffect(() => {
@@ -132,17 +213,17 @@ function ModuleViewerInner() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   if (!mod) {
     return (
-      <DashboardLayout>
+      <>
         <div className="flex flex-col items-center gap-4 py-20 text-center">
           <GraduationCap className="h-12 w-12 text-muted-foreground/30" />
           <h2 className="text-lg font-semibold">Module Not Found</h2>
@@ -150,7 +231,7 @@ function ModuleViewerInner() {
             <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training
           </Button>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
@@ -161,7 +242,7 @@ function ModuleViewerInner() {
     : 0;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -300,6 +381,6 @@ function ModuleViewerInner() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

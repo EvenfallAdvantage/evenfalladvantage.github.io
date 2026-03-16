@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyStats } from "@/lib/supabase/db";
 
@@ -127,7 +126,7 @@ export default function AdminReportsPage() {
   ];
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -278,6 +277,6 @@ export default function AdminReportsPage() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

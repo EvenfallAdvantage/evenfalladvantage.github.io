@@ -5,7 +5,6 @@ import { Target, Plus, Loader2, ChevronLeft, CheckCircle2, XCircle, Play, Trash2
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getQuizzes, createQuiz, submitQuizAttempt, getUserQuizAttempts, deleteQuiz, updateQuiz, getAssessmentQuestions, importQuestionsToQuiz, getTrainingModules, completeModule } from "@/lib/supabase/db";
 import type { TrainingModule } from "@/types";
@@ -204,7 +203,7 @@ export default function QuizzesPage() {
   const bestScore = attempts.length > 0 ? Math.max(...attempts.map((a: Attempt) => a.score ?? 0)) : null;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -494,6 +493,6 @@ export default function QuizzesPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Radio, Plus, Send, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { ChatSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import { getChatChannels, createChatChannel, getChatMessages, sendChatMessage, deleteChatChannel } from "@/lib/supabase/db";
@@ -92,7 +91,7 @@ export default function ChatPage() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -194,6 +193,6 @@ export default function ChatPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

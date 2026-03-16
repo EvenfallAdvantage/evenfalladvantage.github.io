@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getPosts, createPost, togglePinPost, deletePost, getPostComments, addPostComment, deletePostComment, getPostReactions, togglePostReaction } from "@/lib/supabase/db";
 
@@ -249,7 +248,7 @@ export default function UpdatesPage() {
   const activeType = POST_TYPES.find((t) => t.value === postType) ?? POST_TYPES[0];
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Radar className="h-5 w-5 sm:h-6 sm:w-6" /> BRIEFING</h1>
@@ -560,6 +559,6 @@ export default function UpdatesPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

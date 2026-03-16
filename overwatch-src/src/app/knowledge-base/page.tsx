@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { BookOpen, FolderOpen, FileText, Plus, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getKBFolders, getKBDocuments, createKBFolder, createKBDocument, deleteKBFolder, deleteKBDocument } from "@/lib/supabase/db";
 
@@ -81,7 +80,7 @@ export default function KnowledgeBasePage() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -192,6 +191,6 @@ export default function KnowledgeBasePage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

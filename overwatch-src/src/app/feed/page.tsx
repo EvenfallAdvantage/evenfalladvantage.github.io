@@ -20,7 +20,6 @@ import {
   TrendingDown,
   MapPin,
   Shield,
-  BookOpen,
   MessageCircle,
   Video,
   Scale,
@@ -33,7 +32,6 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -126,7 +124,7 @@ const QUICK_ACTIONS = [
 const TOOLS_GRID = [
   { title: "Geo-Risk", href: "/geo-risk", icon: MapPin, color: "text-cyan-500", bg: "bg-cyan-500/10", desc: "Location risk intel" },
   { title: "Site Assessment", href: "/site-assessment", icon: Shield, color: "text-teal-500", bg: "bg-teal-500/10", desc: "Security evaluations" },
-  { title: "Courses", href: "/courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-500/10", desc: "Enroll & certify" },
+  { title: "Academy", href: "/academy", icon: GraduationCap, color: "text-indigo-500", bg: "bg-indigo-500/10", desc: "Courses & certs" },
   { title: "Scenarios", href: "/training/scenarios", icon: MessageCircle, color: "text-orange-500", bg: "bg-orange-500/10", desc: "De-escalation sims" },
   { title: "Instructor", href: "/instructor", icon: Video, color: "text-pink-500", bg: "bg-pink-500/10", desc: "Live video sessions" },
   { title: "State Laws", href: "/state-laws", icon: Scale, color: "text-slate-400", bg: "bg-slate-400/10", desc: "50-state database" },
@@ -226,14 +224,14 @@ export default function FeedPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <>
         <DashboardSkeleton />
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -576,6 +574,6 @@ export default function FeedPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

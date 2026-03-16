@@ -29,12 +29,14 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Readiness",
     items: [
       {
-        title: "Training",
-        href: "/training",
+        title: "Academy",
+        href: "/academy",
         icon: "GraduationCap",
         children: [
-          { title: "Modules", href: "/training", icon: "GraduationCap" },
+          { title: "Academy Hub", href: "/academy", icon: "GraduationCap" },
+          { title: "Modules", href: "/training", icon: "BookOpen" },
           { title: "Drills", href: "/quizzes", icon: "Target" },
+          { title: "De-Escalation", href: "/training/scenarios", icon: "MessageCircle" },
           { title: "Courses", href: "/courses", icon: "BookOpen" },
           { title: "Certifications", href: "/certifications", icon: "Award" },
         ],
@@ -56,6 +58,12 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Command",
     items: [
+      {
+        title: "Instructor HQ",
+        href: "/instructor/manage",
+        icon: "GraduationCap",
+        roles: ["owner", "admin", "manager"],
+      },
       {
         title: "Operations",
         href: "/admin/events",

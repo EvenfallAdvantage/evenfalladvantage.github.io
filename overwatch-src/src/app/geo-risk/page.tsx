@@ -10,7 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import {
   STATE_CRIME_DATA, US_STATES, FACILITY_TYPES, RISK_COLORS,
   getCrimeRating, getThreatLikelihood, getFacilityImpact,
@@ -152,7 +151,7 @@ export default function GeoRiskPage() {
   if (result) {
     const rc = RISK_COLORS[result.overallRating];
     return (
-      <DashboardLayout>
+      <>
         <div className="max-w-2xl mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold font-mono flex items-center gap-2">
@@ -247,13 +246,13 @@ export default function GeoRiskPage() {
             </CardContent>
           </Card>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   // ─── Input Form ───
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-xl mx-auto space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
@@ -343,6 +342,6 @@ export default function GeoRiskPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

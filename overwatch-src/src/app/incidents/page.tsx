@@ -24,7 +24,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { ListSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -226,7 +225,7 @@ export default function IncidentsPage() {
   const statInfo = (st: string) => STATUS.find(s => s.value === st) ?? STATUS[0];
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -656,6 +655,6 @@ export default function IncidentsPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

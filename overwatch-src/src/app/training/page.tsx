@@ -11,7 +11,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getQuizzes, getKBFolders, getUserCertifications,
@@ -148,7 +147,7 @@ export default function TrainingPage() {
   const readinessColor = readinessLevel === "ACTIVE" ? "text-green-500" : "text-amber-500";
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header with readiness indicator */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -444,6 +443,6 @@ export default function TrainingPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

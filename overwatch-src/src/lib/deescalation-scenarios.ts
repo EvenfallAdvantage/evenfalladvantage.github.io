@@ -19,8 +19,18 @@ export type Scenario = {
   description: string;
   initialState: string;
   initialMeter: number;
+  subjectId: number | null;
+  audioMap: Record<string, string>;
   steps: Record<string, Step>;
 };
+
+const AUDIO_BASE = "/audio/de_escalation";
+const IMAGE_BASE = "/images/de_escalation";
+
+export function getSubjectImage(subjectId: number | null, state: string): string | null {
+  if (!subjectId) return null;
+  return `${IMAGE_BASE}/${subjectId}-${state}.jpg`;
+}
 
 export const SCENARIOS: Scenario[] = [
   {
@@ -29,6 +39,22 @@ export const SCENARIOS: Scenario[] = [
     description: "A patron claims they lost their entry wristband and wants to enter the venue.",
     initialState: "Distressed",
     initialMeter: 40,
+    subjectId: 1,
+    audioMap: {
+      "start": `${AUDIO_BASE}/s1/S.mp3`,
+      "good-path-step-2": `${AUDIO_BASE}/s1/G2.mp3`,
+      "good-path-step-3": `${AUDIO_BASE}/s1/G3.mp3`,
+      "bad-path-1-step-2": `${AUDIO_BASE}/s1/B12.mp3`,
+      "bad-path-1-step-3": `${AUDIO_BASE}/s1/B13.mp3`,
+      "bad-path-2-step-2": `${AUDIO_BASE}/s1/B22.mp3`,
+      "bad-path-2-step-3": `${AUDIO_BASE}/s1/B23.mp3`,
+      "bad-path-2-step-4": `${AUDIO_BASE}/s1/B24.mp3`,
+      "mixed-path-step-2": `${AUDIO_BASE}/s1/M2.mp3`,
+      "mixed-path-step-3-recovery": `${AUDIO_BASE}/s1/M3R.mp3`,
+      "mixed-path-step-3-proof": `${AUDIO_BASE}/s1/M3P.mp3`,
+      "success-happy": `${AUDIO_BASE}/s1/P.mp3`,
+      "fail-very-angry": `${AUDIO_BASE}/s1/F.mp3`,
+    },
     steps: {
       start: {
         state: "Distressed",
@@ -144,6 +170,21 @@ export const SCENARIOS: Scenario[] = [
     description: "A female patron has been cut off from alcohol service and is becoming confrontational.",
     initialState: "Distressed",
     initialMeter: 45,
+    subjectId: 2,
+    audioMap: {
+      "start": `${AUDIO_BASE}/s2/S.mp3`,
+      "good-path-step-2": `${AUDIO_BASE}/s2/G2.mp3`,
+      "good-path-step-3": `${AUDIO_BASE}/s2/G3.mp3`,
+      "bad-path-1-step-2": `${AUDIO_BASE}/s2/B12.mp3`,
+      "bad-path-1-step-3": `${AUDIO_BASE}/s2/B13.mp3`,
+      "bad-path-2-step-2": `${AUDIO_BASE}/s2/B22.mp3`,
+      "bad-path-2-step-3": `${AUDIO_BASE}/s2/B23.mp3`,
+      "bad-path-2-step-4": `${AUDIO_BASE}/s2/B24.mp3`,
+      "mixed-path-step-2": `${AUDIO_BASE}/s2/M2.mp3`,
+      "mixed-path-step-3-recovery": `${AUDIO_BASE}/s2/M3.mp3`,
+      "success-happy": `${AUDIO_BASE}/s2/P.mp3`,
+      "fail-very-angry": `${AUDIO_BASE}/s2/F.mp3`,
+    },
     steps: {
       start: {
         state: "Distressed",
@@ -250,6 +291,8 @@ export const SCENARIOS: Scenario[] = [
     description: "A patron is being denied entry because his ID appears to be fake or expired.",
     initialState: "Distressed",
     initialMeter: 40,
+    subjectId: null,
+    audioMap: {},
     steps: {
       start: {
         state: "Distressed",

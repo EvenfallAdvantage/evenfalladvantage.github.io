@@ -5,7 +5,6 @@ import { Clock, LogIn, LogOut, History, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import {
   getActiveTimesheet,
   clockIn,
@@ -112,7 +111,7 @@ export default function TimeClockPage() {
   const isClockedIn = !!active;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Clock className="h-5 w-5 sm:h-6 sm:w-6" /> Watch Log</h1>
@@ -233,6 +232,6 @@ export default function TimeClockPage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

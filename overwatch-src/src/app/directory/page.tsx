@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { Users, Search, Mail, Phone, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyMembers } from "@/lib/supabase/db";
 
@@ -42,7 +41,7 @@ export default function DirectoryPage() {
     : "";
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Users className="h-5 w-5 sm:h-6 sm:w-6" /> Roster</h1>
@@ -162,6 +161,6 @@ export default function DirectoryPage() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

@@ -1,31 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-
-const AUTH_ROUTES = ["/login", "/register", "/verify", "/join", "/auth/callback"];
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [isReady, setIsReady] = useState(false);
+  const checkedRef = useRef(false);
 
   useEffect(() => {
+    if (checkedRef.current) return;
     const supabase = createClient();
 
     supabase.auth.getUser().then(({ data: { user } }) => {
-      const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
-
-      if (!user && !isAuthRoute) {
+      if (!user) {
         router.replace("/login");
-      } else if (user && isAuthRoute) {
-        router.replace("/feed");
       } else {
+        checkedRef.current = true;
         setIsReady(true);
       }
     });
-  }, [pathname, router]);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!session?.user) {
+          router.replace("/login");
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   if (!isReady) {
     return (

@@ -5,7 +5,6 @@ import { Users, Search, Copy, Check, Loader2, Clock, Trash2, ChevronDown } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet, updateMemberRole, removeMember } from "@/lib/supabase/db";
 
@@ -79,7 +78,7 @@ export default function AdminStaffPage() {
   const pendingSheets = timesheets.filter((t: Sheet) => !t.approved);
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -213,6 +212,6 @@ export default function AdminStaffPage() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

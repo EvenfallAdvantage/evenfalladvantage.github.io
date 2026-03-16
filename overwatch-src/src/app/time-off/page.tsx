@@ -5,7 +5,6 @@ import { CalendarOff, Plus, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest, deleteTimeOffRequest } from "@/lib/supabase/db";
 
@@ -83,7 +82,7 @@ export default function TimeOffPage() {
   const pendingCount = allRequests.filter((r: Request) => r.status === "pending").length;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -206,6 +205,6 @@ export default function TimeOffPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

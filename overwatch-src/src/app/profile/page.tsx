@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Check, X, Settings, FileText, Activity, FolderOpen, Loader2, Clock } from "lucide-react";
 import Link from "next/link";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { updateUserProfile, getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,7 +74,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
@@ -281,6 +280,6 @@ export default function ProfilePage() {
           </Tabs>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

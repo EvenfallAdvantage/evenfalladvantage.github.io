@@ -37,7 +37,6 @@ import {
   HelpCircle,
   type LucideIcon,
 } from "lucide-react";
-import { DashboardLayout } from "@/components/dashboard-layout";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   LayoutDashboard, Radar, Radio, Users, Clock, CalendarDays, CalendarOff,
@@ -63,7 +62,7 @@ export default function MorePage() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-5">
         {/* User card */}
         <Link
@@ -185,6 +184,6 @@ export default function MorePage() {
           </button>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

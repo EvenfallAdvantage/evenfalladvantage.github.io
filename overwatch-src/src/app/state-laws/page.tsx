@@ -8,7 +8,6 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { STATE_LAWS, type StateLaw } from "@/lib/state-laws-data";
 
 function hasLicense(s: StateLaw) {
@@ -48,7 +47,7 @@ export default function StateLawsPage() {
   const licensedCount = STATE_LAWS.filter(hasLicense).length;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div>
@@ -172,6 +171,6 @@ export default function StateLawsPage() {
           })}
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

@@ -9,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 
 type SessionState = "setup" | "live" | "ended";
@@ -70,7 +69,7 @@ export default function InstructorPage() {
   // ─── Session Ended ───
   if (sessionState === "ended") {
     return (
-      <DashboardLayout>
+      <>
         <div className="max-w-md mx-auto space-y-4 text-center pt-12">
           <div className="h-16 w-16 rounded-full mx-auto bg-green-500/15 flex items-center justify-center">
             <Check className="h-8 w-8 text-green-500" />
@@ -83,7 +82,7 @@ export default function InstructorPage() {
             <Video className="h-4 w-4" /> Start New Session
           </Button>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
@@ -92,7 +91,7 @@ export default function InstructorPage() {
     const studentLink = requirePassword ? `${roomUrl}?password=${password}` : roomUrl;
 
     return (
-      <DashboardLayout>
+      <>
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -154,13 +153,13 @@ export default function InstructorPage() {
             </CardContent>
           </Card>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   // ─── Setup ───
   return (
-    <DashboardLayout>
+    <>
       <div className="max-w-xl mx-auto space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
@@ -223,6 +222,6 @@ export default function InstructorPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

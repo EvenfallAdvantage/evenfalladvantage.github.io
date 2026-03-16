@@ -9,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUserCertifications, addCertification, deleteCertification, verifyCertificate } from "@/lib/supabase/db";
 
@@ -200,7 +199,7 @@ export default function CertificationsPage() {
   const expired = active.filter((c) => c.expiry_date && new Date(c.expiry_date) < now);
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -357,6 +356,6 @@ export default function CertificationsPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

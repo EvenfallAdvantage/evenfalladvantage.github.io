@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { Bell, CheckCheck, Loader2, Info, AlertTriangle, Megaphone, Calendar, ClipboardList, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/supabase/db";
 import Link from "next/link";
@@ -67,7 +66,7 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n: Notif) => !n.read).length;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -135,6 +134,6 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

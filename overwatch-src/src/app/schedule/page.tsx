@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { CalendarDays, MapPin, Clock, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUpcomingEvents, getUserShifts } from "@/lib/supabase/db";
 
@@ -47,7 +46,7 @@ export default function SchedulePage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarDays className="h-5 w-5 sm:h-6 sm:w-6" /> DEPLOYMENTS</h1>
@@ -124,6 +123,6 @@ export default function SchedulePage() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

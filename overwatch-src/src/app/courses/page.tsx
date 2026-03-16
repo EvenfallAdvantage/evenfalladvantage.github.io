@@ -9,7 +9,6 @@ import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUserPayments, getCatalogCourses } from "@/lib/supabase/db";
 
@@ -94,7 +93,7 @@ function CoursesContent() {
   const ownedCount = purchasedCourses.size;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="space-y-6">
         {/* Status banners from Stripe redirect */}
         {status === "success" && (
@@ -220,13 +219,13 @@ function CoursesContent() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 
 export default function CoursesPage() {
   return (
-    <Suspense fallback={<DashboardLayout><div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></DashboardLayout>}>
+    <Suspense fallback={<><div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></>}>
       <CoursesContent />
     </Suspense>
   );
