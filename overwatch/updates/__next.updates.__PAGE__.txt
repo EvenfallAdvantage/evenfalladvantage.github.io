@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
 2:I[47257,["/overwatch/_next/static/chunks/ff1a16fafef87110.js","/overwatch/_next/static/chunks/d2be314c3ece3fbe.js"],"ClientPageRoot"]
-3:I[32786,["/overwatch/_next/static/chunks/57438bb0ced96d11.js","/overwatch/_next/static/chunks/a61b829780e1db42.js","/overwatch/_next/static/chunks/1e9f768250e0891c.js","/overwatch/_next/static/chunks/37571170a2ab65e4.js","/overwatch/_next/static/chunks/86c112019355893e.js","/overwatch/_next/static/chunks/b56846a54bc75aa7.js","/overwatch/_next/static/chunks/e659ec0243492350.js","/overwatch/_next/static/chunks/ccb3c6a1dd91f8ff.js"],"default"]
+3:I[32786,["/overwatch/_next/static/chunks/57438bb0ced96d11.js","/overwatch/_next/static/chunks/8fbb0769c199e2b9.js","/overwatch/_next/static/chunks/1e9f768250e0891c.js","/overwatch/_next/static/chunks/37571170a2ab65e4.js","/overwatch/_next/static/chunks/86c112019355893e.js","/overwatch/_next/static/chunks/b56846a54bc75aa7.js","/overwatch/_next/static/chunks/e659ec0243492350.js","/overwatch/_next/static/chunks/ccb3c6a1dd91f8ff.js"],"default"]
 6:I[97367,["/overwatch/_next/static/chunks/ff1a16fafef87110.js","/overwatch/_next/static/chunks/d2be314c3ece3fbe.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"buildId":"ocYYW4aYcUm7dKNi0I7B6","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/overwatch/_next/static/chunks/ccb3c6a1dd91f8ff.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"vTFaRxoSVYuB0gH_AGOeb","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/overwatch/_next/static/chunks/ccb3c6a1dd91f8ff.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
 4:{}
 5:{}
 8:null

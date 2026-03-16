@@ -19,6 +19,7 @@ import {
   getCompanyTimeChangeRequests, reviewTimeChangeRequest,
 } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
+import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -42,6 +43,7 @@ export default function AdminStaffPage() {
   const user = useAuthStore((s) => s.user);
   const [members, setMembers] = useState<Member[]>([]);
   const [joinCode, setJoinCode] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -72,6 +74,8 @@ export default function AdminStaffPage() {
   // Time change requests
   const [timeChangeReqs, setTimeChangeReqs] = useState<TCR[]>([]);
   const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
+  // Hire integration results
+  const [hireResult, setHireResult] = useState<HireResult | null>(null);
 
   const myRole = user?.companies.find((c) => c.companyId === activeCompanyId)?.role ?? "staff";
   const canManageRoles = myRole === "owner" || myRole === "admin";
@@ -89,6 +93,7 @@ export default function AdminStaffPage() {
       ]);
       setMembers(m);
       setJoinCode(company?.join_code ?? "");
+      setCompanyName(company?.name ?? "");
       setTimesheets(ts.filter((t: Sheet) => t.clock_out));
       setLeaveRequests(leave);
       setFormSubmissions(forms);
@@ -158,7 +163,31 @@ export default function AdminStaffPage() {
     try {
       await updateApplicantStatus(id, status);
       if (status === "hired" && activeCompanyId && activeCompanyId !== "pending") {
-        try { await convertApplicantToUser(id, activeCompanyId); } catch (err) { console.error("Convert failed:", err); }
+        try {
+          await convertApplicantToUser(id, activeCompanyId);
+          // Fire integration triggers (email, WhatsApp, Checkr, DocuSign)
+          const applicant = applicants.find((a: Applicant) => a.id === id);
+          if (applicant) {
+            const appUrl = typeof window !== "undefined"
+              ? `${window.location.origin}${window.location.pathname.replace(/\/admin\/staff.*/, "")}`
+              : "";
+            onApplicantHired({
+              companyId: activeCompanyId,
+              companyName: companyName || "Your Company",
+              joinCode,
+              appUrl,
+              applicant: {
+                firstName: applicant.first_name ?? "",
+                lastName: applicant.last_name ?? "",
+                email: applicant.email ?? "",
+                phone: applicant.phone,
+              },
+            }).then(result => {
+              setHireResult(result);
+              setTimeout(() => setHireResult(null), 8000);
+            }).catch(err => console.error("Integration triggers failed:", err));
+          }
+        } catch (err) { console.error("Convert failed:", err); }
       }
       if (activeCompanyId && activeCompanyId !== "pending") setApplicants(await getApplicants(activeCompanyId));
       await load();
@@ -250,6 +279,26 @@ export default function AdminStaffPage() {
           <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-2 text-xs text-red-500 flex items-center justify-between">
             <span>{error}</span>
             <button onClick={() => setError(null)} className="ml-2 font-bold hover:text-red-400">&times;</button>
+          </div>
+        )}
+
+        {hireResult && (
+          <div className="rounded-lg border border-green-500/30 bg-green-500/5 px-4 py-3 space-y-1">
+            <p className="text-xs font-semibold text-green-600 flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Hire Integrations Triggered</p>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { key: "email" as const, label: "Email", ok: hireResult.email.sent },
+                { key: "whatsapp" as const, label: "WhatsApp", ok: hireResult.whatsapp.sent },
+                { key: "checkr" as const, label: "Checkr", ok: hireResult.checkr.triggered },
+                { key: "docusign" as const, label: "DocuSign", ok: hireResult.docusign.sent },
+              ]).map(i => (
+                <span key={i.key} className={`text-[10px] px-2 py-0.5 rounded-full border ${i.ok ? "bg-green-500/10 border-green-500/20 text-green-600" : "bg-muted/30 border-border/40 text-muted-foreground"}`}>
+                  {i.ok ? "✓" : "—"} {i.label}
+                  {!i.ok && hireResult[i.key] && "error" in hireResult[i.key] && hireResult[i.key].error ? `: ${hireResult[i.key].error}` : ""}
+                </span>
+              ))}
+            </div>
+            <button onClick={() => setHireResult(null)} className="text-[10px] text-muted-foreground hover:text-foreground">Dismiss</button>
           </div>
         )}
 

@@ -24,8 +24,10 @@ type IntGroup = { id: string; label: string; desc: string; items: IntDef[] };
 const INTEGRATION_GROUPS: IntGroup[] = [
   { id: "messaging", label: "Messaging & Alerts", desc: "Team comms, SMS dispatch, email automation, and push notifications", items: [
     { provider: "whatsapp", label: "WhatsApp Business", logo: "/images/integrations/whatsapp.png", desc: "Auto-invite new hires to WhatsApp community and send notifications", fields: [
+      { key: "waba_id", label: "WABA ID", type: "text", placeholder: "1234567890" },
       { key: "phone_number_id", label: "Phone Number ID", type: "text", placeholder: "1234567890" },
       { key: "access_token", label: "Permanent Access Token", type: "password", placeholder: "EAAx..." },
+      { key: "business_phone", label: "Business Phone Number", type: "text", placeholder: "+15551234567" },
       { key: "community_invite_link", label: "Community Invite Link", type: "text", placeholder: "https://chat.whatsapp.com/..." },
     ]},
     { provider: "signal", label: "Signal", logo: "/images/integrations/signal.png", desc: "Secure encrypted messaging for sensitive operations and executive protection", fields: [

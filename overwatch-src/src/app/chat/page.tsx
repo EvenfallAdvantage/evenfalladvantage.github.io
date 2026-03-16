@@ -14,7 +14,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import {
   getChatChannels, createChatChannel, getChatMessages,
   sendChatMessage, deleteChatChannel, toggleReaction,
-  updateLastRead, getUnreadCounts, getWaConfig, saveWaConfig,
+  updateLastRead, getUnreadCounts, getIntegrationsConfig, saveIntegrationConfig,
 } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 
@@ -104,8 +104,9 @@ export default function ChatPage() {
     if (tab !== "whatsapp" || waLoaded || !activeCompanyId || activeCompanyId === "pending" || !isAdmin) return;
     (async () => {
       try {
-        const cfg = await getWaConfig(activeCompanyId);
-        if (cfg) setWaConfig({ wabaId: cfg.waba_id ?? "", phoneNumberId: cfg.phone_number_id ?? "", accessToken: cfg.access_token ?? "", businessPhone: cfg.business_phone ?? "" });
+        const ints = await getIntegrationsConfig(activeCompanyId);
+        const waCfg = ints.find((i: { provider: string }) => i.provider === "whatsapp");
+        if (waCfg?.config) setWaConfig({ wabaId: waCfg.config.waba_id ?? "", phoneNumberId: waCfg.config.phone_number_id ?? "", accessToken: waCfg.config.access_token ?? "", businessPhone: waCfg.config.business_phone ?? "" });
       } catch {}
       setWaLoaded(true);
     })();
@@ -201,7 +202,14 @@ export default function ChatPage() {
   async function handleSaveWaConfig() {
     if (!activeCompanyId || activeCompanyId === "pending") return;
     setWaSaving(true);
-    try { await saveWaConfig(activeCompanyId, waConfig); } catch (err) { console.error(err); } finally { setWaSaving(false); }
+    try {
+      await saveIntegrationConfig(activeCompanyId, "whatsapp", {
+        waba_id: waConfig.wabaId,
+        phone_number_id: waConfig.phoneNumberId,
+        access_token: waConfig.accessToken,
+        business_phone: waConfig.businessPhone,
+      }, true);
+    } catch (err) { console.error(err); } finally { setWaSaving(false); }
   }
 
   const filteredMsgs = showSearch && searchQ
