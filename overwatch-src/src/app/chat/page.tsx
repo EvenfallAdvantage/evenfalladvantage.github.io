@@ -468,7 +468,7 @@ function WhatsAppTab({ isAdmin, waConfig, setWaConfig }: any) {
             <li>Enter your credentials below and activate the integration</li>
           </ol>
 
-          <div className="space-y-3 pt-2 border-t border-border/30">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-3 pt-2 border-t border-border/30">
             <p className="text-xs font-medium text-muted-foreground">API Configuration</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
@@ -498,7 +498,7 @@ function WhatsAppTab({ isAdmin, waConfig, setWaConfig }: any) {
               </Button>
               <span className="text-[10px] text-muted-foreground">Requires Supabase Edge Functions &mdash; coming soon</span>
             </div>
-          </div>
+          </form>
 
           <div className="space-y-2 pt-3 border-t border-border/30">
             <p className="text-xs font-medium text-muted-foreground">Estimated Pricing (US Numbers)</p>
