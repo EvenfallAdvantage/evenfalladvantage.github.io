@@ -60,56 +60,22 @@
                         </a>
                     </div>
                     
-                    <!-- Client Portal Card -->
-                    <div class="portal-card">
-                        <div class="portal-icon">
-                            <i class="fas fa-briefcase"></i>
+                    <!-- Overwatch Card -->
+                    <div class="portal-card" style="background:linear-gradient(135deg,#0a0f1a 0%,#111827 50%,#0f1729 100%);border:1px solid rgba(59,130,246,0.25);box-shadow:0 4px 24px rgba(0,0,0,0.3);">
+                        <div style="margin-bottom:0.5rem;">
+                            <img src="overwatch/images/overwatch_logo.png" alt="Overwatch" style="width:56px;height:56px;filter:drop-shadow(0 0 8px rgba(59,130,246,0.3));">
                         </div>
-                        <h2>Client Dashboard</h2>
-                        <p>Manage your security services, documents, and communications</p>
-                        <ul class="portal-features">
-                            <li><i class="fas fa-lock"></i> Security Plans</li>
-                            <li><i class="fas fa-file-alt"></i> Training Materials</li>
-                            <li><i class="fas fa-calendar-check"></i> Certifications</li>
-                            <li><i class="fas fa-comments"></i> Secure Messaging</li>
+                        <h2 style="color:#f1f5f9;font-family:ui-monospace,monospace;letter-spacing:0.08em;">OVERWATCH</h2>
+                        <p style="color:#94a3b8;">Company workforce management, training, and operations platform</p>
+                        <ul class="portal-features" style="color:#cbd5e1;">
+                            <li style="color:#93c5fd;"><i class="fas fa-shield-alt" style="color:#60a5fa;"></i> Workforce Management</li>
+                            <li style="color:#93c5fd;"><i class="fas fa-graduation-cap" style="color:#60a5fa;"></i> Training & Modules</li>
+                            <li style="color:#93c5fd;"><i class="fas fa-chart-bar" style="color:#60a5fa;"></i> Analytics & Reports</li>
+                            <li style="color:#93c5fd;"><i class="fas fa-comments" style="color:#60a5fa;"></i> Team Communications</li>
                         </ul>
-                        <a href="overwatch/login/" class="portal-button client-button">
+                        <a href="overwatch/login/" class="portal-button" style="background:linear-gradient(135deg,#2563eb,#3b82f6);border:none;color:white;box-shadow:0 2px 8px rgba(37,99,235,0.4);">
                             Open Overwatch <i class="fas fa-arrow-right"></i>
                         </a>
-                    </div>
-                </div>
-                
-                <!-- Client Login Form (Hidden by default) -->
-                <div class="login-container" id="client-login-container" style="display: none;">
-                    <button class="back-button" onclick="hideClientLogin()">
-                        <i class="fas fa-arrow-left"></i> Back to Portal Selection
-                    </button>
-                    
-                    <div class="login-form-container">
-                        <h2>Client Portal Login</h2>
-                        <form class="login-form" id="login-form">
-                            <div class="form-group">
-                                <label for="email">Email Address</label>
-                                <input type="email" id="email" name="email" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="password">Password</label>
-                                <input type="password" id="password" name="password" required>
-                            </div>
-                            
-                            <div class="remember-forgot">
-                                <label class="remember-me">
-                                    <input type="checkbox" name="remember">
-                                    Remember Me
-                                </label>
-                                <a href="#" class="forgot-password">Forgot Password?</a>
-                            </div>
-                            
-                            <button type="submit" class="login-button">Log In</button>
-                        </form>
-                        
-                        <p class="login-help">Don't have an account? <br>Contact your Evenfall Advantage representative for access.</p>
                     </div>
                 </div>
             </div>
@@ -120,29 +86,13 @@
 
     <script src="js/script.js"></script>
     <script src="js/include-html.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/login.js"></script>
     <script>
-        function showClientLogin() {
-            document.querySelector('.portal-selection-header').style.display = 'none';
-            document.querySelector('.portal-cards').style.display = 'none';
-            document.getElementById('client-login-container').style.display = 'block';
-        }
-        
-        function hideClientLogin() {
-            document.querySelector('.portal-selection-header').style.display = 'block';
-            document.querySelector('.portal-cards').style.display = 'grid';
-            document.getElementById('client-login-container').style.display = 'none';
-        }
-        
         // Secret admin login via copyright symbol
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
                 const copyright = document.querySelector('.copyright');
                 if (copyright) {
-                    // Make the © symbol clickable
                     copyright.innerHTML = copyright.innerHTML.replace('©', '<span id="admin-trigger" style="cursor: default;">©</span>');
-                    
                     const adminTrigger = document.getElementById('admin-trigger');
                     if (adminTrigger) {
                         adminTrigger.addEventListener('click', function(e) {
@@ -151,7 +101,7 @@
                         });
                     }
                 }
-            }, 100); // Small delay to ensure footer is loaded
+            }, 100);
         });
     </script>
 </body>
