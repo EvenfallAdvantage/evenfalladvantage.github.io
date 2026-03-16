@@ -77,9 +77,27 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: ["owner", "admin", "manager"],
       },
       {
+        title: "Question Bank",
+        href: "/admin/questions",
+        icon: "HelpCircle",
+        roles: ["owner", "admin", "manager"],
+      },
+      {
+        title: "Intel Center",
+        href: "/admin/reports",
+        icon: "BarChart3",
+        roles: ["owner", "admin", "manager"],
+      },
+      {
         title: "Security",
         href: "/admin/security",
         icon: "ShieldAlert",
+        superAdminOnly: true,
+      },
+      {
+        title: "System Health",
+        href: "/admin/health",
+        icon: "Activity",
         superAdminOnly: true,
       },
     ],

@@ -60,6 +60,7 @@ import {
   UserCog,
   SlidersHorizontal,
   ShieldAlert,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 
@@ -96,6 +97,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   UserCog,
   SlidersHorizontal,
   ShieldAlert,
+  Activity,
 };
 
 interface AppSidebarProps {
