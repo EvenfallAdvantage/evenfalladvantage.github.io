@@ -196,3 +196,138 @@ export async function getIntelData(companyId: string) {
     },
   };
 }
+
+// ─── Owner Intel (enhanced dashboard data) ────────────
+
+export async function getOwnerIntel(companyId: string) {
+  const supabase = createClient();
+
+  // --- Hiring Pipeline ---
+  const { data: applicants } = await supabase
+    .from("applicants")
+    .select("id, status, created_at")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const appList = applicants ?? [];
+  const pipeline = {
+    new: appList.filter(a => a.status === "new" || a.status === "pending").length,
+    interview: appList.filter(a => a.status === "interview").length,
+    hired: appList.filter(a => a.status === "hired").length,
+    rejected: appList.filter(a => a.status === "rejected").length,
+    total: appList.length,
+    recentApplicants: appList.slice(0, 5).map(a => ({
+      id: a.id,
+      status: a.status,
+      createdAt: a.created_at,
+    })),
+  };
+
+  // --- Pending Approvals ---
+  const [
+    { count: pendingTimeCorrections },
+    { count: pendingLeave },
+    { count: pendingForms },
+    { count: unapprovedTimesheets },
+  ] = await Promise.all([
+    supabase.from("time_change_requests").select("id", { count: "exact", head: true })
+      .eq("company_id", companyId).eq("status", "pending"),
+    supabase.from("time_off_requests").select("id", { count: "exact", head: true })
+      .eq("company_id", companyId).eq("status", "pending"),
+    supabase.from("form_submissions").select("id", { count: "exact", head: true })
+      .eq("status", "submitted"),
+    supabase.from("timesheets").select("id", { count: "exact", head: true })
+      .eq("approved", false).not("clock_out", "is", null),
+  ]);
+  const approvals = {
+    timeCorrections: pendingTimeCorrections ?? 0,
+    leaveRequests: pendingLeave ?? 0,
+    formReviews: pendingForms ?? 0,
+    timesheets: unapprovedTimesheets ?? 0,
+    total: (pendingTimeCorrections ?? 0) + (pendingLeave ?? 0) + (pendingForms ?? 0) + (unapprovedTimesheets ?? 0),
+  };
+
+  // --- Integration Health ---
+  const { data: integrations } = await supabase
+    .from("integrations_config")
+    .select("provider, is_active")
+    .eq("company_id", companyId);
+  const intList = integrations ?? [];
+  const integrationHealth = {
+    active: intList.filter(i => i.is_active).length,
+    configured: intList.length,
+    providers: intList.map(i => ({ provider: i.provider as string, active: i.is_active as boolean })),
+  };
+
+  // --- Onboarding Status ---
+  const { data: onboarding } = await supabase
+    .from("company_memberships")
+    .select("id, user_id, onboarding_complete, hire_date, users:user_id(first_name, last_name)")
+    .eq("company_id", companyId)
+    .eq("status", "onboarding")
+    .order("hire_date", { ascending: false })
+    .limit(10);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onboardingList = (onboarding ?? []).map((m: any) => {
+    const u = Array.isArray(m.users) ? m.users[0] : m.users;
+    return {
+      id: m.id as string,
+      name: u ? `${u.first_name} ${u.last_name}` : "Unknown",
+      complete: m.onboarding_complete as boolean,
+      hireDate: m.hire_date as string,
+    };
+  });
+
+  // --- Payroll Readiness ---
+  const memberRows2 = await supabase
+    .from("company_memberships")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .eq("status", "active");
+  const uids = (memberRows2.data ?? []).map((m: { user_id: string }) => m.user_id);
+  let approvedHours = 0;
+  let totalSheetHours = 0;
+  if (uids.length > 0) {
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 13); // last 2 weeks
+    weekStart.setHours(0, 0, 0, 0);
+    const { data: sheets } = await supabase
+      .from("timesheets")
+      .select("clock_in, clock_out, approved")
+      .in("user_id", uids)
+      .not("clock_out", "is", null)
+      .gte("clock_in", weekStart.toISOString())
+      .limit(500);
+    for (const t of sheets ?? []) {
+      if (t.clock_in && t.clock_out) {
+        const hrs = (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000;
+        totalSheetHours += hrs;
+        if (t.approved) approvedHours += hrs;
+      }
+    }
+  }
+  const payroll = {
+    approvedHours: Math.round(approvedHours * 10) / 10,
+    totalHours: Math.round(totalSheetHours * 10) / 10,
+    unapprovedHours: Math.round((totalSheetHours - approvedHours) * 10) / 10,
+    readyPct: totalSheetHours > 0 ? Math.round((approvedHours / totalSheetHours) * 100) : 100,
+  };
+
+  // --- Notifications (last 7 days) ---
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const { count: notifCount } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("company_id", companyId)
+    .gte("created_at", weekAgo.toISOString());
+
+  return {
+    pipeline,
+    approvals,
+    integrationHealth,
+    onboarding: onboardingList,
+    payroll,
+    notificationsSent: notifCount ?? 0,
+  };
+}
