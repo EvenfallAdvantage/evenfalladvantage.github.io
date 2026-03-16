@@ -1,0 +1,65 @@
+import { createClient } from "./client";
+
+// Helper: generate timestamps for INSERTs (DB defaults don't fire via PostgREST)
+export function ts() {
+  const now = new Date().toISOString();
+  return { created_at: now, updated_at: now };
+}
+
+// ─── Helper: get current Supabase auth user ID ─────────
+export async function getAuthUserId() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
+// Module-level cache: avoids repeated getUser() + DB lookup per page session.
+// Resets on navigation (Next.js re-evaluates client modules per page).
+let _cachedInternalId: string | null = null;
+
+// Helper: get or create internal user ID from auth user (cached)
+export async function ensureInternalUser() {
+  if (_cachedInternalId) return _cachedInternalId;
+
+  const supabase = createClient();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
+  if (!authUser) return null;
+
+  // Try to find existing user
+  const { data: existing } = await supabase
+    .from("users")
+    .select("id")
+    .eq("supabase_id", authUser.id)
+    .maybeSingle();
+
+  if (existing) {
+    _cachedInternalId = existing.id;
+    return existing.id;
+  }
+
+  // Auto-create user record from auth metadata
+  const meta = authUser.user_metadata || {};
+  const newId = crypto.randomUUID();
+  const { data: created, error } = await supabase
+    .from("users")
+    .insert({
+      id: newId,
+      supabase_id: authUser.id,
+      email: authUser.email ?? null,
+      phone: authUser.phone ?? meta.phone ?? null,
+      first_name: meta.first_name ?? "",
+      last_name: meta.last_name ?? "",
+      ...ts(),
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.warn("Auto-create user failed:", error.message);
+    return null;
+  }
+  _cachedInternalId = created.id;
+  return created.id;
+}
