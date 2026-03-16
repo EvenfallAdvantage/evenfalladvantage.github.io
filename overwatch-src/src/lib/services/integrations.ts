@@ -89,7 +89,7 @@ export function clearConfigCache() {
 
 // ─── Typed Config Getters ─────────────────────────────────
 
-async function getActiveConfig<T>(companyId: string, provider: ProviderKey): Promise<T | null> {
+export async function getActiveConfig<T>(companyId: string, provider: ProviderKey): Promise<T | null> {
   const configs = await loadConfigs(companyId);
   const entry = configs.find(c => c.provider === provider && c.is_active);
   if (!entry) return null;

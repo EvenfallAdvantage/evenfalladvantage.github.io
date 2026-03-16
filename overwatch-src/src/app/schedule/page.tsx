@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
-  Plus, ArrowUpFromLine, ArrowDownToLine, Trash2,
+  Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,6 +48,8 @@ export default function SchedulePage() {
   const [creating, setCreating] = useState(false);
   const [acting, setActing] = useState<string | null>(null);
   const [deletingAsset, setDeletingAsset] = useState<string | null>(null);
+  const [sendingReminders, setSendingReminders] = useState(false);
+  const [remindersSent, setRemindersSent] = useState(false);
 
   const loadSchedule = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -103,6 +105,51 @@ export default function SchedulePage() {
     finally { setActing(null); }
   }
 
+  async function handleSendReminders() {
+    if (!activeCompanyId || activeCompanyId === "pending" || !shifts.length) return;
+    setSendingReminders(true);
+    try {
+      const { dispatch } = await import("@/lib/services/notification-dispatcher");
+      const { sendWhatsAppShiftReminder } = await import("@/lib/services/whatsapp-service");
+      const { sendShiftReminderSMS } = await import("@/lib/services/sms-service");
+      const { sendEmail, buildShiftReminderEmail } = await import("@/lib/services/email-service");
+      const { getCompanyDetails } = await import("@/lib/supabase/db");
+      const company = await getCompanyDetails(activeCompanyId);
+      const companyName = company?.name ?? "Your Company";
+
+      for (const sh of shifts) {
+        const u = Array.isArray(sh.users) ? sh.users[0] : sh.users;
+        if (!u?.id) continue;
+        const firstName = u.first_name ?? "Team member";
+        const shiftDate = fmtDate(sh.start_time);
+        const shiftTime = `${fmtTime(sh.start_time)} — ${fmtTime(sh.end_time)}`;
+        const location = sh.events?.location;
+        // In-app + push notification
+        dispatch({
+          userId: u.id, companyId: activeCompanyId,
+          title: "Shift Reminder",
+          body: `${shiftDate} at ${shiftTime}${location ? ` — ${location}` : ""}`,
+          type: "shift_reminder", actionUrl: "/schedule",
+          phone: u.phone, email: u.email,
+          urgent: true, emailFallback: true,
+        }).catch(() => {});
+        // WhatsApp
+        if (u.phone) sendWhatsAppShiftReminder(activeCompanyId, { phone: u.phone, firstName, shiftDate, shiftTime, location }).catch(() => {});
+        // SMS
+        if (u.phone) sendShiftReminderSMS(activeCompanyId, { phone: u.phone, firstName, shiftDate, shiftTime, location }).catch(() => {});
+        // Email
+        if (u.email) {
+          const tpl = buildShiftReminderEmail({ firstName, companyName, shiftDate, shiftTime, location });
+          tpl.to = u.email;
+          sendEmail(activeCompanyId, tpl).catch(() => {});
+        }
+      }
+      setRemindersSent(true);
+      setTimeout(() => setRemindersSent(false), 3000);
+    } catch (err) { console.error("Send reminders failed:", err); }
+    finally { setSendingReminders(false); }
+  }
+
   async function handleDeleteAsset(id: string) {
     if (!confirm("Delete this asset?")) return;
     setDeletingAsset(id);
@@ -137,7 +184,16 @@ export default function SchedulePage() {
             <>
               {shifts.length > 0 && (
                 <div>
-                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">My Assigned Shifts</h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">My Assigned Shifts</h2>
+                    {isAdmin && shifts.length > 0 && (
+                      <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
+                        onClick={handleSendReminders} disabled={sendingReminders}>
+                        {sendingReminders ? <Loader2 className="h-3 w-3 animate-spin" /> : remindersSent ? <Bell className="h-3 w-3 text-green-500" /> : <Bell className="h-3 w-3" />}
+                        {remindersSent ? "Sent!" : "Send Reminders"}
+                      </Button>
+                    )}
+                  </div>
                   <div className="space-y-2">
                     {shifts.map((sh: Shift) => (
                       <Card key={sh.id} className="border-border/40">

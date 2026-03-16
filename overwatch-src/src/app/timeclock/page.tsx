@@ -18,6 +18,7 @@ import {
 import { getUserShifts } from "@/lib/supabase/db-operations";
 import { parseUTC } from "@/lib/parse-utc";
 import { useAuthStore } from "@/stores/auth-store";
+import { dispatch } from "@/lib/services/notification-dispatcher";
 
 function formatDuration(ms: number) {
   const totalSec = Math.floor(Math.max(0, ms) / 1000);
@@ -71,6 +72,7 @@ type Shift = any;
 
 export default function TimeClockPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const authUser = useAuthStore((s) => s.user);
   const companyId = activeCompany?.companyId ?? "";
   const [active, setActive] = useState<Timesheet | null>(null);
   const [recent, setRecent] = useState<Timesheet[]>([]);
@@ -156,6 +158,32 @@ export default function TimeClockPage() {
         requestedClockOut: changeClockOut || undefined,
         reason: changeReason,
       });
+      // Notify managers/admins about the new time correction request
+      const userName = authUser?.firstName ? `${authUser.firstName} ${authUser.lastName ?? ""}`.trim() : "An employee";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      import("@/lib/supabase/db").then((mod: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        mod.getCompanyMembers(companyId).then((members: any[]) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const managers = members.filter((m: any) =>
+            ["owner", "admin", "manager"].includes(m.role) && m.users
+          );
+          for (const mgr of managers) {
+            const u = Array.isArray(mgr.users) ? mgr.users[0] : mgr.users;
+            if (!u?.id) continue;
+            dispatch({
+              userId: u.id,
+              companyId,
+              title: "Time Correction Request",
+              body: `${userName} requested a time correction: "${changeReason}"`,
+              type: "time_change_request",
+              actionUrl: "/admin/staff",
+              emailFallback: true,
+              email: u.email,
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }).catch(() => {});
       setChangeSuccess(true);
       setTimeout(() => {
         setShowChangeRequest(false);

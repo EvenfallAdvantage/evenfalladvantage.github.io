@@ -394,40 +394,10 @@ export async function getUnreadCounts(companyId: string) {
   return counts;
 }
 
-// ─── WhatsApp Business API Config ───────────────────────
-
-export async function getWaConfig(companyId: string) {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("wa_config")
-    .select("*")
-    .eq("company_id", companyId)
-    .maybeSingle();
-  return data;
-}
-
-export async function saveWaConfig(companyId: string, config: {
-  wabaId: string;
-  phoneNumberId: string;
-  accessToken: string;
-  businessPhone: string;
-}) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("wa_config")
-    .upsert({
-      company_id: companyId,
-      waba_id: config.wabaId,
-      phone_number_id: config.phoneNumberId,
-      access_token: config.accessToken,
-      business_phone: config.businessPhone,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "company_id" })
-    .select()
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
+// ─── WhatsApp Business API Config (DEPRECATED) ─────────
+// WhatsApp config has been consolidated into the integrations_config table.
+// Use getIntegrationsConfig() from db-onboarding.ts and filter for provider="whatsapp".
+// These functions are kept only for backward compatibility and should not be used.
 
 // ─── Notifications ──────────────────────────────────
 

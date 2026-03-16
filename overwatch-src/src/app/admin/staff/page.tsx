@@ -76,6 +76,9 @@ export default function AdminStaffPage() {
   const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
   // Hire integration results
   const [hireResult, setHireResult] = useState<HireResult | null>(null);
+  // Gusto sync
+  const [syncingGusto, setSyncingGusto] = useState(false);
+  const [gustoResult, setGustoResult] = useState<{ synced: number; errors: string[] } | null>(null);
 
   const myRole = user?.companies.find((c) => c.companyId === activeCompanyId)?.role ?? "staff";
   const canManageRoles = myRole === "owner" || myRole === "admin";
@@ -137,7 +140,24 @@ export default function AdminStaffPage() {
 
   async function handleLeaveReview(id: string, status: "approved" | "denied") {
     setReviewingLeave(id);
-    try { await reviewTimeOffRequest(id, status); await load(); } catch (err) { console.error(err); }
+    try {
+      await reviewTimeOffRequest(id, status);
+      // Notify the requesting employee
+      const req = leaveRequests.find((r: LeaveReq) => r.id === id);
+      if (req?.user_id && activeCompanyId) {
+        import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
+          dispatch({
+            userId: req.user_id,
+            companyId: activeCompanyId!,
+            title: `Leave Request ${status === "approved" ? "Approved" : "Denied"}`,
+            body: `Your ${req.leave_type ?? "time off"} request has been ${status}.`,
+            type: "leave_review",
+            actionUrl: "/time-off",
+          }).catch(() => {});
+        }).catch(() => {});
+      }
+      await load();
+    } catch (err) { console.error(err); }
     finally { setReviewingLeave(null); }
   }
 
@@ -425,6 +445,38 @@ export default function AdminStaffPage() {
                 })}
               </div>
             )}
+              {/* Gusto Sync Button */}
+              {canManage && timesheets.filter((t: Sheet) => t.approved).length > 0 && (
+                <div className="mt-4 flex items-center gap-3">
+                  <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs font-mono"
+                    onClick={async () => {
+                      if (!activeCompanyId) return;
+                      setSyncingGusto(true); setGustoResult(null);
+                      try {
+                        const { syncTimesheetsToGusto } = await import("@/lib/services/gusto-service");
+                        const approved = timesheets.filter((t: Sheet) => t.approved);
+                        const mapped = approved.map((t: Sheet) => ({
+                          employeeEmail: t.users?.email ?? "",
+                          date: parseUTC(t.clock_in).toISOString().split("T")[0],
+                          hours: parseFloat(((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(2)),
+                        }));
+                        const result = await syncTimesheetsToGusto(activeCompanyId, mapped);
+                        setGustoResult(result);
+                        setTimeout(() => setGustoResult(null), 8000);
+                      } catch (err) {
+                        setGustoResult({ synced: 0, errors: [String(err)] });
+                      } finally { setSyncingGusto(false); }
+                    }} disabled={syncingGusto}>
+                    {syncingGusto ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                    Sync to Gusto
+                  </Button>
+                  {gustoResult && (
+                    <span className={`text-xs ${gustoResult.synced > 0 ? "text-green-600" : "text-amber-600"}`}>
+                      {gustoResult.synced > 0 ? `✓ ${gustoResult.synced} synced` : gustoResult.errors[0] ?? "No data synced"}
+                    </span>
+                  )}
+                </div>
+              )}
           </>
         )}
 

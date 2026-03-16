@@ -66,15 +66,16 @@ const INTEGRATION_GROUPS: IntGroup[] = [
     ]},
     { provider: "docusign", label: "DocuSign", logo: "/images/integrations/docusign.jpeg", desc: "E-signatures for employment agreements, NDAs, and policy acknowledgments during onboarding", fields: [
       { key: "integration_key", label: "Integration Key", type: "text", placeholder: "your_integration_key" },
-      { key: "secret_key", label: "Secret Key", type: "password", placeholder: "your_secret_key" },
+      { key: "secret_key", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "account_id", label: "Account ID", type: "text", placeholder: "your_account_id" },
       { key: "base_url", label: "Base URL", type: "select", options: ["https://demo.docusign.net", "https://app.docusign.com"] },
+      { key: "template_id", label: "Onboarding Template ID (optional)", type: "text", placeholder: "abc-123-template-id" },
     ]},
   ]},
   { id: "payroll", label: "Payroll & Finance", desc: "Timesheet sync, payroll runs, and tax filing", items: [
     { provider: "gusto", label: "Gusto", logo: "/images/integrations/gusto.jpeg", desc: "Sync timesheets to payroll runs, manage tax filing and direct deposits", fields: [
       { key: "client_id", label: "OAuth Client ID", type: "text", placeholder: "your_client_id" },
-      { key: "client_secret", label: "OAuth Client Secret", type: "password", placeholder: "your_client_secret" },
+      { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "company_uuid", label: "Gusto Company UUID", type: "text", placeholder: "uuid-from-gusto" },
       { key: "sync_frequency", label: "Sync Frequency", type: "select", options: ["manual", "daily", "weekly", "per_pay_period"] },
     ]},
