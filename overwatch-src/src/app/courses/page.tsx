@@ -30,6 +30,9 @@ function normalizeCourse(row: Record<string, unknown>): Course {
     ...row,
     title: (row.title as string) || (row.course_name as string) || "Untitled",
     difficulty_level: ((row.difficulty_level as string) || "beginner").toLowerCase(),
+    price: (row.price as number) ?? 0,
+    duration_hours: (row.duration_hours as number) ?? 1,
+    is_active: row.is_active !== false,
   };
 }
 

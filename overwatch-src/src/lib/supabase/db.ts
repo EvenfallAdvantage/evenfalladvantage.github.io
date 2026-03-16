@@ -2292,13 +2292,19 @@ export async function updatePaymentStatus(paymentId: string, status: string) {
 
 export async function getCatalogCourses() {
   const supabase = createClient();
+  // Try full catalog query (requires add-course-catalog.sql columns)
   const { data, error } = await supabase
     .from("courses")
     .select("*")
     .eq("is_active", true)
     .order("display_order", { ascending: true });
-  if (error) throw error;
-  return data ?? [];
+  if (!error) return data ?? [];
+  // Fallback: columns may not exist yet — fetch all courses
+  const fallback = await supabase
+    .from("courses")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return fallback.data ?? [];
 }
 
 export async function getCourses(companyId: string) {
