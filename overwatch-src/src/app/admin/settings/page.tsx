@@ -6,14 +6,35 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Webhook, Database, Mail, Eye, EyeOff } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
-import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy } from "@/lib/supabase/db";
+import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Policy = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type IntConfig = any;
 
 const LEAVE_TYPES = ["vacation", "sick", "personal", "bereavement", "parental", "unpaid"];
+
+const INTEGRATIONS = [
+  { provider: "fillout", label: "Fillout", icon: "Webhook", desc: "Receive employment applications via Fillout webhook", fields: [
+    { key: "webhook_secret", label: "Webhook Secret", type: "password", placeholder: "whsec_..." },
+  ]},
+  { provider: "airtable", label: "Airtable", icon: "Database", desc: "Sync applicant records with Airtable", fields: [
+    { key: "api_key", label: "API Key", type: "password", placeholder: "pat..." },
+    { key: "base_id", label: "Base ID", type: "text", placeholder: "app..." },
+    { key: "table_name", label: "Table Name", type: "text", placeholder: "Staff" },
+  ]},
+  { provider: "email", label: "Email (Postmark / Resend)", icon: "Mail", desc: "Auto-send onboarding emails when applicants are hired", fields: [
+    { key: "provider", label: "Provider", type: "select", options: ["postmark", "resend"] },
+    { key: "api_key", label: "API Key", type: "password", placeholder: "pm_..." },
+    { key: "from_email", label: "From Email", type: "email", placeholder: "noreply@yourcompany.com" },
+    { key: "from_name", label: "From Name", type: "text", placeholder: "TGT Security" },
+  ]},
+];
+
+const INT_ICONS: Record<string, React.ElementType> = { Webhook, Database, Mail };
 
 // Get all IANA timezone names (browser Intl API)
 const ALL_TIMEZONES: string[] = typeof Intl !== "undefined" && Intl.supportedValuesOf
@@ -49,6 +70,12 @@ export default function AdminSettingsPage() {
   const [tzSearch, setTzSearch] = useState("");
   const [tzOpen, setTzOpen] = useState(false);
   const tzRef = useRef<HTMLDivElement>(null);
+  // Integrations
+  const [integrations, setIntegrations] = useState<IntConfig[]>([]);
+  const [intForms, setIntForms] = useState<Record<string, { config: Record<string, string>; isActive: boolean }>>({});
+  const [savingInt, setSavingInt] = useState<string | null>(null);
+  const [savedInt, setSavedInt] = useState<string | null>(null);
+  const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
@@ -65,6 +92,24 @@ export default function AdminSettingsPage() {
         setLogoUrl(c.logo_url ?? "");
       }
       setPolicies(p);
+      // Load integrations
+      try {
+        const ints = await getIntegrationsConfig(activeCompanyId);
+        setIntegrations(ints);
+        const forms: Record<string, { config: Record<string, string>; isActive: boolean }> = {};
+        for (const int of ints) {
+          forms[int.provider] = { config: int.config ?? {}, isActive: int.is_active ?? false };
+        }
+        // Initialize empty forms for unconfigured providers
+        for (const def of INTEGRATIONS) {
+          if (!forms[def.provider]) {
+            const cfg: Record<string, string> = {};
+            for (const f of def.fields) cfg[f.key] = "";
+            forms[def.provider] = { config: cfg, isActive: false };
+          }
+        }
+        setIntForms(forms);
+      } catch {}
     } catch {}
   }, [activeCompanyId]);
 
@@ -104,6 +149,40 @@ export default function AdminSettingsPage() {
       if (activeCompanyId) setPolicies(await getTimeOffPolicies(activeCompanyId));
     } catch (err) { console.error(err); }
     finally { setDeletingPolicy(null); }
+  }
+
+  async function handleSaveIntegration(provider: string) {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    setSavingInt(provider);
+    try {
+      const form = intForms[provider];
+      if (!form) return;
+      await saveIntegrationConfig(activeCompanyId, provider, form.config, form.isActive);
+      setSavedInt(provider);
+      setTimeout(() => setSavedInt(null), 2000);
+      setIntegrations(await getIntegrationsConfig(activeCompanyId));
+    } catch (err) { console.error(err); }
+    finally { setSavingInt(null); }
+  }
+
+  function updateIntField(provider: string, key: string, value: string) {
+    setIntForms(prev => ({
+      ...prev,
+      [provider]: {
+        ...prev[provider],
+        config: { ...(prev[provider]?.config ?? {}), [key]: value },
+      },
+    }));
+  }
+
+  function toggleIntActive(provider: string) {
+    setIntForms(prev => ({
+      ...prev,
+      [provider]: {
+        ...prev[provider],
+        isActive: !prev[provider]?.isActive,
+      },
+    }));
   }
 
   async function handleAddPolicy() {
@@ -279,6 +358,90 @@ export default function AdminSettingsPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Integrations */}
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2"><Plug className="h-4 w-4" /> External Integrations</h3>
+              <p className="text-xs text-muted-foreground">Connect external tools to automate intake, onboarding, and communications</p>
+            </div>
+
+            {INTEGRATIONS.map(def => {
+              const form = intForms[def.provider];
+              const Icon = INT_ICONS[def.icon] ?? Plug;
+              const existing = integrations.find((i: IntConfig) => i.provider === def.provider);
+              const isConfigured = !!existing;
+
+              return (
+                <div key={def.provider} className={`rounded-lg border p-4 space-y-3 ${
+                  form?.isActive ? "border-green-500/30 bg-green-500/5" : "border-border/40"
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-semibold">{def.label}</span>
+                      {isConfigured && form?.isActive && <Badge className="text-[9px] bg-green-500/15 text-green-500">Active</Badge>}
+                      {isConfigured && !form?.isActive && <Badge variant="outline" className="text-[9px]">Configured</Badge>}
+                    </div>
+                    <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                      <input type="checkbox" checked={form?.isActive ?? false}
+                        onChange={() => toggleIntActive(def.provider)}
+                        className="rounded" />
+                      Enabled
+                    </label>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{def.desc}</p>
+
+                  <div className="space-y-2">
+                    {def.fields.map(field => (
+                      <div key={field.key}>
+                        <Label className="text-[10px] text-muted-foreground">{field.label}</Label>
+                        {field.type === "select" && field.options ? (
+                          <select
+                            value={form?.config?.[field.key] ?? ""}
+                            onChange={(e) => updateIntField(def.provider, field.key, e.target.value)}
+                            className="mt-0.5 h-8 w-full rounded border border-border/40 bg-background px-2 text-xs">
+                            <option value="">Select...</option>
+                            {field.options.map(o => <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>)}
+                          </select>
+                        ) : (
+                          <div className="relative mt-0.5">
+                            <Input
+                              type={field.type === "password" && !showSecret[`${def.provider}.${field.key}`] ? "password" : "text"}
+                              value={form?.config?.[field.key] ?? ""}
+                              onChange={(e) => updateIntField(def.provider, field.key, e.target.value)}
+                              placeholder={field.placeholder ?? ""}
+                              className="h-8 text-xs pr-8" />
+                            {field.type === "password" && (
+                              <button type="button"
+                                onClick={() => setShowSecret(p => ({ ...p, [`${def.provider}.${field.key}`]: !p[`${def.provider}.${field.key}`] }))}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground">
+                                {showSecret[`${def.provider}.${field.key}`] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button size="sm" className="gap-1.5 text-xs" onClick={() => handleSaveIntegration(def.provider)}
+                    disabled={savingInt === def.provider}>
+                    {savingInt === def.provider ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : savedInt === def.provider ? <Check className="h-3 w-3 text-green-500" />
+                      : <Save className="h-3 w-3" />}
+                    {savedInt === def.provider ? "Saved!" : "Save"}
+                  </Button>
+                </div>
+              );
+            })}
+
+            <div className="rounded-lg border border-dashed border-border/40 p-3 text-center">
+              <p className="text-[10px] text-muted-foreground">More integrations coming soon: WhatsApp Business API, OneSignal push, QuickBooks payroll</p>
+            </div>
           </CardContent>
         </Card>
       </div>
