@@ -105,9 +105,21 @@ interface AppSidebarProps {
 
 function isChildActive(item: NavItem, pathname: string): boolean {
   if (!item.children) return false;
-  return item.children.some(
-    (c) => pathname === c.href || pathname.startsWith(c.href + "/")
-  );
+  return item.children.some((c) => isNavMatch(c.href, pathname, item.children!));
+}
+
+// Match a nav href to the current pathname, but prefer longer (more specific) siblings
+function isNavMatch(href: string, pathname: string, siblings?: NavItem[]): boolean {
+  if (pathname === href) return true;
+  if (!pathname.startsWith(href + "/")) return false;
+  // Only match via startsWith if no sibling has a longer, more specific match
+  if (siblings) {
+    const hasBetterMatch = siblings.some(
+      (s) => s.href !== href && s.href.length > href.length && (pathname === s.href || pathname.startsWith(s.href + "/"))
+    );
+    if (hasBetterMatch) return false;
+  }
+  return true;
 }
 
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
@@ -280,9 +292,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                           <div className="ml-3 space-y-0.5 border-l border-border/40 pl-3 mt-0.5">
                             {item.children!.map((child) => {
                               const ChildIcon = ICON_MAP[child.icon];
-                              const childIsActive =
-                                pathname === child.href ||
-                                pathname.startsWith(child.href + "/");
+                              const childIsActive = isNavMatch(child.href, pathname, item.children);
                               return (
                                 <Link
                                   key={child.href}
@@ -320,9 +330,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                             <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{item.title}</p>
                             {item.children!.map((child) => {
                               const ChildIcon = ICON_MAP[child.icon];
-                              const childIsActive =
-                                pathname === child.href ||
-                                pathname.startsWith(child.href + "/");
+                              const childIsActive = isNavMatch(child.href, pathname, item.children);
                               return (
                                 <Link
                                   key={child.href}
