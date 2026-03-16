@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { createClient } from "@/lib/supabase/client";
 
+function goToLanding() {
+  // Hard redirect — clears all in-memory state, works reliably on static exports
+  const base = typeof window !== "undefined" ? window.location.origin : "";
+  window.location.href = `${base}/overwatch/`;
+}
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
   const redirected = useRef(false);
@@ -17,19 +21,19 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_OUT" && !redirected.current) {
         redirected.current = true;
-        router.replace("/");
+        goToLanding();
       }
     });
     return () => subscription.unsubscribe();
-  }, [router]);
+  }, []);
 
   // Redirect when store shows no user
   useEffect(() => {
     if (!isLoading && !user && !redirected.current) {
       redirected.current = true;
-      router.replace("/");
+      goToLanding();
     }
-  }, [isLoading, user, router]);
+  }, [isLoading, user]);
 
   if (isLoading || !user) {
     return (
