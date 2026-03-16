@@ -16,8 +16,14 @@ async function getAuthUserId() {
   return user?.id ?? null;
 }
 
-// Helper: get or create internal user ID from auth user
+// Module-level cache: avoids repeated getUser() + DB lookup per page session.
+// Resets on navigation (Next.js re-evaluates client modules per page).
+let _cachedInternalId: string | null = null;
+
+// Helper: get or create internal user ID from auth user (cached)
 async function ensureInternalUser() {
+  if (_cachedInternalId) return _cachedInternalId;
+
   const supabase = createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) return null;
@@ -29,7 +35,10 @@ async function ensureInternalUser() {
     .eq("supabase_id", authUser.id)
     .maybeSingle();
 
-  if (existing) return existing.id;
+  if (existing) {
+    _cachedInternalId = existing.id;
+    return existing.id;
+  }
 
   // Auto-create user record from auth metadata
   const meta = authUser.user_metadata || {};
@@ -52,6 +61,7 @@ async function ensureInternalUser() {
     console.warn("Auto-create user failed:", error.message);
     return null;
   }
+  _cachedInternalId = created.id;
   return created.id;
 }
 
@@ -1156,13 +1166,11 @@ export async function getUserShifts(companyId: string) {
   const supabase = createClient();
   const { data } = await supabase
     .from("shifts")
-    .select("*, events(id, name, location, company_id)")
+    .select("*, events!inner(id, name, location, company_id)")
     .eq("assigned_user_id", userId)
+    .eq("events.company_id", companyId)
     .order("start_time", { ascending: true });
-  return (data ?? []).filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (s: any) => s.events?.company_id === companyId
-  );
+  return data ?? [];
 }
 
 export async function getUpcomingEvents(companyId: string) {
@@ -1372,16 +1380,21 @@ export async function getAllTimeOffRequests(companyId: string) {
 
 export async function getCompanyTimesheets(companyId: string) {
   const supabase = createClient();
+  // Get member user IDs first, then filter timesheets at DB level
+  const { data: members } = await supabase
+    .from("company_memberships")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .eq("status", "active");
+  const userIds = (members ?? []).map((m: { user_id: string }) => m.user_id);
+  if (userIds.length === 0) return [];
   const { data } = await supabase
     .from("timesheets")
-    .select("*, users!timesheets_user_id_fkey(first_name, last_name, company_memberships!inner(company_id))")
+    .select("*, users!timesheets_user_id_fkey(first_name, last_name)")
+    .in("user_id", userIds)
     .order("clock_in", { ascending: false })
     .limit(50);
-  // Filter to company members
-  return (data ?? []).filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (t: any) => t.users?.company_memberships?.some((m: any) => m.company_id === companyId)
-  );
+  return data ?? [];
 }
 
 export async function approveTimesheet(timesheetId: string) {
