@@ -153,6 +153,8 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
   const [step, setStep] = useState<"info" | "company" | "done">("info");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [tosAccepted, setTosAccepted] = useState(false);
+  const [showTos, setShowTos] = useState(false);
   const pwCheck = password.length > 0 ? checkPasswordStrength(password) : null;
 
   if (!open) return null;
@@ -165,7 +167,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
         options: {
-          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: companyName },
+          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: companyName, tos_accepted_at: new Date().toISOString() },
           emailRedirectTo: `${window.location.origin}/overwatch/auth/callback/`,
         },
       });
@@ -247,11 +249,21 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
                 className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
               <p className="text-[10px] text-white/30 mt-1">This creates a new company. To join an existing one, use a company code.</p>
             </div>
+            {/* TOS Acceptance */}
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)}
+                className="mt-0.5 rounded border-white/20" />
+              <span className="text-[11px] text-white/50 leading-tight">
+                I have read and agree to the{" "}
+                <button type="button" onClick={() => setShowTos(true)} className="text-[#dd8c33] hover:underline font-medium">Terms of Service</button>
+              </span>
+            </label>
+
             {error && <p className="text-xs text-red-400">{error}</p>}
             <div className="flex gap-2">
               <button type="button" onClick={() => setStep("info")}
                 className="flex-1 h-10 rounded-lg border border-white/10 text-white/60 text-sm hover:bg-white/5 transition-colors">Back</button>
-              <button type="submit" disabled={loading || !companyName}
+              <button type="submit" disabled={loading || !companyName || !tosAccepted}
                 className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Deploy <ArrowRight className="h-4 w-4" /></>}
               </button>
@@ -262,6 +274,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin }: { open: boolean; onCl
           </form>
         )}
       </div>
+      <TOSModal open={showTos} onClose={() => setShowTos(false)} />
     </div>
   );
 }

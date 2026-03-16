@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
 import { AuthLayout } from "@/components/auth-layout";
 import { checkPasswordStrength, type PasswordCheck } from "@/lib/security";
+import { TOSModal } from "@/components/terms-of-service";
 
 const STRENGTH_COLORS: Record<PasswordCheck["strength"], string> = {
   weak: "bg-red-500",
@@ -51,6 +52,8 @@ function RegisterInner() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [pwCheck, setPwCheck] = useState<PasswordCheck | null>(null);
+  const [tosAccepted, setTosAccepted] = useState(false);
+  const [showTos, setShowTos] = useState(false);
 
   function handlePasswordChange(val: string) {
     setPassword(val);
@@ -73,6 +76,7 @@ function RegisterInner() {
             last_name: lastName,
             phone: phone || null,
             company_name: companyName,
+            tos_accepted_at: new Date().toISOString(),
           },
           emailRedirectTo: `${window.location.origin}/overwatch/auth/callback/`,
         },
@@ -301,6 +305,15 @@ function RegisterInner() {
                   </p>
                 </div>
 
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)}
+                    className="mt-0.5 rounded" />
+                  <span className="text-xs text-muted-foreground leading-tight">
+                    I have read and agree to the{" "}
+                    <button type="button" onClick={() => setShowTos(true)} className="text-primary hover:underline font-medium">Terms of Service</button>
+                  </span>
+                </label>
+
                 {error && (
                   <p className="text-sm text-destructive">{error}</p>
                 )}
@@ -317,7 +330,7 @@ function RegisterInner() {
                   <Button
                     type="submit"
                     className="flex-1 gap-2"
-                    disabled={isLoading || !companyName}
+                    disabled={isLoading || !companyName || !tosAccepted}
                   >
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -352,6 +365,7 @@ function RegisterInner() {
           )}
         </CardContent>
       </Card>
+      <TOSModal open={showTos} onClose={() => setShowTos(false)} />
     </AuthLayout>
   );
 }
