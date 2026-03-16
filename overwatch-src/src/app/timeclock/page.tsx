@@ -12,8 +12,18 @@ import {
   getRecentTimesheets,
 } from "@/lib/supabase/db";
 
+// Supabase TIMESTAMPTZ can come back without 'Z' — ensure UTC parse
+function parseUTC(iso: string) {
+  if (!iso) return new Date();
+  // If no timezone indicator, append Z so JS parses as UTC
+  if (!iso.endsWith("Z") && !iso.includes("+") && !/\d{2}:\d{2}$/.test(iso.slice(-6))) {
+    return new Date(iso + "Z");
+  }
+  return new Date(iso);
+}
+
 function formatDuration(ms: number) {
-  const totalSec = Math.floor(Math.abs(ms) / 1000);
+  const totalSec = Math.floor(Math.max(0, ms) / 1000);
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
@@ -23,21 +33,21 @@ function formatDuration(ms: number) {
 }
 
 function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString([], {
+  return parseUTC(iso).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString([], {
+  return parseUTC(iso).toLocaleDateString([], {
     month: "short",
     day: "numeric",
   });
 }
 
 function calcHours(clockInISO: string, clockOutISO: string) {
-  const ms = new Date(clockOutISO).getTime() - new Date(clockInISO).getTime();
+  const ms = parseUTC(clockOutISO).getTime() - parseUTC(clockInISO).getTime();
   return (ms / 3600000).toFixed(2);
 }
 
@@ -77,7 +87,7 @@ export default function TimeClockPage() {
       return;
     }
     const tick = () =>
-      setElapsed(Date.now() - new Date(active.clock_in).getTime());
+      setElapsed(Date.now() - parseUTC(active.clock_in).getTime());
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
