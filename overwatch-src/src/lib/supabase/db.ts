@@ -75,21 +75,29 @@ export async function upsertUser(data: {
 
   if (existing) {
     // Update mutable fields only — never touch id or supabase_id
-    const { data: updated, error } = await supabase
-      .from("users")
-      .update({
-        email: data.email ?? existing.email,
-        phone: data.phone ?? existing.phone,
-        first_name: data.firstName,
-        last_name: data.lastName,
-        avatar_url: data.avatarUrl ?? existing.avatar_url,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", existing.id)
-      .select()
-      .maybeSingle();
-    if (error) throw error;
-    return updated ?? existing;
+    // Only overwrite names if new values are non-empty
+    const updates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (data.email) updates.email = data.email;
+    if (data.phone) updates.phone = data.phone;
+    if (data.firstName?.trim()) updates.first_name = data.firstName;
+    if (data.lastName?.trim()) updates.last_name = data.lastName;
+    if (data.avatarUrl) updates.avatar_url = data.avatarUrl;
+
+    try {
+      const { data: updated, error } = await supabase
+        .from("users")
+        .update(updates)
+        .eq("id", existing.id)
+        .select()
+        .maybeSingle();
+      if (error) throw error;
+      return updated ?? existing;
+    } catch {
+      // 409 conflict (unique constraint) — return existing user as-is
+      return existing;
+    }
   }
 
   // No existing user — create new
@@ -1114,14 +1122,23 @@ export async function joinCompanyByCode(params: {
   const company = await findCompanyByJoinCode(params.joinCode);
   if (!company) throw new Error("Invalid company code");
 
-  // 2. Upsert user
-  const user = await upsertUser({
+  // 2. Find or create user — check existing first to avoid unnecessary updates
+  const supabase = createClient();
+  const { data: existingUser } = await supabase
+    .from("users")
+    .select("*")
+    .eq("supabase_id", params.supabaseId)
+    .maybeSingle();
+
+  const user = existingUser ?? await upsertUser({
     supabaseId: params.supabaseId,
     email: params.email,
     phone: params.phone,
     firstName: params.firstName,
     lastName: params.lastName,
   });
+
+  if (!user) throw new Error("Failed to resolve user account");
 
   // 3. Create membership as staff
   const membership = await createMembership({
