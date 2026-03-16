@@ -1,39 +1,21 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [isReady, setIsReady] = useState(false);
-  const checkedRef = useRef(false);
+  const user = useAuthStore((s) => s.user);
+  const isLoading = useAuthStore((s) => s.isLoading);
 
   useEffect(() => {
-    if (checkedRef.current) return;
-    const supabase = createClient();
+    if (!isLoading && !user) {
+      router.replace("/login");
+    }
+  }, [isLoading, user, router]);
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        router.replace("/login");
-      } else {
-        checkedRef.current = true;
-        setIsReady(true);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!session?.user) {
-          router.replace("/login");
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [router]);
-
-  if (!isReady) {
+  if (isLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

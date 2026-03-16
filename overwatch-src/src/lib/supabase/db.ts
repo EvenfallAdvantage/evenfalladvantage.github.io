@@ -120,8 +120,8 @@ export async function upsertUser(data: {
   return created;
 }
 
-export async function fetchUserProfile() {
-  const authId = await getAuthUserId();
+export async function fetchUserProfile(knownAuthId?: string) {
+  const authId = knownAuthId ?? await getAuthUserId();
   if (!authId) return null;
 
   const supabase = createClient();
@@ -134,7 +134,7 @@ export async function fetchUserProfile() {
     .maybeSingle();
 
   if (!user) {
-    // Auto-create from auth metadata
+    // Auto-create from auth metadata — only call getUser() if we must
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) return null;
     const meta = authUser.user_metadata || {};

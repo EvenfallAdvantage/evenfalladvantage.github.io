@@ -15,7 +15,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (authUser: any) => {
       // Try loading real profile from database
       try {
-        let profile = await fetchUserProfile();
+        let profile = await fetchUserProfile(authUser.id);
 
         // If user exists but has NO memberships, and auth metadata has a
         // company_name, auto-create the company + membership now.
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               companyName: meta.company_name,
             });
             // Re-fetch profile to pick up the new membership
-            profile = await fetchUserProfile();
+            profile = await fetchUserProfile(authUser.id);
           } catch (regErr) {
             console.warn("Auto-register company failed:", regErr);
           }
@@ -90,16 +90,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient();
 
-    // Load initial session
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        loadProfile(user);
-      } else {
-        clearSession();
-      }
-    });
-
-    // Listen for auth state changes
+    // onAuthStateChange fires INITIAL_SESSION on subscribe, so no
+    // separate getUser() call is needed — that would acquire a second
+    // lock and cause contention / 5-second timeout warnings.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
