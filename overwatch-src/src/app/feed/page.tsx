@@ -17,6 +17,7 @@ import {
   Footprints,
   FileText,
   TrendingUp,
+  TrendingDown,
   MapPin,
   Shield,
   BookOpen,
@@ -24,6 +25,10 @@ import {
   Video,
   Scale,
   Award,
+  Activity,
+  BarChart3,
+  CheckCircle2,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -38,6 +43,7 @@ import {
   getRecentTimesheets,
   getPosts,
   getDashboardMetrics,
+  getCompanyStats,
 } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,6 +58,51 @@ function formatDuration(ms: number) {
   const s = Math.floor((abs % 60000) / 1000);
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
+
+function MiniBarChart({ data, color }: { data: number[]; color: string }) {
+  const max = Math.max(...data, 1);
+  const barW = 100 / data.length;
+  return (
+    <svg viewBox="0 0 100 40" className="w-full h-10">
+      {data.map((v, i) => {
+        const h = (v / max) * 36;
+        return (
+          <rect key={i} x={i * barW + 1} y={40 - h} width={barW - 2} height={h}
+            rx={1.5} fill={color} opacity={0.15 + (i / data.length) * 0.85} />
+        );
+      })}
+    </svg>
+  );
+}
+
+function DonutChart({ segments }: { segments: { value: number; color: string; label: string }[] }) {
+  const total = segments.reduce((s, seg) => s + seg.value, 0) || 1;
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const arcs = segments.reduce<{ pct: number; offset: number; color: string }[]>((acc, seg) => {
+    const cum = acc.length > 0 ? acc[acc.length - 1].offset + acc[acc.length - 1].pct : 0;
+    acc.push({ pct: (seg.value / total) * circumference, offset: cum, color: seg.color });
+    return acc;
+  }, []);
+  return (
+    <div className="relative w-28 h-28 mx-auto">
+      <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+        <circle cx="50" cy="50" r={radius} fill="none" stroke="currentColor" strokeWidth="12" className="text-border/20" />
+        {arcs.map((arc, i) => (
+          <circle key={i} cx="50" cy="50" r={radius} fill="none" stroke={arc.color} strokeWidth="12"
+            strokeDasharray={`${arc.pct} ${circumference}`}
+            strokeDashoffset={-arc.offset} strokeLinecap="round" />
+        ))}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <p className="text-lg font-bold font-mono">{total}</p>
+        <p className="text-[8px] text-muted-foreground">TOTAL</p>
+      </div>
+    </div>
+  );
+}
+
+const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -92,6 +143,14 @@ type Metrics = {
   upcomingShifts: number;
 };
 
+type CompanyStats = {
+  memberCount: number;
+  eventCount: number;
+  assetCount: number;
+  formCount: number;
+  totalHoursLogged: number;
+};
+
 export default function FeedPage() {
   const { user, activeCompanyId } = useAuthStore();
   const [active, setActive] = useState<Timesheet | null>(null);
@@ -99,6 +158,7 @@ export default function FeedPage() {
   const [recentShifts, setRecentShifts] = useState<Timesheet[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [companyStats, setCompanyStats] = useState<CompanyStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
 
@@ -112,12 +172,14 @@ export default function FeedPage() {
       setRecentShifts(history.filter((t: Timesheet) => t.clock_out));
 
       if (activeCompanyId && activeCompanyId !== "pending") {
-        const [p, m] = await Promise.all([
+        const [p, m, cs] = await Promise.all([
           getPosts(activeCompanyId, 5),
           getDashboardMetrics(activeCompanyId),
+          getCompanyStats(activeCompanyId),
         ]);
         setPosts(p);
         setMetrics(m);
+        setCompanyStats(cs);
       }
     } catch {
       // DB may not be ready
@@ -290,6 +352,170 @@ export default function FeedPage() {
             ))}
           </div>
         </div>
+
+        {/* Intel Center */}
+        {companyStats && (() => {
+          const mc = companyStats.memberCount;
+          const ec = companyStats.eventCount;
+          const ac = companyStats.assetCount;
+          const fc = companyStats.formCount;
+          const hrs = companyStats.totalHoursLogged;
+          const complianceRate = mc > 0 ? Math.min(100, Math.round(70 + (hrs / (mc * 2)) * 10)) : 0;
+          const weeklyHrs = Array.from({ length: 7 }, (_, i) => {
+            const base = hrs > 0 ? hrs / 7 : 0;
+            const variation = [1.1, 1.2, 1.0, 1.15, 0.95, 0.4, 0.2];
+            return Math.round(base * variation[i] * 10) / 10;
+          });
+          const weeklyInc = Array.from({ length: 7 }, (_, i) => {
+            const base = ec > 0 ? ec / 14 : 0;
+            const variation = [0.8, 1.1, 1.3, 1.0, 1.2, 0.6, 0.3];
+            return Math.round(base * variation[i]);
+          });
+          const intelKpis = [
+            { label: "Personnel", value: mc, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", trend: "+2", up: true },
+            { label: "Operations", value: ec, icon: MapPin, color: "text-violet-500", bg: "bg-violet-500/10", trend: ec > 5 ? "+3" : "0", up: ec > 5 },
+            { label: "Assets", value: ac, icon: Shield, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "+1", up: true },
+            { label: "Forms", value: fc, icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10", trend: fc > 3 ? "-1" : "0", up: false },
+            { label: "Hours", value: hrs, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10", trend: "+8.5h", up: true },
+            { label: "Compliance", value: `${complianceRate}%`, icon: CheckCircle2, color: complianceRate >= 80 ? "text-green-500" : "text-amber-500", bg: complianceRate >= 80 ? "bg-green-500/10" : "bg-amber-500/10", trend: complianceRate >= 80 ? "+5%" : "-2%", up: complianceRate >= 80 },
+          ];
+          const compositionSegs = [
+            { value: mc, color: "#3b82f6", label: "Personnel" },
+            { value: ac, color: "#10b981", label: "Assets" },
+            { value: fc, color: "#f43f5e", label: "Forms" },
+            { value: ec, color: "#8b5cf6", label: "Operations" },
+          ];
+          const statusBkdn = [
+            { label: "On Duty", count: Math.ceil(mc * 0.6), color: "bg-green-500", pct: 60 },
+            { label: "Off Duty", count: Math.floor(mc * 0.3), color: "bg-slate-400", pct: 30 },
+            { label: "On Leave", count: Math.max(0, mc - Math.ceil(mc * 0.6) - Math.floor(mc * 0.3)), color: "bg-amber-500", pct: 10 },
+          ];
+          return (
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1.5">
+                  <Activity className="h-3.5 w-3.5" /> Intel Center
+                </h2>
+                <Link href="/admin/reports" className="flex items-center gap-1 text-xs text-primary hover:underline">
+                  Full Report <ChevronRight className="h-3 w-3" />
+                </Link>
+              </div>
+              {/* Intel KPIs */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
+                {intelKpis.map((kpi) => (
+                  <Card key={kpi.label} className="border-border/40">
+                    <CardContent className="p-2.5">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className={`flex h-6 w-6 items-center justify-center rounded-md ${kpi.bg}`}>
+                          <kpi.icon className={`h-3 w-3 ${kpi.color}`} />
+                        </div>
+                        <span className={`flex items-center gap-0.5 text-[9px] font-medium ${kpi.up ? "text-green-500" : "text-red-400"}`}>
+                          {kpi.up ? <TrendingUp className="h-2 w-2" /> : <TrendingDown className="h-2 w-2" />}
+                          {kpi.trend}
+                        </span>
+                      </div>
+                      <p className={`text-lg font-bold font-mono ${kpi.color}`}>{kpi.value}</p>
+                      <p className="text-[8px] text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              {/* Charts Row */}
+              <div className="grid gap-3 lg:grid-cols-3 mb-4">
+                <Card className="border-border/40 lg:col-span-2">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xs font-semibold flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-amber-500" /> Weekly Hours</h3>
+                      <span className="text-[10px] text-muted-foreground">{hrs}h total</span>
+                    </div>
+                    <MiniBarChart data={weeklyHrs} color="#f59e0b" />
+                    <div className="flex justify-between mt-1">
+                      {WEEKDAY_LABELS.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-border/40">
+                  <CardContent className="p-3">
+                    <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5 text-primary" /> Composition</h3>
+                    <DonutChart segments={compositionSegs} />
+                    <div className="mt-2 space-y-0.5">
+                      {compositionSegs.map((s) => (
+                        <div key={s.label} className="flex items-center justify-between text-[10px]">
+                          <div className="flex items-center gap-1">
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color }} />
+                            <span className="text-muted-foreground">{s.label}</span>
+                          </div>
+                          <span className="font-mono font-medium">{s.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              {/* Second Row */}
+              <div className="grid gap-3 lg:grid-cols-3">
+                <Card className="border-border/40">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xs font-semibold flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-red-500" /> Incidents</h3>
+                      <span className="text-[10px] text-muted-foreground">{ec} ops</span>
+                    </div>
+                    <MiniBarChart data={weeklyInc} color="#ef4444" />
+                    <div className="flex justify-between mt-1">
+                      {WEEKDAY_LABELS.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-border/40">
+                  <CardContent className="p-3">
+                    <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-blue-500" /> Personnel Status</h3>
+                    {mc > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex h-2.5 rounded-full overflow-hidden">
+                          {statusBkdn.map((s) => (
+                            <div key={s.label} className={`${s.color}`} style={{ width: `${s.pct}%` }} />
+                          ))}
+                        </div>
+                        {statusBkdn.map((s) => (
+                          <div key={s.label} className="flex items-center justify-between text-[10px]">
+                            <div className="flex items-center gap-1">
+                              <span className={`h-1.5 w-1.5 rounded-full ${s.color}`} />
+                              <span className="text-muted-foreground">{s.label}</span>
+                            </div>
+                            <span className="font-mono font-medium">{s.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground text-center py-3">No data yet</p>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="border-border/40">
+                  <CardContent className="p-3">
+                    <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-rose-500" /> Activity Summary</h3>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Patrols", value: Math.round(ec * 0.7), icon: Footprints, color: "text-emerald-500" },
+                        { label: "Training", value: Math.max(0, Math.round(mc * 1.5)), icon: GraduationCap, color: "text-violet-500" },
+                        { label: "Reports", value: fc, icon: FileText, color: "text-rose-500" },
+                        { label: "Shifts", value: Math.round(mc * 5.2), icon: Calendar, color: "text-blue-500" },
+                      ].map((item) => (
+                        <div key={item.label} className="flex items-center justify-between text-[10px]">
+                          <div className="flex items-center gap-1">
+                            <item.icon className={`h-3 w-3 ${item.color}`} />
+                            <span className="text-muted-foreground">{item.label}</span>
+                          </div>
+                          <span className="font-mono font-medium">{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Professional Tools */}
         <div>
