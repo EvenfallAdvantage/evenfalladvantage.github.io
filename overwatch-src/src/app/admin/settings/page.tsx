@@ -18,15 +18,15 @@ type IntConfig = any;
 const LEAVE_TYPES = ["vacation", "sick", "personal", "bereavement", "parental", "unpaid"];
 
 const INTEGRATIONS = [
-  { provider: "fillout", label: "Fillout", logo: "/images/integrations/fillout-icon.svg", desc: "Receive employment applications via Fillout webhook", fields: [
+  { provider: "fillout", label: "Fillout", logo: "/images/integrations/fillout-icon.png", desc: "Receive employment applications via Fillout webhook", fields: [
     { key: "webhook_secret", label: "Webhook Secret", type: "password", placeholder: "whsec_..." },
   ]},
-  { provider: "airtable", label: "Airtable", logo: "https://upload.wikimedia.org/wikipedia/commons/4/4b/Airtable_Logo.svg", desc: "Sync applicant records with Airtable", fields: [
+  { provider: "airtable", label: "Airtable", logo: "/images/integrations/airtable/Airtable_idfELID3VH_0.svg", desc: "Sync applicant records with Airtable", fields: [
     { key: "api_key", label: "API Key", type: "password", placeholder: "pat..." },
     { key: "base_id", label: "Base ID", type: "text", placeholder: "app..." },
     { key: "table_name", label: "Table Name", type: "text", placeholder: "Staff" },
   ]},
-  { provider: "whatsapp", label: "WhatsApp Business", logo: "https://upload.wikimedia.org/wikipedia/commons/4/4c/WhatsApp_Logo_green.svg", desc: "Auto-invite new hires to WhatsApp community and send notifications", fields: [
+  { provider: "whatsapp", label: "WhatsApp Business", logo: "/images/integrations/whatsapp/WhatsApp_Logo_Alternative_0.svg", desc: "Auto-invite new hires to WhatsApp community and send notifications", fields: [
     { key: "phone_number_id", label: "Phone Number ID", type: "text", placeholder: "1234567890" },
     { key: "access_token", label: "Permanent Access Token", type: "password", placeholder: "EAAx..." },
     { key: "community_invite_link", label: "Community Invite Link", type: "text", placeholder: "https://chat.whatsapp.com/..." },
