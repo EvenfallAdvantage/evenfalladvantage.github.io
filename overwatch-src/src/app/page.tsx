@@ -538,8 +538,8 @@ function HomePageInner() {
       <footer className="border-t border-white/5 py-10">
         <div className="mx-auto max-w-6xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Image src="/images/overwatch_logo.png" alt="Overwatch" width={20} height={20} style={{ width: 20, height: "auto" }} />
-            <span className="font-mono text-xs text-white/40">OVERWATCH — Powered by Evenfall Advantage LLC</span>
+            <span className="font-mono text-xs text-white/40">Powered by</span>
+            <Image src="/images/logo.png" alt="Evenfall Advantage" width={20} height={20} style={{ width: 20, height: "auto" }} />
           </div>
           <div className="flex items-center gap-6 text-xs text-white/30">
             <button onClick={() => setLoginOpen(true)} className="hover:text-white/60 transition-colors">Sign In</button>
