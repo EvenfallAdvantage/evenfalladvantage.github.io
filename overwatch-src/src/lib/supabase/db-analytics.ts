@@ -72,7 +72,7 @@ export async function getDashboardMetrics(companyId: string) {
     supabase.from("company_memberships").select("id", { count: "exact", head: true })
       .eq("company_id", companyId).eq("status", "active"),
     supabase.from("shifts").select("id, events!inner(company_id)", { count: "exact", head: true })
-      .eq("events.company_id", companyId).gte("start_time", now).eq("status", "open"),
+      .eq("events.company_id", companyId).gte("start_time", now).is("assigned_user_id", null),
   ]);
 
   return {

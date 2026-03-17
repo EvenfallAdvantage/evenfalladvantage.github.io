@@ -163,7 +163,7 @@ export async function assignShift(shiftId: string, userId: string | null) {
   const supabase = createClient();
   const { error } = await supabase
     .from("shifts")
-    .update({ assigned_user_id: userId })
+    .update({ assigned_user_id: userId, status: userId ? "confirmed" : "open" })
     .eq("id", shiftId);
   if (error) throw error;
 }

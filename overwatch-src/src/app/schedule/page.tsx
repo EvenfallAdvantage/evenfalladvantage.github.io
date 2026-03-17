@@ -208,7 +208,7 @@ export default function SchedulePage() {
                             </p>
                             {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                           </div>
-                          <Badge className={`text-[10px] capitalize ${statusColor(sh.status)}`}>{sh.status}</Badge>
+                          <Badge className={`text-[10px] capitalize ${statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>{sh.assigned_user_id ? "Confirmed" : "Open"}</Badge>
                         </CardContent>
                       </Card>
                     ))}
