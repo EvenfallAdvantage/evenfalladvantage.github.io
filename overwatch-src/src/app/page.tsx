@@ -539,7 +539,7 @@ function HomePageInner() {
         <div className="mx-auto max-w-6xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs text-white/40">Powered by</span>
-            <Image src="/images/logo.png" alt="Evenfall Advantage" width={20} height={20} style={{ width: 20, height: "auto" }} />
+            <Image src="/images/logo.png" alt="Evenfall Advantage" width={80} height={80} style={{ width: 80, height: "auto" }} />
           </div>
           <div className="flex items-center gap-6 text-xs text-white/30">
             <button onClick={() => setLoginOpen(true)} className="hover:text-white/60 transition-colors">Sign In</button>
