@@ -93,8 +93,7 @@ function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onCl
       if (signInError) throw signInError;
       clearLoginAttempts(email);
       logSecurityEvent({ event_type: "auth.login.success", user_id: data.user?.id, outcome: "success", metadata: { method: "email" } });
-      router.push("/feed");
-      router.refresh();
+      window.location.href = `${window.location.origin}/overwatch/feed`;
     } catch (err) {
       recordFailedAttempt(email);
       logSecurityEvent({ event_type: "auth.login.failed", outcome: "failure", metadata: { method: "email" } });
@@ -169,7 +168,6 @@ function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onCl
 }
 
 function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open: boolean; onClose: () => void; onSwitchToLogin: () => void; joinCode?: string }) {
-  const router = useRouter();
   const { clearSession } = useAuthStore();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -240,8 +238,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
         }
       }
 
-      router.push("/feed");
-      router.refresh();
+      window.location.href = `${window.location.origin}/overwatch/feed`;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally { setLoading(false); }
