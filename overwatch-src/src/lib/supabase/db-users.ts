@@ -284,7 +284,7 @@ export async function getCompanyMembers(companyId: string) {
     .from("company_memberships")
     .select(
       `
-      id, role, nickname, status, title,
+      id, role, nickname, status, title, hide_contact_roster,
       users (
         id, first_name, last_name, email, phone, avatar_url
       )

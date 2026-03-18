@@ -349,6 +349,7 @@ export async function updateMemberProfile(companyId: string, updates: {
   emergencyContactName?: string;
   emergencyContactPhone?: string;
   whatsappOptedIn?: boolean;
+  hideContactFromRoster?: boolean;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
@@ -364,6 +365,7 @@ export async function updateMemberProfile(companyId: string, updates: {
   if (updates.emergencyContactName !== undefined) payload.emergency_contact_name = updates.emergencyContactName;
   if (updates.emergencyContactPhone !== undefined) payload.emergency_contact_phone = updates.emergencyContactPhone;
   if (updates.whatsappOptedIn !== undefined) payload.whatsapp_opted_in = updates.whatsappOptedIn;
+  if (updates.hideContactFromRoster !== undefined) payload.hide_contact_roster = updates.hideContactFromRoster;
   const { data, error } = await supabase
     .from("company_memberships")
     .update(payload)

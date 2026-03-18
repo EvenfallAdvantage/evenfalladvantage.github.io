@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Users, Search, Mail, Phone, Shield } from "lucide-react";
+import { Users, Search, Mail, Phone, Shield, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -133,21 +133,30 @@ export default function DirectoryPage() {
                 </div>
               </div>
               <div className="grid gap-3 text-sm">
-                {sel.email && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="h-4 w-4" />
-                    <a href={`mailto:${sel.email}`} className="hover:text-foreground">
-                      {sel.email}
-                    </a>
+                {selected.hide_contact_roster ? (
+                  <div className="flex items-center gap-2 text-muted-foreground/60 italic text-xs">
+                    <EyeOff className="h-4 w-4" />
+                    Contact info hidden by this member
                   </div>
-                )}
-                {sel.phone && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Phone className="h-4 w-4" />
-                    <a href={`tel:${sel.phone}`} className="hover:text-foreground">
-                      {sel.phone}
-                    </a>
-                  </div>
+                ) : (
+                  <>
+                    {sel.email && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-4 w-4" />
+                        <a href={`mailto:${sel.email}`} className="hover:text-foreground">
+                          {sel.email}
+                        </a>
+                      </div>
+                    )}
+                    {sel.phone && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="h-4 w-4" />
+                        <a href={`tel:${sel.phone}`} className="hover:text-foreground">
+                          {sel.phone}
+                        </a>
+                      </div>
+                    )}
+                  </>
                 )}
                 {selected.nickname && (
                   <div>

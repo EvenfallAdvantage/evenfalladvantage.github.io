@@ -49,7 +49,7 @@ export default function ProfilePage() {
   const [mp, setMp] = useState<MemberProfile>(null);
   const [mpLoaded, setMpLoaded] = useState(false);
   const [editingCompany, setEditingCompany] = useState(false);
-  const [compForm, setCompForm] = useState({ bio: "", address: "", shirtSize: "", jacketSize: "", emergencyContactName: "", emergencyContactPhone: "", whatsappOptedIn: false, workPreferences: [] as string[] });
+  const [compForm, setCompForm] = useState({ bio: "", address: "", shirtSize: "", jacketSize: "", emergencyContactName: "", emergencyContactPhone: "", whatsappOptedIn: false, hideContactFromRoster: false, workPreferences: [] as string[] });
   const [savingComp, setSavingComp] = useState(false);
   // Onboarding
   const [onboardingProgress, setOnboardingProgress] = useState<OProgress[]>([]);
@@ -111,6 +111,7 @@ export default function ProfilePage() {
             emergencyContactName: profile.emergency_contact_name ?? "",
             emergencyContactPhone: profile.emergency_contact_phone ?? "",
             whatsappOptedIn: profile.whatsapp_opted_in ?? false,
+            hideContactFromRoster: profile.hide_contact_roster ?? false,
             workPreferences: profile.work_preferences ?? [],
           });
         }
@@ -471,6 +472,12 @@ export default function ProfilePage() {
                           onChange={(e) => setCompForm(p => ({ ...p, whatsappOptedIn: e.target.checked }))}
                           className="rounded" />
                         WhatsApp notifications opted in
+                      </label>
+                      <label className="flex items-center gap-2 text-xs">
+                        <input type="checkbox" checked={compForm.hideContactFromRoster}
+                          onChange={(e) => setCompForm(p => ({ ...p, hideContactFromRoster: e.target.checked }))}
+                          className="rounded" />
+                        Hide my contact info (email &amp; phone) from company roster
                       </label>
                       <div className="flex gap-2 pt-1">
                         <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleSaveCompany} disabled={savingComp}>
