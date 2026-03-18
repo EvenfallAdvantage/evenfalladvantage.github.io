@@ -101,7 +101,7 @@ export async function getUserShifts(companyId: string) {
   const supabase = createClient();
   const { data } = await supabase
     .from("shifts")
-    .select("*, events!inner(id, name, location, company_id)")
+    .select("*, events!inner(id, name, location, company_id, ops_guide)")
     .eq("assigned_user_id", userId)
     .eq("events.company_id", companyId)
     .order("start_time", { ascending: true });
