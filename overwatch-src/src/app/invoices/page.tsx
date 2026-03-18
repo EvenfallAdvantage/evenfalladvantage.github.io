@@ -131,40 +131,130 @@ export default function InvoicesPage() {
   const fmt = (n: number) => n.toFixed(2);
 
   async function downloadPDF() {
-    if (!previewRef.current) return;
     setGenerating(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
       const { jsPDF } = await import("jspdf");
-
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2, useCORS: true, logging: false,
-        onclone: (_doc: Document, el: HTMLElement) => {
-          // html2canvas cannot parse CSS Color Level 4 lab() functions
-          // (used by Tailwind v4). Walk the cloned DOM and replace with RGB.
-          const colorProps = ["color", "background-color", "border-color", "border-top-color", "border-bottom-color", "border-left-color", "border-right-color", "outline-color"];
-          el.querySelectorAll("*").forEach((node) => {
-            if (!(node instanceof HTMLElement)) return;
-            const cs = getComputedStyle(node);
-            for (const prop of colorProps) {
-              const val = cs.getPropertyValue(prop);
-              if (val && val.includes("lab(")) {
-                node.style.setProperty(prop, val.replace(/lab\([^)]+\)/g, "rgb(0,0,0)"));
-              }
-            }
-          });
-        },
-      });
-      const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
-      const pdfW = 210, pdfH = 297, margin = 10;
-      const maxW = pdfW - margin * 2, maxH = pdfH - margin * 2;
-      let imgW = canvas.width * 0.264583 / 2;
-      let imgH = canvas.height * 0.264583 / 2;
-      if (imgW > maxW) { const r = maxW / imgW; imgW = maxW; imgH *= r; }
-      if (imgH > maxH) { const r = maxH / imgH; imgH = maxH; imgW *= r; }
-      const xOff = (pdfW - imgW) / 2;
-      pdf.addImage(imgData, "PNG", xOff, margin, imgW, imgH);
+      const W = 210, M = 15;
+      const cw = W - M * 2; // content width
+      let y = M;
+
+      // ─── Logo ───
+      if (logoUrl) {
+        try { pdf.addImage(logoUrl, "PNG", M, y, 25, 25); } catch {}
+      }
+
+      // ─── Invoice header (right-aligned) ───
+      pdf.setFontSize(9).setTextColor(100);
+      pdf.text(`Invoice #: ${form.invoiceNumber || "—"}`, W - M, y + 4, { align: "right" });
+      pdf.text(`Date: ${form.invoiceDate || "—"}`, W - M, y + 9, { align: "right" });
+      if (form.dueDate) pdf.text(`Due: ${form.dueDate}`, W - M, y + 14, { align: "right" });
+      y += 22;
+
+      // ─── INVOICE title ───
+      pdf.setFontSize(22).setTextColor(30);
+      pdf.text("INVOICE", M, y);
+      y += 12;
+
+      // ─── FROM / BILL TO ───
+      const colW = cw / 2;
+      pdf.setFontSize(8).setTextColor(120);
+      pdf.text("FROM", M, y);
+      pdf.text("BILL TO", M + colW, y);
+      y += 5;
+      pdf.setFontSize(10).setTextColor(40);
+      const fromLines = [
+        form.yourName, form.yourBusiness,
+        [form.yourAddress, [form.yourCity, form.yourState, form.yourZip].filter(Boolean).join(", ")].filter(Boolean).join("\n"),
+        form.yourEmail, form.yourPhone,
+      ].filter(Boolean);
+      const toLines = [
+        form.clientName, form.clientCompany,
+        form.clientAddress,
+        [form.clientCity, form.clientState, form.clientZip].filter(Boolean).join(", "),
+      ].filter(Boolean);
+      const maxAddr = Math.max(fromLines.length, toLines.length);
+      for (let i = 0; i < maxAddr; i++) {
+        if (fromLines[i]) pdf.text(fromLines[i], M, y);
+        if (toLines[i]) pdf.text(toLines[i], M + colW, y);
+        y += 5;
+      }
+      y += 6;
+
+      // ─── Table header ───
+      const descX = M, qtyX = M + cw * 0.55, rateX = M + cw * 0.7, amtX = W - M;
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(M, y - 4, cw, 7, "F");
+      pdf.setFontSize(8).setTextColor(80);
+      pdf.text("Description", descX, y);
+      pdf.text("Qty", qtyX, y, { align: "center" });
+      pdf.text("Rate", rateX, y, { align: "center" });
+      pdf.text("Amount", amtX, y, { align: "right" });
+      y += 6;
+
+      // ─── Table rows ───
+      pdf.setFontSize(9).setTextColor(40);
+      for (const item of items) {
+        const amt = item.quantity * item.rate;
+        // Wrap long descriptions
+        const descLines = pdf.splitTextToSize(item.description || "—", cw * 0.5);
+        for (let li = 0; li < descLines.length; li++) {
+          pdf.text(descLines[li], descX, y);
+          if (li === 0) {
+            pdf.text(String(item.quantity), qtyX, y, { align: "center" });
+            pdf.text(`$${item.rate.toFixed(2)}`, rateX, y, { align: "center" });
+            pdf.setFont("helvetica", "bold");
+            pdf.text(`$${amt.toFixed(2)}`, amtX, y, { align: "right" });
+            pdf.setFont("helvetica", "normal");
+          }
+          y += 5;
+        }
+        // light separator
+        pdf.setDrawColor(220).line(M, y - 2, W - M, y - 2);
+      }
+      y += 4;
+
+      // ─── Totals ───
+      const totX = M + cw * 0.65;
+      pdf.setFontSize(9).setTextColor(80);
+      pdf.text("Subtotal", totX, y);
+      pdf.text(`$${fmt(subtotal)}`, amtX, y, { align: "right" });
+      y += 5;
+      if (taxRate > 0) {
+        pdf.text(`Tax (${taxRate}%)`, totX, y);
+        pdf.text(`$${fmt(tax)}`, amtX, y, { align: "right" });
+        y += 5;
+      }
+      pdf.setDrawColor(40).line(totX, y - 2, W - M, y - 2);
+      pdf.setFontSize(12).setTextColor(20).setFont("helvetica", "bold");
+      pdf.text("Total Due", totX, y + 3);
+      pdf.text(`$${fmt(total)}`, amtX, y + 3, { align: "right" });
+      pdf.setFont("helvetica", "normal");
+      y += 14;
+
+      // ─── Payment terms ───
+      if (form.paymentTerms) {
+        pdf.setFontSize(8).setTextColor(100);
+        pdf.text("PAYMENT TERMS", M, y);
+        y += 4;
+        pdf.setFontSize(9).setTextColor(40);
+        pdf.text(form.paymentTerms, M, y);
+        y += 8;
+      }
+
+      // ─── Notes ───
+      if (form.notes) {
+        pdf.setFontSize(9).setTextColor(120).setFont("helvetica", "italic");
+        const noteLines = pdf.splitTextToSize(form.notes, cw);
+        pdf.text(noteLines, M, y);
+        pdf.setFont("helvetica", "normal");
+        y += noteLines.length * 5;
+      }
+
+      // ─── Footer ───
+      pdf.setFontSize(8).setTextColor(160);
+      pdf.text("Thank you for your business.", W / 2, y + 6, { align: "center" });
+
       const invNum = form.invoiceNumber || "invoice";
       pdf.save(`Invoice_${invNum}_${new Date().toISOString().split("T")[0]}.pdf`);
     } catch (err) {
@@ -182,7 +272,7 @@ export default function InvoicesPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><FileText className="h-5 w-5 sm:h-6 sm:w-6" /> INVOICES</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Professional invoicing for 1099 contractors</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Professional invoicing</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowPreview(!showPreview)}>
