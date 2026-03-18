@@ -125,7 +125,7 @@ export async function getPostReactions(postId: string) {
   return data ?? [];
 }
 
-export async function togglePostReaction(postId: string, type: string = "like") {
+export async function togglePostReaction(postId: string, emoji: string = "like") {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
   const supabase = createClient();
@@ -136,7 +136,7 @@ export async function togglePostReaction(postId: string, type: string = "like") 
     .select("id")
     .eq("post_id", postId)
     .eq("user_id", userId)
-    .eq("type", type)
+    .eq("emoji", emoji)
     .maybeSingle();
 
   if (existing) {
@@ -149,7 +149,7 @@ export async function togglePostReaction(postId: string, type: string = "like") 
       id: crypto.randomUUID(),
       post_id: postId,
       user_id: userId,
-      type,
+      emoji,
       created_at: new Date().toISOString(),
     });
     return { action: "added" };

@@ -33,6 +33,8 @@ import {
   UserCheck,
   CircleDot,
   Bell,
+  ThumbsUp,
+  Send,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,10 @@ import {
   getCompanyStats,
   getIntelData,
   getOwnerIntel,
+  getPostReactions,
+  togglePostReaction,
+  getPostComments,
+  addPostComment,
 } from "@/lib/supabase/db";
 import { getUserShifts } from "@/lib/supabase/db-operations";
 import { Badge } from "@/components/ui/badge";
@@ -216,6 +222,47 @@ export default function FeedPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [nextShift, setNextShift] = useState<any>(null);
   const [ownerIntel, setOwnerIntel] = useState<OwnerIntel | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [postReactions, setPostReactions] = useState<Record<string, any[]>>({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [postComments, setPostComments] = useState<Record<string, any[]>>({});
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [sendingComment, setSendingComment] = useState(false);
+  const [togglingReaction, setTogglingReaction] = useState<string | null>(null);
+
+  async function handleReaction(postId: string) {
+    setTogglingReaction(postId);
+    try {
+      await togglePostReaction(postId, "like");
+      const r = await getPostReactions(postId);
+      setPostReactions((prev) => ({ ...prev, [postId]: r }));
+    } catch (err) { console.error(err); }
+    finally { setTogglingReaction(null); }
+  }
+
+  async function toggleCommentSection(postId: string) {
+    if (expandedPostId === postId) { setExpandedPostId(null); return; }
+    setExpandedPostId(postId);
+    setCommentText("");
+    try {
+      const [c, r] = await Promise.all([getPostComments(postId), getPostReactions(postId)]);
+      setPostComments((prev) => ({ ...prev, [postId]: c }));
+      setPostReactions((prev) => ({ ...prev, [postId]: r }));
+    } catch {}
+  }
+
+  async function handleSendComment(postId: string) {
+    if (!commentText.trim()) return;
+    setSendingComment(true);
+    try {
+      await addPostComment(postId, commentText.trim());
+      const c = await getPostComments(postId);
+      setPostComments((prev) => ({ ...prev, [postId]: c }));
+      setCommentText("");
+    } catch (err) { console.error(err); }
+    finally { setSendingComment(false); }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -414,23 +461,64 @@ export default function FeedPage() {
             <div className="space-y-2">
               {posts.filter((p: Post) => p.is_pinned).map((post: Post) => {
                 const author = post.users;
+                const rxns = postReactions[post.id] ?? [];
+                const cmts = postComments[post.id] ?? [];
+                const userLiked = rxns.some((r: { users?: { id?: string } }) => r.users?.id === user?.id);
                 return (
-                  <div key={post.id} className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                    <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarImage src={author?.avatar_url ?? undefined} />
-                      <AvatarFallback className="bg-amber-500/15 text-[10px] font-bold text-amber-600">
-                        {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{author?.first_name} {author?.last_name}</span>
-                        <span className="text-[10px] text-muted-foreground">{timeAgo(post.created_at)}</span>
-                        <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600">PINNED</span>
+                  <div key={post.id} className="rounded-lg border border-amber-500/30 bg-amber-500/5 overflow-hidden">
+                    <div className="flex items-start gap-3 p-3">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarImage src={author?.avatar_url ?? undefined} />
+                        <AvatarFallback className="bg-amber-500/15 text-[10px] font-bold text-amber-600">
+                          {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{author?.first_name} {author?.last_name}</span>
+                          <span className="text-[10px] text-muted-foreground">{timeAgo(post.created_at)}</span>
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600">PINNED</span>
+                        </div>
+                        {post.title && <p className="mt-0.5 text-sm font-semibold">{post.title}</p>}
+                        <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{post.content}</p>
                       </div>
-                      {post.title && <p className="mt-0.5 text-sm font-semibold">{post.title}</p>}
-                      <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{post.content}</p>
                     </div>
+                    <div className="flex items-center gap-1 border-t border-amber-500/20 px-3 py-1.5">
+                      <button onClick={() => handleReaction(post.id)} disabled={togglingReaction === post.id}
+                        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:bg-accent ${userLiked ? "text-primary" : "text-muted-foreground"}`}>
+                        <ThumbsUp className="h-3.5 w-3.5" />
+                        {rxns.length > 0 && <span>{rxns.length}</span>}
+                      </button>
+                      <button onClick={() => toggleCommentSection(post.id)}
+                        className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:bg-accent ${expandedPostId === post.id ? "text-primary" : "text-muted-foreground"}`}>
+                        <MessageCircle className="h-3.5 w-3.5" /> Comment
+                        {cmts.length > 0 && <span className="ml-0.5">({cmts.length})</span>}
+                      </button>
+                    </div>
+                    {expandedPostId === post.id && (
+                      <div className="border-t border-amber-500/20 px-3 py-2 space-y-2">
+                        {cmts.map((cm: { id: string; content: string; created_at: string; users?: { first_name?: string; last_name?: string } }) => (
+                          <div key={cm.id} className="flex items-start gap-2 text-xs">
+                            <div className="h-5 w-5 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-bold text-primary">
+                              {(cm.users?.first_name?.[0] ?? "")}{(cm.users?.last_name?.[0] ?? "")}
+                            </div>
+                            <div>
+                              <span className="font-medium">{cm.users?.first_name} {cm.users?.last_name}</span>
+                              <span className="ml-1.5 text-muted-foreground">{cm.content}</span>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="flex items-center gap-2">
+                          <input value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="Write a comment..."
+                            onKeyDown={(e) => e.key === "Enter" && handleSendComment(post.id)}
+                            className="flex-1 rounded-md border border-border/40 bg-background px-2 py-1 text-xs outline-none focus:border-primary/50" />
+                          <button onClick={() => handleSendComment(post.id)} disabled={sendingComment || !commentText.trim()}
+                            className="rounded-md p-1 text-primary hover:bg-primary/10 disabled:opacity-40">
+                            <Send className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
