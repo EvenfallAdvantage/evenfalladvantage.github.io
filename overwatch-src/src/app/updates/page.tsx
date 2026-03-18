@@ -181,6 +181,26 @@ export default function UpdatesPage() {
         imageUrl: imageUrl.trim() || undefined,
         linkUrl: linkUrl.trim() || undefined,
       });
+      // Notify all company members about the new briefing
+      const postTitle = title.trim() || content.trim().slice(0, 60);
+      import("@/lib/supabase/db").then((mod) => {
+        mod.getCompanyMembers(activeCompanyId).then((mbrs: { users: { id: string } | { id: string }[] }[]) => {
+          import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
+            for (const m of mbrs) {
+              const u = Array.isArray(m.users) ? m.users[0] : m.users;
+              if (!u?.id || u.id === user?.id) continue;
+              dispatch({
+                userId: u.id,
+                companyId: activeCompanyId,
+                title: "New Briefing",
+                body: postTitle,
+                type: "announcement",
+                actionUrl: "/updates",
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+        }).catch(() => {});
+      }).catch(() => {});
       setContent(""); setTitle(""); setImageUrl(""); setLinkUrl("");
       setPostType("update"); setShowAttach(false);
       await load();

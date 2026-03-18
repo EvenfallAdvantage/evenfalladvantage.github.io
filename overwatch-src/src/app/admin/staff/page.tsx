@@ -159,7 +159,24 @@ export default function AdminStaffPage() {
 
   async function handleApprove(id: string) {
     setApproving(id);
-    try { await approveTimesheet(id); await load(); } catch (err) { console.error(err); }
+    try {
+      await approveTimesheet(id);
+      // Notify employee their timesheet was approved
+      const sheet = timesheets.find((t: Sheet) => t.id === id);
+      if (sheet?.user_id && activeCompanyId) {
+        import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
+          dispatch({
+            userId: sheet.user_id,
+            companyId: activeCompanyId!,
+            title: "Timesheet Approved",
+            body: "Your timesheet has been approved by management.",
+            type: "timesheet_approved",
+            actionUrl: "/timeclock",
+          }).catch(() => {});
+        }).catch(() => {});
+      }
+      await load();
+    } catch (err) { console.error(err); }
     finally { setApproving(null); }
   }
 
@@ -188,7 +205,25 @@ export default function AdminStaffPage() {
 
   async function handleFormReview(id: string) {
     setReviewingForm(id);
-    try { await reviewFormSubmission(id, reviewNote || "Reviewed"); setReviewNote(""); await load(); } catch (err) { console.error(err); }
+    try {
+      await reviewFormSubmission(id, reviewNote || "Reviewed");
+      // Notify submitter their form was reviewed
+      const sub = formSubmissions.find((f: FormSub) => f.id === id);
+      if (sub?.user_id && activeCompanyId) {
+        import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
+          dispatch({
+            userId: sub.user_id,
+            companyId: activeCompanyId!,
+            title: "Form Submission Reviewed",
+            body: `Your submission has been reviewed${reviewNote ? `: "${reviewNote}"` : "."}`,
+            type: "form",
+            actionUrl: "/forms",
+          }).catch(() => {});
+        }).catch(() => {});
+      }
+      setReviewNote("");
+      await load();
+    } catch (err) { console.error(err); }
     finally { setReviewingForm(null); }
   }
 
@@ -260,7 +295,25 @@ export default function AdminStaffPage() {
 
   async function handleTCRReview(id: string, status: "approved" | "denied") {
     setReviewingTCR(id);
-    try { await reviewTimeChangeRequest(id, status); await load(); } catch (err) { console.error(err); }
+    try {
+      await reviewTimeChangeRequest(id, status);
+      // Notify the employee their time correction was reviewed
+      const req = timeChangeReqs.find((r: TCR) => r.id === id);
+      const reqUserId = req?.user_id ?? (req?.timesheets?.user_id);
+      if (reqUserId && activeCompanyId) {
+        import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
+          dispatch({
+            userId: reqUserId,
+            companyId: activeCompanyId!,
+            title: `Time Correction ${status === "approved" ? "Approved" : "Denied"}`,
+            body: `Your time correction request has been ${status}.`,
+            type: "time_change_review",
+            actionUrl: "/timeclock",
+          }).catch(() => {});
+        }).catch(() => {});
+      }
+      await load();
+    } catch (err) { console.error(err); }
     finally { setReviewingTCR(null); }
   }
 

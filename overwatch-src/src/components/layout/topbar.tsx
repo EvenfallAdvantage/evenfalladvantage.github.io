@@ -17,11 +17,12 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
-    getUnreadNotificationCount(activeCompanyId).then(setUnreadCount).catch(() => {});
-    const interval = setInterval(() => {
-      getUnreadNotificationCount(activeCompanyId).then(setUnreadCount).catch(() => {});
-    }, 60000);
-    return () => clearInterval(interval);
+    const refresh = () => getUnreadNotificationCount(activeCompanyId).then(setUnreadCount).catch(() => {});
+    refresh();
+    const interval = setInterval(refresh, 60000);
+    const onRead = () => refresh();
+    window.addEventListener("notifications-read", onRead);
+    return () => { clearInterval(interval); window.removeEventListener("notifications-read", onRead); };
   }, [activeCompanyId]);
 
   return (

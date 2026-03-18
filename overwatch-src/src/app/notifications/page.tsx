@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Bell, CheckCheck, Loader2, Info, AlertTriangle, Megaphone, Calendar, ClipboardList, ShieldCheck } from "lucide-react";
+import { Bell, CheckCheck, Loader2, Info, AlertTriangle, Megaphone, Calendar, ClipboardList, ShieldCheck, CalendarOff, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
@@ -18,6 +18,11 @@ const TYPE_ICONS: Record<string, { icon: typeof Bell; color: string }> = {
   event: { icon: Calendar, color: "text-green-500" },
   form: { icon: ClipboardList, color: "text-indigo-500" },
   certification: { icon: ShieldCheck, color: "text-emerald-500" },
+  leave_request: { icon: CalendarOff, color: "text-orange-500" },
+  leave_review: { icon: CalendarOff, color: "text-green-500" },
+  timesheet_approved: { icon: Clock, color: "text-green-500" },
+  time_change_request: { icon: Clock, color: "text-orange-500" },
+  time_change_review: { icon: Clock, color: "text-blue-500" },
 };
 
 function timeAgo(iso: string) {
@@ -50,6 +55,7 @@ export default function NotificationsPage() {
     try {
       await markNotificationRead(id);
       setNotifications((prev) => prev.map((n: Notif) => n.id === id ? { ...n, read: true } : n));
+      window.dispatchEvent(new Event("notifications-read"));
     } catch {}
   }
 
@@ -59,6 +65,7 @@ export default function NotificationsPage() {
     try {
       await markAllNotificationsRead(activeCompanyId);
       setNotifications((prev) => prev.map((n: Notif) => ({ ...n, read: true })));
+      window.dispatchEvent(new Event("notifications-read"));
     } catch {}
     finally { setMarkingAll(false); }
   }

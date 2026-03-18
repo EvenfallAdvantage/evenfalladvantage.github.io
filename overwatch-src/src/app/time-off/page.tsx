@@ -47,10 +47,31 @@ export default function TimeOffPage() {
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
-    if (!startDate || !endDate || !selectedPolicy) return;
+    if (!startDate || !endDate || !selectedPolicy || !activeCompanyId) return;
     setCreating(true);
     try {
       await createTimeOffRequest({ policyId: selectedPolicy, startDate, endDate, note: note || undefined });
+      // Notify managers about the new leave request
+      const policyName = policies.find((p: Policy) => p.id === selectedPolicy)?.name ?? "Leave";
+      import("@/lib/supabase/db").then((mod) => {
+        mod.getCompanyMembers(activeCompanyId).then((mbrs: { role: string; users: { id: string } | { id: string }[] }[]) => {
+          const mgrs = mbrs.filter((m) => ["owner", "admin", "manager"].includes(m.role) && m.users);
+          import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
+            for (const mgr of mgrs) {
+              const u = Array.isArray(mgr.users) ? mgr.users[0] : mgr.users;
+              if (!u?.id) continue;
+              dispatch({
+                userId: u.id,
+                companyId: activeCompanyId,
+                title: "New Leave Request",
+                body: `${policyName}: ${startDate} — ${endDate}${note ? ` ("${note}")` : ""}`,
+                type: "leave_request",
+                actionUrl: "/admin/staff",
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+        }).catch(() => {});
+      }).catch(() => {});
       setStartDate(""); setEndDate(""); setNote(""); setSelectedPolicy(""); setShowCreate(false);
       await load();
     } catch (err) { console.error("Leave request failed:", err); }
