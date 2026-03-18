@@ -5,8 +5,8 @@ import {
   BarChart3, Users, MapPin, Shield, ClipboardList, Clock, Loader2,
   AlertTriangle, CheckCircle2, Footprints,
   GraduationCap, FileText, Calendar, Activity,
-  UserPlus, Bell, Plug, DollarSign, ArrowRight, UserCheck,
-  ClipboardCheck, CircleDot, Inbox, RefreshCw,
+  UserPlus, Bell, Plug, DollarSign, UserCheck,
+  ClipboardCheck, CircleDot, RefreshCw,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -159,7 +159,6 @@ export default function AdminReportsPage() {
     { label: "On Leave", count: p.onLeave, color: "bg-amber-500", pct: p.total > 0 ? Math.round((p.onLeave / p.total) * 100) : 0 },
   ];
 
-  const approvals = owner?.approvals;
   const pipeline = owner?.pipeline;
   const intHealth = owner?.integrationHealth;
   const payroll = owner?.payroll;
@@ -189,33 +188,6 @@ export default function AdminReportsPage() {
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
           <>
-            {/* ── COMMAND SUMMARY (Pending Approvals Alert) ── */}
-            {approvals && approvals.total > 0 && (
-              <Card className="border-amber-500/30 bg-amber-500/5">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/15">
-                      <Inbox className="h-5 w-5 text-amber-500" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold">Action Required — {approvals.total} pending approval{approvals.total !== 1 ? "s" : ""}</p>
-                      <div className="flex flex-wrap gap-3 mt-1">
-                        {approvals.timesheets > 0 && <span className="text-xs text-muted-foreground">{approvals.timesheets} timesheet{approvals.timesheets !== 1 ? "s" : ""}</span>}
-                        {approvals.timeCorrections > 0 && <span className="text-xs text-muted-foreground">{approvals.timeCorrections} time correction{approvals.timeCorrections !== 1 ? "s" : ""}</span>}
-                        {approvals.leaveRequests > 0 && <span className="text-xs text-muted-foreground">{approvals.leaveRequests} leave request{approvals.leaveRequests !== 1 ? "s" : ""}</span>}
-                        {approvals.formReviews > 0 && <span className="text-xs text-muted-foreground">{approvals.formReviews} form{approvals.formReviews !== 1 ? "s" : ""}</span>}
-                      </div>
-                    </div>
-                    <a href="/overwatch/admin/staff">
-                      <Button size="sm" variant="outline" className="gap-1 text-xs border-amber-500/30 text-amber-600 hover:bg-amber-500/10">
-                        Review <ArrowRight className="h-3 w-3" />
-                      </Button>
-                    </a>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* ── KPI ROW ── */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {kpiCards.map((kpi) => (
