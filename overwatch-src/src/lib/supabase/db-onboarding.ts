@@ -389,6 +389,70 @@ export async function getMemberProfile(companyId: string) {
   return data;
 }
 
+export async function getCompanyReadiness(companyId: string) {
+  const supabase = createClient();
+
+  // 1. All memberships with profile fields
+  const { data: members } = await supabase
+    .from("company_memberships")
+    .select("id, user_id, role, bio, address, guard_card_number, guard_card_expiry, emergency_contact_name, emergency_contact_phone, work_preferences, shirt_size, jacket_size")
+    .eq("company_id", companyId)
+    .eq("status", "active");
+
+  // 2. All required KB documents in this company
+  const { data: requiredDocs } = await supabase
+    .from("kb_documents")
+    .select("id, title, folder_id, kb_folders!inner(company_id)")
+    .eq("required", true)
+    .eq("kb_folders.company_id", companyId);
+
+  // 3. All read records for those required docs
+  const reqDocIds = (requiredDocs ?? []).map((d: { id: string }) => d.id);
+  let readRecords: { document_id: string; user_id: string }[] = [];
+  if (reqDocIds.length > 0) {
+    const { data: reads } = await supabase
+      .from("kb_document_reads")
+      .select("document_id, user_id")
+      .in("document_id", reqDocIds);
+    readRecords = reads ?? [];
+  }
+
+  // Build readiness map: membershipId → { profileIssues, requiredReadingMissing }
+  const readByUser = new Map<string, Set<string>>();
+  for (const r of readRecords) {
+    if (!readByUser.has(r.user_id)) readByUser.set(r.user_id, new Set());
+    readByUser.get(r.user_id)!.add(r.document_id);
+  }
+
+  const PROFILE_FIELDS: { key: string; label: string }[] = [
+    { key: "bio", label: "Bio" },
+    { key: "address", label: "Address" },
+    { key: "guard_card_number", label: "Guard Card" },
+    { key: "emergency_contact_name", label: "Emergency Contact Name" },
+    { key: "emergency_contact_phone", label: "Emergency Contact Phone" },
+    { key: "work_preferences", label: "Work Preferences" },
+  ];
+
+  const result: Record<string, { profileMissing: string[]; readingMissing: { id: string; title: string }[] }> = {};
+  for (const m of (members ?? [])) {
+    const profileMissing: string[] = [];
+    for (const f of PROFILE_FIELDS) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const val = (m as any)[f.key];
+      if (!val || (Array.isArray(val) && val.length === 0)) profileMissing.push(f.label);
+    }
+
+    const userReads = readByUser.get(m.user_id) ?? new Set();
+    const readingMissing = (requiredDocs ?? [])
+      .filter((d: { id: string }) => !userReads.has(d.id))
+      .map((d: { id: string; title: string }) => ({ id: d.id, title: d.title }));
+
+    result[m.id] = { profileMissing, readingMissing };
+  }
+
+  return result;
+}
+
 export async function getMemberProfileById(membershipId: string) {
   const supabase = createClient();
   const { data, error } = await supabase

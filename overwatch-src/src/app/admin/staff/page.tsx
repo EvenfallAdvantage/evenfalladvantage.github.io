@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2,
   ChevronDown, CalendarOff, ClipboardList, CheckCircle2, XCircle,
-  UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock,
+  UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock, ShieldCheck, AlertOctagon, BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import {
   getApplicants, createApplicant, updateApplicantStatus, deleteApplicant, convertApplicantToUser,
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask,
   getCompanyTimeChangeRequests, reviewTimeChangeRequest,
-  getMemberProfileById,
+  getMemberProfileById, getCompanyReadiness,
 } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
@@ -85,6 +85,10 @@ export default function AdminStaffPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [viewProfile, setViewProfile] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState<string | null>(null);
+  // Readiness
+  type ReadinessEntry = { profileMissing: string[]; readingMissing: { id: string; title: string }[] };
+  const [readiness, setReadiness] = useState<Record<string, ReadinessEntry>>({});
+  const [viewReadiness, setViewReadiness] = useState<{ member: Member; data: ReadinessEntry } | null>(null);
 
   async function openProfile(membershipId: string) {
     setLoadingProfile(membershipId);
@@ -115,10 +119,11 @@ export default function AdminStaffPage() {
       setTimesheets(ts.filter((t: Sheet) => t.clock_out));
       setLeaveRequests(leave);
       setFormSubmissions(forms);
-      // Load applicants, onboarding tasks, and time change requests (non-blocking)
+      // Load applicants, onboarding tasks, time change requests, and readiness (non-blocking)
       try { setApplicants(await getApplicants(activeCompanyId)); } catch {}
       try { setOTasks(await getOnboardingTasks(activeCompanyId)); } catch {}
       try { setTimeChangeReqs(await getCompanyTimeChangeRequests(activeCompanyId)); } catch {}
+      try { setReadiness(await getCompanyReadiness(activeCompanyId)); } catch {}
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -414,6 +419,20 @@ export default function AdminStaffPage() {
                           {loadingProfile === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
                         </button>
                       )}
+                      {canManage && (() => {
+                        const r = readiness[m.id];
+                        if (!r) return null;
+                        const hasRequired = r.readingMissing.length > 0;
+                        const hasProfile = r.profileMissing.length > 0;
+                        const isGreen = !hasRequired && !hasProfile;
+                        return (
+                          <button onClick={() => setViewReadiness({ member: m, data: r })}
+                            className={`rounded p-1 transition-colors ${isGreen ? "text-green-500 hover:bg-green-500/10" : hasRequired ? "text-red-500 hover:bg-red-500/10" : "text-amber-500 hover:bg-amber-500/10"}`}
+                            title={isGreen ? "All clear" : hasRequired ? "Missing required tasks" : "Incomplete profile"}>
+                            {isGreen ? <ShieldCheck className="h-3.5 w-3.5" /> : hasRequired ? <AlertOctagon className="h-3.5 w-3.5" /> : <AlertOctagon className="h-3.5 w-3.5" />}
+                          </button>
+                        );
+                      })()}
                       {canManageRoles && m.role !== "owner" && (
                         <button onClick={() => handleRemoveMember(m.id, `${u?.first_name} ${u?.last_name}`)} disabled={removingMember === m.id}
                           className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Remove member">
@@ -1048,6 +1067,91 @@ export default function AdminStaffPage() {
             {/* Close */}
             <div className="border-t border-border/40 px-5 py-3 shrink-0">
               <Button size="sm" variant="outline" className="w-full" onClick={() => setViewProfile(null)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Readiness Modal ── */}
+      {viewReadiness && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewReadiness(null)}>
+          <div className="relative w-full max-w-sm max-h-[85vh] rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-border/40 px-5 py-4 shrink-0">
+              <Avatar className="h-10 w-10 shrink-0">
+                <AvatarImage src={viewReadiness.member.users?.avatar_url ?? undefined} />
+                <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
+                  {(viewReadiness.member.users?.first_name?.[0] ?? "")}{(viewReadiness.member.users?.last_name?.[0] ?? "")}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">{viewReadiness.member.users?.first_name} {viewReadiness.member.users?.last_name}</p>
+                <p className="text-[11px] text-muted-foreground">Readiness Status</p>
+              </div>
+              {(() => {
+                const hasReq = viewReadiness.data.readingMissing.length > 0;
+                const hasProf = viewReadiness.data.profileMissing.length > 0;
+                const ok = !hasReq && !hasProf;
+                return (
+                  <Badge className={`text-[9px] ${ok ? "bg-green-500/15 text-green-600" : hasReq ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}>
+                    {ok ? "All Clear" : hasReq ? "Action Required" : "Incomplete"}
+                  </Badge>
+                );
+              })()}
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
+              {/* Required Reading */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <BookOpen className="h-4 w-4 text-red-500" />
+                  <h3 className="text-sm font-semibold">Required Reading</h3>
+                </div>
+                {viewReadiness.data.readingMissing.length === 0 ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-green-500/5 border border-green-500/20 px-3 py-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    <span className="text-xs text-green-600">All required documents read</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {viewReadiness.data.readingMissing.map((doc) => (
+                      <div key={doc.id} className="flex items-center gap-2 rounded-lg bg-red-500/5 border border-red-500/20 px-3 py-2">
+                        <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                        <span className="text-xs truncate">{doc.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Profile Completeness */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="h-4 w-4 text-amber-500" />
+                  <h3 className="text-sm font-semibold">Profile Completeness</h3>
+                </div>
+                {viewReadiness.data.profileMissing.length === 0 ? (
+                  <div className="flex items-center gap-2 rounded-lg bg-green-500/5 border border-green-500/20 px-3 py-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    <span className="text-xs text-green-600">Profile complete</span>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {viewReadiness.data.profileMissing.map((field) => (
+                      <div key={field} className="flex items-center gap-2 rounded-lg bg-amber-500/5 border border-amber-500/20 px-3 py-2">
+                        <AlertOctagon className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                        <span className="text-xs">{field}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Close */}
+            <div className="border-t border-border/40 px-5 py-3 shrink-0">
+              <Button size="sm" variant="outline" className="w-full" onClick={() => setViewReadiness(null)}>Close</Button>
             </div>
           </div>
         </div>
