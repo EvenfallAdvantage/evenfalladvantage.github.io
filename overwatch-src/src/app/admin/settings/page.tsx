@@ -6,9 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown, LayoutGrid } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
-import { getCompanyDetails, updateCompany, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
+import { getCompanyDetails, updateCompany, updateCompanySettings, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
+
+const TOGGLEABLE_TABS = [
+  { href: "/patrols", label: "Patrols", description: "GPS patrol tracking and checkpoint scanning", section: "Field Ops" },
+  { href: "/training/scenarios", label: "De-Escalation", description: "Interactive de-escalation training scenarios", section: "Academy" },
+  { href: "/courses", label: "Courses", description: "Video courses and learning content", section: "Academy" },
+  { href: "/geo-risk", label: "Geo-Risk", description: "Geographic risk analysis and heat maps", section: "Tools" },
+  { href: "/site-assessment", label: "Site Assessment", description: "Security site assessment reports", section: "Tools" },
+  { href: "/invoices", label: "Invoices", description: "Invoice generator and management", section: "Tools" },
+  { href: "/state-laws", label: "State Laws", description: "State-by-state guard law reference", section: "Academy" },
+];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Policy = any;
@@ -101,6 +111,9 @@ const DEVICE_TZ = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOp
 
 export default function AdminSettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const { user, setUser } = useAuthStore();
+  const isOwner = activeCompany?.role === "owner";
   const [name, setName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [timezone, setTimezone] = useState("");
@@ -125,6 +138,10 @@ export default function AdminSettingsPage() {
   const [savedInt, setSavedInt] = useState<string | null>(null);
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  // Tab visibility
+  const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
+  const [savingTabs, setSavingTabs] = useState(false);
+  const [savedTabs, setSavedTabs] = useState(false);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
@@ -139,6 +156,10 @@ export default function AdminSettingsPage() {
         setTimezone(c.timezone ?? "");
         setBrandColor(c.brand_color ?? "#1d3451");
         setLogoUrl(c.logo_url ?? "");
+        if (c.settings) {
+          const s = c.settings as { hiddenTabs?: string[] };
+          setHiddenTabs(s.hiddenTabs ?? []);
+        }
       }
       setPolicies(p);
       // Load integrations
@@ -409,6 +430,72 @@ export default function AdminSettingsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Tab Visibility */}
+        {isOwner && (
+          <Card>
+            <CardContent className="space-y-4 pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> Feature Visibility</h3>
+                  <p className="text-xs text-muted-foreground">Toggle which tabs are visible for your entire company</p>
+                </div>
+                <Button size="sm" className="gap-1.5 text-xs" onClick={async () => {
+                  if (!activeCompanyId || activeCompanyId === "pending") return;
+                  setSavingTabs(true);
+                  try {
+                    await updateCompanySettings(activeCompanyId, { hiddenTabs });
+                    if (user) {
+                      const updatedCompanies = user.companies.map((c) =>
+                        c.companyId === activeCompanyId ? { ...c, settings: { ...c.settings, hiddenTabs } } : c
+                      );
+                      setUser({ ...user, companies: updatedCompanies });
+                    }
+                    setSavedTabs(true);
+                    setTimeout(() => setSavedTabs(false), 2000);
+                  } catch (err) { console.error(err); }
+                  finally { setSavingTabs(false); }
+                }} disabled={savingTabs}>
+                  {savingTabs ? <Loader2 className="h-3 w-3 animate-spin" /> : savedTabs ? <Check className="h-3 w-3 text-green-500" /> : <Save className="h-3 w-3" />}
+                  {savedTabs ? "Saved!" : "Save"}
+                </Button>
+              </div>
+              <div className="rounded-lg border border-border/40 overflow-hidden divide-y divide-border/30">
+                {["Field Ops", "Academy", "Tools"].map((section) => {
+                  const sectionTabs = TOGGLEABLE_TABS.filter((t) => t.section === section);
+                  return (
+                    <div key={section}>
+                      <div className="px-4 py-2 bg-muted/20">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 font-mono">{section}</span>
+                      </div>
+                      {sectionTabs.map((tab) => {
+                        const isVisible = !hiddenTabs.includes(tab.href);
+                        return (
+                          <div key={tab.href} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/10 transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium">{tab.label}</p>
+                              <p className="text-[10px] text-muted-foreground">{tab.description}</p>
+                            </div>
+                            <button
+                              onClick={() => { setHiddenTabs((prev) => prev.includes(tab.href) ? prev.filter((h) => h !== tab.href) : [...prev, tab.href]); setSavedTabs(false); }}
+                              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                                isVisible ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                              } cursor-pointer`}
+                            >
+                              {isVisible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                              {isVisible ? "Visible" : "Hidden"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground text-center">Hidden tabs won&apos;t appear in the sidebar or mobile nav for anyone in this company.</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Integrations */}
         <Card>
