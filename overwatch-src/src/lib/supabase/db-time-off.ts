@@ -122,28 +122,29 @@ export async function deleteTimeOffRequest(requestId: string) {
 
 export async function removeConflictingShifts(userId: string, startDate: string, endDate: string) {
   const supabase = createClient();
-  // Find all shifts assigned to this user that overlap with the leave window.
-  // A shift overlaps if: shift.start_time < leave_end AND shift.end_time > leave_start
-  const leaveStart = new Date(startDate);
-  leaveStart.setHours(0, 0, 0, 0);
-  const leaveEnd = new Date(endDate);
-  leaveEnd.setHours(23, 59, 59, 999);
+  // Build UTC boundaries directly from date strings to avoid local-timezone issues.
+  // startDate / endDate are "YYYY-MM-DD" strings from the leave request.
+  const leaveStartISO = `${startDate}T00:00:00.000Z`;
+  const leaveEndISO = `${endDate}T23:59:59.999Z`;
 
-  const { data: conflicting } = await supabase
+  // A shift overlaps if: shift.start_time <= leave_end AND shift.end_time >= leave_start
+  const { data: conflicting, error: qErr } = await supabase
     .from("shifts")
     .select("*, events(id, name, location, company_id)")
     .eq("assigned_user_id", userId)
-    .lt("start_time", leaveEnd.toISOString())
-    .gt("end_time", leaveStart.toISOString());
+    .lte("start_time", leaveEndISO)
+    .gte("end_time", leaveStartISO);
 
+  if (qErr) console.error("removeConflictingShifts query error:", qErr);
   if (!conflicting?.length) return [];
 
   // Unassign the user from each conflicting shift (set to open)
   for (const shift of conflicting) {
-    await supabase
+    const { error: uErr } = await supabase
       .from("shifts")
       .update({ assigned_user_id: null, status: "open" })
       .eq("id", shift.id);
+    if (uErr) console.error("Failed to unassign shift", shift.id, uErr);
   }
 
   return conflicting;

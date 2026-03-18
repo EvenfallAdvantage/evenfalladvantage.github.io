@@ -246,9 +246,9 @@ export default function TimeOffPage() {
                 ) : (
                   <div className="flex items-center gap-1.5">
                     <Badge className={`text-[10px] ${statusColor(r.status)}`}>{r.status}</Badge>
-                    {r.status === "pending" && tab === "mine" && (
+                    {tab === "mine" && (
                       <button onClick={() => handleCancelRequest(r.id)} disabled={deletingReq === r.id}
-                        className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Cancel request">
+                        className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete request">
                         {deletingReq === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                       </button>
                     )}
