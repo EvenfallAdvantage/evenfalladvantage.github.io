@@ -44,6 +44,7 @@ export default function SchedulePage() {
   const [viewingGuide, setViewingGuide] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [companyLogo, setCompanyLogo] = useState<string | undefined>();
+  const [brandColor, setBrandColor] = useState("#e97a2d");
 
   // Armory state
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -70,6 +71,7 @@ export default function SchedulePage() {
       setShifts(sh);
       setCompanyName(company?.name ?? "");
       setCompanyLogo(company?.logo_url ?? undefined);
+      setBrandColor(company?.brand_color ?? "#e97a2d");
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -296,7 +298,6 @@ export default function SchedulePage() {
                 const ev = events.find((e: Ev) => e.id === viewingGuide);
                 if (!ev?.ops_guide) return null;
                 const g: OpsGuide = ev.ops_guide;
-                const brandColor = "#3b82f6";
                 return (
                   <div className="rounded-xl border border-primary/30 bg-card overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/30">
