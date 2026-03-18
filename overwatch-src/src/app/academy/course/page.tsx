@@ -176,6 +176,25 @@ function CourseDetailInner() {
         </CardContent>
       </Card>
 
+      {/* Learning objectives */}
+      {course.learning_objectives && course.learning_objectives.length > 0 && (
+        <Card className="border-border/40">
+          <CardContent className="p-4 space-y-2">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5" /> Learning Objectives
+            </h3>
+            <ul className="space-y-1">
+              {course.learning_objectives.map((obj: string, i: number) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <CheckCircle2 className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+                  <span>{obj}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Module list */}
       <div className="space-y-2">
         <h2 className="text-sm font-semibold flex items-center gap-1.5">
@@ -249,25 +268,6 @@ function CourseDetailInner() {
           })}
         </div>
       </div>
-
-      {/* Learning objectives */}
-      {course.learning_objectives && course.learning_objectives.length > 0 && (
-        <Card className="border-border/40">
-          <CardContent className="p-4 space-y-2">
-            <h3 className="text-sm font-semibold flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5" /> Learning Objectives
-            </h3>
-            <ul className="space-y-1">
-              {course.learning_objectives.map((obj: string, i: number) => (
-                <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                  <CheckCircle2 className="h-3 w-3 text-primary shrink-0 mt-0.5" />
-                  <span>{obj}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

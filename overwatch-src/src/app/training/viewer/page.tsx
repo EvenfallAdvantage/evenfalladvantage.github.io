@@ -154,11 +154,13 @@ function ModuleViewerInner() {
             completed_at: new Date().toISOString(),
           }).catch(console.error);
         }
+        // Auto-navigate back to module list after a brief delay
+        setTimeout(() => router.push(backUrl), 1200);
       }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [isLegacyModule, legacyStudentId, moduleId]);
+  }, [isLegacyModule, legacyStudentId, moduleId, backUrl, router]);
 
   // Save progress whenever slide changes (Overwatch-native modules only)
   useEffect(() => {
@@ -289,14 +291,7 @@ function ModuleViewerInner() {
             title="Module Slides"
           />
 
-          {/* Back after completion */}
-          {completed && (
-            <div className="flex justify-end pt-3 shrink-0">
-              <Button variant="outline" onClick={() => router.push(backUrl)} className="gap-1">
-                <CheckCircle2 className="h-4 w-4 text-green-500" /> Back to Course
-              </Button>
-            </div>
-          )}
+          {/* Auto-navigates back on completion */}
         </div>
       </>
     );

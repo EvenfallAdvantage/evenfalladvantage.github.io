@@ -47,6 +47,27 @@
         .slide-body th, .slide-body td { padding: 0.5rem 0.75rem; border: 1px solid #1e293b; text-align: left; }
         .slide-body th { background: #111827; color: #f1f5f9; font-weight: 600; }
 
+        /* Quiz styles */
+        .slide-quiz { margin: 1rem 0; }
+        .slide-quiz-question { font-weight: 600; color: #f1f5f9; margin-bottom: 0.75rem; }
+        .slide-quiz-options { display: flex; flex-direction: column; gap: 0.5rem; }
+        .slide-quiz-option {
+            padding: 0.75rem 1rem; border: 1px solid #1e293b; border-radius: 0.5rem;
+            cursor: pointer; transition: all 0.15s; font-size: 0.875rem;
+            background: #111827; color: #cbd5e1;
+        }
+        .slide-quiz-option:hover { border-color: #3b82f6; background: #0f172a; }
+        .slide-quiz-option.selected { border-color: #3b82f6; background: #1e3a5f; }
+        .slide-quiz-option.correct { border-color: #16a34a; background: rgba(22,163,74,0.15); color: #4ade80; }
+        .slide-quiz-option.incorrect { border-color: #dc2626; background: rgba(220,38,38,0.1); color: #f87171; }
+        .slide-quiz-feedback {
+            display: none; margin-top: 0.75rem; padding: 0.75rem 1rem;
+            border-radius: 0.5rem; font-size: 0.8125rem; font-weight: 500;
+        }
+        .slide-quiz-feedback.show { display: block; }
+        .slide-quiz-feedback.correct { background: rgba(22,163,74,0.15); color: #4ade80; border: 1px solid rgba(22,163,74,0.3); }
+        .slide-quiz-feedback.incorrect { background: rgba(220,38,38,0.1); color: #f87171; border: 1px solid rgba(220,38,38,0.2); }
+
         /* Media */
         .slide-image { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; }
         .slide-audio { margin: 1rem 0; }
@@ -253,8 +274,43 @@
                 d.className = 'dot' + (i === current ? ' active' : i < current ? ' visited' : '');
             });
 
+            // Initialize quizzes
+            initQuizzes();
+
             // Notify parent
             postMsg({ type: 'progress', slide: current, total: slides.length, pct });
+        }
+
+        function initQuizzes() {
+            document.querySelectorAll('.slide-quiz').forEach(quiz => {
+                const options = quiz.querySelectorAll('.slide-quiz-option');
+                const feedback = quiz.querySelector('.slide-quiz-feedback');
+                let answered = false;
+                options.forEach(option => {
+                    option.onclick = () => {
+                        if (answered) return;
+                        answered = true;
+                        options.forEach(o => o.classList.remove('selected'));
+                        option.classList.add('selected');
+                        const isCorrect = option.getAttribute('data-correct') === 'true';
+                        if (isCorrect) {
+                            option.classList.add('correct');
+                            if (feedback) {
+                                feedback.className = 'slide-quiz-feedback show correct';
+                                feedback.innerHTML = '<strong>✓ Correct!</strong> Great job!';
+                            }
+                        } else {
+                            option.classList.add('incorrect');
+                            const correctOpt = quiz.querySelector('[data-correct="true"]');
+                            if (correctOpt) correctOpt.classList.add('correct');
+                            if (feedback) {
+                                feedback.className = 'slide-quiz-feedback show incorrect';
+                                feedback.innerHTML = '<strong>✗ Incorrect.</strong> The correct answer is highlighted above.';
+                            }
+                        }
+                    };
+                });
+            });
         }
 
         function postMsg(data) {
