@@ -29,7 +29,7 @@ const FEATURES = [
   { icon: FileText, title: "Invoice Generator", desc: "Professional invoices with line items, live preview, PDF export, and localStorage persistence" },
   { icon: Users, title: "Personnel Command", desc: "Roster, scheduling, leave management, applicant pipeline, onboarding admin, and role-based access control" },
   { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, incident reports, personnel stats, weekly trends, org composition, and custom forms" },
-  { icon: Video, title: "Instructor Room", desc: "Live video training with Daily.co, class scheduling, attendance tracking, and certificate generation" },
+  { icon: Video, title: "Conference", desc: "Live video training with Daily.co, class scheduling, attendance tracking, and certificate generation" },
   { icon: Globe, title: "State Laws DB", desc: "All 50 states — guard licensing, training hours, use-of-force laws, weapons regs, and agency contacts" },
   { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with emotional tension meters and performance scoring" },
   { icon: Search, title: "Command Palette", desc: "Ctrl+K instant search across 30+ pages, keyboard navigation, and grouped results by section" },

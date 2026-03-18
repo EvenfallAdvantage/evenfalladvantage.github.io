@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth-store";
-import { getUserPayments, getCatalogCourses } from "@/lib/supabase/db";
+import { getUserPayments } from "@/lib/supabase/db";
+import { getLegacyCourses } from "@/lib/legacy-bridge";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Course = any;
@@ -24,12 +25,11 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   expert: "bg-red-500/15 text-red-600",
 };
 
-// Normalize Supabase course rows to a common shape
-// Course System schema uses course_name; Overwatch schema uses title
+// Normalize legacy course rows to the shape expected by the UI
 function normalizeCourse(row: Record<string, unknown>): Course {
   return {
     ...row,
-    title: (row.title as string) || (row.course_name as string) || "Untitled",
+    title: (row.course_name as string) || (row.title as string) || "Untitled",
     difficulty_level: ((row.difficulty_level as string) || "beginner").toLowerCase(),
     price: (row.price as number) ?? 0,
     duration_hours: (row.duration_hours as number) ?? 1,
@@ -92,7 +92,7 @@ function CoursesContent() {
   const loadData = useCallback(async () => {
     try {
       const [rawCourses, payments] = await Promise.all([
-        getCatalogCourses().catch(() => []),
+        getLegacyCourses().catch(() => []),
         getUserPayments().catch(() => []),
       ]);
       setCourses(rawCourses.map(normalizeCourse));
