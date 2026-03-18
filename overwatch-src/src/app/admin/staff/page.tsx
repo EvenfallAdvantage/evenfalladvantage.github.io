@@ -505,21 +505,29 @@ export default function AdminStaffPage() {
                         <p className="text-xs text-muted-foreground">{u?.email}</p>
                       </div>
                       <div className="relative">
-                        {canManageRoles ? (
-                          <>
-                            <select value={m.role}
-                              onChange={(e) => handleRoleChange(m.id, e.target.value)}
-                              disabled={changingRole === m.id || (m.role === "owner" && myRole !== "owner")}
-                              className="h-6 appearance-none rounded border border-border/40 bg-background px-2 pr-5 text-[10px] font-medium capitalize cursor-pointer disabled:opacity-50">
-                              {(myRole === "owner" ? ["owner", "admin", "manager", "staff"] : ["manager", "staff"]).map((r) => (
-                                <option key={r} value={r}>{r}</option>
-                              ))}
-                            </select>
-                            <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-                          </>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
-                        )}
+                        {(() => {
+                          const roleOptions = myRole === "owner"
+                            ? ["owner", "admin", "manager", "lead", "breaker", "staff"]
+                            : myRole === "admin"
+                              ? ["admin", "manager", "lead", "breaker", "staff"]
+                              : ["manager", "lead", "breaker", "staff"];
+                          const canEdit = canManageRoles && roleOptions.includes(m.role);
+                          return canEdit ? (
+                            <>
+                              <select value={m.role}
+                                onChange={(e) => handleRoleChange(m.id, e.target.value)}
+                                disabled={changingRole === m.id}
+                                className="h-6 appearance-none rounded border border-border/40 bg-background px-2 pr-5 text-[10px] font-medium capitalize cursor-pointer disabled:opacity-50">
+                                {roleOptions.map((r) => (
+                                  <option key={r} value={r}>{r}</option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+                            </>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
+                          );
+                        })()}
                       </div>
                       <Badge variant={m.status === "active" ? "default" : "outline"} className="text-[10px] capitalize">{m.status}</Badge>
                       {canManage && (
