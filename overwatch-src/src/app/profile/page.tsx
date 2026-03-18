@@ -31,6 +31,12 @@ type MemberProfile = any;
 type OProgress = any;
 
 const WORK_PREF_OPTIONS = ["Weekdays", "Weekends", "Nights", "Mornings", "Events", "Overtime", "Holidays"];
+const DIETARY_OPTIONS = [
+  "None", "Vegetarian", "Vegan", "Pescatarian", "Gluten-Free", "Dairy-Free",
+  "Nut Allergy", "Shellfish Allergy", "Soy Allergy", "Egg Allergy",
+  "Kosher", "Halal", "Keto", "Paleo", "Low Sodium", "Diabetic-Friendly",
+  "Lactose Intolerant", "No Pork", "No Beef", "No Red Meat", "Other",
+];
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -49,7 +55,7 @@ export default function ProfilePage() {
   const [mp, setMp] = useState<MemberProfile>(null);
   const [mpLoaded, setMpLoaded] = useState(false);
   const [editingCompany, setEditingCompany] = useState(false);
-  const [compForm, setCompForm] = useState({ bio: "", address: "", shirtSize: "", jacketSize: "", emergencyContactName: "", emergencyContactPhone: "", whatsappOptedIn: false, hideContactFromRoster: false, workPreferences: [] as string[] });
+  const [compForm, setCompForm] = useState({ bio: "", address: "", shirtSize: "", jacketSize: "", dietaryRestrictions: [] as string[], emergencyContactName: "", emergencyContactPhone: "", whatsappOptedIn: false, hideContactFromRoster: false, workPreferences: [] as string[] });
   const [savingComp, setSavingComp] = useState(false);
   // Onboarding
   const [onboardingProgress, setOnboardingProgress] = useState<OProgress[]>([]);
@@ -108,6 +114,7 @@ export default function ProfilePage() {
           setCompForm({
             bio: profile.bio ?? "", address: profile.address ?? "",
             shirtSize: profile.shirt_size ?? "", jacketSize: profile.jacket_size ?? "",
+            dietaryRestrictions: profile.dietary_restrictions ?? [],
             emergencyContactName: profile.emergency_contact_name ?? "",
             emergencyContactPhone: profile.emergency_contact_phone ?? "",
             whatsappOptedIn: profile.whatsapp_opted_in ?? false,
@@ -457,6 +464,17 @@ export default function ProfilePage() {
                         </div>
                       </div>
                       <div>
+                        <span className="text-muted-foreground text-xs">Dietary Restrictions</span>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {DIETARY_OPTIONS.map(opt => (
+                            <button key={opt} onClick={() => setCompForm(p => ({ ...p, dietaryRestrictions: p.dietaryRestrictions.includes(opt) ? p.dietaryRestrictions.filter(d => d !== opt) : [...p.dietaryRestrictions.filter(d => d !== "None"), ...(opt === "None" ? ["None"] : [opt])] }))}
+                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium border transition-colors ${compForm.dietaryRestrictions.includes(opt) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:text-foreground"}`}>
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
                         <span className="text-muted-foreground text-xs">Work Preferences</span>
                         <div className="flex flex-wrap gap-1.5 mt-1">
                           {WORK_PREF_OPTIONS.map(pref => (
@@ -522,6 +540,16 @@ export default function ProfilePage() {
                         <div><span className="text-muted-foreground text-xs">Shirt</span><p className="font-medium">{mp.shirt_size ?? "—"}</p></div>
                         <div><span className="text-muted-foreground text-xs">Jacket</span><p className="font-medium">{mp.jacket_size ?? "—"}</p></div>
                       </div>
+                      {mp.dietary_restrictions?.length > 0 && (
+                        <div>
+                          <span className="text-muted-foreground text-xs">Dietary Restrictions</span>
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {mp.dietary_restrictions.map((d: string) => (
+                              <Badge key={d} variant="outline" className="text-[9px]">{d}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {mp.hire_date && (
                         <div><span className="text-muted-foreground text-xs">Hire Date</span><p className="font-medium">{new Date(mp.hire_date).toLocaleDateString()}</p></div>
                       )}

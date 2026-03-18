@@ -357,6 +357,7 @@ export async function updateMemberProfile(companyId: string, updates: {
   workPreferences?: string[];
   shirtSize?: string;
   jacketSize?: string;
+  dietaryRestrictions?: string[];
   emergencyContactName?: string;
   emergencyContactPhone?: string;
   whatsappOptedIn?: boolean;
@@ -373,6 +374,7 @@ export async function updateMemberProfile(companyId: string, updates: {
   if (updates.workPreferences !== undefined) payload.work_preferences = updates.workPreferences;
   if (updates.shirtSize !== undefined) payload.shirt_size = updates.shirtSize;
   if (updates.jacketSize !== undefined) payload.jacket_size = updates.jacketSize;
+  if (updates.dietaryRestrictions !== undefined) payload.dietary_restrictions = updates.dietaryRestrictions;
   if (updates.emergencyContactName !== undefined) payload.emergency_contact_name = updates.emergencyContactName;
   if (updates.emergencyContactPhone !== undefined) payload.emergency_contact_phone = updates.emergencyContactPhone;
   if (updates.whatsappOptedIn !== undefined) payload.whatsapp_opted_in = updates.whatsappOptedIn;
