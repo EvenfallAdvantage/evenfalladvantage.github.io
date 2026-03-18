@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2,
   ChevronDown, CalendarOff, ClipboardList, CheckCircle2, XCircle,
-  UserPlus, ListChecks, Plus, ArrowRight, X,
+  UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
   getApplicants, createApplicant, updateApplicantStatus, deleteApplicant, convertApplicantToUser,
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask,
   getCompanyTimeChangeRequests, reviewTimeChangeRequest,
+  getMemberProfileById,
 } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
@@ -80,6 +81,19 @@ export default function AdminStaffPage() {
   // Gusto sync
   const [syncingGusto, setSyncingGusto] = useState(false);
   const [gustoResult, setGustoResult] = useState<{ synced: number; errors: string[] } | null>(null);
+  // Profile modal
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [viewProfile, setViewProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState<string | null>(null);
+
+  async function openProfile(membershipId: string) {
+    setLoadingProfile(membershipId);
+    try {
+      const profile = await getMemberProfileById(membershipId);
+      setViewProfile(profile);
+    } catch (err) { console.error(err); }
+    finally { setLoadingProfile(null); }
+  }
 
   const myRole = user?.companies.find((c) => c.companyId === activeCompanyId)?.role ?? "staff";
   const canManageRoles = myRole === "owner" || myRole === "admin";
@@ -394,6 +408,12 @@ export default function AdminStaffPage() {
                         )}
                       </div>
                       <Badge variant={m.status === "active" ? "default" : "outline"} className="text-[10px] capitalize">{m.status}</Badge>
+                      {canManage && (
+                        <button onClick={() => openProfile(m.id)} disabled={loadingProfile === m.id}
+                          className="rounded p-1 text-muted-foreground/40 hover:text-primary hover:bg-primary/10" title="View profile">
+                          {loadingProfile === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
                       {canManageRoles && m.role !== "owner" && (
                         <button onClick={() => handleRemoveMember(m.id, `${u?.first_name} ${u?.last_name}`)} disabled={removingMember === m.id}
                           className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Remove member">
@@ -928,6 +948,110 @@ export default function AdminStaffPage() {
           </>
         )}
       </div>
+
+      {/* ── Member Profile Modal ── */}
+      {viewProfile && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewProfile(null)}>
+          <div className="relative w-full max-w-sm max-h-[85vh] rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-border/40 px-5 py-4 shrink-0">
+              <Avatar className="h-11 w-11 shrink-0">
+                <AvatarImage src={viewProfile.users?.avatar_url ?? undefined} />
+                <AvatarFallback className="bg-primary/15 text-sm font-bold text-primary">
+                  {(viewProfile.users?.first_name?.[0] ?? "")}{(viewProfile.users?.last_name?.[0] ?? "")}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">{viewProfile.users?.first_name} {viewProfile.users?.last_name}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{viewProfile.users?.email}</p>
+                {viewProfile.users?.phone && <p className="text-[11px] text-muted-foreground">{viewProfile.users.phone}</p>}
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <Badge variant="outline" className="text-[9px] capitalize">{viewProfile.role}</Badge>
+                <Badge variant={viewProfile.status === "active" ? "default" : "outline"} className="text-[9px] capitalize">{viewProfile.status}</Badge>
+              </div>
+            </div>
+
+            {/* Profile content */}
+            <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
+              <h3 className="text-sm font-semibold">Company Profile</h3>
+
+              {viewProfile.bio && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Bio</span>
+                  <p className="font-medium text-sm">{viewProfile.bio}</p>
+                </div>
+              )}
+
+              {viewProfile.title && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Title</span>
+                  <p className="font-medium text-sm">{viewProfile.title}</p>
+                </div>
+              )}
+
+              <div>
+                <span className="text-muted-foreground text-xs flex items-center gap-1"><Shield className="h-2.5 w-2.5" /> Guard Card <Lock className="h-2.5 w-2.5 text-amber-500" /></span>
+                <p className="font-medium text-sm">{viewProfile.guard_card_number ?? "—"}</p>
+                {viewProfile.guard_card_expiry && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Expires {new Date(viewProfile.guard_card_expiry).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              <hr className="border-border/30" />
+
+              <div>
+                <span className="text-muted-foreground text-xs flex items-center gap-1">Address <Lock className="h-2.5 w-2.5 text-amber-500" /></span>
+                <p className="font-medium text-sm">{viewProfile.address ?? "—"}</p>
+              </div>
+
+              <div>
+                <span className="text-muted-foreground text-xs">Emergency Contact</span>
+                <p className="font-medium text-sm">
+                  {viewProfile.emergency_contact_name ?? "—"}
+                  {viewProfile.emergency_contact_phone ? ` · ${viewProfile.emergency_contact_phone}` : ""}
+                </p>
+              </div>
+
+              {(viewProfile.work_preferences?.length ?? 0) > 0 && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Work Preferences</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {viewProfile.work_preferences.map((w: string) => (
+                      <Badge key={w} variant="outline" className="text-[9px]">{w}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-muted-foreground text-xs">Shirt</span>
+                  <p className="font-medium text-sm">{viewProfile.shirt_size || "—"}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground text-xs">Jacket</span>
+                  <p className="font-medium text-sm">{viewProfile.jacket_size || "—"}</p>
+                </div>
+              </div>
+
+              {viewProfile.hire_date && (
+                <div>
+                  <span className="text-muted-foreground text-xs">Hire Date</span>
+                  <p className="font-medium text-sm">{new Date(viewProfile.hire_date).toLocaleDateString()}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Close */}
+            <div className="border-t border-border/40 px-5 py-3 shrink-0">
+              <Button size="sm" variant="outline" className="w-full" onClick={() => setViewProfile(null)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

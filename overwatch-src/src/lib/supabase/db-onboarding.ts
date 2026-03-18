@@ -388,3 +388,14 @@ export async function getMemberProfile(companyId: string) {
   if (error) throw error;
   return data;
 }
+
+export async function getMemberProfileById(membershipId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("company_memberships")
+    .select("*, users(id, first_name, last_name, email, phone, avatar_url)")
+    .eq("id", membershipId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
