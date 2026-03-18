@@ -450,10 +450,12 @@ export async function joinCompanyByCode(params: {
 
 export async function updateMemberRole(membershipId: string, role: string) {
   const supabase = createClient();
-  const { data, error } = await supabase.rpc("update_member_role", {
-    p_membership_id: membershipId,
-    p_new_role: role,
-  });
+  const { data, error } = await supabase
+    .from("company_memberships")
+    .update({ role } as Record<string, unknown>)
+    .eq("id", membershipId)
+    .select()
+    .maybeSingle();
   if (error) {
     throw new Error(error.message || "Failed to update role");
   }
