@@ -16,7 +16,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import {
   getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet,
   updateMemberRole, removeMember, getAllTimeOffRequests, reviewTimeOffRequest,
-  getAllFormSubmissions, reviewFormSubmission,
+  getAllFormSubmissions, reviewFormSubmission, removeConflictingShifts,
   getApplicants, createApplicant, updateApplicantStatus, deleteApplicant, convertApplicantToUser,
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask, reorderOnboardingTasks,
   getCompanyTimeChangeRequests, reviewTimeChangeRequest,
@@ -184,19 +184,50 @@ export default function AdminStaffPage() {
     setReviewingLeave(id);
     try {
       await reviewTimeOffRequest(id, status);
-      // Notify the requesting employee
       const req = leaveRequests.find((r: LeaveReq) => r.id === id);
+
       if (req?.user_id && activeCompanyId) {
-        import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
-          dispatch({
-            userId: req.user_id,
-            companyId: activeCompanyId!,
-            title: `Leave Request ${status === "approved" ? "Approved" : "Denied"}`,
-            body: `Your ${req.leave_type ?? "time off"} request has been ${status}.`,
-            type: "leave_review",
-            actionUrl: "/time-off",
-          }).catch(() => {});
+        const { dispatch } = await import("@/lib/services/notification-dispatcher");
+
+        // Notify the requesting employee
+        dispatch({
+          userId: req.user_id,
+          companyId: activeCompanyId!,
+          title: `Leave Request ${status === "approved" ? "Approved" : "Denied"}`,
+          body: `Your ${req.leave_type ?? "time off"} request has been ${status}.`,
+          type: "leave_review",
+          actionUrl: "/time-off",
         }).catch(() => {});
+
+        // If approved, remove conflicting shifts and notify managers
+        if (status === "approved" && req.start_date && req.end_date) {
+          try {
+            const removed = await removeConflictingShifts(req.user_id, req.start_date, req.end_date);
+            if (removed.length > 0) {
+              const u = req.users ?? req;
+              const empName = `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || "An employee";
+              const shiftList = removed.map((s: { start_time: string; role?: string; events?: { name?: string } }) =>
+                `${new Date(s.start_time).toLocaleDateString()} ${s.events?.name ?? ""}${s.role ? ` (${s.role})` : ""}`
+              ).join(", ");
+
+              // Notify all managers, admins, and owners about open shifts
+              const mgrs = members.filter((m: Member) =>
+                ["owner", "admin", "manager"].includes(m.role) && m.users?.id !== req.user_id
+              );
+              for (const mgr of mgrs) {
+                if (!mgr.users?.id) continue;
+                dispatch({
+                  userId: mgr.users.id,
+                  companyId: activeCompanyId!,
+                  title: "Shifts Need Coverage",
+                  body: `${empName}'s leave was approved. ${removed.length} shift${removed.length > 1 ? "s" : ""} now open: ${shiftList}`,
+                  type: "shift_coverage",
+                  actionUrl: "/admin/events",
+                }).catch(() => {});
+              }
+            }
+          } catch (err) { console.error("Failed to remove conflicting shifts:", err); }
+        }
       }
       await load();
     } catch (err) { console.error(err); }

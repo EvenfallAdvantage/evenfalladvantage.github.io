@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
-import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest, deleteTimeOffRequest } from "@/lib/supabase/db";
+import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest, deleteTimeOffRequest, removeConflictingShifts, getCompanyMembers } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Request = any;
@@ -88,8 +88,41 @@ export default function TimeOffPage() {
 
   async function handleReview(id: string, status: "approved" | "denied") {
     setReviewing(id);
-    try { await reviewTimeOffRequest(id, status); await load(); }
-    catch (err) { console.error(err); }
+    try {
+      await reviewTimeOffRequest(id, status);
+      // If approved, remove conflicting shifts and notify managers
+      if (status === "approved" && activeCompanyId) {
+        const req = allRequests.find((r: Request) => r.id === id);
+        if (req?.user_id && req.start_date && req.end_date) {
+          try {
+            const removed = await removeConflictingShifts(req.user_id, req.start_date, req.end_date);
+            if (removed.length > 0) {
+              const u = req.users ?? req;
+              const empName = `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || "An employee";
+              const shiftList = removed.map((s: { start_time: string; role?: string; events?: { name?: string } }) =>
+                `${new Date(s.start_time).toLocaleDateString()} ${s.events?.name ?? ""}${s.role ? ` (${s.role})` : ""}`
+              ).join(", ");
+              const mbrs = await getCompanyMembers(activeCompanyId);
+              const { dispatch } = await import("@/lib/services/notification-dispatcher");
+              const mgrs = mbrs.filter((m: { role: string; users: { id: string } | { id: string }[] }) =>
+                ["owner", "admin", "manager"].includes(m.role)
+              );
+              for (const mgr of mgrs) {
+                const mu = Array.isArray(mgr.users) ? mgr.users[0] : mgr.users;
+                if (!mu?.id || mu.id === req.user_id) continue;
+                dispatch({
+                  userId: mu.id, companyId: activeCompanyId,
+                  title: "Shifts Need Coverage",
+                  body: `${empName}'s leave was approved. ${removed.length} shift${removed.length > 1 ? "s" : ""} now open: ${shiftList}`,
+                  type: "shift_coverage", actionUrl: "/admin/events",
+                }).catch(() => {});
+              }
+            }
+          } catch (err) { console.error("Failed to remove conflicting shifts:", err); }
+        }
+      }
+      await load();
+    } catch (err) { console.error(err); }
     finally { setReviewing(null); }
   }
 

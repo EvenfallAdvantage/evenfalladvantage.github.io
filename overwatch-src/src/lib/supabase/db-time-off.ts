@@ -117,3 +117,34 @@ export async function deleteTimeOffRequest(requestId: string) {
   const { error } = await supabase.from("time_off_requests").delete().eq("id", requestId);
   if (error) throw error;
 }
+
+// ─── Remove shifts that conflict with approved leave ──
+
+export async function removeConflictingShifts(userId: string, startDate: string, endDate: string) {
+  const supabase = createClient();
+  // Find all shifts assigned to this user that overlap with the leave window.
+  // A shift overlaps if: shift.start_time < leave_end AND shift.end_time > leave_start
+  const leaveStart = new Date(startDate);
+  leaveStart.setHours(0, 0, 0, 0);
+  const leaveEnd = new Date(endDate);
+  leaveEnd.setHours(23, 59, 59, 999);
+
+  const { data: conflicting } = await supabase
+    .from("shifts")
+    .select("*, events(id, name, location, company_id)")
+    .eq("assigned_user_id", userId)
+    .lt("start_time", leaveEnd.toISOString())
+    .gt("end_time", leaveStart.toISOString());
+
+  if (!conflicting?.length) return [];
+
+  // Unassign the user from each conflicting shift (set to open)
+  for (const shift of conflicting) {
+    await supabase
+      .from("shifts")
+      .update({ assigned_user_id: null, status: "open" })
+      .eq("id", shift.id);
+  }
+
+  return conflicting;
+}

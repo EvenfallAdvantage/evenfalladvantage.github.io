@@ -205,33 +205,59 @@ export default function SchedulePage() {
             const upcomingEvents = events.filter((ev: Ev) => !isCurrent(ev.start_date, ev.end_date));
             const hasGuide = (ev: Ev) => !!ev.ops_guide && Object.values(ev.ops_guide).some((v: unknown) => typeof v === "string" && (v as string).length > 0);
 
-            const renderOpCard = (ev: Ev, highlight?: boolean) => (
+            const renderOpCard = (ev: Ev, highlight?: boolean, myShifts?: Shift[]) => (
               <Card key={ev.id} className={highlight ? "border-primary/40 bg-primary/5" : "border-border/40"}>
-                <CardContent className="flex items-center gap-4 py-3 px-4">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${highlight ? "bg-primary/15" : "bg-violet-500/10"}`}>
-                    <MapPin className={`h-5 w-5 ${highlight ? "text-primary" : "text-violet-500"}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{ev.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {fmtDate(ev.start_date)} · {fmtTime(ev.start_date)} — {fmtTime(ev.end_date)}
-                    </p>
-                    {ev.location && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3" /> {ev.location}
+                <CardContent className="py-3 px-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${highlight ? "bg-primary/15" : "bg-violet-500/10"}`}>
+                      <MapPin className={`h-5 w-5 ${highlight ? "text-primary" : "text-violet-500"}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{ev.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {fmtDate(ev.start_date)} · {fmtTime(ev.start_date)} — {fmtTime(ev.end_date)}
                       </p>
+                      {ev.location && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3" /> {ev.location}
+                        </p>
+                      )}
+                    </div>
+                    {hasGuide(ev) && (
+                      <button onClick={() => setViewingGuide(viewingGuide === ev.id ? null : ev.id)}
+                        className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors ${viewingGuide === ev.id ? "border-primary bg-primary/10 text-primary" : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"}`}>
+                        <Eye className="h-3 w-3" /> Guide
+                      </button>
                     )}
+                    <Badge className={`text-[10px] capitalize ${statusColor(ev.status)}`}>{ev.status}</Badge>
                   </div>
-                  {hasGuide(ev) && (
-                    <button onClick={() => setViewingGuide(viewingGuide === ev.id ? null : ev.id)}
-                      className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors ${viewingGuide === ev.id ? "border-primary bg-primary/10 text-primary" : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"}`}>
-                      <Eye className="h-3 w-3" /> Guide
-                    </button>
+                  {/* Inline shift details for current operation */}
+                  {myShifts && myShifts.length > 0 && (
+                    <div className="mt-2 ml-14 space-y-1 border-t border-primary/10 pt-2">
+                      {myShifts.map((sh: Shift) => (
+                        <div key={sh.id} className="flex items-center gap-2 text-xs">
+                          <Clock className="h-3 w-3 text-primary/60" />
+                          <span className="text-muted-foreground">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
+                          {sh.role && <span className="text-muted-foreground">· Role: {sh.role}</span>}
+                          <Badge className="text-[9px] ml-auto bg-green-500/15 text-green-600">Today</Badge>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  <Badge className={`text-[10px] capitalize ${statusColor(ev.status)}`}>{ev.status}</Badge>
                 </CardContent>
               </Card>
             );
+
+            // Group today's shifts by their event for folding
+            const shiftsByEvent = new Map<string, Shift[]>();
+            for (const sh of currentShifts) {
+              const eid = sh.events?.id ?? sh.event_id;
+              if (!shiftsByEvent.has(eid)) shiftsByEvent.set(eid, []);
+              shiftsByEvent.get(eid)!.push(sh);
+            }
+            // Find shifts whose event is NOT in currentEvents (orphan shifts)
+            const currentEventIds = new Set(currentEvents.map((ev: Ev) => ev.id));
+            const orphanShifts = currentShifts.filter((sh: Shift) => !currentEventIds.has(sh.events?.id ?? sh.event_id));
 
             return (
             <>
@@ -241,38 +267,27 @@ export default function SchedulePage() {
                   <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary/80 flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Current Operation
                   </h2>
-                  {currentEvents.length > 0 && (
-                    <div className="space-y-2 mb-3">
-                      {currentEvents.map((ev: Ev) => renderOpCard(ev, true))}
-                    </div>
-                  )}
-                  {currentShifts.length > 0 && (
-                    <div className="space-y-2">
-                      {currentShifts.map((sh: Shift) => (
-                        <Card key={sh.id} className="border-primary/40 bg-primary/5">
-                          <CardContent className="flex items-center gap-4 py-3 px-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
-                              <Clock className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm">{sh.events?.name ?? "Shift"}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {fmtDate(sh.start_time)} · {fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
-                              </p>
-                              {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
-                            </div>
-                            {sh.events && hasGuide(sh.events) && (
-                              <button onClick={() => setViewingGuide(viewingGuide === sh.events.id ? null : sh.events.id)}
-                                className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors ${viewingGuide === sh.events.id ? "border-primary bg-primary/10 text-primary" : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"}`}>
-                                <Eye className="h-3 w-3" /> Guide
-                              </button>
-                            )}
-                            <Badge className="text-[10px] capitalize bg-green-500/15 text-green-600">Today</Badge>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    {currentEvents.map((ev: Ev) => renderOpCard(ev, true, shiftsByEvent.get(ev.id)))}
+                    {/* Orphan shifts without a matching event card */}
+                    {orphanShifts.map((sh: Shift) => (
+                      <Card key={sh.id} className="border-primary/40 bg-primary/5">
+                        <CardContent className="flex items-center gap-4 py-3 px-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
+                            <Clock className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm">{sh.events?.name ?? "Shift"}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {fmtDate(sh.start_time)} · {fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
+                            </p>
+                            {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
+                          </div>
+                          <Badge className="text-[10px] capitalize bg-green-500/15 text-green-600">Today</Badge>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -349,12 +364,6 @@ export default function SchedulePage() {
                             </p>
                             {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                           </div>
-                          {sh.events && hasGuide(sh.events) && (
-                            <button onClick={() => setViewingGuide(viewingGuide === sh.events.id ? null : sh.events.id)}
-                              className="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors">
-                              <Eye className="h-3 w-3" /> Guide
-                            </button>
-                          )}
                           <Badge className={`text-[10px] capitalize ${statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>{sh.assigned_user_id ? "Confirmed" : "Open"}</Badge>
                         </CardContent>
                       </Card>
