@@ -18,6 +18,7 @@ const TOGGLEABLE_TABS = [
   { href: "/site-assessment", label: "Site Assessment", description: "Security site assessment reports", section: "Tools" },
   { href: "/invoices", label: "Invoices", description: "Invoice generator and management", section: "Tools" },
   { href: "/state-laws", label: "State Laws", description: "State-by-state guard law reference", section: "Academy" },
+  { href: "/conference", label: "Conference", description: "Live video sessions and virtual classrooms", section: "Academy" },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
