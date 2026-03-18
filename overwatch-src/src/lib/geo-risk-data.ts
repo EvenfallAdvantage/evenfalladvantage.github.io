@@ -1,3 +1,9 @@
+/**
+ * State crime data — FBI UCR (Uniform Crime Reporting) estimates.
+ * Data vintage: 2022. Rates are per 100,000 population.
+ * Source: FBI Crime Data Explorer (https://cde.ucr.cjis.gov)
+ */
+
 export type RiskLevel = "Negligible" | "Low" | "Moderate" | "High" | "Critical";
 
 export type StateCrimeData = {

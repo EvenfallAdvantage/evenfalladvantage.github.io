@@ -16,8 +16,18 @@ export async function getAuthUserId() {
 }
 
 // Module-level cache: avoids repeated getUser() + DB lookup per page session.
-// Resets on navigation (Next.js re-evaluates client modules per page).
+// Seed this from AuthProvider after login so ensureInternalUser() is instant.
 let _cachedInternalId: string | null = null;
+
+/** Pre-seed the internal user ID cache (call from AuthProvider after login). */
+export function seedInternalUserId(id: string) {
+  _cachedInternalId = id;
+}
+
+/** Clear cache on logout. */
+export function clearInternalUserCache() {
+  _cachedInternalId = null;
+}
 
 // Helper: get or create internal user ID from auth user (cached)
 export async function ensureInternalUser() {

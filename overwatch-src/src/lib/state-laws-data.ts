@@ -1,3 +1,9 @@
+/**
+ * State security guard law reference data.
+ * Data vintage: 2024. Compiled from state regulatory agency publications.
+ * Laws change — verify with the relevant state agency before relying on this data.
+ */
+
 export type StateLaw = {
   code: string;
   name: string;

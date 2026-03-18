@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchUserProfile, registerUserInDB } from "@/lib/supabase/db";
+import { seedInternalUserId, clearInternalUserCache } from "@/lib/supabase/db-helpers";
 import { useAuthStore } from "@/stores/auth-store";
 import type { SessionUser, CompanyContext } from "@/types";
 
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             })
           );
 
+          seedInternalUserId(profile.user.id);
           setUser({
             id: profile.user.id,
             email: profile.user.email ?? authUser.email ?? null,
@@ -100,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         loadProfile(session.user);
       } else {
+        clearInternalUserCache();
         clearSession();
       }
     });

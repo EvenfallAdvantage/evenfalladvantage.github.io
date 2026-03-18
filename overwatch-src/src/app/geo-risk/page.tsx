@@ -69,9 +69,6 @@ export default function GeoRiskPage() {
     if (!city || !state) return;
     setAnalyzing(true);
 
-    // Simulate brief analysis delay for UX
-    await new Promise((r) => setTimeout(r, 800));
-
     const stateData = STATE_CRIME_DATA[state];
     if (!stateData) { setAnalyzing(false); return; }
 
