@@ -50,7 +50,9 @@ function ModuleViewerInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const moduleId = searchParams.get("id") ?? "";
+  const courseId = searchParams.get("course") ?? "";
   const user = useAuthStore((s: { user: unknown }) => s.user) as { id: string; email: string; user_metadata?: Record<string, string> } | null;
+  const backUrl = courseId ? `/academy/course?id=${courseId}` : "/academy";
 
   const [mod, setMod] = useState<TrainingModule | null>(null);
   const [slides, setSlides] = useState<ModuleSlide[]>([]);
@@ -230,8 +232,8 @@ function ModuleViewerInner() {
         <div className="flex flex-col items-center gap-4 py-20 text-center">
           <GraduationCap className="h-12 w-12 text-muted-foreground/30" />
           <h2 className="text-lg font-semibold">Module Not Found</h2>
-          <Button variant="outline" onClick={() => router.push("/academy")}>
-            <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training
+          <Button variant="outline" onClick={() => router.push(backUrl)}>
+            <ChevronLeft className="mr-1 h-4 w-4" /> Back
           </Button>
         </div>
       </>
@@ -249,7 +251,7 @@ function ModuleViewerInner() {
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/academy")} className="gap-1">
+          <Button variant="ghost" size="sm" onClick={() => router.push(backUrl)} className="gap-1">
             <ChevronLeft className="h-4 w-4" /> Back
           </Button>
           <div className="flex-1 min-w-0">
@@ -374,8 +376,8 @@ function ModuleViewerInner() {
               Complete Module
             </Button>
           ) : isLastSlide && completed ? (
-            <Button variant="outline" onClick={() => router.push("/academy")} className="gap-1">
-              <CheckCircle2 className="h-4 w-4 text-green-500" /> Back to Training
+            <Button variant="outline" onClick={() => router.push(backUrl)} className="gap-1">
+              <CheckCircle2 className="h-4 w-4 text-green-500" /> Back to Course
             </Button>
           ) : (
             <Button onClick={handleNext} className="gap-1">
