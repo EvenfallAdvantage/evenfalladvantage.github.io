@@ -106,6 +106,17 @@
         .nav-btn.primary:hover { background: #2563eb; }
         .nav-btn.complete { background: #16a34a; border-color: #16a34a; color: #fff; }
         .nav-btn.complete:hover { background: #15803d; }
+
+        /* State selector */
+        .state-picker { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 1.5rem; }
+        .state-picker h2 { font-size: 1.25rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.25rem; }
+        .state-picker p { font-size: 0.8125rem; color: #94a3b8; margin-bottom: 1.25rem; text-align: center; }
+        .state-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem; max-height: 60vh; overflow-y: auto; width: 100%; max-width: 700px; padding: 0.25rem; }
+        .state-btn {
+            padding: 0.6rem 0.5rem; background: #111827; border: 1px solid #1e293b; border-radius: 0.5rem;
+            color: #cbd5e1; font-size: 0.75rem; cursor: pointer; transition: all 0.15s; text-align: center;
+        }
+        .state-btn:hover { border-color: #3b82f6; background: #0f172a; color: #f1f5f9; }
     </style>
 </head>
 <body>
@@ -115,6 +126,11 @@
     </div>
     <div id="error" class="error" style="display:none;">
         <p>⚠ Could not load module slides.</p>
+    </div>
+    <div id="statePicker" class="state-picker" style="display:none;">
+        <h2>Select Your State</h2>
+        <p>This module covers state-specific use of force laws.<br>Choose your state to continue.</p>
+        <div class="state-grid" id="stateGrid"></div>
     </div>
     <div id="viewer" style="display:none; flex:1; display:flex; flex-direction:column; height:100%;">
         <div class="slide-wrapper" id="slideArea"></div>
@@ -146,7 +162,52 @@
         let slides = [];
         let current = 0;
 
-        // Load slides
+        // ─── Determine module_code ───
+        let moduleCode = '';
+        try {
+            const { data: modRow } = await client
+                .from('training_modules')
+                .select('module_code')
+                .eq('id', moduleId)
+                .maybeSingle();
+            if (modRow) moduleCode = modRow.module_code;
+        } catch (_) {}
+
+        const STATE_MODULES = ['use-of-force'];
+
+        // ─── State-specific module: show picker first ───
+        if (STATE_MODULES.includes(moduleCode)) {
+            try {
+                const { data: states, error: stErr } = await client
+                    .from('state_laws')
+                    .select('*')
+                    .order('state_name');
+                if (stErr) throw stErr;
+
+                document.getElementById('loader').style.display = 'none';
+                const picker = document.getElementById('statePicker');
+                picker.style.display = 'flex';
+                const grid = document.getElementById('stateGrid');
+
+                states.forEach(st => {
+                    const btn = document.createElement('button');
+                    btn.className = 'state-btn';
+                    btn.textContent = st.state_name;
+                    btn.onclick = () => {
+                        picker.style.display = 'none';
+                        slides = generateUseOfForceSlides(st);
+                        bootViewer();
+                    };
+                    grid.appendChild(btn);
+                });
+            } catch (e) {
+                console.error('State load error:', e);
+                showError();
+            }
+            return; // wait for user click
+        }
+
+        // ─── Normal module: load slides from DB ───
         try {
             const { data, error } = await client
                 .from('module_slides')
@@ -162,40 +223,44 @@
             return;
         }
 
-        // Show viewer
-        document.getElementById('loader').style.display = 'none';
-        const viewer = document.getElementById('viewer');
-        viewer.style.display = 'flex';
+        bootViewer();
 
-        // Build dots
-        const dotsEl = document.getElementById('dots');
-        if (slides.length <= 30) {
-            slides.forEach((_, i) => {
-                const d = document.createElement('button');
-                d.className = 'dot' + (i === 0 ? ' active' : '');
-                d.onclick = () => goTo(i);
-                dotsEl.appendChild(d);
+        // ─── Boot viewer (shared between state-generated and DB slides) ───
+        function bootViewer() {
+            document.getElementById('loader').style.display = 'none';
+            const viewer = document.getElementById('viewer');
+            viewer.style.display = 'flex';
+
+            // Build dots
+            const dotsEl = document.getElementById('dots');
+            dotsEl.innerHTML = '';
+            if (slides.length <= 30) {
+                slides.forEach((_, i) => {
+                    const d = document.createElement('button');
+                    d.className = 'dot' + (i === 0 ? ' active' : '');
+                    d.onclick = () => goTo(i);
+                    dotsEl.appendChild(d);
+                });
+            }
+
+            renderSlide();
+
+            // Nav buttons
+            document.getElementById('prevBtn').onclick = () => goTo(current - 1);
+            document.getElementById('nextBtn').onclick = () => {
+                if (current === slides.length - 1) {
+                    postMsg({ type: 'complete' });
+                } else {
+                    goTo(current + 1);
+                }
+            };
+
+            // Keyboard nav
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft' && current > 0) goTo(current - 1);
+                if (e.key === 'ArrowRight' && current < slides.length - 1) goTo(current + 1);
             });
         }
-
-        renderSlide();
-
-        // Nav buttons
-        document.getElementById('prevBtn').onclick = () => goTo(current - 1);
-        document.getElementById('nextBtn').onclick = () => {
-            if (current === slides.length - 1) {
-                // Complete — notify parent
-                postMsg({ type: 'complete' });
-            } else {
-                goTo(current + 1);
-            }
-        };
-
-        // Keyboard nav
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' && current > 0) goTo(current - 1);
-            if (e.key === 'ArrowRight' && current < slides.length - 1) goTo(current + 1);
-        });
 
         function goTo(idx) {
             if (idx < 0 || idx >= slides.length) return;
@@ -365,6 +430,28 @@
                 // Hide feedback initially
                 if (feedback) { feedback.style.display = 'none'; }
             });
+        }
+
+        function generateUseOfForceSlides(st) {
+            const n = st.state_name;
+            const esc = s => s || 'Information not available';
+            return [
+                { title: 'Legal Aspects & Use of Force', content: '<h3>Legal Aspects &amp; Use of Force</h3><p class="hero-subtitle">' + escHtml(n) + ' State Compliance</p><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><h4 style="margin:0 0 0.5rem">Module Overview</h4><p>Every action as a security guard must comply with ' + escHtml(n) + ' state law. What you don\'t know CAN land you in court.</p><p><strong>Duration:</strong> 1.5 Hours | <strong>Slides:</strong> 15</p></div>' },
+                { title: 'Module Objectives', content: '<h3>What You\'ll Learn</h3><ul><li><strong>Understand ' + escHtml(n) + ' law governing security officers</strong></li><li><strong>Define use of force and legal limits</strong></li><li><strong>Recognize civil liability and legal responsibilities</strong></li><li><strong>Learn proper documentation and reporting practices</strong></li></ul><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><h4 style="margin:0 0 0.5rem">Key Message</h4><p><strong>"Know the rules, avoid the courtroom."</strong></p></div>' },
+                { title: escHtml(n) + ' Security Guard Laws', content: '<h3>' + escHtml(n) + ' Law Governing Security Guards</h3><h4>Licensing Requirements:</h4><p><strong>' + escHtml(esc(st.licensing)) + '</strong></p><h4>Training Requirements:</h4><p><strong>' + escHtml(esc(st.training_hours)) + '</strong></p><h4>Minimum Age:</h4><p><strong>' + escHtml(esc(st.min_age)) + '</strong></p><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><h4 style="margin:0 0 0.5rem">Regulatory Agency</h4><p><strong>' + escHtml(esc(st.regulatory_agency)) + '</strong></p></div>' + (st.notes ? '<div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><h4 style="margin:0 0 0.5rem">Important Notes</h4><p>' + escHtml(st.notes) + '</p></div>' : '') },
+                { title: 'Use of Force - State Law', content: '<h3>' + escHtml(n) + ' Use of Force Laws</h3><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><h4 style="margin:0 0 0.5rem">State-Specific Rules</h4><p><strong>' + escHtml(esc(st.use_of_force)) + '</strong></p></div><h4>Key Principles:</h4><ul><li><strong>Proportionate:</strong> Force must match the threat level</li><li><strong>Necessary:</strong> Only when required for safety</li><li><strong>Reasonable:</strong> What would a reasonable person do?</li></ul><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><p><strong>"You are NOT police."</strong> You have the same legal authority as any private citizen in ' + escHtml(n) + '.</p></div>' },
+                { title: "Citizen's Arrest Authority", content: '<h3>Citizen\'s Arrest in ' + escHtml(n) + '</h3><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><h4 style="margin:0 0 0.5rem">' + escHtml(n) + ' Law</h4><p><strong>' + escHtml(esc(st.citizens_arrest)) + '</strong></p></div><h4>When You CAN Make a Citizen\'s Arrest:</h4><ul><li>Felony committed in your presence</li><li>Breach of peace occurring in your presence</li><li>You have reasonable belief a felony was committed</li></ul><h4>What You MUST Do:</h4><ul><li><strong>Immediately</strong> notify law enforcement</li><li><strong>Use minimum force</strong> necessary</li><li><strong>Document everything</strong> that occurred</li></ul>' },
+                { title: 'Weapons and Armed Security', content: '<h3>' + escHtml(n) + ' Weapons Laws for Security</h3><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><h4 style="margin:0 0 0.5rem">' + escHtml(n) + ' Requirements</h4><p><strong>' + escHtml(esc(st.weapons)) + '</strong></p></div><h4>For Unarmed Security Guards:</h4><ul><li><strong>NO firearms</strong> unless specially licensed</li><li><strong>NO batons or impact weapons</strong> without certification</li><li><strong>NO chemical sprays</strong> (varies by employer policy)</li></ul>' },
+                { title: 'Use of Force Continuum', content: '<h3>Use of Force Continuum</h3><h4>Authorized Levels for Unarmed Security:</h4><ul><li><strong>Presence:</strong> Uniformed, professional appearance</li><li><strong>Verbal:</strong> Commands, directions, de-escalation</li><li><strong>Passive Control:</strong> Guiding, escorting without resistance</li><li><strong>Escort Techniques:</strong> Minimal contact, cooperative movement</li></ul><h4>NOT Authorized:</h4><ul><li><strong>NO weapons</strong> (unless specially licensed)</li><li><strong>NO strikes or punches</strong></li><li><strong>NO chokeholds or restraints</strong></li><li><strong>NO pursuit beyond property</strong></li></ul>' },
+                { title: 'Self-Defense and Defense of Others', content: '<h3>When Can You Use Force?</h3><h4>Self-Defense (' + escHtml(n) + ' Law):</h4><ul><li><strong>Imminent threat</strong> to yourself or others</li><li><strong>Reasonable belief</strong> force is necessary</li><li><strong>Proportionate response</strong> to the threat</li></ul><h4>Defense of Property:</h4><ul><li><strong>Limited authority</strong> — you\'re protecting the client\'s property</li><li><strong>Observe and report</strong> is usually the best approach</li><li><strong>Force only if</strong> there\'s immediate danger to people</li></ul>' },
+                { title: 'Civil Liability and Lawsuits', content: '<h3>Understanding Civil Liability</h3><h4>You Can Be Sued For:</h4><ul><li><strong>Excessive force</strong> or assault</li><li><strong>False imprisonment</strong> (illegal detention)</li><li><strong>Negligence</strong> in performing duties</li><li><strong>Discrimination</strong> or civil rights violations</li></ul><h4>Protection Strategies:</h4><ul><li><strong>Follow policy</strong> and training exactly</li><li><strong>Document everything</strong> in detail</li><li><strong>Get witness statements</strong> when possible</li><li><strong>Report immediately</strong> to supervisors</li></ul>' },
+                { title: 'Documentation and Reporting', content: '<h3>Critical Importance of Documentation</h3><h4>What to Document:</h4><ul><li><strong>Date, time, location</strong> of incident</li><li><strong>All parties involved</strong> (names, descriptions)</li><li><strong>Witnesses</strong> and their contact information</li><li><strong>Exact sequence of events</strong></li><li><strong>Your actions and why</strong> you took them</li><li><strong>Injuries or property damage</strong></li></ul><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><p><strong>"If it\'s not documented, it didn\'t happen."</strong></p></div>' },
+                { title: 'Scenario: Shoplifter', content: '<h3>Real-World Scenario</h3><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><p>You observe someone concealing merchandise and heading for the exit. They see you and start running.</p></div><h4>What Should You Do?</h4><ol><li><strong>Observe and report</strong> — Get description</li><li><strong>Do NOT chase</strong> off property</li><li><strong>Call police</strong> immediately</li><li><strong>Preserve evidence</strong> (video footage)</li><li><strong>Document everything</strong></li></ol><h4>What NOT to Do:</h4><ul><li>❌ Chase into parking lot or street</li><li>❌ Physically tackle or restrain</li><li>❌ Assume you can make citizen\'s arrest</li></ul>' },
+                { title: 'Scenario: Aggressive Individual', content: '<h3>Real-World Scenario</h3><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><p>An intoxicated person becomes verbally aggressive and starts moving toward you with clenched fists.</p></div><h4>Proper Response:</h4><ol><li><strong>Create distance</strong> — Step back</li><li><strong>Use verbal de-escalation</strong> — Calm voice</li><li><strong>Call for backup</strong> — Radio/phone</li><li><strong>Position yourself</strong> — Near exit, hands visible</li><li><strong>Retreat if possible</strong> — Safety first</li></ol><h4>If Physical Contact Occurs:</h4><ul><li><strong>Defend yourself</strong> with minimum necessary force</li><li><strong>Disengage</strong> as soon as safe</li><li><strong>Call police</strong> immediately</li><li><strong>Document</strong> injuries and witnesses</li></ul>' },
+                { title: 'Professional Conduct Standards', content: '<h3>Maintaining Professional Standards</h3><h4>Always:</h4><ul><li><strong>Remain calm and professional</strong></li><li><strong>Treat everyone with respect</strong></li><li><strong>Follow company policies</strong></li><li><strong>Know your legal limits</strong></li><li><strong>Document thoroughly</strong></li></ul><h4>Never:</h4><ul><li>❌ Use excessive force</li><li>❌ Act outside your authority</li><li>❌ Discriminate or profile</li><li>❌ Pursue beyond property</li><li>❌ Fail to report incidents</li></ul>' },
+                { title: escHtml(n) + ' Legal Resources', content: '<h3>Know Where to Get Help</h3><h4>Regulatory Agency:</h4><p><strong>' + escHtml(esc(st.regulatory_agency)) + '</strong></p><h4>When to Consult:</h4><ul><li><strong>Licensing questions</strong></li><li><strong>Scope of authority</strong> clarification</li><li><strong>Complaint procedures</strong></li><li><strong>Continuing education</strong> requirements</li></ul><h4>Additional Resources:</h4><ul><li><strong>Your employer\'s legal team</strong></li><li><strong>Professional security associations</strong></li><li><strong>State law enforcement agencies</strong></li></ul>' },
+                { title: 'Module Summary', content: '<h3>Key Takeaways — ' + escHtml(n) + '</h3><div style="background:#111827;border:1px solid #1e293b;border-radius:0.5rem;padding:1rem;margin:0.75rem 0"><h4 style="margin:0 0 0.5rem">Remember These Critical Points:</h4><ul><li><strong>You are NOT police</strong> — Same authority as any citizen</li><li><strong>Force is last resort</strong> — De-escalation first</li><li><strong>Document everything</strong> — Protect yourself legally</li><li><strong>Know ' + escHtml(n) + ' law</strong> — Ignorance is not a defense</li><li><strong>Professional conduct always</strong> — Your reputation matters</li></ul></div><p style="text-align:center;margin-top:1.5rem;font-size:1.1rem;font-weight:600;color:#60a5fa;">"Know the rules, avoid the courtroom."</p>' }
+            ];
         }
 
         function postMsg(data) {
