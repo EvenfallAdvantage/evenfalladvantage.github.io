@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
 2:I[47257,["/overwatch/_next/static/chunks/ff1a16fafef87110.js","/overwatch/_next/static/chunks/d2be314c3ece3fbe.js"],"ClientPageRoot"]
-3:I[97329,["/overwatch/_next/static/chunks/1e9f768250e0891c.js","/overwatch/_next/static/chunks/40acbaaeafc1a493.js","/overwatch/_next/static/chunks/37571170a2ab65e4.js","/overwatch/_next/static/chunks/b1bccd03883c5edc.js","/overwatch/_next/static/chunks/8ad9b74745b15546.js","/overwatch/_next/static/chunks/6ed66ec9cbeb6e8e.js","/overwatch/_next/static/chunks/e25680e07b77515b.js"],"default"]
+3:I[97329,["/overwatch/_next/static/chunks/1e9f768250e0891c.js","/overwatch/_next/static/chunks/40acbaaeafc1a493.js","/overwatch/_next/static/chunks/37571170a2ab65e4.js","/overwatch/_next/static/chunks/b1bccd03883c5edc.js","/overwatch/_next/static/chunks/91ff39ab922ef509.js","/overwatch/_next/static/chunks/6ed66ec9cbeb6e8e.js","/overwatch/_next/static/chunks/e25680e07b77515b.js"],"default"]
 6:I[97367,["/overwatch/_next/static/chunks/ff1a16fafef87110.js","/overwatch/_next/static/chunks/d2be314c3ece3fbe.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"buildId":"1eVpPhG25esOaugIFFjAa","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/overwatch/_next/static/chunks/6ed66ec9cbeb6e8e.js","async":true}],["$","script","script-1",{"src":"/overwatch/_next/static/chunks/e25680e07b77515b.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"iK5vw2y69XuW-wcENSB47","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/overwatch/_next/static/chunks/6ed66ec9cbeb6e8e.js","async":true}],["$","script","script-1",{"src":"/overwatch/_next/static/chunks/e25680e07b77515b.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
 4:{}
 5:{}
 8:null
