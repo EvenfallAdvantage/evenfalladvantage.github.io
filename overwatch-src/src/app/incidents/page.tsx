@@ -561,9 +561,39 @@ export default function IncidentsPage() {
 
                   {isExpanded && (
                     <div className="border-t px-4 py-4 space-y-4 bg-muted/10">
-                      {inc.description && (
-                        <p className="text-sm text-foreground/80">{inc.description}</p>
-                      )}
+                      {inc.description && (() => {
+                        const raw: string = inc.description;
+                        const sectionRegex = /---\s*(.+?)\s*---/g;
+                        const tokens: { heading?: string; body: string }[] = [];
+                        let last = 0;
+                        let m: RegExpExecArray | null;
+                        while ((m = sectionRegex.exec(raw)) !== null) {
+                          if (m.index > last) tokens.push({ body: raw.slice(last, m.index).trim() });
+                          const nextMatch = sectionRegex.exec(raw);
+                          const end = nextMatch ? nextMatch.index : raw.length;
+                          tokens.push({ heading: m[1], body: raw.slice(m.index + m[0].length, end).trim() });
+                          if (nextMatch) { sectionRegex.lastIndex = nextMatch.index; }
+                          last = end;
+                        }
+                        if (last < raw.length && raw.slice(last).trim()) tokens.push({ body: raw.slice(last).trim() });
+                        if (tokens.length === 0) tokens.push({ body: raw });
+
+                        return (
+                          <div className="space-y-3">
+                            {tokens.map((t, i) => t.heading ? (
+                              <div key={i} className="rounded-lg border border-border/40 bg-background/50 px-3 py-2">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">{t.heading}</p>
+                                <p className="text-sm text-foreground/90 whitespace-pre-line">{t.body}</p>
+                              </div>
+                            ) : t.body ? (
+                              <div key={i} className="rounded-lg border border-border/40 bg-background/50 px-3 py-2">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Narrative</p>
+                                <p className="text-sm text-foreground/90 whitespace-pre-line">{t.body}</p>
+                              </div>
+                            ) : null)}
+                          </div>
+                        );
+                      })()}
 
                       {/* Actions */}
                       {isAdmin && (
