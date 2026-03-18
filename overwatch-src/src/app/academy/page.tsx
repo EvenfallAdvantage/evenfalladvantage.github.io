@@ -595,7 +595,9 @@ function CoursesTab({
                       )}
                     </div>
 
-                    <Link href="/training">
+                    <Link href={`/training/viewer?id=${
+                      (modules.find((m) => !completedModuleIds.has(m.module_id)) ?? modules[0])?.module_id ?? ""
+                    }`}>
                       <Button size="sm" className="w-full gap-1.5 text-xs">
                         <Play className="h-3 w-3" /> Continue Learning
                       </Button>

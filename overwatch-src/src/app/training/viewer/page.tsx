@@ -227,7 +227,7 @@ function ModuleViewerInner() {
         <div className="flex flex-col items-center gap-4 py-20 text-center">
           <GraduationCap className="h-12 w-12 text-muted-foreground/30" />
           <h2 className="text-lg font-semibold">Module Not Found</h2>
-          <Button variant="outline" onClick={() => router.push("/training")}>
+          <Button variant="outline" onClick={() => router.push("/academy")}>
             <ChevronLeft className="mr-1 h-4 w-4" /> Back to Training
           </Button>
         </div>
@@ -246,7 +246,7 @@ function ModuleViewerInner() {
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/training")} className="gap-1">
+          <Button variant="ghost" size="sm" onClick={() => router.push("/academy")} className="gap-1">
             <ChevronLeft className="h-4 w-4" /> Back
           </Button>
           <div className="flex-1 min-w-0">
@@ -371,7 +371,7 @@ function ModuleViewerInner() {
               Complete Module
             </Button>
           ) : isLastSlide && completed ? (
-            <Button variant="outline" onClick={() => router.push("/training")} className="gap-1">
+            <Button variant="outline" onClick={() => router.push("/academy")} className="gap-1">
               <CheckCircle2 className="h-4 w-4 text-green-500" /> Back to Training
             </Button>
           ) : (
