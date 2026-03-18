@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Radio, Plus, Send, Loader2, Trash2, Search, ExternalLink,
   Reply, X, Hash, MessageSquare,
-  Smile, Paperclip,
+  Smile, Paperclip, Upload, Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import {
   getChatChannels, createChatChannel, getChatMessages,
   sendChatMessage, deleteChatChannel, toggleReaction,
-  updateLastRead, getUnreadCounts,
+  updateLastRead, getUnreadCounts, updateChatChannel, uploadChannelAvatar,
 } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 
@@ -71,7 +71,12 @@ export default function ChatPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAvatarUrl, setNewAvatarUrl] = useState("");
+  const [newAvatarFile, setNewAvatarFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
+  const [editingAvatar, setEditingAvatar] = useState<string | null>(null);
+  const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [savingAvatar, setSavingAvatar] = useState(false);
   const [deletingCh, setDeletingCh] = useState<string | null>(null);
   const [showAddExt, setShowAddExt] = useState(false);
   const [extName, setExtName] = useState("");
@@ -166,9 +171,35 @@ export default function ChatPage() {
     if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
-      await createChatChannel({ companyId: activeCompanyId, name: newName.trim(), avatarUrl: newAvatarUrl.trim() || undefined });
-      setNewName(""); setNewAvatarUrl(""); setShowCreate(false); await loadChannels();
+      const avatarUrl = newAvatarUrl.trim() || undefined;
+      // Create channel first (with URL avatar if provided, or without)
+      const ch = await createChatChannel({ companyId: activeCompanyId, name: newName.trim(), avatarUrl: !newAvatarFile ? avatarUrl : undefined });
+      // If file was uploaded, upload it and update the channel
+      if (newAvatarFile && ch?.id) {
+        const uploadedUrl = await uploadChannelAvatar(ch.id, newAvatarFile);
+        await updateChatChannel(ch.id, { avatar_url: uploadedUrl });
+      }
+      setNewName(""); setNewAvatarUrl(""); setNewAvatarFile(null); setShowCreate(false); await loadChannels();
     } catch (err) { console.error(err); } finally { setCreating(false); }
+  }
+
+  async function handleSaveAvatar(channelId: string) {
+    setSavingAvatar(true);
+    try {
+      if (editAvatarFile) {
+        const uploadedUrl = await uploadChannelAvatar(channelId, editAvatarFile);
+        await updateChatChannel(channelId, { avatar_url: uploadedUrl });
+      } else {
+        await updateChatChannel(channelId, { avatar_url: editAvatarUrl.trim() || null });
+      }
+      setEditingAvatar(null); setEditAvatarUrl(""); setEditAvatarFile(null);
+      await loadChannels();
+      // Update selected channel in place
+      if (selected?.id === channelId) {
+        const updated = (await getChatChannels(activeCompanyId!)).find((c: Channel) => c.id === channelId);
+        if (updated) setSelected(updated);
+      }
+    } catch (err) { console.error(err); } finally { setSavingAvatar(false); }
   }
 
   async function handleDeleteCh(id: string) {
@@ -222,6 +253,7 @@ export default function ChatPage() {
         loading={loading} internal={internal} external={external} selected={selected}
         showCreate={showCreate} setShowCreate={setShowCreate} newName={newName} setNewName={setNewName}
         newAvatarUrl={newAvatarUrl} setNewAvatarUrl={setNewAvatarUrl}
+        newAvatarFile={newAvatarFile} setNewAvatarFile={setNewAvatarFile}
         creating={creating} handleCreate={handleCreate} selectCh={selectCh} deletingCh={deletingCh}
         handleDeleteCh={handleDeleteCh} isAdmin={isAdmin} showSearch={showSearch} setShowSearch={setShowSearch}
         searchQ={searchQ} setSearchQ={setSearchQ} filteredMsgs={filteredMsgs} user={user}
@@ -229,6 +261,10 @@ export default function ChatPage() {
         sending={sending} handleSend={handleSend} bottomRef={bottomRef}
         unread={unread} emojiPicker={emojiPicker} setEmojiPicker={setEmojiPicker}
         handleReaction={handleReaction} typingUsers={typingUsers} broadcastTyping={broadcastTyping}
+        editingAvatar={editingAvatar} setEditingAvatar={setEditingAvatar}
+        editAvatarUrl={editAvatarUrl} setEditAvatarUrl={setEditAvatarUrl}
+        editAvatarFile={editAvatarFile} setEditAvatarFile={setEditAvatarFile}
+        savingAvatar={savingAvatar} handleSaveAvatar={handleSaveAvatar}
       />)}
 
       {/* ────────── EXTERNAL GROUPS TAB ────────── */}
@@ -248,10 +284,12 @@ export default function ChatPage() {
    ══════════════════════════════════════════════════ */
 
 function ChannelsTab({ loading, internal, external, selected, showCreate, setShowCreate, newName, setNewName,
-  newAvatarUrl, setNewAvatarUrl,
+  newAvatarUrl, setNewAvatarUrl, newAvatarFile, setNewAvatarFile,
   creating, handleCreate, selectCh, deletingCh, handleDeleteCh, isAdmin, showSearch, setShowSearch,
   searchQ, setSearchQ, filteredMsgs, user, replyTo, setReplyTo, msgText, setMsgText, sending, handleSend, bottomRef,
   unread, emojiPicker, setEmojiPicker, handleReaction, typingUsers, broadcastTyping,
+  editingAvatar, setEditingAvatar, editAvatarUrl, setEditAvatarUrl, editAvatarFile, setEditAvatarFile,
+  savingAvatar, handleSaveAvatar,
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }: any) {
 
@@ -278,16 +316,24 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
             <Button size="sm" onClick={handleCreate} disabled={!newName.trim() || creating}>
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setShowCreate(false); setNewAvatarUrl(""); }}>Cancel</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowCreate(false); setNewAvatarUrl(""); setNewAvatarFile(null); }}>Cancel</Button>
           </div>
-          <Input placeholder="Avatar image URL (optional)" value={newAvatarUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAvatarUrl(e.target.value)} className="text-xs" />
-          {newAvatarUrl.trim() && (
+          <div className="flex gap-2 items-center">
+            <Input placeholder="Avatar image URL (optional)" value={newAvatarUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setNewAvatarUrl(e.target.value); setNewAvatarFile(null); }} className="text-xs flex-1" disabled={!!newAvatarFile} />
+            <span className="text-[10px] text-muted-foreground">or</span>
+            <label className="flex items-center gap-1.5 rounded-md border border-border/40 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 cursor-pointer transition-colors">
+              <Upload className="h-3.5 w-3.5" /> Upload
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setNewAvatarFile(f); setNewAvatarUrl(""); } }} />
+            </label>
+          </div>
+          {(newAvatarUrl.trim() || newAvatarFile) && (
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full overflow-hidden border border-border/50 shrink-0">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={newAvatarUrl.trim()} alt="Preview" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <img src={newAvatarFile ? URL.createObjectURL(newAvatarFile) : newAvatarUrl.trim()} alt="Preview" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
-              <span className="text-[10px] text-muted-foreground">Avatar preview</span>
+              <span className="text-[10px] text-muted-foreground">{newAvatarFile ? newAvatarFile.name : "Avatar preview"}</span>
+              {newAvatarFile && <button onClick={() => setNewAvatarFile(null)} className="text-muted-foreground hover:text-red-500"><X className="h-3 w-3" /></button>}
             </div>
           )}
         </div>
@@ -365,13 +411,49 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
           {selected ? (
             <div className="flex flex-col rounded-xl border border-border/50 bg-card">
               <div className="flex items-center gap-3 border-b border-border/50 px-4 py-3">
-                <Hash className="h-4 w-4 text-primary shrink-0" />
+                <div className="relative shrink-0 group/avatar">
+                  <div className="h-7 w-7 rounded-full overflow-hidden bg-primary/15 flex items-center justify-center">
+                    {selected.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={selected.avatar_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Hash className="h-3.5 w-3.5 text-primary" />
+                    )}
+                  </div>
+                  {isAdmin && (
+                    <button onClick={() => { setEditingAvatar(editingAvatar === selected.id ? null : selected.id); setEditAvatarUrl(selected.avatar_url ?? ""); setEditAvatarFile(null); }}
+                      className="absolute -bottom-0.5 -right-0.5 rounded-full bg-background border border-border/50 p-0.5 opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                      title="Change avatar">
+                      <Pencil className="h-2.5 w-2.5 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
                 <h2 className="font-semibold text-sm flex-1 min-w-0">{selected.name}</h2>
                 <button onClick={() => { setShowSearch(!showSearch); setSearchQ(""); }}
                   className={`rounded p-1.5 transition-colors ${showSearch ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}`}>
                   <Search className="h-4 w-4" />
                 </button>
               </div>
+              {editingAvatar === selected.id && (
+                <div className="flex flex-wrap items-center gap-2 border-b border-border/50 px-4 py-2 bg-muted/30">
+                  <Input placeholder="Avatar URL..." value={editAvatarUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setEditAvatarUrl(e.target.value); setEditAvatarFile(null); }}
+                    className="h-7 text-xs flex-1 min-w-[140px]" disabled={!!editAvatarFile} />
+                  <label className="flex items-center gap-1 rounded-md border border-border/40 px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground hover:border-primary/30 cursor-pointer transition-colors">
+                    <Upload className="h-3 w-3" /> Upload
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setEditAvatarFile(f); setEditAvatarUrl(""); } }} />
+                  </label>
+                  {editAvatarFile && (
+                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      {editAvatarFile.name.slice(0, 20)}
+                      <button onClick={() => setEditAvatarFile(null)} className="text-muted-foreground hover:text-red-500"><X className="h-2.5 w-2.5" /></button>
+                    </span>
+                  )}
+                  <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => handleSaveAvatar(selected.id)} disabled={savingAvatar || (!editAvatarUrl.trim() && !editAvatarFile)}>
+                    {savingAvatar ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                  </Button>
+                  <button onClick={() => { setEditingAvatar(null); setEditAvatarUrl(""); setEditAvatarFile(null); }} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
               {showSearch && (
                 <div className="flex items-center gap-2 border-b border-border/50 px-4 py-2">
                   <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />

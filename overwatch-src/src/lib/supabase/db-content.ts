@@ -375,6 +375,35 @@ export async function createChatChannel(params: {
   return data;
 }
 
+export async function updateChatChannel(channelId: string, updates: { name?: string; avatar_url?: string | null }) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("chat_channels")
+    .update(updates)
+    .eq("id", channelId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function uploadChannelAvatar(channelId: string, file: File): Promise<string> {
+  const MAX_SIZE = 5 * 1024 * 1024;
+  const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  if (!ALLOWED.includes(file.type)) throw new Error("Only JPEG, PNG, WebP, and GIF images are allowed");
+  if (file.size > MAX_SIZE) throw new Error("Image must be under 5MB");
+
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `channels/${channelId}/avatar-${Date.now()}.${ext}`;
+  const supabase = createClient();
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(path, file, { cacheControl: "3600", upsert: true });
+  if (uploadError) throw uploadError;
+  const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
 export async function getChatMessages(channelId: string, limit = 50) {
   const supabase = createClient();
   const { data } = await supabase
