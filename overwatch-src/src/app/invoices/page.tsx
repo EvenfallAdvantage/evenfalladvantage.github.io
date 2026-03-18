@@ -139,6 +139,21 @@ export default function InvoicesPage() {
 
       const canvas = await html2canvas(previewRef.current, {
         scale: 2, useCORS: true, logging: false,
+        onclone: (_doc: Document, el: HTMLElement) => {
+          // html2canvas cannot parse CSS Color Level 4 lab() functions
+          // (used by Tailwind v4). Walk the cloned DOM and replace with RGB.
+          const colorProps = ["color", "background-color", "border-color", "border-top-color", "border-bottom-color", "border-left-color", "border-right-color", "outline-color"];
+          el.querySelectorAll("*").forEach((node) => {
+            if (!(node instanceof HTMLElement)) return;
+            const cs = getComputedStyle(node);
+            for (const prop of colorProps) {
+              const val = cs.getPropertyValue(prop);
+              if (val && val.includes("lab(")) {
+                node.style.setProperty(prop, val.replace(/lab\([^)]+\)/g, "rgb(0,0,0)"));
+              }
+            }
+          });
+        },
       });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
