@@ -53,7 +53,7 @@ const ALL_ITEMS: PaletteItem[] = [
   { title: "Personnel", href: "/admin/staff", icon: "UserCog", section: "Command" },
   { title: "Training Admin", href: "/admin/training", icon: "SlidersHorizontal", section: "Command" },
   { title: "Question Bank", href: "/admin/questions", icon: "HelpCircle", section: "Command" },
-  { title: "Intel Center", href: "/admin/reports", icon: "Activity", section: "Command" },
+  { title: "Intel Center", href: "/feed", icon: "Activity", section: "Command" },
   { title: "Security", href: "/admin/security", icon: "ShieldAlert", section: "Command" },
   { title: "Profile", href: "/profile", icon: "Users", section: "Account" },
   { title: "My Settings", href: "/settings", icon: "Settings", section: "Account" },
