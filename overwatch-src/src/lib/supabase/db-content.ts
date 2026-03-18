@@ -225,7 +225,7 @@ export async function createKBDocument(params: {
       file_name: params.fileName ?? null,
       file_size: params.fileSize ?? null,
       mime_type: params.mimeType ?? null,
-      required: params.required ?? false,
+      ...(params.required ? { required: true } : {}),
       created_by_id: userId,
       ...ts(),
     })
