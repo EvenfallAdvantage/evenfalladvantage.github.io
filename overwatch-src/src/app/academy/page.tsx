@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   GraduationCap, BookOpen, Clock, Loader2, CheckCircle2,
-  Award, BarChart3, Play, ChevronRight, Trophy,
+  BarChart3, Play, ChevronRight, Trophy,
   ShieldCheck, Star, Zap, AlertTriangle, RefreshCw,
   Target, FileText, Plus, Trash2, TrendingUp, Lock,
 } from "lucide-react";
@@ -69,7 +69,7 @@ function RadialGauge({ value, label, color }: { value: number; label: string; co
   );
 }
 
-type Tab = "courses" | "progress" | "assessments" | "certificates";
+type Tab = "courses" | "progress" | "assessments";
 
 export default function AcademyPage() {
   const user = useAuthStore((s) => s.user);
@@ -195,7 +195,7 @@ export default function AcademyPage() {
   // Legacy helpers
   const enrolledCourseIds = new Set(enrollments.map((e) => e.course_id));
   const completedModuleIds = new Set(progress.filter((p) => p.status === "completed").map((p) => p.module_id));
-  const legacyCerts = certificates.filter((c) => c.status !== "revoked").length;
+
 
   if (loading) {
     return (
@@ -367,11 +367,11 @@ export default function AcademyPage() {
         </div>
       </div>
 
-      {/* My Certifications */}
+      {/* My Certifications — unified: manual + training + course certs */}
       <Card className="border-border/40">
         <CardContent className="space-y-4 pt-6">
           <div className="flex items-center justify-between">
-            <div><h3 className="text-sm font-semibold">My Certifications</h3><p className="text-xs text-muted-foreground">Guard cards, licenses, and credentials</p></div>
+            <div><h3 className="text-sm font-semibold">My Certifications</h3><p className="text-xs text-muted-foreground">Guard cards, licenses, training awards, and course certificates</p></div>
             <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowAddCert(true)}><Plus className="h-3.5 w-3.5" /> Add</Button>
           </div>
           {showAddCert && (
@@ -387,38 +387,92 @@ export default function AcademyPage() {
               </div>
             </div>
           )}
-          {owCerts.length === 0 ? (
-            <div className="flex items-center gap-3 rounded-lg border border-dashed border-border/60 p-4">
-              <ShieldCheck className="h-5 w-5 text-muted-foreground/40" />
-              <p className="text-xs text-muted-foreground">No certifications added yet. Add your guard card, CPR, or other credentials.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {owCerts.map((c) => {
-                const isExpired = c.expiry_date && new Date(c.expiry_date) < now;
-                const isExpiringSoon = c.expiry_date && !isExpired && (new Date(c.expiry_date).getTime() - now.getTime()) < 90 * 24 * 60 * 60 * 1000;
-                return (
-                  <div key={c.id} className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2.5">
-                    <ShieldCheck className={`h-4 w-4 shrink-0 ${isExpired ? "text-red-500" : isExpiringSoon ? "text-amber-500" : "text-green-500"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{c.cert_type}</p>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        {c.issue_date && <span>Issued: {new Date(c.issue_date).toLocaleDateString()}</span>}
-                        {c.expiry_date && <span>Expires: {new Date(c.expiry_date).toLocaleDateString()}</span>}
+          {(() => {
+            // Build unified cert list from all 3 sources
+            type UnifiedCert = { id: string; name: string; source: "manual" | "training" | "course"; issueDate: string | null; expiryDate: string | null; status: string; extra?: string; canDelete: boolean; verificationCode?: string | null; certNumber?: string | null };
+            const unified: UnifiedCert[] = [];
+            // 1. Overwatch certs (manual uploads + training awards)
+            for (const c of owCerts) {
+              const isTraining = !!(c as Record<string, unknown>).module_id || !!(c as Record<string, unknown>).quiz_id;
+              unified.push({
+                id: c.id,
+                name: c.cert_type,
+                source: isTraining ? "training" : "manual",
+                issueDate: c.issue_date,
+                expiryDate: c.expiry_date,
+                status: c.status,
+                canDelete: !isTraining,
+                verificationCode: (c as Record<string, unknown>).verification_code as string | null,
+                certNumber: (c as Record<string, unknown>).certificate_number as string | null,
+              });
+            }
+            // 2. Legacy course certificates
+            for (const lc of certificates) {
+              unified.push({
+                id: `legacy-${lc.id}`,
+                name: lc.certificate_name || lc.certificate_type,
+                source: "course",
+                issueDate: lc.issue_date,
+                expiryDate: lc.expiration_date,
+                status: lc.status === "revoked" ? "revoked" : "active",
+                canDelete: false,
+                verificationCode: lc.verification_code,
+                certNumber: lc.certificate_number,
+                extra: lc.state_issued ? `State: ${lc.state_issued}` : undefined,
+              });
+            }
+            // Sort: active first, then by issue date descending
+            unified.sort((a, b) => {
+              if (a.status === "active" && b.status !== "active") return -1;
+              if (a.status !== "active" && b.status === "active") return 1;
+              return (b.issueDate ?? "").localeCompare(a.issueDate ?? "");
+            });
+            const sourceColors = { manual: "bg-slate-500/15 text-slate-500", training: "bg-violet-500/15 text-violet-600", course: "bg-amber-500/15 text-amber-600" };
+            const sourceLabels = { manual: "Manual", training: "Training", course: "Course" };
+
+            if (unified.length === 0) {
+              return (
+                <div className="flex items-center gap-3 rounded-lg border border-dashed border-border/60 p-4">
+                  <ShieldCheck className="h-5 w-5 text-muted-foreground/40" />
+                  <p className="text-xs text-muted-foreground">No certifications yet. Add your guard card, CPR, or other credentials.</p>
+                </div>
+              );
+            }
+            return (
+              <div className="space-y-2">
+                {unified.map((c) => {
+                  const isExpired = c.status === "revoked" || (c.expiryDate && new Date(c.expiryDate) < now);
+                  const isExpiringSoon = c.expiryDate && !isExpired && (new Date(c.expiryDate).getTime() - now.getTime()) < 90 * 24 * 60 * 60 * 1000;
+                  return (
+                    <div key={c.id} className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2.5">
+                      <ShieldCheck className={`h-4 w-4 shrink-0 ${isExpired ? "text-red-500" : isExpiringSoon ? "text-amber-500" : "text-green-500"}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium truncate">{c.name}</p>
+                          <Badge className={`text-[8px] px-1.5 py-0 ${sourceColors[c.source]}`}>{sourceLabels[c.source]}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+                          {c.issueDate && <span>Issued: {new Date(c.issueDate).toLocaleDateString()}</span>}
+                          {c.expiryDate && <span>Expires: {new Date(c.expiryDate).toLocaleDateString()}</span>}
+                          {c.certNumber && <span className="font-mono">#{c.certNumber}</span>}
+                          {c.extra && <span>{c.extra}</span>}
+                        </div>
                       </div>
+                      {isExpired ? <Badge className="text-[9px] bg-red-500/15 text-red-600">{c.status === "revoked" ? "Revoked" : "Expired"}</Badge>
+                        : isExpiringSoon ? <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Expiring</Badge>
+                        : <Badge className="text-[9px] bg-green-500/15 text-green-600">Active</Badge>}
+                      {c.canDelete && (
+                        <button onClick={() => handleDeleteCert(c.id)} disabled={deletingCert === c.id}
+                          className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete">
+                          {deletingCert === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
                     </div>
-                    {isExpired ? <Badge className="text-[9px] bg-red-500/15 text-red-600">Expired</Badge>
-                      : isExpiringSoon ? <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Expiring</Badge>
-                      : <Badge className="text-[9px] bg-green-500/15 text-green-600">Active</Badge>}
-                    <button onClick={() => handleDeleteCert(c.id)} disabled={deletingCert === c.id}
-                      className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete">
-                      {deletingCert === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 
@@ -430,21 +484,16 @@ export default function AcademyPage() {
             { id: "courses" as Tab, label: "Courses", icon: BookOpen },
             { id: "progress" as Tab, label: "Progress", icon: BarChart3 },
             { id: "assessments" as Tab, label: "Assessments", icon: ShieldCheck },
-            { id: "certificates" as Tab, label: "Certificates", icon: Award },
           ]).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-3 py-2 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5 ${tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
               <t.icon className="h-3.5 w-3.5" /> {t.label}
-              {t.id === "certificates" && legacyCerts > 0 && (
-                <span className="ml-1 bg-amber-500/15 text-amber-600 text-[10px] px-1.5 py-0.5 rounded-full font-mono">{legacyCerts}</span>
-              )}
             </button>
           ))}
         </div>
         {tab === "courses" && <CoursesTab courses={courses} enrolledCourseIds={enrolledCourseIds} courseModules={courseModules} completedModuleIds={completedModuleIds} />}
         {tab === "progress" && <ProgressTab progress={progress} />}
         {tab === "assessments" && <AssessmentsTab results={assessmentResults} />}
-        {tab === "certificates" && <CertificatesTab certificates={certificates} />}
       </div>}
     </div>
   );
@@ -761,91 +810,3 @@ function AssessmentsTab({ results }: { results: LegacyAssessmentResult[] }) {
   );
 }
 
-// ─── Certificates Tab ────────────────────────────────
-
-function CertificatesTab({ certificates }: { certificates: LegacyCertificate[] }) {
-  if (certificates.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <Award className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-        <h3 className="text-sm font-semibold">No certificates yet</h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          Complete all course requirements and pass assessments to earn certificates
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {certificates.map((cert) => {
-        const isRevoked = cert.status === "revoked";
-        const isExpired = cert.expiration_date && new Date(cert.expiration_date) < new Date();
-
-        return (
-          <Card key={cert.id} className={`border-border/40 overflow-hidden ${isRevoked ? "opacity-50" : ""}`}>
-            <CardContent className="p-4 space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                    <Award className="h-4 w-4 text-amber-500" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold">
-                      {cert.certificate_name || cert.certificate_type}
-                    </h4>
-                    {cert.certificate_number && (
-                      <p className="text-[10px] text-muted-foreground font-mono">
-                        #{cert.certificate_number}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {isRevoked ? (
-                  <Badge className="bg-red-500/15 text-red-600 text-[10px]">Revoked</Badge>
-                ) : isExpired ? (
-                  <Badge className="bg-amber-500/15 text-amber-600 text-[10px]">Expired</Badge>
-                ) : (
-                  <Badge className="bg-green-500/15 text-green-600 text-[10px]">Active</Badge>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
-                <div>
-                  <span className="font-semibold text-foreground">Issued:</span>{" "}
-                  {new Date(cert.issue_date).toLocaleDateString()}
-                </div>
-                {cert.expiration_date && (
-                  <div>
-                    <span className="font-semibold text-foreground">Expires:</span>{" "}
-                    {new Date(cert.expiration_date).toLocaleDateString()}
-                  </div>
-                )}
-                {cert.state_issued && (
-                  <div>
-                    <span className="font-semibold text-foreground">State:</span>{" "}
-                    {cert.state_issued}
-                  </div>
-                )}
-                {cert.issued_by_instructor && (
-                  <div>
-                    <span className="font-semibold text-foreground">Instructor:</span>{" "}
-                    {cert.issued_by_instructor.first_name} {cert.issued_by_instructor.last_name}
-                  </div>
-                )}
-              </div>
-
-              {cert.verification_code && (
-                <div className="pt-1 border-t border-border/30">
-                  <p className="text-[10px] text-muted-foreground">
-                    Verification: <span className="font-mono text-foreground">{cert.verification_code}</span>
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
