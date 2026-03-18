@@ -74,6 +74,9 @@ type Tab = "courses" | "progress" | "assessments" | "certificates";
 export default function AcademyPage() {
   const user = useAuthStore((s) => s.user);
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
+  const showCourses = !hiddenTabs.has("/courses");
 
   const [tab, setTab] = useState<Tab>("courses");
   const [loading, setLoading] = useState(true);
@@ -420,7 +423,7 @@ export default function AcademyPage() {
       </Card>
 
       {/* Legacy Courses Section */}
-      <div className="space-y-4">
+      {showCourses && <div className="space-y-4">
         <h2 className="text-lg font-semibold">Course Catalog</h2>
         <div className="flex items-center gap-1 border-b border-border/40 overflow-x-auto">
           {([
@@ -442,7 +445,7 @@ export default function AcademyPage() {
         {tab === "progress" && <ProgressTab progress={progress} />}
         {tab === "assessments" && <AssessmentsTab results={assessmentResults} />}
         {tab === "certificates" && <CertificatesTab certificates={certificates} />}
-      </div>
+      </div>}
     </div>
   );
 }
