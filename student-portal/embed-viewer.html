@@ -335,7 +335,7 @@
             }
 
             // Update dots
-            dotsEl.querySelectorAll('.dot').forEach((d, i) => {
+            document.getElementById('dots').querySelectorAll('.dot').forEach((d, i) => {
                 d.className = 'dot' + (i === current ? ' active' : i < current ? ' visited' : '');
             });
 
