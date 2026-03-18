@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -31,7 +32,10 @@ import {
   Settings,
   LogOut,
   ChevronRight,
+  ChevronDown,
   Bell,
+  User,
+  Building2,
   MessageCircle,
   Video,
   HelpCircle,
@@ -61,7 +65,10 @@ export default function MorePage() {
   const { user, clearSession } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const userRole = activeCompany?.role ?? "staff";
+  const isLeadership = ["owner", "admin", "manager"].includes(userRole);
   const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggle = (key: string) => setCollapsed((p) => ({ ...p, [key]: !p[key] }));
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -117,32 +124,39 @@ export default function MorePage() {
                   const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
                   if (hasChildren) {
+                    const isOpen = !collapsed[item.title];
                     return (
                       <div key={item.title}>
-                        <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                        <button
+                          onClick={() => toggle(item.title)}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50 transition-colors active:bg-accent/30"
+                        >
                           {Icon && <Icon className="h-4 w-4" />}
-                          <span>{item.title}</span>
-                        </div>
-                        <div className="space-y-0.5">
-                          {item.children!.map((child) => {
-                            const ChildIcon = ICON_MAP[child.icon];
-                            const childActive = pathname === child.href || pathname.startsWith(child.href + "/");
-                            return (
-                              <Link
-                                key={child.href}
-                                href={child.href}
-                                className={cn(
-                                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent",
-                                  childActive ? "bg-primary/10 text-primary" : "text-foreground"
-                                )}
-                              >
-                                {ChildIcon && <ChildIcon className={cn("h-[18px] w-[18px]", childActive ? "text-primary" : "text-muted-foreground")} />}
-                                <span className="flex-1">{child.title}</span>
-                                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-                              </Link>
-                            );
-                          })}
-                        </div>
+                          <span className="flex-1 text-left">{item.title}</span>
+                          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", !isOpen && "-rotate-90")} />
+                        </button>
+                        {isOpen && (
+                          <div className="space-y-0.5">
+                            {item.children!.map((child) => {
+                              const ChildIcon = ICON_MAP[child.icon];
+                              const childActive = pathname === child.href || pathname.startsWith(child.href + "/");
+                              return (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  className={cn(
+                                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent",
+                                    childActive ? "bg-primary/10 text-primary" : "text-foreground"
+                                  )}
+                                >
+                                  {ChildIcon && <ChildIcon className={cn("h-[18px] w-[18px]", childActive ? "text-primary" : "text-muted-foreground")} />}
+                                  <span className="flex-1">{child.title}</span>
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   }
@@ -178,13 +192,23 @@ export default function MorePage() {
             <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
           </Link>
           <Link
-            href="/settings"
+            href="/profile"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
           >
-            <Settings className="h-[18px] w-[18px] text-muted-foreground" />
-            <span className="flex-1">Settings</span>
+            <User className="h-[18px] w-[18px] text-muted-foreground" />
+            <span className="flex-1">Profile</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
           </Link>
+          {isLeadership && (
+            <Link
+              href="/admin/company"
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
+            >
+              <Building2 className="h-[18px] w-[18px] text-muted-foreground" />
+              <span className="flex-1">Company Settings</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+            </Link>
+          )}
           <button
             onClick={handleSignOut}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors active:bg-destructive/10"
