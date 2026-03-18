@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/auth-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +63,7 @@ export default function ProfilePage() {
   const [togglingTask, setTogglingTask] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
-  const isLeadership = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+  const isLeadership = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
 
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");

@@ -1,4 +1,4 @@
-import { CompanyRole } from "@prisma/client";
+export type CompanyRole = "owner" | "admin" | "manager" | "lead" | "breaker" | "staff";
 
 const ROLE_HIERARCHY: Record<CompanyRole, number> = {
   owner: 60,

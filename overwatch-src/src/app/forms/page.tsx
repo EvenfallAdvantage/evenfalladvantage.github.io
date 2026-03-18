@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { ClipboardList, Plus, Loader2, Send, ChevronLeft, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ type Submission = any;
 export default function FormsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
-  const isAdmin = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+  const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);

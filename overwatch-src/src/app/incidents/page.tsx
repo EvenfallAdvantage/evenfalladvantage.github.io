@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { timeAgo } from "@/lib/utils";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   AlertTriangle,
   Plus,
@@ -73,20 +75,11 @@ const ACTIONS_OPTIONS = ["Area Secured / Cordoned Off", "First Aid Administered"
 const INJURY_TYPES = ["None", "Minor — No Medical Needed", "Moderate — First Aid Given", "Serious — EMS Called", "Fatal"];
 const PROPERTY_DAMAGE = ["None", "Minor (< $500)", "Moderate ($500–$5,000)", "Major (> $5,000)", "Unknown"];
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
 
 export default function IncidentsPage() {
   const { activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore(s => s.getActiveCompany());
-  const isAdmin = activeCompany && ["owner", "admin", "manager"].includes(activeCompany.role);
+  const isAdmin = activeCompany && hasMinRole(activeCompany.role as CompanyRole, "manager");
 
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [members, setMembers] = useState<Member[]>([]);

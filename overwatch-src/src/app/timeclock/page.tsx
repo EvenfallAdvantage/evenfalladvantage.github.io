@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Clock, LogIn, LogOut, History, Loader2, CalendarDays, MapPin, X, Send, ChevronLeft, ChevronRight, AlertCircle, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -166,7 +167,7 @@ export default function TimeClockPage() {
         mod.getCompanyMembers(companyId).then((members: any[]) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const managers = members.filter((m: any) =>
-            ["owner", "admin", "manager"].includes(m.role) && m.users
+            hasMinRole(m.role as CompanyRole, "manager") && m.users
           );
           for (const mgr of managers) {
             const u = Array.isArray(mgr.users) ? mgr.users[0] : mgr.users;

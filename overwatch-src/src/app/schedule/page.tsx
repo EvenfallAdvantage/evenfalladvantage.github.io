@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
@@ -33,7 +34,7 @@ function fmtTime(iso: string) {
 export default function SchedulePage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
-  const isAdmin = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+  const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
 
   const [tab, setTab] = useState<"schedule" | "armory">("schedule");
 

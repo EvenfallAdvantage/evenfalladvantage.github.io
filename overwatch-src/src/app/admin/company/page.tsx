@@ -1,28 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Building2, Loader2, Save, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompanySettings } from "@/lib/supabase/db";
-
-// Tabs that can be toggled on/off by the company owner
-const TOGGLEABLE_TABS = [
-  { href: "/patrols", label: "Patrols", description: "GPS patrol tracking and checkpoint scanning", section: "Field Ops" },
-  { href: "/training/scenarios", label: "De-Escalation", description: "Interactive de-escalation training scenarios", section: "Academy" },
-  { href: "/courses", label: "Courses", description: "Video courses and learning content", section: "Academy" },
-  { href: "/geo-risk", label: "Geo-Risk", description: "Geographic risk analysis and heat maps", section: "Tools" },
-  { href: "/site-assessment", label: "Site Assessment", description: "Security site assessment reports", section: "Tools" },
-  { href: "/invoices", label: "Invoices", description: "Invoice generator and management", section: "Tools" },
-  { href: "/state-laws", label: "State Laws", description: "State-by-state guard law reference", section: "Academy" },
-];
+import { TOGGLEABLE_TABS } from "@/lib/feature-flags";
 
 export default function CompanySettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const { user, setUser } = useAuthStore();
   const isOwner = activeCompany?.role === "owner";
-  const isLeadership = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+  const isLeadership = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

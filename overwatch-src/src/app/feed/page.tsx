@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { timeAgo } from "@/lib/utils";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Clock,
   LogIn,
@@ -117,15 +119,6 @@ function DonutChart({ segments }: { segments: { value: number; color: string; la
   );
 }
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - parseUTC(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
 
 const QUICK_ACTIONS = [
   { title: "Comms", href: "/chat", icon: Radio, color: "text-blue-500", bg: "bg-blue-500/10" },
@@ -209,7 +202,7 @@ export default function FeedPage() {
   const activeCompany = getActiveCompany();
   const role = activeCompany?.role ?? "staff";
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
-  const isLeadership = ["owner", "admin", "manager"].includes(role);
+  const isLeadership = hasMinRole((role ?? "staff") as CompanyRole, "manager");
   const [active, setActive] = useState<Timesheet | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [recentShifts, setRecentShifts] = useState<Timesheet[]>([]);

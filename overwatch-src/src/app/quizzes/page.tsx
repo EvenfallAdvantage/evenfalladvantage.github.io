@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Target, Plus, Loader2, ChevronLeft, CheckCircle2, XCircle, Play, Trash2, PencilLine, Save, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ type Attempt = any;
 export default function QuizzesPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
-  const isAdmin = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+  const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [modules, setModules] = useState<TrainingModule[]>([]);
   const [loading, setLoading] = useState(true);

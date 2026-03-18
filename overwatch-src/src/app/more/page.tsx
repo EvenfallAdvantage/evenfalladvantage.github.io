@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/auth-store";
 import { isSuperAdmin } from "@/lib/security/super-admin";
 import { NAV_SECTIONS } from "@/components/layout/nav-items";
@@ -207,7 +208,7 @@ export default function MorePage() {
             <span className="flex-1">My Profile</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
           </Link>
-          {["owner", "admin"].includes(userRole) && (
+          {hasMinRole(userRole as CompanyRole, "admin") && (
             <Link
               href="/admin/settings"
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"

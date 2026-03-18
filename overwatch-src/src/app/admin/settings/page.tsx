@@ -9,16 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown, LayoutGrid } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, updateCompanySettings, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
-
-const TOGGLEABLE_TABS = [
-  { href: "/patrols", label: "Patrols", description: "GPS patrol tracking and checkpoint scanning", section: "Field Ops" },
-  { href: "/training/scenarios", label: "De-Escalation", description: "Interactive de-escalation training scenarios", section: "Academy" },
-  { href: "/courses", label: "Courses", description: "Video courses and learning content", section: "Academy" },
-  { href: "/geo-risk", label: "Geo-Risk", description: "Geographic risk analysis and heat maps", section: "Tools" },
-  { href: "/site-assessment", label: "Site Assessment", description: "Security site assessment reports", section: "Tools" },
-  { href: "/invoices", label: "Invoices", description: "Invoice generator and management", section: "Tools" },
-  { href: "/state-laws", label: "State Laws", description: "State-by-state guard law reference", section: "Academy" },
-];
+import { TOGGLEABLE_TABS } from "@/lib/feature-flags";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Policy = any;

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { NAV_SECTIONS } from "./nav-items";
 import { useAuthStore } from "@/stores/auth-store";
 import { isSuperAdmin } from "@/lib/security/super-admin";
@@ -477,7 +478,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               My Profile
             </DropdownMenuItem>
 
-            {["owner", "admin"].includes(userRole) && (
+            {hasMinRole(userRole as CompanyRole, "admin") && (
               <DropdownMenuItem className="gap-2" onClick={() => router.push("/admin/settings")}>
                 <Building2 className="h-4 w-4" />
                 HQ Config

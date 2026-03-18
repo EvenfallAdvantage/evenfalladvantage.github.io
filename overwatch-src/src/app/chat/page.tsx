@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Radio, Plus, Send, Loader2, Trash2, Search, ExternalLink,
   Reply, X, Hash, MessageSquare,
@@ -56,7 +57,7 @@ const PLAT: Record<string, { color: string; bg: string; label: string; logo: str
 export default function ChatPage() {
   const { user, activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
-  const isAdmin = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+  const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selected, setSelected] = useState<Channel | null>(null);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { CalendarOff, Plus, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ type Policy = any;
 export default function TimeOffPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
-  const isAdmin = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+  const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
   const [requests, setRequests] = useState<Request[]>([]);
   const [allRequests, setAllRequests] = useState<Request[]>([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -55,7 +56,7 @@ export default function TimeOffPage() {
       const policyName = policies.find((p: Policy) => p.id === selectedPolicy)?.name ?? "Leave";
       import("@/lib/supabase/db").then((mod) => {
         mod.getCompanyMembers(activeCompanyId).then((mbrs: { role: string; users: { id: string } | { id: string }[] }[]) => {
-          const mgrs = mbrs.filter((m) => ["owner", "admin", "manager"].includes(m.role) && m.users);
+          const mgrs = mbrs.filter((m) => hasMinRole(m.role as CompanyRole, "manager") && m.users);
           import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
             for (const mgr of mgrs) {
               const u = Array.isArray(mgr.users) ? mgr.users[0] : mgr.users;
@@ -105,7 +106,7 @@ export default function TimeOffPage() {
               const mbrs = await getCompanyMembers(activeCompanyId);
               const { dispatch } = await import("@/lib/services/notification-dispatcher");
               const mgrs = mbrs.filter((m: { role: string; users: { id: string } | { id: string }[] }) =>
-                ["owner", "admin", "manager"].includes(m.role)
+                hasMinRole(m.role as CompanyRole, "manager")
               );
               for (const mgr of mgrs) {
                 const mu = Array.isArray(mgr.users) ? mgr.users[0] : mgr.users;

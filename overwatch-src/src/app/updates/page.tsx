@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { timeAgo } from "@/lib/utils";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Radar, Send, Loader2, ImageIcon, Link2, Pin, PinOff,
   Megaphone, AlertTriangle, ChevronDown, ExternalLink, X, Trash2,
@@ -16,17 +18,6 @@ import { getPosts, createPost, togglePinPost, deletePost, getPostComments, addPo
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Post = any;
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
-}
 
 // Extract YouTube video ID from various URL formats
 function getYouTubeId(url: string): string | null {
@@ -138,7 +129,7 @@ const POST_TYPES = [
 export default function UpdatesPage() {
   const { user, activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
-  const isAdmin = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+  const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2,
   ChevronDown, ChevronUp, CalendarOff, ClipboardList, CheckCircle2, XCircle,
@@ -220,7 +221,7 @@ export default function AdminStaffPage() {
 
               // Notify all managers, admins, and owners about open shifts
               const mgrs = members.filter((m: Member) =>
-                ["owner", "admin", "manager"].includes(m.role) && m.users?.id !== req.user_id
+                hasMinRole(m.role as CompanyRole, "manager") && m.users?.id !== req.user_id
               );
               for (const mgr of mgrs) {
                 if (!mgr.users?.id) continue;

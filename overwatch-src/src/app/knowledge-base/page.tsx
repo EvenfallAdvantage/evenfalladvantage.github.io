@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   BookOpen, FolderOpen, FileText, Plus, Loader2, Trash2,
   Upload, X, Download, CheckCircle2, Circle, Image as ImageIcon,
@@ -52,7 +53,7 @@ function formatSize(bytes: number | null | undefined) {
 export default function KnowledgeBasePage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
-  const isAdmin = ["owner", "admin", "manager"].includes(activeCompany?.role ?? "");
+  const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
   const [folders, setFolders] = useState<Folder[]>([]);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);

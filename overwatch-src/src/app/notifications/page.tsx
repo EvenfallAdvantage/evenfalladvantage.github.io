@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { timeAgo } from "@/lib/utils";
 import { Bell, CheckCheck, Loader2, Info, AlertTriangle, Megaphone, Calendar, ClipboardList, ShieldCheck, CalendarOff, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,17 +26,6 @@ const TYPE_ICONS: Record<string, { icon: typeof Bell; color: string }> = {
   time_change_review: { icon: Clock, color: "text-blue-500" },
 };
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
-}
 
 export default function NotificationsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
