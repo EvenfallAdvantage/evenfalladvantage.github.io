@@ -74,7 +74,7 @@ export type LegacySlide = {
   title: string;
   content: string | null;
   content_html: string | null;
-  slide_order: number;
+  slide_number: number;
   slide_type: string | null;
   image_url: string | null;
   audio_url: string | null;
@@ -238,26 +238,15 @@ export async function getLegacyModules(): Promise<LegacyModule[]> {
 export async function getLegacySlides(moduleId: string): Promise<LegacySlide[]> {
   const client = getLegacyClient();
 
-  // Try module_slides first (newer table), fallback to slides
   const { data, error } = await client
     .from("module_slides")
     .select("*")
     .eq("module_id", moduleId)
-    .order("slide_order", { ascending: true });
+    .order("slide_number", { ascending: true });
 
   if (error) {
-    // Fallback: try the 'slides' table
-    const { data: fallback, error: fbError } = await client
-      .from("slides")
-      .select("*")
-      .eq("module_id", moduleId)
-      .order("slide_order", { ascending: true });
-
-    if (fbError) {
-      console.error("Legacy: getSlides error:", fbError);
-      return [];
-    }
-    return fallback ?? [];
+    console.error("Legacy: getSlides error:", error);
+    return [];
   }
   return data ?? [];
 }

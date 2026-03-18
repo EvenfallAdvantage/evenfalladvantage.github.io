@@ -7,6 +7,7 @@
  */
 
 import { createClient } from "@/lib/supabase/client";
+import { getAuthUserId } from "@/lib/supabase/db-helpers";
 import {
   findLegacyStudentByEmail,
   createLegacyStudentProfile,
@@ -31,12 +32,14 @@ const LEGACY_URL = "https://vaagvairvwmgyzsmymhs.supabase.co";
 // ─── Read Links ──────────────────────────────────────
 
 /** Get all legacy links for the current user */
-export async function getAccountLinks(userId: string): Promise<AccountLink[]> {
+export async function getAccountLinks(): Promise<AccountLink[]> {
+  const authId = await getAuthUserId();
+  if (!authId) return [];
   const supabase = createClient();
   const { data, error } = await supabase
     .from("legacy_account_links")
     .select("*")
-    .eq("user_id", userId);
+    .eq("user_id", authId);
 
   if (error) {
     console.error("getAccountLinks error:", error);
@@ -46,12 +49,14 @@ export async function getAccountLinks(userId: string): Promise<AccountLink[]> {
 }
 
 /** Get the student link for the current user */
-export async function getStudentLink(userId: string): Promise<AccountLink | null> {
+export async function getStudentLink(): Promise<AccountLink | null> {
+  const authId = await getAuthUserId();
+  if (!authId) return null;
   const supabase = createClient();
   const { data, error } = await supabase
     .from("legacy_account_links")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", authId)
     .eq("legacy_role", "student")
     .maybeSingle();
 
@@ -63,12 +68,14 @@ export async function getStudentLink(userId: string): Promise<AccountLink | null
 }
 
 /** Get the instructor link for the current user */
-export async function getInstructorLink(userId: string): Promise<AccountLink | null> {
+export async function getInstructorLink(): Promise<AccountLink | null> {
+  const authId = await getAuthUserId();
+  if (!authId) return null;
   const supabase = createClient();
   const { data, error } = await supabase
     .from("legacy_account_links")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", authId)
     .eq("legacy_role", "instructor")
     .maybeSingle();
 
@@ -90,7 +97,7 @@ export async function ensureStudentLinked(user: {
   lastName?: string;
 }): Promise<string | null> {
   // 1. Check if already linked
-  const existing = await getStudentLink(user.id);
+  const existing = await getStudentLink();
   if (existing) {
     // Update last synced
     updateSyncTimestamp(existing.id).catch(() => {});
@@ -118,7 +125,7 @@ export async function ensureStudentLinked(user: {
   if (!legacyStudentId) return null;
 
   // 3. Persist the link in Overwatch DB
-  await persistLink(user.id, legacyStudentId, "student", user.email);
+  await persistLink(legacyStudentId, "student", user.email);
 
   return legacyStudentId;
 }
@@ -134,7 +141,7 @@ export async function ensureInstructorLinked(user: {
   lastName?: string;
 }): Promise<string | null> {
   // Check if already linked
-  const existing = await getInstructorLink(user.id);
+  const existing = await getInstructorLink();
   if (existing) {
     updateSyncTimestamp(existing.id).catch(() => {});
     return existing.legacy_user_id;
@@ -177,7 +184,7 @@ export async function ensureInstructorLinked(user: {
 
   if (!instructorId) return null;
 
-  await persistLink(user.id, instructorId, "instructor", user.email);
+  await persistLink(instructorId, "instructor", user.email);
   return instructorId;
 }
 
@@ -207,17 +214,18 @@ export async function autoLinkByRole(user: {
 // ─── Persistence Helpers ─────────────────────────────
 
 async function persistLink(
-  userId: string,
   legacyUserId: string,
   role: "student" | "instructor" | "admin",
   email: string
 ): Promise<void> {
+  const authId = await getAuthUserId();
+  if (!authId) return;
   const supabase = createClient();
   const { error } = await supabase
     .from("legacy_account_links")
     .upsert(
       {
-        user_id: userId,
+        user_id: authId,
         legacy_supabase_url: LEGACY_URL,
         legacy_user_id: legacyUserId,
         legacy_role: role,

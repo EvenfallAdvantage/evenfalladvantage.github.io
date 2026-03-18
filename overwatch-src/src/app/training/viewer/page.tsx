@@ -38,7 +38,7 @@ function legacySlidesToModuleSlides(ls: LegacySlide[]): ModuleSlide[] {
     module_id: s.module_id,
     title: s.title,
     content_html: s.content_html ?? s.content ?? "",
-    sort_order: s.slide_order,
+    sort_order: s.slide_number,
     image_url: s.image_url,
     audio_url: s.audio_url,
     created_at: now,
