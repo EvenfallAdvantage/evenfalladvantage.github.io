@@ -62,8 +62,8 @@ BEGIN
     END IF;
   END IF;
 
-  -- Perform the update
-  UPDATE company_memberships SET role = p_new_role, updated_at = now()
+  -- Perform the update (cast text → CompanyRole enum)
+  UPDATE company_memberships SET role = p_new_role::"CompanyRole", updated_at = now()
     WHERE id = p_membership_id;
 
   RETURN jsonb_build_object('success', true, 'membership_id', p_membership_id, 'new_role', p_new_role);
