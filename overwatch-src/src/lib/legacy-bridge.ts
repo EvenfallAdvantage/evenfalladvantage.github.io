@@ -471,7 +471,7 @@ export async function updateLegacyProgress(
   if (existing) {
     const { error } = await client
       .from("student_module_progress")
-      .update({ ...progressData, status, last_accessed_at: new Date().toISOString() })
+      .update({ ...progressData, status })
       .eq("student_id", studentId)
       .eq("module_id", moduleId);
 
@@ -487,7 +487,6 @@ export async function updateLegacyProgress(
         module_id: moduleId,
         ...progressData,
         status,
-        last_accessed_at: new Date().toISOString(),
       });
 
     if (error) {

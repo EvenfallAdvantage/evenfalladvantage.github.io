@@ -137,12 +137,15 @@ function ModuleViewerInner() {
     if (slides.length === 0 || loading || !moduleId) return;
     const pct = Math.round(((currentSlide + 1) / slides.length) * 100);
     const timeout = setTimeout(() => {
-      upsertModuleProgress(moduleId, {
-        currentSlide,
-        totalSlides: slides.length,
-      }).catch(console.error);
+      // Only write to Overwatch DB for Overwatch-native modules
+      if (!isLegacyModule) {
+        upsertModuleProgress(moduleId, {
+          currentSlide,
+          totalSlides: slides.length,
+        }).catch(console.error);
+      }
 
-      // Write-through to legacy DB
+      // Write-through to legacy DB for legacy modules
       if (legacyStudentId && isLegacyModule) {
         updateLegacyProgress(legacyStudentId, moduleId, {
           progress_percentage: pct,
