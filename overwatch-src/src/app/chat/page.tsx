@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChatSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -368,9 +369,12 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                   const reactions = groupReactions(msg.chat_reactions);
                   return (
                     <div key={msg.id} className={`group flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-1">
-                        {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
-                      </div>
+                      <Avatar className="h-7 w-7 shrink-0 mt-1">
+                        <AvatarImage src={author?.avatar_url ?? undefined} />
+                        <AvatarFallback className="bg-primary/10 text-[9px] font-bold text-primary">
+                          {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className={`max-w-[70%] flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                         <div className={`flex items-center gap-2 mb-0.5 ${isMe ? "flex-row-reverse" : ""}`}>
                           {!isMe && <span className="text-[10px] font-semibold text-muted-foreground">{author?.first_name} {author?.last_name}</span>}

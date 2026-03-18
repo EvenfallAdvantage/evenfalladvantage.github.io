@@ -103,7 +103,7 @@ export async function getAllTimeOffRequests(companyId: string) {
   const supabase = createClient();
   const { data } = await supabase
     .from("time_off_requests")
-    .select("*, time_off_policies!inner(name, type, company_id), users(first_name, last_name)")
+    .select("*, time_off_policies!inner(name, type, company_id), users(first_name, last_name, avatar_url)")
     .eq("time_off_policies.company_id", companyId)
     .order("created_at", { ascending: false });
   return data ?? [];

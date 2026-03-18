@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
 import { getPosts, createPost, togglePinPost, deletePost, getPostComments, addPostComment, deletePostComment, getPostReactions, togglePostReaction } from "@/lib/supabase/db";
 
@@ -260,6 +260,7 @@ export default function UpdatesPage() {
           <div className="p-4 space-y-3">
             <div className="flex gap-3">
               <Avatar className="h-9 w-9 shrink-0">
+                <AvatarImage src={user?.avatarUrl ?? undefined} />
                 <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
                   {initials}
                 </AvatarFallback>
@@ -411,6 +412,7 @@ export default function UpdatesPage() {
                   {/* Post header */}
                   <div className="flex items-start gap-3 p-4 pb-0">
                     <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarImage src={author?.avatar_url ?? undefined} />
                       <AvatarFallback className="bg-primary/20 text-[11px] font-semibold text-primary">{pi}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
@@ -509,11 +511,14 @@ export default function UpdatesPage() {
                   {/* Expanded comments */}
                   {expandedPost === post.id && (
                     <div className="border-t border-border/30 bg-muted/20 px-4 py-3 pl-[60px] space-y-3">
-                      {(comments[post.id] ?? []).map((c: { id: string; content: string; created_at: string; users?: { id?: string; first_name?: string; last_name?: string } }) => (
+                      {(comments[post.id] ?? []).map((c: { id: string; content: string; created_at: string; users?: { id?: string; first_name?: string; last_name?: string; avatar_url?: string } }) => (
                         <div key={c.id} className="flex gap-2 group">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[8px] font-bold text-primary">
-                            {(c.users?.first_name?.[0] ?? "")}{(c.users?.last_name?.[0] ?? "")}
-                          </div>
+                          <Avatar className="h-6 w-6 shrink-0">
+                            <AvatarImage src={c.users?.avatar_url ?? undefined} />
+                            <AvatarFallback className="bg-primary/10 text-[8px] font-bold text-primary">
+                              {(c.users?.first_name?.[0] ?? "")}{(c.users?.last_name?.[0] ?? "")}
+                            </AvatarFallback>
+                          </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="rounded-lg bg-card border border-border/40 px-3 py-1.5">
                               <span className="text-xs font-semibold">{c.users?.first_name} {c.users?.last_name}</span>
@@ -533,9 +538,12 @@ export default function UpdatesPage() {
                       ))}
                       {/* Comment input */}
                       <div className="flex gap-2 items-center">
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[8px] font-bold text-primary">
-                          {initials}
-                        </div>
+                        <Avatar className="h-6 w-6 shrink-0">
+                          <AvatarImage src={user?.avatarUrl ?? undefined} />
+                          <AvatarFallback className="bg-primary/10 text-[8px] font-bold text-primary">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
                         <input
                           value={commentText}
                           onChange={(e) => setCommentText(e.target.value)}

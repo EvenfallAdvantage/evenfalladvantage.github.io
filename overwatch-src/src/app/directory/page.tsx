@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Users, Search, Mail, Phone, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyMembers } from "@/lib/supabase/db";
 
@@ -78,9 +79,12 @@ export default function DirectoryPage() {
                       isActive ? "bg-primary/10 text-primary" : "hover:bg-accent"
                     }`}
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary">
-                      {initials}
-                    </div>
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarImage src={u?.avatar_url ?? undefined} />
+                      <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="min-w-0 flex-1">
                       <span className="truncate block">
                         {u?.first_name} {u?.last_name}
@@ -105,9 +109,12 @@ export default function DirectoryPage() {
           {selected && sel ? (
             <div className="rounded-xl border border-border/50 bg-card p-6 space-y-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-primary">
-                  {selInitials}
-                </div>
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={sel?.avatar_url ?? undefined} />
+                  <AvatarFallback className="bg-primary/15 text-lg font-bold text-primary">
+                    {selInitials}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <h2 className="text-lg font-semibold">
                     {sel.first_name} {sel.last_name}

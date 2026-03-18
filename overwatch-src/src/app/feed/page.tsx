@@ -30,6 +30,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import {
@@ -319,9 +320,12 @@ export default function FeedPage() {
                 const author = post.users;
                 return (
                   <div key={post.id} className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-[10px] font-bold text-amber-600">
-                      {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
-                    </div>
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarImage src={author?.avatar_url ?? undefined} />
+                      <AvatarFallback className="bg-amber-500/15 text-[10px] font-bold text-amber-600">
+                        {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{author?.first_name} {author?.last_name}</span>

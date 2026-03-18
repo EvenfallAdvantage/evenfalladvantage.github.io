@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet,
@@ -365,9 +366,12 @@ export default function AdminStaffPage() {
                   const u = m.users;
                   return (
                     <div key={m.id} className="flex items-center gap-4 rounded-xl border border-border/50 bg-card px-4 py-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
-                        {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
-                      </div>
+                      <Avatar className="h-10 w-10 shrink-0">
+                        <AvatarImage src={u?.avatar_url ?? undefined} />
+                        <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
+                          {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
                         <p className="text-xs text-muted-foreground">{u?.email}</p>
