@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -402,6 +402,17 @@ function HomePageInner() {
   const [loginOpen, setLoginOpen] = useState(authParam === "login");
   const [registerOpen, setRegisterOpen] = useState(authParam === "register" || !!codeParam);
   const [tosOpen, setTosOpen] = useState(false);
+  const [partners, setPartners] = useState<{ name: string; logo_url: string | null }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.rpc("get_partner_companies");
+        if (data?.length) setPartners(data);
+      } catch {}
+    })();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#0b1422] text-white">
@@ -517,6 +528,37 @@ function HomePageInner() {
           </div>
         </div>
       </section>
+
+      {/* Partners */}
+      {partners.length > 0 && (
+        <section className="py-16 border-t border-white/5">
+          <div className="mx-auto max-w-5xl px-6">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">TRUSTED BY SECURITY PROFESSIONALS</h2>
+              <p className="text-white/40 max-w-lg mx-auto text-sm">Companies already using Overwatch to command their operations.</p>
+            </div>
+            <div className="relative overflow-hidden" style={{ maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
+              <div className="flex animate-[scroll_30s_linear_infinite] gap-10 w-max">
+                {[...partners, ...partners].map((p, i) => (
+                  <div key={`${p.name}-${i}`} className="flex flex-col items-center gap-2.5 shrink-0">
+                    {p.logo_url ? (
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 overflow-hidden p-1">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.logo_url} alt={p.name} className="h-12 w-12 object-contain" />
+                      </div>
+                    ) : (
+                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#dd8c33]/10 border border-[#dd8c33]/20">
+                        <span className="text-xl font-bold font-mono text-[#dd8c33]/70">{p.name.charAt(0)}</span>
+                      </div>
+                    )}
+                    <span className="text-[11px] text-white/40 font-medium max-w-[80px] text-center truncate">{p.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="py-20 border-t border-white/5">
