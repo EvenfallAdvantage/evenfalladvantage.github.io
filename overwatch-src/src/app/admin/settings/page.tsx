@@ -114,6 +114,7 @@ export default function AdminSettingsPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const { user, setUser } = useAuthStore();
   const isOwner = activeCompany?.role === "owner";
+  const isAdminPlus = ["owner", "admin"].includes(activeCompany?.role ?? "");
   const [name, setName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [timezone, setTimezone] = useState("");
@@ -264,6 +265,16 @@ export default function AdminSettingsPage() {
       setPolicies(await getTimeOffPolicies(activeCompanyId));
     } catch (err) { console.error(err); }
     finally { setCreatingPolicy(false); }
+  }
+
+  if (activeCompany && !isAdminPlus) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <Building2 className="mb-3 h-10 w-10 text-muted-foreground/40" />
+        <p className="text-sm font-medium">Access Restricted</p>
+        <p className="mt-1 max-w-xs text-xs text-muted-foreground">Only admins and owners can access HQ Config.</p>
+      </div>
+    );
   }
 
   return (

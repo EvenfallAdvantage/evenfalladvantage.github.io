@@ -65,7 +65,6 @@ export default function MorePage() {
   const { user, clearSession } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const userRole = activeCompany?.role ?? "staff";
-  const isLeadership = ["owner", "admin", "manager"].includes(userRole);
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
   const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ Academy: true, Tools: true });
@@ -208,7 +207,7 @@ export default function MorePage() {
             <span className="flex-1">My Profile</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
           </Link>
-          {isLeadership && (
+          {["owner", "admin"].includes(userRole) && (
             <Link
               href="/admin/settings"
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"

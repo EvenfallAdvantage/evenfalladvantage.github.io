@@ -477,7 +477,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               My Profile
             </DropdownMenuItem>
 
-            {["owner", "admin", "manager"].includes(userRole) && (
+            {["owner", "admin"].includes(userRole) && (
               <DropdownMenuItem className="gap-2" onClick={() => router.push("/admin/settings")}>
                 <Building2 className="h-4 w-4" />
                 HQ Config
