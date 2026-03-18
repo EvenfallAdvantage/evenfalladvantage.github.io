@@ -5,7 +5,9 @@ import {
   Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2,
   ChevronDown, CalendarOff, ClipboardList, CheckCircle2, XCircle,
   UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock, ShieldCheck, AlertOctagon, BookOpen,
+  AlertTriangle, MapPin,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +20,7 @@ import {
   getApplicants, createApplicant, updateApplicantStatus, deleteApplicant, convertApplicantToUser,
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask,
   getCompanyTimeChangeRequests, reviewTimeChangeRequest,
-  getMemberProfileById, getCompanyReadiness,
+  getMemberProfileById, getCompanyReadiness, getIncidents,
 } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
@@ -53,6 +55,8 @@ export default function AdminStaffPage() {
   const [timesheets, setTimesheets] = useState<Sheet[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveReq[]>([]);
   const [formSubmissions, setFormSubmissions] = useState<FormSub[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [incidents, setIncidents] = useState<any[]>([]);
   const [approving, setApproving] = useState<string | null>(null);
   const [changingRole, setChangingRole] = useState<string | null>(null);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
@@ -124,6 +128,7 @@ export default function AdminStaffPage() {
       try { setOTasks(await getOnboardingTasks(activeCompanyId)); } catch {}
       try { setTimeChangeReqs(await getCompanyTimeChangeRequests(activeCompanyId)); } catch {}
       try { setReadiness(await getCompanyReadiness(activeCompanyId)); } catch {}
+      try { setIncidents(await getIncidents(activeCompanyId)); } catch {}
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -285,6 +290,7 @@ export default function AdminStaffPage() {
   const pendingLeave = leaveRequests.filter((r: LeaveReq) => r.status === "pending");
   const filteredLeave = leaveFilter === "pending" ? pendingLeave : leaveRequests;
   const pendingForms = formSubmissions.filter((f: FormSub) => f.status !== "reviewed");
+  const openIncidents = incidents.filter((i) => i.status === "open" || i.status === "investigating");
   const pendingTCR = timeChangeReqs.filter((r: TCR) => r.status === "pending");
 
   const leaveStatusColor = (s: string) => {
@@ -351,7 +357,7 @@ export default function AdminStaffPage() {
             { key: "timesheets" as Tab, label: "Timesheets", badge: pendingSheets.length },
             { key: "corrections" as Tab, label: "Corrections", badge: pendingTCR.length },
             { key: "leave" as Tab, label: "Leave", badge: pendingLeave.length },
-            { key: "forms" as Tab, label: "Forms", badge: pendingForms.length },
+            { key: "forms" as Tab, label: "Forms", badge: pendingForms.length + openIncidents.length },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
@@ -669,14 +675,64 @@ export default function AdminStaffPage() {
           <>
             {loading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-            ) : formSubmissions.length === 0 ? (
+            ) : formSubmissions.length === 0 && incidents.length === 0 ? (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
                 <ClipboardList className="mb-3 h-10 w-10 text-muted-foreground/40" />
-                <p className="text-sm font-medium">No form submissions</p>
-                <p className="mt-1 max-w-xs text-xs text-muted-foreground">Submitted field reports and forms will appear here for review.</p>
+                <p className="text-sm font-medium">No submissions or reports</p>
+                <p className="mt-1 max-w-xs text-xs text-muted-foreground">Submitted field reports, incident reports, and forms will appear here for review.</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-4">
+                {/* ── Incident Reports ── */}
+                {incidents.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Incident Reports ({incidents.length})
+                    </p>
+                    <div className="space-y-2">
+                      {incidents.map((inc) => {
+                        const reporter = inc.reported_user;
+                        const statusColor = inc.status === "resolved" || inc.status === "closed"
+                          ? "bg-green-500/15 text-green-600"
+                          : inc.status === "investigating"
+                          ? "bg-blue-500/15 text-blue-400"
+                          : "bg-amber-500/15 text-amber-600";
+                        const sevColor = inc.severity === "critical" ? "text-red-500" : inc.severity === "high" ? "text-orange-500" : inc.severity === "medium" ? "text-amber-500" : "text-blue-400";
+                        return (
+                          <div key={inc.id} className={`rounded-xl border bg-card px-4 py-3 ${inc.status === "open" ? "border-amber-500/30" : "border-border/50"}`}>
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 shrink-0`}>
+                                <AlertTriangle className={`h-4 w-4 ${sevColor}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-sm truncate">{inc.title}</p>
+                                  <Badge className={`text-[9px] capitalize ${statusColor}`}>{inc.status}</Badge>
+                                  <Badge variant="outline" className={`text-[9px] capitalize ${sevColor}`}>{inc.severity}</Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {inc.type} · {reporter ? `${reporter.first_name} ${reporter.last_name}` : "Unknown"} · {new Date(inc.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                </p>
+                                {inc.location && <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3" />{inc.location}</p>}
+                              </div>
+                              <Link href="/incidents" className="text-xs text-primary hover:underline shrink-0">View →</Link>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Form Submissions ── */}
+                {formSubmissions.length > 0 && (
+                  <div>
+                    {incidents.length > 0 && (
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                        <ClipboardList className="h-3.5 w-3.5" /> Form Submissions ({formSubmissions.length})
+                      </p>
+                    )}
+                    <div className="space-y-2">
                 {formSubmissions.map((f: FormSub) => {
                   const u = f.users;
                   const isReviewed = f.status === "reviewed";
@@ -727,6 +783,9 @@ export default function AdminStaffPage() {
                     </div>
                   );
                 })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
