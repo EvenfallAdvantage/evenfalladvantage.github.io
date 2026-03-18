@@ -236,8 +236,8 @@ export async function getOwnerIntel(companyId: string) {
   ] = await Promise.all([
     safeCount(supabase.from("time_change_requests").select("id", { count: "exact", head: true })
       .eq("company_id", companyId).eq("status", "pending")),
-    safeCount(supabase.from("time_off_requests").select("id", { count: "exact", head: true })
-      .eq("company_id", companyId).eq("status", "pending")),
+    safeCount(supabase.from("time_off_requests").select("id, time_off_policies!inner(company_id)", { count: "exact", head: true })
+      .eq("time_off_policies.company_id", companyId).eq("status", "pending")),
     safeCount(supabase.from("form_submissions").select("id", { count: "exact", head: true })
       .eq("status", "submitted")),
     safeCount(supabase.from("timesheets").select("id", { count: "exact", head: true })

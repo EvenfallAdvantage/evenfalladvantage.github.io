@@ -358,8 +358,8 @@ export default function AdminTrainingPage() {
 
   function getModuleCompletion(moduleId: string) {
     if (staff.length === 0) return { completed: 0, total: staff.length, pct: 0 };
-    const done = staff.filter((s: { user: { id: string } | null }) =>
-      allProgress.some((p: { user_id: string; module_id: string; status: string }) => p.user_id === (s.user?.id ?? "") && p.module_id === moduleId && p.status === "completed")
+    const done = staff.filter((s: { users: { id: string } | null }) =>
+      allProgress.some((p: { user_id: string; module_id: string; status: string }) => p.user_id === (s.users?.id ?? "") && p.module_id === moduleId && p.status === "completed")
     ).length;
     return { completed: done, total: staff.length, pct: Math.round((done / staff.length) * 100) };
   }
@@ -871,14 +871,14 @@ export default function AdminTrainingPage() {
                   <CardContent className="p-4">
                     <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5"><Users className="h-4 w-4" /> Staff Training Status</h3>
                     <div className="space-y-1">
-                      {staff.map((s: { id: string; user: { id: string; first_name: string; last_name: string; email: string } | null; role: string }) => {
-                        const comp = getStaffCompletion(s.user?.id ?? "");
-                        const name = s.user ? `${s.user.first_name ?? ""} ${s.user.last_name ?? ""}`.trim() : "Unknown";
+                      {staff.map((s: { id: string; users: { id: string; first_name: string; last_name: string; email: string } | null; role: string }) => {
+                        const comp = getStaffCompletion(s.users?.id ?? "");
+                        const name = s.users ? `${s.users.first_name ?? ""} ${s.users.last_name ?? ""}`.trim() : "Unknown";
                         return (
                           <div key={s.id} className="flex items-center justify-between p-2 rounded-lg border border-border/30">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <p className="text-xs font-medium truncate">{name || s.user?.email}</p>
+                                <p className="text-xs font-medium truncate">{name || s.users?.email}</p>
                                 <Badge className="text-[9px] bg-muted">{s.role}</Badge>
                               </div>
                               {requiredModules.length > 0 && (
