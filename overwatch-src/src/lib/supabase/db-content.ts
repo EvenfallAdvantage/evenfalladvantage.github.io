@@ -205,6 +205,9 @@ export async function createKBDocument(params: {
   content?: string;
   fileUrl?: string;
   type?: string;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
@@ -218,6 +221,9 @@ export async function createKBDocument(params: {
       content: params.content ?? null,
       file_url: params.fileUrl ?? null,
       type: params.type ?? "page",
+      file_name: params.fileName ?? null,
+      file_size: params.fileSize ?? null,
+      mime_type: params.mimeType ?? null,
       created_by_id: userId,
       ...ts(),
     })
@@ -235,8 +241,79 @@ export async function deleteKBFolder(folderId: string) {
 
 export async function deleteKBDocument(docId: string) {
   const supabase = createClient();
+  // Fetch doc to check for storage file
+  const { data: doc } = await supabase.from("kb_documents").select("file_url").eq("id", docId).maybeSingle();
+  if (doc?.file_url) {
+    try {
+      const url = new URL(doc.file_url);
+      const pathMatch = url.pathname.match(/\/storage\/v1\/object\/public\/field-manual\/(.+)/);
+      if (pathMatch) {
+        await supabase.storage.from("field-manual").remove([decodeURIComponent(pathMatch[1])]);
+      }
+    } catch {}
+  }
   const { error } = await supabase.from("kb_documents").delete().eq("id", docId);
   if (error) throw error;
+}
+
+// ─── Field Manual: File Upload ──────────────────────────
+
+export async function uploadKBFile(file: File, companyId: string): Promise<string> {
+  const supabase = createClient();
+  const ext = file.name.split(".").pop() ?? "bin";
+  const path = `${companyId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from("field-manual")
+    .upload(path, file, { cacheControl: "3600", upsert: false });
+  if (error) throw error;
+  const { data: urlData } = supabase.storage.from("field-manual").getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+// ─── Field Manual: Read Tracking ────────────────────────
+
+export async function markDocumentRead(documentId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("kb_document_reads")
+    .upsert({ document_id: documentId, user_id: userId, read_at: new Date().toISOString() },
+      { onConflict: "document_id,user_id" });
+  if (error) throw error;
+}
+
+export async function unmarkDocumentRead(documentId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("kb_document_reads")
+    .delete()
+    .eq("document_id", documentId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function getUserDocumentReads(folderId: string): Promise<string[]> {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("kb_document_reads")
+    .select("document_id, kb_documents!inner(folder_id)")
+    .eq("user_id", userId)
+    .eq("kb_documents.folder_id", folderId);
+  return (data ?? []).map((r: { document_id: string }) => r.document_id);
+}
+
+export async function getDocumentReadStatus(documentId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("kb_document_reads")
+    .select("user_id, read_at, users(id, first_name, last_name, avatar_url)")
+    .eq("document_id", documentId);
+  return data ?? [];
 }
 
 // ─── Chat Channels (Comms) ─────────────────────────────
