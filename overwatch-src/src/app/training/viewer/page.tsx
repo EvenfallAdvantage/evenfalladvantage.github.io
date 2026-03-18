@@ -259,7 +259,7 @@ function ModuleViewerInner() {
 
   // ─── Legacy module: embed the legacy viewer in an iframe ───
   if (isLegacyModule) {
-    const embedUrl = `/student-portal/embed-viewer.html?module_id=${moduleId}`;
+    const embedUrl = `/student-portal/embed-viewer.html?module_id=${moduleId}&v=2`;
     return (
       <>
         <div className="flex flex-col" style={{ height: "calc(100vh - 4rem)" }}>

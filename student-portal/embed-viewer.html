@@ -282,34 +282,88 @@
         }
 
         function initQuizzes() {
-            document.querySelectorAll('.slide-quiz').forEach(quiz => {
+            const quizzes = document.querySelectorAll('.slide-quiz');
+            console.log('[embed-viewer v2] initQuizzes: found', quizzes.length, 'quiz containers');
+            quizzes.forEach(quiz => {
                 const options = quiz.querySelectorAll('.slide-quiz-option');
                 const feedback = quiz.querySelector('.slide-quiz-feedback');
+                console.log('[embed-viewer v2] quiz options:', options.length);
                 let answered = false;
+
+                // Apply inline styles to each option (belt-and-suspenders — doesn't rely on CSS)
                 options.forEach(option => {
+                    Object.assign(option.style, {
+                        padding: '0.75rem 1rem',
+                        border: '1px solid #1e293b',
+                        borderRadius: '0.5rem',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        background: '#111827',
+                        color: '#cbd5e1',
+                        transition: 'all 0.15s',
+                        marginBottom: '0.5rem',
+                        display: 'block'
+                    });
+                    option.onmouseenter = () => {
+                        if (!answered) { option.style.borderColor = '#3b82f6'; option.style.background = '#0f172a'; }
+                    };
+                    option.onmouseleave = () => {
+                        if (!answered && !option.classList.contains('selected')) {
+                            option.style.borderColor = '#1e293b'; option.style.background = '#111827';
+                        }
+                    };
                     option.onclick = () => {
                         if (answered) return;
                         answered = true;
-                        options.forEach(o => o.classList.remove('selected'));
-                        option.classList.add('selected');
+                        // Reset all options
+                        options.forEach(o => {
+                            o.style.borderColor = '#1e293b'; o.style.background = '#111827'; o.style.color = '#cbd5e1';
+                        });
                         const isCorrect = option.getAttribute('data-correct') === 'true';
                         if (isCorrect) {
-                            option.classList.add('correct');
+                            option.style.borderColor = '#16a34a';
+                            option.style.background = 'rgba(22,163,74,0.15)';
+                            option.style.color = '#4ade80';
                             if (feedback) {
-                                feedback.className = 'slide-quiz-feedback show correct';
+                                feedback.style.display = 'block';
+                                feedback.style.marginTop = '0.75rem';
+                                feedback.style.padding = '0.75rem 1rem';
+                                feedback.style.borderRadius = '0.5rem';
+                                feedback.style.fontSize = '0.8125rem';
+                                feedback.style.fontWeight = '500';
+                                feedback.style.background = 'rgba(22,163,74,0.15)';
+                                feedback.style.color = '#4ade80';
+                                feedback.style.border = '1px solid rgba(22,163,74,0.3)';
                                 feedback.innerHTML = '<strong>✓ Correct!</strong> Great job!';
                             }
                         } else {
-                            option.classList.add('incorrect');
+                            option.style.borderColor = '#dc2626';
+                            option.style.background = 'rgba(220,38,38,0.1)';
+                            option.style.color = '#f87171';
                             const correctOpt = quiz.querySelector('[data-correct="true"]');
-                            if (correctOpt) correctOpt.classList.add('correct');
+                            if (correctOpt) {
+                                correctOpt.style.borderColor = '#16a34a';
+                                correctOpt.style.background = 'rgba(22,163,74,0.15)';
+                                correctOpt.style.color = '#4ade80';
+                            }
                             if (feedback) {
-                                feedback.className = 'slide-quiz-feedback show incorrect';
+                                feedback.style.display = 'block';
+                                feedback.style.marginTop = '0.75rem';
+                                feedback.style.padding = '0.75rem 1rem';
+                                feedback.style.borderRadius = '0.5rem';
+                                feedback.style.fontSize = '0.8125rem';
+                                feedback.style.fontWeight = '500';
+                                feedback.style.background = 'rgba(220,38,38,0.1)';
+                                feedback.style.color = '#f87171';
+                                feedback.style.border = '1px solid rgba(220,38,38,0.2)';
                                 feedback.innerHTML = '<strong>✗ Incorrect.</strong> The correct answer is highlighted above.';
                             }
                         }
                     };
                 });
+
+                // Hide feedback initially
+                if (feedback) { feedback.style.display = 'none'; }
             });
         }
 
