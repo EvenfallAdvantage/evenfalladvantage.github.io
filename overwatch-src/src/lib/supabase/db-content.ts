@@ -244,6 +244,17 @@ export async function updateKBDocumentRequired(docId: string, required: boolean)
   if (error) throw error;
 }
 
+export async function updateKBFolderOrder(folders: { id: string; sort_order: number }[]) {
+  const supabase = createClient();
+  for (const f of folders) {
+    const { error } = await supabase
+      .from("kb_folders")
+      .update({ sort_order: f.sort_order })
+      .eq("id", f.id);
+    if (error) throw error;
+  }
+}
+
 export async function deleteKBFolder(folderId: string) {
   const supabase = createClient();
   const { error } = await supabase.from("kb_folders").delete().eq("id", folderId);

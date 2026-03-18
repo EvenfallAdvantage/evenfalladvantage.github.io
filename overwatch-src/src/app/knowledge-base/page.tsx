@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   BookOpen, FolderOpen, FileText, Plus, Loader2, Trash2,
   Upload, X, Download, CheckCircle2, Circle, Image as ImageIcon,
-  File, Users,
+  File, Users, ChevronUp, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
   getKBFolders, getKBDocuments, createKBFolder, createKBDocument,
   deleteKBFolder, deleteKBDocument, uploadKBFile, updateKBDocumentRequired,
   markDocumentRead, unmarkDocumentRead, getUserDocumentReads,
-  getDocumentReadStatus, getCompanyMembers,
+  getDocumentReadStatus, getCompanyMembers, updateKBFolderOrder,
 } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -120,6 +120,17 @@ export default function KnowledgeBasePage() {
       await loadFolders();
     } catch (err) { console.error(err); }
     finally { setDeletingFolder(null); }
+  }
+
+  async function moveFolder(idx: number, direction: -1 | 1) {
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= folders.length) return;
+    const updated = [...folders];
+    [updated[idx], updated[newIdx]] = [updated[newIdx], updated[idx]];
+    setFolders(updated);
+    try {
+      await updateKBFolderOrder(updated.map((f: Folder, i: number) => ({ id: f.id, sort_order: i })));
+    } catch (err) { console.error("Reorder failed:", err); await loadFolders(); }
   }
 
   async function handleDeleteDoc(docId: string) {
@@ -247,16 +258,26 @@ export default function KnowledgeBasePage() {
           <div className="grid gap-4 md:grid-cols-[280px_1fr]">
             {/* Folder sidebar */}
             <div className="space-y-1 rounded-xl border border-border/50 bg-card p-3">
-              {folders.map((f: Folder) => (
+              {folders.map((f: Folder, idx: number) => (
                 <div key={f.id} onClick={() => selectFolder(f)}
-                  className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${selectedFolder?.id === f.id ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
+                  className={`group flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${selectedFolder?.id === f.id ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
                   <FolderOpen className="h-4 w-4 shrink-0" />
                   <span className="truncate flex-1">{f.name}</span>
                   {isAdmin && (
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteFolder(f.id); }} disabled={deletingFolder === f.id}
-                      className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100" title="Delete folder">
-                      {deletingFolder === f.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                    </button>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                      <button onClick={(e) => { e.stopPropagation(); moveFolder(idx, -1); }} disabled={idx === 0}
+                        className="rounded p-0.5 text-muted-foreground/40 hover:text-foreground hover:bg-accent disabled:opacity-20 disabled:cursor-not-allowed" title="Move up">
+                        <ChevronUp className="h-3 w-3" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); moveFolder(idx, 1); }} disabled={idx === folders.length - 1}
+                        className="rounded p-0.5 text-muted-foreground/40 hover:text-foreground hover:bg-accent disabled:opacity-20 disabled:cursor-not-allowed" title="Move down">
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDeleteFolder(f.id); }} disabled={deletingFolder === f.id}
+                        className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10" title="Delete folder">
+                        {deletingFolder === f.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
