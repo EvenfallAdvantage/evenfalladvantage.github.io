@@ -135,7 +135,11 @@ export default function StateLawsPage() {
                             {icon}
                             <span className="text-xs font-semibold">{label}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground ml-5.5 pl-1">{String(state[key])}</p>
+                          {key === "agency" && state.agencyUrl ? (
+                            <a href={state.agencyUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline ml-5.5 pl-1 block">{String(state[key])} ↗</a>
+                          ) : (
+                            <p className="text-xs text-muted-foreground ml-5.5 pl-1">{String(state[key])}</p>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -147,7 +151,11 @@ export default function StateLawsPage() {
                           <Gavel className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
                           <div>
                             <span className="text-xs font-semibold">Governing Statutes</span>
-                            <p className="text-xs text-muted-foreground">{state.statutes}</p>
+                            {state.statuteUrl ? (
+                              <a href={state.statuteUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline block">{state.statutes} ↗</a>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">{state.statutes}</p>
+                            )}
                           </div>
                         </div>
                       )}
