@@ -141,6 +141,14 @@ export default function AdminStaffPage() {
   }
 
   async function handleRoleChange(membershipId: string, newRole: string) {
+    const member = members.find((m: Member) => m.id === membershipId);
+    if (member?.role === "owner" && myRole !== "owner") {
+      setError("Only an owner can change another owner's role.");
+      return;
+    }
+    if (member?.role === "owner" && newRole !== "owner") {
+      if (!confirm(`Downgrade this owner to ${newRole}? This cannot be undone from the UI unless another owner restores it.`)) return;
+    }
     setChangingRole(membershipId);
     setError(null);
     try { await updateMemberRole(membershipId, newRole); await load(); }
