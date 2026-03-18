@@ -355,17 +355,20 @@ export async function createChatChannel(params: {
   companyId: string;
   name: string;
   description?: string;
+  avatarUrl?: string;
 }) {
   const supabase = createClient();
+  const payload: Record<string, unknown> = {
+    id: crypto.randomUUID(),
+    company_id: params.companyId,
+    name: params.name,
+    description: params.description ?? null,
+    created_at: new Date().toISOString(),
+  };
+  if (params.avatarUrl) payload.avatar_url = params.avatarUrl;
   const { data, error } = await supabase
     .from("chat_channels")
-    .insert({
-      id: crypto.randomUUID(),
-      company_id: params.companyId,
-      name: params.name,
-      description: params.description ?? null,
-      created_at: new Date().toISOString(),
-    })
+    .insert(payload)
     .select()
     .maybeSingle();
   if (error) throw error;
@@ -456,11 +459,20 @@ export async function updateLastRead(channelId: string) {
   const userId = await ensureInternalUser();
   if (!userId) return;
   const supabase = createClient();
+  // Delete existing membership row then re-insert with updated last_read_at.
+  // We use delete+insert because the chat_members RLS has no UPDATE policy.
   try {
-    await supabase.from("chat_members").upsert(
-      { id: crypto.randomUUID(), channel_id: channelId, user_id: userId, last_read_at: new Date().toISOString(), role: "member", joined_at: new Date().toISOString() },
-      { onConflict: "channel_id,user_id" }
-    );
+    await supabase.from("chat_members").delete().eq("channel_id", channelId).eq("user_id", userId);
+  } catch {}
+  try {
+    await supabase.from("chat_members").insert({
+      id: crypto.randomUUID(),
+      channel_id: channelId,
+      user_id: userId,
+      last_read_at: new Date().toISOString(),
+      role: "member",
+      joined_at: new Date().toISOString(),
+    });
   } catch {}
 }
 

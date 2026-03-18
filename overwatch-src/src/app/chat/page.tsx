@@ -70,6 +70,7 @@ export default function ChatPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newAvatarUrl, setNewAvatarUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const [deletingCh, setDeletingCh] = useState<string | null>(null);
   const [showAddExt, setShowAddExt] = useState(false);
@@ -164,8 +165,10 @@ export default function ChatPage() {
   async function handleCreate() {
     if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
-    try { await createChatChannel({ companyId: activeCompanyId, name: newName.trim() }); setNewName(""); setShowCreate(false); await loadChannels(); }
-    catch (err) { console.error(err); } finally { setCreating(false); }
+    try {
+      await createChatChannel({ companyId: activeCompanyId, name: newName.trim(), avatarUrl: newAvatarUrl.trim() || undefined });
+      setNewName(""); setNewAvatarUrl(""); setShowCreate(false); await loadChannels();
+    } catch (err) { console.error(err); } finally { setCreating(false); }
   }
 
   async function handleDeleteCh(id: string) {
@@ -218,6 +221,7 @@ export default function ChatPage() {
       {tab === "channels" && (<ChannelsTab
         loading={loading} internal={internal} external={external} selected={selected}
         showCreate={showCreate} setShowCreate={setShowCreate} newName={newName} setNewName={setNewName}
+        newAvatarUrl={newAvatarUrl} setNewAvatarUrl={setNewAvatarUrl}
         creating={creating} handleCreate={handleCreate} selectCh={selectCh} deletingCh={deletingCh}
         handleDeleteCh={handleDeleteCh} isAdmin={isAdmin} showSearch={showSearch} setShowSearch={setShowSearch}
         searchQ={searchQ} setSearchQ={setSearchQ} filteredMsgs={filteredMsgs} user={user}
@@ -244,6 +248,7 @@ export default function ChatPage() {
    ══════════════════════════════════════════════════ */
 
 function ChannelsTab({ loading, internal, external, selected, showCreate, setShowCreate, newName, setNewName,
+  newAvatarUrl, setNewAvatarUrl,
   creating, handleCreate, selectCh, deletingCh, handleDeleteCh, isAdmin, showSearch, setShowSearch,
   searchQ, setSearchQ, filteredMsgs, user, replyTo, setReplyTo, msgText, setMsgText, sending, handleSend, bottomRef,
   unread, emojiPicker, setEmojiPicker, handleReaction, typingUsers, broadcastTyping,
@@ -266,13 +271,25 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
   return (
     <>
       {showCreate && (
-        <div className="flex gap-2 rounded-xl border border-primary/30 bg-card p-4">
-          <Input placeholder="Channel name..." value={newName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewName(e.target.value)} className="flex-1"
-            onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") handleCreate(); }} />
-          <Button size="sm" onClick={handleCreate} disabled={!newName.trim() || creating}>
-            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
+        <div className="space-y-2 rounded-xl border border-primary/30 bg-card p-4">
+          <div className="flex gap-2">
+            <Input placeholder="Channel name..." value={newName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewName(e.target.value)} className="flex-1"
+              onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter") handleCreate(); }} />
+            <Button size="sm" onClick={handleCreate} disabled={!newName.trim() || creating}>
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setShowCreate(false); setNewAvatarUrl(""); }}>Cancel</Button>
+          </div>
+          <Input placeholder="Avatar image URL (optional)" value={newAvatarUrl} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewAvatarUrl(e.target.value)} className="text-xs" />
+          {newAvatarUrl.trim() && (
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full overflow-hidden border border-border/50 shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={newAvatarUrl.trim()} alt="Preview" className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              </div>
+              <span className="text-[10px] text-muted-foreground">Avatar preview</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -300,8 +317,13 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
               return (
                 <div key={ch.id} onClick={() => selectCh(ch)}
                   className={`group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${selected?.id === ch.id ? "bg-primary/10 text-primary" : "hover:bg-accent"}`}>
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 relative">
-                    <Hash className="h-3.5 w-3.5 text-primary" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 relative overflow-hidden">
+                    {ch.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={ch.avatar_url} alt={ch.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <Hash className="h-3.5 w-3.5 text-primary" />
+                    )}
                     {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
                         {unreadCount > 9 ? "9+" : unreadCount}
