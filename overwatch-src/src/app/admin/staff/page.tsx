@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2,
-  ChevronDown, CalendarOff, ClipboardList, CheckCircle2, XCircle,
+  ChevronDown, ChevronUp, CalendarOff, ClipboardList, CheckCircle2, XCircle,
   UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock, ShieldCheck, AlertOctagon, BookOpen,
   AlertTriangle, MapPin,
 } from "lucide-react";
@@ -18,7 +18,7 @@ import {
   updateMemberRole, removeMember, getAllTimeOffRequests, reviewTimeOffRequest,
   getAllFormSubmissions, reviewFormSubmission,
   getApplicants, createApplicant, updateApplicantStatus, deleteApplicant, convertApplicantToUser,
-  getOnboardingTasks, createOnboardingTask, deleteOnboardingTask,
+  getOnboardingTasks, createOnboardingTask, deleteOnboardingTask, reorderOnboardingTasks,
   getCompanyTimeChangeRequests, reviewTimeChangeRequest,
   getMemberProfileById, getCompanyReadiness, getIncidents,
 } from "@/lib/supabase/db";
@@ -251,7 +251,7 @@ export default function AdminStaffPage() {
     if (!taskForm.title.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setSavingTask(true);
     try {
-      await createOnboardingTask(activeCompanyId, taskForm);
+      await createOnboardingTask(activeCompanyId, { ...taskForm, sortOrder: oTasks.length });
       setTaskForm({ title: "", description: "", category: "general", isRequired: true });
       setShowAddTask(false);
       setOTasks(await getOnboardingTasks(activeCompanyId));
@@ -269,6 +269,17 @@ export default function AdminStaffPage() {
     try {
       await deleteOnboardingTask(id);
       if (activeCompanyId && activeCompanyId !== "pending") setOTasks(await getOnboardingTasks(activeCompanyId));
+    } catch (err) { console.error(err); }
+  }
+
+  async function handleMoveTask(index: number, direction: "up" | "down") {
+    const swapIdx = direction === "up" ? index - 1 : index + 1;
+    if (swapIdx < 0 || swapIdx >= oTasks.length) return;
+    const updated = [...oTasks];
+    [updated[index], updated[swapIdx]] = [updated[swapIdx], updated[index]];
+    setOTasks(updated);
+    try {
+      await reorderOnboardingTasks(updated.map((t: OTask, i: number) => ({ id: t.id, sort_order: i })));
     } catch (err) { console.error(err); }
   }
 
@@ -972,10 +983,20 @@ export default function AdminStaffPage() {
                       <Badge variant="outline" className="text-[9px] capitalize">{t.category}</Badge>
                       {t.is_required && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Required</Badge>}
                       {canManage && (
-                        <button onClick={() => handleDeleteTask(t.id)}
-                          className="rounded p-1 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10">
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                        <div className="flex items-center gap-0.5">
+                          <button onClick={() => handleMoveTask(i, "up")} disabled={i === 0}
+                            className="rounded p-1 text-muted-foreground/30 hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:pointer-events-none" title="Move up">
+                            <ChevronUp className="h-3 w-3" />
+                          </button>
+                          <button onClick={() => handleMoveTask(i, "down")} disabled={i === oTasks.length - 1}
+                            className="rounded p-1 text-muted-foreground/30 hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:pointer-events-none" title="Move down">
+                            <ChevronDown className="h-3 w-3" />
+                          </button>
+                          <button onClick={() => handleDeleteTask(t.id)}
+                            className="rounded p-1 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}

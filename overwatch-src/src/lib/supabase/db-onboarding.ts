@@ -250,6 +250,17 @@ export async function deleteOnboardingTask(taskId: string) {
   if (error) throw error;
 }
 
+export async function reorderOnboardingTasks(tasks: { id: string; sort_order: number }[]) {
+  const supabase = createClient();
+  for (const t of tasks) {
+    const { error } = await supabase
+      .from("onboarding_tasks")
+      .update({ sort_order: t.sort_order })
+      .eq("id", t.id);
+    if (error) throw error;
+  }
+}
+
 // ─── Onboarding Progress (per-user) ─────────────────────
 
 export async function getMyOnboardingProgress(companyId: string) {
