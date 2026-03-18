@@ -206,7 +206,7 @@ export async function getLegacyCourseModules(courseId: string): Promise<LegacyCo
     .from("course_modules")
     .select(`
       *,
-      training_modules (*)
+      training_modules!course_modules_module_id_fkey (*)
     `)
     .eq("course_id", courseId)
     .order("module_order", { ascending: true });
