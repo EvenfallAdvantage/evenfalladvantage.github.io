@@ -134,33 +134,47 @@ function ModuleViewerInner() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Save progress whenever slide changes (both Overwatch + legacy)
+  // Listen for messages from the embedded legacy viewer
   useEffect(() => {
-    if (slides.length === 0 || loading || !moduleId) return;
-    const pct = Math.round(((currentSlide + 1) / slides.length) * 100);
-    const timeout = setTimeout(() => {
-      // Only write to Overwatch DB for Overwatch-native modules
-      if (!isLegacyModule) {
-        upsertModuleProgress(moduleId, {
-          currentSlide,
-          totalSlides: slides.length,
-        }).catch(console.error);
-      }
-
-      // Write-through to legacy DB for legacy modules
-      if (legacyStudentId && isLegacyModule) {
+    if (!isLegacyModule) return;
+    function onMessage(e: MessageEvent) {
+      if (e.data?.source !== "embed-viewer") return;
+      if (e.data.type === "progress" && legacyStudentId) {
         updateLegacyProgress(legacyStudentId, moduleId, {
-          progress_percentage: pct,
-          current_slide: currentSlide,
-          completed_at: pct === 100 ? new Date().toISOString() : null,
+          progress_percentage: e.data.pct,
+          current_slide: e.data.slide,
+          completed_at: e.data.pct === 100 ? new Date().toISOString() : null,
         }).catch(console.error);
       }
+      if (e.data.type === "complete") {
+        setCompleted(true);
+        if (legacyStudentId) {
+          updateLegacyProgress(legacyStudentId, moduleId, {
+            progress_percentage: 100,
+            completed_at: new Date().toISOString(),
+          }).catch(console.error);
+        }
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [isLegacyModule, legacyStudentId, moduleId]);
+
+  // Save progress whenever slide changes (Overwatch-native modules only)
+  useEffect(() => {
+    if (isLegacyModule || slides.length === 0 || loading || !moduleId) return;
+    const timeout = setTimeout(() => {
+      upsertModuleProgress(moduleId, {
+        currentSlide,
+        totalSlides: slides.length,
+      }).catch(console.error);
     }, 500);
     return () => clearTimeout(timeout);
-  }, [currentSlide, slides.length, moduleId, loading, legacyStudentId, isLegacyModule]);
+  }, [currentSlide, slides.length, moduleId, loading, isLegacyModule]);
 
-  // Handle audio
+  // Handle audio (Overwatch-native only)
   useEffect(() => {
+    if (isLegacyModule) return;
     if (audioRef.current) {
       audioRef.current.pause();
       setAudioPlaying(false);
@@ -172,7 +186,7 @@ function ModuleViewerInner() {
     } else {
       audioRef.current = null;
     }
-  }, [currentSlide, slides]);
+  }, [currentSlide, slides, isLegacyModule]);
 
   function toggleAudio() {
     if (!audioRef.current) return;
@@ -206,8 +220,9 @@ function ModuleViewerInner() {
     }
   }
 
-  // Keyboard navigation
+  // Keyboard navigation (Overwatch-native only — iframe handles its own)
   useEffect(() => {
+    if (isLegacyModule) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "ArrowLeft") handlePrev();
       else if (e.key === "ArrowRight") handleNext();
@@ -240,6 +255,54 @@ function ModuleViewerInner() {
     );
   }
 
+  // ─── Legacy module: embed the legacy viewer in an iframe ───
+  if (isLegacyModule) {
+    const embedUrl = `/student-portal/embed-viewer.html?module_id=${moduleId}`;
+    return (
+      <>
+        <div className="flex flex-col" style={{ height: "calc(100vh - 4rem)" }}>
+          {/* Header */}
+          <div className="flex items-center gap-3 pb-3 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => router.push(backUrl)} className="gap-1">
+              <ChevronLeft className="h-4 w-4" /> Back
+            </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg font-bold tracking-tight truncate">{mod.module_name}</h1>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {mod.duration_minutes ? <><Clock className="h-3 w-3" /> {mod.duration_minutes}m<span className="text-border">·</span></> : null}
+                <FileText className="h-3 w-3" /> {slides.length} slides
+              </div>
+            </div>
+            {completed && (
+              <Badge className="bg-green-500/15 text-green-600 text-xs gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Completed
+              </Badge>
+            )}
+          </div>
+
+          {/* Embedded legacy viewer */}
+          <iframe
+            src={embedUrl}
+            className="flex-1 w-full rounded-lg border border-border/40 bg-black"
+            style={{ minHeight: 400 }}
+            allow="autoplay"
+            title="Module Slides"
+          />
+
+          {/* Back after completion */}
+          {completed && (
+            <div className="flex justify-end pt-3 shrink-0">
+              <Button variant="outline" onClick={() => router.push(backUrl)} className="gap-1">
+                <CheckCircle2 className="h-4 w-4 text-green-500" /> Back to Course
+              </Button>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  // ─── Overwatch-native module: existing React slide renderer ───
   const slide = slides[currentSlide];
   const isLastSlide = currentSlide === slides.length - 1;
   const progress = slides.length > 0
