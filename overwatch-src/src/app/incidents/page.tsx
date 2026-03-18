@@ -564,19 +564,22 @@ export default function IncidentsPage() {
                       {inc.description && (() => {
                         const raw: string = inc.description;
                         const sectionRegex = /---\s*(.+?)\s*---/g;
-                        const tokens: { heading?: string; body: string }[] = [];
-                        let last = 0;
+                        const headers: { heading: string; start: number; end: number }[] = [];
                         let m: RegExpExecArray | null;
                         while ((m = sectionRegex.exec(raw)) !== null) {
-                          if (m.index > last) tokens.push({ body: raw.slice(last, m.index).trim() });
-                          const nextMatch = sectionRegex.exec(raw);
-                          const end = nextMatch ? nextMatch.index : raw.length;
-                          tokens.push({ heading: m[1], body: raw.slice(m.index + m[0].length, end).trim() });
-                          if (nextMatch) { sectionRegex.lastIndex = nextMatch.index; }
-                          last = end;
+                          headers.push({ heading: m[1], start: m.index, end: m.index + m[0].length });
                         }
-                        if (last < raw.length && raw.slice(last).trim()) tokens.push({ body: raw.slice(last).trim() });
-                        if (tokens.length === 0) tokens.push({ body: raw });
+                        const tokens: { heading?: string; body: string }[] = [];
+                        if (headers.length === 0) {
+                          tokens.push({ body: raw });
+                        } else {
+                          const preamble = raw.slice(0, headers[0].start).trim();
+                          if (preamble) tokens.push({ body: preamble });
+                          for (let i = 0; i < headers.length; i++) {
+                            const bodyEnd = i + 1 < headers.length ? headers[i + 1].start : raw.length;
+                            tokens.push({ heading: headers[i].heading, body: raw.slice(headers[i].end, bodyEnd).trim() });
+                          }
+                        }
 
                         return (
                           <div className="space-y-3">

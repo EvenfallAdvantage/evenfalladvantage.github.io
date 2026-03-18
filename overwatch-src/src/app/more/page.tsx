@@ -68,7 +68,7 @@ export default function MorePage() {
   const isLeadership = ["owner", "admin", "manager"].includes(userRole);
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
   const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ Academy: true, Tools: true });
   const toggle = (key: string) => setCollapsed((p) => ({ ...p, [key]: !p[key] }));
 
   async function handleSignOut() {
