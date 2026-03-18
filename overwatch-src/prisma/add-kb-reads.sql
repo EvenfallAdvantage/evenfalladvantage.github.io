@@ -19,6 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_kb_reads_user ON kb_document_reads(user_id);
 ALTER TABLE kb_documents ADD COLUMN IF NOT EXISTS file_name TEXT;
 ALTER TABLE kb_documents ADD COLUMN IF NOT EXISTS file_size BIGINT;
 ALTER TABLE kb_documents ADD COLUMN IF NOT EXISTS mime_type TEXT;
+ALTER TABLE kb_documents ADD COLUMN IF NOT EXISTS required BOOLEAN DEFAULT false;
 
 -- 3. Enable RLS
 ALTER TABLE kb_document_reads ENABLE ROW LEVEL SECURITY;

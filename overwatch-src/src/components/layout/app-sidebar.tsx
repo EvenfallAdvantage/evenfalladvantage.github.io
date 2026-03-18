@@ -182,6 +182,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     (c) => c.companyId === activeCompanyId
   );
   const userRole = activeCompany?.role ?? "staff";
+  const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
 
@@ -231,11 +232,19 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       <ScrollArea className="flex-1 py-2">
         <nav className="space-y-1 px-2">
           {NAV_SECTIONS.map((section) => {
-            const visibleItems = section.items.filter(
-              (item) =>
-                (!item.roles || item.roles.includes(userRole)) &&
-                (!item.superAdminOnly || isSuperAdmin(user?.email))
-            );
+            const visibleItems = section.items
+              .filter(
+                (item) =>
+                  (!item.roles || item.roles.includes(userRole)) &&
+                  (!item.superAdminOnly || isSuperAdmin(user?.email)) &&
+                  !hiddenTabs.has(item.href)
+              )
+              .map((item) =>
+                item.children
+                  ? { ...item, children: item.children.filter((c) => !hiddenTabs.has(c.href)) }
+                  : item
+              )
+              .filter((item) => !item.children || item.children.length > 0);
             if (visibleItems.length === 0) return null;
 
             return (

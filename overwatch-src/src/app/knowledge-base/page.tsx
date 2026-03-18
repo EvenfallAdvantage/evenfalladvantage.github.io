@@ -13,7 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getKBFolders, getKBDocuments, createKBFolder, createKBDocument,
-  deleteKBFolder, deleteKBDocument, uploadKBFile,
+  deleteKBFolder, deleteKBDocument, uploadKBFile, updateKBDocumentRequired,
   markDocumentRead, unmarkDocumentRead, getUserDocumentReads,
   getDocumentReadStatus, getCompanyMembers,
 } from "@/lib/supabase/db";
@@ -63,6 +63,7 @@ export default function KnowledgeBasePage() {
   const [newDocTitle, setNewDocTitle] = useState("");
   const [newDocContent, setNewDocContent] = useState("");
   const [newDocFile, setNewDocFile] = useState<File | null>(null);
+  const [newDocRequired, setNewDocRequired] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
   const [deletingDoc, setDeletingDoc] = useState<string | null>(null);
@@ -160,8 +161,9 @@ export default function KnowledgeBasePage() {
         fileName,
         fileSize,
         mimeType,
+        required: newDocRequired,
       });
-      setNewDocTitle(""); setNewDocContent(""); setNewDocFile(null);
+      setNewDocTitle(""); setNewDocContent(""); setNewDocFile(null); setNewDocRequired(false);
       setShowCreateDoc(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setDocs(await getKBDocuments(selectedFolder.id));
@@ -180,6 +182,14 @@ export default function KnowledgeBasePage() {
       }
     } catch (err) { console.error(err); }
     finally { setMarkingRead(null); }
+  }
+
+  async function handleToggleRequired(d: Doc) {
+    try {
+      await updateKBDocumentRequired(d.id, !d.required);
+      setDocs((prev: Doc[]) => prev.map((doc: Doc) => doc.id === d.id ? { ...doc, required: !d.required } : doc));
+      if (viewDoc?.id === d.id) setViewDoc({ ...viewDoc, required: !d.required });
+    } catch (err) { console.error(err); }
   }
 
   async function openReadStatus(d: Doc) {
@@ -301,11 +311,19 @@ export default function KnowledgeBasePage() {
                         )}
                       </div>
 
+                      {isAdmin && (
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={newDocRequired} onChange={(e) => setNewDocRequired(e.target.checked)}
+                            className="rounded border-border/50" />
+                          <span className="text-xs text-muted-foreground">Required reading</span>
+                        </label>
+                      )}
+
                       <div className="flex gap-2">
                         <Button size="sm" onClick={handleCreateDoc} disabled={!newDocTitle.trim() || creating}>
                           {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => { setShowCreateDoc(false); setNewDocFile(null); setNewDocTitle(""); setNewDocContent(""); }}>Cancel</Button>
+                        <Button size="sm" variant="ghost" onClick={() => { setShowCreateDoc(false); setNewDocFile(null); setNewDocTitle(""); setNewDocContent(""); setNewDocRequired(false); }}>Cancel</Button>
                       </div>
                     </div>
                   )}
@@ -325,6 +343,7 @@ export default function KnowledgeBasePage() {
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-medium truncate">{d.title}</p>
+                                  {d.required && <Badge className="text-[9px] shrink-0 bg-amber-500/15 text-amber-600 border-0">Required</Badge>}
                                   {d.file_name && <Badge variant="outline" className="text-[9px] shrink-0">{d.file_name.split(".").pop()?.toUpperCase()}</Badge>}
                                   {d.file_size && <span className="text-[10px] text-muted-foreground shrink-0">{formatSize(d.file_size)}</span>}
                                 </div>
@@ -341,14 +360,20 @@ export default function KnowledgeBasePage() {
                                 {markingRead === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : isRead ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                               </button>
 
-                              {/* Admin: view read status */}
+                              {/* Admin actions */}
+                              {isAdmin && (
+                                <button onClick={(e) => { e.stopPropagation(); handleToggleRequired(d); }}
+                                  className={`shrink-0 rounded p-1 transition-colors ${d.required ? "text-amber-500 hover:text-amber-600" : "text-muted-foreground/40 hover:text-amber-500 hover:bg-amber-500/10"}`}
+                                  title={d.required ? "Remove required" : "Mark as required"}>
+                                  <BookOpen className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                               {isAdmin && (
                                 <button onClick={(e) => { e.stopPropagation(); openReadStatus(d); }}
                                   className="shrink-0 rounded p-1 text-muted-foreground/40 hover:text-primary hover:bg-primary/10" title="View read status">
                                   <Users className="h-3.5 w-3.5" />
                                 </button>
                               )}
-
                               {isAdmin && (
                                 <button onClick={(e) => { e.stopPropagation(); handleDeleteDoc(d.id); }} disabled={deletingDoc === d.id}
                                   className="shrink-0 rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete document">

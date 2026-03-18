@@ -132,7 +132,8 @@ export async function fetchUserProfile(knownAuthId?: string) {
         slug,
         logo_url,
         brand_color,
-        join_code
+        join_code,
+        settings
       )
     `
     )
@@ -387,6 +388,18 @@ export async function updateCompany(companyId: string, updates: {
   const { data, error } = await supabase
     .from("companies")
     .update(payload)
+    .eq("id", companyId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCompanySettings(companyId: string, settings: Record<string, unknown>) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("companies")
+    .update({ settings })
     .eq("id", companyId)
     .select()
     .maybeSingle();

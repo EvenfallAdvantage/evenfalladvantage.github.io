@@ -208,6 +208,7 @@ export async function createKBDocument(params: {
   fileName?: string;
   fileSize?: number;
   mimeType?: string;
+  required?: boolean;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
@@ -224,6 +225,7 @@ export async function createKBDocument(params: {
       file_name: params.fileName ?? null,
       file_size: params.fileSize ?? null,
       mime_type: params.mimeType ?? null,
+      required: params.required ?? false,
       created_by_id: userId,
       ...ts(),
     })
@@ -231,6 +233,15 @@ export async function createKBDocument(params: {
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+export async function updateKBDocumentRequired(docId: string, required: boolean) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("kb_documents")
+    .update({ required })
+    .eq("id", docId);
+  if (error) throw error;
 }
 
 export async function deleteKBFolder(folderId: string) {

@@ -66,6 +66,7 @@ export default function MorePage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const userRole = activeCompany?.role ?? "staff";
   const isLeadership = ["owner", "admin", "manager"].includes(userRole);
+  const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
   const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggle = (key: string) => setCollapsed((p) => ({ ...p, [key]: !p[key] }));
@@ -103,11 +104,19 @@ export default function MorePage() {
 
         {/* Dynamic nav sections from NAV_SECTIONS */}
         {NAV_SECTIONS.map((section) => {
-          const visibleItems = section.items.filter(
-            (item) =>
-              (!item.roles || item.roles.includes(userRole)) &&
-              (!item.superAdminOnly || isSuperAdmin(user?.email))
-          );
+          const visibleItems = section.items
+            .filter(
+              (item) =>
+                (!item.roles || item.roles.includes(userRole)) &&
+                (!item.superAdminOnly || isSuperAdmin(user?.email)) &&
+                !hiddenTabs.has(item.href)
+            )
+            .map((item) =>
+              item.children
+                ? { ...item, children: item.children.filter((c) => !hiddenTabs.has(c.href)) }
+                : item
+            )
+            .filter((item) => !item.children || item.children.length > 0);
           if (visibleItems.length === 0) return null;
 
           return (

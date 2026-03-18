@@ -34,6 +34,7 @@ export const NAV_SECTIONS: NavSection[] = [
         children: [
           { title: "Academy Hub", href: "/academy", icon: "Compass" },
           { title: "Field Manual", href: "/knowledge-base", icon: "BookOpen" },
+          { title: "State Laws", href: "/state-laws", icon: "Scale" },
           { title: "Drills", href: "/quizzes", icon: "Target" },
           { title: "De-Escalation", href: "/training/scenarios", icon: "MessageCircle" },
           { title: "Courses", href: "/courses", icon: "Video" },
@@ -47,7 +48,6 @@ export const NAV_SECTIONS: NavSection[] = [
         children: [
           { title: "Geo-Risk", href: "/geo-risk", icon: "MapPin" },
           { title: "Site Assessment", href: "/site-assessment", icon: "ClipboardCheck" },
-          { title: "State Laws", href: "/state-laws", icon: "Scale" },
           { title: "Invoices", href: "/invoices", icon: "FileText" },
         ],
       },

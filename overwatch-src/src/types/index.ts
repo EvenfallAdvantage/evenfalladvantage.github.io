@@ -9,6 +9,10 @@ export type NavItem = {
   children?: NavItem[];
 };
 
+export type CompanySettings = {
+  hiddenTabs?: string[];
+};
+
 export type CompanyContext = {
   companyId: string;
   companyName: string;
@@ -16,6 +20,7 @@ export type CompanyContext = {
   companyLogo: string | null;
   brandColor: string;
   role: string;
+  settings: CompanySettings;
   membership: {
     id: string;
     nickname: string | null;
