@@ -402,20 +402,22 @@ export async function getCompanyReadiness(companyId: string) {
     .eq("status", "active");
 
   // 2. All required KB documents in this company
-  const { data: requiredDocs } = await supabase
+  const { data: requiredDocs, error: reqDocsErr } = await supabase
     .from("kb_documents")
     .select("id, title, folder_id, kb_folders!inner(company_id)")
     .eq("required", true)
     .eq("kb_folders.company_id", companyId);
+  if (reqDocsErr) console.error("[Readiness] kb_documents query failed:", reqDocsErr);
 
   // 3. All read records for those required docs
   const reqDocIds = (requiredDocs ?? []).map((d: { id: string }) => d.id);
   let readRecords: { document_id: string; user_id: string }[] = [];
   if (reqDocIds.length > 0) {
-    const { data: reads } = await supabase
+    const { data: reads, error: readsErr } = await supabase
       .from("kb_document_reads")
       .select("document_id, user_id")
       .in("document_id", reqDocIds);
+    if (readsErr) console.error("[Readiness] kb_document_reads query failed:", readsErr);
     readRecords = reads ?? [];
   }
 
