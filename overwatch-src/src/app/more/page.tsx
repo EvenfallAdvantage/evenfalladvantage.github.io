@@ -205,16 +205,16 @@ export default function MorePage() {
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
           >
             <User className="h-[18px] w-[18px] text-muted-foreground" />
-            <span className="flex-1">Profile</span>
+            <span className="flex-1">My Profile</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
           </Link>
           {isLeadership && (
             <Link
-              href="/admin/company"
+              href="/admin/settings"
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
             >
               <Building2 className="h-[18px] w-[18px] text-muted-foreground" />
-              <span className="flex-1">Company Settings</span>
+              <span className="flex-1">HQ Config</span>
               <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
             </Link>
           )}
