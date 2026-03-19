@@ -216,7 +216,7 @@ function CoursesTab() {
   const [nCode, setNCode] = useState(""); const [nName, setNName] = useState("");
   const [nDesc, setNDesc] = useState(""); const [nPrice, setNPrice] = useState("0");
   const [nHours, setNHours] = useState(""); const [nDiff, setNDiff] = useState("Beginner");
-  const [eName, setEName] = useState(""); const [eDesc, setEDesc] = useState("");
+  const [eCode, setECode] = useState(""); const [eName, setEName] = useState(""); const [eDesc, setEDesc] = useState("");
   const [ePrice, setEPrice] = useState(""); const [eHours, setEHours] = useState("");
   const [eActive, setEActive] = useState(true);
   const [showNewModule, setShowNewModule] = useState(false);
@@ -236,6 +236,14 @@ function CoursesTab() {
   const [esType, setEsType] = useState("text"); const [esImage, setEsImage] = useState("");
   const [savingSlideEdit, setSavingSlideEdit] = useState(false);
   const [previewSlide, setPreviewSlide] = useState<LegacySlide | null>(null);
+
+  function generateCourseCode(name: string): string {
+    const skip = new Set(["a","an","the","of","and","&","for","in","on","to","with"]);
+    const words = name.trim().split(/\s+/).filter(w => !skip.has(w.toLowerCase()));
+    const initials = words.map(w => w[0]?.toUpperCase() ?? "").join("");
+    const slug = (initials || "CRS") + "-" + new Date().getFullYear();
+    return slug.toLowerCase();
+  }
 
   const SLIDE_TYPES = [
     { value: "text", label: "Text", icon: Type },
@@ -273,13 +281,13 @@ function CoursesTab() {
     } catch { alert("Failed to create course"); } finally { setSaving(false); }
   }
   function startEditCourse(c: LegacyCourse) {
-    setEditId(c.id); setEName(c.course_name); setEDesc(c.description ?? "");
+    setEditId(c.id); setECode(c.course_code); setEName(c.course_name); setEDesc(c.description ?? "");
     setEPrice(String(c.price)); setEHours(String(c.duration_hours ?? "")); setEActive(c.is_active);
   }
   async function handleUpdateCourse() {
     if (!editId) return; setSaving(true);
     try {
-      await updateLegacyCourse(editId, { course_name: eName.trim(), description: eDesc.trim(), price: parseFloat(ePrice) || 0, duration_hours: parseFloat(eHours) || undefined, is_active: eActive });
+      await updateLegacyCourse(editId, { course_code: eCode.trim(), course_name: eName.trim(), description: eDesc.trim(), price: parseFloat(ePrice) || 0, duration_hours: parseFloat(eHours) || undefined, is_active: eActive });
       setEditId(null); await loadCourses();
     } catch { alert("Failed to update course"); } finally { setSaving(false); }
   }
@@ -347,7 +355,7 @@ function CoursesTab() {
           <h3 className="text-sm font-semibold">New Course</h3>
           <div className="grid gap-2 sm:grid-cols-2">
             <Input placeholder="Course Code *" value={nCode} onChange={(e) => setNCode(e.target.value)} />
-            <Input placeholder="Course Name *" value={nName} onChange={(e) => setNName(e.target.value)} />
+            <Input placeholder="Course Name *" value={nName} onChange={(e) => { setNName(e.target.value); if (!nCode || nCode === generateCourseCode(nName)) setNCode(generateCourseCode(e.target.value)); }} />
           </div>
           <Input placeholder="Description" value={nDesc} onChange={(e) => setNDesc(e.target.value)} />
           <div className="grid gap-2 sm:grid-cols-3">
@@ -369,7 +377,10 @@ function CoursesTab() {
             <CardContent className="p-0">
               {editId === c.id ? (
                 <div className="space-y-2 p-4">
-                  <Input value={eName} onChange={(e) => setEName(e.target.value)} />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Input value={eCode} onChange={(e) => setECode(e.target.value)} placeholder="Course Code" />
+                    <Input value={eName} onChange={(e) => setEName(e.target.value)} placeholder="Course Name" />
+                  </div>
                   <Input value={eDesc} onChange={(e) => setEDesc(e.target.value)} placeholder="Description" />
                   <div className="grid gap-2 sm:grid-cols-3">
                     <Input type="number" value={ePrice} onChange={(e) => setEPrice(e.target.value)} placeholder="Price" />

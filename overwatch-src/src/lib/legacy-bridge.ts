@@ -563,6 +563,7 @@ export async function createLegacyCourse(courseData: {
 
 /** Update a course in legacy */
 export async function updateLegacyCourse(courseId: string, updates: Partial<{
+  course_code: string;
   course_name: string;
   description: string;
   short_description: string;
