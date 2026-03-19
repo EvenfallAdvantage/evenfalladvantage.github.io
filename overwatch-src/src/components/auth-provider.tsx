@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { fetchUserProfile, registerUserInDB } from "@/lib/supabase/db";
+import { fetchUserProfile, registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
 import { seedInternalUserId, clearInternalUserCache } from "@/lib/supabase/db-helpers";
 import { useAuthStore } from "@/stores/auth-store";
 import type { SessionUser, CompanyContext } from "@/types";
@@ -27,19 +27,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (
           profile?.user &&
           (profile.memberships ?? []).length === 0 &&
-          meta.company_name &&
+          (meta.company_name || meta.join_code) &&
           !autoRegAttempted.current
         ) {
           autoRegAttempted.current = true;
           try {
-            await registerUserInDB({
-              supabaseId: authUser.id,
-              email: authUser.email ?? null,
-              phone: authUser.phone ?? meta.phone ?? null,
-              firstName: meta.first_name ?? profile.user.first_name ?? "",
-              lastName: meta.last_name ?? profile.user.last_name ?? "",
-              companyName: meta.company_name,
-            });
+            const supabase = createClient();
+            if (meta.join_code) {
+              await joinCompanyByCode({
+                supabaseId: authUser.id,
+                email: authUser.email ?? null,
+                phone: authUser.phone ?? meta.phone ?? null,
+                firstName: meta.first_name ?? profile.user.first_name ?? "",
+                lastName: meta.last_name ?? profile.user.last_name ?? "",
+                joinCode: meta.join_code,
+              });
+              await supabase.auth.updateUser({ data: { join_code: null } });
+            } else if (meta.company_name) {
+              await registerUserInDB({
+                supabaseId: authUser.id,
+                email: authUser.email ?? null,
+                phone: authUser.phone ?? meta.phone ?? null,
+                firstName: meta.first_name ?? profile.user.first_name ?? "",
+                lastName: meta.last_name ?? profile.user.last_name ?? "",
+                companyName: meta.company_name,
+              });
+              await supabase.auth.updateUser({ data: { company_name: null } });
+            }
             // Re-fetch profile to pick up the new membership
             profile = await fetchUserProfile(authUser.id);
           } catch (regErr) {

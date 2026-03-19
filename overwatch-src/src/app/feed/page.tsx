@@ -350,6 +350,33 @@ export default function FeedPage() {
           </p>
         </div>
 
+        {/* No-company onboarding banner */}
+        {user && (!user.companies || user.companies.length === 0 || (user.companies.length === 1 && user.companies[0].companyId === "pending")) && (
+          <Card className="border-[#dd8c33]/40 bg-gradient-to-r from-[#dd8c33]/10 via-[#dd8c33]/5 to-transparent">
+            <CardContent className="py-5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#dd8c33]/15 border border-[#dd8c33]/25">
+                  <UserPlus className="h-6 w-6 text-[#dd8c33]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold">You&apos;re not part of a company yet</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Join an existing company with a code from your manager, or create your own.
+                  </p>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Link href="/join" className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-lg text-sm font-medium bg-[#dd8c33] hover:bg-[#c47a2a] text-white transition-colors">
+                    <UserPlus className="h-3.5 w-3.5" /> Join Company
+                  </Link>
+                  <Link href="/register" className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-lg text-sm font-medium border border-border bg-background hover:bg-muted transition-colors">
+                    <ArrowRight className="h-3.5 w-3.5" /> Create Company
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Upcoming Shift */}
         {nextShift && (
           <Card className="border-blue-500/30 bg-gradient-to-r from-blue-500/5 to-transparent">
