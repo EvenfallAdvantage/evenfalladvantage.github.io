@@ -20,6 +20,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   fetchMapOverlayData, getNSOPWSearchUrl, hasFamilyWatchdogKey,
   setFamilyWatchdogKey, getFamilyWatchdogKey,
@@ -104,6 +105,7 @@ export default function GeoRiskPage() {
   const [result, setResult] = useState<RiskResult | null>(null);
   const [history, setHistory] = useState<RiskResult[]>([]);
   const { resolvedTheme } = useTheme();
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
 
   // Map overlay state
   const [incidents, setIncidents] = useState<CrimeIncident[]>([]);
@@ -260,23 +262,31 @@ export default function GeoRiskPage() {
     const margin = 15;
     const contentW = w - margin * 2;
 
-    // ── Brand colors ──
-    const NAVY = [20, 30, 48] as const;     // dark navy header
-    const AMBER = [217, 119, 6] as const;   // brand orange accent
-    const DARK = [30, 30, 40] as const;     // body text
-    const GRAY = [120, 125, 135] as const;  // secondary text
-    const LIGHT_BG = [245, 247, 250] as const; // section background
+    // ── Dynamic company branding from auth store ──
+    const companyName = activeCompany?.companyName || "Evenfall Advantage LLC";
+    const brandHex = activeCompany?.brandColor || "#D97706";
+    // Parse hex → RGB
+    const hexToRgb = (hex: string): [number, number, number] => {
+      const h = hex.replace("#", "");
+      return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
+    };
+    const BRAND = hexToRgb(brandHex);
+
+    const NAVY = [20, 30, 48] as const;
+    const DARK = [30, 30, 40] as const;
+    const GRAY = [120, 125, 135] as const;
+    const LIGHT_BG = [245, 247, 250] as const;
     const WHITE = [255, 255, 255] as const;
 
     const RISK_HEX: Record<string, [number, number, number]> = {
       Critical: [239, 68, 68], High: [249, 115, 22], Moderate: [234, 179, 8],
       Low: [34, 197, 94], Negligible: [148, 163, 184],
     };
-    const riskColor = RISK_HEX[result.overallRating] || AMBER;
+    const riskColor = RISK_HEX[result.overallRating] || BRAND;
 
     // ── Helper: section heading with accent bar ──
     function sectionHead(label: string, yPos: number): number {
-      doc.setFillColor(...AMBER);
+      doc.setFillColor(...BRAND);
       doc.rect(margin, yPos, 2, 6, "F");
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
@@ -291,9 +301,8 @@ export default function GeoRiskPage() {
       doc.line(margin, h - 15, w - margin, h - 15);
       doc.setFontSize(7);
       doc.setTextColor(...GRAY);
-      doc.text("CONFIDENTIAL — Prepared by Evenfall Advantage LLC", margin, h - 10);
+      doc.text(`CONFIDENTIAL — Prepared by ${companyName}`, margin, h - 10);
       doc.text(`Page ${pageNum} of ${totalPages}`, w - margin, h - 10, { align: "right" });
-      doc.text("www.evenfalladvantage.com", w / 2, h - 10, { align: "center" });
     }
 
     // ══════════════════════ PAGE 1 ══════════════════════
@@ -301,39 +310,44 @@ export default function GeoRiskPage() {
     // ── Header bar ──
     doc.setFillColor(...NAVY);
     doc.rect(0, 0, w, 36, "F");
-    // Accent stripe
-    doc.setFillColor(...AMBER);
+    // Accent stripe using company brand color
+    doc.setFillColor(...BRAND);
     doc.rect(0, 36, w, 1.5, "F");
 
-    // Load & embed logo
-    try {
-      const logoImg = new Image();
-      logoImg.crossOrigin = "anonymous";
-      await new Promise<void>((resolve) => {
-        logoImg.onload = () => resolve();
-        logoImg.onerror = () => resolve();
-        logoImg.src = "/images/overwatch_logo.png";
-      });
-      if (logoImg.complete && logoImg.naturalWidth > 0) {
-        const logoCanvas = document.createElement("canvas");
-        logoCanvas.width = logoImg.naturalWidth;
-        logoCanvas.height = logoImg.naturalHeight;
-        logoCanvas.getContext("2d")?.drawImage(logoImg, 0, 0);
-        const logoData = logoCanvas.toDataURL("image/png");
-        doc.addImage(logoData, "PNG", margin, 5, 26, 26);
-      }
-    } catch { /* logo load failed, continue without */ }
+    // Load & embed company logo from auth store (dynamic per company)
+    let logoOffset = margin; // text starts here if no logo
+    const logoUrl = activeCompany?.companyLogo;
+    if (logoUrl) {
+      try {
+        const logoImg = new Image();
+        logoImg.crossOrigin = "anonymous";
+        await new Promise<void>((resolve) => {
+          logoImg.onload = () => resolve();
+          logoImg.onerror = () => resolve();
+          logoImg.src = logoUrl;
+        });
+        if (logoImg.complete && logoImg.naturalWidth > 0) {
+          const logoCanvas = document.createElement("canvas");
+          logoCanvas.width = logoImg.naturalWidth;
+          logoCanvas.height = logoImg.naturalHeight;
+          logoCanvas.getContext("2d")?.drawImage(logoImg, 0, 0);
+          const logoData = logoCanvas.toDataURL("image/png");
+          doc.addImage(logoData, "PNG", margin, 5, 26, 26);
+          logoOffset = margin + 30;
+        }
+      } catch { /* logo load failed, continue without */ }
+    }
 
     doc.setTextColor(...WHITE);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text("GEO-RISK ASSESSMENT", margin + 30, 16);
+    doc.text("GEO-RISK ASSESSMENT", logoOffset, 16);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    doc.text("REPORT", margin + 30, 23);
+    doc.text("REPORT", logoOffset, 23);
     doc.setFontSize(8);
     doc.setTextColor(180, 190, 210);
-    doc.text(`Evenfall Advantage LLC  |  ${new Date(result.analysisDate).toLocaleDateString()}  |  Report ID: GR-${Date.now().toString(36).toUpperCase()}`, margin + 30, 30);
+    doc.text(`${companyName}  |  ${new Date(result.analysisDate).toLocaleDateString()}  |  Report ID: GR-${Date.now().toString(36).toUpperCase()}`, logoOffset, 30);
 
     let y = 44;
 

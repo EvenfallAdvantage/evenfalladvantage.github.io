@@ -70,7 +70,7 @@ export default function GeoRiskMap({
       attributionControl: false,
     });
 
-    L.tileLayer(isDark ? DARK_TILES : LIGHT_TILES, { maxZoom: 19 }).addTo(map);
+    L.tileLayer(isDark ? DARK_TILES : LIGHT_TILES, { maxZoom: 19, crossOrigin: true }).addTo(map);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     L.control.attribution({ position: "bottomleft", prefix: false })
       .addAttribution('&copy; <a href="https://openstreetmap.org">OSM</a>')
