@@ -116,17 +116,22 @@ export default function AcademyPage() {
         getUserCertifications(),
       ] : [[], [], [], [], []];
 
-      // Load legacy data
+      // Load legacy data — student linking is best-effort (may fail due to RLS)
       let studentId: string | null = null;
       if (user?.email) {
-        const existing = await findLegacyStudentByEmail(user.email);
-        if (existing) {
-          studentId = existing.id;
-        } else {
-          setLinking(true);
-          const result = await createLegacyStudentProfile(user.id, user.email, user.firstName || "", user.lastName || "");
+        try {
+          const existing = await findLegacyStudentByEmail(user.email);
+          if (existing) {
+            studentId = existing.id;
+          } else {
+            setLinking(true);
+            const result = await createLegacyStudentProfile(user.id, user.email, user.firstName || "", user.lastName || "");
+            setLinking(false);
+            if (result.success) studentId = user.id;
+          }
+        } catch (linkErr) {
+          console.warn("Legacy student linking failed (non-fatal):", linkErr);
           setLinking(false);
-          if (result.success) studentId = user.id;
         }
         setLegacyStudentId(studentId);
       }

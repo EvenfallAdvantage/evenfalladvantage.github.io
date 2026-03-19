@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Award, Plus, Trash2, Loader2, Download, Search, CheckCircle2,
-  AlertTriangle, Clock, Shield, Hash, Calendar,
+  AlertTriangle, Clock, Shield, Hash, Calendar, Upload, ExternalLink,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUserCertifications, addCertification, deleteCertification, verifyCertificate } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
 
 type Cert = {
   id: string;
@@ -24,6 +25,7 @@ type Cert = {
   category?: string | null;
   module_id?: string | null;
   quiz_id?: string | null;
+  document_url?: string | null;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,6 +124,8 @@ export default function CertificationsPage() {
   const [expiryDate, setExpiryDate] = useState("");
   const [issuedBy, setIssuedBy] = useState("");
   const [category, setCategory] = useState("general");
+  const [certFile, setCertFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Verification
   const [verifyCode, setVerifyCode] = useState("");
@@ -139,22 +143,44 @@ export default function CertificationsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  async function uploadCertFile(file: File): Promise<string | null> {
+    try {
+      setUploading(true);
+      const supabase = createClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return null;
+      const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
+      const path = `${authUser.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("certifications").upload(path, file, { upsert: true });
+      if (error) { console.error("Cert upload error:", error); return null; }
+      const { data: urlData } = supabase.storage.from("certifications").getPublicUrl(path);
+      return urlData.publicUrl;
+    } catch (err) { console.error("Upload failed:", err); return null; }
+    finally { setUploading(false); }
+  }
+
   async function handleAdd() {
     if (!certType.trim()) return;
     setAdding(true);
     try {
+      let documentUrl: string | undefined;
+      if (certFile) {
+        const url = await uploadCertFile(certFile);
+        if (url) documentUrl = url;
+      }
       await addCertification({
         certType: certType.trim(),
         issueDate: issueDate || undefined,
         expiryDate: expiryDate || undefined,
         issuedBy: issuedBy.trim() || undefined,
+        documentUrl,
         category,
         companyId: activeCompanyId && activeCompanyId !== "pending" ? activeCompanyId : undefined,
         certificateNumber: `CERT-${Date.now().toString(36).toUpperCase()}`,
         verificationCode: crypto.randomUUID().split("-").slice(0, 2).join("").toUpperCase(),
       });
       setCertType(""); setIssueDate(new Date().toISOString().split("T")[0]);
-      setExpiryDate(""); setIssuedBy(""); setCategory("general");
+      setExpiryDate(""); setIssuedBy(""); setCategory("general"); setCertFile(null);
       setShowAdd(false);
       await load();
     } catch (err) { console.error(err); }
@@ -259,11 +285,16 @@ export default function CertificationsPage() {
                   <option value="state_license">State License</option>
                   <option value="specialty">Specialty</option>
                 </select>
+                <label className="flex items-center gap-2 h-8 rounded-md border border-input bg-transparent px-2 text-sm cursor-pointer hover:bg-muted/30 transition-colors col-span-2 sm:col-span-1">
+                  <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="truncate text-muted-foreground">{certFile ? certFile.name : "Upload document..."}</span>
+                  <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setCertFile(e.target.files?.[0] ?? null)} />
+                </label>
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>Cancel</Button>
-                <Button size="sm" onClick={handleAdd} disabled={adding || !certType.trim()}>
-                  {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add
+                <Button size="sm" onClick={handleAdd} disabled={adding || uploading || !certType.trim()}>
+                  {adding || uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} {uploading ? "Uploading..." : "Add"}
                 </Button>
               </div>
             </CardContent>
@@ -340,6 +371,13 @@ export default function CertificationsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
+                      {cert.document_url && (
+                        <a href={cert.document_url} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors"
+                          title="View document">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      )}
                       <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
                         onClick={() => handleDownload(cert)} disabled={downloading === cert.id}>
                         {downloading === cert.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
