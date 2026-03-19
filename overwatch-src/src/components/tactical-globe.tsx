@@ -13,14 +13,15 @@ export function TacticalGlobe() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const width = canvas.offsetWidth;
-    // Cap resolution so the internal buffer (width * dpr) stays under GPU max texture size (4096)
-    const dpr = Math.min(window.devicePixelRatio || 1, Math.floor(4096 / width) || 1);
+    const cssWidth = canvas.offsetWidth;
+    // Cap internal resolution so buffer (cobeSize * dpr) stays under GPU max texture size (4096)
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cobeSize = Math.min(cssWidth, Math.floor(4096 / dpr));
 
     const globe = createGlobe(canvas, {
       devicePixelRatio: dpr,
-      width: width,
-      height: width,
+      width: cobeSize,
+      height: cobeSize,
       phi: 0,
       theta: 0.25,
       dark: 1,
@@ -30,7 +31,6 @@ export function TacticalGlobe() {
       baseColor: [0.12, 0.18, 0.28],
       markerColor: [0.87, 0.55, 0.2],
       glowColor: [0.08, 0.12, 0.2],
-      scale: 2.2,
       markers: [
         { location: [34.0522, -118.2437], size: 0.03 },
         { location: [40.7128, -74.006], size: 0.03 },
@@ -61,12 +61,12 @@ export function TacticalGlobe() {
       <canvas
         ref={canvasRef}
         style={{
-          width: "min(1800px, 160vw)",
-          height: "min(1800px, 160vw)",
+          width: "min(3200px, 280vw)",
+          height: "min(3200px, 280vw)",
           position: "absolute",
           left: "50%",
           bottom: 0,
-          transform: "translateX(-50%) translateY(72%)",
+          transform: "translateX(-50%) translateY(76%)",
         }}
       />
       {/* Fade-out at bottom edge */}
