@@ -9,16 +9,16 @@
 -- ============================================================
 
 -- 1. Clean up: Convert empty string phones to NULL
-UPDATE users SET phone = NULL WHERE phone = '';
+UPDATE public.users SET phone = NULL WHERE phone = '';
 
 -- 2. Drop the strict unique constraint
-ALTER TABLE users DROP CONSTRAINT IF EXISTS users_phone_key;
+ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_phone_key;
 
 -- 3. Create a partial unique index that only enforces uniqueness
 --    for real phone numbers (not NULL, not empty string)
 DROP INDEX IF EXISTS users_phone_unique;
 CREATE UNIQUE INDEX users_phone_unique
-  ON users (phone)
+  ON public.users (phone)
   WHERE phone IS NOT NULL AND phone <> '';
 
 -- 4. Update the join_company_by_code RPC to normalize phone
@@ -46,7 +46,7 @@ BEGIN
 
   -- 1. Find company by join code
   SELECT * INTO v_company
-    FROM companies
+    FROM public.companies
     WHERE join_code = UPPER(TRIM(p_join_code));
 
   IF NOT FOUND THEN
@@ -55,11 +55,11 @@ BEGIN
 
   -- 2. Find or create user
   SELECT * INTO v_user
-    FROM users
+    FROM public.users
     WHERE supabase_id = p_supabase_id;
 
   IF NOT FOUND THEN
-    INSERT INTO users (id, supabase_id, email, phone, first_name, last_name, created_at, updated_at)
+    INSERT INTO public.users (id, supabase_id, email, phone, first_name, last_name, created_at, updated_at)
     VALUES (
       gen_random_uuid(),
       p_supabase_id,
@@ -73,7 +73,7 @@ BEGIN
     RETURNING * INTO v_user;
   ELSE
     -- Update non-empty fields only
-    UPDATE users SET
+    UPDATE public.users SET
       email = COALESCE(NULLIF(TRIM(p_email), ''), email),
       phone = COALESCE(v_phone, phone),
       first_name = CASE WHEN TRIM(p_first_name) <> '' THEN p_first_name ELSE first_name END,
@@ -85,12 +85,12 @@ BEGIN
 
   -- 3. Create membership (or return existing)
   SELECT * INTO v_membership
-    FROM company_memberships
+    FROM public.company_memberships
     WHERE user_id = v_user.id
       AND company_id = v_company.id;
 
   IF NOT FOUND THEN
-    INSERT INTO company_memberships (
+    INSERT INTO public.company_memberships (
       id, user_id, company_id, role, status,
       work_preferences, notification_days, created_at, updated_at
     ) VALUES (

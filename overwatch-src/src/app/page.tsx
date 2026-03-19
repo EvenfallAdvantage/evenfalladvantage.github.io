@@ -22,15 +22,15 @@ const FEATURES = [
   { icon: Radio, title: "Live Comms", desc: "Encrypted team channels, WhatsApp & Signal integration, reactions, read receipts, and real-time messaging" },
   { icon: UserPlus, title: "Onboarding Pipeline", desc: "Public application form, applicant tracking with status stages, onboarding checklists, and auto-hire workflows" },
   { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out, patrol route logging, timesheet exports, and payroll sync via Gusto" },
-  { icon: GraduationCap, title: "Academy LMS", desc: "Slideshow courses, quizzes, certification tracking, de-escalation sims, and legacy system bridge" },
-  { icon: Shield, title: "Site Assessment", desc: "7-section security evaluations with risk matrix scoring, auto-recommendations, and multi-page PDF reports" },
+  { icon: GraduationCap, title: "Academy LMS", desc: "Slideshow courses with state-specific content, quizzes, certification tracking, de-escalation sims, and question bank management" },
+  { icon: Shield, title: "Site Assessment", desc: "7-section security evaluations with risk matrix scoring, auto-recommendations, multi-page PDF reports, and exportable findings" },
   { icon: MapPin, title: "Geo-Risk Intel", desc: "FBI UCR crime data for any US location with composite risk scoring and threat analysis" },
   { icon: Plug, title: "Integrations Hub", desc: "10+ connectors: Twilio SMS, Checkr background checks, DocuSign e-sign, Gusto payroll, OneSignal push, and more" },
   { icon: FileText, title: "Invoice Generator", desc: "Professional invoices with line items, live preview, PDF export, and localStorage persistence" },
   { icon: Users, title: "Personnel Command", desc: "Roster, scheduling, leave management, applicant pipeline, onboarding admin, and role-based access control" },
   { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, incident reports, personnel stats, weekly trends, org composition, and custom forms" },
   { icon: Video, title: "Conference", desc: "Live video training with Daily.co, class scheduling, attendance tracking, and certificate generation" },
-  { icon: Globe, title: "State Laws DB", desc: "All 50 states — guard licensing, training hours, use-of-force laws, weapons regs, and agency contacts" },
+  { icon: Globe, title: "State Laws DB", desc: "All 50 states updated for 2025 — licensing, training hours, use-of-force doctrine, citizen's arrest, weapons regs, statutes, and regulatory agency links" },
   { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with emotional tension meters and performance scoring" },
   { icon: Search, title: "Command Palette", desc: "Ctrl+K instant search across 30+ pages, keyboard navigation, and grouped results by section" },
   { icon: BookOpen, title: "Knowledge Base", desc: "Field manuals, SOPs, company policies, and searchable documentation for your entire operation" },
@@ -38,9 +38,9 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { value: "16+", label: "Operations Modules" },
-  { value: "50", label: "States Covered" },
-  { value: "10+", label: "Integrations" },
+  { value: "20+", label: "Operations Modules" },
+  { value: "50", label: "States Updated 2025" },
+  { value: "11", label: "Integrations" },
   { value: "24/7", label: "Operational Uptime" },
 ];
 

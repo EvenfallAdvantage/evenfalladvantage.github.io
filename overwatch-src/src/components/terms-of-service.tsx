@@ -29,7 +29,7 @@ export function TOSModal({ open, onClose }: TOSModalProps) {
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-6 py-6 text-sm text-white/70 leading-relaxed space-y-6">
-          <p className="text-[10px] text-white/40 uppercase tracking-wider">Last Updated: March 16, 2026</p>
+          <p className="text-[10px] text-white/40 uppercase tracking-wider">Last Updated: March 18, 2026</p>
 
           <section>
             <h3 className="text-white font-semibold mb-2">1. Acceptance of Terms</h3>
@@ -38,7 +38,7 @@ export function TOSModal({ open, onClose }: TOSModalProps) {
 
           <section>
             <h3 className="text-white font-semibold mb-2">2. Description of Service</h3>
-            <p>Overwatch is a software-as-a-service (SaaS) workforce management platform designed for the private security industry. The Service provides tools including, but not limited to: employee onboarding and intake management, time and attendance tracking, scheduling, training and learning management (LMS), incident reporting, real-time communications, site security assessments, geospatial risk analysis, invoice generation, certification management, and integration with third-party tools. The Service is provided &ldquo;as is&rdquo; and &ldquo;as available.&rdquo;</p>
+            <p>Overwatch is a software-as-a-service (SaaS) workforce management platform designed for the private security industry. The Service provides tools including, but not limited to: employee onboarding and intake management, time and attendance tracking, scheduling, training and learning management (LMS), incident reporting, real-time communications, site security assessments, geospatial risk analysis, a state-by-state security guard laws database (covering licensing, training, use-of-force doctrine, weapons regulations, and regulatory agencies for all 50 U.S. states), invoice generation, certification management, company join-by-code enrollment, and integration with third-party tools. The Service is provided &ldquo;as is&rdquo; and &ldquo;as available.&rdquo;</p>
           </section>
 
           <section>
