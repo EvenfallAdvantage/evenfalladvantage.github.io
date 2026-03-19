@@ -227,79 +227,71 @@ export default function InvoicesPage() {
       const qtyX = M + cw * 0.58;
       const rateX = M + cw * 0.74;
       const amtX = W - M;
-      const rowH = 6;
 
-      // Table header
-      pdf.setFillColor(35, 35, 45);
-      pdf.rect(M, y - 4.5, cw, rowH + 1, "F");
-      pdf.setFontSize(8).setTextColor(255, 255, 255).setFont("helvetica", "bold");
-      pdf.text("Description", descX + 2, y);
+      // Table header — bold text with thick dark bottom border (matches preview)
+      pdf.setFontSize(9).setTextColor(50, 50, 50).setFont("helvetica", "bold");
+      pdf.text("Description", descX, y);
       pdf.text("Qty", qtyX, y, { align: "center" });
       pdf.text("Rate", rateX, y, { align: "right" });
-      pdf.text("Amount", amtX - 2, y, { align: "right" });
+      pdf.text("Amount", amtX, y, { align: "right" });
       pdf.setFont("helvetica", "normal");
-      y += rowH + 1;
+      y += 2;
+      pdf.setDrawColor(50, 50, 50).setLineWidth(0.5);
+      pdf.line(M, y, W - M, y);
+      y += 5;
 
       // Table rows
-      let stripe = false;
       for (const item of items) {
         const amt = item.quantity * item.rate;
         const descLines: string[] = pdf.splitTextToSize(item.description || "—", cw * 0.52);
-        const thisRowH = Math.max(descLines.length * LH + 2, rowH);
 
-        // Alternating stripe
-        if (stripe) {
-          pdf.setFillColor(248, 248, 248);
-          pdf.rect(M, y - 3.5, cw, thisRowH, "F");
-        }
-
-        pdf.setFontSize(9).setTextColor(60, 60, 60);
+        pdf.setFontSize(9);
         let lineY = y;
         for (const dl of descLines) {
-          pdf.text(dl, descX + 2, lineY);
+          pdf.setTextColor(70, 70, 70);
+          pdf.text(dl, descX, lineY);
           lineY += LH;
         }
 
-        // Qty, Rate, Amount on first line
-        pdf.setTextColor(80, 80, 80);
+        // Qty, Rate on first line
+        pdf.setTextColor(100, 100, 100);
         pdf.text(String(item.quantity), qtyX, y, { align: "center" });
-        pdf.text(`$${item.rate.toFixed(2)}`, rateX, y, { align: "right" });
-        pdf.setFont("helvetica", "bold").setTextColor(30, 30, 30);
-        pdf.text(`$${amt.toFixed(2)}`, amtX - 2, y, { align: "right" });
+        pdf.text(`$${fmt(item.rate)}`, rateX, y, { align: "right" });
+        // Amount bold
+        pdf.setFont("helvetica", "bold").setTextColor(50, 50, 50);
+        pdf.text(`$${fmt(amt)}`, amtX, y, { align: "right" });
         pdf.setFont("helvetica", "normal");
 
-        y += thisRowH;
-        // Separator
-        pdf.setDrawColor(220, 220, 220).setLineWidth(0.2);
-        pdf.line(M, y - 1.5, W - M, y - 1.5);
-        stripe = !stripe;
+        y = lineY + 1;
+        // Light separator
+        pdf.setDrawColor(210, 210, 210).setLineWidth(0.2);
+        pdf.line(M, y, W - M, y);
+        y += 4;
       }
-      y += 6;
+      y += 4;
 
-      // ─── Totals (right-aligned block) ───
-      const totLabelX = M + cw * 0.62;
-      const totValX = amtX - 2;
+      // ─── Totals (right-aligned block matching preview) ───
+      const totLabelX = M + cw * 0.58;
+      const totValX = amtX;
 
       pdf.setFontSize(9).setTextColor(100, 100, 100);
-      pdf.text("Subtotal", totLabelX, y);
-      pdf.setTextColor(40, 40, 40);
+      pdf.text("Subtotal", totLabelX, y, { align: "right" });
       pdf.text(`$${fmt(subtotal)}`, totValX, y, { align: "right" });
       y += LH + 1;
 
       if (taxRate > 0) {
         pdf.setTextColor(100, 100, 100);
-        pdf.text(`Tax (${taxRate}%)`, totLabelX, y);
-        pdf.setTextColor(40, 40, 40);
+        pdf.text(`Tax (${taxRate}%)`, totLabelX, y, { align: "right" });
         pdf.text(`$${fmt(tax)}`, totValX, y, { align: "right" });
         y += LH + 1;
       }
 
-      // Total due line
-      pdf.setDrawColor(35, 35, 45).setLineWidth(0.5);
-      pdf.line(totLabelX, y - 1, W - M, y - 1);
-      y += 3;
-      pdf.setFontSize(13).setTextColor(20, 20, 20).setFont("helvetica", "bold");
-      pdf.text("Total Due", totLabelX, y);
+      // Total Due — thick top border, bold, larger font
+      pdf.setDrawColor(50, 50, 50).setLineWidth(0.5);
+      pdf.line(totLabelX - 20, y, W - M, y);
+      y += 4;
+      pdf.setFontSize(12).setTextColor(30, 30, 30).setFont("helvetica", "bold");
+      pdf.text("Total Due", totLabelX, y, { align: "right" });
       pdf.text(`$${fmt(total)}`, totValX, y, { align: "right" });
       pdf.setFont("helvetica", "normal");
       y += 12;
