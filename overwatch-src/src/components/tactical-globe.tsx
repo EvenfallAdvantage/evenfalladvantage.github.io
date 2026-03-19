@@ -29,14 +29,14 @@ export function TacticalGlobe() {
       markerColor: [0.87, 0.55, 0.2],
       glowColor: [0.08, 0.12, 0.2],
       markers: [
-        { location: [34.0522, -118.2437], size: 0.05 },
-        { location: [40.7128, -74.006], size: 0.05 },
-        { location: [51.5074, -0.1278], size: 0.04 },
-        { location: [25.7617, -80.1918], size: 0.04 },
-        { location: [29.7604, -95.3698], size: 0.04 },
-        { location: [33.749, -84.388], size: 0.03 },
-        { location: [47.6062, -122.3321], size: 0.03 },
-        { location: [41.8781, -87.6298], size: 0.04 },
+        { location: [34.0522, -118.2437], size: 0.03 },
+        { location: [40.7128, -74.006], size: 0.03 },
+        { location: [51.5074, -0.1278], size: 0.02 },
+        { location: [25.7617, -80.1918], size: 0.02 },
+        { location: [29.7604, -95.3698], size: 0.02 },
+        { location: [33.749, -84.388], size: 0.02 },
+        { location: [47.6062, -122.3321], size: 0.02 },
+        { location: [41.8781, -87.6298], size: 0.02 },
       ],
     });
 
@@ -58,12 +58,12 @@ export function TacticalGlobe() {
       <canvas
         ref={canvasRef}
         style={{
-          width: "min(1800px, 160vw)",
-          height: "min(1800px, 160vw)",
+          width: "min(1400px, 120vw)",
+          height: "min(1400px, 120vw)",
           position: "absolute",
           left: "50%",
           bottom: 0,
-          transform: "translateX(-50%) translateY(65%)",
+          transform: "translateX(-50%) translateY(68%)",
         }}
       />
       {/* Fade-out at bottom edge */}
