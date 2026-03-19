@@ -1,0 +1,48 @@
+<!-- 
+  Overwatch Magic Link Template
+  Paste into: Supabase Dashboard → Auth → Email Templates → Magic Link
+  Subject: Your Overwatch sign-in link
+-->
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;padding:0;background:#0b1422;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0b1422;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="480" cellpadding="0" cellspacing="0" style="background:#0f1a2e;border:1px solid rgba(221,140,51,0.3);border-radius:16px;overflow:hidden;">
+        <!-- Header -->
+        <tr><td style="padding:32px 32px 16px;text-align:center;">
+          <div style="font-size:24px;font-weight:800;font-family:'Courier New',monospace;color:#ffffff;letter-spacing:2px;">OVERWATCH</div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;">Security Operations Platform</div>
+        </td></tr>
+        <!-- Divider -->
+        <tr><td style="padding:0 32px;"><div style="height:1px;background:rgba(221,140,51,0.2);"></div></td></tr>
+        <!-- Body -->
+        <tr><td style="padding:24px 32px;">
+          <p style="color:#ffffff;font-size:16px;margin:0 0 8px;font-weight:600;">Sign In to Overwatch</p>
+          <p style="color:rgba(255,255,255,0.6);font-size:14px;line-height:1.6;margin:0 0 24px;">
+            Click the button below to sign in. This link expires in 10 minutes and can only be used once.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:12px 32px;background:#dd8c33;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.5px;">
+                SIGN IN
+              </a>
+            </td></tr>
+          </table>
+          <p style="color:rgba(255,255,255,0.3);font-size:12px;margin:24px 0 0;line-height:1.5;">
+            If you didn't request this link, you can safely ignore this email.
+          </p>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:16px 32px 24px;text-align:center;">
+          <div style="height:1px;background:rgba(255,255,255,0.05);margin-bottom:16px;"></div>
+          <p style="color:rgba(255,255,255,0.25);font-size:11px;margin:0;">
+            Evenfall Advantage LLC &bull; Overwatch Security Platform
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

@@ -9,19 +9,22 @@
 -- ============================================================
 
 -- Allow anonymous inserts into students (for auto-linking from Overwatch)
-CREATE POLICY IF NOT EXISTS students_anon_insert
-  ON public.students
+DROP POLICY IF EXISTS students_anon_insert ON students;
+CREATE POLICY students_anon_insert
+  ON students
   FOR INSERT TO anon
   WITH CHECK (true);
 
 -- Also allow anonymous inserts into student_profiles (created after student)
-CREATE POLICY IF NOT EXISTS student_profiles_anon_insert
-  ON public.student_profiles
+DROP POLICY IF EXISTS student_profiles_anon_insert ON student_profiles;
+CREATE POLICY student_profiles_anon_insert
+  ON student_profiles
   FOR INSERT TO anon
   WITH CHECK (true);
 
 -- Also allow anonymous upserts (on_conflict) by enabling UPDATE for anon on students
-CREATE POLICY IF NOT EXISTS students_anon_update
-  ON public.students
+DROP POLICY IF EXISTS students_anon_update ON students;
+CREATE POLICY students_anon_update
+  ON students
   FOR UPDATE TO anon
   USING (true);

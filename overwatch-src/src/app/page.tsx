@@ -155,6 +155,9 @@ function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onCl
               className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />} Sign In
             </button>
+            <div className="text-right">
+              <Link href="/auth/reset" onClick={onClose} className="text-[10px] text-white/40 hover:text-[#dd8c33] transition-colors">Forgot password?</Link>
+            </div>
           </form>
         )}
 

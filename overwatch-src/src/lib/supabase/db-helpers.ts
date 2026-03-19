@@ -18,6 +18,7 @@ export async function getAuthUserId() {
 // Module-level cache: avoids repeated getUser() + DB lookup per page session.
 // Seed this from AuthProvider after login so ensureInternalUser() is instant.
 let _cachedInternalId: string | null = null;
+let _inflightPromise: Promise<string | null> | null = null;
 
 /** Pre-seed the internal user ID cache (call from AuthProvider after login). */
 export function seedInternalUserId(id: string) {
@@ -27,12 +28,25 @@ export function seedInternalUserId(id: string) {
 /** Clear cache on logout. */
 export function clearInternalUserCache() {
   _cachedInternalId = null;
+  _inflightPromise = null;
 }
 
-// Helper: get or create internal user ID from auth user (cached)
+// Helper: get or create internal user ID from auth user (cached + deduped)
 export async function ensureInternalUser() {
   if (_cachedInternalId) return _cachedInternalId;
 
+  // Dedup: if a call is already in-flight, piggyback on it
+  if (_inflightPromise) return _inflightPromise;
+
+  _inflightPromise = _ensureInternalUserCore();
+  try {
+    return await _inflightPromise;
+  } finally {
+    _inflightPromise = null;
+  }
+}
+
+async function _ensureInternalUserCore(): Promise<string | null> {
   const supabase = createClient();
   const { data: { user: authUser } } = await supabase.auth.getUser();
   if (!authUser) return null;
