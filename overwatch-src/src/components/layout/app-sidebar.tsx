@@ -207,10 +207,17 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             alt={activeCompany.companyName}
             className="h-9 w-9 shrink-0 rounded-lg object-cover"
           />
-        ) : (
+        ) : activeCompany?.companyName ? (
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/20 text-sm font-bold text-primary">
-            {activeCompany?.companyName?.[0] ?? "O"}
+            {activeCompany.companyName[0]}
           </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/overwatch/images/overwatch_logo.png"
+            alt="Overwatch"
+            className="h-9 w-9 shrink-0 rounded-lg object-contain"
+          />
         )}
         {!collapsed && (
           <div className="flex min-w-0 flex-1 flex-col text-left">
