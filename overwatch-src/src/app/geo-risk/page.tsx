@@ -435,17 +435,17 @@ export default function GeoRiskPage() {
           foreignObjectRendering: false,
           imageTimeout: 5000,
           onclone: (clonedDoc) => {
-            // html2canvas cannot parse CSS lab() color functions (Tailwind v4).
-            // Strip all CSS custom properties containing lab() from every element.
-            clonedDoc.querySelectorAll("*").forEach((el) => {
-              const s = (el as HTMLElement).style;
-              if (!s) return;
-              // Override common Tailwind CSS vars that use lab()
-              s.setProperty("--border", "rgba(255,255,255,0.1)");
-              s.setProperty("--background", "#0f172a");
-              s.setProperty("--foreground", "#e2e8f0");
-              s.setProperty("--muted-foreground", "#94a3b8");
-              s.borderColor = "rgba(255,255,255,0.1)";
+            // html2canvas cannot parse modern CSS color functions (lab, oklch,
+            // oklab, lch) used by Tailwind v4. Rewrite all <style> tags in the
+            // cloned DOM to replace these with simple hex fallbacks.
+            clonedDoc.querySelectorAll("style").forEach((tag) => {
+              if (tag.textContent) {
+                tag.textContent = tag.textContent
+                  .replace(/oklch\([^)]*\)/gi, "#94a3b8")
+                  .replace(/oklab\([^)]*\)/gi, "#94a3b8")
+                  .replace(/lab\([^)]*\)/gi, "#94a3b8")
+                  .replace(/lch\([^)]*\)/gi, "#94a3b8");
+              }
             });
           },
         });
