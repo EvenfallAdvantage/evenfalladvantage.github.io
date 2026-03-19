@@ -350,6 +350,31 @@ export async function uploadAvatar(file: File): Promise<string> {
   return avatarUrl;
 }
 
+// ─── Company logo upload ─────────────────────────────────
+
+export async function uploadCompanyLogo(file: File, companyId: string): Promise<string> {
+  const authId = await getAuthUserId();
+  if (!authId) throw new Error("Not authenticated");
+
+  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+  const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
+  if (!ALLOWED.includes(file.type)) throw new Error("Only JPEG, PNG, WebP, GIF, and SVG images are allowed");
+  if (file.size > MAX_SIZE) throw new Error("Image must be under 5MB");
+
+  const ext = file.name.split(".").pop() ?? "png";
+  const path = `${companyId}/logo-${Date.now()}.${ext}`;
+
+  const supabase = createClient();
+
+  const { error: uploadError } = await supabase.storage
+    .from("company-logos")
+    .upload(path, file, { cacheControl: "3600", upsert: true });
+  if (uploadError) throw uploadError;
+
+  const { data: urlData } = supabase.storage.from("company-logos").getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
 // ─── Profile update ─────────────────────────────────────
 
 export async function updateUserProfile(updates: {
