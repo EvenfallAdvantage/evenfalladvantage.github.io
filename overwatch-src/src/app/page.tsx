@@ -488,7 +488,8 @@ function HomePageInner() {
 
       {/* Features Grid */}
       <section className="relative z-10 py-24 bg-[#0b1422]">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
+        <div className="relative mx-auto max-w-6xl px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight mb-4">FULL-SPECTRUM OPERATIONS</h2>
             <p className="text-white/40 max-w-xl mx-auto">Everything your security operation needs — from applicant intake to field deployment — in one platform.</p>
@@ -541,8 +542,9 @@ function HomePageInner() {
 
       {/* Partners */}
       {partners.length > 0 && (
-        <section className="py-16 border-t border-white/5">
-          <div className="mx-auto max-w-5xl px-6">
+        <section className="relative py-16 border-t border-white/5">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
+          <div className="relative mx-auto max-w-5xl px-6">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">TRUSTED BY SECURITY PROFESSIONALS</h2>
               <p className="text-white/40 max-w-lg mx-auto text-sm">Companies already using Overwatch to command their operations.</p>
@@ -584,8 +586,9 @@ function HomePageInner() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-10">
-        <div className="mx-auto max-w-6xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="relative border-t border-white/5 py-10">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
+        <div className="relative mx-auto max-w-6xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs text-white/40">Powered by</span>
             <a href="https://www.evenfalladvantage.com" target="_blank" rel="noopener noreferrer">
