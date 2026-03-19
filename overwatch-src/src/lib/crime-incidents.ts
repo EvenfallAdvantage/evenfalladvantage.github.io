@@ -357,7 +357,7 @@ async function fetchOpenDataSoft(
     const url =
       `https://public.opendatasoft.com/api/records/1.0/search/?` +
       `q=crime+OR+incident+OR+offense+OR+police` +
-      `&geofilter.distance=${lat}%2C${lon}%2C${dist}` +
+      `&geofilter.distance=${lat},${lon},${dist}` +
       `&rows=50`;
 
     const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -616,6 +616,10 @@ async function fetchUKPolice(
 async function fetchCityProtect(
   lat: number, lon: number, radiusMeters: number
 ): Promise<CrimeIncident[]> {
+  // CityProtect API CORS-blocks browser requests (no Access-Control-Allow-Origin).
+  // Disabled until a server-side proxy is available.
+  void lat; void lon; void radiusMeters;
+  return [];
   try {
     const b = bbox(lat, lon, radiusMeters);
     const endDt = new Date().toISOString().split("T")[0];
