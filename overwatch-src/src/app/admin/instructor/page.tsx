@@ -5,7 +5,7 @@ import {
   GraduationCap, Plus, Loader2, BookOpen, Users, Calendar,
   ClipboardCheck, Save, X, Pencil, Trash2, ChevronDown, ChevronUp,
   Clock, CheckCircle2, XCircle, AlertTriangle, FileText,
-  UserCheck, UserX, Award,
+  UserCheck, UserX, Award, ExternalLink, Image, Type, Video,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,8 @@ import {
   getLegacyStudents, getLegacyClasses, getLegacyProgress,
   createLegacyCourse, updateLegacyCourse,
   createLegacyModule,
-  createLegacySlide, deleteLegacySlide,
+  createLegacySlide, updateLegacySlide, deleteLegacySlide,
+  updateLegacyModule,
   createLegacyAssessment, updateLegacyAssessment,
   createLegacyClass, updateLegacyClass,
   getClassEnrollments, markAttendance, getClassAttendance,
@@ -288,7 +289,25 @@ function ModulesTab() {
   const [showNewSlide, setShowNewSlide] = useState(false);
   const [nsTitle, setNsTitle] = useState("");
   const [nsContent, setNsContent] = useState("");
+  const [nsType, setNsType] = useState("text");
+  const [nsImage, setNsImage] = useState("");
   const [savingSlide, setSavingSlide] = useState(false);
+  // Edit slide
+  const [editSlide, setEditSlide] = useState<LegacySlide | null>(null);
+  const [esTitle, setEsTitle] = useState("");
+  const [esContent, setEsContent] = useState("");
+  const [esType, setEsType] = useState("text");
+  const [esImage, setEsImage] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  // Edit module
+  const [editModuleId, setEditModuleId] = useState<string | null>(null);
+  const [emName, setEmName] = useState("");
+  const [emDesc, setEmDesc] = useState("");
+  const [emDuration, setEmDuration] = useState("");
+  const [emDiff, setEmDiff] = useState("");
+  const [savingModule, setSavingModule] = useState(false);
+  // Preview
+  const [previewSlide, setPreviewSlide] = useState<LegacySlide | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -298,8 +317,10 @@ function ModulesTab() {
   useEffect(() => { load(); }, [load]);
 
   async function toggleExpand(moduleId: string) {
-    if (expandedId === moduleId) { setExpandedId(null); return; }
+    if (expandedId === moduleId) { setExpandedId(null); setEditSlide(null); setPreviewSlide(null); return; }
     setExpandedId(moduleId);
+    setEditSlide(null);
+    setPreviewSlide(null);
     setSlidesLoading(true);
     try { setSlides(await getLegacySlides(moduleId)); } catch {}
     finally { setSlidesLoading(false); }
@@ -328,18 +349,77 @@ function ModulesTab() {
         module_id: expandedId, title: nsTitle.trim(),
         content_html: nsContent.trim() || undefined,
         slide_number: slides.length + 1,
+        slide_type: nsType || "text",
+        image_url: nsImage.trim() || undefined,
       });
-      setShowNewSlide(false); setNsTitle(""); setNsContent("");
+      setShowNewSlide(false); setNsTitle(""); setNsContent(""); setNsType("text"); setNsImage("");
       setSlides(await getLegacySlides(expandedId));
     } catch { alert("Failed to create slide"); }
     finally { setSavingSlide(false); }
   }
 
+  function startEditSlide(s: LegacySlide) {
+    setEditSlide(s);
+    setPreviewSlide(null);
+    setEsTitle(s.title || "");
+    setEsContent(s.content || "");
+    setEsType(s.slide_type || "text");
+    setEsImage(s.image_url || "");
+  }
+
+  async function handleUpdateSlide() {
+    if (!editSlide || !expandedId) return;
+    setSavingEdit(true);
+    try {
+      await updateLegacySlide(editSlide.id, {
+        title: esTitle.trim(),
+        content_html: esContent,
+        slide_type: esType,
+        image_url: esImage.trim() || undefined,
+      });
+      setEditSlide(null);
+      setSlides(await getLegacySlides(expandedId));
+    } catch { alert("Failed to update slide"); }
+    finally { setSavingEdit(false); }
+  }
+
+  function startEditModule(m: LegacyModule) {
+    setEditModuleId(m.id);
+    setEmName(m.module_name);
+    setEmDesc(m.description || "");
+    setEmDuration(String(m.duration_minutes || ""));
+    setEmDiff(m.difficulty_level || "Essential");
+  }
+
+  async function handleUpdateModule() {
+    if (!editModuleId) return;
+    setSavingModule(true);
+    try {
+      await updateLegacyModule(editModuleId, {
+        module_name: emName.trim(),
+        description: emDesc.trim(),
+        duration_minutes: parseInt(emDuration) || undefined,
+        difficulty_level: emDiff,
+      });
+      setEditModuleId(null);
+      await load();
+    } catch { alert("Failed to update module"); }
+    finally { setSavingModule(false); }
+  }
+
   async function handleDeleteSlide(slideId: string) {
     if (!confirm("Delete this slide?") || !expandedId) return;
     await deleteLegacySlide(slideId);
+    if (editSlide?.id === slideId) setEditSlide(null);
     setSlides(await getLegacySlides(expandedId));
   }
+
+  const SLIDE_TYPES = [
+    { value: "text", label: "Text", icon: Type },
+    { value: "image", label: "Image", icon: Image },
+    { value: "video", label: "Video", icon: Video },
+    { value: "mixed", label: "Mixed", icon: FileText },
+  ];
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
@@ -347,7 +427,13 @@ function ModulesTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{modules.length} training modules</p>
-        <Button size="sm" className="gap-1.5" onClick={() => setShowNew(true)}><Plus className="h-3.5 w-3.5" /> New Module</Button>
+        <div className="flex gap-2">
+          <a href="../../admin/" target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-[#dd8c33] transition-colors">
+            <ExternalLink className="h-3 w-3" /> Legacy Editor
+          </a>
+          <Button size="sm" className="gap-1.5" onClick={() => setShowNew(true)}><Plus className="h-3.5 w-3.5" /> New Module</Button>
+        </div>
       </div>
 
       {showNew && (
@@ -370,42 +456,154 @@ function ModulesTab() {
         {modules.map((m) => (
           <Card key={m.id} className="border-border/40">
             <CardContent className="p-0">
-              <button onClick={() => toggleExpand(m.id)} className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/30 transition-colors">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-semibold text-sm">{m.module_name}</h4>
-                    <Badge className="text-[9px]">{m.module_code}</Badge>
+              {editModuleId === m.id ? (
+                <div className="p-4 space-y-3">
+                  <h4 className="text-xs font-semibold text-muted-foreground uppercase">Edit Module</h4>
+                  <Input value={emName} onChange={(e) => setEmName(e.target.value)} placeholder="Module Name" />
+                  <textarea value={emDesc} onChange={(e) => setEmDesc(e.target.value)} placeholder="Description"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px]" />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Input type="number" value={emDuration} onChange={(e) => setEmDuration(e.target.value)} placeholder="Duration (min)" />
+                    <select value={emDiff} onChange={(e) => setEmDiff(e.target.value)}
+                      className="rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <option value="Essential">Essential</option>
+                      <option value="Critical">Critical</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
                   </div>
-                  <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-foreground">
-                    {m.duration_minutes && <span><Clock className="h-2.5 w-2.5 inline mr-0.5" />{m.duration_minutes}m</span>}
-                    <span>{m.difficulty_level}</span>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleUpdateModule} disabled={savingModule}>
+                      {savingModule ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditModuleId(null)}>Cancel</Button>
                   </div>
                 </div>
-                {expandedId === m.id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-              </button>
-              {expandedId === m.id && (
+              ) : (
+                <button onClick={() => toggleExpand(m.id)} className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/30 transition-colors">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-sm">{m.module_name}</h4>
+                      <Badge className="text-[9px]">{m.module_code}</Badge>
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-foreground">
+                      {m.duration_minutes && <span><Clock className="h-2.5 w-2.5 inline mr-0.5" />{m.duration_minutes}m</span>}
+                      <span>{m.difficulty_level}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={(e) => { e.stopPropagation(); startEditModule(m); }} className="p-1 rounded hover:bg-accent/50">
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                    {expandedId === m.id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  </div>
+                </button>
+              )}
+              {expandedId === m.id && editModuleId !== m.id && (
                 <div className="border-t border-border/40 p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <h5 className="text-xs font-semibold text-muted-foreground uppercase">Slides</h5>
-                    <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => setShowNewSlide(true)}>
+                    <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={() => { setShowNewSlide(true); setEditSlide(null); setPreviewSlide(null); }}>
                       <Plus className="h-3 w-3" /> Add Slide
                     </Button>
                   </div>
                   {slidesLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : (
                     <div className="space-y-1.5">
                       {slides.map((s) => (
-                        <div key={s.id} className="flex items-center gap-2 rounded border border-border/30 px-3 py-1.5 text-xs">
+                        <div key={s.id} className={`flex items-center gap-2 rounded border px-3 py-1.5 text-xs cursor-pointer transition-colors ${editSlide?.id === s.id ? "border-[#dd8c33]/50 bg-[#dd8c33]/5" : previewSlide?.id === s.id ? "border-primary/30 bg-primary/5" : "border-border/30 hover:border-border/60"}`}>
                           <span className="font-mono text-muted-foreground w-6">{s.slide_number}.</span>
-                          <span className="flex-1 truncate">{s.title}</span>
-                          <button onClick={() => handleDeleteSlide(s.id)} className="text-muted-foreground/50 hover:text-red-500"><Trash2 className="h-3 w-3" /></button>
+                          <span className="flex-1 truncate" onClick={() => { setPreviewSlide(previewSlide?.id === s.id ? null : s); setEditSlide(null); }}>{s.title}</span>
+                          <div className="flex items-center gap-0.5">
+                            {s.slide_type && s.slide_type !== "text" && (
+                              <Badge className="text-[8px] h-4 px-1">{s.slide_type}</Badge>
+                            )}
+                            <button onClick={() => startEditSlide(s)} className="p-0.5 text-muted-foreground/50 hover:text-[#dd8c33]"><Pencil className="h-3 w-3" /></button>
+                            <button onClick={() => handleDeleteSlide(s.id)} className="p-0.5 text-muted-foreground/50 hover:text-red-500"><Trash2 className="h-3 w-3" /></button>
+                          </div>
                         </div>
                       ))}
                       {slides.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">No slides yet</p>}
                     </div>
                   )}
-                  {showNewSlide && (
+
+                  {/* Slide Preview */}
+                  {previewSlide && !editSlide && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-sm font-semibold">{previewSlide.title}</h5>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => startEditSlide(previewSlide)}>
+                            <Pencil className="h-3 w-3" /> Edit
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setPreviewSlide(null)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      {previewSlide.image_url && (
+                        <img src={previewSlide.image_url} alt="" className="rounded max-h-48 object-contain" />
+                      )}
+                      {previewSlide.content ? (
+                        <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: previewSlide.content }} />
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">No content</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Slide Editor */}
+                  {editSlide && (
+                    <div className="rounded-lg border border-[#dd8c33]/30 bg-[#dd8c33]/5 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-xs font-semibold uppercase text-[#dd8c33]">Edit Slide #{editSlide.slide_number}</h5>
+                        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditSlide(null)}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <Input value={esTitle} onChange={(e) => setEsTitle(e.target.value)} placeholder="Slide Title" className="h-8 text-sm" />
+                      <div className="flex gap-2 items-center">
+                        <label className="text-xs text-muted-foreground shrink-0">Type:</label>
+                        <div className="flex gap-1">
+                          {SLIDE_TYPES.map((t) => (
+                            <button key={t.value} onClick={() => setEsType(t.value)}
+                              className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] border transition-colors ${esType === t.value ? "border-[#dd8c33] bg-[#dd8c33]/10 text-[#dd8c33]" : "border-border/30 text-muted-foreground hover:border-border/60"}`}>
+                              <t.icon className="h-2.5 w-2.5" /> {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {(esType === "image" || esType === "mixed") && (
+                        <Input value={esImage} onChange={(e) => setEsImage(e.target.value)} placeholder="Image URL" className="h-8 text-sm" />
+                      )}
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Content (HTML)</label>
+                        <textarea value={esContent} onChange={(e) => setEsContent(e.target.value)}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono min-h-[160px] leading-relaxed" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" className="h-7 text-xs gap-1" onClick={handleUpdateSlide} disabled={savingEdit}>
+                          {savingEdit ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save Slide
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditSlide(null)}>Cancel</Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* New Slide Form */}
+                  {showNewSlide && !editSlide && (
                     <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
                       <Input placeholder="Slide Title *" value={nsTitle} onChange={(e) => setNsTitle(e.target.value)} className="h-8 text-sm" />
+                      <div className="flex gap-1">
+                        {SLIDE_TYPES.map((t) => (
+                          <button key={t.value} onClick={() => setNsType(t.value)}
+                            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] border transition-colors ${nsType === t.value ? "border-primary bg-primary/10 text-primary" : "border-border/30 text-muted-foreground hover:border-border/60"}`}>
+                            <t.icon className="h-2.5 w-2.5" /> {t.label}
+                          </button>
+                        ))}
+                      </div>
+                      {(nsType === "image" || nsType === "mixed") && (
+                        <Input placeholder="Image URL" value={nsImage} onChange={(e) => setNsImage(e.target.value)} className="h-8 text-sm" />
+                      )}
                       <textarea placeholder="HTML Content (optional)" value={nsContent} onChange={(e) => setNsContent(e.target.value)}
                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px]" />
                       <div className="flex gap-2">
