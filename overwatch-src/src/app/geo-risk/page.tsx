@@ -23,7 +23,7 @@ import {
   fetchMapOverlayData, getNSOPWSearchUrl, hasFamilyWatchdogKey,
   setFamilyWatchdogKey, getFamilyWatchdogKey,
   hasCrimeometerKey, setCrimeometerKey, getCrimeometerKey,
-  type CrimeIncident, type SexOffender,
+  type CrimeIncident, type SexOffender, type EnvironmentalRisk,
 } from "@/lib/crime-incidents";
 
 const GeoRiskMap = dynamic(() => import("@/components/geo-risk-map"), { ssr: false });
@@ -107,6 +107,7 @@ export default function GeoRiskPage() {
   // Map overlay state
   const [incidents, setIncidents] = useState<CrimeIncident[]>([]);
   const [offenders, setOffenders] = useState<SexOffender[]>([]);
+  const [envRisk, setEnvRisk] = useState<EnvironmentalRisk>({ pois: [], summary: {}, total: 0 });
   const [overlayLoading, setOverlayLoading] = useState(false);
   const [overlaySources, setOverlaySources] = useState<string[]>([]);
   const [fwKeyInput, setFwKeyInput] = useState("");
@@ -228,6 +229,7 @@ export default function GeoRiskPage() {
             setIncidents(overlay.incidents);
             setOffenders(overlay.offenders);
             setOverlaySources(overlay.sources);
+            setEnvRisk(overlay.environmentalRisk);
           })
           .catch(() => { /* silent */ })
           .finally(() => setOverlayLoading(false));
@@ -364,9 +366,19 @@ export default function GeoRiskPage() {
                     {offenders.length} registered offender{offenders.length !== 1 ? "s" : ""}
                   </Badge>
                 )}
+                {/* Environmental risk POIs (CPTED) */}
+                {envRisk.total > 0 && (
+                  <Badge variant="outline" className="gap-1 font-normal">
+                    <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
+                    {envRisk.total} risk POI{envRisk.total !== 1 ? "s" : ""}
+                    <span className="text-muted-foreground ml-1">
+                      ({Object.entries(envRisk.summary).map(([k, v]) => `${v} ${k.toLowerCase()}`).join(", ")})
+                    </span>
+                  </Badge>
+                )}
                 {/* Source badges */}
                 {overlaySources.length > 0 && (
-                  <span className="text-muted-foreground">
+                  <span className="text-muted-foreground text-[10px]">
                     via {overlaySources.join(" + ")}
                   </span>
                 )}
@@ -577,7 +589,8 @@ export default function GeoRiskPage() {
             <div className="text-xs text-muted-foreground space-y-1">
               <p>- Enter a location and facility type to generate a risk assessment</p>
               <p>- Crime data sourced from <strong>FBI UCR 2022</strong> (city → county → state fallback)</p>
-              <p>- <strong>Map overlay:</strong> crime incidents from 4 OSINT sources (Socrata, OpenDataSoft, ArcGIS, Crimeometer)</p>
+              <p>- <strong>Map overlay:</strong> crime incidents from 6 OSINT sources (Socrata, OpenDataSoft, ArcGIS, Crimeometer, UK Police, CityProtect)</p>
+              <p>- <strong>Environmental risk:</strong> Overpass/OSM queries for CPTED indicators (bars, clubs, pawn shops, etc.)</p>
               <p>- All sources queried in parallel, deduplicated by proximity + date + type</p>
               <p>- <strong>Sex offender overlay:</strong> via Family Watchdog API (optional, key required)</p>
               <p>- Risk score factors in violent crime, property crime, and facility vulnerability</p>

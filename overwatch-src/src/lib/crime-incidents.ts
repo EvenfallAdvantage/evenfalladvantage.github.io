@@ -1,17 +1,22 @@
 /**
- * Crime Incidents & Sex Offender Overlay — Geo-Risk Map Data
+ * Crime Incidents, Environmental Risk & Sex Offender Overlay — Geo-Risk Map Data
  *
  * OSINT Sources (crime incidents):
  *   1. Socrata SODA API (free, no key) — 60+ static cities + dynamic discovery
  *   2. OpenDataSoft (free, no key) — public safety datasets across ODS portals
  *   3. ArcGIS Open Data Hubs (free, no key) — FeatureServer queries for city ArcGIS portals
  *   4. Crimeometer API (free tier: 100 calls/mo, key-gated) — national geocoded incidents
+ *   5. UK Police API (free, no key) — street-level crime for England/Wales/NI
+ *   6. CityProtect / RAIDS Online (free, no key) — Motorola public incidents API
+ *
+ * Environmental risk (Overpass / OpenStreetMap):
+ *   7. Overpass API (free, no key) — crime-correlated POIs (bars, clubs, liquor, pawn, etc.)
  *
  * Sex offender sources:
- *   5. Family Watchdog API (paid, key-gated) — registered sex offenders
- *   6. NSOPW fallback link (free, no API) — DOJ registry search
+ *   8. Family Watchdog API (paid, key-gated) — registered sex offenders
+ *   9. NSOPW fallback link (free, no API) — DOJ registry search
  *
- * All sources are queried in parallel, collated, and deduplicated by
+ * All incident sources are queried in parallel, collated, and deduplicated by
  * proximity + date + category before being returned to the map.
  */
 
@@ -34,6 +39,19 @@ export type SexOffender = {
   address: string;
   offenses: string;
   source: string;
+};
+
+export type RiskPOI = {
+  lat: number;
+  lon: number;
+  name: string;
+  poiType: string; // "bar" | "nightclub" | "liquor_store" | "pawnbroker" | "casino" | etc.
+};
+
+export type EnvironmentalRisk = {
+  pois: RiskPOI[];
+  summary: Record<string, number>; // { bar: 5, nightclub: 2, ... }
+  total: number;
 };
 
 // ────────────────────────────── Socrata City Registry ──────────────────────────────
@@ -228,6 +246,7 @@ function classifyIncident(typeStr: string): "violent" | "property" | "other" {
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 const _incidentCache: Record<string, { ts: number; data: CrimeIncident[] }> = {};
 const _offenderCache: Record<string, { ts: number; data: SexOffender[] }> = {};
+const _poiCache: Record<string, { ts: number; data: EnvironmentalRisk }> = {};
 
 // ────────────────────────────── Deduplication ──────────────────────────────
 
@@ -530,6 +549,193 @@ async function fetchCrimeometer(
   }
 }
 
+// ────────────────────────────── Source 5: UK Police API ──────────────────────────────
+
+// Free, no key. Street-level crime data for England, Wales, and Northern Ireland.
+// Only fires if coordinates fall within UK bounding box.
+// Docs: https://data.police.uk/docs/
+
+async function fetchUKPolice(
+  lat: number, lon: number
+): Promise<CrimeIncident[]> {
+  // Quick bounding-box check for UK coordinates
+  if (lat < 49.5 || lat > 61 || lon < -8.2 || lon > 2) return [];
+
+  try {
+    // API returns last available month; use 2 months ago to ensure data exists
+    const d = new Date();
+    d.setMonth(d.getMonth() - 2);
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const url = `https://data.police.uk/api/crimes-street/all-crime?lat=${lat}&lng=${lon}&date=${month}`;
+
+    const res = await fetch(url);
+    if (!res.ok) return [];
+
+    const crimes: Record<string, unknown>[] = await res.json();
+    if (!Array.isArray(crimes)) return [];
+
+    // UK Police categories use kebab-case like "anti-social-behaviour", "violent-crime"
+    const UK_VIOLENT = ["violent-crime", "robbery", "possession-of-weapons", "public-order"];
+    const UK_PROPERTY = ["burglary", "vehicle-crime", "theft-from-the-person", "bicycle-theft", "shoplifting", "criminal-damage-arson", "other-theft"];
+
+    function classifyUK(cat: string): "violent" | "property" | "other" {
+      if (UK_VIOLENT.includes(cat)) return "violent";
+      if (UK_PROPERTY.includes(cat)) return "property";
+      return "other";
+    }
+
+    return crimes.slice(0, 75).map((c) => {
+      const loc = c.location as { latitude?: string; longitude?: string; street?: { name?: string } } | undefined;
+      const rLat = parseFloat(String(loc?.latitude || "0"));
+      const rLon = parseFloat(String(loc?.longitude || "0"));
+      if (!rLat || !rLon) return null;
+
+      const cat = String(c.category || "other-crime");
+      const street = String(loc?.street?.name || "");
+      return {
+        lat: rLat,
+        lon: rLon,
+        type: classifyUK(cat),
+        category: truncate(cat.replace(/-/g, " "), 40),
+        description: truncate(street || cat.replace(/-/g, " "), 60),
+        date: String(c.month || month),
+        source: "UK Police",
+      } as CrimeIncident;
+    }).filter(Boolean) as CrimeIncident[];
+  } catch (e) {
+    console.warn("UK Police fetch error:", e);
+    return [];
+  }
+}
+
+// ────────────────────────────── Source 6: CityProtect (RAIDS Online) ──────────────────────────────
+
+// Free, no key. Motorola Solutions CommandCentral public incidents API.
+// Used by hundreds of US police departments. Returns geocoded incidents.
+
+async function fetchCityProtect(
+  lat: number, lon: number, radiusMeters: number
+): Promise<CrimeIncident[]> {
+  try {
+    const b = bbox(lat, lon, radiusMeters);
+    const endDt = new Date().toISOString().split("T")[0];
+    const startDt = new Date(Date.now() - 90 * 86400000).toISOString().split("T")[0]; // 90 days
+
+    const url =
+      `https://ce-portal-service.commandcentral.com/api/v2.0/public/incidents?` +
+      `bbox=${b.minLon},${b.minLat},${b.maxLon},${b.maxLat}` +
+      `&startDate=${startDt}&endDate=${endDt}&pageSize=50`;
+
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const incidents: Record<string, unknown>[] = data?.incidents || data?.features || [];
+    if (!Array.isArray(incidents)) return [];
+
+    return incidents.slice(0, 50).map((inc) => {
+      const geo = inc.geometry as { coordinates?: number[] } | undefined;
+      const props = (inc.properties || inc) as Record<string, unknown>;
+      const rLat = Number(props.latitude || props.lat || geo?.coordinates?.[1] || 0);
+      const rLon = Number(props.longitude || props.lon || geo?.coordinates?.[0] || 0);
+      if (!rLat || !rLon) return null;
+
+      const typeStr = String(props.offense || props.type || props.offense_type ||
+        props.incident_type || props.description || "Unknown");
+      const desc = String(props.description || props.address || typeStr);
+      const date = String(props.date || props.incident_date || props.reported_date || "");
+
+      return {
+        lat: rLat, lon: rLon,
+        type: classifyIncident(typeStr),
+        category: truncate(typeStr, 40),
+        description: truncate(desc, 60),
+        date: date ? new Date(date).toLocaleDateString() : "Unknown",
+        source: "CityProtect",
+      } as CrimeIncident;
+    }).filter(Boolean) as CrimeIncident[];
+  } catch (e) {
+    console.warn("CityProtect fetch error:", e);
+    return [];
+  }
+}
+
+// ────────────────────────────── Source 7: Overpass API (Environmental Risk POIs) ──────────────────────────────
+
+// Free, no key. Queries OpenStreetMap for crime-correlated points of interest:
+// bars, nightclubs, pubs, liquor stores, pawn shops, casinos, check-cashing, etc.
+// These are environmental risk indicators used in CPTED (Crime Prevention Through
+// Environmental Design) methodology.
+
+const POI_LABELS: Record<string, string> = {
+  bar: "Bar",
+  nightclub: "Nightclub",
+  pub: "Pub",
+  alcohol: "Liquor Store",
+  pawnbroker: "Pawn Shop",
+  casino: "Casino",
+  strip_club: "Strip Club",
+  money_transfer: "Check Cashing",
+  gambling: "Gambling",
+};
+
+export async function fetchEnvironmentalRisk(
+  lat: number, lon: number, radiusMeters = 1609
+): Promise<EnvironmentalRisk> {
+  const cacheKey = `poi_${lat.toFixed(4)}|${lon.toFixed(4)}`;
+  const cached = _poiCache[cacheKey];
+  if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
+
+  const empty: EnvironmentalRisk = { pois: [], summary: {}, total: 0 };
+  try {
+    const r = Math.max(radiusMeters, 1609);
+    const query = `[out:json][timeout:10];(` +
+      `node["amenity"="bar"](around:${r},${lat},${lon});` +
+      `node["amenity"="nightclub"](around:${r},${lat},${lon});` +
+      `node["amenity"="pub"](around:${r},${lat},${lon});` +
+      `node["shop"="alcohol"](around:${r},${lat},${lon});` +
+      `node["shop"="pawnbroker"](around:${r},${lat},${lon});` +
+      `node["amenity"="casino"](around:${r},${lat},${lon});` +
+      `node["amenity"="strip_club"](around:${r},${lat},${lon});` +
+      `node["shop"="money_transfer"](around:${r},${lat},${lon});` +
+      `node["amenity"="gambling"](around:${r},${lat},${lon});` +
+      `);out body;`;
+
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: `data=${encodeURIComponent(query)}`,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    if (!res.ok) { _poiCache[cacheKey] = { ts: Date.now(), data: empty }; return empty; }
+
+    const data = await res.json();
+    const elements: { lat: number; lon: number; tags?: Record<string, string> }[] =
+      data?.elements || [];
+
+    const pois: RiskPOI[] = elements.slice(0, 200).map((el) => ({
+      lat: el.lat,
+      lon: el.lon,
+      name: el.tags?.name || POI_LABELS[el.tags?.amenity || el.tags?.shop || ""] || "Unknown",
+      poiType: el.tags?.amenity || el.tags?.shop || "unknown",
+    })).filter((p) => p.lat && p.lon);
+
+    // Build summary counts
+    const summary: Record<string, number> = {};
+    for (const p of pois) {
+      const label = POI_LABELS[p.poiType] || p.poiType;
+      summary[label] = (summary[label] || 0) + 1;
+    }
+
+    const result: EnvironmentalRisk = { pois, summary, total: pois.length };
+    _poiCache[cacheKey] = { ts: Date.now(), data: result };
+    return result;
+  } catch (e) {
+    console.warn("Overpass POI fetch error:", e);
+    _poiCache[cacheKey] = { ts: Date.now(), data: empty };
+    return empty;
+  }
+}
+
 // ────────────────────────────── Multi-Source Aggregator ──────────────────────────────
 
 export async function fetchNearbyIncidents(
@@ -543,17 +749,19 @@ export async function fetchNearbyIncidents(
   const cached = _incidentCache[cacheKey];
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
 
-  // Fire all sources in parallel — each handles its own errors gracefully
-  const [socrata, ods, arcgis, crimeometer] = await Promise.all([
+  // Fire all 6 incident sources in parallel — each handles its own errors gracefully
+  const [socrata, ods, arcgis, crimeometer, ukpolice, cityprotect] = await Promise.all([
     fetchSocrata(lat, lon, city, state, radiusMeters),
     fetchOpenDataSoft(lat, lon, city, radiusMeters),
     fetchArcGIS(lat, lon, city, state, radiusMeters),
     fetchCrimeometer(lat, lon, radiusMeters),
+    fetchUKPolice(lat, lon),
+    fetchCityProtect(lat, lon, radiusMeters),
   ]);
 
-  // Collate all results, dedup, cap at 150
-  const all = [...socrata, ...ods, ...arcgis, ...crimeometer];
-  const deduped = dedupeIncidents(all).slice(0, 150);
+  // Collate all results, dedup, cap at 200
+  const all = [...socrata, ...ods, ...arcgis, ...crimeometer, ...ukpolice, ...cityprotect];
+  const deduped = dedupeIncidents(all).slice(0, 200);
 
   _incidentCache[cacheKey] = { ts: Date.now(), data: deduped };
   return deduped;
@@ -652,6 +860,7 @@ export function getNSOPWSearchUrl(address: string, city: string, state: string):
 export type MapOverlayData = {
   incidents: CrimeIncident[];
   offenders: SexOffender[];
+  environmentalRisk: EnvironmentalRisk;
   sources: string[];
   hasOffenderKey: boolean;
 };
@@ -662,17 +871,20 @@ export async function fetchMapOverlayData(
   city: string,
   state: string
 ): Promise<MapOverlayData> {
-  const [incidents, offenders] = await Promise.all([
+  const [incidents, offenders, environmentalRisk] = await Promise.all([
     fetchNearbyIncidents(lat, lon, city, state),
     fetchNearbyOffenders(lat, lon),
+    fetchEnvironmentalRisk(lat, lon),
   ]);
 
   // Collect unique source names
   const sources = [...new Set(incidents.map((i) => i.source))];
+  if (environmentalRisk.total > 0) sources.push("Overpass/OSM");
 
   return {
     incidents,
     offenders,
+    environmentalRisk,
     sources,
     hasOffenderKey: hasFamilyWatchdogKey(),
   };
