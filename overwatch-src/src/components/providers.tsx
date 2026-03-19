@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth-provider";
 import { SecurityProvider } from "@/components/security-provider";
-import { CommandPalette } from "@/components/command-palette";
 import { useState, useEffect } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -39,7 +38,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <SecurityProvider>
             <TooltipProvider delay={0}>
               {children}
-              <CommandPalette />
               <Toaster richColors position="top-right" />
             </TooltipProvider>
           </SecurityProvider>

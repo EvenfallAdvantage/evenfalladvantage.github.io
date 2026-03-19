@@ -77,7 +77,6 @@ src/
     layout/               # Sidebar, nav, bottom bar
     ui/                   # shadcn/ui components
     theme-toggle.tsx      # Dark/Light/System theme
-    command-palette.tsx   # Ctrl+K command palette
     security-provider.tsx # Session lock, inactivity timeout
   lib/
     supabase/             # DB layer (9 domain modules)

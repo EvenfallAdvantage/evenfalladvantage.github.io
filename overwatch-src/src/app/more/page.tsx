@@ -37,6 +37,7 @@ import {
   Bell,
   User,
   Building2,
+  Plus,
   MessageCircle,
   Video,
   HelpCircle,
@@ -218,6 +219,14 @@ export default function MorePage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
             </Link>
           )}
+          <Link
+            href="/join"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
+          >
+            <Plus className="h-[18px] w-[18px] text-muted-foreground" />
+            <span className="flex-1">Join Company</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+          </Link>
           <button
             onClick={handleSignOut}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors active:bg-destructive/10"
