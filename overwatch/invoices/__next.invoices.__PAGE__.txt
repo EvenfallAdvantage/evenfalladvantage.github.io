@@ -3,7 +3,7 @@
 3:I[14292,["/overwatch/_next/static/chunks/a1a5d72e6c673678.js","/overwatch/_next/static/chunks/b25ed5ca3a75ed23.js","/overwatch/_next/static/chunks/67cfc61d0056a004.js","/overwatch/_next/static/chunks/fbab8f1a69a7f961.js","/overwatch/_next/static/chunks/024f9c6b527fde39.js","/overwatch/_next/static/chunks/4d0833673d68223e.js","/overwatch/_next/static/chunks/2f277a26cf32d8f2.js"],"default"]
 6:I[97367,["/overwatch/_next/static/chunks/ff1a16fafef87110.js","/overwatch/_next/static/chunks/d2be314c3ece3fbe.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"buildId":"ZWN3BUSaRMxBQb57feUsh","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/overwatch/_next/static/chunks/2f277a26cf32d8f2.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"wjR_NgTZidAwqODLbGlBk","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/overwatch/_next/static/chunks/2f277a26cf32d8f2.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
 4:{}
 5:{}
 8:null
