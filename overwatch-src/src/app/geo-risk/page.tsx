@@ -11,10 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  STATE_CRIME_DATA, US_STATES, FACILITY_TYPES, RISK_COLORS,
+  US_STATES, FACILITY_TYPES, RISK_COLORS, GRANULARITY_COLORS,
   getCrimeRating, getThreatLikelihood, getFacilityImpact,
-  calculateRiskScore,
-  type RiskLevel,
+  calculateRiskScore, geocodeAddress, getMultiTierCrimeData,
+  type RiskLevel, type Granularity,
 } from "@/lib/geo-risk-data";
 import jsPDF from "jspdf";
 
@@ -30,6 +30,9 @@ type RiskResult = {
   facilityImpact: string;
   riskScore: number;
   overallRating: RiskLevel;
+  granularity: Granularity;
+  source: string;
+  population?: number;
   analysisDate: string;
 };
 
@@ -69,27 +72,39 @@ export default function GeoRiskPage() {
     if (!city || !state) return;
     setAnalyzing(true);
 
-    const stateData = STATE_CRIME_DATA[state];
-    if (!stateData) { setAnalyzing(false); return; }
+    try {
+      // Step 1: Geocode to resolve county (for multi-tier lookup)
+      const location = await geocodeAddress(address, city, state);
 
-    const crimeRating = getCrimeRating(stateData.violent);
-    const threatLikelihood = getThreatLikelihood(stateData.violent, stateData.overall);
-    const facilityImpact = getFacilityImpact(facilityType || "Office Building");
-    const riskScore = calculateRiskScore(stateData.violent, stateData.property, facilityType || "Office Building");
+      // Step 2: Multi-tier crime data: City → County → State
+      const crime = getMultiTierCrimeData(location.city, location.county, state);
 
-    const overallRating: RiskLevel =
-      riskScore >= 75 ? "Critical" : riskScore >= 55 ? "High" : riskScore >= 35 ? "Moderate" : riskScore >= 15 ? "Low" : "Negligible";
+      // Step 3: Calculate risk assessment
+      const ft = facilityType || "Office Building";
+      const crimeRating = getCrimeRating(crime.violent);
+      const threatLikelihood = getThreatLikelihood(crime.violent, crimeRating);
+      const facilityImpact = getFacilityImpact(ft);
+      const riskScore = calculateRiskScore(crime.violent, crime.property, ft);
 
-    const assessment: RiskResult = {
-      address, city, state, facilityType: facilityType || "Office Building",
-      violentRate: stateData.violent, propertyRate: stateData.property,
-      crimeRating, threatLikelihood, facilityImpact, riskScore, overallRating,
-      analysisDate: new Date().toISOString(),
-    };
+      const overallRating: RiskLevel =
+        riskScore >= 75 ? "Critical" : riskScore >= 55 ? "High" : riskScore >= 35 ? "Moderate" : riskScore >= 15 ? "Low" : "Negligible";
 
-    setResult(assessment);
-    setHistory((h) => [assessment, ...h.slice(0, 9)]);
-    setAnalyzing(false);
+      const assessment: RiskResult = {
+        address, city: location.city, state, facilityType: ft,
+        violentRate: crime.violent, propertyRate: crime.property,
+        crimeRating, threatLikelihood, facilityImpact, riskScore, overallRating,
+        granularity: crime.granularity, source: crime.source,
+        population: crime.population,
+        analysisDate: new Date().toISOString(),
+      };
+
+      setResult(assessment);
+      setHistory((h) => [assessment, ...h.slice(0, 9)]);
+    } catch {
+      alert("Analysis failed. Please try again.");
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
   function exportPDF() {
@@ -172,7 +187,7 @@ export default function GeoRiskPage() {
                 <span className="text-sm font-semibold">
                   {result.address ? `${result.address}, ` : ""}{result.city}, {result.state}
                 </span>
-                <Badge className="text-[9px] bg-primary/10 text-primary ml-auto">State-Level Data</Badge>
+                <Badge className={`text-[9px] ${GRANULARITY_COLORS[result.granularity].bg} ${GRANULARITY_COLORS[result.granularity].text} ml-auto`}>{GRANULARITY_COLORS[result.granularity].label}</Badge>
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Building2 className="h-3 w-3" /> {result.facilityType}
@@ -236,9 +251,9 @@ export default function GeoRiskPage() {
             <CardContent className="p-4">
               <h3 className="text-xs font-semibold flex items-center gap-1.5 mb-2"><Info className="h-3 w-3" /> Data Sources</h3>
               <div className="text-[10px] text-muted-foreground space-y-1">
-                <p>- FBI Uniform Crime Reporting (UCR) — 2022 state-level statistics</p>
+                <p>- FBI Uniform Crime Reporting (UCR) — 2022 {result.granularity}-level statistics</p>
+                <p>- Source: {result.source}{result.population ? ` (pop. ${result.population.toLocaleString()})` : ""}</p>
                 <p>- OpenStreetMap Nominatim — Geocoding services</p>
-                <p>- US Census Bureau — Demographic estimates (2021)</p>
               </div>
             </CardContent>
           </Card>
@@ -331,7 +346,7 @@ export default function GeoRiskPage() {
             <h3 className="text-sm font-semibold mb-2">How It Works</h3>
             <div className="text-xs text-muted-foreground space-y-1">
               <p>- Enter a location and facility type to generate a risk assessment</p>
-              <p>- Crime data sourced from <strong>FBI UCR 2022</strong> (state-level statistics)</p>
+              <p>- Crime data sourced from <strong>FBI UCR 2022</strong> (city → county → state fallback)</p>
               <p>- Risk score factors in violent crime, property crime, and facility vulnerability</p>
               <p>- Auto-generates security recommendations based on risk level</p>
               <p>- Export professional PDF reports for client proposals</p>
