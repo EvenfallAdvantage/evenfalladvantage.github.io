@@ -22,6 +22,7 @@ import { useTheme } from "next-themes";
 import {
   fetchMapOverlayData, getNSOPWSearchUrl, hasFamilyWatchdogKey,
   setFamilyWatchdogKey, getFamilyWatchdogKey,
+  hasCrimeometerKey, setCrimeometerKey, getCrimeometerKey,
   type CrimeIncident, type SexOffender,
 } from "@/lib/crime-incidents";
 
@@ -107,14 +108,20 @@ export default function GeoRiskPage() {
   const [incidents, setIncidents] = useState<CrimeIncident[]>([]);
   const [offenders, setOffenders] = useState<SexOffender[]>([]);
   const [overlayLoading, setOverlayLoading] = useState(false);
+  const [overlaySources, setOverlaySources] = useState<string[]>([]);
   const [fwKeyInput, setFwKeyInput] = useState("");
   const [showFwKey, setShowFwKey] = useState(false);
   const [fwKeyConfigured, setFwKeyConfigured] = useState(false);
+  const [cmKeyInput, setCmKeyInput] = useState("");
+  const [showCmKey, setShowCmKey] = useState(false);
+  const [cmKeyConfigured, setCmKeyConfigured] = useState(false);
 
-  // Check for FW key on mount
+  // Check for API keys on mount
   useEffect(() => {
     setFwKeyConfigured(hasFamilyWatchdogKey());
     setFwKeyInput(getFamilyWatchdogKey());
+    setCmKeyConfigured(hasCrimeometerKey());
+    setCmKeyInput(getCrimeometerKey());
   }, []);
 
   // Autocomplete state
@@ -220,6 +227,7 @@ export default function GeoRiskPage() {
           .then((overlay) => {
             setIncidents(overlay.incidents);
             setOffenders(overlay.offenders);
+            setOverlaySources(overlay.sources);
           })
           .catch(() => { /* silent */ })
           .finally(() => setOverlayLoading(false));
@@ -355,6 +363,12 @@ export default function GeoRiskPage() {
                     <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
                     {offenders.length} registered offender{offenders.length !== 1 ? "s" : ""}
                   </Badge>
+                )}
+                {/* Source badges */}
+                {overlaySources.length > 0 && (
+                  <span className="text-muted-foreground">
+                    via {overlaySources.join(" + ")}
+                  </span>
                 )}
                 {/* NSOPW Fallback Link */}
                 <a
@@ -563,7 +577,8 @@ export default function GeoRiskPage() {
             <div className="text-xs text-muted-foreground space-y-1">
               <p>- Enter a location and facility type to generate a risk assessment</p>
               <p>- Crime data sourced from <strong>FBI UCR 2022</strong> (city → county → state fallback)</p>
-              <p>- <strong>Map overlay:</strong> real crime incidents plotted from city open data (Socrata)</p>
+              <p>- <strong>Map overlay:</strong> crime incidents from 4 OSINT sources (Socrata, OpenDataSoft, ArcGIS, Crimeometer)</p>
+              <p>- All sources queried in parallel, deduplicated by proximity + date + type</p>
               <p>- <strong>Sex offender overlay:</strong> via Family Watchdog API (optional, key required)</p>
               <p>- Risk score factors in violent crime, property crime, and facility vulnerability</p>
               <p>- Auto-generates security recommendations based on risk level</p>
@@ -609,6 +624,51 @@ export default function GeoRiskPage() {
                 onClick={() => {
                   setFamilyWatchdogKey(fwKeyInput.trim());
                   setFwKeyConfigured(!!fwKeyInput.trim());
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Crimeometer API Key Config */}
+        <Card className="border-border/40">
+          <CardContent className="p-4 space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <Key className="h-3.5 w-3.5" /> Crimeometer (National)
+              {cmKeyConfigured && <Badge variant="outline" className="text-[9px] ml-1 text-green-500 border-green-500/30">Active</Badge>}
+            </h3>
+            <p className="text-[10px] text-muted-foreground">
+              For nationwide geocoded crime data (fills gaps where city open data isn&apos;t available), enter your{" "}
+              <a href="https://www.crimeometer.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Crimeometer API key
+              </a>
+              . Free tier: 100 calls/month. Without a key, Socrata + OpenDataSoft + ArcGIS are used (all free).
+            </p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type={showCmKey ? "text" : "password"}
+                  placeholder="Enter API key..."
+                  value={cmKeyInput}
+                  onChange={(e) => setCmKeyInput(e.target.value)}
+                  className="h-8 text-xs pr-8"
+                />
+                <button
+                  onClick={() => setShowCmKey(!showCmKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showCmKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-8"
+                onClick={() => {
+                  setCrimeometerKey(cmKeyInput.trim());
+                  setCmKeyConfigured(!!cmKeyInput.trim());
                 }}
               >
                 Save

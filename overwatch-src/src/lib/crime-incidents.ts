@@ -1,9 +1,18 @@
 /**
  * Crime Incidents & Sex Offender Overlay — Geo-Risk Map Data
  *
- * Phase 1: Socrata SODA API (free, no key) — crime incidents from city open data portals
- * Phase 2: Family Watchdog API (paid, key-gated) — registered sex offenders
- * Phase 3: NSOPW fallback link (free, no API)
+ * OSINT Sources (crime incidents):
+ *   1. Socrata SODA API (free, no key) — 60+ static cities + dynamic discovery
+ *   2. OpenDataSoft (free, no key) — public safety datasets across ODS portals
+ *   3. ArcGIS Open Data Hubs (free, no key) — FeatureServer queries for city ArcGIS portals
+ *   4. Crimeometer API (free tier: 100 calls/mo, key-gated) — national geocoded incidents
+ *
+ * Sex offender sources:
+ *   5. Family Watchdog API (paid, key-gated) — registered sex offenders
+ *   6. NSOPW fallback link (free, no API) — DOJ registry search
+ *
+ * All sources are queried in parallel, collated, and deduplicated by
+ * proximity + date + category before being returned to the map.
  */
 
 // ────────────────────────────── Types ──────────────────────────────
@@ -220,12 +229,308 @@ const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 const _incidentCache: Record<string, { ts: number; data: CrimeIncident[] }> = {};
 const _offenderCache: Record<string, { ts: number; data: SexOffender[] }> = {};
 
-// ────────────────────────────── Phase 1: Socrata Fetch ──────────────────────────────
+// ────────────────────────────── Deduplication ──────────────────────────────
+
+// Two incidents are considered duplicates if they are within ~50m of each other,
+// occurred on the same date, and have the same classification.
+function dedupeIncidents(all: CrimeIncident[]): CrimeIncident[] {
+  const seen = new Set<string>();
+  const result: CrimeIncident[] = [];
+  for (const inc of all) {
+    // Hash: round lat/lon to ~50m grid, same date prefix, same type
+    const key = `${inc.lat.toFixed(3)}|${inc.lon.toFixed(3)}|${inc.date?.slice(0, 10)}|${inc.type}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(inc);
+  }
+  return result;
+}
+
+// ────────────────────────────── Bounding-box helper ──────────────────────────────
+
+function bbox(lat: number, lon: number, radiusMeters: number) {
+  const latDelta = radiusMeters / 111000;
+  const lonDelta = radiusMeters / (111000 * Math.cos((lat * Math.PI) / 180));
+  return { minLat: lat - latDelta, maxLat: lat + latDelta, minLon: lon - lonDelta, maxLon: lon + lonDelta };
+}
+
+function oneYearAgoStr(): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  return d.toISOString().split("T")[0];
+}
+
+function truncate(s: string, max: number): string {
+  return s.length > max ? s.slice(0, max - 3) + "..." : s;
+}
+
+// ────────────────────────────── Source 1: Socrata Fetch ──────────────────────────────
 
 function findSocrataCity(city: string, state: string): SocrataCity | null {
   const key = `${city.toLowerCase()}, ${state.toLowerCase()}`;
   return SOCRATA_CITIES[key] || null;
 }
+
+async function fetchSocrata(
+  lat: number, lon: number, city: string, state: string, radiusMeters: number
+): Promise<CrimeIncident[]> {
+  let cfg = findSocrataCity(city, state);
+  if (!cfg || !cfg.dataset) cfg = await discoverSocrataDataset(city, state);
+  if (!cfg || !cfg.dataset) return [];
+
+  try {
+    let url: string;
+    const dateStr = oneYearAgoStr();
+
+    if (cfg.locationCol) {
+      url =
+        `https://${cfg.domain}/resource/${cfg.dataset}.json?` +
+        `$where=within_circle(${cfg.locationCol},${lat},${lon},${radiusMeters})` +
+        ` AND ${cfg.dateCol} > '${dateStr}'` +
+        `&$limit=75&$order=${cfg.dateCol} DESC`;
+    } else {
+      const b = bbox(lat, lon, radiusMeters);
+      url =
+        `https://${cfg.domain}/resource/${cfg.dataset}.json?` +
+        `$where=${cfg.latCol} between '${b.minLat.toFixed(6)}' and '${b.maxLat.toFixed(6)}'` +
+        ` AND ${cfg.lonCol} between '${b.minLon.toFixed(6)}' and '${b.maxLon.toFixed(6)}'` +
+        ` AND ${cfg.dateCol} > '${dateStr}'` +
+        `&$limit=75&$order=${cfg.dateCol} DESC`;
+    }
+
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+
+    const raw: Record<string, unknown>[] = await res.json();
+    return raw
+      .map((r) => {
+        const rLat = parseFloat(String(r[cfg.latCol] ?? "0"));
+        const rLon = parseFloat(String(r[cfg.lonCol] ?? "0"));
+        if (!rLat || !rLon) return null;
+        const typeStr = String(r[cfg.typeCol] || "Unknown");
+        const desc = String(r[cfg.descCol] || typeStr);
+        const date = String(r[cfg.dateCol] || "");
+        return {
+          lat: rLat, lon: rLon,
+          type: classifyIncident(typeStr),
+          category: truncate(typeStr, 40),
+          description: truncate(desc, 60),
+          date: date ? new Date(date).toLocaleDateString() : "Unknown",
+          source: `Socrata (${city})`,
+        } as CrimeIncident;
+      })
+      .filter(Boolean) as CrimeIncident[];
+  } catch (e) {
+    console.warn("Socrata fetch error:", e);
+    return [];
+  }
+}
+
+// ────────────────────────────── Source 2: OpenDataSoft ──────────────────────────────
+
+// ODS public search — queries the global ODS catalog for crime/public-safety
+// datasets geofiltered to the target location.
+async function fetchOpenDataSoft(
+  lat: number, lon: number, city: string, radiusMeters: number
+): Promise<CrimeIncident[]> {
+  try {
+    const dist = Math.max(radiusMeters, 1609);
+    const url =
+      `https://public.opendatasoft.com/api/records/1.0/search/?` +
+      `q=crime+OR+incident+OR+offense+OR+police` +
+      `&geofilter.distance=${lat},${lon},${dist}` +
+      `&rows=50&sort=-date`;
+
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const records: Record<string, unknown>[] = data?.records || [];
+
+    return records
+      .map((rec) => {
+        const fields = (rec as { fields?: Record<string, unknown> }).fields || {};
+        const geo = (rec as { geometry?: { coordinates?: number[] } }).geometry;
+        const rLat = geo?.coordinates?.[1];
+        const rLon = geo?.coordinates?.[0];
+        if (!rLat || !rLon) return null;
+
+        const typeStr = String(
+          fields.offense || fields.crime_type || fields.incident_category ||
+          fields.primary_type || fields.offense_description || fields.type || "Unknown"
+        );
+        const desc = String(
+          fields.description || fields.offense_description || fields.incident_description || typeStr
+        );
+        const date = String(
+          fields.date || fields.report_date || fields.datetime || fields.incident_date || ""
+        );
+
+        return {
+          lat: rLat, lon: rLon,
+          type: classifyIncident(typeStr),
+          category: truncate(typeStr, 40),
+          description: truncate(desc, 60),
+          date: date ? new Date(date).toLocaleDateString() : "Unknown",
+          source: "OpenDataSoft",
+        } as CrimeIncident;
+      })
+      .filter(Boolean) as CrimeIncident[];
+  } catch (e) {
+    console.warn("OpenDataSoft fetch error:", e);
+    return [];
+  }
+}
+
+// ────────────────────────────── Source 3: ArcGIS Open Data Hubs ──────────────────────────────
+
+// Many cities publish crime data via ArcGIS Hub. We search the ArcGIS Hub
+// catalog for public-safety FeatureServer layers near the target.
+
+type ArcGISHub = {
+  hubUrl: string; // ArcGIS Hub dataset search URL
+  serviceUrl: string; // Direct FeatureServer URL
+  layerId: number;
+};
+
+const ARCGIS_HUBS: Record<string, ArcGISHub> = {
+  "miami, florida":          { hubUrl: "", serviceUrl: "https://services1.arcgis.com/CvuPhqcTQpZPT9qE/arcgis/rest/services/Miami_Police_Incidents/FeatureServer", layerId: 0 },
+  "tampa, florida":          { hubUrl: "", serviceUrl: "https://services1.arcgis.com/5GKDnBSgTMmMPrlB/arcgis/rest/services/Tampa_Police_Calls/FeatureServer", layerId: 0 },
+  "atlanta, georgia":        { hubUrl: "", serviceUrl: "https://services3.arcgis.com/Et5Qfajgiyosiw4d/arcgis/rest/services/Atlanta_Police_Crime/FeatureServer", layerId: 0 },
+  "portland, oregon":        { hubUrl: "", serviceUrl: "https://services.arcgis.com/quVN97tn06YNGj9s/arcgis/rest/services/PPB_CrimeData/FeatureServer", layerId: 0 },
+  "charlotte, north carolina": { hubUrl: "", serviceUrl: "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/CMPD_Incidents/FeatureServer", layerId: 0 },
+  "las vegas, nevada":       { hubUrl: "", serviceUrl: "https://services.arcgis.com/YXdNFBt1GC7Jr0M6/arcgis/rest/services/Metro_Police_Open_Data/FeatureServer", layerId: 0 },
+  "tucson, arizona":         { hubUrl: "", serviceUrl: "https://services2.arcgis.com/fs7zDCeBQzITSQjR/arcgis/rest/services/Tucson_Police_Incidents/FeatureServer", layerId: 0 },
+  "raleigh, north carolina": { hubUrl: "", serviceUrl: "https://services.arcgis.com/v400IkDOw1ad7Yad/arcgis/rest/services/Raleigh_Police_Incidents/FeatureServer", layerId: 0 },
+};
+
+async function fetchArcGIS(
+  lat: number, lon: number, city: string, state: string, radiusMeters: number
+): Promise<CrimeIncident[]> {
+  const hub = ARCGIS_HUBS[`${city.toLowerCase()}, ${state.toLowerCase()}`];
+  if (!hub) return [];
+
+  try {
+    const b = bbox(lat, lon, radiusMeters);
+    const where = encodeURIComponent(`1=1`);
+    const geometry = encodeURIComponent(
+      `{"xmin":${b.minLon},"ymin":${b.minLat},"xmax":${b.maxLon},"ymax":${b.maxLat},"spatialReference":{"wkid":4326}}`
+    );
+    const url =
+      `${hub.serviceUrl}/${hub.layerId}/query?` +
+      `where=${where}&geometry=${geometry}&geometryType=esriGeometryEnvelope` +
+      `&inSR=4326&spatialRel=esriSpatialRelContains` +
+      `&outFields=*&returnGeometry=true&outSR=4326&f=json&resultRecordCount=50`;
+
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const features: { attributes: Record<string, unknown>; geometry?: { x: number; y: number } }[] =
+      data?.features || [];
+
+    return features
+      .map((f) => {
+        const a = f.attributes;
+        const rLon = f.geometry?.x;
+        const rLat = f.geometry?.y;
+        if (!rLat || !rLon) return null;
+
+        // Auto-detect common ArcGIS field names
+        const typeStr = String(
+          a.offense || a.Offense || a.OFFENSE || a.crime_type || a.CrimeType ||
+          a.OFFENSE_DESCRIPTION || a.offense_description || a.incident_type ||
+          a.Nature || a.nature || a.UCR_CRIME_CATEGORY || "Unknown"
+        );
+        const desc = String(
+          a.description || a.Description || a.DESCRIPTION || a.offense_description || typeStr
+        );
+        const rawDate = String(
+          a.report_date || a.Report_Date || a.date || a.DATE_ ||
+          a.occurred_date || a.OCCURRED_DATE || a.incident_date || ""
+        );
+        const date = rawDate ? new Date(Number(rawDate) || rawDate).toLocaleDateString() : "Unknown";
+
+        return {
+          lat: rLat, lon: rLon,
+          type: classifyIncident(typeStr),
+          category: truncate(typeStr, 40),
+          description: truncate(desc, 60),
+          date,
+          source: `ArcGIS (${city})`,
+        } as CrimeIncident;
+      })
+      .filter(Boolean) as CrimeIncident[];
+  } catch (e) {
+    console.warn("ArcGIS fetch error:", e);
+    return [];
+  }
+}
+
+// ────────────────────────────── Source 4: Crimeometer (key-gated) ──────────────────────────────
+
+// Free tier: 100 calls/month at https://www.crimeometer.com
+// Provides nationwide geocoded incident data.
+
+export function hasCrimeometerKey(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!(localStorage.getItem("crimeometer_key"));
+}
+
+export function setCrimeometerKey(key: string) {
+  if (typeof window !== "undefined") localStorage.setItem("crimeometer_key", key);
+}
+
+export function getCrimeometerKey(): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("crimeometer_key") || "";
+}
+
+async function fetchCrimeometer(
+  lat: number, lon: number, radiusMeters: number
+): Promise<CrimeIncident[]> {
+  const key = getCrimeometerKey();
+  if (!key) return [];
+
+  try {
+    const radiusMi = (radiusMeters / 1609).toFixed(2);
+    const endDt = new Date().toISOString().split("T")[0];
+    const startDt = oneYearAgoStr();
+    const url =
+      `https://api.crimeometer.com/v1/incidents/raw-data?` +
+      `lat=${lat}&lon=${lon}&distance=${radiusMi}mi` +
+      `&datetime_ini=${startDt}T00:00:00.000Z&datetime_end=${endDt}T23:59:59.999Z` +
+      `&page=1`;
+
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json", "x-api-key": key },
+    });
+    if (!res.ok) return [];
+
+    const data = await res.json();
+    const incidents: Record<string, unknown>[] = data?.incidents || [];
+
+    return incidents.slice(0, 50).map((inc) => {
+      const typeStr = String(inc.incident_offense || inc.incident_offense_code || "Unknown");
+      const desc = String(inc.incident_offense_detail_description || inc.incident_offense_description || typeStr);
+      const date = String(inc.incident_date || "");
+      return {
+        lat: parseFloat(String(inc.incident_latitude || "0")),
+        lon: parseFloat(String(inc.incident_longitude || "0")),
+        type: classifyIncident(typeStr),
+        category: truncate(typeStr, 40),
+        description: truncate(desc, 60),
+        date: date ? new Date(date).toLocaleDateString() : "Unknown",
+        source: "Crimeometer",
+      };
+    }).filter((i) => i.lat && i.lon);
+  } catch (e) {
+    console.warn("Crimeometer fetch error:", e);
+    return [];
+  }
+}
+
+// ────────────────────────────── Multi-Source Aggregator ──────────────────────────────
 
 export async function fetchNearbyIncidents(
   lat: number,
@@ -238,82 +543,20 @@ export async function fetchNearbyIncidents(
   const cached = _incidentCache[cacheKey];
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
 
-  // Try static registry first, then dynamic discovery
-  let cfg = findSocrataCity(city, state);
-  if (!cfg || !cfg.dataset) {
-    cfg = await discoverSocrataDataset(city, state);
-  }
-  if (!cfg || !cfg.dataset) {
-    _incidentCache[cacheKey] = { ts: Date.now(), data: [] };
-    return [];
-  }
+  // Fire all sources in parallel — each handles its own errors gracefully
+  const [socrata, ods, arcgis, crimeometer] = await Promise.all([
+    fetchSocrata(lat, lon, city, state, radiusMeters),
+    fetchOpenDataSoft(lat, lon, city, radiusMeters),
+    fetchArcGIS(lat, lon, city, state, radiusMeters),
+    fetchCrimeometer(lat, lon, radiusMeters),
+  ]);
 
-  try {
-    // Build SoQL query using within_circle if locationCol exists, otherwise lat/lon bounding box
-    let url: string;
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const dateStr = oneYearAgo.toISOString().split("T")[0];
+  // Collate all results, dedup, cap at 150
+  const all = [...socrata, ...ods, ...arcgis, ...crimeometer];
+  const deduped = dedupeIncidents(all).slice(0, 150);
 
-    if (cfg.locationCol) {
-      url =
-        `https://${cfg.domain}/resource/${cfg.dataset}.json?` +
-        `$where=within_circle(${cfg.locationCol},${lat},${lon},${radiusMeters})` +
-        ` AND ${cfg.dateCol} > '${dateStr}'` +
-        `&$limit=75&$order=${cfg.dateCol} DESC`;
-    } else {
-      // Bounding box approximation: 1 degree lat ≈ 111km
-      const latDelta = radiusMeters / 111000;
-      const lonDelta = radiusMeters / (111000 * Math.cos((lat * Math.PI) / 180));
-      url =
-        `https://${cfg.domain}/resource/${cfg.dataset}.json?` +
-        `$where=${cfg.latCol} between '${(lat - latDelta).toFixed(6)}' and '${(lat + latDelta).toFixed(6)}'` +
-        ` AND ${cfg.lonCol} between '${(lon - lonDelta).toFixed(6)}' and '${(lon + lonDelta).toFixed(6)}'` +
-        ` AND ${cfg.dateCol} > '${dateStr}'` +
-        `&$limit=75&$order=${cfg.dateCol} DESC`;
-    }
-
-    const res = await fetch(url, {
-      headers: { Accept: "application/json" },
-    });
-
-    if (!res.ok) {
-      console.warn(`Socrata ${cfg.domain}: HTTP ${res.status}`);
-      _incidentCache[cacheKey] = { ts: Date.now(), data: [] };
-      return [];
-    }
-
-    const raw: Record<string, unknown>[] = await res.json();
-
-    const incidents: CrimeIncident[] = raw
-      .map((r) => {
-        const rLat = parseFloat(String(r[cfg.latCol] ?? "0"));
-        const rLon = parseFloat(String(r[cfg.lonCol] ?? "0"));
-        if (!rLat || !rLon) return null;
-
-        const typeStr = String(r[cfg.typeCol] || "Unknown");
-        const desc = String(r[cfg.descCol] || typeStr);
-        const date = String(r[cfg.dateCol] || "");
-
-        return {
-          lat: rLat,
-          lon: rLon,
-          type: classifyIncident(typeStr),
-          category: typeStr.length > 40 ? typeStr.slice(0, 37) + "..." : typeStr,
-          description: desc.length > 60 ? desc.slice(0, 57) + "..." : desc,
-          date: date ? new Date(date).toLocaleDateString() : "Unknown",
-          source: `${city} Open Data (Socrata)`,
-        } as CrimeIncident;
-      })
-      .filter(Boolean) as CrimeIncident[];
-
-    _incidentCache[cacheKey] = { ts: Date.now(), data: incidents };
-    return incidents;
-  } catch (e) {
-    console.warn("Socrata fetch error:", e);
-    _incidentCache[cacheKey] = { ts: Date.now(), data: [] };
-    return [];
-  }
+  _incidentCache[cacheKey] = { ts: Date.now(), data: deduped };
+  return deduped;
 }
 
 // ────────────────────────────── Phase 2: Family Watchdog ──────────────────────────────
@@ -409,7 +652,7 @@ export function getNSOPWSearchUrl(address: string, city: string, state: string):
 export type MapOverlayData = {
   incidents: CrimeIncident[];
   offenders: SexOffender[];
-  hasSocrataData: boolean;
+  sources: string[];
   hasOffenderKey: boolean;
 };
 
@@ -424,10 +667,13 @@ export async function fetchMapOverlayData(
     fetchNearbyOffenders(lat, lon),
   ]);
 
+  // Collect unique source names
+  const sources = [...new Set(incidents.map((i) => i.source))];
+
   return {
     incidents,
     offenders,
-    hasSocrataData: incidents.length > 0,
+    sources,
     hasOffenderKey: hasFamilyWatchdogKey(),
   };
 }
