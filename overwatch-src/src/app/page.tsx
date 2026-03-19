@@ -447,6 +447,7 @@ function HomePageInner() {
       <section className="relative pt-32 pb-20 overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-[#dd8c33]/8 via-transparent to-transparent rounded-full blur-3xl" />
+        <TacticalGlobe />
 
         <div className="relative mx-auto max-w-4xl px-6 text-center">
           <Image src="/images/overwatch_logo.png" alt="Overwatch" width={200} height={200} className="mx-auto mb-6" style={{ width: 200, height: "auto" }} />
@@ -469,11 +470,6 @@ function HomePageInner() {
             <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 border border-[#dd8c33]/30 text-white/80 px-8 py-3 rounded-xl hover:bg-[#dd8c33]/10 transition-all text-sm">
               Sign In
             </button>
-          </div>
-
-          {/* Tactical Globe */}
-          <div className="mt-12">
-            <TacticalGlobe />
           </div>
         </div>
       </section>

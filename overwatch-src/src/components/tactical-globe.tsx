@@ -54,27 +54,24 @@ export function TacticalGlobe() {
   }, []);
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto overflow-hidden" style={{ height: "clamp(160px, 22vw, 280px)" }}>
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
       <canvas
         ref={canvasRef}
-        className="w-full aspect-square"
         style={{
-          width: "100%",
-          maxWidth: 600,
-          margin: "0 auto",
-          display: "block",
+          width: "min(1000px, 90vw)",
+          height: "min(1000px, 90vw)",
           position: "absolute",
           left: "50%",
-          top: 0,
-          transform: "translateX(-50%)",
+          bottom: 0,
+          transform: "translateX(-50%) translateY(55%)",
         }}
       />
       {/* Fade-out at bottom edge */}
       <div
-        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        className="absolute bottom-0 left-0 right-0"
         style={{
-          height: "60%",
-          background: "linear-gradient(to bottom, transparent 0%, #0b1422 85%)",
+          height: "40%",
+          background: "linear-gradient(to bottom, transparent 0%, #0b1422 70%)",
         }}
       />
     </div>
