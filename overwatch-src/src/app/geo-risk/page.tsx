@@ -22,7 +22,7 @@ import { useTheme } from "next-themes";
 import {
   fetchMapOverlayData, getNSOPWSearchUrl, hasFamilyWatchdogKey,
   setFamilyWatchdogKey, getFamilyWatchdogKey,
-  type CrimeIncident, type SexOffender, type MapOverlayData,
+  type CrimeIncident, type SexOffender,
 } from "@/lib/crime-incidents";
 
 const GeoRiskMap = dynamic(() => import("@/components/geo-risk-map"), { ssr: false });
@@ -348,7 +348,7 @@ export default function GeoRiskPage() {
                   </Badge>
                 )}
                 {incidents.length === 0 && !overlayLoading && (
-                  <span className="text-muted-foreground">No incident-level data for this city (Socrata)</span>
+                  <span className="text-muted-foreground">No open-data crime incidents found for this area</span>
                 )}
                 {offenders.length > 0 && (
                   <Badge variant="outline" className="gap-1 font-normal">

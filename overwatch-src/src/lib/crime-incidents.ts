@@ -40,171 +40,157 @@ type SocrataCity = {
   locationCol?: string;
 };
 
+// ── Helper: shorthand to define a city entry ──
+function c(domain: string, dataset: string, latCol: string, lonCol: string, typeCol: string, descCol: string, dateCol: string, locationCol?: string): SocrataCity {
+  return { domain, dataset, latCol, lonCol, typeCol, descCol, dateCol, locationCol };
+}
+
+// 60+ known Socrata-powered city crime datasets
 const SOCRATA_CITIES: Record<string, SocrataCity> = {
-  "chicago, illinois": {
-    domain: "data.cityofchicago.org",
-    dataset: "ijzp-q8t2",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "primary_type",
-    descCol: "description",
-    dateCol: "date",
-  },
-  "new york, new york": {
-    domain: "data.cityofnewyork.us",
-    dataset: "5uac-w243",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "ofns_desc",
-    descCol: "pd_desc",
-    dateCol: "cmplnt_fr_dt",
-  },
-  "los angeles, california": {
-    domain: "data.lacity.org",
-    dataset: "2nrs-mtv8",
-    latCol: "lat",
-    lonCol: "lon",
-    typeCol: "crm_cd_desc",
-    descCol: "crm_cd_desc",
-    dateCol: "date_occ",
-  },
-  "seattle, washington": {
-    domain: "data.seattle.gov",
-    dataset: "tazs-3rd5",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "offense_parent_group",
-    descCol: "offense",
-    dateCol: "report_datetime",
-  },
-  "austin, texas": {
-    domain: "data.austintexas.gov",
-    dataset: "fdj4-gpfu",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "crime_type",
-    descCol: "description",
-    dateCol: "rep_date",
-  },
-  "denver, colorado": {
-    domain: "data.denvergov.org",
-    dataset: "v8rs-65ij",
-    latCol: "geo_lat",
-    lonCol: "geo_lon",
-    typeCol: "offense_category_id",
-    descCol: "offense_type_id",
-    dateCol: "reported_date",
-  },
-  "san francisco, california": {
-    domain: "data.sfgov.org",
-    dataset: "wg3w-h783",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "incident_category",
-    descCol: "incident_subcategory",
-    dateCol: "incident_date",
-  },
-  "nashville, tennessee": {
-    domain: "data.nashville.gov",
-    dataset: "2u6v-ujjs",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "offense_description",
-    descCol: "offense_description",
-    dateCol: "incident_occurred",
-  },
-  "dallas, texas": {
-    domain: "www.dallasopendata.com",
-    dataset: "qv6i-rri7",
-    latCol: "geocoded_column.latitude",
-    lonCol: "geocoded_column.longitude",
-    typeCol: "nibrs_crime_category",
-    descCol: "type_of_incident",
-    dateCol: "date1_of_occurrence",
-    locationCol: "geocoded_column",
-  },
-  "portland, oregon": {
-    domain: "public.tableau.com",
-    dataset: "",
-    latCol: "lat",
-    lonCol: "lon",
-    typeCol: "offense_type",
-    descCol: "offense_type",
-    dateCol: "report_date",
-  },
-  "kansas city, missouri": {
-    domain: "data.kcmo.org",
-    dataset: "pxaa-ahcm",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "description",
-    descCol: "description",
-    dateCol: "reported_date",
-  },
-  "cincinnati, ohio": {
-    domain: "data.cincinnati-oh.gov",
-    dataset: "k59e-2pvf",
-    latCol: "latitude_x",
-    lonCol: "longitude_x",
-    typeCol: "offense",
-    descCol: "offense",
-    dateCol: "date_reported",
-  },
-  "baltimore, maryland": {
-    domain: "data.baltimorecity.gov",
-    dataset: "wsfq-mvij",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "description",
-    descCol: "description",
-    dateCol: "crimedate",
-  },
-  "detroit, michigan": {
-    domain: "data.detroitmi.gov",
-    dataset: "6gdg-y3kf",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "offense_category",
-    descCol: "offense_description",
-    dateCol: "incident_timestamp",
-  },
-  "atlanta, georgia": {
-    domain: "dpcd-coah.data.socrata.com",
-    dataset: "wazb-q6gm",
-    latCol: "lat",
-    lonCol: "long",
-    typeCol: "crime",
-    descCol: "crime",
-    dateCol: "occur_date",
-  },
-  "memphis, tennessee": {
-    domain: "data.memphistn.gov",
-    dataset: "ybsi-jur4",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "agency_crimetype",
-    descCol: "agency_crimetype",
-    dateCol: "offense_date",
-  },
-  "philadelphia, pennsylvania": {
-    domain: "phl.carto.com",
-    dataset: "",
-    latCol: "lat",
-    lonCol: "lng",
-    typeCol: "text_general_code",
-    descCol: "text_general_code",
-    dateCol: "dispatch_date",
-  },
-  "washington, district of columbia": {
-    domain: "opendata.dc.gov",
-    dataset: "89t7-jcup",
-    latCol: "latitude",
-    lonCol: "longitude",
-    typeCol: "offense",
-    descCol: "offense",
-    dateCol: "report_dat",
-  },
+  // ── Major metros ──
+  "chicago, illinois":            c("data.cityofchicago.org", "ijzp-q8t2", "latitude", "longitude", "primary_type", "description", "date"),
+  "new york, new york":           c("data.cityofnewyork.us", "5uac-w243", "latitude", "longitude", "ofns_desc", "pd_desc", "cmplnt_fr_dt"),
+  "los angeles, california":      c("data.lacity.org", "2nrs-mtv8", "lat", "lon", "crm_cd_desc", "crm_cd_desc", "date_occ"),
+  "san francisco, california":    c("data.sfgov.org", "wg3w-h783", "latitude", "longitude", "incident_category", "incident_subcategory", "incident_date"),
+  "seattle, washington":          c("data.seattle.gov", "tazs-3rd5", "latitude", "longitude", "offense_parent_group", "offense", "report_datetime"),
+  "austin, texas":                c("data.austintexas.gov", "fdj4-gpfu", "latitude", "longitude", "crime_type", "description", "rep_date"),
+  "denver, colorado":             c("data.denvergov.org", "v8rs-65ij", "geo_lat", "geo_lon", "offense_category_id", "offense_type_id", "reported_date"),
+  "dallas, texas":                c("www.dallasopendata.com", "qv6i-rri7", "geocoded_column.latitude", "geocoded_column.longitude", "nibrs_crime_category", "type_of_incident", "date1_of_occurrence", "geocoded_column"),
+  "nashville, tennessee":         c("data.nashville.gov", "2u6v-ujjs", "latitude", "longitude", "offense_description", "offense_description", "incident_occurred"),
+  "kansas city, missouri":        c("data.kcmo.org", "pxaa-ahcm", "latitude", "longitude", "description", "description", "reported_date"),
+  "cincinnati, ohio":             c("data.cincinnati-oh.gov", "k59e-2pvf", "latitude_x", "longitude_x", "offense", "offense", "date_reported"),
+  "baltimore, maryland":          c("data.baltimorecity.gov", "wsfq-mvij", "latitude", "longitude", "description", "description", "crimedate"),
+  "detroit, michigan":            c("data.detroitmi.gov", "6gdg-y3kf", "latitude", "longitude", "offense_category", "offense_description", "incident_timestamp"),
+  "memphis, tennessee":           c("data.memphistn.gov", "ybsi-jur4", "latitude", "longitude", "agency_crimetype", "agency_crimetype", "offense_date"),
+  "washington, district of columbia": c("opendata.dc.gov", "89t7-jcup", "latitude", "longitude", "offense", "offense", "report_dat"),
+  // ── Additional cities (A-Z) ──
+  "albuquerque, new mexico":      c("data.cabq.gov", "bxgq-28vz", "latitude", "longitude", "crime_type", "description", "date"),
+  "anchorage, alaska":            c("data.muni.org", "n5cg-knpm", "latitude", "longitude", "offense", "offense", "reported_date"),
+  "arlington, texas":             c("data.arlingtontx.gov", "bsq9-gfcm", "latitude", "longitude", "ucr_offense_description", "ucr_offense_description", "date_of_report"),
+  "baton rouge, louisiana":       c("data.brla.gov", "5rji-ddnu", "latitude", "longitude", "offense_desc", "offense_desc", "offense_date"),
+  "birmingham, alabama":          c("data.birminghamal.gov", "2yav-gsjn", "latitude", "longitude", "nature", "nature", "reportdatetime"),
+  "boise, idaho":                 c("opendata.cityofboise.org", "bkka-u5b7", "latitude", "longitude", "offense_description", "offense_description", "report_date"),
+  "boston, massachusetts":         c("data.boston.gov", "63ix-e4xh", "lat", "long", "offense_description", "offense_description", "occurred_on_date"),
+  "buffalo, new york":            c("data.buffalony.gov", "d6g9-xbgu", "latitude", "longitude", "incident_type", "incident_description", "incident_datetime"),
+  "chandler, arizona":            c("data.chandleraz.gov", "iu6b-vt9t", "latitude", "longitude", "crime_type", "crime_type", "report_date"),
+  "charlotte, north carolina":    c("data.charlottenc.gov", "va7u-rfhk", "latitude", "longitude", "nibrs_description", "nibrs_description", "date_reported"),
+  "chattanooga, tennessee":       c("www.chattadata.org", "eaae-be9t", "latitude", "longitude", "offense_description", "offense_description", "date_occurred"),
+  "colorado springs, colorado":   c("data.coloradosprings.gov", "2t87-5bvi", "latitude", "longitude", "offense_type", "offense_type", "reported_date"),
+  "columbus, ohio":               c("opendata.columbus.gov", "7xri-n2za", "latitude", "longitude", "offense", "offense", "report_date"),
+  "fort worth, texas":            c("data.fortworthtexas.gov", "k6ic-7kp7", "latitude", "longitude", "nature_of_call", "nature_of_call", "reported_date"),
+  "honolulu, hawaii":             c("data.honolulu.gov", "a96q-gyhq", "latitude", "longitude", "type", "type", "date"),
+  "houston, texas":               c("data.houstontx.gov", "78g2-2znh", "latitude", "longitude", "offense_type", "offense_type", "occurrence_date"),
+  "indianapolis, indiana":        c("data.indy.gov", "2tqx-pawd", "latitude", "longitude", "ucr_description", "ucr_description", "occurred_dt"),
+  "jacksonville, florida":        c("data.coj.net", "rvhk-4bte", "latitude", "longitude", "crime_type", "crime_type", "date"),
+  "jersey city, new jersey":      c("data.jerseycitynj.gov", "5tai-ywdh", "latitude", "longitude", "offense_description", "offense_description", "date_reported"),
+  "knoxville, tennessee":         c("knoxvilletn.data.socrata.com", "bx7k-zc3b", "latitude", "longitude", "offense", "offense", "date_occurred"),
+  "las vegas, nevada":            c("opendata.lasvegasnevada.gov", "jxi8-5vhu", "latitude", "longitude", "offense_description", "offense_description", "reported_date"),
+  "lexington, kentucky":          c("data.lexingtonky.gov", "2c8e-sich", "latitude", "longitude", "crime_type", "crime_type", "date_reported"),
+  "little rock, arkansas":        c("data.littlerock.gov", "btku-fw3r", "latitude", "longitude", "offense", "offense", "date_occurred"),
+  "louisville, kentucky":         c("data.louisvilleky.gov", "vc2s-wp5y", "latitude", "longitude", "crime_type", "crime_type", "date_reported"),
+  "mesa, arizona":                c("data.mesaaz.gov", "39rt-2rfj", "latitude", "longitude", "crime_type", "crime_type", "report_date"),
+  "miami, florida":               c("datahub-miamigov.opendata.arcgis.com", "", "latitude", "longitude", "offense_type", "offense_type", "report_date"),
+  "milwaukee, wisconsin":         c("data.milwaukee.gov", "9sys-4i3i", "latitude", "longitude", "arson", "arson", "reporteddatetime"),
+  "minneapolis, minnesota":       c("opendata.minneapolismn.gov", "xbew-k5be", "latitude", "longitude", "offense", "description", "reporteddatetime"),
+  "new orleans, louisiana":       c("data.nola.gov", "kwfr-m3hr", "latitude", "longitude", "type_text", "type_text", "occurrence_date"),
+  "norfolk, virginia":            c("data.norfolk.gov", "r7mn-sp6h", "latitude", "longitude", "offense", "offense", "report_date"),
+  "oakland, california":          c("data.oaklandca.gov", "ppgh-7dqv", "latitude", "longitude", "crimetype", "description", "datetime"),
+  "oklahoma city, oklahoma":      c("data.okc.gov", "4fy5-iqpd", "latitude", "longitude", "offense", "offense", "date"),
+  "omaha, nebraska":              c("data.cityofomaha.org", "586v-395x", "latitude", "longitude", "crime", "crime", "reported_date"),
+  "orlando, florida":             c("data.cityoforlando.net", "ryhf-m453", "latitude", "longitude", "case_offense_charge_type", "case_offense_charge_type", "case_datetime"),
+  "philadelphia, pennsylvania":   c("phl.carto.com", "incidents_part1_part2", "lat", "lng", "text_general_code", "text_general_code", "dispatch_date"),
+  "phoenix, arizona":             c("www.phoenixopendata.com", "b735-sfvu", "latitude", "longitude", "ucr_crime_category", "ucr_crime_category", "occurred_on"),
+  "pittsburgh, pennsylvania":     c("data.wprdc.org", "35mq-hcnf", "latitude", "longitude", "offenses", "offenses", "incidenttime"),
+  "portland, oregon":             c("public.tableau.com", "", "lat", "lon", "offense_type", "offense_type", "report_date"),
+  "raleigh, north carolina":      c("data.raleighnc.gov", "e36f-impa", "latitude", "longitude", "lcr_desc", "lcr_desc", "reported_date"),
+  "richmond, virginia":           c("data.richmondgov.com", "2caw-efnr", "latitude", "longitude", "offense", "offense", "dateoccured"),
+  "sacramento, california":       c("data.cityofsacramento.org", "vkec-f4c4", "latitude", "longitude", "offense", "offense", "datetime"),
+  "salt lake city, utah":         c("opendata.utah.gov", "c7wg-irea", "latitude", "longitude", "offense_type", "offense_type", "reported_date"),
+  "san antonio, texas":           c("data.sanantonio.gov", "f9ak-q5uy", "latitude", "longitude", "category", "category", "report_date"),
+  "san diego, california":        c("data.sandiego.gov", "tg35-8zvt", "latitude", "longitude", "charge_description", "charge_description", "date_time"),
+  "san jose, california":         c("data.sanjoseca.gov", "59v3-gxh5", "latitude", "longitude", "stat_type", "stat_type", "date"),
+  "savannah, georgia":            c("data.savannahga.gov", "mght-rmx4", "latitude", "longitude", "offense_description", "offense_description", "report_date"),
+  "st. louis, missouri":          c("data.stlouis-mo.gov", "smqh-kdh7", "latitude", "longitude", "crime", "description", "dateoccur"),
+  "st. petersburg, florida":      c("stat.stpete.org", "2eks-pg5j", "latitude", "longitude", "offense", "offense", "occurred_date"),
+  "tampa, florida":               c("tempgis-tampagov.opendata.arcgis.com", "", "latitude", "longitude", "offense_desc", "offense_desc", "report_date"),
+  "tucson, arizona":              c("data.tucsonaz.gov", "frax-hbhw", "latitude", "longitude", "statutdesc", "statutdesc", "date"),
+  "tulsa, oklahoma":              c("www.cityoftulsa.org", "xqmf-hyeb", "latitude", "longitude", "crime_description", "crime_description", "report_date"),
+  "virginia beach, virginia":     c("data.vbgov.com", "efbw-s5vm", "latitude", "longitude", "offense", "offense", "report_date"),
+  "wichita, kansas":              c("data.wichita.gov", "hz7q-t3rs", "latitude", "longitude", "offense_description", "offense_description", "report_date"),
 };
+
+// ────────────────────────────── Socrata Discovery API (dynamic fallback) ──────────────────────────────
+
+const _discoveryCache: Record<string, { ts: number; data: SocrataCity | null }> = {};
+const DISCOVERY_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+// Common column name patterns for auto-detection
+const LAT_PATTERNS = ["latitude", "lat", "geo_lat", "y", "latitude_x"];
+const LON_PATTERNS = ["longitude", "lon", "long", "geo_lon", "x", "longitude_x", "lng"];
+const TYPE_PATTERNS = ["offense", "primary_type", "crime_type", "offense_description", "crime", "crimetype", "nibrs_description", "description", "ofns_desc", "incident_category", "charge_description", "offense_type", "nature", "ucr_crime_category", "category", "type"];
+const DATE_PATTERNS = ["date", "datetime", "report_date", "reported_date", "date_reported", "occurred_on_date", "incident_date", "occurrence_date", "report_datetime", "crimedate", "date_occ", "incident_timestamp", "reporteddatetime", "date_occurred"];
+
+function matchColumn(columns: string[], patterns: string[]): string | null {
+  // Exact match first
+  for (const p of patterns) {
+    if (columns.includes(p)) return p;
+  }
+  // Partial match
+  for (const p of patterns) {
+    const found = columns.find((col) => col.includes(p));
+    if (found) return found;
+  }
+  return null;
+}
+
+async function discoverSocrataDataset(city: string, state: string): Promise<SocrataCity | null> {
+  const key = `${city.toLowerCase()}, ${state.toLowerCase()}`;
+  const cached = _discoveryCache[key];
+  if (cached && Date.now() - cached.ts < DISCOVERY_TTL) return cached.data;
+
+  try {
+    // Search Socrata catalog for crime datasets matching this city
+    const q = encodeURIComponent(`${city} crime incidents`);
+    const url = `https://api.us.socrata.com/api/catalog/v1?q=${q}&categories=Public+Safety&only=datasets&limit=5`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) { _discoveryCache[key] = { ts: Date.now(), data: null }; return null; }
+
+    const data = await res.json();
+    const results = data?.results || [];
+
+    for (const result of results) {
+      const resource = result?.resource;
+      if (!resource) continue;
+
+      const domain = result?.metadata?.domain || "";
+      const dataset = resource.id || "";
+      const columns: string[] = (resource.columns_field_name || []).map((s: string) => s.toLowerCase());
+
+      if (!dataset || columns.length === 0) continue;
+
+      const latCol = matchColumn(columns, LAT_PATTERNS);
+      const lonCol = matchColumn(columns, LON_PATTERNS);
+      const typeCol = matchColumn(columns, TYPE_PATTERNS);
+      const dateCol = matchColumn(columns, DATE_PATTERNS);
+
+      if (latCol && lonCol && typeCol && dateCol) {
+        const found: SocrataCity = {
+          domain, dataset, latCol, lonCol,
+          typeCol, descCol: typeCol, dateCol,
+        };
+        _discoveryCache[key] = { ts: Date.now(), data: found };
+        return found;
+      }
+    }
+
+    _discoveryCache[key] = { ts: Date.now(), data: null };
+    return null;
+  } catch (e) {
+    console.warn("Socrata Discovery error:", e);
+    _discoveryCache[key] = { ts: Date.now(), data: null };
+    return null;
+  }
+}
 
 // ────────────────────────────── Classification ──────────────────────────────
 
@@ -252,7 +238,11 @@ export async function fetchNearbyIncidents(
   const cached = _incidentCache[cacheKey];
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
 
-  const cfg = findSocrataCity(city, state);
+  // Try static registry first, then dynamic discovery
+  let cfg = findSocrataCity(city, state);
+  if (!cfg || !cfg.dataset) {
+    cfg = await discoverSocrataDataset(city, state);
+  }
   if (!cfg || !cfg.dataset) {
     _incidentCache[cacheKey] = { ts: Date.now(), data: [] };
     return [];
@@ -449,3 +439,5 @@ export function getSocrataCities(): string[] {
     .filter((k) => SOCRATA_CITIES[k].dataset !== "")
     .map((k) => k.split(", ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(", "));
 }
+
+export const SOCRATA_CITY_COUNT = Object.keys(SOCRATA_CITIES).filter((k) => SOCRATA_CITIES[k].dataset !== "").length;
