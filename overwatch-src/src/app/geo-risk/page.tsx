@@ -411,15 +411,37 @@ export default function GeoRiskPage() {
     // ── Map capture ──
     if (mapContainerRef.current) {
       try {
+        // Wait for all tile images inside the map to finish loading
+        const tileImgs = mapContainerRef.current.querySelectorAll("img");
+        await Promise.all(
+          Array.from(tileImgs).map(
+            (img) =>
+              img.complete
+                ? Promise.resolve()
+                : new Promise<void>((r) => {
+                    img.onload = () => r();
+                    img.onerror = () => r();
+                  })
+          )
+        );
+        // Extra settle time for Leaflet rendering
+        await new Promise((r) => setTimeout(r, 500));
         const canvas = await html2canvas(mapContainerRef.current, {
-          scale: 2, useCORS: true, logging: false, allowTaint: true,
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
           backgroundColor: "#0f172a",
+          foreignObjectRendering: false,
+          imageTimeout: 5000,
         });
         const mapData = canvas.toDataURL("image/png");
         const mapH = Math.min(70, (canvas.height / canvas.width) * contentW);
-        doc.addImage(mapData, "PNG", margin, y, contentW, mapH);
-        y += mapH + 4;
-      } catch { /* map capture failed, skip */ }
+        if (canvas.width > 10 && canvas.height > 10) {
+          doc.addImage(mapData, "PNG", margin, y, contentW, mapH);
+          y += mapH + 4;
+        }
+      } catch (e) { console.warn("Map PDF capture failed:", e); }
     }
 
     // ── OSINT Incident Summary ──
@@ -832,7 +854,7 @@ export default function GeoRiskPage() {
             <div className="text-xs text-muted-foreground space-y-1">
               <p>- Enter a location and facility type to generate a risk assessment</p>
               <p>- Crime data sourced from <strong>FBI UCR 2022</strong> (city → county → state fallback)</p>
-              <p>- <strong>Map overlay:</strong> crime incidents from 5 OSINT sources (Socrata, OpenDataSoft, ArcGIS, Crimeometer, UK Police)</p>
+              <p>- <strong>Map overlay:</strong> crime incidents from 4 OSINT sources (Socrata, ArcGIS, Crimeometer, UK Police)</p>
               <p>- <strong>Environmental risk:</strong> Overpass/OSM queries for CPTED indicators (bars, clubs, pawn shops, etc.)</p>
               <p>- All sources queried in parallel, deduplicated by proximity + date + type</p>
               <p>- <strong>Sex offender overlay:</strong> via Family Watchdog API (optional, key required)</p>

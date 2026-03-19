@@ -352,6 +352,11 @@ async function fetchSocrata(
 async function fetchOpenDataSoft(
   lat: number, lon: number, city: string, radiusMeters: number
 ): Promise<CrimeIncident[]> {
+  // ODS v1.0 geofilter.distance consistently returns 400 Bad Request
+  // from browser-side fetch regardless of encoding approach.
+  // Disabled until a working endpoint/version is identified.
+  void lat; void lon; void city; void radiusMeters;
+  return [];
   try {
     const dist = Math.max(radiusMeters, 1609);
     const url =
