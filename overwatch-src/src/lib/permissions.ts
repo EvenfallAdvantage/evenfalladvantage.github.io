@@ -1,8 +1,9 @@
-export type CompanyRole = "owner" | "admin" | "manager" | "lead" | "breaker" | "staff";
+export type CompanyRole = "owner" | "admin" | "instructor" | "manager" | "lead" | "breaker" | "staff";
 
 const ROLE_HIERARCHY: Record<CompanyRole, number> = {
   owner: 60,
   admin: 50,
+  instructor: 45,
   manager: 40,
   lead: 30,
   breaker: 20,
@@ -49,9 +50,14 @@ export function canManageSettings(role: CompanyRole): boolean {
   return hasMinRole(role, "admin");
 }
 
+export function canManageLegacyCourses(role: CompanyRole): boolean {
+  return role === "instructor" || hasMinRole(role, "admin");
+}
+
 export const ROLE_LABELS: Record<CompanyRole, string> = {
   owner: "Owner",
   admin: "Admin",
+  instructor: "Instructor",
   manager: "Manager",
   lead: "Lead",
   breaker: "Breaker",

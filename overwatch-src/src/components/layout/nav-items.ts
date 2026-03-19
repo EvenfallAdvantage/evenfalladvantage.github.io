@@ -69,6 +69,13 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: ["owner", "admin", "manager"],
       },
       {
+        title: "Instructor HQ",
+        href: "/admin/instructor",
+        icon: "GraduationCap",
+        roles: ["owner", "admin", "instructor"],
+        trainingProviderOnly: true,
+      },
+      {
         title: "Personnel",
         href: "/admin/staff",
         icon: "UserCog",

@@ -71,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               companyLogo: m.companies?.logo_url ?? null,
               brandColor: m.companies?.brand_color ?? "#1d3451",
               role: m.role ?? "staff",
+              isTrainingProvider: m.companies?.is_training_provider ?? false,
               settings: m.companies?.settings ?? {},
               membership: {
                 id: m.id,
@@ -153,6 +154,7 @@ function mapSupabaseUser(user: any): SessionUser {
             companyLogo: null,
             brandColor: "#1d3451",
             role: "owner",
+            isTrainingProvider: false,
             settings: {},
             membership: {
               id: "pending",

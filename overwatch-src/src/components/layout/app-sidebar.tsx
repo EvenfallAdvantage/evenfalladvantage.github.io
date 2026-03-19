@@ -184,6 +184,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
     (c) => c.companyId === activeCompanyId
   );
   const userRole = activeCompany?.role ?? "staff";
+  const isTrainingProvider = activeCompany?.isTrainingProvider ?? false;
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
@@ -246,6 +247,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                 (item) =>
                   (!item.roles || item.roles.includes(userRole)) &&
                   (!item.superAdminOnly || isSuperAdmin(user?.email)) &&
+                  (!item.trainingProviderOnly || isTrainingProvider) &&
                   !hiddenTabs.has(item.href)
               )
               .map((item) =>

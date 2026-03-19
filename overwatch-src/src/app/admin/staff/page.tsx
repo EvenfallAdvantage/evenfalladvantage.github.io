@@ -625,9 +625,9 @@ export default function AdminStaffPage() {
                       <div className="relative">
                         {(() => {
                           const roleOptions = myRole === "owner"
-                            ? ["owner", "admin", "manager", "lead", "breaker", "staff"]
+                            ? ["owner", "admin", "instructor", "manager", "lead", "breaker", "staff"]
                             : myRole === "admin"
-                              ? ["admin", "manager", "lead", "breaker", "staff"]
+                              ? ["admin", "instructor", "manager", "lead", "breaker", "staff"]
                               : ["manager", "lead", "breaker", "staff"];
                           const canEdit = canManageRoles && roleOptions.includes(m.role);
                           return canEdit ? (

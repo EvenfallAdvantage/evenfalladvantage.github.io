@@ -540,6 +540,155 @@ export async function findLegacyStudentByEmail(email: string): Promise<LegacyStu
   return data;
 }
 
+// ─── Course / Module / Assessment CRUD ───────────────
+
+/** Create a course in legacy */
+export async function createLegacyCourse(courseData: {
+  course_code: string;
+  course_name: string;
+  description?: string;
+  short_description?: string;
+  price?: number;
+  duration_hours?: number;
+  difficulty_level?: string;
+  target_audience?: string;
+  learning_objectives?: string[];
+}): Promise<{ success: boolean; id?: string }> {
+  const client = getLegacyClient();
+  const { data, error } = await client
+    .from("courses")
+    .insert({ ...courseData, is_active: true, is_featured: false, display_order: 999 })
+    .select("id")
+    .single();
+  if (error) { console.error("Legacy: createCourse error:", error); return { success: false }; }
+  return { success: true, id: data.id };
+}
+
+/** Update a course in legacy */
+export async function updateLegacyCourse(courseId: string, updates: Partial<{
+  course_name: string;
+  description: string;
+  short_description: string;
+  price: number;
+  duration_hours: number;
+  difficulty_level: string;
+  target_audience: string;
+  learning_objectives: string[];
+  is_active: boolean;
+  is_featured: boolean;
+  display_order: number;
+}>): Promise<{ success: boolean }> {
+  const client = getLegacyClient();
+  const { error } = await client.from("courses").update(updates).eq("id", courseId);
+  if (error) { console.error("Legacy: updateCourse error:", error); return { success: false }; }
+  return { success: true };
+}
+
+/** Create a training module in legacy */
+export async function createLegacyModule(moduleData: {
+  module_code: string;
+  module_name: string;
+  description?: string;
+  difficulty_level?: string;
+  duration_minutes?: number;
+  default_course_id?: string;
+}): Promise<{ success: boolean; id?: string }> {
+  const client = getLegacyClient();
+  const { data, error } = await client
+    .from("training_modules")
+    .insert({ ...moduleData, is_active: true, display_order: 999 })
+    .select("id")
+    .single();
+  if (error) { console.error("Legacy: createModule error:", error); return { success: false }; }
+  return { success: true, id: data.id };
+}
+
+/** Update a training module in legacy */
+export async function updateLegacyModule(moduleId: string, updates: Partial<{
+  module_name: string;
+  description: string;
+  difficulty_level: string;
+  duration_minutes: number;
+  is_active: boolean;
+  display_order: number;
+}>): Promise<{ success: boolean }> {
+  const client = getLegacyClient();
+  const { error } = await client.from("training_modules").update(updates).eq("id", moduleId);
+  if (error) { console.error("Legacy: updateModule error:", error); return { success: false }; }
+  return { success: true };
+}
+
+/** Create a slide in legacy */
+export async function createLegacySlide(slideData: {
+  module_id: string;
+  title: string;
+  content_html?: string;
+  slide_number: number;
+  slide_type?: string;
+  image_url?: string;
+}): Promise<{ success: boolean; id?: string }> {
+  const client = getLegacyClient();
+  const { data, error } = await client
+    .from("module_slides")
+    .insert(slideData)
+    .select("id")
+    .single();
+  if (error) { console.error("Legacy: createSlide error:", error); return { success: false }; }
+  return { success: true, id: data.id };
+}
+
+/** Update a slide in legacy */
+export async function updateLegacySlide(slideId: string, updates: Partial<{
+  title: string;
+  content_html: string;
+  slide_number: number;
+  slide_type: string;
+  image_url: string;
+}>): Promise<{ success: boolean }> {
+  const client = getLegacyClient();
+  const { error } = await client.from("module_slides").update(updates).eq("id", slideId);
+  if (error) { console.error("Legacy: updateSlide error:", error); return { success: false }; }
+  return { success: true };
+}
+
+/** Delete a slide in legacy */
+export async function deleteLegacySlide(slideId: string): Promise<{ success: boolean }> {
+  const client = getLegacyClient();
+  const { error } = await client.from("module_slides").delete().eq("id", slideId);
+  if (error) { console.error("Legacy: deleteSlide error:", error); return { success: false }; }
+  return { success: true };
+}
+
+/** Create an assessment in legacy */
+export async function createLegacyAssessment(assessmentData: {
+  assessment_name: string;
+  module_id?: string;
+  total_questions: number;
+  passing_score: number;
+}): Promise<{ success: boolean; id?: string }> {
+  const client = getLegacyClient();
+  const { data, error } = await client
+    .from("assessments")
+    .insert(assessmentData)
+    .select("id")
+    .single();
+  if (error) { console.error("Legacy: createAssessment error:", error); return { success: false }; }
+  return { success: true, id: data.id };
+}
+
+/** Update an assessment in legacy */
+export async function updateLegacyAssessment(assessmentId: string, updates: Partial<{
+  assessment_name: string;
+  module_id: string | null;
+  total_questions: number;
+  passing_score: number;
+}>): Promise<{ success: boolean }> {
+  const client = getLegacyClient();
+  const { error } = await client.from("assessments").update(updates).eq("id", assessmentId);
+  if (error) { console.error("Legacy: updateAssessment error:", error); return { success: false }; }
+  return { success: true };
+}
+
 // ─── Phase 2: Write-Through Functions ────────────────
 
 /** Create a scheduled class in legacy */

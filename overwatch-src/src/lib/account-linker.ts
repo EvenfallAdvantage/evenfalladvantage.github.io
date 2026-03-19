@@ -204,7 +204,7 @@ export async function autoLinkByRole(user: {
   const studentId = await ensureStudentLinked(user);
 
   let instructorId: string | null = null;
-  if (user.role === "owner" || user.role === "admin" || user.role === "manager") {
+  if (user.role === "owner" || user.role === "admin" || user.role === "instructor" || user.role === "manager") {
     instructorId = await ensureInstructorLinked(user);
   }
 

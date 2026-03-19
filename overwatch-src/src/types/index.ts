@@ -5,6 +5,7 @@ export type NavItem = {
   badge?: number;
   roles?: string[];
   superAdminOnly?: boolean;
+  trainingProviderOnly?: boolean;
   section?: string;
   children?: NavItem[];
 };
@@ -20,6 +21,7 @@ export type CompanyContext = {
   companyLogo: string | null;
   brandColor: string;
   role: string;
+  isTrainingProvider: boolean;
   settings: CompanySettings;
   membership: {
     id: string;
