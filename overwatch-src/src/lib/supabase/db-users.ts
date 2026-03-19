@@ -133,7 +133,8 @@ export async function fetchUserProfile(knownAuthId?: string) {
         logo_url,
         brand_color,
         join_code,
-        settings
+        settings,
+        is_training_provider
       )
     `
     )
