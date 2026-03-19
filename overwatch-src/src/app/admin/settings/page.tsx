@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown, LayoutGrid, Upload } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown, LayoutGrid, Upload, Link as LinkIcon } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, updateCompanySettings, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
 import { uploadCompanyLogo } from "@/lib/supabase/db-users";
@@ -112,6 +112,7 @@ export default function AdminSettingsPage() {
   const [timezone, setTimezone] = useState("");
   const [brandColor, setBrandColor] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -151,6 +152,7 @@ export default function AdminSettingsPage() {
         setTimezone(c.timezone ?? "");
         setBrandColor(c.brand_color ?? "#1d3451");
         setLogoUrl(c.logo_url ?? "");
+        setWebsiteUrl(c.website_url ?? "");
         if (c.settings) {
           const s = c.settings as { hiddenTabs?: string[] };
           setHiddenTabs(s.hiddenTabs ?? []);
@@ -193,7 +195,7 @@ export default function AdminSettingsPage() {
     if (!activeCompanyId || activeCompanyId === "pending") return;
     setSaving(true);
     try {
-      await updateCompany(activeCompanyId, { name, brandColor, timezone, logoUrl: logoUrl || undefined });
+      await updateCompany(activeCompanyId, { name, brandColor, timezone, logoUrl: logoUrl || undefined, websiteUrl: websiteUrl || undefined });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) { console.error(err); }
@@ -330,6 +332,13 @@ export default function AdminSettingsPage() {
                 </Button>
               </div>
               <p className="text-[10px] text-muted-foreground mt-1">Upload an image or paste a URL. It will appear in the sidebar.</p>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <LinkIcon className="h-3 w-3" /> Company Website
+              </Label>
+              <Input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} className="mt-1" placeholder="https://www.yourcompany.com" />
+              <p className="text-[10px] text-muted-foreground mt-1">Your company&apos;s website. Visitors can click your badge on the landing page to visit it.</p>
             </div>
             <div ref={tzRef}>
               <Label className="text-xs text-muted-foreground flex items-center gap-1.5">

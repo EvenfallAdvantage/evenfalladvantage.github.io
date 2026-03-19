@@ -411,7 +411,7 @@ function HomePageInner() {
   const [loginOpen, setLoginOpen] = useState(authParam === "login");
   const [registerOpen, setRegisterOpen] = useState(authParam === "register" || !!codeParam);
   const [tosOpen, setTosOpen] = useState(false);
-  const [partners, setPartners] = useState<{ name: string; logo_url: string | null }[]>([]);
+  const [partners, setPartners] = useState<{ name: string; logo_url: string | null; website_url: string | null }[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -551,21 +551,29 @@ function HomePageInner() {
             </div>
             <div className="relative overflow-hidden" style={{ maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
               <div className="flex animate-[scroll_30s_linear_infinite] gap-10 w-max">
-                {[...partners, ...partners].map((p, i) => (
-                  <div key={`${p.name}-${i}`} className="flex flex-col items-center gap-2.5 shrink-0">
-                    {p.logo_url ? (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 overflow-hidden p-1">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={p.logo_url} alt={p.name} className="h-12 w-12 object-contain" />
-                      </div>
-                    ) : (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#dd8c33]/10 border border-[#dd8c33]/20">
-                        <span className="text-xl font-bold font-mono text-[#dd8c33]/70">{p.name.charAt(0)}</span>
-                      </div>
-                    )}
-                    <span className="text-[11px] text-white/40 font-medium max-w-[80px] text-center truncate">{p.name}</span>
-                  </div>
-                ))}
+                {[...partners, ...partners].map((p, i) => {
+                  const badge = (
+                    <div title={p.name} className="shrink-0">
+                      {p.logo_url ? (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5 border border-white/10 overflow-hidden p-1 hover:border-[#dd8c33]/30 hover:bg-white/10 transition-all">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={p.logo_url} alt={p.name} className="h-12 w-12 object-contain" />
+                        </div>
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#dd8c33]/10 border border-[#dd8c33]/20 hover:border-[#dd8c33]/40 hover:bg-[#dd8c33]/15 transition-all">
+                          <span className="text-xl font-bold font-mono text-[#dd8c33]/70">{p.name.charAt(0)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                  return p.website_url ? (
+                    <a key={`${p.name}-${i}`} href={p.website_url} target="_blank" rel="noopener noreferrer">
+                      {badge}
+                    </a>
+                  ) : (
+                    <div key={`${p.name}-${i}`}>{badge}</div>
+                  );
+                })}
               </div>
             </div>
           </div>

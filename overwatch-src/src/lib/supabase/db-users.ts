@@ -423,6 +423,7 @@ export async function updateCompany(companyId: string, updates: {
   brandColor?: string;
   timezone?: string;
   logoUrl?: string;
+  websiteUrl?: string;
 }) {
   const supabase = createClient();
   const payload: CompanyPayload = {};
@@ -430,6 +431,7 @@ export async function updateCompany(companyId: string, updates: {
   if (updates.brandColor !== undefined) payload.brand_color = updates.brandColor;
   if (updates.timezone !== undefined) payload.timezone = updates.timezone;
   if (updates.logoUrl !== undefined) payload.logo_url = updates.logoUrl;
+  if (updates.websiteUrl !== undefined) payload.website_url = updates.websiteUrl;
   const { data, error } = await supabase
     .from("companies")
     .update(payload)
