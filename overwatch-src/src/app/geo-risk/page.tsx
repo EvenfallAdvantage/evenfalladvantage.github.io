@@ -193,7 +193,16 @@ export default function GeoRiskPage() {
 
     try {
       // Step 1: Use pre-resolved county if available, otherwise geocode
-      const resolvedCounty = county || (await geocodeAddress(address, city, state)).county;
+      // Also extract lat/lon as fallback for the map when autocomplete wasn't used
+      let resolvedCounty = county;
+      let resolvedLat = lat;
+      let resolvedLon = lon;
+      if (!resolvedCounty || resolvedLat == null || resolvedLon == null) {
+        const geo = await geocodeAddress(address, city, state);
+        if (!resolvedCounty) resolvedCounty = geo.county;
+        if (resolvedLat == null && geo.lat != null) { resolvedLat = geo.lat; setLat(geo.lat); }
+        if (resolvedLon == null && geo.lon != null) { resolvedLon = geo.lon; setLon(geo.lon); }
+      }
 
       // Step 2: Multi-tier crime data: DB RPC → City → County → State
       const crime = await getMultiTierCrimeData(city, resolvedCounty, state);
@@ -214,7 +223,7 @@ export default function GeoRiskPage() {
         crimeRating, threatLikelihood, facilityImpact, riskScore, overallRating,
         granularity: crime.granularity, source: crime.source,
         population: crime.population, dynamic: crime.dynamic,
-        lat: lat ?? undefined, lon: lon ?? undefined,
+        lat: resolvedLat ?? undefined, lon: resolvedLon ?? undefined,
         analysisDate: new Date().toISOString(),
       };
 
@@ -222,9 +231,9 @@ export default function GeoRiskPage() {
       setHistory((h) => [assessment, ...h.slice(0, 9)]);
 
       // Fetch map overlay data (non-blocking)
-      if (lat != null && lon != null) {
+      if (resolvedLat != null && resolvedLon != null) {
         setOverlayLoading(true);
-        fetchMapOverlayData(lat, lon, city, state)
+        fetchMapOverlayData(resolvedLat, resolvedLon, city, state)
           .then((overlay) => {
             setIncidents(overlay.incidents);
             setOffenders(overlay.offenders);
