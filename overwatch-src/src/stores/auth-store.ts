@@ -20,15 +20,17 @@ export const useAuthStore = create<AuthState>()(
       activeCompanyId: null,
       isLoading: true,
 
-      setUser: (user) =>
-        set({
-          user,
-          activeCompanyId:
-            user?.activeCompanyId ??
-            user?.companies?.[0]?.companyId ??
-            null,
-          isLoading: false,
-        }),
+      setUser: (user) => {
+        const persisted = get().activeCompanyId;
+        const validIds = user?.companies?.map((c) => c.companyId) ?? [];
+        const resolvedId =
+          (persisted && validIds.includes(persisted))
+            ? persisted
+            : user?.activeCompanyId && validIds.includes(user.activeCompanyId)
+              ? user.activeCompanyId
+              : validIds[0] ?? null;
+        set({ user, activeCompanyId: resolvedId, isLoading: false });
+      },
 
       setActiveCompany: (companyId) => set({ activeCompanyId: companyId }),
 
