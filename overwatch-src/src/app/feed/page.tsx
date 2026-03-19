@@ -60,7 +60,8 @@ import {
   addPostComment,
 } from "@/lib/supabase/db";
 import { getUserShifts } from "@/lib/supabase/db-operations";
-import { createCompany, createMembership } from "@/lib/supabase/db-users";
+import { createCompanyWithOwner } from "@/lib/supabase/db-users";
+import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { parseUTC } from "@/lib/parse-utc";
@@ -235,13 +236,24 @@ export default function FeedPage() {
     if (!newCoName.trim() || !user?.id) return;
     setCreatingCo(true);
     try {
-      const company = await createCompany({ name: newCoName.trim() });
-      await createMembership({ userId: user.id, companyId: company.id, role: "owner" });
+      const supabase = createClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) throw new Error("Not authenticated");
+
+      await createCompanyWithOwner({
+        companyName: newCoName.trim(),
+        supabaseId: authUser.id,
+        email: authUser.email ?? null,
+        phone: authUser.phone ?? user.phone ?? null,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      });
       setShowCreateCo(false);
       setNewCoName("");
       window.location.reload();
     } catch (err) {
       console.error("Failed to create company:", err);
+      alert(err instanceof Error ? err.message : "Failed to create company. Please try again.");
     } finally {
       setCreatingCo(false);
     }

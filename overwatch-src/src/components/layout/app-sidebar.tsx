@@ -467,7 +467,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                 {user.companies.map((company) => (
                   <DropdownMenuItem
                     key={company.companyId}
-                    onClick={() => setActiveCompany(company.companyId)}
+                    onClick={() => { setActiveCompany(company.companyId); window.location.reload(); }}
                     className="gap-2"
                   >
                     <Building2 className="h-4 w-4" />

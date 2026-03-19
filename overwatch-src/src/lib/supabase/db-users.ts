@@ -244,6 +244,38 @@ export async function createMembership(data: {
   return membership;
 }
 
+// ─── Create company via RPC (atomic, bypasses RLS) ──────
+
+export async function createCompanyWithOwner(params: {
+  companyName: string;
+  supabaseId: string;
+  email?: string | null;
+  phone?: string | null;
+  firstName?: string;
+  lastName?: string;
+}) {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("create_company_with_owner", {
+    p_company_name: params.companyName,
+    p_supabase_id: params.supabaseId,
+    p_email: params.email ?? null,
+    p_phone: params.phone ?? null,
+    p_first_name: params.firstName ?? "",
+    p_last_name: params.lastName ?? "",
+  });
+
+  if (error) {
+    throw new Error(error.message || "Failed to create company");
+  }
+  if (!data) throw new Error("Failed to create company");
+
+  return {
+    user: data.user,
+    company: data.company,
+    membership: data.membership,
+  };
+}
+
 // ─── Full registration flow ─────────────────────────────
 
 export async function registerUserInDB(params: {
@@ -254,26 +286,14 @@ export async function registerUserInDB(params: {
   lastName: string;
   companyName: string;
 }) {
-  // 1. Create user record
-  const user = await upsertUser({
+  return createCompanyWithOwner({
+    companyName: params.companyName,
     supabaseId: params.supabaseId,
     email: params.email,
     phone: params.phone,
     firstName: params.firstName,
     lastName: params.lastName,
   });
-
-  // 2. Create company
-  const company = await createCompany({ name: params.companyName });
-
-  // 3. Create membership as owner
-  const membership = await createMembership({
-    userId: user.id,
-    companyId: company.id,
-    role: "owner",
-  });
-
-  return { user, company, membership };
 }
 
 // ─── Roster (Directory) ─────────────────────────────────
