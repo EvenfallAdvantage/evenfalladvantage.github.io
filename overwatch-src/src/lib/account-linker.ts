@@ -169,7 +169,6 @@ export async function ensureInstructorLinked(user: {
         email: user.email,
         first_name: user.firstName || "",
         last_name: user.lastName || "",
-        role: "instructor",
         is_active: true,
       })
       .select("id")
