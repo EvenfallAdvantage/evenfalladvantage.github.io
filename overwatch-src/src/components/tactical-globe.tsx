@@ -32,6 +32,17 @@ export function TacticalGlobe() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cobeSize = Math.min(cssWidth, Math.floor(4096 / dpr));
 
+    const markerLocations: [number, number][] = [
+      [34.0522, -118.2437],
+      [40.7128, -74.006],
+      [51.5074, -0.1278],
+      [25.7617, -80.1918],
+      [29.7604, -95.3698],
+      [33.749, -84.388],
+      [47.6062, -122.3321],
+      [41.8781, -87.6298],
+    ];
+
     const globe = createGlobe(canvas, {
       devicePixelRatio: dpr,
       width: cobeSize,
@@ -45,21 +56,19 @@ export function TacticalGlobe() {
       baseColor: [0.12, 0.18, 0.28],
       markerColor: [0.87, 0.55, 0.2],
       glowColor: [0.08, 0.12, 0.2],
-      markers: [
-        { location: [34.0522, -118.2437], size: 0.03 },
-        { location: [40.7128, -74.006], size: 0.03 },
-        { location: [51.5074, -0.1278], size: 0.02 },
-        { location: [25.7617, -80.1918], size: 0.02 },
-        { location: [29.7604, -95.3698], size: 0.02 },
-        { location: [33.749, -84.388], size: 0.02 },
-        { location: [47.6062, -122.3321], size: 0.02 },
-        { location: [41.8781, -87.6298], size: 0.02 },
-      ],
+      markers: markerLocations.map((location) => ({ location, size: 0.01 })),
     });
 
+    let t = 0;
     function animate() {
       phi += 0.003;
-      globe.update({ phi });
+      t += 0.04;
+      // Pulse markers between 0.005 and 0.012
+      const pulse = 0.005 + 0.007 * (0.5 + 0.5 * Math.sin(t));
+      globe.update({
+        phi,
+        markers: markerLocations.map((location) => ({ location, size: pulse })),
+      });
       rafId = requestAnimationFrame(animate);
     }
     rafId = requestAnimationFrame(animate);
