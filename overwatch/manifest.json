@@ -1,12 +1,14 @@
 {
   "name": "Overwatch — Powered by Evenfall Advantage",
   "short_name": "Overwatch",
-  "description": "Workforce management platform for security companies. Powered by Evenfall Advantage LLC.",
+  "description": "Military-grade workforce management platform for security companies. Powered by Evenfall Advantage LLC.",
   "start_url": "/overwatch/",
+  "scope": "/overwatch/",
   "display": "standalone",
-  "background_color": "#1d3451",
+  "background_color": "#0b1422",
   "theme_color": "#dd8c33",
   "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "security"],
   "icons": [
     {
       "src": "/overwatch/images/overwatch_logo.png",
@@ -19,6 +21,32 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Feed",
+      "url": "/overwatch/feed/",
+      "description": "Open your command dashboard"
+    },
+    {
+      "name": "Clock In/Out",
+      "short_name": "Timeclock",
+      "url": "/overwatch/timeclock/",
+      "description": "Clock in or out of your shift"
+    },
+    {
+      "name": "Schedule",
+      "short_name": "Schedule",
+      "url": "/overwatch/schedule/",
+      "description": "View your upcoming shifts"
+    },
+    {
+      "name": "Notifications",
+      "short_name": "Alerts",
+      "url": "/overwatch/notifications/",
+      "description": "View your notifications"
     }
   ]
 }
