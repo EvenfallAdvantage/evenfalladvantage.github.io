@@ -1,54 +1,52 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { joinCompanyByCode } from "@/lib/supabase/db";
+import { joinCompanyByCode, registerUserInDB } from "@/lib/supabase/db";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
+  const handled = useRef(false);
 
   useEffect(() => {
+    if (handled.current) return;
+    handled.current = true;
+
     const supabase = createClient();
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        // Check for pending company join from registration
-        try {
-          const raw = localStorage.getItem("pending_join");
-          if (raw) {
-            const pending = JSON.parse(raw);
-            localStorage.removeItem("pending_join");
+    // Use onAuthStateChange to reliably detect the session after
+    // Supabase processes the URL hash tokens from email confirmation.
+    // A one-shot getSession() can race against the hash processing.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        // Only act on events that give us a real session
+        if (!session) return;
 
-            // SECURITY: Only process the join if the session user matches
-            // the user who originally registered. This prevents a stale
-            // pending_join from being applied to the wrong account.
-            if (pending.supabaseId === session.user.id) {
-              await joinCompanyByCode({
-                supabaseId: session.user.id,
-                email: session.user.email,
-                phone: pending.phone ?? null,
-                firstName: pending.firstName ?? "",
-                lastName: pending.lastName ?? "",
-                joinCode: pending.code,
-              });
-            } else {
-              console.warn(
-                "Pending join discarded: session user",
-                session.user.id,
-                "does not match pending user",
-                pending.supabaseId
-              );
-            }
-          }
+        // Unsubscribe immediately — we only need the first valid session
+        subscription.unsubscribe();
+
+        try {
+          await handlePostAuth(supabase, session);
         } catch (err) {
-          console.warn("Pending join failed (will retry on next login):", err);
+          console.warn("Post-auth processing failed:", err);
         }
+
         router.replace("/feed");
-      } else {
-        router.replace("/login?error=auth_callback_failed");
       }
-    });
+    );
+
+    // Safety net: if no auth event fires within 8s (e.g. user navigated
+    // here directly without a valid token), redirect to login.
+    const timeout = setTimeout(() => {
+      subscription.unsubscribe();
+      router.replace("/login?error=auth_callback_timeout");
+    }, 8000);
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   return (
@@ -59,4 +57,70 @@ export default function AuthCallbackPage() {
       </div>
     </div>
   );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handlePostAuth(supabase: any, session: any) {
+  const meta = session.user.user_metadata ?? {};
+  const userId = session.user.id;
+  const email = session.user.email;
+
+  // ── Resolve join code ──────────────────────────────────
+  // PRIMARY: user_metadata.join_code (survives cross-browser/device)
+  // FALLBACK: localStorage pending_join (same-browser only)
+  let joinCode: string | null = meta.join_code || null;
+  let phone: string | null = meta.phone || null;
+  let firstName: string = meta.first_name || "";
+  let lastName: string = meta.last_name || "";
+
+  // Check localStorage fallback
+  try {
+    const raw = localStorage.getItem("pending_join");
+    if (raw) {
+      const pending = JSON.parse(raw);
+      localStorage.removeItem("pending_join");
+
+      // Only use localStorage data if it matches this user
+      if (pending.supabaseId === userId) {
+        if (!joinCode) joinCode = pending.code || null;
+        if (!phone) phone = pending.phone || null;
+        if (!firstName) firstName = pending.firstName || "";
+        if (!lastName) lastName = pending.lastName || "";
+      }
+    }
+  } catch {
+    // localStorage unavailable (e.g. different browser) — no problem
+  }
+
+  // ── Execute join or register ───────────────────────────
+  if (joinCode) {
+    await joinCompanyByCode({
+      supabaseId: userId,
+      email,
+      phone,
+      firstName,
+      lastName,
+      joinCode,
+    });
+
+    // Clear join_code from user_metadata so it doesn't re-fire
+    await supabase.auth.updateUser({
+      data: { join_code: null },
+    });
+  } else if (meta.company_name) {
+    // New company registration that was deferred by email confirmation
+    await registerUserInDB({
+      supabaseId: userId,
+      email,
+      phone,
+      firstName,
+      lastName,
+      companyName: meta.company_name,
+    });
+
+    // Clear company_name so it doesn't re-fire
+    await supabase.auth.updateUser({
+      data: { company_name: null },
+    });
+  }
 }

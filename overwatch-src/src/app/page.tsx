@@ -201,7 +201,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
         options: {
-          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: effectiveJoinCode ? "" : companyName, tos_accepted_at: new Date().toISOString() },
+          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: effectiveJoinCode ? "" : companyName, join_code: effectiveJoinCode || null, tos_accepted_at: new Date().toISOString() },
           emailRedirectTo: `${window.location.origin}/overwatch/auth/callback/`,
         },
       });
