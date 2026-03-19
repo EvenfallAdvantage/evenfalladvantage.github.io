@@ -3,6 +3,8 @@
 -- Root cause: RETURNS TABLE column names clash with PL/pgSQL variables
 -- Fix: add #variable_conflict use_column + prefix all column references
 
+DROP FUNCTION IF EXISTS get_crime_data_with_fallback(VARCHAR, VARCHAR, VARCHAR, INTEGER);
+
 CREATE OR REPLACE FUNCTION get_crime_data_with_fallback(
     p_city VARCHAR,
     p_county VARCHAR,
