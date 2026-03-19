@@ -434,6 +434,20 @@ export default function GeoRiskPage() {
           backgroundColor: "#0f172a",
           foreignObjectRendering: false,
           imageTimeout: 5000,
+          onclone: (clonedDoc) => {
+            // html2canvas cannot parse CSS lab() color functions (Tailwind v4).
+            // Strip all CSS custom properties containing lab() from every element.
+            clonedDoc.querySelectorAll("*").forEach((el) => {
+              const s = (el as HTMLElement).style;
+              if (!s) return;
+              // Override common Tailwind CSS vars that use lab()
+              s.setProperty("--border", "rgba(255,255,255,0.1)");
+              s.setProperty("--background", "#0f172a");
+              s.setProperty("--foreground", "#e2e8f0");
+              s.setProperty("--muted-foreground", "#94a3b8");
+              s.borderColor = "rgba(255,255,255,0.1)";
+            });
+          },
         });
         const mapData = canvas.toDataURL("image/png");
         const mapH = Math.min(70, (canvas.height / canvas.width) * contentW);
