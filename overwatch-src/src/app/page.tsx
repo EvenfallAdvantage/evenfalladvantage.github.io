@@ -11,7 +11,13 @@ import {
   X, Phone, Mail, ArrowRight, Loader2, FileCheck,
   UserPlus, Plug, Smartphone, Crosshair, AlertTriangle, Fingerprint,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { TOSModal } from "@/components/terms-of-service";
+
+const TacticalGlobe = dynamic(() => import("@/components/tactical-globe").then((m) => m.TacticalGlobe), {
+  ssr: false,
+  loading: () => <div style={{ height: "clamp(160px, 22vw, 280px)" }} />,
+});
 import { createClient } from "@/lib/supabase/client";
 import { registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
 import { useAuthStore } from "@/stores/auth-store";
@@ -463,6 +469,11 @@ function HomePageInner() {
             <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 border border-[#dd8c33]/30 text-white/80 px-8 py-3 rounded-xl hover:bg-[#dd8c33]/10 transition-all text-sm">
               Sign In
             </button>
+          </div>
+
+          {/* Tactical Globe */}
+          <div className="mt-12">
+            <TacticalGlobe />
           </div>
         </div>
       </section>
