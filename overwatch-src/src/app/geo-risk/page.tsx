@@ -17,6 +17,7 @@ import {
   type RiskLevel, type Granularity,
 } from "@/lib/geo-risk-data";
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import {
@@ -133,6 +134,7 @@ export default function GeoRiskPage() {
   const [resolved, setResolved] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -250,56 +252,258 @@ export default function GeoRiskPage() {
     }
   }
 
-  function exportPDF() {
+  async function exportPDF() {
     if (!result) return;
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const w = doc.internal.pageSize.getWidth();
+    const h = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentW = w - margin * 2;
 
-    // Header
-    doc.setFillColor(20, 20, 30);
-    doc.rect(0, 0, w, 40, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.text("GEO-RISK ASSESSMENT REPORT", w / 2, 18, { align: "center" });
-    doc.setFontSize(9);
-    doc.text(`Evenfall Advantage LLC — ${new Date(result.analysisDate).toLocaleDateString()}`, w / 2, 28, { align: "center" });
+    // ── Brand colors ──
+    const NAVY = [20, 30, 48] as const;     // dark navy header
+    const AMBER = [217, 119, 6] as const;   // brand orange accent
+    const DARK = [30, 30, 40] as const;     // body text
+    const GRAY = [120, 125, 135] as const;  // secondary text
+    const LIGHT_BG = [245, 247, 250] as const; // section background
+    const WHITE = [255, 255, 255] as const;
 
-    let y = 52;
-    doc.setTextColor(30, 30, 30);
+    const RISK_HEX: Record<string, [number, number, number]> = {
+      Critical: [239, 68, 68], High: [249, 115, 22], Moderate: [234, 179, 8],
+      Low: [34, 197, 94], Negligible: [148, 163, 184],
+    };
+    const riskColor = RISK_HEX[result.overallRating] || AMBER;
 
-    // Location
-    doc.setFontSize(12);
-    doc.text("Location Details", 15, y); y += 8;
+    // ── Helper: section heading with accent bar ──
+    function sectionHead(label: string, yPos: number): number {
+      doc.setFillColor(...AMBER);
+      doc.rect(margin, yPos, 2, 6, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(...NAVY);
+      doc.text(label, margin + 5, yPos + 5);
+      return yPos + 10;
+    }
+
+    // ── Helper: page footer ──
+    function pageFooter(pageNum: number, totalPages: number) {
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, h - 15, w - margin, h - 15);
+      doc.setFontSize(7);
+      doc.setTextColor(...GRAY);
+      doc.text("CONFIDENTIAL — Prepared by Evenfall Advantage LLC", margin, h - 10);
+      doc.text(`Page ${pageNum} of ${totalPages}`, w - margin, h - 10, { align: "right" });
+      doc.text("www.evenfalladvantage.com", w / 2, h - 10, { align: "center" });
+    }
+
+    // ══════════════════════ PAGE 1 ══════════════════════
+
+    // ── Header bar ──
+    doc.setFillColor(...NAVY);
+    doc.rect(0, 0, w, 36, "F");
+    // Accent stripe
+    doc.setFillColor(...AMBER);
+    doc.rect(0, 36, w, 1.5, "F");
+
+    // Load & embed logo
+    try {
+      const logoImg = new Image();
+      logoImg.crossOrigin = "anonymous";
+      await new Promise<void>((resolve) => {
+        logoImg.onload = () => resolve();
+        logoImg.onerror = () => resolve();
+        logoImg.src = "/images/overwatch_logo.png";
+      });
+      if (logoImg.complete && logoImg.naturalWidth > 0) {
+        const logoCanvas = document.createElement("canvas");
+        logoCanvas.width = logoImg.naturalWidth;
+        logoCanvas.height = logoImg.naturalHeight;
+        logoCanvas.getContext("2d")?.drawImage(logoImg, 0, 0);
+        const logoData = logoCanvas.toDataURL("image/png");
+        doc.addImage(logoData, "PNG", margin, 5, 26, 26);
+      }
+    } catch { /* logo load failed, continue without */ }
+
+    doc.setTextColor(...WHITE);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("GEO-RISK ASSESSMENT", margin + 30, 16);
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    if (result.address) { doc.text(`Address: ${result.address}`, 20, y); y += 6; }
-    doc.text(`City: ${result.city}`, 20, y); y += 6;
-    doc.text(`State: ${result.state}`, 20, y); y += 6;
-    doc.text(`Facility Type: ${result.facilityType}`, 20, y); y += 12;
-
-    // Risk Summary
-    doc.setFontSize(12);
-    doc.text("Risk Summary", 15, y); y += 8;
-    doc.setFontSize(10);
-    doc.text(`Overall Risk Score: ${result.riskScore}/100`, 20, y); y += 6;
-    doc.text(`Overall Rating: ${result.overallRating}`, 20, y); y += 6;
-    doc.text(`Threat Likelihood: ${result.threatLikelihood}`, 20, y); y += 6;
-    doc.text(`Facility Impact: ${result.facilityImpact}`, 20, y); y += 12;
-
-    // Crime Data
-    doc.setFontSize(12);
-    doc.text("Crime Statistics (per 100k population)", 15, y); y += 8;
-    doc.setFontSize(10);
-    doc.text(`Violent Crime Rate: ${result.violentRate}`, 20, y); y += 6;
-    doc.text(`Property Crime Rate: ${result.propertyRate}`, 20, y); y += 6;
-    doc.text(`Crime Rating: ${result.crimeRating}`, 20, y); y += 12;
-
-    // Data Source
+    doc.text("REPORT", margin + 30, 23);
     doc.setFontSize(8);
-    doc.setTextColor(120, 120, 120);
-    doc.text("Data Source: FBI Uniform Crime Reporting (UCR) 2022 — State-level statistics", 15, y); y += 5;
-    doc.text("Geocoding: OpenStreetMap Nominatim | Demographics: US Census Bureau (estimated)", 15, y);
+    doc.setTextColor(180, 190, 210);
+    doc.text(`Evenfall Advantage LLC  |  ${new Date(result.analysisDate).toLocaleDateString()}  |  Report ID: GR-${Date.now().toString(36).toUpperCase()}`, margin + 30, 30);
 
-    doc.save(`geo-risk-${result.city}-${result.state}.pdf`);
+    let y = 44;
+
+    // ── Location + Risk Score side by side ──
+    doc.setFillColor(...LIGHT_BG);
+    doc.roundedRect(margin, y, contentW * 0.58, 38, 2, 2, "F");
+    doc.roundedRect(margin + contentW * 0.62, y, contentW * 0.38, 38, 2, 2, "F");
+
+    // Location details (left box)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(...NAVY);
+    doc.text("LOCATION", margin + 4, y + 6);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...DARK);
+    let ly = y + 12;
+    if (result.address) { doc.text(result.address, margin + 4, ly); ly += 5; }
+    doc.text(`${result.city}, ${result.state}`, margin + 4, ly); ly += 5;
+    doc.setFontSize(8);
+    doc.setTextColor(...GRAY);
+    doc.text(`Facility: ${result.facilityType}`, margin + 4, ly); ly += 5;
+    doc.text(`Data: ${result.granularity}-level  |  ${result.source}`, margin + 4, ly);
+
+    // Risk score (right box)
+    const rBoxX = margin + contentW * 0.62;
+    doc.setFillColor(...riskColor);
+    doc.roundedRect(rBoxX + 4, y + 4, contentW * 0.38 - 8, 30, 2, 2, "F");
+    doc.setTextColor(...WHITE);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(28);
+    doc.text(`${result.riskScore}`, rBoxX + (contentW * 0.38) / 2, y + 20, { align: "center" });
+    doc.setFontSize(8);
+    doc.text(`${result.overallRating.toUpperCase()} RISK`, rBoxX + (contentW * 0.38) / 2, y + 28, { align: "center" });
+
+    y += 44;
+
+    // ── Threat / Impact / Crime row ──
+    const colW = contentW / 4;
+    const metrics = [
+      ["Threat Likelihood", result.threatLikelihood],
+      ["Facility Impact", result.facilityImpact],
+      ["Violent Crime", `${result.violentRate}/100k`],
+      ["Property Crime", `${result.propertyRate}/100k`],
+    ];
+    metrics.forEach(([label, val], i) => {
+      const cx = margin + i * colW;
+      doc.setFillColor(...LIGHT_BG);
+      doc.roundedRect(cx + 1, y, colW - 2, 16, 1, 1, "F");
+      doc.setFontSize(6.5);
+      doc.setTextColor(...GRAY);
+      doc.text(String(label), cx + 3, y + 5);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...DARK);
+      doc.text(String(val), cx + 3, y + 13);
+      doc.setFont("helvetica", "normal");
+    });
+    y += 22;
+
+    // ── Map capture ──
+    if (mapContainerRef.current) {
+      try {
+        const canvas = await html2canvas(mapContainerRef.current, {
+          scale: 2, useCORS: true, logging: false, allowTaint: true,
+          backgroundColor: "#0f172a",
+        });
+        const mapData = canvas.toDataURL("image/png");
+        const mapH = Math.min(70, (canvas.height / canvas.width) * contentW);
+        doc.addImage(mapData, "PNG", margin, y, contentW, mapH);
+        y += mapH + 4;
+      } catch { /* map capture failed, skip */ }
+    }
+
+    // ── OSINT Incident Summary ──
+    if (incidents.length > 0) {
+      y = sectionHead("OSINT Crime Incidents", y);
+      doc.setFontSize(8);
+      doc.setTextColor(...DARK);
+      const violent = incidents.filter(i => i.type === "violent").length;
+      const property = incidents.filter(i => i.type === "property").length;
+      const other = incidents.filter(i => i.type === "other").length;
+      doc.text(`${incidents.length} incidents within 1 mile  —  ${violent} violent  |  ${property} property  |  ${other} other`, margin + 5, y);
+      y += 5;
+      // Source breakdown
+      const srcCounts: Record<string, number> = {};
+      incidents.forEach(i => { srcCounts[i.source] = (srcCounts[i.source] || 0) + 1; });
+      doc.setTextColor(...GRAY);
+      doc.setFontSize(7);
+      doc.text(`Sources: ${Object.entries(srcCounts).map(([s, c]) => `${s} (${c})`).join("  |  ")}`, margin + 5, y);
+      y += 8;
+    }
+
+    // ── Environmental Risk (CPTED) ──
+    if (envRisk.total > 0) {
+      y = sectionHead("Environmental Risk Indicators (CPTED)", y);
+      doc.setFontSize(8);
+      doc.setTextColor(...DARK);
+      doc.text(`${envRisk.total} crime-correlated POIs within 1 mile:`, margin + 5, y); y += 5;
+      doc.setTextColor(...GRAY);
+      doc.setFontSize(7);
+      const poiList = Object.entries(envRisk.summary).map(([k, v]) => `${v} ${k}`).join("  |  ");
+      doc.text(poiList, margin + 5, y); y += 8;
+    }
+
+    // Check if we need page 2
+    if (y > h - 60) {
+      pageFooter(1, 2);
+      doc.addPage();
+      y = 15;
+    }
+
+    // ── Recommendations ──
+    y = sectionHead("Security Recommendations", y);
+    doc.setFontSize(8);
+    doc.setTextColor(...DARK);
+    const recs: string[] = [];
+    if (result.riskScore >= 55) {
+      recs.push("Deploy armed security personnel during peak hours");
+      recs.push("Install CCTV with 24/7 monitoring and motion detection");
+    }
+    if (result.riskScore >= 35) {
+      recs.push("Implement access control systems with visitor management");
+      recs.push("Conduct regular security patrols with incident logging");
+    }
+    if (result.facilityImpact === "Major") {
+      recs.push("Develop emergency evacuation and lockdown procedures");
+      recs.push("Coordinate with local law enforcement for response protocols");
+    }
+    recs.push("Maintain well-lit perimeters and eliminate blind spots");
+    recs.push("Train staff on de-escalation and emergency reporting");
+    recs.push("Review and update security plan quarterly");
+
+    recs.forEach((rec) => {
+      if (y > h - 30) { pageFooter(1, 2); doc.addPage(); y = 15; }
+      doc.setFillColor(...LIGHT_BG);
+      doc.roundedRect(margin + 3, y - 3, contentW - 6, 6, 1, 1, "F");
+      doc.text(`•  ${rec}`, margin + 6, y); y += 7;
+    });
+    y += 4;
+
+    // ── Data Sources ──
+    if (y > h - 45) { pageFooter(1, 2); doc.addPage(); y = 15; }
+    y = sectionHead("Data Sources & Methodology", y);
+    doc.setFontSize(7);
+    doc.setTextColor(...GRAY);
+    const sources = [
+      `FBI Uniform Crime Reporting (UCR) 2022 — ${result.granularity}-level statistics`,
+      `${result.source}${result.population ? ` (pop. ${result.population.toLocaleString()})` : ""}`,
+      "Socrata SODA API — 60+ US city open data portals + dynamic discovery",
+      "OpenDataSoft — Global public safety datasets, geofiltered",
+      "ArcGIS Open Data Hubs — City FeatureServer crime layers",
+      "UK Police API — Street-level crime (England/Wales/NI)",
+      "Overpass API (OpenStreetMap) — Environmental risk POIs (CPTED)",
+      "OpenStreetMap Nominatim — Geocoding services",
+    ];
+    if (hasCrimeometerKey()) sources.splice(4, 0, "Crimeometer API — National geocoded crime incidents");
+    if (hasFamilyWatchdogKey()) sources.push("Family Watchdog — Registered sex offender data");
+    sources.forEach((src) => {
+      doc.text(`•  ${src}`, margin + 5, y); y += 4;
+    });
+
+    // ── Footer ──
+    const totalPages = doc.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      pageFooter(p, totalPages);
+    }
+
+    doc.save(`GeoRisk-${result.city}-${result.state}-${new Date().toISOString().split("T")[0]}.pdf`);
   }
 
   // ─── Results View ───
@@ -342,16 +546,18 @@ export default function GeoRiskPage() {
           {/* Map */}
           {result.lat != null && result.lon != null && (
             <>
-              <GeoRiskMap
-                lat={result.lat}
-                lon={result.lon}
-                riskLevel={result.overallRating}
-                address={`${result.address ? result.address + ", " : ""}${result.city}, ${result.state}`}
-                isDark={resolvedTheme === "dark"}
-                incidents={incidents}
-                offenders={offenders}
-                loading={overlayLoading}
-              />
+              <div ref={mapContainerRef}>
+                <GeoRiskMap
+                  lat={result.lat}
+                  lon={result.lon}
+                  riskLevel={result.overallRating}
+                  address={`${result.address ? result.address + ", " : ""}${result.city}, ${result.state}`}
+                  isDark={resolvedTheme === "dark"}
+                  incidents={incidents}
+                  offenders={offenders}
+                  loading={overlayLoading}
+                />
+              </div>
 
               {/* Overlay Summary Bar */}
               <div className="flex flex-wrap items-center gap-2 text-[10px]">
@@ -456,13 +662,27 @@ export default function GeoRiskPage() {
 
           {/* Data Sources */}
           <Card className="border-border/40">
-            <CardContent className="p-4">
-              <h3 className="text-xs font-semibold flex items-center gap-1.5 mb-2"><Info className="h-3 w-3" /> Data Sources</h3>
-              <div className="text-[10px] text-muted-foreground space-y-1">
-                <p>- FBI Uniform Crime Reporting (UCR) — 2022 {result.granularity}-level statistics</p>
-                <p>- Source: {result.source}{result.population ? ` (pop. ${result.population.toLocaleString()})` : ""}</p>
-                <p>- Data: {result.dynamic ? "Live query from database" : "Static reference dataset (DB unavailable)"}</p>
-                <p>- OpenStreetMap Nominatim — Geocoding services</p>
+            <CardContent className="p-4 space-y-2">
+              <h3 className="text-xs font-semibold flex items-center gap-1.5"><Info className="h-3 w-3" /> Data Sources</h3>
+              <div className="text-[10px] text-muted-foreground space-y-0.5">
+                <p className="font-medium text-foreground/70">Risk Assessment</p>
+                <p>• FBI Uniform Crime Reporting (UCR) — 2022 {result.granularity}-level statistics</p>
+                <p>• {result.source}{result.population ? ` (pop. ${result.population.toLocaleString()})` : ""} — {result.dynamic ? "Live DB query" : "Static reference dataset"}</p>
+              </div>
+              <div className="text-[10px] text-muted-foreground space-y-0.5">
+                <p className="font-medium text-foreground/70">OSINT Crime Incidents</p>
+                <p>• Socrata SODA API — 60+ US city open data portals + dynamic discovery</p>
+                <p>• OpenDataSoft — Global public safety datasets, geofiltered</p>
+                <p>• ArcGIS Open Data Hubs — City FeatureServer crime layers</p>
+                <p>• UK Police API — Street-level crime (England, Wales, NI)</p>
+                {cmKeyConfigured && <p>• Crimeometer API — National geocoded crime incidents</p>}
+              </div>
+              <div className="text-[10px] text-muted-foreground space-y-0.5">
+                <p className="font-medium text-foreground/70">Environmental &amp; Other</p>
+                <p>• Overpass / OpenStreetMap — CPTED environmental risk POIs</p>
+                <p>• OpenStreetMap Nominatim — Geocoding services</p>
+                {fwKeyConfigured && <p>• Family Watchdog — Registered sex offender data</p>}
+                <p>• NSOPW (DOJ) — National Sex Offender Public Website</p>
               </div>
             </CardContent>
           </Card>
