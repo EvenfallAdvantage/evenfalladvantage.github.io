@@ -58,20 +58,20 @@ export function TacticalGlobe() {
       <canvas
         ref={canvasRef}
         style={{
-          width: "min(1000px, 90vw)",
-          height: "min(1000px, 90vw)",
+          width: "min(1800px, 160vw)",
+          height: "min(1800px, 160vw)",
           position: "absolute",
           left: "50%",
           bottom: 0,
-          transform: "translateX(-50%) translateY(55%)",
+          transform: "translateX(-50%) translateY(65%)",
         }}
       />
       {/* Fade-out at bottom edge */}
       <div
         className="absolute bottom-0 left-0 right-0"
         style={{
-          height: "40%",
-          background: "linear-gradient(to bottom, transparent 0%, #0b1422 70%)",
+          height: "30%",
+          background: "linear-gradient(to bottom, transparent 0%, #0b1422 90%)",
         }}
       />
     </div>
