@@ -7,24 +7,33 @@
 -- ─── Instructors ─────────────────────────────────────────────
 ALTER TABLE instructors ENABLE ROW LEVEL SECURITY;
 
--- Allow reading instructors
-CREATE POLICY "anon_select_instructors"
-  ON instructors FOR SELECT
-  TO anon
-  USING (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anon_select_instructors' AND tablename = 'instructors') THEN
+    CREATE POLICY "anon_select_instructors"
+      ON instructors FOR SELECT
+      TO anon
+      USING (true);
+  END IF;
+END $$;
 
--- Allow creating instructor records from Overwatch
-CREATE POLICY "anon_insert_instructors"
-  ON instructors FOR INSERT
-  TO anon
-  WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anon_insert_instructors' AND tablename = 'instructors') THEN
+    CREATE POLICY "anon_insert_instructors"
+      ON instructors FOR INSERT
+      TO anon
+      WITH CHECK (true);
+  END IF;
+END $$;
 
--- Allow updating instructor records
-CREATE POLICY "anon_update_instructors"
-  ON instructors FOR UPDATE
-  TO anon
-  USING (true)
-  WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'anon_update_instructors' AND tablename = 'instructors') THEN
+    CREATE POLICY "anon_update_instructors"
+      ON instructors FOR UPDATE
+      TO anon
+      USING (true)
+      WITH CHECK (true);
+  END IF;
+END $$;
 
 -- ─── Courses ─────────────────────────────────────────────────
 -- SELECT likely already works; add INSERT/UPDATE for instructor editing

@@ -138,7 +138,11 @@ function CoursesTab() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setCourses(await getLegacyCourses(true)); } catch (err) { console.error("Instructor HQ: load courses error:", err); }
+    try {
+      const result = await getLegacyCourses(true);
+      console.log("[Instructor HQ] getLegacyCourses result:", result?.length, result);
+      setCourses(result);
+    } catch (err) { console.error("Instructor HQ: load courses error:", err); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
