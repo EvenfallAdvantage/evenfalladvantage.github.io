@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2,
@@ -25,8 +25,10 @@ import {
 } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { exportCSV, TIMESHEET_COLUMNS, MEMBER_COLUMNS, INCIDENT_COLUMNS } from "@/lib/csv-export";
-import { Download } from "lucide-react";
+import { parseCSV, validateStaffRows, type StaffImportRow } from "@/lib/csv-import";
+import { Download, Upload } from "lucide-react";
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
+import { bulkCreateApplicants } from "@/lib/supabase/db-onboarding";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -85,6 +87,13 @@ export default function AdminStaffPage() {
   const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
   // Hire integration results
   const [hireResult, setHireResult] = useState<HireResult | null>(null);
+  // CSV Import
+  const [showImport, setShowImport] = useState(false);
+  const [importPreview, setImportPreview] = useState<StaffImportRow[]>([]);
+  const [importErrors, setImportErrors] = useState<{ line: number; message: string }[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   // Gusto sync
   const [syncingGusto, setSyncingGusto] = useState(false);
   const [gustoResult, setGustoResult] = useState<{ synced: number; errors: string[] } | null>(null);
@@ -96,6 +105,39 @@ export default function AdminStaffPage() {
   type ReadinessEntry = { profileMissing: string[]; readingMissing: { id: string; title: string }[] };
   const [readiness, setReadiness] = useState<Record<string, ReadinessEntry>>({});
   const [viewReadiness, setViewReadiness] = useState<{ member: Member; data: ReadinessEntry } | null>(null);
+
+  function handleCSVFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = reader.result as string;
+      const parsed = parseCSV(text);
+      const { valid, errors } = validateStaffRows(parsed.rows);
+      setImportPreview(valid);
+      setImportErrors([...parsed.errors, ...errors]);
+      setImportResult(null);
+      setShowImport(true);
+    };
+    reader.readAsText(file);
+    if (csvInputRef.current) csvInputRef.current.value = "";
+  }
+
+  async function handleImport() {
+    if (!activeCompanyId || activeCompanyId === "pending" || importPreview.length === 0) return;
+    setImporting(true);
+    try {
+      const result = await bulkCreateApplicants(activeCompanyId, importPreview);
+      setImportResult(result);
+      if (result.created > 0) {
+        setApplicants(await getApplicants(activeCompanyId));
+      }
+    } catch (err) {
+      setImportResult({ created: 0, errors: [err instanceof Error ? err.message : "Import failed"] });
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function openProfile(membershipId: string) {
     setLoadingProfile(membershipId);
@@ -486,7 +528,73 @@ export default function AdminStaffPage() {
                   <Download className="h-3.5 w-3.5" /> Export
                 </Button>
               )}
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => csvInputRef.current?.click()}>
+                <Upload className="h-3.5 w-3.5" /> Import CSV
+              </Button>
+              <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVFile} />
             </div>
+
+            {/* CSV Import Preview Modal */}
+            {showImport && (
+              <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold flex items-center gap-1.5"><Upload className="h-4 w-4" /> CSV Import Preview</p>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setShowImport(false)}><X className="h-3.5 w-3.5" /></Button>
+                </div>
+                {importErrors.length > 0 && (
+                  <div className="rounded-lg bg-destructive/10 p-2 text-xs space-y-0.5">
+                    <p className="font-semibold text-destructive">Validation errors:</p>
+                    {importErrors.slice(0, 10).map((e, i) => <p key={i} className="text-destructive/80">Line {e.line}: {e.message}</p>)}
+                    {importErrors.length > 10 && <p className="text-destructive/60">...and {importErrors.length - 10} more</p>}
+                  </div>
+                )}
+                {importPreview.length > 0 && (
+                  <>
+                    <div className="max-h-48 overflow-auto rounded border border-border/40">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/50 sticky top-0">
+                          <tr>
+                            <th className="px-2 py-1 text-left font-medium">Name</th>
+                            <th className="px-2 py-1 text-left font-medium">Email</th>
+                            <th className="px-2 py-1 text-left font-medium">Phone</th>
+                            <th className="px-2 py-1 text-left font-medium">Role</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {importPreview.map((r, i) => (
+                            <tr key={i} className="border-t border-border/30">
+                              <td className="px-2 py-1">{r.first_name} {r.last_name}</td>
+                              <td className="px-2 py-1 text-muted-foreground">{r.email}</td>
+                              <td className="px-2 py-1 text-muted-foreground">{r.phone ?? "—"}</td>
+                              <td className="px-2 py-1"><Badge variant="outline" className="text-[9px]">{r.role ?? "staff"}</Badge></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">{importPreview.length} valid row{importPreview.length !== 1 ? "s" : ""} ready to import as applicants</p>
+                      <Button size="sm" className="gap-1.5 text-xs h-7" onClick={handleImport} disabled={importing}>
+                        {importing ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
+                        Import {importPreview.length}
+                      </Button>
+                    </div>
+                  </>
+                )}
+                {importResult && (
+                  <div className={`rounded-lg p-2 text-xs ${importResult.errors.length > 0 ? "bg-amber-500/10" : "bg-green-500/10"}`}>
+                    <p className={importResult.errors.length > 0 ? "text-amber-600 font-semibold" : "text-green-600 font-semibold"}>
+                      {importResult.created} applicant{importResult.created !== 1 ? "s" : ""} created.
+                    </p>
+                    {importResult.errors.map((e, i) => <p key={i} className="text-amber-500/80 mt-0.5">{e}</p>)}
+                    {importResult.created > 0 && <p className="text-muted-foreground mt-1">Switch to the Applicants tab to review and hire.</p>}
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground">
+                  CSV format: <code className="bg-muted/50 px-1 rounded">first_name, last_name, email, phone, role, title, guard_card_number</code>
+                </p>
+              </div>
+            )}
 
             {loading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>

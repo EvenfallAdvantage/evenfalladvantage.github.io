@@ -70,6 +70,46 @@ export async function createApplicant(companyId: string, applicant: {
   return data;
 }
 
+export async function bulkCreateApplicants(companyId: string, rows: {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  title?: string;
+  guard_card_number?: string;
+}[]): Promise<{ created: number; errors: string[] }> {
+  const supabase = createClient();
+  const errors: string[] = [];
+  let created = 0;
+
+  // Insert in batches of 25
+  for (let i = 0; i < rows.length; i += 25) {
+    const batch = rows.slice(i, i + 25).map((r) => ({
+      id: crypto.randomUUID(),
+      company_id: companyId,
+      first_name: r.first_name,
+      last_name: r.last_name,
+      email: r.email,
+      phone: r.phone ?? null,
+      guard_card_number: r.guard_card_number ?? null,
+      work_preferences: [],
+      source: "csv_import",
+      status: "new",
+      custom_fields: { imported_role: r.role ?? "staff", imported_title: r.title ?? null },
+    }));
+
+    const { error } = await supabase.from("applicants").insert(batch);
+    if (error) {
+      errors.push(`Batch ${Math.floor(i / 25) + 1}: ${error.message}`);
+    } else {
+      created += batch.length;
+    }
+  }
+
+  return { created, errors };
+}
+
 export async function updateApplicantStatus(id: string, status: string, notes?: string) {
   const userId = await ensureInternalUser();
   const supabase = createClient();
