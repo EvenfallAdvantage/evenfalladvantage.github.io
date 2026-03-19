@@ -475,7 +475,7 @@ function HomePageInner() {
       </section>
 
       {/* Stats Bar */}
-      <section className="border-y border-white/5 bg-white/[0.02]">
+      <section className="relative z-10 border-y border-white/5 bg-[#0b1422]">
         <div className="mx-auto max-w-5xl px-6 py-10 grid grid-cols-2 sm:grid-cols-4 gap-8">
           {STATS.map((s) => (
             <div key={s.label} className="text-center">
@@ -487,7 +487,7 @@ function HomePageInner() {
       </section>
 
       {/* Features Grid */}
-      <section className="py-24">
+      <section className="relative z-10 py-24 bg-[#0b1422]">
         <div className="mx-auto max-w-6xl px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight mb-4">FULL-SPECTRUM OPERATIONS</h2>
@@ -506,7 +506,7 @@ function HomePageInner() {
       </section>
 
       {/* Integrations */}
-      <section className="py-16 border-t border-white/5 bg-white/[0.01]">
+      <section className="relative z-10 py-16 border-t border-white/5 bg-[#0b1422]">
         <div className="mx-auto max-w-5xl px-6">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">INTEGRATES WITH YOUR STACK</h2>
