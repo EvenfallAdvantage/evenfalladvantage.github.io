@@ -135,125 +135,203 @@ export default function InvoicesPage() {
     try {
       const { jsPDF } = await import("jspdf");
       const pdf = new jsPDF("p", "mm", "a4");
-      const W = 210, M = 15;
+      const W = 210, M = 18;
       const cw = W - M * 2; // content width
+      const LH = 4.5; // standard line height
       let y = M;
 
-      // ─── Logo ───
+      // ─── Row 1: Logo + Invoice meta (side by side) ───
+      const logoH = logoUrl ? 22 : 0;
       if (logoUrl) {
-        try { pdf.addImage(logoUrl, "PNG", M, y, 25, 25); } catch {}
+        try { pdf.addImage(logoUrl, "PNG", M, y, 22, 22); } catch {}
       }
 
-      // ─── Invoice header (right-aligned) ───
-      pdf.setFontSize(9).setTextColor(100);
-      pdf.text(`Invoice #: ${form.invoiceNumber || "—"}`, W - M, y + 4, { align: "right" });
-      pdf.text(`Date: ${form.invoiceDate || "—"}`, W - M, y + 9, { align: "right" });
-      if (form.dueDate) pdf.text(`Due: ${form.dueDate}`, W - M, y + 14, { align: "right" });
-      y += 22;
+      // Invoice # / Date / Due right-aligned at top
+      pdf.setFontSize(9).setTextColor(100, 100, 100);
+      const metaX = W - M;
+      let metaY = y + 3;
+      if (form.invoiceNumber) { pdf.text(`Invoice #: ${form.invoiceNumber}`, metaX, metaY, { align: "right" }); metaY += LH; }
+      if (form.invoiceDate) { pdf.text(`Date: ${form.invoiceDate}`, metaX, metaY, { align: "right" }); metaY += LH; }
+      if (form.dueDate) { pdf.text(`Due: ${form.dueDate}`, metaX, metaY, { align: "right" }); metaY += LH; }
+
+      y += Math.max(logoH, metaY - y) + 4;
 
       // ─── INVOICE title ───
-      pdf.setFontSize(22).setTextColor(30);
+      pdf.setFontSize(24).setTextColor(30, 30, 30).setFont("helvetica", "bold");
       pdf.text("INVOICE", M, y);
+      pdf.setFont("helvetica", "normal");
       y += 12;
 
       // ─── FROM / BILL TO ───
-      const colW = cw / 2;
-      pdf.setFontSize(8).setTextColor(120);
-      pdf.text("FROM", M, y);
-      pdf.text("BILL TO", M + colW, y);
+      const colW = cw / 2 - 4;
+      const fromX = M;
+      const toX = M + cw / 2 + 4;
+
+      // Section headers
+      pdf.setFontSize(7).setTextColor(140, 140, 140).setFont("helvetica", "bold");
+      pdf.text("FROM", fromX, y);
+      pdf.text("BILL TO", toX, y);
+      pdf.setFont("helvetica", "normal");
       y += 5;
-      pdf.setFontSize(10).setTextColor(40);
-      const fromLines = [
-        form.yourName, form.yourBusiness,
-        [form.yourAddress, [form.yourCity, form.yourState, form.yourZip].filter(Boolean).join(", ")].filter(Boolean).join("\n"),
-        form.yourEmail, form.yourPhone,
-      ].filter(Boolean);
-      const toLines = [
-        form.clientName, form.clientCompany,
-        form.clientAddress,
-        [form.clientCity, form.clientState, form.clientZip].filter(Boolean).join(", "),
-      ].filter(Boolean);
-      const maxAddr = Math.max(fromLines.length, toLines.length);
-      for (let i = 0; i < maxAddr; i++) {
-        if (fromLines[i]) pdf.text(fromLines[i], M, y);
-        if (toLines[i]) pdf.text(toLines[i], M + colW, y);
-        y += 5;
+
+      // Build address lines (flat, no embedded newlines)
+      const fromAddr: string[] = [];
+      if (form.yourName) fromAddr.push(form.yourName);
+      if (form.yourBusiness) fromAddr.push(form.yourBusiness);
+      if (form.yourAddress) fromAddr.push(form.yourAddress);
+      const fromCsz = [form.yourCity, form.yourState, form.yourZip].filter(Boolean).join(", ");
+      if (fromCsz) fromAddr.push(fromCsz);
+      if (form.yourEmail) fromAddr.push(form.yourEmail);
+      if (form.yourPhone) fromAddr.push(form.yourPhone);
+
+      const toAddr: string[] = [];
+      if (form.clientName) toAddr.push(form.clientName);
+      if (form.clientCompany) toAddr.push(form.clientCompany);
+      if (form.clientAddress) toAddr.push(form.clientAddress);
+      const toCsz = [form.clientCity, form.clientState, form.clientZip].filter(Boolean).join(", ");
+      if (toCsz) toAddr.push(toCsz);
+
+      // Wrap each address line within column width
+      const fromWrapped: string[] = [];
+      const toWrapped: string[] = [];
+      pdf.setFontSize(9);
+      for (const line of fromAddr) {
+        const wrapped: string[] = pdf.splitTextToSize(line, colW);
+        fromWrapped.push(...wrapped);
       }
-      y += 6;
+      for (const line of toAddr) {
+        const wrapped: string[] = pdf.splitTextToSize(line, colW);
+        toWrapped.push(...wrapped);
+      }
 
-      // ─── Table header ───
-      const descX = M, qtyX = M + cw * 0.55, rateX = M + cw * 0.7, amtX = W - M;
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(M, y - 4, cw, 7, "F");
-      pdf.setFontSize(8).setTextColor(80);
-      pdf.text("Description", descX, y);
+      // Render both columns, first line of each bold
+      const maxLines = Math.max(fromWrapped.length, toWrapped.length);
+      for (let i = 0; i < maxLines; i++) {
+        const isBoldLine = i === 0;
+        pdf.setFontSize(9).setTextColor(40, 40, 40);
+        if (fromWrapped[i]) {
+          pdf.setFont("helvetica", isBoldLine ? "bold" : "normal");
+          pdf.text(fromWrapped[i], fromX, y);
+        }
+        if (toWrapped[i]) {
+          pdf.setFont("helvetica", isBoldLine ? "bold" : "normal");
+          pdf.text(toWrapped[i], toX, y);
+        }
+        y += LH;
+      }
+      pdf.setFont("helvetica", "normal");
+      y += 8;
+
+      // ─── Table ───
+      const descX = M;
+      const qtyX = M + cw * 0.58;
+      const rateX = M + cw * 0.74;
+      const amtX = W - M;
+      const rowH = 6;
+
+      // Table header
+      pdf.setFillColor(35, 35, 45);
+      pdf.rect(M, y - 4.5, cw, rowH + 1, "F");
+      pdf.setFontSize(8).setTextColor(255, 255, 255).setFont("helvetica", "bold");
+      pdf.text("Description", descX + 2, y);
       pdf.text("Qty", qtyX, y, { align: "center" });
-      pdf.text("Rate", rateX, y, { align: "center" });
-      pdf.text("Amount", amtX, y, { align: "right" });
-      y += 6;
+      pdf.text("Rate", rateX, y, { align: "right" });
+      pdf.text("Amount", amtX - 2, y, { align: "right" });
+      pdf.setFont("helvetica", "normal");
+      y += rowH + 1;
 
-      // ─── Table rows ───
-      pdf.setFontSize(9).setTextColor(40);
+      // Table rows
+      let stripe = false;
       for (const item of items) {
         const amt = item.quantity * item.rate;
-        // Wrap long descriptions
-        const descLines = pdf.splitTextToSize(item.description || "—", cw * 0.5);
-        for (let li = 0; li < descLines.length; li++) {
-          pdf.text(descLines[li], descX, y);
-          if (li === 0) {
-            pdf.text(String(item.quantity), qtyX, y, { align: "center" });
-            pdf.text(`$${item.rate.toFixed(2)}`, rateX, y, { align: "center" });
-            pdf.setFont("helvetica", "bold");
-            pdf.text(`$${amt.toFixed(2)}`, amtX, y, { align: "right" });
-            pdf.setFont("helvetica", "normal");
-          }
-          y += 5;
-        }
-        // light separator
-        pdf.setDrawColor(220).line(M, y - 2, W - M, y - 2);
-      }
-      y += 4;
+        const descLines: string[] = pdf.splitTextToSize(item.description || "—", cw * 0.52);
+        const thisRowH = Math.max(descLines.length * LH + 2, rowH);
 
-      // ─── Totals ───
-      const totX = M + cw * 0.65;
-      pdf.setFontSize(9).setTextColor(80);
-      pdf.text("Subtotal", totX, y);
-      pdf.text(`$${fmt(subtotal)}`, amtX, y, { align: "right" });
-      y += 5;
-      if (taxRate > 0) {
-        pdf.text(`Tax (${taxRate}%)`, totX, y);
-        pdf.text(`$${fmt(tax)}`, amtX, y, { align: "right" });
-        y += 5;
+        // Alternating stripe
+        if (stripe) {
+          pdf.setFillColor(248, 248, 248);
+          pdf.rect(M, y - 3.5, cw, thisRowH, "F");
+        }
+
+        pdf.setFontSize(9).setTextColor(60, 60, 60);
+        let lineY = y;
+        for (const dl of descLines) {
+          pdf.text(dl, descX + 2, lineY);
+          lineY += LH;
+        }
+
+        // Qty, Rate, Amount on first line
+        pdf.setTextColor(80, 80, 80);
+        pdf.text(String(item.quantity), qtyX, y, { align: "center" });
+        pdf.text(`$${item.rate.toFixed(2)}`, rateX, y, { align: "right" });
+        pdf.setFont("helvetica", "bold").setTextColor(30, 30, 30);
+        pdf.text(`$${amt.toFixed(2)}`, amtX - 2, y, { align: "right" });
+        pdf.setFont("helvetica", "normal");
+
+        y += thisRowH;
+        // Separator
+        pdf.setDrawColor(220, 220, 220).setLineWidth(0.2);
+        pdf.line(M, y - 1.5, W - M, y - 1.5);
+        stripe = !stripe;
       }
-      pdf.setDrawColor(40).line(totX, y - 2, W - M, y - 2);
-      pdf.setFontSize(12).setTextColor(20).setFont("helvetica", "bold");
-      pdf.text("Total Due", totX, y + 3);
-      pdf.text(`$${fmt(total)}`, amtX, y + 3, { align: "right" });
+      y += 6;
+
+      // ─── Totals (right-aligned block) ───
+      const totLabelX = M + cw * 0.62;
+      const totValX = amtX - 2;
+
+      pdf.setFontSize(9).setTextColor(100, 100, 100);
+      pdf.text("Subtotal", totLabelX, y);
+      pdf.setTextColor(40, 40, 40);
+      pdf.text(`$${fmt(subtotal)}`, totValX, y, { align: "right" });
+      y += LH + 1;
+
+      if (taxRate > 0) {
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`Tax (${taxRate}%)`, totLabelX, y);
+        pdf.setTextColor(40, 40, 40);
+        pdf.text(`$${fmt(tax)}`, totValX, y, { align: "right" });
+        y += LH + 1;
+      }
+
+      // Total due line
+      pdf.setDrawColor(35, 35, 45).setLineWidth(0.5);
+      pdf.line(totLabelX, y - 1, W - M, y - 1);
+      y += 3;
+      pdf.setFontSize(13).setTextColor(20, 20, 20).setFont("helvetica", "bold");
+      pdf.text("Total Due", totLabelX, y);
+      pdf.text(`$${fmt(total)}`, totValX, y, { align: "right" });
       pdf.setFont("helvetica", "normal");
-      y += 14;
+      y += 12;
 
       // ─── Payment terms ───
       if (form.paymentTerms) {
-        pdf.setFontSize(8).setTextColor(100);
+        pdf.setFontSize(7).setTextColor(140, 140, 140).setFont("helvetica", "bold");
         pdf.text("PAYMENT TERMS", M, y);
+        pdf.setFont("helvetica", "normal");
         y += 4;
-        pdf.setFontSize(9).setTextColor(40);
-        pdf.text(form.paymentTerms, M, y);
-        y += 8;
+        pdf.setFontSize(9).setTextColor(60, 60, 60);
+        const termLines: string[] = pdf.splitTextToSize(form.paymentTerms, cw);
+        for (const tl of termLines) { pdf.text(tl, M, y); y += LH; }
+        y += 6;
       }
 
       // ─── Notes ───
       if (form.notes) {
-        pdf.setFontSize(9).setTextColor(120).setFont("helvetica", "italic");
-        const noteLines = pdf.splitTextToSize(form.notes, cw);
-        pdf.text(noteLines, M, y);
+        pdf.setFontSize(7).setTextColor(140, 140, 140).setFont("helvetica", "bold");
+        pdf.text("NOTES", M, y);
         pdf.setFont("helvetica", "normal");
-        y += noteLines.length * 5;
+        y += 4;
+        pdf.setFontSize(9).setTextColor(100, 100, 100).setFont("helvetica", "italic");
+        const noteLines: string[] = pdf.splitTextToSize(form.notes, cw);
+        for (const nl of noteLines) { pdf.text(nl, M, y); y += LH; }
+        pdf.setFont("helvetica", "normal");
+        y += 6;
       }
 
       // ─── Footer ───
-      pdf.setFontSize(8).setTextColor(160);
-      pdf.text("Thank you for your business.", W / 2, y + 6, { align: "center" });
+      pdf.setFontSize(8).setTextColor(170, 170, 170);
+      pdf.text("Thank you for your business!", W / 2, y + 4, { align: "center" });
 
       const invNum = form.invoiceNumber || "invoice";
       pdf.save(`Invoice_${invNum}_${new Date().toISOString().split("T")[0]}.pdf`);

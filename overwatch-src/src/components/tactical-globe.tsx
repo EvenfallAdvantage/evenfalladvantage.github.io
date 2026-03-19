@@ -1,12 +1,26 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import createGlobe from "cobe";
+
+const MQ = "(max-width: 768px)";
 
 export function TacticalGlobe() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const subscribe = useCallback((cb: () => void) => {
+    const mq = window.matchMedia(MQ);
+    mq.addEventListener("change", cb);
+    return () => mq.removeEventListener("change", cb);
+  }, []);
+  const isMobile = useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(MQ).matches,
+    () => false,
+  );
+
   useEffect(() => {
+    if (isMobile) return;
     let phi = 0;
     let rafId: number;
 
@@ -54,7 +68,9 @@ export function TacticalGlobe() {
       cancelAnimationFrame(rafId);
       globe.destroy();
     };
-  }, []);
+  }, [isMobile]);
+
+  if (isMobile) return null;
 
   return (
     <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
