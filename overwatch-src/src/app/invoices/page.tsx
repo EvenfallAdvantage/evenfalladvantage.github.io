@@ -154,7 +154,7 @@ export default function InvoicesPage() {
       if (form.invoiceDate) { pdf.text(`Date: ${form.invoiceDate}`, metaX, metaY, { align: "right" }); metaY += LH; }
       if (form.dueDate) { pdf.text(`Due: ${form.dueDate}`, metaX, metaY, { align: "right" }); metaY += LH; }
 
-      y += Math.max(logoH, metaY - y) + 4;
+      y += Math.max(logoH, metaY - y) + 8;
 
       // ─── INVOICE title ───
       pdf.setFontSize(24).setTextColor(30, 30, 30).setFont("helvetica", "bold");
