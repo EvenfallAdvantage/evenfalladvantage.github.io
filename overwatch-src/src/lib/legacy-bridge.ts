@@ -186,12 +186,9 @@ export type LegacyStudent = {
 /** Get courses from legacy. Pass includeInactive=true for instructor/admin views. */
 export async function getLegacyCourses(includeInactive = false): Promise<LegacyCourse[]> {
   const client = getLegacyClient();
-  console.log("[Legacy Bridge] getCourses called, includeInactive:", includeInactive);
   let query = client.from("courses").select("*");
   if (!includeInactive) query = query.eq("is_active", true);
-  const { data, error, status } = await query.order("display_order", { ascending: true });
-
-  console.log("[Legacy Bridge] getCourses response — status:", status, "rows:", data?.length, "error:", error);
+  const { data, error } = await query.order("display_order", { ascending: true });
   if (error) {
     console.error("Legacy: getCourses error:", error);
     return [];
