@@ -1,8 +1,12 @@
 /**
- * State crime data — FBI UCR (Uniform Crime Reporting) estimates.
- * Data vintage: 2022. Rates are per 100,000 population.
+ * Geo-Risk Data — Dynamic + Static crime data
+ *
+ * Primary: Legacy Supabase RPC get_crime_data_with_fallback (City → County → State)
+ * Fallback: Hardcoded FBI UCR 2022 state/city/county data
  * Source: FBI Crime Data Explorer (https://cde.ucr.cjis.gov)
  */
+
+import { getLegacyCrimeData } from "@/lib/legacy-bridge";
 
 export type RiskLevel = "Negligible" | "Low" | "Moderate" | "High" | "Critical";
 
@@ -325,38 +329,77 @@ export type CrimeResult = {
   population?: number;
   granularity: Granularity;
   source: string;
+  dynamic: boolean;
 };
 
-export function getMultiTierCrimeData(
+// In-memory cache (24h TTL)
+const _crimeCache: Record<string, { data: CrimeResult; ts: number }> = {};
+const CACHE_TTL = 24 * 60 * 60 * 1000;
+
+/**
+ * Multi-tier crime data: Legacy Supabase RPC → static city → static county → static state
+ */
+export async function getMultiTierCrimeData(
   city: string, county: string, state: string
-): CrimeResult {
+): Promise<CrimeResult> {
+  const abbr = STATE_ABBR[state] || state;
+  const cacheKey = `${city}|${county}|${state}`;
+
+  // Check cache
+  const cached = _crimeCache[cacheKey];
+  if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
+
+  // ── Primary: Legacy Supabase RPC ──
+  try {
+    const rpc = await getLegacyCrimeData(city, county, abbr);
+    if (rpc) {
+      const result: CrimeResult = {
+        violent: rpc.violent_crime_rate,
+        property: rpc.property_crime_rate,
+        population: rpc.population,
+        granularity: rpc.granularity,
+        source: rpc.location_name,
+        dynamic: true,
+      };
+      _crimeCache[cacheKey] = { data: result, ts: Date.now() };
+      return result;
+    }
+  } catch { /* RPC unavailable — fall through to static */ }
+
+  // ── Fallback: Static data ──
+  const result = getStaticCrimeData(city, county, state);
+  _crimeCache[cacheKey] = { data: result, ts: Date.now() };
+  return result;
+}
+
+/** Static-only lookup: city → county → state → national average */
+function getStaticCrimeData(city: string, county: string, state: string): CrimeResult {
   const abbr = STATE_ABBR[state] || state;
 
-  // Tier 1: City-level
+  // Tier 1: City
   const cityKey = `${city}, ${abbr}`;
   const cityData = CITY_CRIME_DATA[cityKey];
   if (cityData) {
     return { violent: cityData.violent, property: cityData.property,
-      population: cityData.population, granularity: "city", source: cityKey };
+      population: cityData.population, granularity: "city", source: cityKey, dynamic: false };
   }
 
-  // Tier 2: County-level
+  // Tier 2: County
   if (county) {
     const countyKey = `${county}, ${abbr}`;
     const countyData = COUNTY_CRIME_DATA[countyKey];
     if (countyData) {
       return { violent: countyData.violent, property: countyData.property,
-        population: countyData.population, granularity: "county", source: countyKey };
+        population: countyData.population, granularity: "county", source: countyKey, dynamic: false };
     }
   }
 
-  // Tier 3: State-level fallback
+  // Tier 3: State
   const stateData = STATE_CRIME_DATA[state];
   if (stateData) {
     return { violent: stateData.violent, property: stateData.property,
-      granularity: "state", source: state };
+      granularity: "state", source: state, dynamic: false };
   }
 
-  // National average as last resort
-  return { violent: 380, property: 2300, granularity: "state", source: "National Average" };
+  return { violent: 380, property: 2300, granularity: "state", source: "National Average", dynamic: false };
 }

@@ -949,3 +949,58 @@ export async function getAllLegacyClasses(instructorId: string): Promise<LegacyS
   }
   return data ?? [];
 }
+
+// ─── Geo-Risk: Dynamic Crime Data ─────────────────────
+
+export type LegacyCrimeData = {
+  violent_crime_rate: number;
+  property_crime_rate: number;
+  total_crime_rate: number;
+  population: number;
+  granularity: "city" | "county" | "state";
+  location_name: string;
+  data_source: string;
+  murder_rate?: number;
+  rape_rate?: number;
+  robbery_rate?: number;
+  aggravated_assault_rate?: number;
+  burglary_rate?: number;
+  larceny_theft_rate?: number;
+  motor_vehicle_theft_rate?: number;
+  arson_rate?: number;
+  violent_clearance_rate?: number;
+  property_clearance_rate?: number;
+  violent_crime_trend?: string;
+  property_crime_trend?: string;
+  year_over_year_change?: number;
+  previous_year_violent_rate?: number;
+  top_violent_crime_type?: string;
+  top_property_crime_type?: string;
+  area_square_miles?: number;
+  crime_density?: number;
+  data_quality?: string;
+};
+
+/** Call legacy RPC get_crime_data_with_fallback for dynamic crime data */
+export async function getLegacyCrimeData(
+  city: string, county: string, stateCode: string, dataYear = 2022
+): Promise<LegacyCrimeData | null> {
+  const client = getLegacyClient();
+  try {
+    const { data, error } = await client.rpc("get_crime_data_with_fallback", {
+      p_city: city,
+      p_county: county,
+      p_state_code: stateCode,
+      p_data_year: dataYear,
+    });
+    if (error) {
+      console.error("Legacy: getCrimeData RPC error:", error);
+      return null;
+    }
+    if (data && data.length > 0) return data[0] as LegacyCrimeData;
+    return null;
+  } catch (e) {
+    console.error("Legacy: getCrimeData fetch error:", e);
+    return null;
+  }
+}

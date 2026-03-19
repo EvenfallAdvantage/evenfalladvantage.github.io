@@ -33,6 +33,7 @@ type RiskResult = {
   granularity: Granularity;
   source: string;
   population?: number;
+  dynamic: boolean;
   analysisDate: string;
 };
 
@@ -76,8 +77,8 @@ export default function GeoRiskPage() {
       // Step 1: Geocode to resolve county (for multi-tier lookup)
       const location = await geocodeAddress(address, city, state);
 
-      // Step 2: Multi-tier crime data: City → County → State
-      const crime = getMultiTierCrimeData(location.city, location.county, state);
+      // Step 2: Multi-tier crime data: DB RPC → City → County → State
+      const crime = await getMultiTierCrimeData(location.city, location.county, state);
 
       // Step 3: Calculate risk assessment
       const ft = facilityType || "Office Building";
@@ -94,7 +95,7 @@ export default function GeoRiskPage() {
         violentRate: crime.violent, propertyRate: crime.property,
         crimeRating, threatLikelihood, facilityImpact, riskScore, overallRating,
         granularity: crime.granularity, source: crime.source,
-        population: crime.population,
+        population: crime.population, dynamic: crime.dynamic,
         analysisDate: new Date().toISOString(),
       };
 
@@ -253,6 +254,7 @@ export default function GeoRiskPage() {
               <div className="text-[10px] text-muted-foreground space-y-1">
                 <p>- FBI Uniform Crime Reporting (UCR) — 2022 {result.granularity}-level statistics</p>
                 <p>- Source: {result.source}{result.population ? ` (pop. ${result.population.toLocaleString()})` : ""}</p>
+                <p>- Data: {result.dynamic ? "Live query from database" : "Static reference dataset (DB unavailable)"}</p>
                 <p>- OpenStreetMap Nominatim — Geocoding services</p>
               </div>
             </CardContent>
