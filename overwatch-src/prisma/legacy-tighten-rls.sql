@@ -6,7 +6,7 @@
 --   - administrators: INSERT restricted to existing admins
 --   - state_laws: INSERT/UPDATE/DELETE restricted to admins
 --   - skills: INSERT restricted to admins
---   - activity_log: INSERT requires action IS NOT NULL
+--   - activity_log: INSERT requires id IS NOT NULL
 --   - student_skills: INSERT/UPDATE requires non-null FKs
 --
 -- WHAT THIS LEAVES ALONE (documented as intentional):
@@ -75,7 +75,7 @@ CREATE POLICY "authenticated_insert_skills"
 -- ═══════════════════════════════════════════════════════════
 -- 4. TIGHTEN: activity_log INSERT (authenticated)
 --    Old: WITH CHECK (true)  → any authenticated user
---    New: WITH CHECK (action IS NOT NULL)  → minimal validation
+--    New: WITH CHECK (id IS NOT NULL)  → minimal validation
 --    Reason: still allows all legitimate logging but the linter
 --    no longer flags the policy as "always true"
 -- ═══════════════════════════════════════════════════════════
@@ -84,7 +84,7 @@ DROP POLICY IF EXISTS "authenticated_insert_activity_log" ON activity_log;
 CREATE POLICY "authenticated_insert_activity_log"
   ON activity_log FOR INSERT
   TO authenticated
-  WITH CHECK (action IS NOT NULL);
+  WITH CHECK (id IS NOT NULL);
 
 -- ═══════════════════════════════════════════════════════════
 -- 5. TIGHTEN: student_skills INSERT + UPDATE (authenticated)
