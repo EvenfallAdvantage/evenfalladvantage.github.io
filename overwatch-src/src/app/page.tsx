@@ -5,11 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Shield, Radio, GraduationCap, MapPin, FileText,
-  BarChart3, Users, Clock, Video, BookOpen,
+  Shield, Radio, GraduationCap, MapPin,
+  BarChart3, Users, Clock, BookOpen,
   ChevronRight, Zap, Lock, Globe,
   X, Phone, Mail, ArrowRight, Loader2, FileCheck,
-  UserPlus, Plug, Search, Smartphone,
+  UserPlus, Plug, Smartphone, Crosshair, AlertTriangle, Fingerprint,
 } from "lucide-react";
 import { TOSModal } from "@/components/terms-of-service";
 import { createClient } from "@/lib/supabase/client";
@@ -19,22 +19,22 @@ import { checkPasswordStrength } from "@/lib/security";
 import { logSecurityEvent, checkLoginAttempts, recordFailedAttempt, clearLoginAttempts } from "@/lib/security/audit";
 
 const FEATURES = [
-  { icon: Radio, title: "Live Comms", desc: "Encrypted team channels, WhatsApp & Signal integration, reactions, read receipts, and real-time messaging" },
-  { icon: UserPlus, title: "Onboarding Pipeline", desc: "Public application form, applicant tracking with status stages, onboarding checklists, and auto-hire workflows" },
-  { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out, patrol route logging, timesheet exports, and payroll sync via Gusto" },
-  { icon: GraduationCap, title: "Academy LMS", desc: "Slideshow courses with state-specific content, quizzes, certification tracking, de-escalation sims, and question bank management" },
-  { icon: Shield, title: "Site Assessment", desc: "7-section security evaluations with risk matrix scoring, auto-recommendations, multi-page PDF reports, and exportable findings" },
-  { icon: MapPin, title: "Geo-Risk Intel", desc: "FBI UCR crime data for any US location with composite risk scoring and threat analysis" },
-  { icon: Plug, title: "Integrations Hub", desc: "10+ connectors: Twilio SMS, Checkr background checks, DocuSign e-sign, Gusto payroll, OneSignal push, and more" },
-  { icon: FileText, title: "Invoice Generator", desc: "Professional invoices with line items, live preview, PDF export, and localStorage persistence" },
-  { icon: Users, title: "Personnel Command", desc: "Roster, scheduling, leave management, applicant pipeline, onboarding admin, and role-based access control" },
-  { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, incident reports, personnel stats, weekly trends, org composition, and custom forms" },
-  { icon: Video, title: "Conference", desc: "Live video training with Daily.co, class scheduling, attendance tracking, and certificate generation" },
-  { icon: Globe, title: "State Laws DB", desc: "All 50 states updated for 2025 — licensing, training hours, use-of-force doctrine, citizen's arrest, weapons regs, statutes, and regulatory agency links" },
-  { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with emotional tension meters and performance scoring" },
-  { icon: Search, title: "Command Palette", desc: "Ctrl+K instant search across 30+ pages, keyboard navigation, and grouped results by section" },
-  { icon: BookOpen, title: "Knowledge Base", desc: "Field manuals, SOPs, company policies, and searchable documentation for your entire operation" },
-  { icon: Smartphone, title: "Mobile PWA", desc: "Installable progressive web app with offline caching, push notifications, and thumb-optimized mobile nav" },
+  { icon: Crosshair, title: "Patrol Operations", desc: "QR checkpoint scanning, geofenced patrol routes, GPS-verified activity logs, and real-time officer tracking across all active sites" },
+  { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out with kiosk PIN mode, geofencing, break tracking, timesheet corrections, and one-click Gusto payroll sync" },
+  { icon: AlertTriangle, title: "Incident Command", desc: "Real-time incident reporting with severity tiers, status escalation, officer assignments, location tagging, and full audit trails" },
+  { icon: Radio, title: "Encrypted Comms", desc: "AES-256 encrypted team channels with WhatsApp & Signal bridging, file attachments, reactions, read receipts, and unread tracking" },
+  { icon: GraduationCap, title: "Academy LMS", desc: "Interactive slideshow courses, timed quizzes with question banks, certification tracking, state-specific curricula, and completion analytics" },
+  { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with real-time emotional tension meters, performance scoring, and scenario outcome tracking" },
+  { icon: Shield, title: "Site Assessment", desc: "7-section security evaluations with risk matrix scoring, auto-generated recommendations, multi-page PDF reports, and CSV exports" },
+  { icon: MapPin, title: "Geo-Risk Intel", desc: "FBI UCR crime data for any US location with composite risk scoring, threat heat mapping, and historical trend analysis" },
+  { icon: UserPlus, title: "Hire-to-Deploy Pipeline", desc: "Public apply form, CSV bulk import, Checkr background checks, DocuSign e-sign, auto-onboarding checklists, and one-click deployment" },
+  { icon: Users, title: "Personnel Command", desc: "Full roster management, shift scheduling with conflict detection, leave approvals, role-based access control, and readiness dashboards" },
+  { icon: Fingerprint, title: "Military-Grade Security", desc: "AES-256-GCM encryption at rest, session auto-lock, brute-force protection, rate-limited RPCs, RLS policies, and 90-day audit logs" },
+  { icon: Globe, title: "State Laws DB", desc: "All 50 states — licensing, training hours, use-of-force doctrine, citizen's arrest, weapons regs, statutes, and regulatory agency links" },
+  { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, incident analytics, personnel stats, weekly trends, org composition charts, and one-click CSV exports" },
+  { icon: Plug, title: "12+ Integrations", desc: "Twilio SMS, Checkr background checks, DocuSign e-sign, Gusto payroll, Fillout forms, OneSignal push, WhatsApp, and more" },
+  { icon: BookOpen, title: "Knowledge Base", desc: "Searchable field manuals, SOPs, company policies, required reading assignments with completion tracking, and document versioning" },
+  { icon: Smartphone, title: "Mobile-First PWA", desc: "Installable app with offline fallback, PWA shortcuts, thumb-optimized navigation, dark/light themes, and sub-second page loads" },
 ];
 
 const STATS = [
