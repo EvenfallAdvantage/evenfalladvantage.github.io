@@ -601,7 +601,7 @@ export default function GeoRiskPage() {
               </a>
               . Keys start at $75 for 500 lookups. Without a key, use the free NSOPW Registry link on the results page.
             </p>
-            <div className="flex gap-2">
+            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setFamilyWatchdogKey(fwKeyInput.trim()); setFwKeyConfigured(!!fwKeyInput.trim()); }}>
               <div className="relative flex-1">
                 <Input
                   type={showFwKey ? "text" : "password"}
@@ -609,26 +609,18 @@ export default function GeoRiskPage() {
                   value={fwKeyInput}
                   onChange={(e) => setFwKeyInput(e.target.value)}
                   className="h-8 text-xs pr-8"
+                  autoComplete="off"
                 />
                 <button
+                  type="button"
                   onClick={() => setShowFwKey(!showFwKey)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showFwKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs h-8"
-                onClick={() => {
-                  setFamilyWatchdogKey(fwKeyInput.trim());
-                  setFwKeyConfigured(!!fwKeyInput.trim());
-                }}
-              >
-                Save
-              </Button>
-            </div>
+              <Button size="sm" variant="outline" className="text-xs h-8" type="submit">Save</Button>
+            </form>
           </CardContent>
         </Card>
 
@@ -646,7 +638,7 @@ export default function GeoRiskPage() {
               </a>
               . Free tier: 100 calls/month. Without a key, Socrata + OpenDataSoft + ArcGIS are used (all free).
             </p>
-            <div className="flex gap-2">
+            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); setCrimeometerKey(cmKeyInput.trim()); setCmKeyConfigured(!!cmKeyInput.trim()); }}>
               <div className="relative flex-1">
                 <Input
                   type={showCmKey ? "text" : "password"}
@@ -654,26 +646,18 @@ export default function GeoRiskPage() {
                   value={cmKeyInput}
                   onChange={(e) => setCmKeyInput(e.target.value)}
                   className="h-8 text-xs pr-8"
+                  autoComplete="off"
                 />
                 <button
+                  type="button"
                   onClick={() => setShowCmKey(!showCmKey)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   {showCmKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-xs h-8"
-                onClick={() => {
-                  setCrimeometerKey(cmKeyInput.trim());
-                  setCmKeyConfigured(!!cmKeyInput.trim());
-                }}
-              >
-                Save
-              </Button>
-            </div>
+              <Button size="sm" variant="outline" className="text-xs h-8" type="submit">Save</Button>
+            </form>
           </CardContent>
         </Card>
       </div>
