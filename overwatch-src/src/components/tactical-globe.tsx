@@ -54,7 +54,7 @@ export function TacticalGlobe() {
   }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div className="absolute left-0 right-0 bottom-0 overflow-hidden pointer-events-none" style={{ top: "-600px" }} aria-hidden="true">
       <canvas
         ref={canvasRef}
         style={{
