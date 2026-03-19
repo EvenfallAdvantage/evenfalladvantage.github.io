@@ -14,11 +14,13 @@ export function TacticalGlobe() {
     if (!canvas) return;
 
     const width = canvas.offsetWidth;
+    // Cap resolution so the internal buffer (width * dpr) stays under GPU max texture size (4096)
+    const dpr = Math.min(window.devicePixelRatio || 1, Math.floor(4096 / width) || 1);
 
     const globe = createGlobe(canvas, {
-      devicePixelRatio: 2,
-      width: width * 2,
-      height: width * 2,
+      devicePixelRatio: dpr,
+      width: width,
+      height: width,
       phi: 0,
       theta: 0.25,
       dark: 1,
