@@ -4,7 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import {
   MapPin, Shield, AlertTriangle, BarChart3, Search,
   Building2, Loader2, Info, TrendingUp, TrendingDown,
-  FileDown, ChevronDown, Navigation, X,
+  FileDown, ChevronDown, Navigation, X, ExternalLink, Key, Eye, EyeOff,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,11 @@ import {
 import jsPDF from "jspdf";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
+import {
+  fetchMapOverlayData, getNSOPWSearchUrl, hasFamilyWatchdogKey,
+  setFamilyWatchdogKey, getFamilyWatchdogKey,
+  type CrimeIncident, type SexOffender, type MapOverlayData,
+} from "@/lib/crime-incidents";
 
 const GeoRiskMap = dynamic(() => import("@/components/geo-risk-map"), { ssr: false });
 
@@ -97,6 +102,20 @@ export default function GeoRiskPage() {
   const [result, setResult] = useState<RiskResult | null>(null);
   const [history, setHistory] = useState<RiskResult[]>([]);
   const { resolvedTheme } = useTheme();
+
+  // Map overlay state
+  const [incidents, setIncidents] = useState<CrimeIncident[]>([]);
+  const [offenders, setOffenders] = useState<SexOffender[]>([]);
+  const [overlayLoading, setOverlayLoading] = useState(false);
+  const [fwKeyInput, setFwKeyInput] = useState("");
+  const [showFwKey, setShowFwKey] = useState(false);
+  const [fwKeyConfigured, setFwKeyConfigured] = useState(false);
+
+  // Check for FW key on mount
+  useEffect(() => {
+    setFwKeyConfigured(hasFamilyWatchdogKey());
+    setFwKeyInput(getFamilyWatchdogKey());
+  }, []);
 
   // Autocomplete state
   const [query, setQuery] = useState("");
@@ -193,6 +212,18 @@ export default function GeoRiskPage() {
 
       setResult(assessment);
       setHistory((h) => [assessment, ...h.slice(0, 9)]);
+
+      // Fetch map overlay data (non-blocking)
+      if (lat != null && lon != null) {
+        setOverlayLoading(true);
+        fetchMapOverlayData(lat, lon, city, state)
+          .then((overlay) => {
+            setIncidents(overlay.incidents);
+            setOffenders(overlay.offenders);
+          })
+          .catch(() => { /* silent */ })
+          .finally(() => setOverlayLoading(false));
+      }
     } catch {
       alert("Analysis failed. Please try again.");
     } finally {
@@ -291,13 +322,51 @@ export default function GeoRiskPage() {
 
           {/* Map */}
           {result.lat != null && result.lon != null && (
-            <GeoRiskMap
-              lat={result.lat}
-              lon={result.lon}
-              riskLevel={result.overallRating}
-              address={`${result.address ? result.address + ", " : ""}${result.city}, ${result.state}`}
-              isDark={resolvedTheme === "dark"}
-            />
+            <>
+              <GeoRiskMap
+                lat={result.lat}
+                lon={result.lon}
+                riskLevel={result.overallRating}
+                address={`${result.address ? result.address + ", " : ""}${result.city}, ${result.state}`}
+                isDark={resolvedTheme === "dark"}
+                incidents={incidents}
+                offenders={offenders}
+                loading={overlayLoading}
+              />
+
+              {/* Overlay Summary Bar */}
+              <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                {incidents.length > 0 && (
+                  <Badge variant="outline" className="gap-1 font-normal">
+                    <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                    {incidents.filter((i) => i.type === "violent").length} violent
+                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block ml-1" />
+                    {incidents.filter((i) => i.type === "property").length} property
+                    <span className="w-2 h-2 rounded-full bg-gray-500 inline-block ml-1" />
+                    {incidents.filter((i) => i.type === "other").length} other
+                    <span className="text-muted-foreground ml-1">within 1 mi</span>
+                  </Badge>
+                )}
+                {incidents.length === 0 && !overlayLoading && (
+                  <span className="text-muted-foreground">No incident-level data for this city (Socrata)</span>
+                )}
+                {offenders.length > 0 && (
+                  <Badge variant="outline" className="gap-1 font-normal">
+                    <span className="w-2 h-2 rounded-full bg-purple-500 inline-block" />
+                    {offenders.length} registered offender{offenders.length !== 1 ? "s" : ""}
+                  </Badge>
+                )}
+                {/* NSOPW Fallback Link */}
+                <a
+                  href={getNSOPWSearchUrl(result.address, result.city, result.state)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto flex items-center gap-1 text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3 w-3" /> NSOPW Registry
+                </a>
+              </div>
+            </>
           )}
 
           {/* Gauge + Score */}
@@ -494,9 +563,56 @@ export default function GeoRiskPage() {
             <div className="text-xs text-muted-foreground space-y-1">
               <p>- Enter a location and facility type to generate a risk assessment</p>
               <p>- Crime data sourced from <strong>FBI UCR 2022</strong> (city → county → state fallback)</p>
+              <p>- <strong>Map overlay:</strong> real crime incidents plotted from city open data (Socrata)</p>
+              <p>- <strong>Sex offender overlay:</strong> via Family Watchdog API (optional, key required)</p>
               <p>- Risk score factors in violent crime, property crime, and facility vulnerability</p>
               <p>- Auto-generates security recommendations based on risk level</p>
               <p>- Export professional PDF reports for client proposals</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Family Watchdog API Key Config */}
+        <Card className="border-border/40">
+          <CardContent className="p-4 space-y-3">
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <Key className="h-3.5 w-3.5" /> Sex Offender Overlay
+              {fwKeyConfigured && <Badge variant="outline" className="text-[9px] ml-1 text-green-500 border-green-500/30">Active</Badge>}
+            </h3>
+            <p className="text-[10px] text-muted-foreground">
+              To display registered sex offenders on the map, enter your{" "}
+              <a href="https://www.familywatchdog.us/api" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                Family Watchdog API key
+              </a>
+              . Keys start at $75 for 500 lookups. Without a key, use the free NSOPW Registry link on the results page.
+            </p>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type={showFwKey ? "text" : "password"}
+                  placeholder="Enter API key..."
+                  value={fwKeyInput}
+                  onChange={(e) => setFwKeyInput(e.target.value)}
+                  className="h-8 text-xs pr-8"
+                />
+                <button
+                  onClick={() => setShowFwKey(!showFwKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showFwKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs h-8"
+                onClick={() => {
+                  setFamilyWatchdogKey(fwKeyInput.trim());
+                  setFwKeyConfigured(!!fwKeyInput.trim());
+                }}
+              >
+                Save
+              </Button>
             </div>
           </CardContent>
         </Card>
