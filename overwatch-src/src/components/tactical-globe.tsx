@@ -58,12 +58,12 @@ export function TacticalGlobe() {
       <canvas
         ref={canvasRef}
         style={{
-          width: "min(1400px, 120vw)",
-          height: "min(1400px, 120vw)",
+          width: "min(1800px, 160vw)",
+          height: "min(1800px, 160vw)",
           position: "absolute",
           left: "50%",
           bottom: 0,
-          transform: "translateX(-50%) translateY(68%)",
+          transform: "translateX(-40%) translateY(72%)",
         }}
       />
       {/* Fade-out at bottom edge */}
