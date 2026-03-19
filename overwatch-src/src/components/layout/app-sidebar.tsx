@@ -11,6 +11,7 @@ import { NAV_SECTIONS } from "./nav-items";
 import { useAuthStore } from "@/stores/auth-store";
 import { isSuperAdmin } from "@/lib/security/super-admin";
 import type { NavItem } from "@/types";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -504,18 +505,21 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         </DropdownMenu>
       </div>
 
-      {/* Branding */}
-      {!collapsed && (
-        <div className="px-4 py-2 flex flex-col items-center space-y-1">
-          <Image src="/images/overwatch_logo.png" alt="" width={24} height={24} className="h-6 w-auto opacity-40" />
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 font-mono">
-            Overwatch
-          </p>
-          <p className="text-[8px] uppercase tracking-widest text-muted-foreground/30">
-            Powered by Evenfall Advantage LLC
-          </p>
-        </div>
-      )}
+      {/* Theme Toggle + Branding */}
+      <div className={cn("border-t border-sidebar-border", collapsed ? "flex justify-center py-2" : "px-4 py-2 space-y-2")}>
+        <ThemeToggle collapsed={collapsed} />
+        {!collapsed && (
+          <div className="flex flex-col items-center space-y-1">
+            <Image src="/images/overwatch_logo.png" alt="" width={24} height={24} className="h-6 w-auto opacity-40" />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 font-mono">
+              Overwatch
+            </p>
+            <p className="text-[8px] uppercase tracking-widest text-muted-foreground/30">
+              Powered by Evenfall Advantage LLC
+            </p>
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

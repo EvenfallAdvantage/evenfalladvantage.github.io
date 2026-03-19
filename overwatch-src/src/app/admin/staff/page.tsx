@@ -24,6 +24,8 @@ import {
   getMemberProfileById, getCompanyReadiness, getIncidents,
 } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
+import { exportCSV, TIMESHEET_COLUMNS, MEMBER_COLUMNS, INCIDENT_COLUMNS } from "@/lib/csv-export";
+import { Download } from "lucide-react";
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -474,9 +476,16 @@ export default function AdminStaffPage() {
         {/* ── Roster Tab ── */}
         {tab === "roster" && (
           <>
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search personnel..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <div className="flex items-center gap-2">
+              <div className="relative max-w-sm flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Search personnel..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
+              {members.length > 0 && (
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => exportCSV(members, MEMBER_COLUMNS, `roster-${new Date().toISOString().slice(0,10)}`)}>
+                  <Download className="h-3.5 w-3.5" /> Export
+                </Button>
+              )}
             </div>
 
             {loading ? (
@@ -568,6 +577,13 @@ export default function AdminStaffPage() {
         {/* ── Timesheets Tab ── */}
         {tab === "timesheets" && (
           <>
+            {timesheets.length > 0 && (
+              <div className="flex justify-end mb-2">
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => exportCSV(timesheets, TIMESHEET_COLUMNS, `timesheets-${new Date().toISOString().slice(0,10)}`)}>
+                  <Download className="h-3.5 w-3.5" /> Export CSV
+                </Button>
+              </div>
+            )}
             {loading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
             ) : timesheets.length === 0 ? (
@@ -798,9 +814,14 @@ export default function AdminStaffPage() {
                 {/* ── Incident Reports ── */}
                 {incidents.length > 0 && (
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Incident Reports ({incidents.length})
-                    </p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Incident Reports ({incidents.length})
+                      </p>
+                      <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-6 px-2" onClick={() => exportCSV(incidents, INCIDENT_COLUMNS, `incidents-${new Date().toISOString().slice(0,10)}`)}>
+                        <Download className="h-3 w-3" /> CSV
+                      </Button>
+                    </div>
                     <div className="space-y-2">
                       {incidents.map((inc) => {
                         const reporter = inc.reported_user;
