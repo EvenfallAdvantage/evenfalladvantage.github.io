@@ -338,8 +338,8 @@ async function fetchOpenDataSoft(
     const url =
       `https://public.opendatasoft.com/api/records/1.0/search/?` +
       `q=crime+OR+incident+OR+offense+OR+police` +
-      `&geofilter.distance=${lat},${lon},${dist}` +
-      `&rows=50&sort=-date`;
+      `&geofilter.distance=${lat}%2C${lon}%2C${dist}` +
+      `&rows=50`;
 
     const res = await fetch(url, { headers: { Accept: "application/json" } });
     if (!res.ok) return [];
