@@ -50,7 +50,7 @@ export default function JoinPage() {
       const result = await joinCompanyByCode({
         supabaseId: authUser.id,
         email: authUser.email ?? null,
-        phone: authUser.phone ?? meta.phone ?? null,
+        phone: authUser.phone || meta.phone || null,
         firstName: meta.first_name ?? "",
         lastName: meta.last_name ?? "",
         joinCode: companyCode,

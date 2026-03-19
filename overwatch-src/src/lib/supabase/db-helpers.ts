@@ -58,7 +58,7 @@ export async function ensureInternalUser() {
       id: newId,
       supabase_id: authUser.id,
       email: authUser.email ?? null,
-      phone: authUser.phone ?? meta.phone ?? null,
+      phone: authUser.phone || meta.phone || null,
       first_name: meta.first_name ?? "",
       last_name: meta.last_name ?? "",
       ...ts(),
