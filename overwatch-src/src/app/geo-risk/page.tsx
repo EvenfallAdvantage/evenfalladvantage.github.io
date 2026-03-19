@@ -17,6 +17,10 @@ import {
   type RiskLevel, type Granularity,
 } from "@/lib/geo-risk-data";
 import jsPDF from "jspdf";
+import dynamic from "next/dynamic";
+import { useTheme } from "next-themes";
+
+const GeoRiskMap = dynamic(() => import("@/components/geo-risk-map"), { ssr: false });
 
 type RiskResult = {
   address: string;
@@ -34,28 +38,31 @@ type RiskResult = {
   source: string;
   population?: number;
   dynamic: boolean;
+  lat?: number;
+  lon?: number;
   analysisDate: string;
 };
 
 function RiskGauge({ score }: { score: number }) {
-  const angle = (score / 100) * 180 - 90;
+  const angle = (score / 100) * 180;
+  const rad = ((180 - angle) * Math.PI) / 180;
   const color =
     score >= 75 ? "#ef4444" : score >= 50 ? "#f59e0b" : score >= 25 ? "#3b82f6" : "#22c55e";
   return (
-    <div className="relative w-40 h-20 mx-auto">
-      <svg viewBox="0 0 200 100" className="w-full h-full">
-        <path d="M 10 95 A 90 90 0 0 1 190 95" fill="none" stroke="currentColor" strokeWidth="8" className="text-border/30" />
-        <path d="M 10 95 A 90 90 0 0 1 190 95" fill="none" stroke={color} strokeWidth="8"
-          strokeDasharray={`${(score / 100) * 283} 283`} strokeLinecap="round" />
-        <line x1="100" y1="95" x2={100 + 70 * Math.cos((angle * Math.PI) / 180)}
-          y2={95 - 70 * Math.sin((angle * Math.PI) / 180) * -1}
-          stroke={color} strokeWidth="3" strokeLinecap="round" />
-        <circle cx="100" cy="95" r="4" fill={color} />
-      </svg>
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
-        <p className="text-2xl font-bold font-mono" style={{ color }}>{score}</p>
-        <p className="text-[9px] text-muted-foreground">Risk Score</p>
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative w-44 h-[90px]">
+        <svg viewBox="0 0 200 105" className="w-full h-full">
+          <path d="M 10 95 A 90 90 0 0 1 190 95" fill="none" stroke="currentColor" strokeWidth="8" className="text-border/30" />
+          <path d="M 10 95 A 90 90 0 0 1 190 95" fill="none" stroke={color} strokeWidth="8"
+            strokeDasharray={`${(score / 100) * 283} 283`} strokeLinecap="round" />
+          <line x1="100" y1="95" x2={100 + 65 * Math.cos(rad)}
+            y2={95 - 65 * Math.sin(rad)}
+            stroke={color} strokeWidth="3" strokeLinecap="round" />
+          <circle cx="100" cy="95" r="5" fill={color} />
+        </svg>
       </div>
+      <p className="text-3xl font-bold font-mono" style={{ color }}>{score}</p>
+      <p className="text-[10px] text-muted-foreground -mt-1">Risk Score</p>
     </div>
   );
 }
@@ -83,10 +90,13 @@ export default function GeoRiskPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [county, setCounty] = useState("");
+  const [lat, setLat] = useState<number | null>(null);
+  const [lon, setLon] = useState<number | null>(null);
   const [facilityType, setFacilityType] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<RiskResult | null>(null);
   const [history, setHistory] = useState<RiskResult[]>([]);
+  const { resolvedTheme } = useTheme();
 
   // Autocomplete state
   const [query, setQuery] = useState("");
@@ -138,13 +148,15 @@ export default function GeoRiskPage() {
     setCity(resolvedCity);
     setState(resolvedState);
     setCounty(resolvedCounty);
+    setLat(parseFloat(s.lat));
+    setLon(parseFloat(s.lon));
     setQuery(s.display_name.replace(", United States", "").replace(", USA", ""));
     setResolved(`${resolvedCity}${resolvedCounty ? `, ${resolvedCounty}` : ""}, ${resolvedState}`);
     setShowSuggestions(false);
   }
 
   function clearSearch() {
-    setQuery(""); setAddress(""); setCity(""); setState(""); setCounty("");
+    setQuery(""); setAddress(""); setCity(""); setState(""); setCounty(""); setLat(null); setLon(null);
     setResolved(null); setSuggestions([]); setShowSuggestions(false);
   }
 
@@ -175,6 +187,7 @@ export default function GeoRiskPage() {
         crimeRating, threatLikelihood, facilityImpact, riskScore, overallRating,
         granularity: crime.granularity, source: crime.source,
         population: crime.population, dynamic: crime.dynamic,
+        lat: lat ?? undefined, lon: lon ?? undefined,
         analysisDate: new Date().toISOString(),
       };
 
@@ -275,6 +288,17 @@ export default function GeoRiskPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Map */}
+          {result.lat != null && result.lon != null && (
+            <GeoRiskMap
+              lat={result.lat}
+              lon={result.lon}
+              riskLevel={result.overallRating}
+              address={`${result.address ? result.address + ", " : ""}${result.city}, ${result.state}`}
+              isDark={resolvedTheme === "dark"}
+            />
+          )}
 
           {/* Gauge + Score */}
           <Card className={`border-2 ${rc.border}`}>
