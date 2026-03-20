@@ -14,24 +14,26 @@ export function PwaInstallPrompt() {
   const [showInstall, setShowInstall] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
 
-  // Capture the install prompt event
+  // Capture the install prompt event — only once
   useEffect(() => {
+    let captured = false;
     const handler = (e: Event) => {
+      if (captured) return;
+      captured = true;
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Only show if user hasn't dismissed before
       const dismissed = localStorage.getItem("pwa-install-dismissed");
       if (!dismissed) setShowInstall(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Listen for app installed
-    window.addEventListener("appinstalled", () => {
-      setShowInstall(false);
-      setDeferredPrompt(null);
-    });
+    const installed = () => { setShowInstall(false); setDeferredPrompt(null); };
+    window.addEventListener("appinstalled", installed);
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", installed);
+    };
   }, []);
 
   // Listen for service worker updates

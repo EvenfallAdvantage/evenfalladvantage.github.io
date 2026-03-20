@@ -13,6 +13,7 @@ interface TopbarProps {
 
 export function Topbar({ sidebarCollapsed }: TopbarProps) {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
 
   const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => {
@@ -25,6 +26,8 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
     return () => { clearInterval(interval); window.removeEventListener("notifications-read", onRead); };
   }, [activeCompanyId]);
 
+  const companyInitial = activeCompany?.companyName?.charAt(0)?.toUpperCase() ?? "O";
+
   return (
     <header
       className={cn(
@@ -33,6 +36,21 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
         "max-md:left-0"
       )}
     >
+      {/* Company avatar + name (fills blank space on mobile) */}
+      <div className="flex items-center gap-2 min-w-0 md:hidden">
+        {activeCompany?.companyLogo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={activeCompany.companyLogo} alt={activeCompany.companyName} className="h-7 w-7 rounded-lg object-contain bg-muted/30 shrink-0" />
+        ) : (
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-bold shrink-0">
+            {companyInitial}
+          </div>
+        )}
+        {activeCompany?.companyName && (
+          <span className="text-xs font-semibold truncate max-w-[140px]">{activeCompany.companyName}</span>
+        )}
+      </div>
+
       <div className="flex-1" />
 
       <div className="flex items-center gap-2">

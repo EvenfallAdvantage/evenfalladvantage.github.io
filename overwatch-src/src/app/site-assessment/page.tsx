@@ -460,7 +460,7 @@ export default function SiteAssessmentPage() {
               <div className="bg-gray-900 text-white p-8">
                 <h1 className="text-2xl font-bold tracking-tight">SITE SECURITY ASSESSMENT REPORT</h1>
                 <p className="text-gray-400 mt-1">{data.clientName || "Facility Assessment"}</p>
-                <div className="flex gap-6 mt-4 text-sm text-gray-300">
+                <div className="flex flex-wrap gap-x-6 gap-y-1 mt-4 text-sm text-gray-300">
                   {data.city && <span>{data.city}, {data.state}</span>}
                   {data.assessmentDate && <span>Date: {data.assessmentDate}</span>}
                   {data.assessorName && <span>Assessor: {data.assessorName}</span>}
@@ -468,9 +468,9 @@ export default function SiteAssessmentPage() {
               </div>
 
               {/* Risk Score */}
-              <div className="p-8 border-b border-gray-200">
-                <div className="flex items-center gap-6">
-                  <div className="relative h-28 w-28">
+              <div className="p-4 sm:p-8 border-b border-gray-200">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+                  <div className="relative h-28 w-28 shrink-0">
                     <svg className="h-28 w-28 -rotate-90" viewBox="0 0 120 120">
                       <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="8" />
                       <circle cx="60" cy="60" r="50" fill="none" stroke={result.color} strokeWidth="8" strokeLinecap="round"
@@ -495,7 +495,7 @@ export default function SiteAssessmentPage() {
                        result.level === "Moderate" ? "Some improvements recommended. Review priority items." :
                        "Security posture is adequate. Maintain current measures."}
                     </p>
-                    <div className="flex gap-4 mt-3 text-xs text-gray-500">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-gray-500">
                       <span>Threat: {data.threatLikelihood || "N/A"}</span>
                       <span>Impact: {data.potentialImpact || "N/A"}</span>
                       <span>Vulnerability: {data.overallVulnerability || "N/A"}</span>
@@ -506,9 +506,9 @@ export default function SiteAssessmentPage() {
               </div>
 
               {/* Assessment Summary */}
-              <div className="p-8 border-b border-gray-200">
+              <div className="p-4 sm:p-8 border-b border-gray-200">
                 <h2 className="text-lg font-bold text-gray-800 mb-4">Assessment Summary</h2>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                   <div><span className="text-gray-500">Facility Type:</span> <span className="font-medium">{data.facilityType || "N/A"}</span></div>
                   <div><span className="text-gray-500">Address:</span> <span className="font-medium">{data.address || "N/A"}, {data.city} {data.state}</span></div>
                   <div><span className="text-gray-500">Entry Points:</span> <span className="font-medium">{data.entryPoints || "N/A"} total / {data.controlledEntries || "N/A"} controlled</span></div>

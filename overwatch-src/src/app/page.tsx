@@ -432,11 +432,11 @@ function HomePageInner() {
             <Image src="/images/overwatch_logo.png" alt="Overwatch" width={36} height={36} style={{ width: 36, height: "auto" }} />
             <span className="font-mono text-lg font-bold tracking-tight">OVERWATCH</span>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setLoginOpen(true)} className="text-sm text-white/60 hover:text-white transition-colors px-3 py-1.5">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button onClick={() => setLoginOpen(true)} className="text-xs sm:text-sm text-white/60 hover:text-white transition-colors px-2 sm:px-3 py-1.5">
               Sign In
             </button>
-            <button onClick={() => setRegisterOpen(true)} className="text-sm font-medium bg-[#dd8c33] text-white px-4 py-1.5 rounded-lg hover:bg-[#c47a2a] transition-colors">
+            <button onClick={() => setRegisterOpen(true)} className="text-xs sm:text-sm font-medium bg-[#dd8c33] text-white px-3 sm:px-4 py-1.5 rounded-lg hover:bg-[#c47a2a] transition-colors whitespace-nowrap">
               Get Started
             </button>
           </div>
@@ -463,11 +463,11 @@ function HomePageInner() {
             Overwatch unifies workforce management, training, compliance, and field operations
             into one tactical platform built for security professionals.
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <button onClick={() => setRegisterOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
+          <div className="flex items-center justify-center gap-3 sm:gap-4">
+            <button onClick={() => setRegisterOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
               Deploy Now <ChevronRight className="h-4 w-4" />
             </button>
-            <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 border border-[#dd8c33]/30 text-white/80 px-8 py-3 rounded-xl hover:bg-[#dd8c33]/10 transition-all text-sm">
+            <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 border border-[#dd8c33]/30 text-white/80 px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl hover:bg-[#dd8c33]/10 transition-all text-sm">
               Sign In
             </button>
           </div>

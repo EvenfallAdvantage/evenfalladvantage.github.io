@@ -216,6 +216,13 @@ export default function CertificationsPage() {
   }
 
   const now = new Date();
+  const fmtDate = (d: string | null) => {
+    if (!d) return null;
+    try {
+      const dt = new Date(d);
+      return dt.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    } catch { return d; }
+  };
   const active = certs.filter((c) => c.status === "active");
   const expiring = active.filter((c) => {
     if (!c.expiry_date) return false;
@@ -343,13 +350,13 @@ export default function CertificationsPage() {
               const isExpiring = cert.expiry_date && !isExpired && (new Date(cert.expiry_date).getTime() - now.getTime()) < 90 * 24 * 60 * 60 * 1000;
               return (
                 <Card key={cert.id} className={`border-border/40 ${isExpired ? "opacity-60" : ""}`}>
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${isExpired ? "bg-red-500/15" : isExpiring ? "bg-amber-500/15" : "bg-green-500/15"}`}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-3">
+                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${isExpired ? "bg-red-500/15" : isExpiring ? "bg-amber-500/15" : "bg-green-500/15"}`}>
                         {isExpired ? <AlertTriangle className="h-4 w-4 text-red-500" /> : isExpiring ? <Clock className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-green-500" />}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold">{cert.cert_type}</span>
                           {cert.category && cert.category !== "general" && (
                             <Badge className="text-[9px] bg-muted">{cert.category}</Badge>
@@ -357,35 +364,39 @@ export default function CertificationsPage() {
                           {isExpired && <Badge className="text-[9px] bg-red-500/15 text-red-600">Expired</Badge>}
                           {isExpiring && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Expiring Soon</Badge>}
                         </div>
-                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground mt-0.5">
-                          {cert.issue_date && <span>Issued: {cert.issue_date}</span>}
-                          {cert.expiry_date && <span>Expires: {cert.expiry_date}</span>}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground mt-1">
+                          {cert.issue_date && <span>Issued: {fmtDate(cert.issue_date)}</span>}
+                          {cert.expiry_date && <span>Expires: {fmtDate(cert.expiry_date)}</span>}
                           {cert.issued_by && <span>By: {cert.issued_by}</span>}
-                          {cert.certificate_number && (
-                            <span className="flex items-center gap-0.5"><Hash className="h-2.5 w-2.5" /> {cert.certificate_number}</span>
-                          )}
-                          {cert.verification_code && (
-                            <span className="font-mono text-primary/60">{cert.verification_code}</span>
-                          )}
                         </div>
+                        {(cert.certificate_number || cert.verification_code) && (
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground mt-0.5">
+                            {cert.certificate_number && (
+                              <span className="flex items-center gap-0.5"><Hash className="h-2.5 w-2.5" /> {cert.certificate_number}</span>
+                            )}
+                            {cert.verification_code && (
+                              <span className="font-mono text-primary/60">{cert.verification_code}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {cert.document_url && (
-                        <a href={cert.document_url} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors"
-                          title="View document">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
-                        onClick={() => handleDownload(cert)} disabled={downloading === cert.id}>
-                        {downloading === cert.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500"
-                        onClick={() => handleDelete(cert.id)} disabled={deleting === cert.id}>
-                        {deleting === cert.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                      </Button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {cert.document_url && (
+                          <a href={cert.document_url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors"
+                            title="View document">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
+                          onClick={() => handleDownload(cert)} disabled={downloading === cert.id}>
+                          {downloading === cert.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-500"
+                          onClick={() => handleDelete(cert.id)} disabled={deleting === cert.id}>
+                          {deleting === cert.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
