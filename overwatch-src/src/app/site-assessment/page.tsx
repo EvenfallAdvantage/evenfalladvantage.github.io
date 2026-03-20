@@ -1,16 +1,21 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Shield, Building2, DoorOpen, Video, AlertTriangle, Users, ClipboardCheck,
   BarChart3, Save, FileDown, RotateCcw, ChevronRight, ChevronDown,
-  CheckCircle2, XCircle, AlertCircle, Info,
+  CheckCircle2, XCircle, AlertCircle, Info, MapPin,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
+import { geocodeAddress } from "@/lib/geo-risk-data";
+import { useTheme } from "next-themes";
+import dynamic from "next/dynamic";
+
+const GeoRiskMap = dynamic(() => import("@/components/geo-risk-map"), { ssr: false });
 
 /* ── Types ──────────────────────────────────────────────── */
 
@@ -233,7 +238,11 @@ export default function SiteAssessmentPage() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["clientInfo"]));
   const [result, setResult] = useState<RiskResult | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [lat, setLat] = useState<number | null>(null);
+  const [lon, setLon] = useState<number | null>(null);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const { resolvedTheme } = useTheme();
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Load from localStorage
   useEffect(() => {
@@ -275,9 +284,21 @@ export default function SiteAssessmentPage() {
     });
   }
 
-  function handleCalculate() {
+  async function handleCalculate() {
     const r = calculateRisk(data);
     setResult(r);
+
+    // Geocode address for map
+    if (data.city && data.state) {
+      try {
+        const geo = await geocodeAddress(data.address || "", data.city, data.state);
+        if (geo.lat != null && geo.lon != null) {
+          setLat(geo.lat);
+          setLon(geo.lon);
+        }
+      } catch { /* geocoding optional */ }
+    }
+
     // Scroll to results
     setTimeout(() => document.getElementById("risk-results")?.scrollIntoView({ behavior: "smooth" }), 100);
   }
@@ -290,6 +311,8 @@ export default function SiteAssessmentPage() {
     }));
     setData(defaults);
     setResult(null);
+    setLat(null);
+    setLon(null);
     setExpandedSections(new Set(["clientInfo"]));
     localStorage.removeItem(STORAGE_KEY);
   }
@@ -449,6 +472,136 @@ export default function SiteAssessmentPage() {
         doc.setFont("helvetica", "normal");
       });
       y += 22;
+
+      // ── Map (light mode tiles only — better for print) ──
+      if (lat != null && lon != null) {
+        try {
+          const zoom = 14;
+          const mapW = 640;
+          const mapHPx = 504;
+          const tileSize = 256;
+          const tileTemplate = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+          const n = Math.pow(2, zoom);
+          const latRad = (lat * Math.PI) / 180;
+          const tileX = ((lon + 180) / 360) * n;
+          const tileY = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+
+          const centerTileX = Math.floor(tileX);
+          const centerTileY = Math.floor(tileY);
+          const offsetX = (tileX - centerTileX) * tileSize;
+          const offsetY = (tileY - centerTileY) * tileSize;
+
+          const halfW = mapW / 2;
+          const halfH = mapHPx / 2;
+          const tilesNeededX = Math.ceil(halfW / tileSize) + 1;
+          const tilesNeededY = Math.ceil(halfH / tileSize) + 1;
+
+          const mapCanvas = document.createElement("canvas");
+          mapCanvas.width = mapW;
+          mapCanvas.height = mapHPx;
+          const ctx = mapCanvas.getContext("2d");
+          if (ctx) {
+            ctx.fillStyle = "#f1f5f9";
+            ctx.fillRect(0, 0, mapW, mapHPx);
+
+            const loadTile = (url: string): Promise<HTMLImageElement | null> =>
+              new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = url;
+              });
+
+            for (let dx = -tilesNeededX; dx <= tilesNeededX; dx++) {
+              for (let dy = -tilesNeededY; dy <= tilesNeededY; dy++) {
+                const tx = centerTileX + dx;
+                const ty = centerTileY + dy;
+                if (ty < 0 || ty >= n) continue;
+                const url = tileTemplate
+                  .replace("{z}", String(zoom))
+                  .replace("{x}", String(((tx % n) + n) % n))
+                  .replace("{y}", String(ty));
+                const tile = await loadTile(url);
+                if (tile) {
+                  const px = halfW + dx * tileSize - offsetX;
+                  const py = halfH + dy * tileSize - offsetY;
+                  ctx.drawImage(tile, px, py, tileSize, tileSize);
+                }
+              }
+            }
+
+            // Risk radius circle (1 mile ≈ 1609m)
+            const metersPerPx = (156543.03392 * Math.cos(latRad)) / n;
+            const radiusPx = 1609 / metersPerPx;
+            const circleHex = result.color;
+            ctx.beginPath();
+            ctx.arc(halfW, halfH, radiusPx, 0, Math.PI * 2);
+            ctx.strokeStyle = circleHex;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            const cr = parseInt(circleHex.slice(1, 3), 16);
+            const cg = parseInt(circleHex.slice(3, 5), 16);
+            const cb = parseInt(circleHex.slice(5, 7), 16);
+            ctx.fillStyle = `rgba(${cr},${cg},${cb},0.10)`;
+            ctx.fill();
+
+            // Center pin
+            ctx.beginPath();
+            ctx.arc(halfW, halfH, 7, 0, Math.PI * 2);
+            ctx.fillStyle = circleHex;
+            ctx.fill();
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Legend
+            const legendItems: [string, string][] = [
+              [circleHex, `${result.level} Risk — ${data.facilityType || "Facility"}`],
+              ["#64748b", `${data.city}, ${data.state}`],
+            ];
+            const legendLineH = 16;
+            const legendH = legendItems.length * legendLineH + 10;
+            const legendW = 180;
+            const legendX = mapW - legendW - 8;
+            const legendY = 8;
+            ctx.fillStyle = "rgba(255,255,255,0.92)";
+            ctx.strokeStyle = "rgba(0,0,0,0.15)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(legendX, legendY, legendW, legendH, 4);
+            ctx.fill();
+            ctx.stroke();
+            legendItems.forEach(([clr, label], idx) => {
+              const ly = legendY + 12 + idx * legendLineH;
+              ctx.beginPath();
+              ctx.arc(legendX + 12, ly, 4, 0, Math.PI * 2);
+              ctx.fillStyle = clr;
+              ctx.fill();
+              ctx.strokeStyle = "#fff";
+              ctx.lineWidth = 1;
+              ctx.stroke();
+              ctx.fillStyle = "#1e293b";
+              ctx.font = "11px sans-serif";
+              ctx.fillText(label, legendX + 22, ly + 4);
+            });
+
+            // Attribution
+            ctx.font = "10px sans-serif";
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fillText("© OpenStreetMap", 5, mapHPx - 5);
+
+            const mapData = mapCanvas.toDataURL("image/png");
+            const mapH = Math.min(98, (mapHPx / mapW) * contentW);
+            ensureSpace(mapH + 4);
+            doc.addImage(mapData, "PNG", margin, y, contentW, mapH);
+            y += mapH + 4;
+          }
+        } catch (e) { console.warn("Map PDF capture failed:", e); }
+      }
 
       // ── Assessment Summary ──
       y = sectionHead("Assessment Summary", y);
@@ -734,6 +887,26 @@ export default function SiteAssessmentPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Location Map */}
+              {lat != null && lon != null && (
+                <div className="border-b border-gray-200">
+                  <div ref={mapContainerRef}>
+                    <GeoRiskMap
+                      lat={lat}
+                      lon={lon}
+                      riskLevel={result.level === "Critical" ? "Critical" : result.level === "High" ? "High" : result.level === "Moderate" ? "Moderate" : "Low"}
+                      address={`${data.address ? data.address + ", " : ""}${data.city}, ${data.state}`}
+                      isDark={resolvedTheme === "dark"}
+                    />
+                  </div>
+                  <div className="px-4 py-2 flex items-center gap-2 text-xs text-gray-500 bg-gray-50">
+                    <MapPin className="h-3 w-3" />
+                    <span>{data.address ? `${data.address}, ` : ""}{data.city}, {data.state}</span>
+                    <span className="ml-auto text-[10px]">1-mile analysis radius</span>
+                  </div>
+                </div>
+              )}
 
               {/* Assessment Summary */}
               <div className="p-4 sm:p-8 border-b border-gray-200">
