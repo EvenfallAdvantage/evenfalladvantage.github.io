@@ -255,15 +255,24 @@ export async function checkinAsset(assetId: string) {
   return data;
 }
 
-export async function getAssetByQrCode(companyId: string, qrCode: string) {
+export async function getAssetByQrCode(companyId: string, scannedValue: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  // Try matching the system-generated qr_code first
+  const { data: byQr } = await supabase
     .from("assets")
     .select("*, users(first_name, last_name)")
     .eq("company_id", companyId)
-    .eq("qr_code", qrCode)
+    .eq("qr_code", scannedValue)
     .maybeSingle();
-  return data;
+  if (byQr) return byQr;
+  // Fall back to matching by serial_number (physical device QR codes encode this)
+  const { data: bySerial } = await supabase
+    .from("assets")
+    .select("*, users(first_name, last_name)")
+    .eq("company_id", companyId)
+    .eq("serial_number", scannedValue)
+    .maybeSingle();
+  return bySerial;
 }
 
 export async function deleteAsset(assetId: string) {
