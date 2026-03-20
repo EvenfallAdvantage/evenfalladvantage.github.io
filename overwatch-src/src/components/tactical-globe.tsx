@@ -200,19 +200,47 @@ export function TacticalGlobe() {
         }}
       />
 
-      {/* ── Orbiting Satellites ── */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Satellite 1 — left-to-right wide arc, 24s */}
-        <div className="sat-wrapper" style={{ animation: "satArc1 24s linear infinite" }}>
-          <CssSatellite scale={1.8} rotate={12} />
+      {/* ── Orbiting Satellites ──
+           Each orbit = a container centered on the globe that rotates 360°.
+           The satellite sits at a fixed radius (top %) from center.
+           Different rotateY tilts on the plane wrapper create crisscrossing orbits.
+           The hero's overflow-hidden clips satellites when they rotate below the viewport. */}
+      <div
+        style={{
+          position: "absolute",
+          width: "min(3200px, 280vw)",
+          height: "min(3200px, 280vw)",
+          left: "50%",
+          bottom: 0,
+          transform: "translateX(-50%) translateY(72%)",
+          pointerEvents: "none",
+          perspective: 4000,
+          transformStyle: "preserve-3d",
+        }}
+      >
+        {/* Orbit 1 — tilted right, clockwise, 30s */}
+        <div style={{ position: "absolute", inset: 0, transform: "rotateY(14deg)", transformStyle: "preserve-3d" }}>
+          <div style={{ position: "absolute", inset: 0, animation: "orbitCW 30s linear infinite", transformStyle: "preserve-3d" }}>
+            <div style={{ position: "absolute", top: "7%", left: "50%", transform: "translate(-50%, -50%)" }}>
+              <CssSatellite scale={1.8} rotate={15} />
+            </div>
+          </div>
         </div>
-        {/* Satellite 2 — right-to-left higher arc, 32s */}
-        <div className="sat-wrapper" style={{ animation: "satArc2 32s linear infinite" }}>
-          <CssSatellite scale={1.4} rotate={-8} />
+        {/* Orbit 2 — tilted left, counter-clockwise, 24s */}
+        <div style={{ position: "absolute", inset: 0, transform: "rotateY(-18deg)", transformStyle: "preserve-3d" }}>
+          <div style={{ position: "absolute", inset: 0, animation: "orbitCCW 24s linear infinite", transformStyle: "preserve-3d" }}>
+            <div style={{ position: "absolute", top: "9%", left: "50%", transform: "translate(-50%, -50%)" }}>
+              <CssSatellite scale={1.5} rotate={-10} />
+            </div>
+          </div>
         </div>
-        {/* Satellite 3 — fast diagonal pass, 18s */}
-        <div className="sat-wrapper" style={{ animation: "satArc3 18s linear infinite" }}>
-          <CssSatellite scale={1.6} rotate={20} />
+        {/* Orbit 3 — tilted forward + slight right, clockwise, 38s */}
+        <div style={{ position: "absolute", inset: 0, transform: "rotateX(10deg) rotateY(6deg)", transformStyle: "preserve-3d" }}>
+          <div style={{ position: "absolute", inset: 0, animation: "orbitCW 38s linear infinite", transformStyle: "preserve-3d" }}>
+            <div style={{ position: "absolute", top: "5%", left: "50%", transform: "translate(-50%, -50%)" }}>
+              <CssSatellite scale={1.6} rotate={22} />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -225,38 +253,15 @@ export function TacticalGlobe() {
         }}
       />
 
-      {/* Satellite orbit keyframes */}
+      {/* Orbit keyframes — pure rotation, perfectly smooth */}
       <style>{`
-        .sat-wrapper {
-          position: absolute;
-          will-change: left, top, opacity;
+        @keyframes orbitCW {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
-        @keyframes satArc1 {
-          0%   { left: -4%; top: 68%; opacity: 0; }
-          4%   { opacity: 1; }
-          20%  { left: 18%; top: 38%; }
-          50%  { left: 50%; top: 18%; }
-          80%  { left: 82%; top: 38%; }
-          96%  { opacity: 1; }
-          100% { left: 104%; top: 68%; opacity: 0; }
-        }
-        @keyframes satArc2 {
-          0%   { left: 104%; top: 58%; opacity: 0; }
-          4%   { opacity: 1; }
-          20%  { left: 82%; top: 28%; }
-          50%  { left: 48%; top: 12%; }
-          80%  { left: 16%; top: 28%; }
-          96%  { opacity: 1; }
-          100% { left: -4%; top: 58%; opacity: 0; }
-        }
-        @keyframes satArc3 {
-          0%   { left: -4%; top: 15%; opacity: 0; }
-          4%   { opacity: 1; }
-          25%  { left: 22%; top: 35%; }
-          50%  { left: 50%; top: 48%; }
-          75%  { left: 78%; top: 35%; }
-          96%  { opacity: 1; }
-          100% { left: 104%; top: 15%; opacity: 0; }
+        @keyframes orbitCCW {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(-360deg); }
         }
       `}</style>
     </div>
