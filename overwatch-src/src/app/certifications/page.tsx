@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Award, Plus, Trash2, Loader2, Download, Search, CheckCircle2,
-  AlertTriangle, Clock, Shield, Hash, Calendar, Upload, ExternalLink,
+  AlertTriangle, Clock, Shield, Hash, Calendar, Upload, Eye, X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -117,6 +117,7 @@ export default function CertificationsPage() {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [viewDoc, setViewDoc] = useState<{ url: string; name: string } | null>(null);
 
   // Form
   const [certType, setCertType] = useState("");
@@ -382,11 +383,12 @@ export default function CertificationsPage() {
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {cert.document_url && (
-                          <a href={cert.document_url} target="_blank" rel="noopener noreferrer"
+                          <button
+                            onClick={() => setViewDoc({ url: cert.document_url!, name: cert.cert_type })}
                             className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors"
                             title="View document">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
                         )}
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0"
                           onClick={() => handleDownload(cert)} disabled={downloading === cert.id}>
@@ -405,6 +407,31 @@ export default function CertificationsPage() {
           </div>
         )}
       </div>
+      {/* Document Preview Modal */}
+      {viewDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setViewDoc(null)}>
+          <div className="relative w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col rounded-xl border border-border/40 bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
+              <h3 className="text-sm font-semibold truncate">{viewDoc.name}</h3>
+              <div className="flex items-center gap-2">
+                <a href={viewDoc.url} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors">Open in new tab</a>
+                <button onClick={() => setViewDoc(null)}
+                  className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-1 min-h-[60vh]">
+              {/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(viewDoc.url) ? (
+                <img src={viewDoc.url} alt={viewDoc.name} className="w-full h-auto rounded-md" />
+              ) : (
+                <iframe src={viewDoc.url} className="w-full h-full min-h-[60vh] rounded-md" title={viewDoc.name} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
