@@ -17,7 +17,6 @@ import {
   type RiskLevel, type Granularity,
 } from "@/lib/geo-risk-data";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import { useAuthStore } from "@/stores/auth-store";
@@ -408,53 +407,106 @@ export default function GeoRiskPage() {
     });
     y += 22;
 
-    // ── Map capture ──
-    if (mapContainerRef.current) {
+    // ── Map capture (manual tile compositor — bypasses html2canvas entirely) ──
+    if (result.lat != null && result.lon != null) {
       try {
-        // Wait for all tile images inside the map to finish loading
-        const tileImgs = mapContainerRef.current.querySelectorAll("img");
-        await Promise.all(
-          Array.from(tileImgs).map(
-            (img) =>
-              img.complete
-                ? Promise.resolve()
-                : new Promise<void>((r) => {
-                    img.onload = () => r();
-                    img.onerror = () => r();
-                  })
-          )
-        );
-        // Extra settle time for Leaflet rendering
-        await new Promise((r) => setTimeout(r, 500));
-        const canvas = await html2canvas(mapContainerRef.current, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          backgroundColor: "#0f172a",
-          foreignObjectRendering: false,
-          imageTimeout: 5000,
-          onclone: (clonedDoc) => {
-            // html2canvas cannot parse modern CSS color functions (lab, oklch,
-            // oklab, lch) used by Tailwind v4. It loads external CSS files into
-            // an iframe where they 404 or contain unparseable lab() values.
-            // Solution: remove all external stylesheets and rewrite inline ones.
-            // Map tiles use Leaflet inline styles for positioning — no CSS needed.
-            clonedDoc.querySelectorAll('link[rel="stylesheet"]').forEach((l) => l.remove());
-            clonedDoc.querySelectorAll("style").forEach((tag) => {
-              if (tag.textContent) {
-                tag.textContent = tag.textContent
-                  .replace(/oklch\([^)]*\)/gi, "#94a3b8")
-                  .replace(/oklab\([^)]*\)/gi, "#94a3b8")
-                  .replace(/lab\([^)]*\)/gi, "#94a3b8")
-                  .replace(/lch\([^)]*\)/gi, "#94a3b8");
-              }
+        const zoom = 14;
+        const mapW = 640;
+        const mapHPx = 360;
+        const tileSize = 256;
+        const isDark = resolvedTheme === "dark";
+        const tileTemplate = isDark
+          ? "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+          : "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+        // Convert lat/lon → fractional tile coordinates
+        const n = Math.pow(2, zoom);
+        const latRad = (result.lat * Math.PI) / 180;
+        const tileX = ((result.lon + 180) / 360) * n;
+        const tileY = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+
+        const centerTileX = Math.floor(tileX);
+        const centerTileY = Math.floor(tileY);
+        const offsetX = (tileX - centerTileX) * tileSize;
+        const offsetY = (tileY - centerTileY) * tileSize;
+
+        const halfW = mapW / 2;
+        const halfH = mapHPx / 2;
+        const tilesNeededX = Math.ceil(halfW / tileSize) + 1;
+        const tilesNeededY = Math.ceil(halfH / tileSize) + 1;
+
+        const mapCanvas = document.createElement("canvas");
+        mapCanvas.width = mapW;
+        mapCanvas.height = mapHPx;
+        const ctx = mapCanvas.getContext("2d");
+        if (ctx) {
+          ctx.fillStyle = isDark ? "#0f172a" : "#f1f5f9";
+          ctx.fillRect(0, 0, mapW, mapHPx);
+
+          // Load and draw tiles
+          const loadTile = (url: string): Promise<HTMLImageElement | null> =>
+            new Promise((resolve) => {
+              const img = new Image();
+              img.crossOrigin = "anonymous";
+              img.onload = () => resolve(img);
+              img.onerror = () => resolve(null);
+              img.src = url;
             });
-          },
-        });
-        const mapData = canvas.toDataURL("image/png");
-        const mapH = Math.min(70, (canvas.height / canvas.width) * contentW);
-        if (canvas.width > 10 && canvas.height > 10) {
+
+          for (let dx = -tilesNeededX; dx <= tilesNeededX; dx++) {
+            for (let dy = -tilesNeededY; dy <= tilesNeededY; dy++) {
+              const tx = centerTileX + dx;
+              const ty = centerTileY + dy;
+              if (ty < 0 || ty >= n) continue;
+              const url = tileTemplate
+                .replace("{z}", String(zoom))
+                .replace("{x}", String(((tx % n) + n) % n))
+                .replace("{y}", String(ty));
+              const tile = await loadTile(url);
+              if (tile) {
+                const px = halfW + dx * tileSize - offsetX;
+                const py = halfH + dy * tileSize - offsetY;
+                ctx.drawImage(tile, px, py, tileSize, tileSize);
+              }
+            }
+          }
+
+          // Draw risk radius circle (1 mile ≈ 1609m)
+          const metersPerPx = (156543.03392 * Math.cos(latRad)) / n;
+          const radiusPx = 1609 / metersPerPx;
+          const circleColor = ({
+            Critical: "#ef4444", High: "#f97316", Moderate: "#eab308",
+            Low: "#22c55e", Negligible: "#94a3b8",
+          } as Record<string, string>)[result.overallRating] || "#eab308";
+          ctx.beginPath();
+          ctx.arc(halfW, halfH, radiusPx, 0, Math.PI * 2);
+          ctx.strokeStyle = circleColor;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = circleColor.replace(")", ", 0.1)").replace("rgb(", "rgba(");
+          // Use hex → rgba for fill
+          const r2 = parseInt(circleColor.slice(1, 3), 16);
+          const g2 = parseInt(circleColor.slice(3, 5), 16);
+          const b2 = parseInt(circleColor.slice(5, 7), 16);
+          ctx.fillStyle = `rgba(${r2},${g2},${b2},0.12)`;
+          ctx.fill();
+
+          // Center dot
+          ctx.beginPath();
+          ctx.arc(halfW, halfH, 5, 0, Math.PI * 2);
+          ctx.fillStyle = circleColor;
+          ctx.fill();
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // Attribution
+          ctx.font = "10px sans-serif";
+          ctx.fillStyle = "rgba(255,255,255,0.6)";
+          ctx.fillText(isDark ? "© CARTO © OSM" : "© OpenStreetMap", 5, mapHPx - 5);
+
+          const mapData = mapCanvas.toDataURL("image/png");
+          const mapH = Math.min(70, (mapHPx / mapW) * contentW);
           doc.addImage(mapData, "PNG", margin, y, contentW, mapH);
           y += mapH + 4;
         }
