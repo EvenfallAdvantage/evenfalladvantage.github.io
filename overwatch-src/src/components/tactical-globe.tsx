@@ -155,21 +155,21 @@ export function TacticalGlobe() {
       phi: 0,
       theta: 0.45,
       dark: 1,
-      diffuse: 1.2,
+      diffuse: 0.4,
       mapSamples: 16000,
-      mapBrightness: 4,
+      mapBrightness: 5,
       baseColor: [0.12, 0.18, 0.28],
       markerColor: [0.95, 0.6, 0.15],
-      glowColor: [0.08, 0.12, 0.2],
-      markers: markerLocations.map((location) => ({ location, size: 0.03 })),
+      glowColor: [0.04, 0.08, 0.14],
+      markers: markerLocations.map((location) => ({ location, size: 0.006 })),
     });
 
     let t = 0;
     function animate() {
       phi += 0.003;
       t += 0.04;
-      // Pulse markers between 0.025 and 0.04
-      const pulse = 0.025 + 0.015 * (0.5 + 0.5 * Math.sin(t));
+      // Pulse markers between 0.004 and 0.008 — close to surface
+      const pulse = 0.004 + 0.004 * (0.5 + 0.5 * Math.sin(t));
       globe.update({
         phi,
         markers: markerLocations.map((location) => ({ location, size: pulse })),
