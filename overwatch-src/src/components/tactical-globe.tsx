@@ -81,11 +81,11 @@ function CssSatellite({ scale = 1.5, rotate = 0 }: { scale?: number; rotate?: nu
           }}
         />
       </div>
-      {/* Antenna mast + dish */}
+      {/* Antenna mast + dish (below body, pointing toward globe) */}
       <div
         style={{
           position: "absolute",
-          bottom: "100%",
+          top: "100%",
           left: "50%",
           transform: "translateX(-50%)",
           width: Math.max(0.8, s * 0.6),
@@ -96,12 +96,12 @@ function CssSatellite({ scale = 1.5, rotate = 0 }: { scale?: number; rotate?: nu
       <div
         style={{
           position: "absolute",
-          bottom: `calc(100% + ${3.5 * s}px)`,
+          top: `calc(100% + ${3.5 * s}px)`,
           left: "50%",
           transform: "translateX(-50%)",
           width: 4 * s,
           height: 2 * s,
-          borderRadius: "50% 50% 0 0",
+          borderRadius: "0 0 50% 50%",
           background: "radial-gradient(ellipse at center, rgba(255,255,255,0.45), rgba(200,200,200,0.25))",
           border: `${Math.max(0.5, s * 0.3)}px solid rgba(255,255,255,0.25)`,
         }}
