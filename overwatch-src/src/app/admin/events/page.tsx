@@ -491,6 +491,21 @@ export default function AdminEventsPage() {
   const previewCount = posts.length * (pattern === "8" ? 3 : 2) * selectedDays.size;
   const fillPct = totalShifts > 0 ? Math.round((filledShifts / totalShifts) * 100) : 0;
 
+  // Detect scheduling conflicts: same user assigned to overlapping time ranges
+  const adminConflictIds = new Set<string>();
+  const assignedShifts = shifts.filter((s: Shift) => s.assigned_user_id);
+  for (let i = 0; i < assignedShifts.length; i++) {
+    for (let j = i + 1; j < assignedShifts.length; j++) {
+      const a = assignedShifts[i], b = assignedShifts[j];
+      if (a.assigned_user_id === b.assigned_user_id &&
+          new Date(a.start_time) < new Date(b.end_time) &&
+          new Date(a.end_time) > new Date(b.start_time)) {
+        adminConflictIds.add(a.id); adminConflictIds.add(b.id);
+      }
+    }
+  }
+  const conflictCount = adminConflictIds.size;
+
   const CREATE_STEPS = ["Basics", "Client & Site", "Scope & Orders", "Uniform & Comms", "Emergency & Notes"];
 
   return (
@@ -742,6 +757,12 @@ export default function AdminEventsPage() {
                           <span className="text-[10px] font-mono text-green-500">{filledShifts} filled</span>
                           <span className="text-[10px] text-muted-foreground">·</span>
                           <span className="text-[10px] font-mono text-amber-500">{openShifts} open</span>
+                          {conflictCount > 0 && (
+                            <>
+                              <span className="text-[10px] text-muted-foreground">·</span>
+                              <span className="text-[10px] font-mono text-red-500 flex items-center gap-0.5"><AlertTriangle className="h-2.5 w-2.5" /> {conflictCount} conflict{conflictCount !== 1 ? "s" : ""}</span>
+                            </>
+                          )}
                           {totalShifts > 0 && (
                             <>
                               <div className="ml-2 h-1.5 w-20 rounded-full bg-muted overflow-hidden">
@@ -862,15 +883,17 @@ export default function AdminEventsPage() {
                               <div className="space-y-1">
                                 {dayShifts.map((sh: Shift) => {
                                   const filled = !!sh.assigned_user_id;
+                                  const hasConflict = adminConflictIds.has(sh.id);
                                   return (
-                                    <div key={sh.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${filled ? "border-green-500/20 bg-green-500/[0.03]" : "border-amber-500/20 bg-amber-500/[0.03]"}`}>
-                                      <Clock className={`h-3.5 w-3.5 shrink-0 ${filled ? "text-green-500" : "text-amber-500"}`} />
+                                    <div key={sh.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${hasConflict ? "border-red-500/40 bg-red-500/[0.06]" : filled ? "border-green-500/20 bg-green-500/[0.03]" : "border-amber-500/20 bg-amber-500/[0.03]"}`}>
+                                      {hasConflict ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" /> : <Clock className={`h-3.5 w-3.5 shrink-0 ${filled ? "text-green-500" : "text-amber-500"}`} />}
                                       <div className="flex-1 min-w-0 text-xs">
                                         <span className="font-medium">{sh.role ?? "Shift"}</span>
                                         <span className="text-muted-foreground ml-2 font-mono">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
+                                        {hasConflict && <span className="ml-2 text-red-500 font-semibold">CONFLICT</span>}
                                       </div>
                                       <select value={sh.assigned_user_id ?? ""} onChange={(e) => handleAssign(sh.id, e.target.value)}
-                                        className={`h-6 max-w-[140px] truncate rounded border bg-background px-1.5 text-[10px] font-medium cursor-pointer ${filled ? "border-green-500/30 text-green-600" : "border-amber-500/30 text-amber-600"}`}>
+                                        className={`h-6 max-w-[140px] truncate rounded border bg-background px-1.5 text-[10px] font-medium cursor-pointer ${hasConflict ? "border-red-500/40 text-red-500" : filled ? "border-green-500/30 text-green-600" : "border-amber-500/30 text-amber-600"}`}>
                                         <option value="">Open</option>
                                         {members.map((m: Member) => <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}</option>)}
                                       </select>
