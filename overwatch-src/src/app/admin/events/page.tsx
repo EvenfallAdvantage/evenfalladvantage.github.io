@@ -713,70 +713,68 @@ export default function AdminEventsPage() {
               return (
                 <div key={ev.id} className="rounded-xl border border-border/50 bg-card overflow-hidden">
                   {/* Op Header */}
-                  <div className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => toggleExpand(ev.id)}>
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
-                      <MapPin className="h-5 w-5 text-violet-500" />
+                  <div className="px-3 sm:px-4 py-3 cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => toggleExpand(ev.id)}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-violet-500/10 shrink-0">
+                        <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-violet-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{ev.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {ev.location ?? "TBD"} · {fmtDateShort(ev.start_date)} — {fmtDateShort(ev.end_date)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {hasGuide && (
+                          <button onClick={(e) => { e.stopPropagation(); setViewingGuide(viewingGuide === ev.id ? null : ev.id); setExpanded(null); }}
+                            className="hidden sm:flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
+                            title="View OPs Guide">
+                            <Eye className="h-3 w-3" /> Guide
+                          </button>
+                        )}
+                        <select value={ev.status}
+                          onChange={(e) => { e.stopPropagation(); handleStatusChange(ev.id, e.target.value); }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-6 appearance-none rounded border border-border/40 bg-background px-1.5 sm:px-2 pr-4 sm:pr-5 text-[10px] font-medium capitalize cursor-pointer">
+                          {["draft", "published", "in_progress", "completed", "cancelled"].map((s) => (
+                            <option key={s} value={s}>{s.replace("_", " ")}</option>
+                          ))}
+                        </select>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteEvent(ev.id); }} disabled={deletingEvent === ev.id}
+                          className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-red-500/10 hover:text-red-500" title="Delete">
+                          {deletingEvent === ev.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </button>
+                        {isExp ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{ev.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {ev.location ?? "TBD"} · {fmtDateShort(ev.start_date)} — {fmtDateShort(ev.end_date)}
-                      </p>
-                    </div>
-                    {hasGuide && (
-                      <button onClick={(e) => { e.stopPropagation(); setViewingGuide(viewingGuide === ev.id ? null : ev.id); setExpanded(null); }}
-                        className="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
-                        title="View OPs Guide">
-                        <Eye className="h-3 w-3" /> Guide
-                      </button>
-                    )}
-                    <select value={ev.status}
-                      onChange={(e) => { e.stopPropagation(); handleStatusChange(ev.id, e.target.value); }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-6 appearance-none rounded border border-border/40 bg-background px-2 pr-5 text-[10px] font-medium capitalize cursor-pointer">
-                      {["draft", "published", "in_progress", "completed", "cancelled"].map((s) => (
-                        <option key={s} value={s}>{s.replace("_", " ")}</option>
-                      ))}
-                    </select>
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteEvent(ev.id); }} disabled={deletingEvent === ev.id}
-                      className="rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-red-500/10 hover:text-red-500" title="Delete">
-                      {deletingEvent === ev.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    </button>
-                    {isExp ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   </div>
 
                   {/* ── Expanded Shift Builder ── */}
                   {isExp && (
                     <div className="border-t border-border/30 bg-muted/20">
                       {/* Stats Bar */}
-                      <div className="px-4 py-2 flex items-center gap-4 border-b border-border/20 bg-muted/30">
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-[10px] font-mono font-semibold">{totalShifts}</span>
-                          <span className="text-[10px] text-muted-foreground">shifts</span>
-                          <span className="text-[10px] text-muted-foreground">·</span>
-                          <span className="text-[10px] font-mono text-green-500">{filledShifts} filled</span>
-                          <span className="text-[10px] text-muted-foreground">·</span>
-                          <span className="text-[10px] font-mono text-amber-500">{openShifts} open</span>
-                          {conflictCount > 0 && (
-                            <>
-                              <span className="text-[10px] text-muted-foreground">·</span>
-                              <span className="text-[10px] font-mono text-red-500 flex items-center gap-0.5"><AlertTriangle className="h-2.5 w-2.5" /> {conflictCount} conflict{conflictCount !== 1 ? "s" : ""}</span>
-                            </>
-                          )}
-                          {totalShifts > 0 && (
-                            <>
-                              <div className="ml-2 h-1.5 w-20 rounded-full bg-muted overflow-hidden">
-                                <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${fillPct}%` }} />
-                              </div>
-                              <span className="text-[10px] font-mono text-muted-foreground">{fillPct}%</span>
-                            </>
-                          )}
-                        </div>
-                        <span className="text-[10px] font-mono text-muted-foreground">{opDays.length} day{opDays.length !== 1 ? "s" : ""}</span>
+                      <div className="px-3 sm:px-4 py-2 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border/20 bg-muted/30">
+                        <span className="text-[10px] font-mono font-semibold">{totalShifts}</span>
+                        <span className="text-[10px] text-muted-foreground">shifts ·</span>
+                        <span className="text-[10px] font-mono text-green-500">{filledShifts} filled</span>
+                        <span className="text-[10px] text-muted-foreground">·</span>
+                        <span className="text-[10px] font-mono text-amber-500">{openShifts} open</span>
+                        {conflictCount > 0 && (
+                          <span className="text-[10px] font-mono text-red-500 flex items-center gap-0.5">· <AlertTriangle className="h-2.5 w-2.5" /> {conflictCount} conflict{conflictCount !== 1 ? "s" : ""}</span>
+                        )}
+                        {totalShifts > 0 && (
+                          <>
+                            <div className="h-1.5 w-16 sm:w-20 rounded-full bg-muted overflow-hidden">
+                              <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${fillPct}%` }} />
+                            </div>
+                            <span className="text-[10px] font-mono text-muted-foreground">{fillPct}%</span>
+                          </>
+                        )}
+                        <span className="text-[10px] font-mono text-muted-foreground ml-auto">{opDays.length} day{opDays.length !== 1 ? "s" : ""}</span>
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="px-4 py-2 flex gap-2 border-b border-border/20">
+                      <div className="px-3 sm:px-4 py-2 flex flex-wrap gap-2 border-b border-border/20">
                         <Button size="sm" variant={showBuilder ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
                           onClick={() => { setShowBuilder(!showBuilder); setShowCustom(false); }}>
                           <Zap className="h-3.5 w-3.5" /> Quick Fill
@@ -795,7 +793,7 @@ export default function AdminEventsPage() {
 
                       {/* ── Quick Fill Panel ── */}
                       {showBuilder && (
-                        <div className="px-4 py-3 space-y-3 border-b border-border/20 bg-primary/[0.02]">
+                        <div className="px-3 sm:px-4 py-3 space-y-3 border-b border-border/20 bg-primary/[0.02]">
                           <div>
                             <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Posts / Positions</label>
                             <div className="flex flex-wrap items-center gap-1.5 mt-1">
@@ -848,7 +846,7 @@ export default function AdminEventsPage() {
 
                       {/* ── Custom Shift Form ── */}
                       {showCustom && (
-                        <div className="px-4 py-3 space-y-2 border-b border-border/20 bg-primary/[0.02]">
+                        <div className="px-3 sm:px-4 py-3 space-y-2 border-b border-border/20 bg-primary/[0.02]">
                           <Input placeholder="Role / Position (e.g. Supervisor)" value={cRole} onChange={(e) => setCRole(e.target.value)} className="h-8 text-sm" />
                           <div className="flex gap-2">
                             <div className="flex-1"><label className="text-[10px] text-muted-foreground">Start</label><Input type="datetime-local" value={cStart} onChange={(e) => setCStart(e.target.value)} className="h-8 text-sm" /></div>
@@ -866,7 +864,7 @@ export default function AdminEventsPage() {
                       )}
 
                       {/* ── Shift Grid by Day ── */}
-                      <div className="px-4 py-3 space-y-4">
+                      <div className="px-3 sm:px-4 py-3 space-y-4">
                         {shifts.length === 0 ? (
                           <div className="text-center py-8">
                             <Calendar className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
@@ -885,22 +883,26 @@ export default function AdminEventsPage() {
                                   const filled = !!sh.assigned_user_id;
                                   const hasConflict = adminConflictIds.has(sh.id);
                                   return (
-                                    <div key={sh.id} className={`flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${hasConflict ? "border-red-500/40 bg-red-500/[0.06]" : filled ? "border-green-500/20 bg-green-500/[0.03]" : "border-amber-500/20 bg-amber-500/[0.03]"}`}>
-                                      {hasConflict ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" /> : <Clock className={`h-3.5 w-3.5 shrink-0 ${filled ? "text-green-500" : "text-amber-500"}`} />}
-                                      <div className="flex-1 min-w-0 text-xs">
-                                        <span className="font-medium">{sh.role ?? "Shift"}</span>
-                                        <span className="text-muted-foreground ml-2 font-mono">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
-                                        {hasConflict && <span className="ml-2 text-red-500 font-semibold">CONFLICT</span>}
+                                    <div key={sh.id} className={`rounded-lg border px-2.5 sm:px-3 py-2 transition-colors ${hasConflict ? "border-red-500/40 bg-red-500/[0.06]" : filled ? "border-green-500/20 bg-green-500/[0.03]" : "border-amber-500/20 bg-amber-500/[0.03]"}`}>
+                                      <div className="flex items-center gap-2 sm:gap-3">
+                                        {hasConflict ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" /> : <Clock className={`h-3.5 w-3.5 shrink-0 ${filled ? "text-green-500" : "text-amber-500"}`} />}
+                                        <div className="flex-1 min-w-0 text-xs truncate">
+                                          <span className="font-medium">{sh.role ?? "Shift"}</span>
+                                          <span className="text-muted-foreground ml-1.5 sm:ml-2 font-mono">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
+                                          {hasConflict && <span className="ml-1 sm:ml-2 text-red-500 font-semibold text-[10px]">CONFLICT</span>}
+                                        </div>
+                                        <button onClick={() => handleDeleteShift(sh.id)} disabled={deletingShift === sh.id}
+                                          className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 shrink-0" title="Delete">
+                                          {deletingShift === sh.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                        </button>
                                       </div>
-                                      <select value={sh.assigned_user_id ?? ""} onChange={(e) => handleAssign(sh.id, e.target.value)}
-                                        className={`h-6 max-w-[140px] truncate rounded border bg-background px-1.5 text-[10px] font-medium cursor-pointer ${hasConflict ? "border-red-500/40 text-red-500" : filled ? "border-green-500/30 text-green-600" : "border-amber-500/30 text-amber-600"}`}>
-                                        <option value="">Open</option>
-                                        {members.map((m: Member) => <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}</option>)}
-                                      </select>
-                                      <button onClick={() => handleDeleteShift(sh.id)} disabled={deletingShift === sh.id}
-                                        className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10" title="Delete">
-                                        {deletingShift === sh.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                                      </button>
+                                      <div className="mt-1.5 ml-5.5 sm:ml-[26px]">
+                                        <select value={sh.assigned_user_id ?? ""} onChange={(e) => handleAssign(sh.id, e.target.value)}
+                                          className={`h-6 w-full sm:w-auto sm:max-w-[180px] truncate rounded border bg-background px-1.5 text-[10px] font-medium cursor-pointer ${hasConflict ? "border-red-500/40 text-red-500" : filled ? "border-green-500/30 text-green-600" : "border-amber-500/30 text-amber-600"}`}>
+                                          <option value="">Open</option>
+                                          {members.map((m: Member) => <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}</option>)}
+                                        </select>
+                                      </div>
                                     </div>
                                   );
                                 })}
