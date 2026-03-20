@@ -5,6 +5,111 @@ import createGlobe from "cobe";
 
 const MQ = "(max-width: 768px)";
 
+/* ── CSS-drawn satellite: body + two solar-panel wings ── */
+function CssSatellite({ scale = 1.5, rotate = 0 }: { scale?: number; rotate?: number }) {
+  const s = scale;
+  const panelW = 14 * s;
+  const panelH = 5 * s;
+  const bodyW = 6 * s;
+  const bodyH = 8 * s;
+  const gap = s;
+  const r = s * 0.8;
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: bodyW,
+        height: bodyH,
+        transform: `rotate(${rotate}deg)`,
+        filter: `drop-shadow(0 0 ${4 * s}px rgba(255,255,255,0.35))`,
+      }}
+    >
+      {/* Left solar panel */}
+      <div
+        style={{
+          position: "absolute",
+          right: `calc(100% + ${gap}px)`,
+          top: "50%",
+          transform: "translateY(-50%)",
+          width: panelW,
+          height: panelH,
+          background: "linear-gradient(135deg, #5a80b0 0%, #3a5a85 50%, #5a80b0 100%)",
+          borderRadius: r,
+          border: `${Math.max(0.5, s * 0.3)}px solid rgba(255,255,255,0.2)`,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: `repeating-linear-gradient(90deg, transparent, transparent ${3 * s}px, rgba(255,255,255,0.1) ${3 * s}px, rgba(255,255,255,0.1) ${3.5 * s}px)`,
+          }}
+        />
+      </div>
+      {/* Body */}
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          background: "linear-gradient(180deg, #e8e8e8 0%, #b0b0b0 40%, #d0d0d0 100%)",
+          borderRadius: s * 1.5,
+          boxShadow: `0 0 ${6 * s}px rgba(255,255,255,0.5), 0 0 ${14 * s}px rgba(255,255,255,0.12)`,
+        }}
+      />
+      {/* Right solar panel */}
+      <div
+        style={{
+          position: "absolute",
+          left: `calc(100% + ${gap}px)`,
+          top: "50%",
+          transform: "translateY(-50%)",
+          width: panelW,
+          height: panelH,
+          background: "linear-gradient(135deg, #5a80b0 0%, #3a5a85 50%, #5a80b0 100%)",
+          borderRadius: r,
+          border: `${Math.max(0.5, s * 0.3)}px solid rgba(255,255,255,0.2)`,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: `repeating-linear-gradient(90deg, transparent, transparent ${3 * s}px, rgba(255,255,255,0.1) ${3 * s}px, rgba(255,255,255,0.1) ${3.5 * s}px)`,
+          }}
+        />
+      </div>
+      {/* Antenna mast + dish */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "100%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: Math.max(0.8, s * 0.6),
+          height: 4 * s,
+          background: "rgba(255,255,255,0.45)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: `calc(100% + ${3.5 * s}px)`,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: 4 * s,
+          height: 2 * s,
+          borderRadius: "50% 50% 0 0",
+          background: "radial-gradient(ellipse at center, rgba(255,255,255,0.45), rgba(200,200,200,0.25))",
+          border: `${Math.max(0.5, s * 0.3)}px solid rgba(255,255,255,0.25)`,
+        }}
+      />
+    </div>
+  );
+}
+
 export function TacticalGlobe() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -56,15 +161,15 @@ export function TacticalGlobe() {
       baseColor: [0.12, 0.18, 0.28],
       markerColor: [0.87, 0.55, 0.2],
       glowColor: [0.08, 0.12, 0.2],
-      markers: markerLocations.map((location) => ({ location, size: 0.01 })),
+      markers: markerLocations.map((location) => ({ location, size: 0.003 })),
     });
 
     let t = 0;
     function animate() {
       phi += 0.003;
       t += 0.04;
-      // Pulse markers between 0.008 and 0.018
-      const pulse = 0.008 + 0.01 * (0.5 + 0.5 * Math.sin(t));
+      // Pulse markers between 0.002 and 0.004 — small surface-hugging dots
+      const pulse = 0.002 + 0.002 * (0.5 + 0.5 * Math.sin(t));
       globe.update({
         phi,
         markers: markerLocations.map((location) => ({ location, size: pulse })),
@@ -94,65 +199,20 @@ export function TacticalGlobe() {
           transform: "translateX(-50%) translateY(72%)",
         }}
       />
-      {/* Orbiting Satellites */}
-      <div
-        className="absolute"
-        style={{
-          width: "min(3200px, 280vw)",
-          height: "min(3200px, 280vw)",
-          left: "50%",
-          bottom: 0,
-          transform: "translateX(-50%) translateY(72%)",
-          pointerEvents: "none",
-        }}
-      >
-        {/* Satellite 1 — wide elliptical orbit */}
-        <div className="absolute inset-0" style={{ animation: "orbit1 18s linear infinite" }}>
-          <div
-            className="absolute"
-            style={{
-              width: 4,
-              height: 4,
-              borderRadius: "50%",
-              background: "#dd8c33",
-              boxShadow: "0 0 8px 2px rgba(221,140,51,0.6), 0 0 20px 4px rgba(221,140,51,0.2)",
-              top: "12%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          />
+
+      {/* ── Orbiting Satellites ── */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Satellite 1 — left-to-right wide arc, 24s */}
+        <div className="sat-wrapper" style={{ animation: "satArc1 24s linear infinite" }}>
+          <CssSatellite scale={1.8} rotate={12} />
         </div>
-        {/* Satellite 2 — tilted orbit, slower */}
-        <div className="absolute inset-0" style={{ animation: "orbit2 26s linear infinite" }}>
-          <div
-            className="absolute"
-            style={{
-              width: 3,
-              height: 3,
-              borderRadius: "50%",
-              background: "#8ab4f8",
-              boxShadow: "0 0 6px 2px rgba(138,180,248,0.5), 0 0 16px 4px rgba(138,180,248,0.15)",
-              top: "18%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          />
+        {/* Satellite 2 — right-to-left higher arc, 32s */}
+        <div className="sat-wrapper" style={{ animation: "satArc2 32s linear infinite" }}>
+          <CssSatellite scale={1.4} rotate={-8} />
         </div>
-        {/* Satellite 3 — tight fast orbit */}
-        <div className="absolute inset-0" style={{ animation: "orbit3 12s linear infinite" }}>
-          <div
-            className="absolute"
-            style={{
-              width: 3,
-              height: 3,
-              borderRadius: "50%",
-              background: "#fff",
-              boxShadow: "0 0 6px 1px rgba(255,255,255,0.6), 0 0 14px 3px rgba(255,255,255,0.15)",
-              top: "22%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          />
+        {/* Satellite 3 — fast diagonal pass, 18s */}
+        <div className="sat-wrapper" style={{ animation: "satArc3 18s linear infinite" }}>
+          <CssSatellite scale={1.6} rotate={20} />
         </div>
       </div>
 
@@ -167,17 +227,36 @@ export function TacticalGlobe() {
 
       {/* Satellite orbit keyframes */}
       <style>{`
-        @keyframes orbit1 {
-          0%   { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+        .sat-wrapper {
+          position: absolute;
+          will-change: left, top, opacity;
         }
-        @keyframes orbit2 {
-          0%   { transform: rotate(120deg) rotateX(55deg); }
-          100% { transform: rotate(480deg) rotateX(55deg); }
+        @keyframes satArc1 {
+          0%   { left: -4%; top: 68%; opacity: 0; }
+          4%   { opacity: 1; }
+          20%  { left: 18%; top: 38%; }
+          50%  { left: 50%; top: 18%; }
+          80%  { left: 82%; top: 38%; }
+          96%  { opacity: 1; }
+          100% { left: 104%; top: 68%; opacity: 0; }
         }
-        @keyframes orbit3 {
-          0%   { transform: rotate(240deg) rotateX(-35deg); }
-          100% { transform: rotate(600deg) rotateX(-35deg); }
+        @keyframes satArc2 {
+          0%   { left: 104%; top: 58%; opacity: 0; }
+          4%   { opacity: 1; }
+          20%  { left: 82%; top: 28%; }
+          50%  { left: 48%; top: 12%; }
+          80%  { left: 16%; top: 28%; }
+          96%  { opacity: 1; }
+          100% { left: -4%; top: 58%; opacity: 0; }
+        }
+        @keyframes satArc3 {
+          0%   { left: -4%; top: 15%; opacity: 0; }
+          4%   { opacity: 1; }
+          25%  { left: 22%; top: 35%; }
+          50%  { left: 50%; top: 48%; }
+          75%  { left: 78%; top: 35%; }
+          96%  { opacity: 1; }
+          100% { left: 104%; top: 15%; opacity: 0; }
         }
       `}</style>
     </div>
