@@ -469,6 +469,17 @@ export default function GeoRiskPage() {
             }
           }
 
+          // Helper: convert lat/lon → canvas pixel
+          const toPixel = (ptLat: number, ptLon: number): [number, number] => {
+            const ptLatRad = (ptLat * Math.PI) / 180;
+            const ptTileX = ((ptLon + 180) / 360) * n;
+            const ptTileY = ((1 - Math.log(Math.tan(ptLatRad) + 1 / Math.cos(ptLatRad)) / Math.PI) / 2) * n;
+            return [
+              halfW + (ptTileX - tileX) * tileSize,
+              halfH + (ptTileY - tileY) * tileSize,
+            ];
+          };
+
           // Draw risk radius circle (1 mile ≈ 1609m)
           const metersPerPx = (156543.03392 * Math.cos(latRad)) / n;
           const radiusPx = 1609 / metersPerPx;
@@ -480,23 +491,98 @@ export default function GeoRiskPage() {
           ctx.arc(halfW, halfH, radiusPx, 0, Math.PI * 2);
           ctx.strokeStyle = circleColor;
           ctx.lineWidth = 2;
+          ctx.setLineDash([8, 5]);
           ctx.stroke();
-          ctx.fillStyle = circleColor.replace(")", ", 0.1)").replace("rgb(", "rgba(");
-          // Use hex → rgba for fill
+          ctx.setLineDash([]);
           const r2 = parseInt(circleColor.slice(1, 3), 16);
           const g2 = parseInt(circleColor.slice(3, 5), 16);
           const b2 = parseInt(circleColor.slice(5, 7), 16);
-          ctx.fillStyle = `rgba(${r2},${g2},${b2},0.12)`;
+          ctx.fillStyle = `rgba(${r2},${g2},${b2},0.10)`;
           ctx.fill();
 
-          // Center dot
+          // Helper: draw a dot marker on the canvas
+          const drawDot = (px: number, py: number, color: string, radius: number) => {
+            ctx.beginPath();
+            ctx.arc(px, py, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          };
+
+          // ── Incident markers ──
+          const INCIDENT_CLR: Record<string, string> = { violent: "#ef4444", property: "#f59e0b", other: "#6b7280" };
+          incidents.forEach((inc) => {
+            const [px, py] = toPixel(inc.lat, inc.lon);
+            if (px >= 0 && px <= mapW && py >= 0 && py <= mapHPx) {
+              drawDot(px, py, INCIDENT_CLR[inc.type] || "#6b7280", 5);
+            }
+          });
+
+          // ── Sex offender markers ──
+          offenders.forEach((off) => {
+            const [px, py] = toPixel(off.lat, off.lon);
+            if (px >= 0 && px <= mapW && py >= 0 && py <= mapHPx) {
+              drawDot(px, py, "#a855f7", 6);
+            }
+          });
+
+          // ── Environmental risk POI markers ──
+          envRisk.pois.forEach((poi) => {
+            const [px, py] = toPixel(poi.lat, poi.lon);
+            if (px >= 0 && px <= mapW && py >= 0 && py <= mapHPx) {
+              drawDot(px, py, "#06b6d4", 4);
+            }
+          });
+
+          // Center target pin (on top of everything)
           ctx.beginPath();
-          ctx.arc(halfW, halfH, 5, 0, Math.PI * 2);
+          ctx.arc(halfW, halfH, 7, 0, Math.PI * 2);
           ctx.fillStyle = circleColor;
           ctx.fill();
           ctx.strokeStyle = "#fff";
-          ctx.lineWidth = 2;
+          ctx.lineWidth = 2.5;
           ctx.stroke();
+
+          // ── Legend box ──
+          const violentN = incidents.filter((i) => i.type === "violent").length;
+          const propertyN = incidents.filter((i) => i.type === "property").length;
+          const otherN = incidents.filter((i) => i.type === "other").length;
+          const legendItems: [string, string][] = [[circleColor, "Target Location"]];
+          if (violentN) legendItems.push(["#ef4444", `Violent (${violentN})`]);
+          if (propertyN) legendItems.push(["#f59e0b", `Property (${propertyN})`]);
+          if (otherN) legendItems.push(["#6b7280", `Other (${otherN})`]);
+          if (offenders.length) legendItems.push(["#a855f7", `Offenders (${offenders.length})`]);
+          if (envRisk.total) legendItems.push(["#06b6d4", `Risk POIs (${envRisk.total})`]);
+
+          const legendLineH = 16;
+          const legendH = legendItems.length * legendLineH + 10;
+          const legendW = 140;
+          const legendX = mapW - legendW - 8;
+          const legendY = 8;
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          ctx.strokeStyle = "rgba(0,0,0,0.15)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(legendX, legendY, legendW, legendH, 4);
+          ctx.fill();
+          ctx.stroke();
+          ctx.font = "bold 10px sans-serif";
+          ctx.fillStyle = "#1e293b";
+          legendItems.forEach(([clr, label], idx) => {
+            const ly = legendY + 12 + idx * legendLineH;
+            ctx.beginPath();
+            ctx.arc(legendX + 12, ly, 4, 0, Math.PI * 2);
+            ctx.fillStyle = clr;
+            ctx.fill();
+            ctx.strokeStyle = "#fff";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = "#1e293b";
+            ctx.font = "11px sans-serif";
+            ctx.fillText(label, legendX + 22, ly + 4);
+          });
 
           // Attribution
           ctx.font = "10px sans-serif";
