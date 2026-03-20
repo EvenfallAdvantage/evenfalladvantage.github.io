@@ -304,6 +304,16 @@ export default function GeoRiskPage() {
       doc.text(`Page ${pageNum} of ${totalPages}`, w - margin, h - 10, { align: "right" });
     }
 
+    // ── Helper: ensure enough vertical space for a section ──
+    // If not enough room, finish current page and start a new one.
+    const footerZone = 22; // reserved for footer
+    function ensureSpace(needed: number) {
+      if (y + needed > h - footerZone) {
+        doc.addPage();
+        y = 15;
+      }
+    }
+
     // ══════════════════════ PAGE 1 ══════════════════════
 
     // ── Header bar ──
@@ -599,6 +609,7 @@ export default function GeoRiskPage() {
 
     // ── OSINT Incident Summary ──
     if (incidents.length > 0) {
+      ensureSpace(25);
       y = sectionHead("OSINT Crime Incidents", y);
       doc.setFontSize(8);
       doc.setTextColor(...DARK);
@@ -618,6 +629,7 @@ export default function GeoRiskPage() {
 
     // ── Environmental Risk (CPTED) ──
     if (envRisk.total > 0) {
+      ensureSpace(25);
       y = sectionHead("Environmental Risk Indicators (CPTED)", y);
       doc.setFontSize(8);
       doc.setTextColor(...DARK);
@@ -628,17 +640,7 @@ export default function GeoRiskPage() {
       doc.text(poiList, margin + 5, y); y += 8;
     }
 
-    // Check if we need page 2
-    if (y > h - 60) {
-      pageFooter(1, 2);
-      doc.addPage();
-      y = 15;
-    }
-
-    // ── Recommendations ──
-    y = sectionHead("Security Recommendations", y);
-    doc.setFontSize(8);
-    doc.setTextColor(...DARK);
+    // ── Recommendations ── (keep entire section together)
     const recs: string[] = [];
     if (result.riskScore >= 55) {
       recs.push("Deploy armed security personnel during peak hours");
@@ -656,8 +658,14 @@ export default function GeoRiskPage() {
     recs.push("Train staff on de-escalation and emergency reporting");
     recs.push("Review and update security plan quarterly");
 
+    const recsHeight = 10 + recs.length * 7 + 4;
+    ensureSpace(recsHeight);
+    y = sectionHead("Security Recommendations", y);
+    doc.setFontSize(8);
+    doc.setTextColor(...DARK);
+
     recs.forEach((rec) => {
-      if (y > h - 30) { pageFooter(1, 2); doc.addPage(); y = 15; }
+      if (y > h - footerZone) { doc.addPage(); y = 15; }
       doc.setFillColor(...LIGHT_BG);
       doc.roundedRect(margin + 3, y - 3, contentW - 6, 6, 1, 1, "F");
       doc.text(`•  ${rec}`, margin + 6, y); y += 7;
@@ -665,10 +673,6 @@ export default function GeoRiskPage() {
     y += 4;
 
     // ── Data Sources ──
-    if (y > h - 45) { pageFooter(1, 2); doc.addPage(); y = 15; }
-    y = sectionHead("Data Sources & Methodology", y);
-    doc.setFontSize(7);
-    doc.setTextColor(...GRAY);
     const sources = [
       `FBI Uniform Crime Reporting (UCR) 2022 — ${result.granularity}-level statistics`,
       `${result.source}${result.population ? ` (pop. ${result.population.toLocaleString()})` : ""}`,
@@ -681,6 +685,11 @@ export default function GeoRiskPage() {
     ];
     if (hasCrimeometerKey()) sources.splice(4, 0, "Crimeometer API — National geocoded crime incidents");
     if (hasFamilyWatchdogKey()) sources.push("Family Watchdog — Registered sex offender data");
+    const srcHeight = 10 + sources.length * 4 + 4;
+    ensureSpace(srcHeight);
+    y = sectionHead("Data Sources & Methodology", y);
+    doc.setFontSize(7);
+    doc.setTextColor(...GRAY);
     sources.forEach((src) => {
       doc.text(`•  ${src}`, margin + 5, y); y += 4;
     });
