@@ -205,10 +205,10 @@ export function TacticalGlobe() {
         const z1 = -px * sinP + pz * cosP;
         const y1 = py;
 
-        // Tilt by theta around X-axis
+        // Tilt by theta around X-axis (positive theta = north pole toward viewer)
         const x2 = x1;
-        const y2 = y1 * cosT + z1 * sinT;
-        const z2 = -y1 * sinT + z1 * cosT;
+        const y2 = y1 * cosT - z1 * sinT;
+        const z2 = y1 * sinT + z1 * cosT;
 
         // Only draw if on the visible hemisphere
         if (z2 <= 0.15) return;
