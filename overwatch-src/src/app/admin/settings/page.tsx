@@ -275,7 +275,7 @@ export default function AdminSettingsPage() {
 
   return (
     <>
-      <div className="mx-auto max-w-lg space-y-6">
+      <div className="space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Building2 className="h-5 w-5 sm:h-6 sm:w-6" /> HQ CONFIG</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Organization profile and settings</p>

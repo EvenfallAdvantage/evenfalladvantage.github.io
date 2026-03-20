@@ -709,7 +709,7 @@ export default function GeoRiskPage() {
     const rc = RISK_COLORS[result.overallRating];
     return (
       <>
-        <div className="max-w-2xl mx-auto space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold font-mono flex items-center gap-2">
               <Shield className="h-5 w-5" /> RISK ASSESSMENT
@@ -892,7 +892,7 @@ export default function GeoRiskPage() {
   // ─── Input Form ───
   return (
     <>
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
             <MapPin className="h-5 w-5 sm:h-6 sm:w-6" /> GEO-RISK
