@@ -195,13 +195,13 @@ export default function PatrolsPage() {
         </Card>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 bg-muted rounded-lg">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
-                tab === t.id ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"
               }`}
             >
               <t.icon className="h-3.5 w-3.5" />

@@ -236,13 +236,13 @@ export default function ChatPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
+      <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
         {([
           { key: "channels" as Tab, label: "Channels", count: internal.length },
           { key: "external" as Tab, label: "External Groups", count: external.length },
         ]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
             {t.label}
             {t.count > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{t.count}</Badge>}
           </button>

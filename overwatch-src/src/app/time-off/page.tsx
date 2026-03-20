@@ -151,13 +151,13 @@ export default function TimeOffPage() {
 
         {/* Admin tabs */}
         {isAdmin && (
-          <div className="flex gap-1 rounded-lg bg-muted/50 p-1">
+          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
             <button onClick={() => setTab("mine")}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${tab === "mine" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "mine" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               My Requests
             </button>
             <button onClick={() => setTab("team")}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${tab === "team" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "team" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               Team Requests {pendingCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-amber-500/20 text-amber-600">{pendingCount}</Badge>}
             </button>
           </div>

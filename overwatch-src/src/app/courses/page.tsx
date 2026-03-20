@@ -156,14 +156,14 @@ function CoursesContent() {
             <Video className="h-5 w-5 sm:h-6 sm:w-6" /> COURSES
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Professional security training courses</p>
-          <div className="flex items-center gap-1 mt-3 border-b border-border/40">
+          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit mt-3">
             <button onClick={() => setPageTab("courses")}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${pageTab === "courses" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-              <ShoppingCart className="h-3.5 w-3.5 inline mr-1.5" />Courses
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${pageTab === "courses" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+              <ShoppingCart className="h-3.5 w-3.5" />Courses
             </button>
             <button onClick={() => setPageTab("conference")}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${pageTab === "conference" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-              <Video className="h-3.5 w-3.5 inline mr-1.5" />Conference
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${pageTab === "conference" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+              <Video className="h-3.5 w-3.5" />Conference
             </button>
           </div>
         </div>

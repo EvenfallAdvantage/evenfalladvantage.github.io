@@ -497,7 +497,7 @@ export default function AdminStaffPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto">
           {([
             { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0 },
             { key: "applicants" as Tab, label: "Applicants", badge: applicants.filter((a: Applicant) => a.status === "applied").length },
@@ -508,7 +508,7 @@ export default function AdminStaffPage() {
             { key: "forms" as Tab, label: "Forms", badge: pendingForms.length + openIncidents.length },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               {t.label}
               {t.badge > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-amber-500/20 text-amber-600">{t.badge}</Badge>}
             </button>
