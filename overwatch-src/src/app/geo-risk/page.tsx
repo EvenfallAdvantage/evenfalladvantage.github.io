@@ -414,10 +414,8 @@ export default function GeoRiskPage() {
         const mapW = 640;
         const mapHPx = 360;
         const tileSize = 256;
-        const isDark = resolvedTheme === "dark";
-        const tileTemplate = isDark
-          ? "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
-          : "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+        // Always use light tiles for PDF — better for print
+        const tileTemplate = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
         // Convert lat/lon → fractional tile coordinates
         const n = Math.pow(2, zoom);
@@ -440,7 +438,7 @@ export default function GeoRiskPage() {
         mapCanvas.height = mapHPx;
         const ctx = mapCanvas.getContext("2d");
         if (ctx) {
-          ctx.fillStyle = isDark ? "#0f172a" : "#f1f5f9";
+          ctx.fillStyle = "#f1f5f9";
           ctx.fillRect(0, 0, mapW, mapHPx);
 
           // Load and draw tiles
@@ -502,8 +500,8 @@ export default function GeoRiskPage() {
 
           // Attribution
           ctx.font = "10px sans-serif";
-          ctx.fillStyle = "rgba(255,255,255,0.6)";
-          ctx.fillText(isDark ? "© CARTO © OSM" : "© OpenStreetMap", 5, mapHPx - 5);
+          ctx.fillStyle = "rgba(0,0,0,0.5)";
+          ctx.fillText("© OpenStreetMap", 5, mapHPx - 5);
 
           const mapData = mapCanvas.toDataURL("image/png");
           const mapH = Math.min(70, (mapHPx / mapW) * contentW);
