@@ -255,6 +255,17 @@ export async function checkinAsset(assetId: string) {
   return data;
 }
 
+export async function getAssetByQrCode(companyId: string, qrCode: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("assets")
+    .select("*, users(first_name, last_name)")
+    .eq("company_id", companyId)
+    .eq("qr_code", qrCode)
+    .maybeSingle();
+  return data;
+}
+
 export async function deleteAsset(assetId: string) {
   const supabase = createClient();
   const { error } = await supabase.from("assets").delete().eq("id", assetId);

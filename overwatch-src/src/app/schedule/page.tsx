@@ -5,14 +5,17 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
-  Eye, X,
+  Eye, X, Camera, ScanLine, CheckCircle2, AlertCircle,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth-store";
-import { getUpcomingEvents, getUserShifts, getAssets, createAsset, checkoutAsset, checkinAsset, deleteAsset, getCompanyDetails } from "@/lib/supabase/db";
+import { getUpcomingEvents, getUserShifts, getAssets, createAsset, checkoutAsset, checkinAsset, deleteAsset, getCompanyDetails, getAssetByQrCode } from "@/lib/supabase/db";
+
+const QrScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OpsGuide = any;
@@ -59,6 +62,10 @@ export default function SchedulePage() {
   const [deletingAsset, setDeletingAsset] = useState<string | null>(null);
   const [sendingReminders, setSendingReminders] = useState(false);
   const [remindersSent, setRemindersSent] = useState(false);
+
+  // QR scanner state
+  const [scanMode, setScanMode] = useState<null | "serial" | "checkinout">(null);
+  const [scanResult, setScanResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const loadSchedule = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -169,6 +176,46 @@ export default function SchedulePage() {
     try { await deleteAsset(id); await loadAssets(); }
     catch (err) { console.error(err); }
     finally { setDeletingAsset(null); }
+  }
+
+  // QR scan: populate serial number field
+  function handleSerialScan(value: string) {
+    setNewSerial(value);
+    setScanMode(null);
+    setScanResult({ type: "success", message: `Scanned: ${value}` });
+    setTimeout(() => setScanResult(null), 3000);
+  }
+
+  // QR scan: check-in or check-out by scanning asset QR code
+  async function handleCheckinoutScan(value: string) {
+    setScanMode(null);
+    if (!activeCompanyId || activeCompanyId === "pending") {
+      setScanResult({ type: "error", message: "No active company." });
+      setTimeout(() => setScanResult(null), 4000);
+      return;
+    }
+    try {
+      const asset = await getAssetByQrCode(activeCompanyId, value);
+      if (!asset) {
+        setScanResult({ type: "error", message: `No equipment found for scanned code.` });
+        setTimeout(() => setScanResult(null), 4000);
+        return;
+      }
+      if (asset.status === "available") {
+        await checkoutAsset(asset.id);
+        setScanResult({ type: "success", message: `Checked out: ${asset.name}` });
+      } else if (asset.status === "checked_out") {
+        await checkinAsset(asset.id);
+        setScanResult({ type: "success", message: `Returned: ${asset.name}` });
+      } else {
+        setScanResult({ type: "error", message: `Asset "${asset.name}" status: ${asset.status}` });
+      }
+      await loadAssets();
+    } catch (err) {
+      console.error(err);
+      setScanResult({ type: "error", message: "Scan action failed. Try again." });
+    }
+    setTimeout(() => setScanResult(null), 4000);
   }
 
   return (
@@ -401,20 +448,60 @@ export default function SchedulePage() {
         {/* ── Armory Tab ── */}
         {tab === "armory" && (
           <>
-            {isAdmin && (
-              <div className="flex justify-end">
+            {/* QR Scanner Modal */}
+            {scanMode === "serial" && (
+              <QrScanner
+                title="Scan Serial / Barcode"
+                hint="Point at equipment barcode or QR code to populate serial number"
+                onScan={handleSerialScan}
+                onClose={() => setScanMode(null)}
+              />
+            )}
+            {scanMode === "checkinout" && (
+              <QrScanner
+                title="Scan to Check In / Out"
+                hint="Scan an asset's QR code to toggle check-in or check-out"
+                onScan={handleCheckinoutScan}
+                onClose={() => setScanMode(null)}
+              />
+            )}
+
+            {/* Scan result toast */}
+            {scanResult && (
+              <div className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium ${scanResult.type === "success" ? "bg-green-500/15 text-green-600" : "bg-red-500/15 text-red-600"}`}>
+                {scanResult.type === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                {scanResult.message}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className="flex items-center justify-between">
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setScanMode("checkinout")}>
+                <ScanLine className="h-4 w-4" /> Scan Check In / Out
+              </Button>
+              {isAdmin && (
                 <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
                   <Plus className="h-4 w-4" /> Add Gear
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
 
             {showCreate && (
               <div className="space-y-2 rounded-xl border border-primary/30 bg-card p-4">
                 <Input placeholder="Equipment name *" value={newName} onChange={(e) => setNewName(e.target.value)} />
                 <div className="flex gap-2">
                   <Input placeholder="Type (e.g. Radio, Vest)" value={newType} onChange={(e) => setNewType(e.target.value)} className="flex-1" />
-                  <Input placeholder="Serial #" value={newSerial} onChange={(e) => setNewSerial(e.target.value)} className="flex-1" />
+                  <div className="flex-1 relative">
+                    <Input placeholder="Serial #" value={newSerial} onChange={(e) => setNewSerial(e.target.value)} className="pr-9" />
+                    <button
+                      type="button"
+                      onClick={() => setScanMode("serial")}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                      title="Scan barcode / QR code"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleCreateAsset} disabled={!newName.trim() || creating}>
