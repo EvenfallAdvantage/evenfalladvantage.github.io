@@ -436,8 +436,11 @@ export default function GeoRiskPage() {
           imageTimeout: 5000,
           onclone: (clonedDoc) => {
             // html2canvas cannot parse modern CSS color functions (lab, oklch,
-            // oklab, lch) used by Tailwind v4. Rewrite all <style> tags in the
-            // cloned DOM to replace these with simple hex fallbacks.
+            // oklab, lch) used by Tailwind v4. It loads external CSS files into
+            // an iframe where they 404 or contain unparseable lab() values.
+            // Solution: remove all external stylesheets and rewrite inline ones.
+            // Map tiles use Leaflet inline styles for positioning — no CSS needed.
+            clonedDoc.querySelectorAll('link[rel="stylesheet"]').forEach((l) => l.remove());
             clonedDoc.querySelectorAll("style").forEach((tag) => {
               if (tag.textContent) {
                 tag.textContent = tag.textContent
