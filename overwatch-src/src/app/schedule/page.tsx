@@ -5,7 +5,7 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
-  Eye, X, Camera, ScanLine, CheckCircle2, AlertCircle,
+  Eye, X, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Badge } from "@/components/ui/badge";
@@ -255,6 +255,17 @@ export default function SchedulePage() {
             const upcomingEvents = events.filter((ev: Ev) => !isCurrent(ev.start_date, ev.end_date));
             const hasGuide = (ev: Ev) => !!ev.ops_guide && Object.values(ev.ops_guide).some((v: unknown) => typeof v === "string" && (v as string).length > 0);
 
+            // Detect conflicting shifts (same user, overlapping time ranges)
+            const conflictIds = new Set<string>();
+            for (let i = 0; i < shifts.length; i++) {
+              for (let j = i + 1; j < shifts.length; j++) {
+                const a = shifts[i], b = shifts[j];
+                if (new Date(a.start_time) < new Date(b.end_time) && new Date(a.end_time) > new Date(b.start_time)) {
+                  conflictIds.add(a.id); conflictIds.add(b.id);
+                }
+              }
+            }
+
             const renderOpCard = (ev: Ev, highlight?: boolean, myShifts?: Shift[]) => (
               <Card key={ev.id} className={highlight ? "border-primary/40 bg-primary/5" : "border-border/40"}>
                 <CardContent className="py-3 px-4">
@@ -285,11 +296,14 @@ export default function SchedulePage() {
                   {myShifts && myShifts.length > 0 && (
                     <div className="mt-2 ml-14 space-y-1 border-t border-primary/10 pt-2">
                       {myShifts.map((sh: Shift) => (
-                        <div key={sh.id} className="flex items-center gap-2 text-xs">
-                          <Clock className="h-3 w-3 text-primary/60" />
+                        <div key={sh.id} className={`flex items-center gap-2 text-xs ${conflictIds.has(sh.id) ? "rounded-md bg-amber-500/10 px-2 py-1 -mx-2" : ""}`}>
+                          {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
                           <span className="text-muted-foreground">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
                           {sh.role && <span className="text-muted-foreground">· Role: {sh.role}</span>}
-                          <Badge className="text-[9px] ml-auto bg-green-500/15 text-green-600">Today</Badge>
+                          <div className="flex items-center gap-1 ml-auto">
+                            {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
+                            <Badge className="text-[9px] bg-green-500/15 text-green-600">Today</Badge>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -311,6 +325,19 @@ export default function SchedulePage() {
 
             return (
             <>
+              {/* ── Conflict Banner ── */}
+              {conflictIds.size > 0 && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-600">Scheduling Conflict</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      You have {conflictIds.size} shift{conflictIds.size !== 1 ? "s" : ""} with overlapping times. Contact your supervisor to resolve.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* ── Current Operation ── */}
               {(currentShifts.length > 0 || currentEvents.length > 0) && (
                 <div>
@@ -321,10 +348,10 @@ export default function SchedulePage() {
                     {currentEvents.map((ev: Ev) => renderOpCard(ev, true, shiftsByEvent.get(ev.id)))}
                     {/* Orphan shifts without a matching event card */}
                     {orphanShifts.map((sh: Shift) => (
-                      <Card key={sh.id} className="border-primary/40 bg-primary/5">
+                      <Card key={sh.id} className={`${conflictIds.has(sh.id) ? "border-amber-500/40 bg-amber-500/5" : "border-primary/40 bg-primary/5"}`}>
                         <CardContent className="flex items-center gap-4 py-3 px-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
-                            <Clock className="h-5 w-5 text-primary" />
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${conflictIds.has(sh.id) ? "bg-amber-500/15" : "bg-primary/15"}`}>
+                            {conflictIds.has(sh.id) ? <AlertTriangle className="h-5 w-5 text-amber-500" /> : <Clock className="h-5 w-5 text-primary" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm">{sh.events?.name ?? "Shift"}</p>
@@ -333,7 +360,10 @@ export default function SchedulePage() {
                             </p>
                             {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                           </div>
-                          <Badge className="text-[10px] capitalize bg-green-500/15 text-green-600">Today</Badge>
+                          <div className="flex items-center gap-1">
+                            {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
+                            <Badge className="text-[10px] capitalize bg-green-500/15 text-green-600">Today</Badge>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -401,10 +431,10 @@ export default function SchedulePage() {
                   </div>
                   <div className="space-y-2">
                     {upcomingShifts.map((sh: Shift) => (
-                      <Card key={sh.id} className="border-border/40">
+                      <Card key={sh.id} className={conflictIds.has(sh.id) ? "border-amber-500/40 bg-amber-500/5" : "border-border/40"}>
                         <CardContent className="flex items-center gap-4 py-3 px-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
-                            <Clock className="h-5 w-5 text-blue-500" />
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${conflictIds.has(sh.id) ? "bg-amber-500/10" : "bg-blue-500/10"}`}>
+                            {conflictIds.has(sh.id) ? <AlertTriangle className="h-5 w-5 text-amber-500" /> : <Clock className="h-5 w-5 text-blue-500" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm">{sh.events?.name ?? "Shift"}</p>
@@ -413,7 +443,10 @@ export default function SchedulePage() {
                             </p>
                             {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                           </div>
-                          <Badge className={`text-[10px] capitalize ${statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>{sh.assigned_user_id ? "Confirmed" : "Open"}</Badge>
+                          <div className="flex items-center gap-1">
+                            {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
+                            <Badge className={`text-[10px] capitalize ${statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>{sh.assigned_user_id ? "Confirmed" : "Open"}</Badge>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}

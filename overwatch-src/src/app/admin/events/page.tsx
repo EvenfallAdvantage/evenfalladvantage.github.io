@@ -14,7 +14,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import {
   getEvents, createEvent, getEventShifts, createShift,
   getCompanyMembers, deleteEvent, deleteShift, updateEventStatus,
-  assignShift,
+  assignShift, getConflictingShifts,
 } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -273,6 +273,9 @@ export default function AdminEventsPage() {
   const [cAssign, setCAssign] = useState("");
   const [addingCustom, setAddingCustom] = useState(false);
 
+  // Conflict warning
+  const [conflictWarning, setConflictWarning] = useState<{ shiftId: string; userId: string; conflicts: { role: string; eventName: string; time: string }[]; pendingAction: () => Promise<void> } | null>(null);
+
   // OPs Guide viewer
   const [viewingGuide, setViewingGuide] = useState<string | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
@@ -367,7 +370,35 @@ export default function AdminEventsPage() {
   }
 
   async function handleAssign(shiftId: string, userId: string) {
-    try { await assignShift(shiftId, userId || null); if (expanded) setShifts(await getEventShifts(expanded)); }
+    if (!userId) {
+      // Unassigning — no conflict check needed
+      try { await assignShift(shiftId, null); if (expanded) setShifts(await getEventShifts(expanded)); }
+      catch (err) { console.error(err); }
+      return;
+    }
+    // Check for conflicts before assigning
+    const sh = shifts.find((s: Shift) => s.id === shiftId);
+    if (sh) {
+      try {
+        const conflicts = await getConflictingShifts(userId, sh.start_time, sh.end_time, shiftId);
+        if (conflicts.length > 0) {
+          setConflictWarning({
+            shiftId, userId,
+            conflicts: conflicts.map((c: Shift) => ({
+              role: c.role ?? "Shift",
+              eventName: c.events?.name ?? "Unknown Op",
+              time: `${fmtTime(c.start_time)} — ${fmtTime(c.end_time)}`,
+            })),
+            pendingAction: async () => {
+              await assignShift(shiftId, userId);
+              if (expanded) setShifts(await getEventShifts(expanded));
+            },
+          });
+          return;
+        }
+      } catch (err) { console.error("Conflict check failed:", err); }
+    }
+    try { await assignShift(shiftId, userId); if (expanded) setShifts(await getEventShifts(expanded)); }
     catch (err) { console.error(err); }
   }
 
@@ -394,6 +425,31 @@ export default function AdminEventsPage() {
 
   async function handleAddCustom() {
     if (!expanded || !cStart || !cEnd) return;
+    // Check for conflicts if assigning to a user
+    if (cAssign) {
+      try {
+        const conflicts = await getConflictingShifts(cAssign, cStart, cEnd);
+        if (conflicts.length > 0) {
+          setConflictWarning({
+            shiftId: "new", userId: cAssign,
+            conflicts: conflicts.map((c: Shift) => ({
+              role: c.role ?? "Shift",
+              eventName: c.events?.name ?? "Unknown Op",
+              time: `${fmtTime(c.start_time)} — ${fmtTime(c.end_time)}`,
+            })),
+            pendingAction: async () => {
+              setAddingCustom(true);
+              try {
+                await createShift({ eventId: expanded!, role: cRole || undefined, startTime: cStart, endTime: cEnd, assignedUserId: cAssign || undefined });
+                setCRole(""); setCStart(""); setCEnd(""); setCAssign(""); setShowCustom(false);
+                setShifts(await getEventShifts(expanded!));
+              } finally { setAddingCustom(false); }
+            },
+          });
+          return;
+        }
+      } catch (err) { console.error("Conflict check failed:", err); }
+    }
     setAddingCustom(true);
     try {
       await createShift({ eventId: expanded, role: cRole || undefined, startTime: cStart, endTime: cEnd, assignedUserId: cAssign || undefined });
@@ -584,6 +640,44 @@ export default function AdminEventsPage() {
             </div>
           );
         })()}
+
+        {/* ── Conflict Warning Modal ── */}
+        {conflictWarning && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setConflictWarning(null)}>
+            <div className="w-full max-w-md rounded-2xl border border-amber-500/40 bg-card shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 border-b border-amber-500/20 bg-amber-500/10 px-5 py-4">
+                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+                <div>
+                  <h3 className="text-sm font-bold">Shift Conflict Detected</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">This person already has overlapping shift(s):</p>
+                </div>
+              </div>
+              <div className="px-5 py-3 space-y-2 max-h-48 overflow-auto">
+                {conflictWarning.conflicts.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+                    <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <div className="text-xs">
+                      <span className="font-medium">{c.role}</span>
+                      <span className="text-muted-foreground"> — {c.eventName}</span>
+                      <span className="text-muted-foreground font-mono ml-1.5">{c.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-end gap-2 border-t border-border/30 px-5 py-3">
+                <Button size="sm" variant="outline" onClick={() => setConflictWarning(null)}>Cancel</Button>
+                <Button size="sm" className="gap-1.5 bg-amber-600 hover:bg-amber-700"
+                  onClick={async () => {
+                    const action = conflictWarning.pendingAction;
+                    setConflictWarning(null);
+                    try { await action(); } catch (err) { console.error(err); }
+                  }}>
+                  <AlertTriangle className="h-3.5 w-3.5" /> Assign Anyway
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Event List ── */}
         {loading ? (

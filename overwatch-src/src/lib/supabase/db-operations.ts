@@ -168,6 +168,29 @@ export async function assignShift(shiftId: string, userId: string | null) {
   if (error) throw error;
 }
 
+/**
+ * Check if a user has other shifts that overlap with the given time range.
+ * Returns the list of conflicting shifts (excluding excludeShiftId if provided).
+ * Overlap: shift.start_time < rangeEnd AND shift.end_time > rangeStart
+ */
+export async function getConflictingShifts(
+  userId: string,
+  startTime: string,
+  endTime: string,
+  excludeShiftId?: string,
+) {
+  const supabase = createClient();
+  let q = supabase
+    .from("shifts")
+    .select("*, events(id, name)")
+    .eq("assigned_user_id", userId)
+    .lt("start_time", endTime)
+    .gt("end_time", startTime);
+  if (excludeShiftId) q = q.neq("id", excludeShiftId);
+  const { data } = await q;
+  return data ?? [];
+}
+
 export async function deleteShift(shiftId: string) {
   const supabase = createClient();
   const { error } = await supabase.from("shifts").delete().eq("id", shiftId);
