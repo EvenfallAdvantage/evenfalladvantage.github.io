@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Camera, CameraOff, X, SwitchCamera } from "lucide-react";
+import { Camera, CameraOff, X, SwitchCamera, Flashlight, FlashlightOff, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface QrScannerProps {
@@ -21,8 +21,17 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [hasTorch, setHasTorch] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [maxZoom, setMaxZoom] = useState(1);
   const mountedRef = useRef(true);
   const scannedRef = useRef(false);
+
+  // Get the active video track for applying constraints
+  const getVideoTrack = useCallback(() => {
+    return streamRef.current?.getVideoTracks()[0] ?? null;
+  }, []);
 
   const cleanup = useCallback(() => {
     if (scannerRef.current) {
@@ -46,10 +55,51 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
     onScan(value);
   }, [cleanup, onScan]);
 
+  // Apply autofocus, zoom, and detect torch capability after stream starts
+  const applyAdvancedConstraints = useCallback(async (track: MediaStreamTrack) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const caps = track.getCapabilities() as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const constraints: any = {};
+
+      // Enable continuous autofocus (critical for close-up QR scanning)
+      if (caps.focusMode?.includes("continuous")) {
+        constraints.focusMode = "continuous";
+      }
+
+      // Apply 2x zoom so small QR codes are readable without getting ultra-close
+      if (caps.zoom) {
+        const max = caps.zoom.max ?? 1;
+        const idealZoom = Math.min(2, max);
+        constraints.zoom = idealZoom;
+        if (mountedRef.current) {
+          setMaxZoom(max);
+          setZoomLevel(idealZoom);
+        }
+      }
+
+      if (Object.keys(constraints).length > 0) {
+        await track.applyConstraints({ advanced: [constraints] });
+      }
+
+      // Detect torch capability
+      if (caps.torch) {
+        if (mountedRef.current) setHasTorch(true);
+      }
+    } catch {
+      // Advanced constraints not supported — camera still works
+    }
+  }, []);
+
   const startCamera = useCallback(async (facing: "environment" | "user") => {
     cleanup();
     setError(null);
     setScanning(false);
+    setTorchOn(false);
+    setHasTorch(false);
+    setZoomLevel(1);
+    setMaxZoom(1);
     scannedRef.current = false;
 
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -69,12 +119,20 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
 
     if (hasNative) {
       try {
+        // Request high resolution for better barcode detection
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: {
+            facingMode: facing,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
           audio: false,
         });
         if (!mountedRef.current) { stream.getTracks().forEach((t) => t.stop()); return; }
         streamRef.current = stream;
+
+        const track = stream.getVideoTracks()[0];
+        if (track) await applyAdvancedConstraints(track);
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -92,7 +150,7 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
                 handleDetected(barcodes[0].rawValue);
               }
             } catch { /* frame error */ }
-          }, 200);
+          }, 150);
         }
       } catch (err: unknown) {
         if (!mountedRef.current) return;
@@ -103,7 +161,6 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
       try {
         const { Html5Qrcode } = await import("html5-qrcode");
         const scannerId = "qr-scanner-fallback";
-        // Ensure container exists
         if (!document.getElementById(scannerId)) {
           setError("Scanner container missing.");
           return;
@@ -112,7 +169,7 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
         html5ScannerRef.current = scanner;
         await scanner.start(
           { facingMode: facing },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          { fps: 10, qrbox: { width: 280, height: 280 } },
           (decodedText: string) => {
             if (mountedRef.current) handleDetected(decodedText);
           },
@@ -124,7 +181,7 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
         handleCameraError(err as Error);
       }
     }
-  }, [cleanup, handleDetected]);
+  }, [cleanup, handleDetected, applyAdvancedConstraints]);
 
   function handleCameraError(e: Error) {
     if (e.name === "NotAllowedError" || e.name === "PermissionDeniedError") {
@@ -138,6 +195,8 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
       navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(async (fallback) => {
         if (!mountedRef.current) { fallback.getTracks().forEach((t) => t.stop()); return; }
         streamRef.current = fallback;
+        const track = fallback.getVideoTracks()[0];
+        if (track) await applyAdvancedConstraints(track);
         if (videoRef.current) {
           videoRef.current.srcObject = fallback;
           await videoRef.current.play();
@@ -147,6 +206,30 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
     } else {
       setError(`Camera error: ${e.message || "Unknown error"}`);
     }
+  }
+
+  // Toggle torch/flashlight
+  async function toggleTorch() {
+    const track = getVideoTrack();
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await track.applyConstraints({ advanced: [{ torch: next } as any] });
+      setTorchOn(next);
+    } catch { /* torch not supported */ }
+  }
+
+  // Adjust zoom
+  async function adjustZoom(delta: number) {
+    const track = getVideoTrack();
+    if (!track) return;
+    const next = Math.max(1, Math.min(maxZoom, zoomLevel + delta));
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await track.applyConstraints({ advanced: [{ zoom: next } as any] });
+      setZoomLevel(next);
+    } catch { /* zoom not supported */ }
   }
 
   useEffect(() => {
@@ -173,9 +256,25 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
           <p className="text-sm font-semibold text-white">{title}</p>
           {hint && <p className="text-[10px] text-white/60">{hint}</p>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {hasTorch && (
+            <Button size="sm" variant="ghost" className={`h-8 w-8 p-0 hover:bg-white/10 ${torchOn ? "text-amber-400" : "text-white"}`} onClick={toggleTorch} title="Toggle flashlight">
+              {torchOn ? <FlashlightOff className="h-4 w-4" /> : <Flashlight className="h-4 w-4" />}
+            </Button>
+          )}
+          {maxZoom > 1 && (
+            <>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-white hover:bg-white/10" onClick={() => adjustZoom(-0.5)} disabled={zoomLevel <= 1} title="Zoom out">
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-[10px] text-white/70 w-8 text-center">{zoomLevel.toFixed(1)}x</span>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-white hover:bg-white/10" onClick={() => adjustZoom(0.5)} disabled={zoomLevel >= maxZoom} title="Zoom in">
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </>
+          )}
           {hasMultipleCameras && (
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-white hover:bg-white/10" onClick={handleSwitchCamera}>
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-white hover:bg-white/10" onClick={handleSwitchCamera} title="Switch camera">
               <SwitchCamera className="h-4 w-4" />
             </Button>
           )}
@@ -215,12 +314,12 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
             {/* Scan overlay */}
             {scanning && hasNative && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-64 h-64 sm:w-72 sm:h-72 relative">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-emerald-400 rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-emerald-400 rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-emerald-400 rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-emerald-400 rounded-br-lg" />
-                  <div className="absolute left-2 right-2 h-0.5 bg-emerald-400/80 animate-pulse" style={{ top: "50%", boxShadow: "0 0 8px rgba(52, 211, 153, 0.6)" }} />
+                <div className="w-72 h-72 sm:w-80 sm:h-80 relative">
+                  <div className="absolute top-0 left-0 w-10 h-10 border-t-3 border-l-3 border-emerald-400 rounded-tl-xl" />
+                  <div className="absolute top-0 right-0 w-10 h-10 border-t-3 border-r-3 border-emerald-400 rounded-tr-xl" />
+                  <div className="absolute bottom-0 left-0 w-10 h-10 border-b-3 border-l-3 border-emerald-400 rounded-bl-xl" />
+                  <div className="absolute bottom-0 right-0 w-10 h-10 border-b-3 border-r-3 border-emerald-400 rounded-br-xl" />
+                  <div className="absolute left-3 right-3 h-0.5 bg-emerald-400/80 animate-pulse" style={{ top: "50%", boxShadow: "0 0 12px rgba(52, 211, 153, 0.7)" }} />
                 </div>
               </div>
             )}
@@ -230,7 +329,9 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
 
       {/* Footer hint */}
       <div className="px-4 py-3 bg-black/80 text-center">
-        <p className="text-[11px] text-white/50">Point camera at a QR code or barcode</p>
+        <p className="text-[11px] text-white/50">
+          {scanning ? "Hold steady — autofocus enabled" : "Starting camera…"}
+        </p>
       </div>
     </div>
   );
