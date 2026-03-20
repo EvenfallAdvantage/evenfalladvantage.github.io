@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Shield, Building2, DoorOpen, Video, AlertTriangle, Users, ClipboardCheck,
   BarChart3, Save, FileDown, RotateCcw, ChevronRight, ChevronDown,
@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { useAuthStore } from "@/stores/auth-store";
 
 /* ── Types ──────────────────────────────────────────────── */
 
@@ -232,7 +233,7 @@ export default function SiteAssessmentPage() {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["clientInfo"]));
   const [result, setResult] = useState<RiskResult | null>(null);
   const [generating, setGenerating] = useState(false);
-  const reportRef = useRef<HTMLDivElement>(null);
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
 
   // Load from localStorage
   useEffect(() => {
@@ -294,48 +295,277 @@ export default function SiteAssessmentPage() {
   }
 
   async function downloadPDF() {
-    if (!reportRef.current) return;
+    if (!result) return;
     setGenerating(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
       const { jsPDF } = await import("jspdf");
-      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, logging: false });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfW = 210, margin = 10;
-      const maxW = pdfW - margin * 2;
-      let imgW = canvas.width * 0.264583 / 2;
-      let imgH = canvas.height * 0.264583 / 2;
-      if (imgW > maxW) { const r = maxW / imgW; imgW = maxW; imgH *= r; }
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const w = doc.internal.pageSize.getWidth();
+      const h = doc.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentW = w - margin * 2;
 
-      // Multi-page support
-      const pdfH = 297;
-      const maxH = pdfH - margin * 2;
-      const xOff = (pdfW - imgW) / 2;
+      // ── Dynamic company branding ──
+      const companyName = activeCompany?.companyName || "Evenfall Advantage LLC";
+      const brandHex = activeCompany?.brandColor || "#D97706";
+      const hexToRgb = (hex: string): [number, number, number] => {
+        const c = hex.replace("#", "");
+        return [parseInt(c.substring(0, 2), 16), parseInt(c.substring(2, 4), 16), parseInt(c.substring(4, 6), 16)];
+      };
+      const BRAND = hexToRgb(brandHex);
+      const NAVY: [number, number, number] = [20, 30, 48];
+      const DARK: [number, number, number] = [30, 30, 40];
+      const GRAY: [number, number, number] = [120, 125, 135];
+      const LIGHT_BG: [number, number, number] = [245, 247, 250];
+      const WHITE: [number, number, number] = [255, 255, 255];
 
-      if (imgH <= maxH) {
-        pdf.addImage(imgData, "PNG", xOff, margin, imgW, imgH);
-      } else {
-        let y = 0;
-        let page = 0;
-        while (y < imgH) {
-          if (page > 0) pdf.addPage();
-          const srcY = (y / imgH) * canvas.height;
-          const srcH = Math.min((maxH / imgH) * canvas.height, canvas.height - srcY);
-          const drawH = Math.min(maxH, imgH - y);
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = srcH;
-          sliceCanvas.getContext("2d")!.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-          const sliceData = sliceCanvas.toDataURL("image/png");
-          pdf.addImage(sliceData, "PNG", xOff, margin, imgW, drawH);
-          y += maxH;
-          page++;
-        }
+      const RISK_CLR: Record<string, [number, number, number]> = {
+        Critical: [239, 68, 68], High: [249, 115, 22], Moderate: [234, 179, 8], Low: [34, 197, 94],
+      };
+      const riskColor = RISK_CLR[result.level] || BRAND;
+
+      // ── Helpers ──
+      function sectionHead(label: string, yPos: number): number {
+        doc.setFillColor(...BRAND);
+        doc.rect(margin, yPos, 2, 6, "F");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...NAVY);
+        doc.text(label, margin + 5, yPos + 5);
+        return yPos + 10;
+      }
+      function pageFooter(pageNum: number, totalPages: number) {
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, h - 15, w - margin, h - 15);
+        doc.setFontSize(7);
+        doc.setTextColor(...GRAY);
+        doc.text(`CONFIDENTIAL — Prepared by ${companyName}`, margin, h - 10);
+        doc.text(`Page ${pageNum} of ${totalPages}`, w - margin, h - 10, { align: "right" });
+      }
+      const footerZone = 22;
+      let y = 0;
+      function ensureSpace(needed: number) {
+        if (y + needed > h - footerZone) { doc.addPage(); y = 15; }
+      }
+
+      // ══════════════════════ PAGE 1 ══════════════════════
+
+      // ── Header bar ──
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 0, w, 36, "F");
+      doc.setFillColor(...BRAND);
+      doc.rect(0, 36, w, 1.5, "F");
+
+      // Logo
+      let logoOffset = margin;
+      const logoUrl = activeCompany?.companyLogo;
+      if (logoUrl) {
+        try {
+          const logoImg = new Image();
+          logoImg.crossOrigin = "anonymous";
+          await new Promise<void>((resolve) => {
+            logoImg.onload = () => resolve();
+            logoImg.onerror = () => resolve();
+            logoImg.src = logoUrl;
+          });
+          if (logoImg.complete && logoImg.naturalWidth > 0) {
+            const logoCanvas = document.createElement("canvas");
+            logoCanvas.width = logoImg.naturalWidth;
+            logoCanvas.height = logoImg.naturalHeight;
+            logoCanvas.getContext("2d")?.drawImage(logoImg, 0, 0);
+            const logoData = logoCanvas.toDataURL("image/png");
+            doc.addImage(logoData, "PNG", margin, 5, 26, 26);
+            logoOffset = margin + 30;
+          }
+        } catch { /* logo load failed */ }
+      }
+
+      doc.setTextColor(...WHITE);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("SITE SECURITY ASSESSMENT", logoOffset, 16);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text("REPORT", logoOffset, 23);
+      doc.setFontSize(8);
+      doc.setTextColor(180, 190, 210);
+      doc.text(`${companyName}  |  ${data.assessmentDate || new Date().toISOString().split("T")[0]}  |  Report ID: SA-${Date.now().toString(36).toUpperCase()}`, logoOffset, 30);
+
+      y = 44;
+
+      // ── Facility Info + Risk Score side by side ──
+      doc.setFillColor(...LIGHT_BG);
+      doc.roundedRect(margin, y, contentW * 0.58, 38, 2, 2, "F");
+      doc.roundedRect(margin + contentW * 0.62, y, contentW * 0.38, 38, 2, 2, "F");
+
+      // Facility details (left box)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...NAVY);
+      doc.text("FACILITY", margin + 4, y + 6);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...DARK);
+      let ly = y + 12;
+      doc.text(data.clientName || "Facility Assessment", margin + 4, ly); ly += 5;
+      if (data.address) { doc.text(data.address, margin + 4, ly); ly += 5; }
+      if (data.city) { doc.text(`${data.city}, ${data.state}`, margin + 4, ly); ly += 5; }
+      doc.setFontSize(8);
+      doc.setTextColor(...GRAY);
+      doc.text(`Type: ${data.facilityType || "N/A"}`, margin + 4, ly);
+
+      // Risk score (right box)
+      const rBoxX = margin + contentW * 0.62;
+      doc.setFillColor(...riskColor);
+      doc.roundedRect(rBoxX + 4, y + 4, contentW * 0.38 - 8, 30, 2, 2, "F");
+      doc.setTextColor(...WHITE);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(28);
+      doc.text(`${result.score}`, rBoxX + (contentW * 0.38) / 2, y + 20, { align: "center" });
+      doc.setFontSize(8);
+      doc.text(`${result.level.toUpperCase()} RISK`, rBoxX + (contentW * 0.38) / 2, y + 28, { align: "center" });
+
+      y += 44;
+
+      // ── Threat / Impact / Vulnerability / Resilience row ──
+      const colW = contentW / 4;
+      const metrics: [string, string][] = [
+        ["Threat", data.threatLikelihood || "N/A"],
+        ["Impact", data.potentialImpact || "N/A"],
+        ["Vulnerability", data.overallVulnerability || "N/A"],
+        ["Resilience", data.resilienceLevel || "N/A"],
+      ];
+      metrics.forEach(([label, val], i) => {
+        const cx = margin + i * colW;
+        doc.setFillColor(...LIGHT_BG);
+        doc.roundedRect(cx + 1, y, colW - 2, 16, 1, 1, "F");
+        doc.setFontSize(6.5);
+        doc.setTextColor(...GRAY);
+        doc.text(label, cx + 3, y + 5);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(...DARK);
+        doc.text(val, cx + 3, y + 13);
+        doc.setFont("helvetica", "normal");
+      });
+      y += 22;
+
+      // ── Assessment Summary ──
+      y = sectionHead("Assessment Summary", y);
+      const summaryItems: [string, string][] = [
+        ["Facility Type", data.facilityType || "N/A"],
+        ["Address", `${data.address || "N/A"}, ${data.city} ${data.state}`],
+        ["Entry Points", `${data.entryPoints || "N/A"} total / ${data.controlledEntries || "N/A"} controlled`],
+        ["Cameras", `${data.cameraCount || "N/A"} — ${data.cameraCoverage || "N/A"}`],
+        ["Door Construction", data.doorType || "N/A"],
+        ["Access Control", data.accessControlTech || "N/A"],
+        ["Emergency Plans", data.emergencyPlans || "N/A"],
+        ["Staff Training", data.staffTraining || "N/A"],
+      ];
+      doc.setFontSize(8);
+      const halfCol = contentW / 2;
+      summaryItems.forEach(([label, val], i) => {
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const xPos = margin + col * halfCol + 3;
+        const yPos = y + row * 6;
+        doc.setTextColor(...GRAY);
+        doc.setFont("helvetica", "normal");
+        doc.text(`${label}:`, xPos, yPos);
+        doc.setTextColor(...DARK);
+        doc.setFont("helvetica", "bold");
+        const truncVal = val.length > 42 ? val.substring(0, 42) + "..." : val;
+        doc.text(truncVal, xPos + 30, yPos);
+      });
+      y += Math.ceil(summaryItems.length / 2) * 6 + 6;
+
+      // ── Recommendations ──
+      if (result.recommendations.length > 0) {
+        ensureSpace(20);
+        y = sectionHead(`Recommendations (${result.recommendations.length})`, y);
+        const priorityConfig: Record<number, { label: string; color: [number, number, number]; bg: [number, number, number] }> = {
+          1: { label: "Critical Priority", color: [220, 38, 38], bg: [254, 242, 242] },
+          2: { label: "High Priority", color: [234, 88, 12], bg: [255, 247, 237] },
+          3: { label: "Standard Priority", color: [37, 99, 235], bg: [239, 246, 255] },
+        };
+
+        [1, 2, 3].forEach((priority) => {
+          const precs = result.recommendations.filter((r) => r.priority === priority);
+          if (precs.length === 0) return;
+          const cfg = priorityConfig[priority];
+          ensureSpace(12 + precs.length * 16);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.setTextColor(...cfg.color);
+          doc.text(cfg.label, margin + 3, y + 4);
+          y += 8;
+
+          precs.forEach((rec) => {
+            ensureSpace(16);
+            doc.setFillColor(...cfg.bg);
+            doc.roundedRect(margin + 2, y - 3, contentW - 4, 14, 1, 1, "F");
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(...DARK);
+            doc.text(rec.issue, margin + 5, y + 1);
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(7.5);
+            doc.setTextColor(...GRAY);
+            doc.text(rec.recommendation, margin + 5, y + 5.5);
+            doc.setFontSize(6.5);
+            doc.text(`Timeline: ${rec.timeline}   |   Responsibility: ${rec.responsibility}`, margin + 5, y + 9.5);
+            y += 16;
+          });
+          y += 3;
+        });
+      }
+
+      // ── Field Observations ──
+      const notes: [string, string][] = [
+        ["Physical Security", data.physicalNotes],
+        ["Access Control", data.accessNotes],
+        ["Surveillance", data.surveillanceNotes],
+        ["Emergency Management", data.emergencyNotes],
+        ["Training & Culture", data.trainingNotes],
+      ].filter(([, v]) => v) as [string, string][];
+
+      if (notes.length > 0) {
+        ensureSpace(15);
+        y = sectionHead("Field Observations", y);
+        doc.setFontSize(8);
+        notes.forEach(([label, text]) => {
+          ensureSpace(12);
+          doc.setTextColor(...NAVY);
+          doc.setFont("helvetica", "bold");
+          doc.text(`${label}:`, margin + 3, y);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(...DARK);
+          const lines = doc.splitTextToSize(text, contentW - 10);
+          doc.text(lines, margin + 3, y + 4.5);
+          y += 4.5 + lines.length * 3.5 + 3;
+        });
+      }
+
+      // ── Assessor footer ──
+      ensureSpace(15);
+      doc.setDrawColor(200, 200, 200);
+      doc.line(margin, y, w - margin, y);
+      y += 6;
+      doc.setFontSize(7);
+      doc.setTextColor(...GRAY);
+      doc.text(`This assessment was conducted by ${data.assessorName || "Security Consultant"}${data.assessorTitle ? `, ${data.assessorTitle}` : ""}.`, margin, y);
+      y += 3.5;
+      doc.text(`Generated by Overwatch Security Platform — ${companyName}`, margin, y);
+
+      // ── Page footers on all pages ──
+      const totalPages = doc.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        pageFooter(p, totalPages);
       }
 
       const clientName = data.clientName || "Assessment";
-      pdf.save(`Security_Assessment_${clientName.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`);
+      doc.save(`Security_Assessment_${clientName.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`);
     } catch (err) {
       console.error("PDF error:", err);
       alert("Error generating PDF.");
@@ -455,7 +685,7 @@ export default function SiteAssessmentPage() {
             </div>
 
             {/* Report for PDF */}
-            <div ref={reportRef} className="bg-white text-black rounded-xl overflow-hidden" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+            <div className="bg-white text-black rounded-xl overflow-hidden" style={{ fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
               {/* Report Header */}
               <div className="bg-gray-900 text-white p-8">
                 <h1 className="text-2xl font-bold tracking-tight">SITE SECURITY ASSESSMENT REPORT</h1>
