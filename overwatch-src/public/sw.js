@@ -1,10 +1,14 @@
-const CACHE_NAME = "overwatch-v2";
+const CACHE_NAME = "overwatch-v3";
 const OFFLINE_URL = "/overwatch/offline.html";
 const STATIC_ASSETS = [
   "/overwatch/",
   "/overwatch/login/",
   "/overwatch/feed/",
-  "/overwatch/images/overwatch_logo.png",
+  "/overwatch/images/icon-192.png",
+  "/overwatch/images/icon-512.png",
+  "/overwatch/images/icon-maskable-192.png",
+  "/overwatch/images/icon-maskable-512.png",
+  "/overwatch/images/apple-touch-icon.png",
   "/overwatch/manifest.json",
   OFFLINE_URL,
 ];

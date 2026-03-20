@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth-provider";
 import { SecurityProvider } from "@/components/security-provider";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { useState, useEffect } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -39,6 +40,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <TooltipProvider delay={0}>
               {children}
               <Toaster richColors position="top-right" />
+              <PwaInstallPrompt />
             </TooltipProvider>
           </SecurityProvider>
         </AuthProvider>

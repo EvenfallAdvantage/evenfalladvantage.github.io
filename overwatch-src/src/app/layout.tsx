@@ -29,8 +29,11 @@ export const metadata: Metadata = {
     "Evenfall Advantage", "Overwatch security platform",
   ],
   icons: {
-    icon: "/overwatch/images/overwatch_logo.png",
-    apple: "/overwatch/images/overwatch_logo.png",
+    icon: [
+      { url: "/overwatch/favicon.png", sizes: "32x32", type: "image/png" },
+      { url: "/overwatch/images/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/overwatch/images/apple-touch-icon.png",
   },
   manifest: "/overwatch/manifest.json",
   appleWebApp: {
