@@ -50,6 +50,9 @@ import {
   ShieldAlert,
   Activity,
   NotebookPen,
+  ArrowRightLeft,
+  Check,
+  X,
   type LucideIcon,
 } from "lucide-react";
 
@@ -64,12 +67,14 @@ const ICON_MAP: Record<string, LucideIcon> = {
 export default function MorePage() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, clearSession } = useAuthStore();
+  const { user, clearSession, activeCompanyId, setActiveCompany } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const userRole = activeCompany?.role ?? "staff";
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
   const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ Academy: true, Tools: true });
+  const [showSwitcher, setShowSwitcher] = useState(false);
+  const hasMultipleCompanies = (user?.companies?.length ?? 0) > 1;
   const toggle = (key: string) => setCollapsed((p) => ({ ...p, [key]: !p[key] }));
 
   async function handleSignOut() {
@@ -219,6 +224,16 @@ export default function MorePage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
             </Link>
           )}
+          {hasMultipleCompanies && (
+            <button
+              onClick={() => setShowSwitcher(true)}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
+            >
+              <ArrowRightLeft className="h-[18px] w-[18px] text-muted-foreground" />
+              <span className="flex-1 text-left">Switch Company</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+            </button>
+          )}
           <Link
             href="/join"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
@@ -236,6 +251,58 @@ export default function MorePage() {
           </button>
         </div>
       </div>
+
+      {/* Company Switcher Modal */}
+      {showSwitcher && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowSwitcher(false)}>
+          <div className="w-full max-w-sm rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-border/30 px-5 py-4">
+              <div>
+                <h3 className="text-sm font-bold">Switch Company</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Select an organization</p>
+              </div>
+              <button onClick={() => setShowSwitcher(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-3 space-y-1 max-h-64 overflow-auto">
+              {user?.companies?.map((company) => {
+                const isActive = company.companyId === activeCompanyId;
+                return (
+                  <button
+                    key={company.companyId}
+                    onClick={() => {
+                      if (!isActive) {
+                        setActiveCompany(company.companyId);
+                        setShowSwitcher(false);
+                        window.location.reload();
+                      }
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors",
+                      isActive ? "bg-primary/10 border border-primary/30" : "hover:bg-accent active:bg-accent/80 border border-transparent"
+                    )}
+                  >
+                    {company.companyLogo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={company.companyLogo} alt={company.companyName} className="h-9 w-9 rounded-lg object-contain bg-muted/30 shrink-0" />
+                    ) : (
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary text-sm font-bold shrink-0">
+                        {company.companyName?.[0]?.toUpperCase() ?? "?"}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{company.companyName}</p>
+                      <p className="text-[11px] text-muted-foreground capitalize">{company.role}</p>
+                    </div>
+                    {isActive && <Check className="h-4 w-4 text-primary shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
