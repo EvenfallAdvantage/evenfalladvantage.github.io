@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  GraduationCap, BookOpen, Clock, Loader2, CheckCircle2,
+  Compass, GraduationCap, BookOpen, Clock, Loader2, CheckCircle2,
   BarChart3, Play, ChevronRight, Trophy,
   ShieldCheck, Star, Zap, AlertTriangle, RefreshCw,
   Target, FileText, Plus, Trash2, TrendingUp, Lock,
@@ -217,7 +217,7 @@ export default function AcademyPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6" /> ACADEMY
+            <Compass className="h-5 w-5 sm:h-6 sm:w-6" /> ACADEMY HUB
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Training, SOPs, assessments &amp; certifications</p>
         </div>

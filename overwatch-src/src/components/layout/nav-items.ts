@@ -30,7 +30,7 @@ export const NAV_SECTIONS: NavSection[] = [
       {
         title: "Academy",
         href: "/academy",
-        icon: "GraduationCap",
+        icon: "School",
         children: [
           { title: "Academy Hub", href: "/academy", icon: "Compass" },
           { title: "Field Manual", href: "/knowledge-base", icon: "BookOpen" },

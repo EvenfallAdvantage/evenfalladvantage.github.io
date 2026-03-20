@@ -64,6 +64,7 @@ import {
   ShieldAlert,
   Activity,
   NotebookPen,
+  School,
   type LucideIcon,
 } from "lucide-react";
 
@@ -102,6 +103,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   ShieldAlert,
   Activity,
   NotebookPen,
+  School,
 };
 
 interface AppSidebarProps {

@@ -21,6 +21,7 @@ import {
   QrCode,
   ClipboardList,
   GraduationCap,
+  School,
   Footprints,
   Target,
   BookOpen,
@@ -61,7 +62,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   QrCode, ClipboardList, GraduationCap, Footprints, Target, BookOpen, Award,
   MapPin, Shield, Scale, FileText, BarChart3, Settings, Bell, MessageCircle,
   Video, HelpCircle, AlertTriangle, Compass, Briefcase, ClipboardCheck,
-  Flag, UserCog, ShieldAlert, Activity, NotebookPen,
+  Flag, UserCog, ShieldAlert, Activity, NotebookPen, School,
 };
 
 export default function MorePage() {
