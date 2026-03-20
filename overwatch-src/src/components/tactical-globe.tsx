@@ -112,6 +112,7 @@ function CssSatellite({ scale = 1.5, rotate = 0 }: { scale?: number; rotate?: nu
 
 export function TacticalGlobe() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
 
   const subscribe = useCallback((cb: () => void) => {
     const mq = window.matchMedia(MQ);
@@ -127,15 +128,25 @@ export function TacticalGlobe() {
   useEffect(() => {
     if (isMobile) return;
     let phi = 0;
+    let t = 0;
     let rafId: number;
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const overlay = overlayRef.current;
+    if (!canvas || !overlay) return;
 
     const cssWidth = canvas.offsetWidth;
     // Cap internal resolution so buffer (cobeSize * dpr) stays under GPU max texture size (4096)
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cobeSize = Math.min(cssWidth, Math.floor(4096 / dpr));
+
+    // Overlay canvas for custom flat markers (lower res is fine)
+    const olSize = Math.min(cssWidth, 2048);
+    overlay.width = olSize;
+    overlay.height = olSize;
+    const ctx = overlay.getContext("2d");
+
+    const THETA = 0.45;
 
     const markerLocations: [number, number][] = [
       [34.0522, -118.2437],
@@ -153,27 +164,85 @@ export function TacticalGlobe() {
       width: cobeSize,
       height: cobeSize,
       phi: 0,
-      theta: 0.45,
+      theta: THETA,
       dark: 1,
-      diffuse: 0.4,
+      diffuse: 1.2,
       mapSamples: 16000,
-      mapBrightness: 5,
+      mapBrightness: 4,
       baseColor: [0.12, 0.18, 0.28],
-      markerColor: [0.95, 0.6, 0.15],
-      glowColor: [0.04, 0.08, 0.14],
-      markers: markerLocations.map((location) => ({ location, size: 0.006 })),
+      markerColor: [0.87, 0.55, 0.2],
+      glowColor: [0.08, 0.12, 0.2],
+      markers: [],
     });
 
-    let t = 0;
+    // Pre-compute trig for theta (constant)
+    const cosT = Math.cos(THETA);
+    const sinT = Math.sin(THETA);
+
+    function drawMarkers() {
+      if (!ctx) return;
+      const s = olSize;
+      const cx = s / 2;
+      const cy = s / 2;
+      const r = s / 2;
+      ctx.clearRect(0, 0, s, s);
+
+      const pulse = 1 + 0.35 * Math.sin(t);
+      const cosP = Math.cos(phi);
+      const sinP = Math.sin(phi);
+
+      markerLocations.forEach(([lat, lon]) => {
+        const latR = (lat * Math.PI) / 180;
+        const lonR = (lon * Math.PI) / 180;
+
+        // Point on unit sphere
+        const px = Math.cos(latR) * Math.sin(lonR);
+        const py = Math.sin(latR);
+        const pz = Math.cos(latR) * Math.cos(lonR);
+
+        // Rotate by phi around Y-axis
+        const x1 = px * cosP + pz * sinP;
+        const z1 = -px * sinP + pz * cosP;
+        const y1 = py;
+
+        // Tilt by theta around X-axis
+        const x2 = x1;
+        const y2 = y1 * cosT + z1 * sinT;
+        const z2 = -y1 * sinT + z1 * cosT;
+
+        // Only draw if on the visible hemisphere
+        if (z2 <= 0.15) return;
+
+        // Orthographic projection
+        const sx = cx + x2 * r;
+        const sy = cy - y2 * r;
+
+        // Depth-based alpha — dots near the edge fade slightly
+        const alpha = Math.min(1, z2 * 1.8) * 0.9;
+        const dotR = r * 0.005 * pulse;
+
+        // Orange filled dot
+        ctx.beginPath();
+        ctx.arc(sx, sy, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(240, 150, 30, ${alpha})`;
+        ctx.fill();
+
+        // Soft glow around dot
+        const grad = ctx.createRadialGradient(sx, sy, dotR * 0.3, sx, sy, dotR * 3);
+        grad.addColorStop(0, `rgba(240, 150, 30, ${alpha * 0.45})`);
+        grad.addColorStop(1, "rgba(240, 150, 30, 0)");
+        ctx.beginPath();
+        ctx.arc(sx, sy, dotR * 3, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+      });
+    }
+
     function animate() {
       phi += 0.003;
       t += 0.04;
-      // Pulse markers between 0.004 and 0.008 — close to surface
-      const pulse = 0.004 + 0.004 * (0.5 + 0.5 * Math.sin(t));
-      globe.update({
-        phi,
-        markers: markerLocations.map((location) => ({ location, size: pulse })),
-      });
+      globe.update({ phi });
+      drawMarkers();
       rafId = requestAnimationFrame(animate);
     }
     rafId = requestAnimationFrame(animate);
@@ -186,19 +255,19 @@ export function TacticalGlobe() {
 
   if (isMobile) return null;
 
+  const globeStyle: React.CSSProperties = {
+    width: "min(3200px, 280vw)",
+    height: "min(3200px, 280vw)",
+    position: "absolute",
+    left: "50%",
+    bottom: 0,
+    transform: "translateX(-50%) translateY(72%)",
+  };
+
   return (
     <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-      <canvas
-        ref={canvasRef}
-        style={{
-          width: "min(3200px, 280vw)",
-          height: "min(3200px, 280vw)",
-          position: "absolute",
-          left: "50%",
-          bottom: 0,
-          transform: "translateX(-50%) translateY(72%)",
-        }}
-      />
+      <canvas ref={canvasRef} style={globeStyle} />
+      <canvas ref={overlayRef} style={globeStyle} />
 
       {/* ── Orbiting Satellites ──
            Each orbit = a container centered on the globe that rotates 360°.
