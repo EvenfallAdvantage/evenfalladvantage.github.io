@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Award, Plus, Trash2, Loader2, Download, Search, CheckCircle2,
-  AlertTriangle, Clock, Shield, Hash, Calendar, Upload, Eye, X,
+  AlertTriangle, Clock, Shield, Hash, Calendar, Upload, Eye, X, Camera,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUserCertifications, addCertification, deleteCertification, verifyCertificate } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
+import dynamic from "next/dynamic";
+
+const DocumentScanner = dynamic(() => import("@/components/document-scanner"), { ssr: false });
 
 type Cert = {
   id: string;
@@ -127,6 +130,7 @@ export default function CertificationsPage() {
   const [category, setCategory] = useState("general");
   const [certFile, setCertFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   // Verification
   const [verifyCode, setVerifyCode] = useState("");
@@ -293,11 +297,21 @@ export default function CertificationsPage() {
                   <option value="state_license">State License</option>
                   <option value="specialty">Specialty</option>
                 </select>
-                <label className="flex items-center gap-2 h-8 rounded-md border border-input bg-transparent px-2 text-sm cursor-pointer hover:bg-muted/30 transition-colors col-span-2 sm:col-span-1">
-                  <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <span className="truncate text-muted-foreground">{certFile ? certFile.name : "Upload document..."}</span>
-                  <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setCertFile(e.target.files?.[0] ?? null)} />
-                </label>
+                <div className="flex gap-1.5 col-span-2 sm:col-span-1">
+                  <label className="flex-1 flex items-center gap-2 h-8 rounded-md border border-input bg-transparent px-2 text-sm cursor-pointer hover:bg-muted/30 transition-colors">
+                    <Upload className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="truncate text-muted-foreground">{certFile ? certFile.name : "Upload document..."}</span>
+                    <input type="file" className="hidden" accept="image/*,.pdf" onChange={(e) => setCertFile(e.target.files?.[0] ?? null)} />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowScanner(true)}
+                    className="inline-flex items-center justify-center h-8 w-8 shrink-0 rounded-md border border-input hover:bg-muted/30 transition-colors"
+                    title="Scan document with camera"
+                  >
+                    <Camera className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </div>
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setShowAdd(false)}>Cancel</Button>
@@ -407,6 +421,13 @@ export default function CertificationsPage() {
           </div>
         )}
       </div>
+      {/* Document Scanner */}
+      {showScanner && (
+        <DocumentScanner
+          onCapture={(file) => { setCertFile(file); setShowScanner(false); }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
       {/* Document Preview Modal */}
       {viewDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setViewDoc(null)}>
