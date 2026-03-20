@@ -422,7 +422,7 @@ export default function GeoRiskPage() {
       try {
         const zoom = 14;
         const mapW = 640;
-        const mapHPx = 360;
+        const mapHPx = 504;
         const tileSize = 256;
         // Always use light tiles for PDF — better for print
         const tileTemplate = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -600,7 +600,7 @@ export default function GeoRiskPage() {
           ctx.fillText("© OpenStreetMap", 5, mapHPx - 5);
 
           const mapData = mapCanvas.toDataURL("image/png");
-          const mapH = Math.min(70, (mapHPx / mapW) * contentW);
+          const mapH = Math.min(98, (mapHPx / mapW) * contentW);
           doc.addImage(mapData, "PNG", margin, y, contentW, mapH);
           y += mapH + 4;
         }

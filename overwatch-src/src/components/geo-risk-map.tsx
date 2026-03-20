@@ -189,7 +189,7 @@ export default function GeoRiskMap({
     <div className="relative">
       <div
         ref={mapRef}
-        className="w-full h-[300px] rounded-lg overflow-hidden border border-border/40"
+        className="w-full h-[420px] rounded-lg overflow-hidden border border-border/40"
         style={{ zIndex: 0 }}
       />
       {loading && (
