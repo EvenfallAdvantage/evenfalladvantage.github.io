@@ -10,3 +10,4 @@ export * from "./db-training";
 export * from "./db-analytics";
 export * from "./db-onboarding";
 export * from "./db-documents";
+export * from "./db-availability";

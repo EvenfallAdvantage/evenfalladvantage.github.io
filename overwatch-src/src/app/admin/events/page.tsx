@@ -18,8 +18,9 @@ import {
   getEvents, createEvent, getEventShifts, createShift,
   getCompanyMembers, deleteEvent, deleteShift, updateEventStatus,
   assignShift, getConflictingShifts, getOperationActivity,
-  createDocument,
+  createDocument, getEventAvailability,
 } from "@/lib/supabase/db";
+import type { OperationAvailability } from "@/lib/supabase/db-availability";
 import type { IntakeData } from "@/types/operations";
 import type { ActivityItem } from "@/lib/supabase/db-operations";
 import TlpTracker from "@/components/ops/tlp-tracker";
@@ -345,6 +346,9 @@ export default function AdminEventsPage() {
   const [showGotwa, setShowGotwa] = useState(false);
   const [showDocHub, setShowDocHub] = useState(false);
 
+  // Availability
+  const [availability, setAvailability] = useState<OperationAvailability[]>([]);
+
   /* ── Data ── */
 
   const load = useCallback(async () => {
@@ -433,12 +437,14 @@ export default function AdminEventsPage() {
     setExpanded(eventId); setViewingGuide(null);
     setPosts([]); setSelectedDays(new Set()); setShowCustom(false); setShowBuilder(false);
     setShowActivity(false); setActivityItems([]); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowDocHub(false);
+    setAvailability([]);
     try {
-      const [s, m] = await Promise.all([
+      const [s, m, avail] = await Promise.all([
         getEventShifts(eventId),
         activeCompanyId ? getCompanyMembers(activeCompanyId) : Promise.resolve([]),
+        getEventAvailability(eventId).catch(() => [] as OperationAvailability[]),
       ]);
-      setShifts(s); setMembers(m);
+      setShifts(s); setMembers(m); setAvailability(avail);
     } catch { setShifts([]); }
   }
 
@@ -605,6 +611,14 @@ export default function AdminEventsPage() {
   const shiftsByDay = groupByDay(shifts);
   const previewCount = posts.length * (pattern === "8" ? 3 : 2) * selectedDays.size;
   const fillPct = totalShifts > 0 ? Math.round((filledShifts / totalShifts) * 100) : 0;
+
+  // Availability lookup by user_id
+  const availByUser = new Map<string, string>();
+  for (const a of availability) { availByUser.set(a.user_id, a.status); }
+  const availableCount = availability.filter(a => a.status === "available").length;
+  const unavailableCount = availability.filter(a => a.status === "unavailable").length;
+  const tentativeCount = availability.filter(a => a.status === "tentative").length;
+  const pendingAvailCount = members.length - availability.length;
 
   // Detect scheduling conflicts: same user assigned to overlapping time ranges
   const adminConflictIds = new Set<string>();
@@ -1036,6 +1050,15 @@ export default function AdminEventsPage() {
                             <span className="text-[10px] font-mono text-muted-foreground">{fillPct}%</span>
                           </>
                         )}
+                        {availability.length > 0 && (
+                          <>
+                            <span className="text-[10px] text-muted-foreground">·</span>
+                            <span className="text-[10px] font-mono text-green-500">{availableCount}✓</span>
+                            {tentativeCount > 0 && <span className="text-[10px] font-mono text-amber-500">{tentativeCount}?</span>}
+                            {unavailableCount > 0 && <span className="text-[10px] font-mono text-red-500">{unavailableCount}✗</span>}
+                            {pendingAvailCount > 0 && <span className="text-[10px] font-mono text-muted-foreground/50">{pendingAvailCount} pending</span>}
+                          </>
+                        )}
                         <span className="text-[10px] font-mono text-muted-foreground ml-auto">{opDays.length} day{opDays.length !== 1 ? "s" : ""}</span>
                       </div>
 
@@ -1227,7 +1250,16 @@ export default function AdminEventsPage() {
                           </div>
                           <select value={cAssign} onChange={(e) => setCAssign(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm">
                             <option value="">Unassigned</option>
-                            {members.map((m: Member) => <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}</option>)}
+                            {[...members].sort((a: Member, b: Member) => {
+                              const as = availByUser.get(a.users?.id) ?? "pending";
+                              const bs = availByUser.get(b.users?.id) ?? "pending";
+                              const order: Record<string, number> = { available: 0, tentative: 1, pending: 2, unavailable: 3 };
+                              return (order[as] ?? 2) - (order[bs] ?? 2);
+                            }).map((m: Member) => {
+                              const s = availByUser.get(m.users?.id);
+                              const tag = s === "available" ? " ✓" : s === "tentative" ? " ?" : s === "unavailable" ? " ✗" : "";
+                              return <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}{tag}</option>;
+                            })}
                           </select>
                           <div className="flex gap-2">
                             <Button size="sm" className="h-7 text-xs" onClick={handleAddCustom} disabled={!cStart || !cEnd || addingCustom}>{addingCustom ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add Shift"}</Button>
@@ -1331,7 +1363,16 @@ export default function AdminEventsPage() {
                                         <select value={sh.assigned_user_id ?? ""} onChange={(e) => handleAssign(sh.id, e.target.value)}
                                           className={`h-6 w-full sm:w-auto sm:max-w-[180px] truncate rounded border bg-background px-1.5 text-[10px] font-medium cursor-pointer ${hasConflict ? "border-red-500/40 text-red-500" : filled ? "border-green-500/30 text-green-600" : "border-amber-500/30 text-amber-600"}`}>
                                           <option value="">Open</option>
-                                          {members.map((m: Member) => <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}</option>)}
+                                          {[...members].sort((a: Member, b: Member) => {
+                                            const as = availByUser.get(a.users?.id) ?? "pending";
+                                            const bs = availByUser.get(b.users?.id) ?? "pending";
+                                            const order: Record<string, number> = { available: 0, tentative: 1, pending: 2, unavailable: 3 };
+                                            return (order[as] ?? 2) - (order[bs] ?? 2);
+                                          }).map((m: Member) => {
+                                            const s = availByUser.get(m.users?.id);
+                                            const tag = s === "available" ? " ✓" : s === "tentative" ? " ?" : s === "unavailable" ? " ✗" : "";
+                                            return <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}{tag}</option>;
+                                          })}
                                         </select>
                                       </div>
                                     </div>
@@ -1526,7 +1567,16 @@ export default function AdminEventsPage() {
                                               <select value={sh.assigned_user_id ?? ""} onChange={(e) => handleAssign(sh.id, e.target.value)}
                                                 className={`h-6 w-full sm:w-auto sm:max-w-[180px] truncate rounded border bg-background px-1.5 text-[10px] font-medium cursor-pointer ${hasConflict ? "border-red-500/40 text-red-500" : filled ? "border-green-500/30 text-green-600" : "border-amber-500/30 text-amber-600"}`}>
                                                 <option value="">Open</option>
-                                                {members.map((m: Member) => <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}</option>)}
+                                                {[...members].sort((a: Member, b: Member) => {
+                                                  const as = availByUser.get(a.users?.id) ?? "pending";
+                                                  const bs = availByUser.get(b.users?.id) ?? "pending";
+                                                  const order: Record<string, number> = { available: 0, tentative: 1, pending: 2, unavailable: 3 };
+                                                  return (order[as] ?? 2) - (order[bs] ?? 2);
+                                                }).map((m: Member) => {
+                                                  const s = availByUser.get(m.users?.id);
+                                                  const tag = s === "available" ? " ✓" : s === "tentative" ? " ?" : s === "unavailable" ? " ✗" : "";
+                                                  return <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}{tag}</option>;
+                                                })}
                                               </select>
                                             </div>
                                           </div>

@@ -144,12 +144,24 @@ export default function WarnoPanel({ eventId, companyId, eventName, companyName,
       // Issue
       await issueDocument(docId);
       await updateTlpStep(eventId, "issue_warno");
-      // Notify assigned staff
+      // Notify all company members
       try {
-        const { dispatch } = await import("@/lib/services/notification-dispatcher");
-        // We don't have the assigned user list here, so the parent should handle notifications
-        void dispatch; // silence unused
-      } catch {}
+        const { dispatchToMany } = await import("@/lib/services/notification-dispatcher");
+        const { getCompanyMembers } = await import("@/lib/supabase/db");
+        const members = await getCompanyMembers(companyId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const users = members.map((m: any) => {
+          const u = Array.isArray(m.users) ? m.users[0] : m.users;
+          return { userId: u?.id as string, phone: u?.phone, email: u?.email };
+        }).filter((u: { userId: string }) => u.userId);
+        await dispatchToMany(companyId, users, {
+          title: "WARNO Issued",
+          body: `A Warning Order has been issued for ${eventName}. Review your schedule and indicate availability.`,
+          type: "warno_issued",
+          actionUrl: "/schedule",
+          urgent: true,
+        });
+      } catch (err) { console.error("Notification dispatch failed:", err); }
       setDoc(prev => prev ? { ...prev, status: "issued" } : prev);
       onIssued?.();
     } catch (err) { console.error(err); }

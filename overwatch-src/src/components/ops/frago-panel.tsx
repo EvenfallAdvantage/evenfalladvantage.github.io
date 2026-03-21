@@ -45,8 +45,7 @@ interface FragoPanelProps {
   onIssued?: () => void;
 }
 
-export default function FragoPanel({ eventId, companyId, eventName: _eventName, currentUserId, onClose, onIssued }: FragoPanelProps) {
-  void _eventName;
+export default function FragoPanel({ eventId, companyId, eventName, currentUserId, onClose, onIssued }: FragoPanelProps) {
   const [doc, setDoc] = useState<OperationDocument | null>(null);
   const [data, setData] = useState<FragoData>({ ...EMPTY_FRAGO });
   const [loading, setLoading] = useState(true);
@@ -122,6 +121,24 @@ export default function FragoPanel({ eventId, companyId, eventName: _eventName, 
       }
       await issueDocument(docId);
       await updateTlpStep(eventId, "adjust");
+      // Notify all company members
+      try {
+        const { dispatchToMany } = await import("@/lib/services/notification-dispatcher");
+        const { getCompanyMembers } = await import("@/lib/supabase/db");
+        const members = await getCompanyMembers(companyId);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const users = members.map((m: any) => {
+          const u = Array.isArray(m.users) ? m.users[0] : m.users;
+          return { userId: u?.id as string, phone: u?.phone, email: u?.email };
+        }).filter((u: { userId: string }) => u.userId);
+        await dispatchToMany(companyId, users, {
+          title: `FRAGO #${data.fragoNumber} Issued`,
+          body: `A Fragmentary Order has been issued for ${eventName}. Review changes and acknowledge.`,
+          type: "frago_issued",
+          actionUrl: "/schedule",
+          urgent: true,
+        });
+      } catch (err) { console.error("Notification dispatch failed:", err); }
       setDoc(prev => prev ? { ...prev, status: "issued" } : prev);
       onIssued?.();
     } catch (err) { console.error(err); }

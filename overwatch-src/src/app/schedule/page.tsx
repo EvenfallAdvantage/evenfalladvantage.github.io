@@ -15,7 +15,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth-store";
-import { getUpcomingEvents, getUserShifts, getAssets, createAsset, checkoutAsset, checkinAsset, deleteAsset, getCompanyDetails, getAssetByQrCode } from "@/lib/supabase/db";
+import {
+  getUpcomingEvents, getUserShifts, getAssets, createAsset, checkoutAsset, checkinAsset, deleteAsset, getCompanyDetails, getAssetByQrCode,
+  getEventDocuments, setAvailability, getMyAvailability,
+} from "@/lib/supabase/db";
+import type { OperationDocument } from "@/types/operations";
+import type { AvailabilityStatus, OperationAvailability } from "@/lib/supabase/db-availability";
 
 const QrScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
 
@@ -51,6 +56,12 @@ export default function SchedulePage() {
   const [companyName, setCompanyName] = useState("");
   const [companyLogo, setCompanyLogo] = useState<string | undefined>();
   const [brandColor, setBrandColor] = useState("#e97a2d");
+
+  // Document & availability state
+  const user = useAuthStore((s) => s.user);
+  const [eventDocs, setEventDocs] = useState<Record<string, OperationDocument[]>>({});
+  const [myAvail, setMyAvail] = useState<Record<string, OperationAvailability | null>>({});
+  const [settingAvail, setSettingAvail] = useState<string | null>(null);
 
   // Armory state
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -91,6 +102,37 @@ export default function SchedulePage() {
   }, [activeCompanyId]);
 
   useEffect(() => { loadSchedule(); loadAssets(); }, [loadSchedule, loadAssets]);
+
+  // Load issued documents & my availability for each event
+  useEffect(() => {
+    if (!events.length || !user?.id) return;
+    (async () => {
+      const docsMap: Record<string, OperationDocument[]> = {};
+      const availMap: Record<string, OperationAvailability | null> = {};
+      await Promise.all(events.map(async (ev: Ev) => {
+        try {
+          const [docs, avail] = await Promise.all([
+            getEventDocuments(ev.id),
+            getMyAvailability(ev.id, user.id),
+          ]);
+          docsMap[ev.id] = docs.filter((d: OperationDocument) => d.status === "issued");
+          availMap[ev.id] = avail;
+        } catch {}
+      }));
+      setEventDocs(docsMap);
+      setMyAvail(availMap);
+    })();
+  }, [events, user?.id]);
+
+  async function handleAvailability(eventId: string, status: AvailabilityStatus) {
+    if (!user?.id) return;
+    setSettingAvail(eventId);
+    try {
+      const result = await setAvailability({ eventId, userId: user.id, status });
+      setMyAvail(prev => ({ ...prev, [eventId]: result }));
+    } catch (err) { console.error(err); }
+    finally { setSettingAvail(null); }
+  }
 
   const statusColor = (s: string) => {
     if (s === "published" || s === "confirmed") return "bg-green-500/15 text-green-600";
@@ -294,6 +336,45 @@ export default function SchedulePage() {
                     )}
                     <Badge className={`text-[10px] capitalize ${statusColor(ev.status)}`}>{ev.status}</Badge>
                   </div>
+                  {/* Issued document badges */}
+                  {(eventDocs[ev.id] ?? []).length > 0 && (
+                    <div className="mt-2 ml-14 flex flex-wrap gap-1 border-t border-border/10 pt-2">
+                      {(eventDocs[ev.id] ?? []).map((d: OperationDocument) => (
+                        <span key={d.id} className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                          d.doc_type === "warno" ? "bg-primary/10 text-primary" :
+                          d.doc_type === "opord" ? "bg-green-500/10 text-green-600" :
+                          d.doc_type === "frago" ? "bg-amber-500/10 text-amber-600" :
+                          d.doc_type === "gotwa" ? "bg-violet-500/10 text-violet-500" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          <CheckCircle2 className="h-2.5 w-2.5" /> {d.doc_type.toUpperCase()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {/* Availability RSVP */}
+                  {!highlight && (
+                    <div className="mt-2 ml-14 border-t border-border/10 pt-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground font-medium">Availability:</span>
+                        {(["available", "tentative", "unavailable"] as AvailabilityStatus[]).map(s => {
+                          const current = myAvail[ev.id]?.status;
+                          const isActive = current === s;
+                          const cls = s === "available" ? "border-green-500/40 bg-green-500/10 text-green-600" :
+                                      s === "tentative" ? "border-amber-500/40 bg-amber-500/10 text-amber-600" :
+                                      "border-red-500/40 bg-red-500/10 text-red-500";
+                          return (
+                            <button key={s} type="button" disabled={settingAvail === ev.id}
+                              onClick={() => handleAvailability(ev.id, s)}
+                              className={`rounded-md border px-2 py-0.5 text-[10px] font-medium capitalize transition-colors ${isActive ? cls : "border-border/30 text-muted-foreground/60 hover:border-border"}`}>
+                              {s}
+                            </button>
+                          );
+                        })}
+                        {settingAvail === ev.id && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                      </div>
+                    </div>
+                  )}
                   {/* Inline shift details for current operation */}
                   {myShifts && myShifts.length > 0 && (
                     <div className="mt-2 ml-14 space-y-1 border-t border-primary/10 pt-2">
