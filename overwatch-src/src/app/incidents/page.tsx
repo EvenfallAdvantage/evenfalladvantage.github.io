@@ -613,7 +613,7 @@ export default function IncidentsPage() {
                             >
                               <option value="">Unassigned</option>
                               {members.map((m: Member) => (
-                                <option key={m.user_id} value={m.user_id}>
+                                <option key={m.users?.id} value={m.users?.id}>
                                   {m.users?.first_name} {m.users?.last_name}
                                 </option>
                               ))}
