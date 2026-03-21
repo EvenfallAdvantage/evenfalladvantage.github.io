@@ -118,7 +118,7 @@ export async function getCompanyTimesheets(companyId: string) {
   if (userIds.length === 0) return [];
   const { data } = await supabase
     .from("timesheets")
-    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location)")
+    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location), shifts(id, role, events(id, name, location))")
     .in("user_id", userIds)
     .order("clock_in", { ascending: false })
     .limit(50);

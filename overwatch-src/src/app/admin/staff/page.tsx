@@ -704,7 +704,7 @@ export default function AdminStaffPage() {
             ) : (() => {
               const grouped: Record<string, Sheet[]> = {};
               timesheets.forEach((t: Sheet) => {
-                const key = t.events?.name ?? "Other";
+                const key = t.events?.name ?? t.shifts?.events?.name ?? "Other";
                 if (!grouped[key]) grouped[key] = [];
                 grouped[key].push(t);
               });
