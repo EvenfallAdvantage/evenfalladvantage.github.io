@@ -6,7 +6,7 @@ import {
   Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2,
   ChevronDown, ChevronUp, CalendarOff, ClipboardList, CheckCircle2, XCircle,
   UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock, ShieldCheck, AlertOctagon, BookOpen,
-  AlertTriangle, MapPin,
+  AlertTriangle, MapPin, Flag,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,7 @@ export default function AdminStaffPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [incidents, setIncidents] = useState<any[]>([]);
   const [approving, setApproving] = useState<string | null>(null);
+  const [collapsedOps, setCollapsedOps] = useState<Set<string>>(new Set());
   const [changingRole, setChangingRole] = useState<string | null>(null);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
   const [reviewingLeave, setReviewingLeave] = useState<string | null>(null);
@@ -700,36 +701,71 @@ export default function AdminStaffPage() {
                 <p className="text-sm font-medium">No timesheets yet</p>
                 <p className="mt-1 max-w-xs text-xs text-muted-foreground">Timesheets will appear here as your team clocks in and out.</p>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {timesheets.map((t: Sheet) => {
-                  const hrs = ((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1);
-                  const u = t.users;
-                  return (
-                    <div key={t.id} className="flex items-center gap-4 rounded-xl border border-border/50 bg-card px-4 py-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10 text-xs font-bold text-green-600">
-                        {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
+            ) : (() => {
+              const grouped: Record<string, Sheet[]> = {};
+              timesheets.forEach((t: Sheet) => {
+                const key = t.events?.name ?? "Other";
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(t);
+              });
+              const sortedKeys = Object.keys(grouped).sort((a, b) => a === "Other" ? 1 : b === "Other" ? -1 : a.localeCompare(b));
+              const toggleOp = (key: string) => setCollapsedOps(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next; });
+              return (
+                <div className="space-y-3">
+                  {sortedKeys.map(opName => {
+                    const items = grouped[opName];
+                    const isCollapsed = collapsedOps.has(opName);
+                    const totalHrs = items.reduce((sum, t) => sum + (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000, 0).toFixed(1);
+                    const unapproved = items.filter((t: Sheet) => !t.approved).length;
+                    return (
+                      <div key={opName} className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
+                        <button onClick={() => toggleOp(opName)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors">
+                          {opName === "Other" ? (
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Flag className="h-4 w-4 text-green-500" />
+                          )}
+                          <span className="font-semibold text-sm flex-1">{opName}</span>
+                          <span className="text-xs text-muted-foreground font-mono">{items.length} entries · {totalHrs}h</span>
+                          {unapproved > 0 && <Badge className="text-[10px] bg-amber-500/15 text-amber-500">{unapproved} pending</Badge>}
+                          {isCollapsed ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronUp className="h-4 w-4 text-muted-foreground" />}
+                        </button>
+                        {!isCollapsed && (
+                          <div className="space-y-1 px-3 pb-3">
+                            {items.map((t: Sheet) => {
+                              const hrs = ((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1);
+                              const u = t.users;
+                              return (
+                                <div key={t.id} className="flex items-center gap-4 rounded-lg border border-border/30 bg-background/50 px-4 py-2.5">
+                                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-500/10 text-xs font-bold text-green-600">
+                                    {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {parseUTC(t.clock_in).toLocaleDateString()} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                    </p>
+                                  </div>
+                                  <span className="font-mono text-sm font-semibold">{hrs}h</span>
+                                  {t.approved ? (
+                                    <Badge className="text-[10px] bg-green-500/15 text-green-600">Approved</Badge>
+                                  ) : (
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
+                                      onClick={() => handleApprove(t.id)} disabled={approving === t.id}>
+                                      {approving === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {parseUTC(t.clock_in).toLocaleDateString()} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                      </div>
-                      <span className="font-mono text-sm font-semibold">{hrs}h</span>
-                      {t.approved ? (
-                        <Badge className="text-[10px] bg-green-500/15 text-green-600">Approved</Badge>
-                      ) : (
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
-                          onClick={() => handleApprove(t.id)} disabled={approving === t.id}>
-                          {approving === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
               {/* Gusto Sync Button */}
               {canManage && timesheets.filter((t: Sheet) => t.approved).length > 0 && (
                 <div className="mt-4 flex items-center gap-3">
