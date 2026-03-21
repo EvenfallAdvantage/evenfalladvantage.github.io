@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Shield, Building2, DoorOpen, Video, AlertTriangle, Users, ClipboardCheck,
   BarChart3, Save, FileDown, RotateCcw, ChevronRight, ChevronDown,
-  CheckCircle2, XCircle, AlertCircle, Info, MapPin,
+  CheckCircle2, XCircle, AlertCircle, Info, MapPin, Search, X, Loader2, Navigation,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,24 @@ import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 
 const GeoRiskMap = dynamic(() => import("@/components/geo-risk-map"), { ssr: false });
+
+type NominatimResult = {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address: {
+    house_number?: string;
+    road?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    hamlet?: string;
+    county?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+  };
+};
 
 /* ── Types ──────────────────────────────────────────────── */
 
@@ -244,6 +262,72 @@ export default function SiteAssessmentPage() {
   const { resolvedTheme } = useTheme();
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
+  // Address autocomplete state
+  const [addrQuery, setAddrQuery] = useState("");
+  const [addrSuggestions, setAddrSuggestions] = useState<NominatimResult[]>([]);
+  const [showAddrSuggestions, setShowAddrSuggestions] = useState(false);
+  const [addrSearching, setAddrSearching] = useState(false);
+  const [addrResolved, setAddrResolved] = useState<string | null>(null);
+  const addrDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addrWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (addrWrapperRef.current && !addrWrapperRef.current.contains(e.target as Node)) {
+        setShowAddrSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // Debounced Nominatim search
+  const searchAddress = useCallback((q: string) => {
+    if (addrDebounceRef.current) clearTimeout(addrDebounceRef.current);
+    if (q.length < 3) { setAddrSuggestions([]); setShowAddrSuggestions(false); return; }
+    addrDebounceRef.current = setTimeout(async () => {
+      setAddrSearching(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ", USA")}&format=json&addressdetails=1&limit=5&countrycodes=us`,
+          { headers: { "User-Agent": "EvenfallAdvantage-SiteAssessment/1.0" } }
+        );
+        const results: NominatimResult[] = await res.json();
+        setAddrSuggestions(results);
+        setShowAddrSuggestions(results.length > 0);
+      } catch { setAddrSuggestions([]); }
+      setAddrSearching(false);
+    }, 400);
+  }, []);
+
+  function selectAddrSuggestion(s: NominatimResult) {
+    const addr = s.address;
+    const streetParts = [addr.house_number, addr.road].filter(Boolean).join(" ");
+    const resolvedCity = addr.city || addr.town || addr.village || addr.hamlet || "";
+    const resolvedState = addr.state || "";
+
+    setData((prev) => ({
+      ...prev,
+      address: streetParts,
+      city: resolvedCity,
+      state: resolvedState,
+    }));
+    setLat(parseFloat(s.lat));
+    setLon(parseFloat(s.lon));
+    setAddrQuery(s.display_name.replace(", United States", "").replace(", USA", ""));
+    setAddrResolved(`${streetParts ? streetParts + ", " : ""}${resolvedCity}, ${resolvedState}`);
+    setShowAddrSuggestions(false);
+    setResult(null);
+  }
+
+  function clearAddrSearch() {
+    setAddrQuery(""); setAddrResolved(null); setAddrSuggestions([]); setShowAddrSuggestions(false);
+    setLat(null); setLon(null);
+    setData((prev) => ({ ...prev, address: "", city: "", state: "" }));
+    setResult(null);
+  }
+
   // Load from localStorage
   useEffect(() => {
     try {
@@ -288,8 +372,8 @@ export default function SiteAssessmentPage() {
     const r = calculateRisk(data);
     setResult(r);
 
-    // Geocode address for map
-    if (data.city && data.state) {
+    // Geocode address for map (skip if already resolved via autocomplete)
+    if (lat == null && data.city && data.state) {
       try {
         const geo = await geocodeAddress(data.address || "", data.city, data.state);
         if (geo.lat != null && geo.lon != null) {
@@ -313,6 +397,7 @@ export default function SiteAssessmentPage() {
     setResult(null);
     setLat(null);
     setLon(null);
+    setAddrQuery(""); setAddrResolved(null); setAddrSuggestions([]); setShowAddrSuggestions(false);
     setExpandedSections(new Set(["clientInfo"]));
     localStorage.removeItem(STORAGE_KEY);
   }
@@ -634,7 +719,8 @@ export default function SiteAssessmentPage() {
 
       // ── Recommendations ──
       if (result.recommendations.length > 0) {
-        ensureSpace(20);
+        // Reserve enough space for section title + first priority label + at least one item
+        ensureSpace(50);
         y = sectionHead(`Recommendations (${result.recommendations.length})`, y);
         const priorityConfig: Record<number, { label: string; color: [number, number, number]; bg: [number, number, number] }> = {
           1: { label: "Critical Priority", color: [220, 38, 38], bg: [254, 242, 242] },
@@ -777,6 +863,51 @@ export default function SiteAssessmentPage() {
 
                 {isExpanded && (
                   <CardContent className="pt-0 pb-4 grid gap-3 sm:grid-cols-2">
+                    {/* Address autocomplete for Client Information section */}
+                    {section.id === "clientInfo" && (
+                      <>
+                        <div className="sm:col-span-2" ref={addrWrapperRef}>
+                          <label className="text-xs font-semibold mb-1 block">Search Address</label>
+                          <div className="relative">
+                            <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+                            <Input
+                              placeholder="Start typing an address, city, or ZIP..."
+                              value={addrQuery}
+                              onChange={(e) => { setAddrQuery(e.target.value); searchAddress(e.target.value); }}
+                              onFocus={() => addrSuggestions.length > 0 && setShowAddrSuggestions(true)}
+                              className="pl-8 pr-8 h-8 text-sm"
+                            />
+                            {addrQuery && (
+                              <button onClick={clearAddrSearch} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {addrSearching && <Loader2 className="h-3.5 w-3.5 text-muted-foreground absolute right-8 top-1/2 -translate-y-1/2 animate-spin" />}
+                          </div>
+
+                          {showAddrSuggestions && (
+                            <div className="absolute z-50 w-[calc(100%-2rem)] mt-1 rounded-md border border-border bg-popover shadow-lg max-h-60 overflow-y-auto">
+                              {addrSuggestions.map((s, i) => (
+                                <button key={i} onClick={() => selectAddrSuggestion(s)}
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-start gap-2 border-b border-border/30 last:border-0">
+                                  <Navigation className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+                                  <span className="text-xs leading-relaxed">{s.display_name.replace(", United States", "")}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {addrResolved && (
+                            <div className="flex items-center gap-2 text-xs bg-primary/5 border border-primary/20 rounded-md px-3 py-2 mt-2">
+                              <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                              <span className="text-muted-foreground">Resolved:</span>
+                              <span className="font-medium">{addrResolved}</span>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
                     {section.fields.map((field) => (
                       <div key={field.name} className={field.type === "textarea" ? "sm:col-span-2" : ""}>
                         <label className="text-xs font-medium text-muted-foreground mb-1 block">
