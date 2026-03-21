@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getEvents, createEvent, getEventShifts, createShift,
@@ -1040,8 +1042,8 @@ export default function AdminEventsPage() {
                                 </div>
                                 <div className="grid grid-cols-7 gap-1">
                                   {(() => {
-                                    const memberMap = new Map<string, { fn: string; ln: string }>();
-                                    members.forEach((m: Member) => { if (m.users?.id) memberMap.set(m.users.id, { fn: m.users.first_name ?? "", ln: m.users.last_name ?? "" }); });
+                                    const memberMap = new Map<string, { fn: string; ln: string; role: string; avatar: string }>();
+                                    members.forEach((m: Member) => { if (m.users?.id) memberMap.set(m.users.id, { fn: m.users.first_name ?? "", ln: m.users.last_name ?? "", role: m.role ?? "member", avatar: m.users.avatar_url ?? "" }); });
                                     return calDays.map(day => {
                                       const dayShifts = shiftsByDay.get(day) ?? [];
                                       const isOpDay = opDaySet.has(day);
@@ -1056,9 +1058,9 @@ export default function AdminEventsPage() {
                                         return sum + (ms > 0 ? ms / 3600000 : ms / 3600000 + 24);
                                       }, 0);
                                       const uniqueStaff = [...new Set(dayShifts.filter((s: Shift) => s.assigned_user_id).map((s: Shift) => s.assigned_user_id as string))];
-                                      const staffInitials = uniqueStaff.slice(0, 3).map(uid => {
+                                      const staffData = uniqueStaff.slice(0, 3).map(uid => {
                                         const u = memberMap.get(uid);
-                                        return u ? `${u.fn[0] ?? ""}${u.ln[0] ?? ""}` : "?";
+                                        return { uid, ini: u ? `${u.fn[0] ?? ""}${u.ln[0] ?? ""}` : "?", fn: u?.fn ?? "", ln: u?.ln ?? "", role: u?.role ?? "member", avatar: u?.avatar ?? "" };
                                       });
 
                                       return (
@@ -1089,15 +1091,33 @@ export default function AdminEventsPage() {
                                               )}
                                             </div>
                                           )}
-                                          {staffInitials.length > 0 && (
+                                          {staffData.length > 0 && (
+                                            <TooltipProvider>
                                             <div className="mt-0.5 flex gap-0.5">
-                                              {staffInitials.map((ini, i) => (
-                                                <span key={i} className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[7px] font-bold text-primary/70">{ini}</span>
+                                              {staffData.map((s) => (
+                                                <Tooltip key={s.uid}>
+                                                  <TooltipTrigger>
+                                                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[7px] font-bold text-primary/70 cursor-default">{s.ini}</span>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent side="top" className="p-0 overflow-hidden rounded-lg">
+                                                    <div className="flex items-center gap-2 px-3 py-2">
+                                                      <Avatar className="h-7 w-7">
+                                                        {s.avatar && <AvatarImage src={s.avatar} />}
+                                                        <AvatarFallback className="text-[9px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
+                                                      </Avatar>
+                                                      <div>
+                                                        <p className="text-xs font-semibold leading-tight">{s.fn} {s.ln}</p>
+                                                        <p className="text-[10px] capitalize opacity-70">{s.role}</p>
+                                                      </div>
+                                                    </div>
+                                                  </TooltipContent>
+                                                </Tooltip>
                                               ))}
                                               {uniqueStaff.length > 3 && (
                                                 <span className="inline-flex h-4 items-center text-[7px] text-muted-foreground/50">+{uniqueStaff.length - 3}</span>
                                               )}
                                             </div>
+                                            </TooltipProvider>
                                           )}
                                           {hasConflicts && (
                                             <AlertTriangle className="absolute top-1 right-1 h-2.5 w-2.5 text-red-500" />
