@@ -289,7 +289,7 @@ export default function AdminEventsPage() {
   const [loadingActivity, setLoadingActivity] = useState(false);
 
   // Shift view mode
-  const [shiftView, setShiftView] = useState<"list" | "calendar">("list");
+  const [shiftView, setShiftView] = useState<"list" | "calendar">("calendar");
   const [calendarDay, setCalendarDay] = useState<string | null>(null);
 
   /* ── Data ── */
@@ -807,11 +807,11 @@ export default function AdminEventsPage() {
                         </Button>
                         {/* View toggle */}
                         <div className="flex rounded-lg border border-border/40 overflow-hidden ml-1">
-                          <button onClick={() => setShiftView("list")} className={`px-2 py-1 text-[10px] font-medium flex items-center gap-1 transition-colors ${shiftView === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}>
-                            <List className="h-3 w-3" /> List
-                          </button>
-                          <button onClick={() => setShiftView("calendar")} className={`px-2 py-1 text-[10px] font-medium flex items-center gap-1 transition-colors border-l border-border/40 ${shiftView === "calendar" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}>
+                          <button onClick={() => setShiftView("calendar")} className={`px-2 py-1 text-[10px] font-medium flex items-center gap-1 transition-colors ${shiftView === "calendar" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}>
                             <LayoutGrid className="h-3 w-3" /> Calendar
+                          </button>
+                          <button onClick={() => setShiftView("list")} className={`px-2 py-1 text-[10px] font-medium flex items-center gap-1 transition-colors border-l border-border/40 ${shiftView === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}>
+                            <List className="h-3 w-3" /> List
                           </button>
                         </div>
                         <div className="flex items-center gap-2 ml-auto">
