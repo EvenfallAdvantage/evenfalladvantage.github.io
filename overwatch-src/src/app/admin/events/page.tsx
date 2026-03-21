@@ -1039,47 +1039,73 @@ export default function AdminEventsPage() {
                                   ))}
                                 </div>
                                 <div className="grid grid-cols-7 gap-1">
-                                  {calDays.map(day => {
-                                    const dayShifts = shiftsByDay.get(day) ?? [];
-                                    const isOpDay = opDaySet.has(day);
-                                    const filled = dayShifts.filter((s: Shift) => s.assigned_user_id).length;
-                                    const open = dayShifts.length - filled;
-                                    const hasConflicts = dayShifts.some((s: Shift) => adminConflictIds.has(s.id));
-                                    const isSelected = calendarDay === day;
-                                    const dayNum = new Date(day + "T12:00:00").getDate();
-                                    const isToday = day === new Date().toISOString().slice(0, 10);
+                                  {(() => {
+                                    const memberMap = new Map<string, { fn: string; ln: string }>();
+                                    members.forEach((m: Member) => { if (m.users?.id) memberMap.set(m.users.id, { fn: m.users.first_name ?? "", ln: m.users.last_name ?? "" }); });
+                                    return calDays.map(day => {
+                                      const dayShifts = shiftsByDay.get(day) ?? [];
+                                      const isOpDay = opDaySet.has(day);
+                                      const filled = dayShifts.filter((s: Shift) => s.assigned_user_id).length;
+                                      const open = dayShifts.length - filled;
+                                      const hasConflicts = dayShifts.some((s: Shift) => adminConflictIds.has(s.id));
+                                      const isSelected = calendarDay === day;
+                                      const dayNum = new Date(day + "T12:00:00").getDate();
+                                      const isToday = day === new Date().toISOString().slice(0, 10);
+                                      const totalHrs = dayShifts.reduce((sum: number, s: Shift) => {
+                                        const ms = new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
+                                        return sum + (ms > 0 ? ms / 3600000 : ms / 3600000 + 24);
+                                      }, 0);
+                                      const uniqueStaff = [...new Set(dayShifts.filter((s: Shift) => s.assigned_user_id).map((s: Shift) => s.assigned_user_id as string))];
+                                      const staffInitials = uniqueStaff.slice(0, 3).map(uid => {
+                                        const u = memberMap.get(uid);
+                                        return u ? `${u.fn[0] ?? ""}${u.ln[0] ?? ""}` : "?";
+                                      });
 
-                                    return (
-                                      <button key={day} onClick={() => isOpDay ? setCalendarDay(isSelected ? null : day) : undefined}
-                                        className={`relative rounded-lg p-1.5 min-h-[52px] text-left transition-all border ${
-                                          isSelected ? "border-primary bg-primary/10 ring-1 ring-primary/30" :
-                                          !isOpDay ? "border-transparent opacity-30" :
-                                          hasConflicts ? "border-red-500/30 bg-red-500/[0.04] hover:bg-red-500/[0.08]" :
-                                          dayShifts.length > 0 && open === 0 ? "border-green-500/20 bg-green-500/[0.04] hover:bg-green-500/[0.08]" :
-                                          dayShifts.length > 0 ? "border-amber-500/20 bg-amber-500/[0.04] hover:bg-amber-500/[0.08]" :
-                                          "border-border/20 hover:bg-muted/30"
-                                        }`}>
-                                        <span className={`text-[11px] font-mono font-semibold ${isToday ? "text-primary" : isOpDay ? "" : "text-muted-foreground/30"}`}>{dayNum}</span>
-                                        {dayShifts.length > 0 && (
-                                          <div className="mt-1 flex flex-wrap gap-0.5">
-                                            {filled > 0 && (
-                                              <span className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[8px] font-bold bg-green-500/15 text-green-600">
-                                                <Check className="h-2 w-2" />{filled}
-                                              </span>
-                                            )}
-                                            {open > 0 && (
-                                              <span className="inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold bg-amber-500/15 text-amber-600">
-                                                {open}
-                                              </span>
-                                            )}
+                                      return (
+                                        <button key={day} onClick={() => isOpDay ? setCalendarDay(isSelected ? null : day) : undefined}
+                                          className={`relative rounded-lg p-1.5 min-h-[68px] text-left transition-all border ${
+                                            isSelected ? "border-primary bg-primary/10 ring-1 ring-primary/30" :
+                                            !isOpDay ? "border-transparent opacity-30" :
+                                            hasConflicts ? "border-red-500/30 bg-red-500/[0.04] hover:bg-red-500/[0.08]" :
+                                            dayShifts.length > 0 && open === 0 ? "border-green-500/20 bg-green-500/[0.04] hover:bg-green-500/[0.08]" :
+                                            dayShifts.length > 0 ? "border-amber-500/20 bg-amber-500/[0.04] hover:bg-amber-500/[0.08]" :
+                                            "border-border/20 hover:bg-muted/30"
+                                          }`}>
+                                          <div className="flex items-center justify-between">
+                                            <span className={`text-[11px] font-mono font-semibold ${isToday ? "text-primary" : isOpDay ? "" : "text-muted-foreground/30"}`}>{dayNum}</span>
+                                            {dayShifts.length > 0 && <span className="text-[8px] font-mono text-muted-foreground/60">{totalHrs.toFixed(0)}h</span>}
                                           </div>
-                                        )}
-                                        {hasConflicts && (
-                                          <AlertTriangle className="absolute top-1 right-1 h-2.5 w-2.5 text-red-500" />
-                                        )}
-                                      </button>
-                                    );
-                                  })}
+                                          {dayShifts.length > 0 && (
+                                            <div className="mt-0.5 flex flex-wrap gap-0.5">
+                                              {filled > 0 && (
+                                                <span className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[8px] font-bold bg-green-500/15 text-green-600">
+                                                  <Check className="h-2 w-2" />{filled}
+                                                </span>
+                                              )}
+                                              {open > 0 && (
+                                                <span className="inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold bg-amber-500/15 text-amber-600">
+                                                  {open}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                          {staffInitials.length > 0 && (
+                                            <div className="mt-0.5 flex gap-0.5">
+                                              {staffInitials.map((ini, i) => (
+                                                <span key={i} className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[7px] font-bold text-primary/70">{ini}</span>
+                                              ))}
+                                              {uniqueStaff.length > 3 && (
+                                                <span className="inline-flex h-4 items-center text-[7px] text-muted-foreground/50">+{uniqueStaff.length - 3}</span>
+                                              )}
+                                            </div>
+                                          )}
+                                          {hasConflicts && (
+                                            <AlertTriangle className="absolute top-1 right-1 h-2.5 w-2.5 text-red-500" />
+                                          )}
+                                        </button>
+                                      );
+                                    });
+                                  })()}
                                 </div>
 
                                 {/* Legend */}
