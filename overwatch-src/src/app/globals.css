@@ -130,6 +130,62 @@
   html {
     @apply font-sans;
   }
+  /* Tell browsers to use dark native controls in dark mode */
+  .dark {
+    color-scheme: dark;
+  }
+}
+
+/* ── Dark-themed native selects & options ── */
+.dark select,
+.dark select option {
+  background-color: oklch(0.18 0.025 240);
+  color: oklch(0.92 0.01 240);
+}
+.dark select option:checked {
+  background-color: oklch(0.72 0.14 70 / 25%);
+}
+.dark select option:hover {
+  background-color: oklch(0.25 0.03 240);
+}
+
+/* ── Dark-themed scrollbars ── */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(0.35 0.02 240);
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.45 0.02 240);
+}
+/* Firefox scrollbar */
+.dark * {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.35 0.02 240) transparent;
+}
+
+/* ── Dark-themed form inputs (date, time, number pickers) ── */
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="datetime-local"],
+.dark input[type="month"],
+.dark input[type="week"] {
+  color-scheme: dark;
+}
+.dark input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
+
+/* ── Dark-themed checkbox & radio ── */
+.dark input[type="checkbox"],
+.dark input[type="radio"] {
+  color-scheme: dark;
 }
 
 /* iOS safe area for bottom nav */

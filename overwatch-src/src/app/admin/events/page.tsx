@@ -1113,9 +1113,35 @@ export default function AdminEventsPage() {
                                                   </TooltipContent>
                                                 </Tooltip>
                                               ))}
-                                              {uniqueStaff.length > 3 && (
-                                                <span className="inline-flex h-4 items-center text-[7px] text-muted-foreground/50">+{uniqueStaff.length - 3}</span>
-                                              )}
+                                              {uniqueStaff.length > 3 && (() => {
+                                                const overflow = uniqueStaff.slice(3).map(uid => {
+                                                  const u = memberMap.get(uid);
+                                                  return { uid, ini: u ? `${u.fn[0] ?? ""}${u.ln[0] ?? ""}` : "?", fn: u?.fn ?? "", ln: u?.ln ?? "", role: u?.role ?? "member", avatar: u?.avatar ?? "" };
+                                                });
+                                                return (
+                                                  <Tooltip>
+                                                    <TooltipTrigger>
+                                                      <span className="inline-flex h-4 items-center rounded-full bg-muted/40 px-1 text-[7px] font-bold text-muted-foreground/60 cursor-default">+{uniqueStaff.length - 3}</span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" className="p-0 overflow-hidden rounded-lg">
+                                                      <div className="py-1">
+                                                        {overflow.map(s => (
+                                                          <div key={s.uid} className="flex items-center gap-2 px-3 py-1.5">
+                                                            <Avatar className="h-6 w-6">
+                                                              {s.avatar && <AvatarImage src={s.avatar} />}
+                                                              <AvatarFallback className="text-[8px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
+                                                            </Avatar>
+                                                            <div>
+                                                              <p className="text-[11px] font-semibold leading-tight">{s.fn} {s.ln}</p>
+                                                              <p className="text-[9px] capitalize opacity-70">{s.role}</p>
+                                                            </div>
+                                                          </div>
+                                                        ))}
+                                                      </div>
+                                                    </TooltipContent>
+                                                  </Tooltip>
+                                                );
+                                              })()}
                                             </div>
                                             </TooltipProvider>
                                           )}
