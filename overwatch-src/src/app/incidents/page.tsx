@@ -21,6 +21,7 @@ import {
   Loader2,
   Trash2,
   ClipboardList,
+  Flag,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import {
   addIncidentUpdate,
   deleteIncident,
   getCompanyMembers,
+  getActiveTimesheet,
 } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,16 +120,20 @@ export default function IncidentsPage() {
   const [followUp, setFollowUp] = useState(false);
   const [followUpNotes, setFollowUpNotes] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [activeTimesheet, setActiveTimesheet] = useState<any>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
     try {
-      const [inc, mem] = await Promise.all([
+      const [inc, mem, ts] = await Promise.all([
         getIncidents(activeCompanyId, filter),
         getCompanyMembers(activeCompanyId),
+        getActiveTimesheet(),
       ]);
       setIncidents(inc);
       setMembers(mem);
+      setActiveTimesheet(ts);
     } catch { /* */ } finally { setLoading(false); }
   }, [activeCompanyId, filter]);
 
@@ -167,6 +173,7 @@ export default function IncidentsPage() {
       await createIncident(activeCompanyId, {
         title: newTitle, description: buildDescription(), type: newType,
         severity: newSeverity, priority: newPriority, location: newLocation,
+        eventId: activeTimesheet?.event_id ?? undefined,
       });
       resetCreateForm();
       setShowCreate(false);
@@ -253,6 +260,14 @@ export default function IncidentsPage() {
           <Card className="border-amber-500/30">
             <CardHeader><CardTitle className="text-base">New Incident Report</CardTitle></CardHeader>
             <CardContent className="space-y-5">
+              {/* Operation context badge */}
+              {activeTimesheet?.events?.name && (
+                <div className="flex items-center gap-2 text-xs bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2">
+                  <Flag className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                  <span className="text-muted-foreground">Reporting for:</span>
+                  <span className="font-semibold text-green-600">{activeTimesheet.events.name}</span>
+                </div>
+              )}
               {/* ── Section 1: Core Info ── */}
               <div className="space-y-3">
                 <Input placeholder="Incident title / summary *" value={newTitle} onChange={e => setNewTitle(e.target.value)} />

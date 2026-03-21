@@ -70,6 +70,9 @@ export async function getFormSubmissions(formId: string) {
 export async function submitForm(params: {
   formId: string;
   data: Record<string, unknown>;
+  shiftId?: string;
+  eventId?: string;
+  timesheetId?: string;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
@@ -81,6 +84,9 @@ export async function submitForm(params: {
       form_id: params.formId,
       user_id: userId,
       data: params.data,
+      shift_id: params.shiftId ?? null,
+      event_id: params.eventId ?? null,
+      timesheet_id: params.timesheetId ?? null,
       created_at: new Date().toISOString(),
     })
     .select()
@@ -95,8 +101,18 @@ export async function getAllFormSubmissions(companyId: string) {
   const supabase = createClient();
   const { data } = await supabase
     .from("form_submissions")
-    .select("*, users(first_name, last_name, avatar_url), forms!inner(name, company_id)")
+    .select("*, users(first_name, last_name, avatar_url), forms!inner(name, company_id), events(id, name)")
     .eq("forms.company_id", companyId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+export async function getEventFormSubmissions(eventId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("form_submissions")
+    .select("*, users(first_name, last_name, avatar_url), forms(name)")
+    .eq("event_id", eventId)
     .order("created_at", { ascending: false });
   return data ?? [];
 }

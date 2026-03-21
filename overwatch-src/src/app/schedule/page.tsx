@@ -6,8 +6,10 @@ import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
   Eye, X, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
+  ClipboardList, Flag,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -306,6 +308,26 @@ export default function SchedulePage() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                  {/* Quick-action buttons for current operations */}
+                  {highlight && (
+                    <div className="mt-2 ml-14 flex flex-wrap gap-1.5 border-t border-primary/10 pt-2">
+                      <Link href="/timeclock">
+                        <Button size="sm" variant="outline" className="h-6 gap-1 text-[10px] px-2">
+                          <Clock className="h-3 w-3" /> Clock In
+                        </Button>
+                      </Link>
+                      <Link href="/forms">
+                        <Button size="sm" variant="outline" className="h-6 gap-1 text-[10px] px-2">
+                          <ClipboardList className="h-3 w-3" /> File Report
+                        </Button>
+                      </Link>
+                      <Link href="/incidents">
+                        <Button size="sm" variant="outline" className="h-6 gap-1 text-[10px] px-2">
+                          <Flag className="h-3 w-3" /> Report Incident
+                        </Button>
+                      </Link>
                     </div>
                   )}
                 </CardContent>

@@ -501,3 +501,63 @@ export async function getPatrolLogs(companyId: string, limit = 50) {
     .limit(limit);
   return data ?? [];
 }
+
+// ─── Operation Activity Feed ─────────────────────────
+
+export type ActivityItem = {
+  id: string;
+  type: "clock_in" | "clock_out" | "report" | "incident" | "patrol";
+  timestamp: string;
+  userName: string;
+  detail: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  meta?: Record<string, any>;
+};
+
+export async function getOperationActivity(eventId: string): Promise<ActivityItem[]> {
+  const supabase = createClient();
+  const items: ActivityItem[] = [];
+
+  // Timesheets linked to this event
+  const { data: timesheets } = await supabase
+    .from("timesheets")
+    .select("*, users:user_id(first_name, last_name)")
+    .eq("event_id", eventId)
+    .order("clock_in", { ascending: false })
+    .limit(50);
+  for (const t of timesheets ?? []) {
+    const name = t.users ? `${t.users.first_name} ${t.users.last_name}` : "Unknown";
+    items.push({ id: `ci-${t.id}`, type: "clock_in", timestamp: t.clock_in, userName: name, detail: "Clocked in" });
+    if (t.clock_out) {
+      items.push({ id: `co-${t.id}`, type: "clock_out", timestamp: t.clock_out, userName: name, detail: "Clocked out" });
+    }
+  }
+
+  // Form submissions linked to this event
+  const { data: submissions } = await supabase
+    .from("form_submissions")
+    .select("*, users:user_id(first_name, last_name), forms(name)")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  for (const s of submissions ?? []) {
+    const name = s.users ? `${s.users.first_name} ${s.users.last_name}` : "Unknown";
+    items.push({ id: `fr-${s.id}`, type: "report", timestamp: s.created_at, userName: name, detail: s.forms?.name ?? "Field Report", meta: { data: s.data } });
+  }
+
+  // Incidents linked to this event
+  const { data: incidents } = await supabase
+    .from("incidents")
+    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name)")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  for (const inc of incidents ?? []) {
+    const name = inc.reported_user ? `${inc.reported_user.first_name} ${inc.reported_user.last_name}` : "Unknown";
+    items.push({ id: `inc-${inc.id}`, type: "incident", timestamp: inc.created_at, userName: name, detail: inc.title, meta: { severity: inc.severity, status: inc.status } });
+  }
+
+  // Sort all items chronologically (newest first)
+  items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return items;
+}

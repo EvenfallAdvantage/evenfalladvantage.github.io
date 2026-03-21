@@ -10,7 +10,7 @@ export async function getActiveTimesheet() {
   const supabase = createClient();
   const { data } = await supabase
     .from("timesheets")
-    .select("*")
+    .select("*, shifts(id, role, start_time, end_time, events(id, name, location)), events(id, name, location)")
     .eq("user_id", userId)
     .is("clock_out", null)
     .order("clock_in", { ascending: false })
@@ -20,7 +20,12 @@ export async function getActiveTimesheet() {
   return data;
 }
 
-export async function clockIn() {
+export async function clockIn(params?: {
+  shiftId?: string;
+  eventId?: string;
+  clockInType?: "shift" | "admin" | "manual";
+  notes?: string;
+}) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
 
@@ -33,6 +38,10 @@ export async function clockIn() {
       user_id: userId,
       clock_in: new Date().toISOString(),
       clock_method: "app",
+      shift_id: params?.shiftId ?? null,
+      event_id: params?.eventId ?? null,
+      clock_in_type: params?.clockInType ?? "shift",
+      notes: params?.notes ?? null,
       ...ts(),
     })
     .select()
@@ -40,6 +49,30 @@ export async function clockIn() {
 
   if (error) throw error;
   return data;
+}
+
+/**
+ * Find shifts for the current user that are active now or starting within ±30 min.
+ * Used to auto-detect which operation a user should clock in for.
+ */
+export async function getActiveShiftsForClockIn(companyId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
+  const windowEnd = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+
+  // Shifts where: start_time is within ±30min of now, OR shift is currently active (started but not ended)
+  const { data } = await supabase
+    .from("shifts")
+    .select("*, events!inner(id, name, location, company_id)")
+    .eq("assigned_user_id", userId)
+    .eq("events.company_id", companyId)
+    .or(`and(start_time.gte.${windowStart},start_time.lte.${windowEnd}),and(start_time.lte.${now.toISOString()},end_time.gte.${now.toISOString()})`)
+    .order("start_time", { ascending: true });
+
+  return data ?? [];
 }
 
 export async function clockOut(timesheetId: string) {
@@ -63,7 +96,7 @@ export async function getRecentTimesheets(limit = 10) {
 
   const { data } = await supabase
     .from("timesheets")
-    .select("*")
+    .select("*, events(id, name, location)")
     .eq("user_id", userId)
     .order("clock_in", { ascending: false })
     .limit(limit);
@@ -85,7 +118,7 @@ export async function getCompanyTimesheets(companyId: string) {
   if (userIds.length === 0) return [];
   const { data } = await supabase
     .from("timesheets")
-    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url)")
+    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location)")
     .in("user_id", userIds)
     .order("clock_in", { ascending: false })
     .limit(50);

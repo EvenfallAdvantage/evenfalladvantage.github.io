@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { ClipboardList, Plus, Loader2, Send, ChevronLeft, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle } from "lucide-react";
+import { ClipboardList, Plus, Loader2, Send, ChevronLeft, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle, Flag } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
-import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updateForm } from "@/lib/supabase/db";
+import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updateForm, getActiveTimesheet } from "@/lib/supabase/db";
 
 type FormField = { id: string; label: string; type: "text" | "textarea" | "select" | "checkbox"; required: boolean; options?: string[] };
 
@@ -39,10 +39,16 @@ export default function FormsPage() {
   const [savingFields, setSavingFields] = useState(false);
   // Dynamic form values
   const [formValues, setFormValues] = useState<Record<string, string | boolean>>({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [activeTimesheet, setActiveTimesheet] = useState<any>(null);
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
-    try { setForms(await getForms(activeCompanyId)); } catch {} finally { setLoading(false); }
+    try {
+      const [f, ts] = await Promise.all([getForms(activeCompanyId), getActiveTimesheet()]);
+      setForms(f);
+      setActiveTimesheet(ts);
+    } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
@@ -112,7 +118,13 @@ export default function FormsPage() {
       const data = hasFields
         ? { ...formValues, submittedAt: new Date().toISOString() }
         : { report: reportText.trim(), submittedAt: new Date().toISOString() };
-      await submitForm({ formId: selected.id, data });
+      await submitForm({
+        formId: selected.id,
+        data,
+        shiftId: activeTimesheet?.shift_id ?? undefined,
+        eventId: activeTimesheet?.event_id ?? undefined,
+        timesheetId: activeTimesheet?.id ?? undefined,
+      });
       setReportText("");
       setFormValues({});
       setSubmitted(true);
@@ -226,6 +238,15 @@ export default function FormsPage() {
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setEditingFields(false)}>Cancel</Button>
                 </div>
+              </div>
+            )}
+
+            {/* Operation context badge */}
+            {activeTimesheet?.events?.name && (
+              <div className="flex items-center gap-2 text-xs bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2">
+                <Flag className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                <span className="text-muted-foreground">Filing for:</span>
+                <span className="font-semibold text-green-600">{activeTimesheet.events.name}</span>
               </div>
             )}
 
