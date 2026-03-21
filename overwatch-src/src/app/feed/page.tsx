@@ -487,57 +487,6 @@ export default function FeedPage() {
           </Card>
         )}
 
-        {/* Duty Status — THE hero widget */}
-        <Card className={`overflow-hidden ${isClockedIn ? "border-green-500/30" : "border-border/50"}`}>
-          <CardContent className="p-0">
-            <div className={`flex items-center gap-3 sm:gap-4 p-4 sm:p-5 ${isClockedIn ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent" : "bg-gradient-to-r from-primary/5 to-transparent"}`}>
-              <div className={`relative flex h-12 w-12 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl ${isClockedIn ? "bg-green-500/15" : "bg-primary/10"}`}>
-                {loading ? (
-                  <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-muted-foreground" />
-                ) : (
-                  <Clock className={`h-6 w-6 sm:h-7 sm:w-7 ${isClockedIn ? "text-green-500" : "text-primary"}`} />
-                )}
-                {isClockedIn && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex h-4 w-4 rounded-full bg-green-500" />
-                  </span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${isClockedIn ? "bg-green-500/20 text-green-600" : "bg-muted text-muted-foreground"}`}>
-                    <Zap className="h-3 w-3" />
-                    {isClockedIn ? "ON DUTY" : "OFF DUTY"}
-                  </span>
-                </div>
-                {isClockedIn ? (
-                  <p className="mt-1 font-mono text-xl sm:text-2xl font-bold tracking-wider text-green-600">
-                    {formatDuration(elapsed)}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {todayHours > 0
-                      ? `${(todayHours / 3600000).toFixed(1)}h logged today`
-                      : "No hours logged today"}
-                  </p>
-                )}
-              </div>
-              {!loading && (
-                <Button
-                  size="default"
-                  className={`shrink-0 gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-6 text-xs sm:text-sm font-semibold ${isClockedIn ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
-                  onClick={handleClock}
-                  disabled={acting}
-                >
-                  {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : isClockedIn ? <LogOut className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
-                  {isClockedIn ? "Clock Out" : "Clock In"}
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Action Required — leadership only */}
         {isLeadership && ownerIntel?.approvals && ownerIntel.approvals.total > 0 && (
           <Card className="border-amber-500/30 bg-amber-500/5">
@@ -643,6 +592,57 @@ export default function FeedPage() {
             </div>
           </div>
         )}
+
+        {/* Duty Status — THE hero widget */}
+        <Card className={`overflow-hidden ${isClockedIn ? "border-green-500/30" : "border-border/50"}`}>
+          <CardContent className="p-0">
+            <div className={`flex items-center gap-3 sm:gap-4 p-4 sm:p-5 ${isClockedIn ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent" : "bg-gradient-to-r from-primary/5 to-transparent"}`}>
+              <div className={`relative flex h-12 w-12 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl ${isClockedIn ? "bg-green-500/15" : "bg-primary/10"}`}>
+                {loading ? (
+                  <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-muted-foreground" />
+                ) : (
+                  <Clock className={`h-6 w-6 sm:h-7 sm:w-7 ${isClockedIn ? "text-green-500" : "text-primary"}`} />
+                )}
+                {isClockedIn && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-4 w-4 rounded-full bg-green-500" />
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${isClockedIn ? "bg-green-500/20 text-green-600" : "bg-muted text-muted-foreground"}`}>
+                    <Zap className="h-3 w-3" />
+                    {isClockedIn ? "ON DUTY" : "OFF DUTY"}
+                  </span>
+                </div>
+                {isClockedIn ? (
+                  <p className="mt-1 font-mono text-xl sm:text-2xl font-bold tracking-wider text-green-600">
+                    {formatDuration(elapsed)}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {todayHours > 0
+                      ? `${(todayHours / 3600000).toFixed(1)}h logged today`
+                      : "No hours logged today"}
+                  </p>
+                )}
+              </div>
+              {!loading && (
+                <Button
+                  size="default"
+                  className={`shrink-0 gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-6 text-xs sm:text-sm font-semibold ${isClockedIn ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
+                  onClick={handleClock}
+                  disabled={acting}
+                >
+                  {acting ? <Loader2 className="h-4 w-4 animate-spin" /> : isClockedIn ? <LogOut className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
+                  {isClockedIn ? "Clock Out" : "Clock In"}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* KPI Cards — leadership only */}
         {isLeadership && metrics && (
