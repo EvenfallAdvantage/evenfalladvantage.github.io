@@ -525,11 +525,14 @@ export default function FeedPage() {
                     </div>
                     {expandedPostId === post.id && (
                       <div className="border-t border-amber-500/20 px-3 py-2 space-y-2">
-                        {cmts.map((cm: { id: string; content: string; created_at: string; users?: { first_name?: string; last_name?: string } }) => (
+                        {cmts.map((cm: { id: string; content: string; created_at: string; users?: { first_name?: string; last_name?: string; avatar_url?: string } }) => (
                           <div key={cm.id} className="flex items-start gap-2 text-xs">
-                            <div className="h-5 w-5 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-bold text-primary">
-                              {(cm.users?.first_name?.[0] ?? "")}{(cm.users?.last_name?.[0] ?? "")}
-                            </div>
+                            <Avatar className="h-5 w-5 shrink-0">
+                              <AvatarImage src={cm.users?.avatar_url ?? undefined} />
+                              <AvatarFallback className="bg-primary/10 text-[8px] font-bold text-primary">
+                                {(cm.users?.first_name?.[0] ?? "")}{(cm.users?.last_name?.[0] ?? "")}
+                              </AvatarFallback>
+                            </Avatar>
                             <div>
                               <span className="font-medium">{cm.users?.first_name} {cm.users?.last_name}</span>
                               <span className="ml-1.5 text-muted-foreground">{cm.content}</span>
