@@ -40,13 +40,14 @@ interface WarnoPanelProps {
   eventId: string;
   companyId: string;
   eventName: string;
+  companyName: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   intakeData?: Record<string, any> | null;
   onClose: () => void;
   onIssued?: () => void;
 }
 
-export default function WarnoPanel({ eventId, companyId, eventName, intakeData, onClose, onIssued }: WarnoPanelProps) {
+export default function WarnoPanel({ eventId, companyId, eventName, companyName, intakeData, onClose, onIssued }: WarnoPanelProps) {
   const [doc, setDoc] = useState<OperationDocument | null>(null);
   const [data, setData] = useState<WarnoData>({ ...EMPTY_WARNO });
   const [loading, setLoading] = useState(true);
@@ -69,7 +70,7 @@ export default function WarnoPanel({ eventId, companyId, eventName, intakeData, 
             crowdSizeDensity: intakeData.estimatedAttendance || "",
             environment: intakeData.environment || "",
             knownConcerns: intakeData.clientIdentifiedRisks || "",
-            missionStatement: intakeData.missionStatement || `Evenfall Advantage will provide ${(intakeData.engagementType || []).join(", ") || "security services"} for ${intakeData.clientName || "client"} at ${intakeData.siteAddress || "TBD"} in order to ensure safe, controlled operations.`,
+            missionStatement: intakeData.missionStatement || `${companyName} will provide ${(intakeData.engagementType || []).join(", ") || "security services"} for ${intakeData.clientName || "client"} at ${intakeData.siteAddress || "TBD"} in order to ensure safe, controlled operations.`,
             clientPoc: intakeData.clientContact || "",
             communicationMethod: intakeData.communicationMethod ? [intakeData.communicationMethod] : [],
             eaRole: intakeData.eaRole || [],
@@ -79,7 +80,7 @@ export default function WarnoPanel({ eventId, companyId, eventName, intakeData, 
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     })();
-  }, [eventId, intakeData, eventName]);
+  }, [eventId, intakeData, eventName, companyName]);
 
   function upd<K extends keyof WarnoData>(field: K, value: WarnoData[K]) {
     setData(prev => ({ ...prev, [field]: value }));
@@ -198,7 +199,7 @@ export default function WarnoPanel({ eventId, companyId, eventName, intakeData, 
       {/* 2. Mission */}
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">2. Mission</p>
-        <Txt value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder="Evenfall Advantage will [what] for [client] at [location] in order to [purpose]." rows={2} />
+        <Txt value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName} will [what] for [client] at [location] in order to [purpose].`} rows={2} />
       </div>
 
       {/* 3. Initial Tasks */}
@@ -241,7 +242,7 @@ export default function WarnoPanel({ eventId, companyId, eventName, intakeData, 
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">5. Coordination</p>
         <div className="grid gap-2 sm:grid-cols-2">
           <div><Label className="text-xs">Client POC</Label><Input value={data.clientPoc} onChange={(e) => upd("clientPoc", e.target.value)} placeholder="Name / phone" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-          <div><Label className="text-xs">Evenfall POC</Label><Input value={data.eaPoc} onChange={(e) => upd("eaPoc", e.target.value)} placeholder="Name / phone" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label className="text-xs">{companyName} POC</Label><Input value={data.eaPoc} onChange={(e) => upd("eaPoc", e.target.value)} placeholder="Name / phone" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
         </div>
         <div>
           <Label className="text-xs">Communication Method</Label>
@@ -260,7 +261,7 @@ export default function WarnoPanel({ eventId, companyId, eventName, intakeData, 
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">6. Command & Control</p>
         <div>
-          <Label className="text-xs">EA Role</Label>
+          <Label className="text-xs">{companyName} Role</Label>
           <div className="flex gap-1.5 mt-1">
             {EA_ROLES.map(r => (
               <button key={r} type="button" onClick={() => !isIssued && toggleRole(r)}

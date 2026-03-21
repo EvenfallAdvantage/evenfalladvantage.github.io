@@ -79,7 +79,7 @@ const SERVICES_REQUESTED = ["Access Control", "Crowd Management", "Patrol", "Exe
 const CONSTRAINT_TYPES = ["Budget", "Staffing", "Legal / Licensing", "Venue Restrictions", "Time"];
 const MEDICAL_CAPABILITIES = ["None", "Basic First Aid", "STOP THE BLEED®", "EMS On-site"];
 const COMMAND_MODELS = ["Single Supervisor", "Tiered Leadership", "ICS-Aligned"];
-const EA_ROLES = ["Advisory", "Planning", "Operational Support", "Training"];
+const COMPANY_ROLES = ["Advisory", "Planning", "Operational Support", "Training"];
 const SUCCESS_CRITERIA_OPTIONS = ["No major incidents", "Controlled crowd flow", "Effective incident response", "Clear communication maintained", "Client satisfaction"];
 
 /* ── Helpers ───────────────────────────────────────────── */
@@ -682,7 +682,7 @@ export default function AdminEventsPage() {
                     </div>
                     <div className="sm:col-span-1">
                       <Label className="text-xs">Mission Statement</Label>
-                      <Input placeholder="EA will [do what] for [client] at [location] in order to [purpose]" value={intakeMission} onChange={(e) => setIntakeMission(e.target.value)} className="mt-1" />
+                      <Input placeholder={`${companyName || "Company"} will [do what] for [client] at [location] in order to [purpose]`} value={intakeMission} onChange={(e) => setIntakeMission(e.target.value)} className="mt-1" />
                     </div>
                   </div>
                 </>
@@ -755,7 +755,7 @@ export default function AdminEventsPage() {
                   <div><Label className="text-xs">Post Orders / Standing Instructions</Label><Textarea value={guide.postOrders} onChange={(v) => updateGuide("postOrders", v)} placeholder="Detailed instructions for each post position, duties, and responsibilities" rows={3} /></div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div><Label className="text-xs">Deliverables</Label><Textarea value={intakeDeliverables} onChange={(v) => setIntakeDeliverables(v)} placeholder="e.g. Security plan, post-event report, incident logs" rows={2} /></div>
-                    <div><Label className="text-xs">Out of Scope</Label><Textarea value={intakeOutOfScope} onChange={(v) => setIntakeOutOfScope(v)} placeholder="What EA is NOT responsible for" rows={2} /></div>
+                    <div><Label className="text-xs">Out of Scope</Label><Textarea value={intakeOutOfScope} onChange={(v) => setIntakeOutOfScope(v)} placeholder={`What ${companyName || "the company"} is NOT responsible for`} rows={2} /></div>
                   </div>
                 </>
               )}
@@ -850,9 +850,9 @@ export default function AdminEventsPage() {
                         </select>
                       </div>
                       <div>
-                        <Label className="text-xs">EA Role</Label>
+                        <Label className="text-xs">{companyName || "Company"} Role</Label>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {EA_ROLES.map(r => (
+                          {COMPANY_ROLES.map(r => (
                             <button key={r} type="button" onClick={() => toggleArr(intakeEaRole, setIntakeEaRole, r)}
                               className={`px-1.5 py-0.5 rounded text-[9px] font-medium border transition-colors ${intakeEaRole.includes(r) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:border-border"}`}>
                               {intakeEaRole.includes(r) && <Check className="h-2 w-2 inline mr-0.5" />}{r}
@@ -1103,6 +1103,7 @@ export default function AdminEventsPage() {
                           eventId={ev.id}
                           companyId={activeCompanyId}
                           eventName={ev.name}
+                          companyName={companyName}
                           intakeData={ev.ops_guide}
                           onClose={() => setShowWarno(false)}
                           onIssued={() => load()}

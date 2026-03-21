@@ -81,7 +81,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
             threatTypes: intakeData.threatTypes || [],
             riskLevel: intakeData.riskLevel || "",
             knownConstraints: intakeData.constraints || [],
-            missionStatement: intakeData.missionStatement || `Evenfall Advantage will provide security services for ${eventName} at ${eventLocation || "TBD"}.`,
+            missionStatement: intakeData.missionStatement || `${companyName} will provide security services for ${eventName} at ${eventLocation || "TBD"}.`,
             medicalCapability: intakeData.medicalCapability || "",
             communicationMethod: intakeData.communicationChannel || "",
             radioChannels: intakeData.radioChannels || "",
@@ -96,7 +96,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     })();
-  }, [eventId, intakeData, eventName, eventLocation, eventStart, eventEnd]);
+  }, [eventId, intakeData, eventName, eventLocation, eventStart, eventEnd, companyName]);
 
   function upd<K extends keyof OpordData>(field: K, value: OpordData[K]) {
     setData(prev => ({ ...prev, [field]: value }));
@@ -254,7 +254,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       {/* 2. Mission */}
       <SectionHeader id="mission" title="2. Mission" />
       {!collapsed.mission && (
-        <div><Txt value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder="EA will provide [service] for [client] at [location] in order to [purpose]." rows={2} disabled={isIssued} /></div>
+        <div><Txt value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName} will provide [service] for [client] at [location] in order to [purpose].`} rows={2} disabled={isIssued} /></div>
       )}
 
       {/* 3. Execution */}
