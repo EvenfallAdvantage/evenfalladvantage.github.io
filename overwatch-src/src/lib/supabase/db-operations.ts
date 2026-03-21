@@ -22,6 +22,11 @@ export async function createEvent(params: {
   endDate: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   opsGuide?: Record<string, any>;
+  engagementType?: string;
+  venueType?: string;
+  estimatedAttendance?: string;
+  riskLevel?: string;
+  tlpStep?: string;
 }) {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -36,6 +41,11 @@ export async function createEvent(params: {
       end_date: params.endDate,
       ops_guide: params.opsGuide ?? null,
       status: "draft",
+      engagement_type: params.engagementType ?? null,
+      venue_type: params.venueType ?? null,
+      estimated_attendance: params.estimatedAttendance ?? null,
+      risk_level: params.riskLevel ?? null,
+      tlp_step: params.tlpStep ?? "receive_mission",
       ...ts(),
     })
     .select()

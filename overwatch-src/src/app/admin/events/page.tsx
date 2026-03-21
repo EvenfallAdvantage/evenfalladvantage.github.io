@@ -18,8 +18,17 @@ import {
   getEvents, createEvent, getEventShifts, createShift,
   getCompanyMembers, deleteEvent, deleteShift, updateEventStatus,
   assignShift, getConflictingShifts, getOperationActivity,
+  createDocument,
 } from "@/lib/supabase/db";
+import type { IntakeData } from "@/types/operations";
 import type { ActivityItem } from "@/lib/supabase/db-operations";
+import TlpTracker from "@/components/ops/tlp-tracker";
+import WarnoPanel from "@/components/ops/warno-panel";
+import OpordPanel from "@/components/ops/opord-panel";
+import FragoPanel from "@/components/ops/frago-panel";
+import GotwaPanel from "@/components/ops/gotwa-panel";
+import DocHub from "@/components/ops/doc-hub";
+import type { TlpStep } from "@/types/operations";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Event = any;
@@ -62,6 +71,16 @@ const EMPTY_GUIDE: OpsGuide = {
 
 const SITE_TYPES = ["Corporate", "Retail", "Warehouse", "Residential", "Construction", "Event/Festival", "Government", "Healthcare", "Education", "Other"];
 const DRESS_CODES = ["Full Uniform (Company branded)", "Business Casual", "All Black", "Suit & Tie", "Tactical / BDU", "Client-Provided Uniform", "Plain Clothes", "Other"];
+
+const ENGAGEMENT_TYPES = ["Event Security", "Executive Protection", "Consulting / Assessment", "Recurring Contract", "Loss Prevention", "Training", "Other"];
+const VENUE_TYPES = ["Bar / Nightclub", "Festival / Outdoor Event", "Corporate / Office", "Private Property", "Mixed-Use", "Warehouse / Industrial", "Retail", "Other"];
+const THREAT_TYPES = ["Crowd Surge", "Disorderly Conduct / Fights", "Medical Emergencies", "Unauthorized Access", "Theft", "Environmental (weather, terrain)", "Other"];
+const SERVICES_REQUESTED = ["Access Control", "Crowd Management", "Patrol", "Executive Protection", "Risk Assessment", "Training", "Consulting", "Event Security", "Other"];
+const CONSTRAINT_TYPES = ["Budget", "Staffing", "Legal / Licensing", "Venue Restrictions", "Time"];
+const MEDICAL_CAPABILITIES = ["None", "Basic First Aid", "STOP THE BLEED®", "EMS On-site"];
+const COMMAND_MODELS = ["Single Supervisor", "Tiered Leadership", "ICS-Aligned"];
+const EA_ROLES = ["Advisory", "Planning", "Operational Support", "Training"];
+const SUCCESS_CRITERIA_OPTIONS = ["No major incidents", "Controlled crowd flow", "Effective incident response", "Clear communication maintained", "Client satisfaction"];
 
 /* ── Helpers ───────────────────────────────────────────── */
 
@@ -254,6 +273,31 @@ export default function AdminEventsPage() {
   const [guide, setGuide] = useState<OpsGuide>({ ...EMPTY_GUIDE });
   const [creating, setCreating] = useState(false);
 
+  // SOP intake fields (supplement wizard)
+  const [intakeEngagement, setIntakeEngagement] = useState<string[]>([]);
+  const [intakeMission, setIntakeMission] = useState("");
+  const [intakeTimeSensitivity, setIntakeTimeSensitivity] = useState("Medium");
+  const [intakeVenueType, setIntakeVenueType] = useState<string[]>([]);
+  const [intakeAttendance, setIntakeAttendance] = useState("");
+  const [intakeEnvironment, setIntakeEnvironment] = useState("");
+  const [intakeEnvNotes, setIntakeEnvNotes] = useState("");
+  const [intakeClientRequest, setIntakeClientRequest] = useState("");
+  const [intakeServices, setIntakeServices] = useState<string[]>([]);
+  const [intakeDeliverables, setIntakeDeliverables] = useState("");
+  const [intakeOutOfScope, setIntakeOutOfScope] = useState("");
+  const [intakeMedical, setIntakeMedical] = useState("");
+  const [intakeEquipment, setIntakeEquipment] = useState("");
+  const [intakeRadioChannels, setIntakeRadioChannels] = useState("");
+  const [intakeRiskLevel, setIntakeRiskLevel] = useState("");
+  const [intakeThreats, setIntakeThreats] = useState<string[]>([]);
+  const [intakeClientRisks, setIntakeClientRisks] = useState("");
+  const [intakeConstraints, setIntakeConstraints] = useState<string[]>([]);
+  const [intakeCommandModel, setIntakeCommandModel] = useState("");
+  const [intakeEaRole, setIntakeEaRole] = useState<string[]>([]);
+  const [intakeEscalation, setIntakeEscalation] = useState("");
+  const [intakeSuccessCriteria, setIntakeSuccessCriteria] = useState<string[]>([]);
+  const [intakeSuccessNotes, setIntakeSuccessNotes] = useState("");
+
   // Expanded op
   const [expanded, setExpanded] = useState<string | null>(null);
   const [shifts, setShifts] = useState<Shift[]>([]);
@@ -294,6 +338,13 @@ export default function AdminEventsPage() {
   const [shiftView, setShiftView] = useState<"list" | "calendar">("calendar");
   const [calendarDay, setCalendarDay] = useState<string | null>(null);
 
+  // Document panels
+  const [showWarno, setShowWarno] = useState(false);
+  const [showOpord, setShowOpord] = useState(false);
+  const [showFrago, setShowFrago] = useState(false);
+  const [showGotwa, setShowGotwa] = useState(false);
+  const [showDocHub, setShowDocHub] = useState(false);
+
   /* ── Data ── */
 
   const load = useCallback(async () => {
@@ -306,23 +357,63 @@ export default function AdminEventsPage() {
   function resetCreate() {
     setName(""); setLocation(""); setStartDate(""); setEndDate("");
     setGuide({ ...EMPTY_GUIDE }); setCreateStep(0); setShowCreate(false);
+    setIntakeEngagement([]); setIntakeMission(""); setIntakeTimeSensitivity("Medium");
+    setIntakeVenueType([]); setIntakeAttendance(""); setIntakeEnvironment(""); setIntakeEnvNotes("");
+    setIntakeClientRequest(""); setIntakeServices([]); setIntakeDeliverables(""); setIntakeOutOfScope("");
+    setIntakeMedical(""); setIntakeEquipment(""); setIntakeRadioChannels("");
+    setIntakeRiskLevel(""); setIntakeThreats([]); setIntakeClientRisks(""); setIntakeConstraints([]);
+    setIntakeCommandModel(""); setIntakeEaRole([]); setIntakeEscalation("");
+    setIntakeSuccessCriteria([]); setIntakeSuccessNotes("");
   }
 
   function updateGuide(field: keyof OpsGuide, value: string) {
     setGuide(prev => ({ ...prev, [field]: value }));
   }
 
+  function toggleArr(arr: string[], set: (v: string[]) => void, val: string) {
+    set(arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val]);
+  }
+
   async function handleCreate() {
     if (!name.trim() || !startDate || !endDate || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
-      await createEvent({
+      const ev = await createEvent({
         companyId: activeCompanyId,
         name: name.trim(),
         location: location || guide.siteAddress || undefined,
         startDate, endDate,
         opsGuide: guide,
+        engagementType: intakeEngagement.join(", ") || undefined,
+        venueType: intakeVenueType.join(", ") || undefined,
+        estimatedAttendance: intakeAttendance || undefined,
+        riskLevel: intakeRiskLevel || undefined,
+        tlpStep: "receive_mission",
       });
+      // Create intake document for SOP tracking
+      if (ev?.id) {
+        const intakeData: IntakeData = {
+          engagementType: intakeEngagement, clientRequest: intakeClientRequest,
+          missionStatement: intakeMission, timeSensitivity: intakeTimeSensitivity,
+          venueType: intakeVenueType, estimatedAttendance: intakeAttendance,
+          environment: intakeEnvironment, environmentNotes: intakeEnvNotes,
+          servicesRequested: intakeServices, deliverables: intakeDeliverables, outOfScope: intakeOutOfScope,
+          clientPersonnelCount: "", clientLeadershipStructure: "", clientExistingSops: false,
+          clientIncidentReporting: "", clientTrainingLevel: "", equipmentAvailable: intakeEquipment,
+          medicalCapability: intakeMedical, technologyAvailable: "",
+          clientIdentifiedRisks: intakeClientRisks, eaRiskAssessment: "", riskLevel: intakeRiskLevel,
+          threatTypes: intakeThreats, constraints: intakeConstraints,
+          commandModel: intakeCommandModel, onSiteAuthority: "", eaRole: intakeEaRole,
+          escalationFlow: intakeEscalation, chainOfCommand: "",
+          successCriteria: intakeSuccessCriteria, additionalSuccessMeasures: intakeSuccessNotes,
+        };
+        try {
+          await createDocument({
+            eventId: ev.id, companyId: activeCompanyId, docType: "intake",
+            data: intakeData as unknown as Record<string, unknown>,
+          });
+        } catch (docErr) { console.error("Intake doc creation failed:", docErr); }
+      }
       resetCreate(); await load();
     } catch (err) { console.error(err); } finally { setCreating(false); }
   }
@@ -341,7 +432,7 @@ export default function AdminEventsPage() {
     if (expanded === eventId) { setExpanded(null); return; }
     setExpanded(eventId); setViewingGuide(null);
     setPosts([]); setSelectedDays(new Set()); setShowCustom(false); setShowBuilder(false);
-    setShowActivity(false); setActivityItems([]);
+    setShowActivity(false); setActivityItems([]); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowDocHub(false);
     try {
       const [s, m] = await Promise.all([
         getEventShifts(eventId),
@@ -530,7 +621,7 @@ export default function AdminEventsPage() {
   }
   const conflictCount = adminConflictIds.size;
 
-  const CREATE_STEPS = ["Basics", "Client & Site", "Scope & Orders", "Uniform & Comms", "Emergency & Notes"];
+  const CREATE_STEPS = ["Basics", "Client & Site", "Scope & Orders", "Uniform & Comms", "Emergency & C2"];
 
   return (
     <>
@@ -571,6 +662,29 @@ export default function AdminEventsPage() {
                     <div><Label className="text-xs">Start Date & Time *</Label><Input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1" /></div>
                     <div><Label className="text-xs">End Date & Time *</Label><Input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1" /></div>
                   </div>
+                  <div className="pt-2 border-t border-border/20">
+                    <Label className="text-xs">Type of Engagement</Label>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {ENGAGEMENT_TYPES.map(t => (
+                        <button key={t} type="button" onClick={() => toggleArr(intakeEngagement, setIntakeEngagement, t)}
+                          className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-colors ${intakeEngagement.includes(t) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:border-border"}`}>
+                          {intakeEngagement.includes(t) && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <Label className="text-xs">Time Sensitivity</Label>
+                      <select value={intakeTimeSensitivity} onChange={(e) => setIntakeTimeSensitivity(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                        {["Low", "Medium", "High", "Immediate"].map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div className="sm:col-span-1">
+                      <Label className="text-xs">Mission Statement</Label>
+                      <Input placeholder="EA will [do what] for [client] at [location] in order to [purpose]" value={intakeMission} onChange={(e) => setIntakeMission(e.target.value)} className="mt-1" />
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -593,6 +707,31 @@ export default function AdminEventsPage() {
                     <div><Label className="text-xs">Parking Info</Label><Input placeholder="e.g. Lot B, permit required" value={guide.parkingInfo} onChange={(e) => updateGuide("parkingInfo", e.target.value)} className="mt-1" /></div>
                     <div className="sm:col-span-2"><Label className="text-xs">Check-In Procedure</Label><Input placeholder="e.g. Report to lobby, sign in at front desk" value={guide.checkInProcedure} onChange={(e) => updateGuide("checkInProcedure", e.target.value)} className="mt-1" /></div>
                   </div>
+                  <div className="pt-2 border-t border-border/20 space-y-3">
+                    <div>
+                      <Label className="text-xs">Venue Type</Label>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {VENUE_TYPES.map(t => (
+                          <button key={t} type="button" onClick={() => toggleArr(intakeVenueType, setIntakeVenueType, t)}
+                            className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-colors ${intakeVenueType.includes(t) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:border-border"}`}>
+                            {intakeVenueType.includes(t) && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div><Label className="text-xs">Estimated Attendance</Label><Input placeholder="e.g. 500" value={intakeAttendance} onChange={(e) => setIntakeAttendance(e.target.value)} className="mt-1" /></div>
+                      <div><Label className="text-xs">Environment</Label>
+                        <select value={intakeEnvironment} onChange={(e) => setIntakeEnvironment(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                          <option value="">Select...</option>
+                          <option value="Indoor">Indoor</option>
+                          <option value="Outdoor">Outdoor</option>
+                          <option value="Hybrid">Hybrid</option>
+                        </select>
+                      </div>
+                      <div className="sm:col-span-1"><Label className="text-xs">Environment Notes</Label><Input placeholder="e.g. Urban, multi-level" value={intakeEnvNotes} onChange={(e) => setIntakeEnvNotes(e.target.value)} className="mt-1" /></div>
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -600,15 +739,31 @@ export default function AdminEventsPage() {
               {createStep === 2 && (
                 <>
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Shield className="h-3.5 w-3.5" /> Define what your team is responsible for at this operation.</p>
-                  <div><Label className="text-xs">Scope of Work</Label><Textarea value={guide.scope} onChange={(v) => updateGuide("scope", v)} placeholder="Describe the overall scope: access control, patrol routes, crowd management, etc." rows={4} /></div>
-                  <div><Label className="text-xs">Post Orders / Standing Instructions</Label><Textarea value={guide.postOrders} onChange={(v) => updateGuide("postOrders", v)} placeholder="Detailed instructions for each post position, duties, and responsibilities" rows={5} /></div>
+                  <div>
+                    <Label className="text-xs">Services Requested</Label>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {SERVICES_REQUESTED.map(t => (
+                        <button key={t} type="button" onClick={() => toggleArr(intakeServices, setIntakeServices, t)}
+                          className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-colors ${intakeServices.includes(t) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:border-border"}`}>
+                          {intakeServices.includes(t) && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div><Label className="text-xs">Client Request (in their words)</Label><Textarea value={intakeClientRequest} onChange={(v) => setIntakeClientRequest(v)} placeholder="What the client asked for verbatim — helps align expectations" rows={2} /></div>
+                  <div><Label className="text-xs">Scope of Work</Label><Textarea value={guide.scope} onChange={(v) => updateGuide("scope", v)} placeholder="Describe the overall scope: access control, patrol routes, crowd management, etc." rows={3} /></div>
+                  <div><Label className="text-xs">Post Orders / Standing Instructions</Label><Textarea value={guide.postOrders} onChange={(v) => updateGuide("postOrders", v)} placeholder="Detailed instructions for each post position, duties, and responsibilities" rows={3} /></div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div><Label className="text-xs">Deliverables</Label><Textarea value={intakeDeliverables} onChange={(v) => setIntakeDeliverables(v)} placeholder="e.g. Security plan, post-event report, incident logs" rows={2} /></div>
+                    <div><Label className="text-xs">Out of Scope</Label><Textarea value={intakeOutOfScope} onChange={(v) => setIntakeOutOfScope(v)} placeholder="What EA is NOT responsible for" rows={2} /></div>
+                  </div>
                 </>
               )}
 
               {/* Step 3: Uniform & Comms */}
               {createStep === 3 && (
                 <>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Shirt className="h-3.5 w-3.5" /> Dress code and communication details.</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Shirt className="h-3.5 w-3.5" /> Dress code, equipment, and communication details.</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div><Label className="text-xs">Dress Code</Label>
                       <select value={guide.dressCode} onChange={(e) => updateGuide("dressCode", e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
@@ -618,20 +773,107 @@ export default function AdminEventsPage() {
                     </div>
                     <div><Label className="text-xs">Required Gear</Label><Input placeholder="e.g. Flashlight, radio, body cam" value={guide.requiredGear} onChange={(e) => updateGuide("requiredGear", e.target.value)} className="mt-1" /></div>
                     <div><Label className="text-xs">Communication Channel</Label><Input placeholder="e.g. WhatsApp Ops Chat, Radio Ch. 5" value={guide.communicationChannel} onChange={(e) => updateGuide("communicationChannel", e.target.value)} className="mt-1" /></div>
+                    <div><Label className="text-xs">Radio Channels / Plan</Label><Input placeholder="e.g. Ch 1: Command, Ch 2: Security, Ch 3: Medical" value={intakeRadioChannels} onChange={(e) => setIntakeRadioChannels(e.target.value)} className="mt-1" /></div>
                     <div className="sm:col-span-2"><Label className="text-xs">Reporting Instructions</Label><Textarea value={guide.reportingInstructions} onChange={(v) => updateGuide("reportingInstructions", v)} placeholder="How and when to submit reports (e.g. Overwatch incident form, end-of-shift DAR)" rows={2} /></div>
+                  </div>
+                  <div className="pt-2 border-t border-border/20 grid gap-3 sm:grid-cols-2">
+                    <div><Label className="text-xs">Medical Capability</Label>
+                      <select value={intakeMedical} onChange={(e) => setIntakeMedical(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                        <option value="">Select...</option>
+                        {MEDICAL_CAPABILITIES.map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    <div><Label className="text-xs">Additional Equipment</Label><Input placeholder="e.g. Barriers, lighting, PPE, first aid kits" value={intakeEquipment} onChange={(e) => setIntakeEquipment(e.target.value)} className="mt-1" /></div>
                   </div>
                 </>
               )}
 
-              {/* Step 4: Emergency & Notes */}
+              {/* Step 4: Emergency, Risk & C2 */}
               {createStep === 4 && (
                 <>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Emergency contacts and any special instructions.</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Emergency, risk assessment, command structure, and success criteria.</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div><Label className="text-xs">Emergency Contact Name</Label><Input placeholder="e.g. Operations Manager" value={guide.emergencyContact} onChange={(e) => updateGuide("emergencyContact", e.target.value)} className="mt-1" /></div>
                     <div><Label className="text-xs">Emergency Phone</Label><Input placeholder="(555) 999-0000" value={guide.emergencyPhone} onChange={(e) => updateGuide("emergencyPhone", e.target.value)} className="mt-1" /></div>
-                    <div className="sm:col-span-2"><Label className="text-xs">Emergency Procedure</Label><Textarea value={guide.emergencyProcedure} onChange={(v) => updateGuide("emergencyProcedure", v)} placeholder="Steps to follow in an emergency: evacuation routes, rally points, chain of command" rows={3} /></div>
-                    <div className="sm:col-span-2"><Label className="text-xs">Special Instructions</Label><Textarea value={guide.specialInstructions} onChange={(v) => updateGuide("specialInstructions", v)} placeholder="Any other notes, VIP details, restricted areas, weather contingencies, etc." rows={3} /></div>
+                    <div className="sm:col-span-2"><Label className="text-xs">Emergency Procedure</Label><Textarea value={guide.emergencyProcedure} onChange={(v) => updateGuide("emergencyProcedure", v)} placeholder="Evacuation routes, rally points, chain of command" rows={2} /></div>
+                  </div>
+                  {/* Risk Assessment */}
+                  <div className="pt-2 border-t border-border/20 space-y-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Risk Assessment</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div><Label className="text-xs">Risk Level</Label>
+                        <select value={intakeRiskLevel} onChange={(e) => setIntakeRiskLevel(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                          <option value="">Select...</option>
+                          {["Low", "Moderate", "High", "Critical"].map(r => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </div>
+                      <div><Label className="text-xs">Client-Identified Risks</Label><Input placeholder="e.g. Previous incidents, known bad actors" value={intakeClientRisks} onChange={(e) => setIntakeClientRisks(e.target.value)} className="mt-1" /></div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Threat Types</Label>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {THREAT_TYPES.map(t => (
+                          <button key={t} type="button" onClick={() => toggleArr(intakeThreats, setIntakeThreats, t)}
+                            className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-colors ${intakeThreats.includes(t) ? "border-red-500/60 bg-red-500/10 text-red-500" : "border-border/40 text-muted-foreground hover:border-border"}`}>
+                            {intakeThreats.includes(t) && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Constraints</Label>
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {CONSTRAINT_TYPES.map(t => (
+                          <button key={t} type="button" onClick={() => toggleArr(intakeConstraints, setIntakeConstraints, t)}
+                            className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-colors ${intakeConstraints.includes(t) ? "border-amber-500/60 bg-amber-500/10 text-amber-600" : "border-border/40 text-muted-foreground hover:border-border"}`}>
+                            {intakeConstraints.includes(t) && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {/* Command & Control */}
+                  <div className="pt-2 border-t border-border/20 space-y-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Command & Control</p>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div><Label className="text-xs">Command Model</Label>
+                        <select value={intakeCommandModel} onChange={(e) => setIntakeCommandModel(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                          <option value="">Select...</option>
+                          {COMMAND_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                      <div><Label className="text-xs">Escalation Flow</Label>
+                        <select value={intakeEscalation} onChange={(e) => setIntakeEscalation(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                          <option value="">Select...</option>
+                          <option value="Staff → Supervisor → Command">Staff → Supervisor → Command</option>
+                          <option value="Direct to Command">Direct to Command</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">EA Role</Label>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {EA_ROLES.map(r => (
+                            <button key={r} type="button" onClick={() => toggleArr(intakeEaRole, setIntakeEaRole, r)}
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-medium border transition-colors ${intakeEaRole.includes(r) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:border-border"}`}>
+                              {intakeEaRole.includes(r) && <Check className="h-2 w-2 inline mr-0.5" />}{r}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Success Criteria */}
+                  <div className="pt-2 border-t border-border/20 space-y-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Success Criteria</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {SUCCESS_CRITERIA_OPTIONS.map(c => (
+                        <button key={c} type="button" onClick={() => toggleArr(intakeSuccessCriteria, setIntakeSuccessCriteria, c)}
+                          className={`px-2 py-1 rounded-md text-[10px] font-medium border transition-colors ${intakeSuccessCriteria.includes(c) ? "border-green-500/60 bg-green-500/10 text-green-600" : "border-border/40 text-muted-foreground hover:border-border"}`}>
+                          {intakeSuccessCriteria.includes(c) && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{c}
+                        </button>
+                      ))}
+                    </div>
+                    <div><Label className="text-xs">Special Instructions / Additional Notes</Label><Textarea value={guide.specialInstructions} onChange={(v) => updateGuide("specialInstructions", v)} placeholder="VIP details, restricted areas, weather contingencies, additional success measures" rows={2} /></div>
                   </div>
                 </>
               )}
@@ -797,6 +1039,11 @@ export default function AdminEventsPage() {
                         <span className="text-[10px] font-mono text-muted-foreground ml-auto">{opDays.length} day{opDays.length !== 1 ? "s" : ""}</span>
                       </div>
 
+                      {/* TLP Pipeline */}
+                      <div className="px-3 sm:px-4 py-1.5 border-b border-border/20 bg-muted/20 overflow-x-auto">
+                        <TlpTracker currentStep={(ev.tlp_step as TlpStep) || "receive_mission"} compact />
+                      </div>
+
                       {/* Action Buttons */}
                       <div className="px-3 sm:px-4 py-2 flex flex-wrap items-center gap-2 border-b border-border/20">
                         <Button size="sm" variant={showBuilder ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
@@ -817,8 +1064,28 @@ export default function AdminEventsPage() {
                           </button>
                         </div>
                         <div className="flex items-center gap-2 ml-auto">
+                          <Button size="sm" variant={showWarno ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
+                            onClick={() => { setShowWarno(!showWarno); setShowActivity(false); setShowOpord(false); }}>
+                            <FileText className="h-3.5 w-3.5" /> WARNO
+                          </Button>
+                          <Button size="sm" variant={showOpord ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
+                            onClick={() => { setShowOpord(!showOpord); setShowActivity(false); setShowWarno(false); setShowFrago(false); }}>
+                            <FileText className="h-3.5 w-3.5" /> OPORD
+                          </Button>
+                          <Button size="sm" variant={showFrago ? "default" : "outline"} className="h-7 gap-1.5 text-xs border-amber-500/30 text-amber-600"
+                            onClick={() => { setShowFrago(!showFrago); setShowActivity(false); setShowWarno(false); setShowOpord(false); setShowGotwa(false); }}>
+                            <FileText className="h-3.5 w-3.5" /> FRAGO
+                          </Button>
+                          <Button size="sm" variant={showGotwa ? "default" : "outline"} className="h-7 gap-1.5 text-xs border-violet-500/30 text-violet-500"
+                            onClick={() => { setShowGotwa(!showGotwa); setShowActivity(false); setShowWarno(false); setShowOpord(false); setShowFrago(false); }}>
+                            <FileText className="h-3.5 w-3.5" /> GOTWA
+                          </Button>
+                          <Button size="sm" variant={showDocHub ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
+                            onClick={() => { setShowDocHub(!showDocHub); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowActivity(false); }}>
+                            <FileText className="h-3.5 w-3.5" /> Docs
+                          </Button>
                           <Button size="sm" variant={showActivity ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
-                            onClick={() => toggleActivity(ev.id)}>
+                            onClick={() => { toggleActivity(ev.id); setShowWarno(false); setShowDocHub(false); }}>
                             <Activity className="h-3.5 w-3.5" /> Activity
                           </Button>
                           {hasGuide && (
@@ -829,6 +1096,72 @@ export default function AdminEventsPage() {
                           )}
                         </div>
                       </div>
+
+                      {/* ── WARNO Panel ── */}
+                      {showWarno && activeCompanyId && activeCompanyId !== "pending" && (
+                        <WarnoPanel
+                          eventId={ev.id}
+                          companyId={activeCompanyId}
+                          eventName={ev.name}
+                          intakeData={ev.ops_guide}
+                          onClose={() => setShowWarno(false)}
+                          onIssued={() => load()}
+                        />
+                      )}
+
+                      {/* ── FRAGO Panel ── */}
+                      {showFrago && activeCompanyId && activeCompanyId !== "pending" && (
+                        <FragoPanel
+                          eventId={ev.id}
+                          companyId={activeCompanyId}
+                          eventName={ev.name}
+                          onClose={() => setShowFrago(false)}
+                          onIssued={() => load()}
+                        />
+                      )}
+
+                      {/* ── GOTWA Panel ── */}
+                      {showGotwa && activeCompanyId && activeCompanyId !== "pending" && (
+                        <GotwaPanel
+                          eventId={ev.id}
+                          companyId={activeCompanyId}
+                          onClose={() => setShowGotwa(false)}
+                          onIssued={() => load()}
+                        />
+                      )}
+
+                      {/* ── Document Hub ── */}
+                      {showDocHub && (
+                        <DocHub
+                          eventId={ev.id}
+                          onClose={() => setShowDocHub(false)}
+                          onOpenDoc={(type) => {
+                            setShowDocHub(false);
+                            if (type === "warno") setShowWarno(true);
+                            else if (type === "opord") setShowOpord(true);
+                            else if (type === "frago") setShowFrago(true);
+                            else if (type === "gotwa") setShowGotwa(true);
+                          }}
+                        />
+                      )}
+
+                      {/* ── OPORD Panel ── */}
+                      {showOpord && activeCompanyId && activeCompanyId !== "pending" && (
+                        <OpordPanel
+                          eventId={ev.id}
+                          companyId={activeCompanyId}
+                          eventName={ev.name}
+                          eventStart={ev.start_date}
+                          eventEnd={ev.end_date}
+                          eventLocation={ev.location ?? ""}
+                          companyName={companyName}
+                          companyLogo={companyLogo}
+                          brandColor={brandColor}
+                          intakeData={ev.ops_guide}
+                          onClose={() => setShowOpord(false)}
+                          onIssued={() => load()}
+                        />
+                      )}
 
                       {/* ── Quick Fill Panel ── */}
                       {showBuilder && (
