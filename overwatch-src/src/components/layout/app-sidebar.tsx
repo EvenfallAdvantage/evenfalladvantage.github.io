@@ -241,7 +241,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       </button>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 py-2">
+      <ScrollArea className="flex-1 min-h-0 overflow-hidden py-2">
         <nav className="space-y-1 px-2">
           {NAV_SECTIONS.map((section) => {
             const visibleItems = section.items
@@ -428,7 +428,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       </ScrollArea>
 
       {/* User Footer */}
-      <div className="border-t border-border/50 p-2">
+      <div className="shrink-0 border-t border-border/50 p-2">
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
@@ -517,7 +517,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       </div>
 
       {/* Theme Toggle + Branding */}
-      <div className={cn("border-t border-sidebar-border", collapsed ? "flex justify-center py-2" : "px-4 py-2 space-y-2")}>
+      <div className={cn("shrink-0 border-t border-sidebar-border", collapsed ? "flex justify-center py-2" : "px-4 py-2 space-y-2")}>
         <ThemeToggle collapsed={collapsed} />
         {!collapsed && (
           <div className="flex flex-col items-center space-y-1">
