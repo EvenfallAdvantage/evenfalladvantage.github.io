@@ -5,6 +5,7 @@ import {
   Flag, MapPin, Plus, Loader2, Clock, ChevronDown, ChevronRight,
   Trash2, Zap, Calendar, Check, X, FileText, FileDown, Eye,
   Shield, Shirt, AlertTriangle, Building2, Activity, ClipboardList, LogIn, LogOut as LogOutIcon,
+  List, LayoutGrid,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -286,6 +287,10 @@ export default function AdminEventsPage() {
   const [showActivity, setShowActivity] = useState(false);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);
+
+  // Shift view mode
+  const [shiftView, setShiftView] = useState<"list" | "calendar">("list");
+  const [calendarDay, setCalendarDay] = useState<string | null>(null);
 
   /* ── Data ── */
 
@@ -791,7 +796,7 @@ export default function AdminEventsPage() {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="px-3 sm:px-4 py-2 flex flex-wrap gap-2 border-b border-border/20">
+                      <div className="px-3 sm:px-4 py-2 flex flex-wrap items-center gap-2 border-b border-border/20">
                         <Button size="sm" variant={showBuilder ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
                           onClick={() => { setShowBuilder(!showBuilder); setShowCustom(false); }}>
                           <Zap className="h-3.5 w-3.5" /> Quick Fill
@@ -800,16 +805,27 @@ export default function AdminEventsPage() {
                           onClick={() => { setShowCustom(!showCustom); setShowBuilder(false); }}>
                           <Plus className="h-3.5 w-3.5" /> Custom Shift
                         </Button>
-                        <Button size="sm" variant={showActivity ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
-                          onClick={() => toggleActivity(ev.id)}>
-                          <Activity className="h-3.5 w-3.5" /> Activity
-                        </Button>
-                        {hasGuide && (
-                          <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs ml-auto"
-                            onClick={() => { setViewingGuide(ev.id); setExpanded(null); }}>
-                            <FileText className="h-3.5 w-3.5" /> View Guide
+                        {/* View toggle */}
+                        <div className="flex rounded-lg border border-border/40 overflow-hidden ml-1">
+                          <button onClick={() => setShiftView("list")} className={`px-2 py-1 text-[10px] font-medium flex items-center gap-1 transition-colors ${shiftView === "list" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}>
+                            <List className="h-3 w-3" /> List
+                          </button>
+                          <button onClick={() => setShiftView("calendar")} className={`px-2 py-1 text-[10px] font-medium flex items-center gap-1 transition-colors border-l border-border/40 ${shiftView === "calendar" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50"}`}>
+                            <LayoutGrid className="h-3 w-3" /> Calendar
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 ml-auto">
+                          <Button size="sm" variant={showActivity ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
+                            onClick={() => toggleActivity(ev.id)}>
+                            <Activity className="h-3.5 w-3.5" /> Activity
                           </Button>
-                        )}
+                          {hasGuide && (
+                            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
+                              onClick={() => { setViewingGuide(ev.id); setExpanded(null); }}>
+                              <FileText className="h-3.5 w-3.5" /> View Guide
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       {/* ── Quick Fill Panel ── */}
@@ -941,7 +957,8 @@ export default function AdminEventsPage() {
                         </div>
                       )}
 
-                      {/* ── Shift Grid by Day ── */}
+                      {/* ── Shift Grid by Day (List View) ── */}
+                      {shiftView === "list" && (
                       <div className="px-3 sm:px-4 py-3 space-y-4">
                         {shifts.length === 0 ? (
                           <div className="text-center py-8">
@@ -989,6 +1006,134 @@ export default function AdminEventsPage() {
                           ))
                         )}
                       </div>
+                      )}
+
+                      {/* ── Calendar View ── */}
+                      {shiftView === "calendar" && (
+                        <div className="px-3 sm:px-4 py-3">
+                          {shifts.length === 0 ? (
+                            <div className="text-center py-8">
+                              <Calendar className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+                              <p className="text-sm font-medium text-muted-foreground/60">No shifts yet</p>
+                            </div>
+                          ) : (() => {
+                            const sortedDays = Array.from(shiftsByDay.entries()).sort(([a], [b]) => a.localeCompare(b));
+                            const firstDay = new Date(sortedDays[0][0] + "T12:00:00");
+                            const startOfWeek = new Date(firstDay);
+                            startOfWeek.setDate(firstDay.getDate() - firstDay.getDay());
+                            const lastDay = new Date(sortedDays[sortedDays.length - 1][0] + "T12:00:00");
+                            const endOfWeek = new Date(lastDay);
+                            endOfWeek.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
+                            const calDays: string[] = [];
+                            const cur = new Date(startOfWeek);
+                            while (cur <= endOfWeek) {
+                              calDays.push(cur.toISOString().slice(0, 10));
+                              cur.setDate(cur.getDate() + 1);
+                            }
+                            const opDaySet = new Set(opDays);
+                            return (
+                              <div>
+                                <div className="grid grid-cols-7 gap-px mb-1">
+                                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
+                                    <div key={d} className="text-center text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/40 py-1">{d}</div>
+                                  ))}
+                                </div>
+                                <div className="grid grid-cols-7 gap-1">
+                                  {calDays.map(day => {
+                                    const dayShifts = shiftsByDay.get(day) ?? [];
+                                    const isOpDay = opDaySet.has(day);
+                                    const filled = dayShifts.filter((s: Shift) => s.assigned_user_id).length;
+                                    const open = dayShifts.length - filled;
+                                    const hasConflicts = dayShifts.some((s: Shift) => adminConflictIds.has(s.id));
+                                    const isSelected = calendarDay === day;
+                                    const dayNum = new Date(day + "T12:00:00").getDate();
+                                    const isToday = day === new Date().toISOString().slice(0, 10);
+
+                                    return (
+                                      <button key={day} onClick={() => isOpDay ? setCalendarDay(isSelected ? null : day) : undefined}
+                                        className={`relative rounded-lg p-1.5 min-h-[52px] text-left transition-all border ${
+                                          isSelected ? "border-primary bg-primary/10 ring-1 ring-primary/30" :
+                                          !isOpDay ? "border-transparent opacity-30" :
+                                          hasConflicts ? "border-red-500/30 bg-red-500/[0.04] hover:bg-red-500/[0.08]" :
+                                          dayShifts.length > 0 && open === 0 ? "border-green-500/20 bg-green-500/[0.04] hover:bg-green-500/[0.08]" :
+                                          dayShifts.length > 0 ? "border-amber-500/20 bg-amber-500/[0.04] hover:bg-amber-500/[0.08]" :
+                                          "border-border/20 hover:bg-muted/30"
+                                        }`}>
+                                        <span className={`text-[11px] font-mono font-semibold ${isToday ? "text-primary" : isOpDay ? "" : "text-muted-foreground/30"}`}>{dayNum}</span>
+                                        {dayShifts.length > 0 && (
+                                          <div className="mt-1 flex flex-wrap gap-0.5">
+                                            {filled > 0 && (
+                                              <span className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[8px] font-bold bg-green-500/15 text-green-600">
+                                                <Check className="h-2 w-2" />{filled}
+                                              </span>
+                                            )}
+                                            {open > 0 && (
+                                              <span className="inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold bg-amber-500/15 text-amber-600">
+                                                {open}
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                        {hasConflicts && (
+                                          <AlertTriangle className="absolute top-1 right-1 h-2.5 w-2.5 text-red-500" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Legend */}
+                                <div className="flex items-center gap-4 mt-3 pt-2 border-t border-border/10">
+                                  <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-green-500/30" /> Fully Staffed</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-amber-500/30" /> Open Slots</span>
+                                  <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><AlertTriangle className="h-2 w-2 text-red-500" /> Conflict</span>
+                                </div>
+
+                                {/* Expanded Day Detail */}
+                                {calendarDay && shiftsByDay.has(calendarDay) && (
+                                  <div className="mt-3 rounded-xl border border-primary/20 bg-primary/[0.02] p-3 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                                        <Calendar className="h-3.5 w-3.5 text-primary" />
+                                        {fmtDateLong(calendarDay)}
+                                      </h4>
+                                      <button onClick={() => setCalendarDay(null)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                                    </div>
+                                    <div className="space-y-1">
+                                      {(shiftsByDay.get(calendarDay) ?? []).map((sh: Shift) => {
+                                        const filled = !!sh.assigned_user_id;
+                                        const hasConflict = adminConflictIds.has(sh.id);
+                                        return (
+                                          <div key={sh.id} className={`rounded-lg border px-2.5 py-2 ${hasConflict ? "border-red-500/40 bg-red-500/[0.06]" : filled ? "border-green-500/20 bg-green-500/[0.03]" : "border-amber-500/20 bg-amber-500/[0.03]"}`}>
+                                            <div className="flex items-center gap-2">
+                                              {hasConflict ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" /> : <Clock className={`h-3.5 w-3.5 shrink-0 ${filled ? "text-green-500" : "text-amber-500"}`} />}
+                                              <div className="flex-1 min-w-0 text-xs truncate">
+                                                <span className="font-medium">{sh.role ?? "Shift"}</span>
+                                                <span className="text-muted-foreground ml-2 font-mono">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
+                                              </div>
+                                              <button onClick={() => handleDeleteShift(sh.id)} disabled={deletingShift === sh.id}
+                                                className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 shrink-0">
+                                                {deletingShift === sh.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                              </button>
+                                            </div>
+                                            <div className="mt-1.5 ml-[22px]">
+                                              <select value={sh.assigned_user_id ?? ""} onChange={(e) => handleAssign(sh.id, e.target.value)}
+                                                className={`h-6 w-full sm:w-auto sm:max-w-[180px] truncate rounded border bg-background px-1.5 text-[10px] font-medium cursor-pointer ${hasConflict ? "border-red-500/40 text-red-500" : filled ? "border-green-500/30 text-green-600" : "border-amber-500/30 text-amber-600"}`}>
+                                                <option value="">Open</option>
+                                                {members.map((m: Member) => <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}</option>)}
+                                              </select>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
