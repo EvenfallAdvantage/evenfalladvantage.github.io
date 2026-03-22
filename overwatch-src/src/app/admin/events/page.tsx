@@ -1104,22 +1104,6 @@ export default function AdminEventsPage() {
                           </button>
                         </div>
                         <div className="flex items-center gap-2 ml-auto">
-                          <Button size="sm" variant={showWarno ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
-                            onClick={() => { setShowWarno(!showWarno); setShowActivity(false); setShowOpord(false); }}>
-                            <FileText className="h-3.5 w-3.5" /> WARNO
-                          </Button>
-                          <Button size="sm" variant={showOpord ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
-                            onClick={() => { setShowOpord(!showOpord); setShowActivity(false); setShowWarno(false); setShowFrago(false); }}>
-                            <FileText className="h-3.5 w-3.5" /> OPORD
-                          </Button>
-                          <Button size="sm" variant={showFrago ? "default" : "outline"} className="h-7 gap-1.5 text-xs border-amber-500/30 text-amber-600"
-                            onClick={() => { setShowFrago(!showFrago); setShowActivity(false); setShowWarno(false); setShowOpord(false); setShowGotwa(false); }}>
-                            <FileText className="h-3.5 w-3.5" /> FRAGO
-                          </Button>
-                          <Button size="sm" variant={showGotwa ? "default" : "outline"} className="h-7 gap-1.5 text-xs border-violet-500/30 text-violet-500"
-                            onClick={() => { setShowGotwa(!showGotwa); setShowActivity(false); setShowWarno(false); setShowOpord(false); setShowFrago(false); }}>
-                            <FileText className="h-3.5 w-3.5" /> GOTWA
-                          </Button>
                           <Button size="sm" variant={showDocHub ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
                             onClick={() => { setShowDocHub(!showDocHub); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowActivity(false); }}>
                             <FileText className="h-3.5 w-3.5" /> Docs
