@@ -339,7 +339,7 @@ function SatPopup({ sat, onClose, flipBelow }: { sat: SatData; onClose: () => vo
 /* ── Helper: project lat/lng to screen position relative to globe center ── */
 function latLngToScreen(
   lat: number, lng: number, phi: number, theta: number,
-  cx: number, cy: number, radius: number, hideZ = 0
+  cx: number, cy: number, radius: number, hideZ = 0, cameraD = 0
 ): { x: number; y: number; visible: boolean; opacity: number } {
   const latR = (lat * Math.PI) / 180;
   const lngR = (lng * Math.PI) / 180;
@@ -351,12 +351,14 @@ function latLngToScreen(
   const sinT = Math.sin(theta);
   const y3r = y3 * cosT - z3 * sinT;
   const z3r = y3 * sinT + z3 * cosT;
+  // Perspective correction when cameraD > 0 (matches cobe's perspective camera)
+  const pScale = cameraD > 0 ? cameraD / (cameraD - z3r) : 1;
   // Smooth fade near edge instead of hard cutoff
   const fadeStart = hideZ + 0.15;
   const edgeFade = z3r < fadeStart ? Math.max(0, (z3r - hideZ) / (fadeStart - hideZ)) : 1;
   return {
-    x: cx + x3 * radius,
-    y: cy - y3r * radius,
+    x: cx + x3 * radius * pScale,
+    y: cy - y3r * radius * pScale,
     visible: z3r > hideZ,
     opacity: edgeFade,
   };
@@ -677,7 +679,7 @@ function CityOverlay({
       const currentPhi = phi.current ?? 0;
       const next: Record<string, { x: number; y: number; visible: boolean; opacity: number }> = {};
       for (const c of CITIES) {
-        next[c.name] = latLngToScreen(c.lat, c.lng, currentPhi, 0.45, cx, cy, radius);
+        next[c.name] = latLngToScreen(c.lat, c.lng, currentPhi, 0.45, cx, cy, radius, 0, 2.5);
       }
       posRef.current = next;
       rafId = requestAnimationFrame(update);
