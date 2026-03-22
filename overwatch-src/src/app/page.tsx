@@ -444,12 +444,12 @@ function HomePageInner() {
       </nav>
 
       {/* Hero */}
-      <section className="relative min-h-screen flex flex-col justify-center">
+      <section className="relative pt-36 pb-16">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-[#dd8c33]/8 via-transparent to-transparent rounded-full blur-3xl" />
         <TacticalGlobe />
 
-        <div className="relative z-20 mx-auto max-w-4xl px-6 text-center pointer-events-none pt-20">
+        <div className="relative z-20 mx-auto max-w-4xl px-6 text-center pointer-events-none">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dd8c33]/20 bg-[#dd8c33]/10 px-4 py-1.5 text-xs text-[#dd8c33]">
             <Lock className="h-3 w-3" /> Military-Grade Security Workforce Platform
           </div>
