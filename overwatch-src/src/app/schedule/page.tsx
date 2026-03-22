@@ -375,17 +375,21 @@ export default function SchedulePage() {
                       </div>
                     </div>
                   )}
-                  {/* Inline shift details for current operation */}
+                  {/* Inline shift details */}
                   {myShifts && myShifts.length > 0 && (
                     <div className="mt-2 ml-14 space-y-1 border-t border-primary/10 pt-2">
                       {myShifts.map((sh: Shift) => (
                         <div key={sh.id} className={`flex items-center gap-2 text-xs ${conflictIds.has(sh.id) ? "rounded-md bg-amber-500/10 px-2 py-1 -mx-2" : ""}`}>
                           {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
-                          <span className="text-muted-foreground">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
+                          <span className="text-muted-foreground">
+                            {!highlight && `${fmtDate(sh.start_time)} · `}{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
+                          </span>
                           {sh.role && <span className="text-muted-foreground">· Role: {sh.role}</span>}
                           <div className="flex items-center gap-1 ml-auto">
                             {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
-                            <Badge className="text-[9px] bg-green-500/15 text-green-600">Today</Badge>
+                            <Badge className={`text-[9px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
+                              {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
+                            </Badge>
                           </div>
                         </div>
                       ))}
@@ -425,6 +429,21 @@ export default function SchedulePage() {
             // Find shifts whose event is NOT in currentEvents (orphan shifts)
             const currentEventIds = new Set(currentEvents.map((ev: Ev) => ev.id));
             const orphanShifts = currentShifts.filter((sh: Shift) => !currentEventIds.has(sh.events?.id ?? sh.event_id));
+
+            // Group upcoming shifts by their event for nesting
+            const upcomingShiftsByEvent = new Map<string, Shift[]>();
+            for (const sh of upcomingShifts) {
+              const eid = sh.events?.id ?? sh.event_id;
+              if (eid) {
+                if (!upcomingShiftsByEvent.has(eid)) upcomingShiftsByEvent.set(eid, []);
+                upcomingShiftsByEvent.get(eid)!.push(sh);
+              }
+            }
+            const upcomingEventIds = new Set(upcomingEvents.map((ev: Ev) => ev.id));
+            const orphanUpcomingShifts = upcomingShifts.filter((sh: Shift) => {
+              const eid = sh.events?.id ?? sh.event_id;
+              return !eid || !upcomingEventIds.has(eid);
+            });
 
             return (
             <>
@@ -474,21 +493,41 @@ export default function SchedulePage() {
                 </div>
               )}
 
-              {/* ── My Assigned Shifts (upcoming) ── */}
-              {upcomingShifts.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">My Assigned Shifts</h2>
-                    {isAdmin && shifts.length > 0 && (
-                      <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
-                        onClick={handleSendReminders} disabled={sendingReminders}>
-                        {sendingReminders ? <Loader2 className="h-3 w-3 animate-spin" /> : remindersSent ? <Bell className="h-3 w-3 text-green-500" /> : <Bell className="h-3 w-3" />}
-                        {remindersSent ? "Sent!" : "Send Reminders"}
-                      </Button>
-                    )}
+              {/* ── Upcoming Operations (with nested shifts) ── */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Upcoming Operations</h2>
+                  {isAdmin && shifts.length > 0 && (
+                    <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
+                      onClick={handleSendReminders} disabled={sendingReminders}>
+                      {sendingReminders ? <Loader2 className="h-3 w-3 animate-spin" /> : remindersSent ? <Bell className="h-3 w-3 text-green-500" /> : <Bell className="h-3 w-3" />}
+                      {remindersSent ? "Sent!" : "Send Reminders"}
+                    </Button>
+                  )}
+                </div>
+                {upcomingEvents.length === 0 && currentEvents.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
+                    <CalendarDays className="mb-3 h-10 w-10 text-muted-foreground/40" />
+                    <p className="text-sm font-medium">No upcoming operations</p>
+                    <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                      Operations created by command will appear here when scheduled.
+                    </p>
                   </div>
+                ) : upcomingEvents.length === 0 ? (
+                  <p className="text-xs text-muted-foreground/50 italic">No additional upcoming operations.</p>
+                ) : (
                   <div className="space-y-2">
-                    {upcomingShifts.map((sh: Shift) => (
+                    {upcomingEvents.map((ev: Ev) => renderOpCard(ev, false, upcomingShiftsByEvent.get(ev.id)))}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Unlinked Shifts (not connected to any operation) ── */}
+              {orphanUpcomingShifts.length > 0 && (
+                <div>
+                  <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Unlinked Shifts</h2>
+                  <div className="space-y-2">
+                    {orphanUpcomingShifts.map((sh: Shift) => (
                       <Card key={sh.id} className={conflictIds.has(sh.id) ? "border-amber-500/40 bg-amber-500/5" : "border-border/40"}>
                         <CardContent className="flex items-center gap-4 py-3 px-4">
                           <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${conflictIds.has(sh.id) ? "bg-amber-500/10" : "bg-blue-500/10"}`}>
@@ -511,26 +550,6 @@ export default function SchedulePage() {
                   </div>
                 </div>
               )}
-
-              {/* ── Upcoming Operations ── */}
-              <div>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Upcoming Operations</h2>
-                {upcomingEvents.length === 0 && currentEvents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
-                    <CalendarDays className="mb-3 h-10 w-10 text-muted-foreground/40" />
-                    <p className="text-sm font-medium">No upcoming operations</p>
-                    <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                      Operations created by command will appear here when scheduled.
-                    </p>
-                  </div>
-                ) : upcomingEvents.length === 0 ? (
-                  <p className="text-xs text-muted-foreground/50 italic">No additional upcoming operations.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {upcomingEvents.map((ev: Ev) => renderOpCard(ev))}
-                  </div>
-                )}
-              </div>
             </>
             );
           })()
