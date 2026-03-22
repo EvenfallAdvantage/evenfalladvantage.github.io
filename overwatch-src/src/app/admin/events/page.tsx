@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Flag, MapPin, Plus, Loader2, Clock, ChevronDown, ChevronRight,
-  Trash2, Zap, Calendar, Check, X, FileText, FileDown, Eye,
+  Trash2, Zap, Calendar, Check, X, FileText, FileDown,
   Shield, Shirt, AlertTriangle, Building2, Activity, ClipboardList, LogIn, LogOut as LogOutIcon,
   List, LayoutGrid,
 } from "lucide-react";
@@ -18,8 +18,9 @@ import {
   getEvents, createEvent, getEventShifts, createShift,
   getCompanyMembers, deleteEvent, deleteShift, updateEventStatus,
   assignShift, getConflictingShifts, getOperationActivity,
-  createDocument, getEventAvailability, getLatestDocument,
+  createDocument, getEventAvailability, getLatestDocument, getEventDocuments,
 } from "@/lib/supabase/db";
+import type { OperationDocument } from "@/types/operations";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
 import type { IntakeData } from "@/types/operations";
 import type { ActivityItem } from "@/lib/supabase/db-operations";
@@ -29,6 +30,7 @@ import OpordPanel from "@/components/ops/opord-panel";
 import FragoPanel from "@/components/ops/frago-panel";
 import GotwaPanel from "@/components/ops/gotwa-panel";
 import DocHub from "@/components/ops/doc-hub";
+import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import type { TlpStep } from "@/types/operations";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -327,6 +329,9 @@ export default function AdminEventsPage() {
 
   // OPs Guide viewer
   const [viewingGuide, setViewingGuide] = useState<string | null>(null);
+  const [adminDocsPopup, setAdminDocsPopup] = useState<string | null>(null);
+  const [adminViewingDoc, setAdminViewingDoc] = useState<OperationDocument | null>(null);
+  const [adminEventDocs, setAdminEventDocs] = useState<Record<string, OperationDocument[]>>({});
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
 
@@ -1022,13 +1027,31 @@ export default function AdminEventsPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {hasGuide && (
-                          <button onClick={(e) => { e.stopPropagation(); setViewingGuide(viewingGuide === ev.id ? null : ev.id); setExpanded(null); }}
-                            className="hidden sm:flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10 transition-colors"
-                            title="View OPs Guide">
-                            <Eye className="h-3 w-3" /> Guide
+                        <div className="relative hidden sm:block">
+                          <button onClick={(e) => {
+                            e.stopPropagation();
+                            const eid = ev.id;
+                            if (adminDocsPopup === eid) { setAdminDocsPopup(null); return; }
+                            setAdminDocsPopup(eid);
+                            // Fetch docs for this event if not cached
+                            if (!adminEventDocs[eid]) {
+                              getEventDocuments(eid).then(docs => setAdminEventDocs(prev => ({ ...prev, [eid]: docs }))).catch(() => {});
+                            }
+                          }}
+                            className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors ${adminDocsPopup === ev.id ? "border-primary bg-primary/10 text-primary" : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"}`}
+                            title="View Documents">
+                            <FileText className="h-3 w-3" /> Docs
                           </button>
-                        )}
+                          {adminDocsPopup === ev.id && (
+                            <DocsPopup
+                              docs={adminEventDocs[ev.id] ?? []}
+                              hasGuide={hasGuide}
+                              onViewDoc={(doc) => { setAdminDocsPopup(null); setAdminViewingDoc(doc); }}
+                              onViewGuide={() => { setAdminDocsPopup(null); setViewingGuide(ev.id); setExpanded(null); }}
+                              onClose={() => setAdminDocsPopup(null)}
+                            />
+                          )}
+                        </div>
                         <select value={ev.status}
                           onChange={(e) => { e.stopPropagation(); handleStatusChange(ev.id, e.target.value); }}
                           onClick={(e) => e.stopPropagation()}
@@ -1112,12 +1135,6 @@ export default function AdminEventsPage() {
                             onClick={() => { toggleActivity(ev.id); setShowWarno(false); setShowDocHub(false); }}>
                             <Activity className="h-3.5 w-3.5" /> Activity
                           </Button>
-                          {hasGuide && (
-                            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
-                              onClick={() => { setViewingGuide(ev.id); setExpanded(null); }}>
-                              <FileText className="h-3.5 w-3.5" /> View Guide
-                            </Button>
-                          )}
                         </div>
                       </div>
 
@@ -1602,6 +1619,11 @@ export default function AdminEventsPage() {
           </div>
         )}
       </div>
+
+      {/* ── Doc Viewer Modal (admin) ── */}
+      {adminViewingDoc && (
+        <DocViewerModal doc={adminViewingDoc} onClose={() => setAdminViewingDoc(null)} />
+      )}
     </>
   );
 }

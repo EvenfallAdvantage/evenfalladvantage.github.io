@@ -5,7 +5,7 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
-  Eye, X, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
+  FileText, X, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
   ClipboardList, Flag,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -21,6 +21,7 @@ import {
 } from "@/lib/supabase/db";
 import type { OperationDocument } from "@/types/operations";
 import type { AvailabilityStatus, OperationAvailability } from "@/lib/supabase/db-availability";
+import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
 
 const QrScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
 
@@ -62,6 +63,8 @@ export default function SchedulePage() {
   const [eventDocs, setEventDocs] = useState<Record<string, OperationDocument[]>>({});
   const [myAvail, setMyAvail] = useState<Record<string, OperationAvailability | null>>({});
   const [settingAvail, setSettingAvail] = useState<string | null>(null);
+  const [docsPopupEvent, setDocsPopupEvent] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<OperationDocument | null>(null);
 
   // Armory state
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -328,11 +331,22 @@ export default function SchedulePage() {
                         </p>
                       )}
                     </div>
-                    {hasGuide(ev) && (
-                      <button onClick={() => setViewingGuide(viewingGuide === ev.id ? null : ev.id)}
-                        className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors ${viewingGuide === ev.id ? "border-primary bg-primary/10 text-primary" : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"}`}>
-                        <Eye className="h-3 w-3" /> Guide
-                      </button>
+                    {((eventDocs[ev.id] ?? []).some(d => d.status === "issued" && d.doc_type !== "intake") || hasGuide(ev)) && (
+                      <div className="relative">
+                        <button onClick={() => setDocsPopupEvent(docsPopupEvent === ev.id ? null : ev.id)}
+                          className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors ${docsPopupEvent === ev.id ? "border-primary bg-primary/10 text-primary" : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"}`}>
+                          <FileText className="h-3 w-3" /> Docs
+                        </button>
+                        {docsPopupEvent === ev.id && (
+                          <DocsPopup
+                            docs={eventDocs[ev.id] ?? []}
+                            hasGuide={hasGuide(ev)}
+                            onViewDoc={(doc) => { setDocsPopupEvent(null); setViewingDoc(doc); }}
+                            onViewGuide={() => { setDocsPopupEvent(null); setViewingGuide(ev.id); }}
+                            onClose={() => setDocsPopupEvent(null)}
+                          />
+                        )}
+                      </div>
                     )}
                     <Badge className={`text-[10px] capitalize ${statusColor(ev.status)}`}>{ev.status}</Badge>
                   </div>
@@ -706,6 +720,11 @@ export default function SchedulePage() {
           </>
         )}
       </div>
+
+      {/* ── Doc Viewer Modal ── */}
+      {viewingDoc && (
+        <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
+      )}
     </>
   );
 }
