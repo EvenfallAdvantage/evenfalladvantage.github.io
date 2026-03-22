@@ -421,8 +421,8 @@ export function TacticalGlobe() {
 
   // Compute screen positions for clickable markers
   const globeStyle = {
-    width: "min(3200px, 280vw)",
-    height: "min(3200px, 280vw)",
+    width: "min(700px, 90vw)",
+    height: "min(700px, 90vw)",
   };
 
   return (
@@ -433,8 +433,8 @@ export function TacticalGlobe() {
           ...globeStyle,
           position: "absolute",
           left: "50%",
-          bottom: 0,
-          transform: "translateX(-50%) translateY(72%)",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
         }}
       />
 
@@ -444,8 +444,8 @@ export function TacticalGlobe() {
           ...globeStyle,
           position: "absolute",
           left: "50%",
-          bottom: 0,
-          transform: "translateX(-50%) translateY(72%)",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
           borderRadius: "50%",
           overflow: "hidden",
           pointerEvents: "none",
@@ -471,12 +471,12 @@ export function TacticalGlobe() {
       />
 
 
-      {/* Fade-out at bottom edge */}
+      {/* Vignette fade around edges */}
       <div
-        className="absolute bottom-0 left-0 right-0"
+        className="absolute inset-0"
         style={{
-          height: "30%",
-          background: "linear-gradient(to bottom, transparent 0%, #0b1422 90%)",
+          background: "radial-gradient(ellipse at center, transparent 30%, #0b1422 75%)",
+          pointerEvents: "none",
         }}
       />
 
@@ -540,8 +540,8 @@ function SatelliteOverlay({
         ...globeStyle,
         position: "absolute",
         left: "50%",
-        bottom: 0,
-        transform: "translateX(-50%) translateY(72%)",
+        top: "50%",
+        transform: "translate(-50%, -50%)",
         pointerEvents: "none",
       }}
     >
