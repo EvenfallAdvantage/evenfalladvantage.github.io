@@ -686,7 +686,7 @@ function CityOverlay({
     return () => cancelAnimationFrame(rafId);
   }, [phi]);
 
-  const HIT_RADIUS = 18;
+  const HIT_RADIUS = 36;
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const el = overlayRef.current;
@@ -709,14 +709,14 @@ function CityOverlay({
       if (dist < closestDist) {
         closestDist = dist;
         closest = c.name;
-        closestPos = { x: p.x, y: p.y };
+        closestPos = { x: mx, y: my };
       }
     }
 
     if (closest !== hovered) {
       setHovered(closest);
       setTooltipPos(closestPos);
-    } else if (closest && closestPos) {
+    } else if (closestPos) {
       setTooltipPos(closestPos);
     }
   }, [hovered]);
