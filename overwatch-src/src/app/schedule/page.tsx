@@ -5,7 +5,7 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
-  FileText, X, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
+  FileText, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
   ClipboardList, Flag,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/stores/auth-store";
 import {
-  getUpcomingEvents, getUserShifts, getAssets, createAsset, checkoutAsset, checkinAsset, deleteAsset, getCompanyDetails, getAssetByQrCode,
+  getUpcomingEvents, getUserShifts, getAssets, createAsset, checkoutAsset, checkinAsset, deleteAsset, getAssetByQrCode,
   getEventDocuments, setAvailability, getMyAvailability,
 } from "@/lib/supabase/db";
 import type { OperationDocument } from "@/types/operations";
@@ -24,9 +24,6 @@ import type { AvailabilityStatus, OperationAvailability } from "@/lib/supabase/d
 import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
 
 const QrScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type OpsGuide = any;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Ev = any;
@@ -53,10 +50,6 @@ export default function SchedulePage() {
   const [events, setEvents] = useState<Ev[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewingGuide, setViewingGuide] = useState<string | null>(null);
-  const [companyName, setCompanyName] = useState("");
-  const [companyLogo, setCompanyLogo] = useState<string | undefined>();
-  const [brandColor, setBrandColor] = useState("#e97a2d");
 
   // Document & availability state
   const user = useAuthStore((s) => s.user);
@@ -86,16 +79,12 @@ export default function SchedulePage() {
   const loadSchedule = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
     try {
-      const [ev, sh, company] = await Promise.all([
+      const [ev, sh] = await Promise.all([
         getUpcomingEvents(activeCompanyId),
         getUserShifts(activeCompanyId),
-        getCompanyDetails(activeCompanyId),
       ]);
       setEvents(ev);
       setShifts(sh);
-      setCompanyName(company?.name ?? "");
-      setCompanyLogo(company?.logo_url ?? undefined);
-      setBrandColor(company?.brand_color ?? "#e97a2d");
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -300,7 +289,6 @@ export default function SchedulePage() {
             const upcomingShifts = shifts.filter((sh: Shift) => !isToday(sh.start_time));
             const currentEvents = events.filter((ev: Ev) => isCurrent(ev.start_date, ev.end_date));
             const upcomingEvents = events.filter((ev: Ev) => !isCurrent(ev.start_date, ev.end_date));
-            const hasGuide = (ev: Ev) => !!ev.ops_guide && Object.values(ev.ops_guide).some((v: unknown) => typeof v === "string" && (v as string).length > 0);
 
             // Detect conflicting shifts (same user, overlapping time ranges)
             const conflictIds = new Set<string>();
@@ -331,7 +319,7 @@ export default function SchedulePage() {
                         </p>
                       )}
                     </div>
-                    {((eventDocs[ev.id] ?? []).some(d => d.status === "issued" && d.doc_type !== "intake") || hasGuide(ev)) && (
+                    {(eventDocs[ev.id] ?? []).length > 0 && (
                       <div className="relative">
                         <button onClick={() => setDocsPopupEvent(docsPopupEvent === ev.id ? null : ev.id)}
                           className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-medium transition-colors ${docsPopupEvent === ev.id ? "border-primary bg-primary/10 text-primary" : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"}`}>
@@ -340,9 +328,7 @@ export default function SchedulePage() {
                         {docsPopupEvent === ev.id && (
                           <DocsPopup
                             docs={eventDocs[ev.id] ?? []}
-                            hasGuide={hasGuide(ev)}
                             onViewDoc={(doc) => { setDocsPopupEvent(null); setViewingDoc(doc); }}
-                            onViewGuide={() => { setDocsPopupEvent(null); setViewingGuide(ev.id); }}
                             onClose={() => setDocsPopupEvent(null)}
                           />
                         )}
@@ -487,51 +473,6 @@ export default function SchedulePage() {
                   </div>
                 </div>
               )}
-
-              {/* ── OPs Guide Viewer ── */}
-              {viewingGuide && (() => {
-                const ev = events.find((e: Ev) => e.id === viewingGuide);
-                if (!ev?.ops_guide) return null;
-                const g: OpsGuide = ev.ops_guide;
-                return (
-                  <div className="rounded-xl border border-primary/30 bg-card overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/30">
-                      <p className="text-sm font-semibold">OPs Guide — {ev.name}</p>
-                      <Button size="sm" variant="ghost" className="h-7" onClick={() => setViewingGuide(null)}><X className="h-3.5 w-3.5" /></Button>
-                    </div>
-                    <div className="overflow-auto max-h-[70vh] bg-white">
-                      <div style={{ fontFamily: "system-ui, sans-serif", color: "#1a1a2e", background: "#fff", padding: "32px", maxWidth: "800px", lineHeight: 1.5 }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `3px solid ${brandColor}`, paddingBottom: "16px", marginBottom: "24px" }}>
-                          <div>
-                            {companyLogo && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={companyLogo} alt="logo" style={{ height: "40px", marginBottom: "8px" }} />
-                            )}
-                            <h1 style={{ fontSize: "20px", fontWeight: 800, margin: 0, color: brandColor }}>{companyName}</h1>
-                            <p style={{ fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", color: "#666", margin: "2px 0 0" }}>Operations Guide</p>
-                          </div>
-                          <div style={{ textAlign: "right" }}>
-                            <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>{ev.name}</h2>
-                            <p style={{ fontSize: "12px", color: "#666", margin: "2px 0 0" }}>{fmtDate(ev.start_date)} — {fmtDate(ev.end_date)}</p>
-                            <p style={{ fontSize: "11px", color: "#888", margin: "2px 0 0" }}>{ev.location ?? g.siteAddress}</p>
-                          </div>
-                        </div>
-                        {g.clientName && <GuideSection title="Client Information" color={brandColor}><GuideRow label="Client" value={g.clientName} />{g.clientContact && <GuideRow label="Contact" value={g.clientContact} />}{g.clientPhone && <GuideRow label="Phone" value={g.clientPhone} />}{g.clientEmail && <GuideRow label="Email" value={g.clientEmail} />}</GuideSection>}
-                        <GuideSection title="Site Details" color={brandColor}>{g.siteAddress && <GuideRow label="Address" value={g.siteAddress} />}{g.siteType && <GuideRow label="Site Type" value={g.siteType} />}{g.parkingInfo && <GuideRow label="Parking" value={g.parkingInfo} />}{g.checkInProcedure && <GuideRow label="Check-In" value={g.checkInProcedure} />}</GuideSection>
-                        {g.scope && <GuideSection title="Scope of Work" color={brandColor}><p style={{ fontSize: "12px", whiteSpace: "pre-wrap" }}>{g.scope}</p></GuideSection>}
-                        {g.postOrders && <GuideSection title="Post Orders" color={brandColor}><p style={{ fontSize: "12px", whiteSpace: "pre-wrap" }}>{g.postOrders}</p></GuideSection>}
-                        <GuideSection title="Uniform & Equipment" color={brandColor}>{g.dressCode && <GuideRow label="Dress Code" value={g.dressCode} />}{g.requiredGear && <GuideRow label="Required Gear" value={g.requiredGear} />}</GuideSection>
-                        {g.communicationChannel && <GuideSection title="Communications" color={brandColor}><GuideRow label="Channel" value={g.communicationChannel} />{g.reportingInstructions && <GuideRow label="Reporting" value={g.reportingInstructions} />}</GuideSection>}
-                        <GuideSection title="Emergency Procedures" color={brandColor}>{g.emergencyContact && <GuideRow label="Contact" value={g.emergencyContact} />}{g.emergencyPhone && <GuideRow label="Phone" value={g.emergencyPhone} />}{g.emergencyProcedure && <p style={{ fontSize: "12px", whiteSpace: "pre-wrap" }}>{g.emergencyProcedure}</p>}</GuideSection>
-                        {g.specialInstructions && <GuideSection title="Special Instructions" color={brandColor}><p style={{ fontSize: "12px", whiteSpace: "pre-wrap" }}>{g.specialInstructions}</p></GuideSection>}
-                        <div style={{ borderTop: `2px solid ${brandColor}`, marginTop: "24px", paddingTop: "12px", textAlign: "center" }}>
-                          <p style={{ fontSize: "10px", color: "#888" }}>CONFIDENTIAL — {companyName} — Generated {new Date().toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* ── My Assigned Shifts (upcoming) ── */}
               {upcomingShifts.length > 0 && (
@@ -729,24 +670,3 @@ export default function SchedulePage() {
   );
 }
 
-/* ── OPs Guide helper components ──────────────────────── */
-
-function GuideSection({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: "16px" }}>
-      <h3 style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color, borderBottom: `1px solid ${color}33`, paddingBottom: "4px", marginBottom: "8px" }}>
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-function GuideRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: "flex", fontSize: "12px", marginBottom: "4px" }}>
-      <span style={{ fontWeight: 600, width: "120px", flexShrink: 0, color: "#555" }}>{label}:</span>
-      <span>{value}</span>
-    </div>
-  );
-}

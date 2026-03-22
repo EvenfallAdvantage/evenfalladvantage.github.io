@@ -2,7 +2,7 @@
 
 import { X, FileText, Shield, AlertTriangle, Target, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { OperationDocument, WarnoData, OpordData, FragoData, GotwaData } from "@/types/operations";
+import type { OperationDocument, WarnoData, OpordData, FragoData, GotwaData, IntakeData } from "@/types/operations";
 
 /* ── Helpers ── */
 function Section({ title, icon, color, children }: { title: string; icon?: React.ReactNode; color?: string; children: React.ReactNode }) {
@@ -235,13 +235,68 @@ function GotwaViewer({ data }: { data: GotwaData }) {
   );
 }
 
+/* ── Intake Viewer ── */
+function IntakeViewer({ data }: { data: IntakeData }) {
+  return (
+    <>
+      <Section title="Mission Overview" icon={<Target className="h-3.5 w-3.5" />}>
+        <Chips items={data.engagementType} />
+        <Field label="Client Request" value={data.clientRequest} />
+        <Field label="Mission Statement" value={data.missionStatement} />
+        <Field label="Time Sensitivity" value={data.timeSensitivity} />
+      </Section>
+      <Section title="Location & Environment">
+        <Chips items={data.venueType} />
+        <Field label="Attendance" value={data.estimatedAttendance} />
+        <Field label="Environment" value={data.environment} />
+        <Field label="Notes" value={data.environmentNotes} />
+      </Section>
+      <Section title="Scope of Work">
+        <Chips items={data.servicesRequested} />
+        <Field label="Deliverables" value={data.deliverables} />
+        <Field label="Out of Scope" value={data.outOfScope} />
+      </Section>
+      <Section title="Client Capability">
+        <Field label="Personnel Count" value={data.clientPersonnelCount} />
+        <Field label="Leadership" value={data.clientLeadershipStructure} />
+        <Field label="Existing SOPs" value={data.clientExistingSops} />
+        <Field label="Incident Reporting" value={data.clientIncidentReporting} />
+        <Field label="Training Level" value={data.clientTrainingLevel} />
+        <Field label="Equipment" value={data.equipmentAvailable} />
+        <Field label="Medical" value={data.medicalCapability} />
+        <Field label="Technology" value={data.technologyAvailable} />
+      </Section>
+      <Section title="Risks & Constraints" icon={<AlertTriangle className="h-3.5 w-3.5" />}>
+        <Field label="Client Risks" value={data.clientIdentifiedRisks} />
+        <Field label="EA Assessment" value={data.eaRiskAssessment} />
+        <Field label="Risk Level" value={data.riskLevel} />
+        {data.threatTypes?.length > 0 && <><span className="text-xs text-muted-foreground">Threats:</span><Chips items={data.threatTypes} /></>}
+        {data.constraints?.length > 0 && <><span className="text-xs text-muted-foreground">Constraints:</span><Chips items={data.constraints} /></>}
+      </Section>
+      <Section title="Command & Control">
+        <Field label="Command Model" value={data.commandModel} />
+        <Field label="On-Site Authority" value={data.onSiteAuthority} />
+        <Chips items={data.eaRole} />
+        <Field label="Escalation" value={data.escalationFlow} />
+        <Field label="Chain of Command" value={data.chainOfCommand} />
+      </Section>
+      {(data.successCriteria?.length > 0 || data.additionalSuccessMeasures) && (
+        <Section title="Success Criteria">
+          <Chips items={data.successCriteria} />
+          <Field label="Additional" value={data.additionalSuccessMeasures} />
+        </Section>
+      )}
+    </>
+  );
+}
+
 /* ── Doc type styling ── */
 const DOC_COLORS: Record<string, { border: string; bg: string; text: string; label: string }> = {
   warno: { border: "border-primary/40", bg: "bg-primary/5", text: "text-primary", label: "WARNO" },
   opord: { border: "border-green-500/40", bg: "bg-green-500/5", text: "text-green-600", label: "OPORD" },
   frago: { border: "border-amber-500/40", bg: "bg-amber-500/5", text: "text-amber-600", label: "FRAGO" },
   gotwa: { border: "border-violet-500/40", bg: "bg-violet-500/5", text: "text-violet-500", label: "GOTWA" },
-  intake: { border: "border-border/40", bg: "bg-muted/5", text: "text-muted-foreground", label: "Intake" },
+  intake: { border: "border-blue-500/40", bg: "bg-blue-500/5", text: "text-blue-500", label: "Intake" },
 };
 
 /* ── Main Exports ── */
@@ -249,19 +304,15 @@ const DOC_COLORS: Record<string, { border: string; bg: string; text: string; lab
 /** Popup list of docs for an event */
 export function DocsPopup({
   docs,
-  hasGuide,
   onViewDoc,
-  onViewGuide,
   onClose,
 }: {
   docs: OperationDocument[];
-  hasGuide: boolean;
   onViewDoc: (doc: OperationDocument) => void;
-  onViewGuide: () => void;
   onClose: () => void;
 }) {
-  const issuedDocs = docs.filter(d => d.status === "issued" && d.doc_type !== "intake");
-  const hasContent = issuedDocs.length > 0 || hasGuide;
+  // Show issued docs of all types (including intake)
+  const visibleDocs = docs.filter(d => d.status === "issued" || d.doc_type === "intake");
 
   return (
     <div className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-xl border border-border/60 bg-card shadow-xl overflow-hidden">
@@ -269,26 +320,19 @@ export function DocsPopup({
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Documents</span>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
       </div>
-      {!hasContent ? (
-        <p className="px-3 py-4 text-xs text-muted-foreground text-center">No documents published yet</p>
+      {visibleDocs.length === 0 ? (
+        <p className="px-3 py-4 text-xs text-muted-foreground text-center">No documents yet</p>
       ) : (
         <div className="py-1">
-          {hasGuide && (
-            <button onClick={onViewGuide}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium hover:bg-muted/50 transition-colors text-left">
-              <FileText className="h-3.5 w-3.5 text-primary" />
-              <span>OPs Guide</span>
-              <span className="ml-auto text-[9px] text-primary/60 bg-primary/10 rounded px-1.5 py-0.5">Guide</span>
-            </button>
-          )}
-          {issuedDocs.map(d => {
+          {visibleDocs.map(d => {
             const c = DOC_COLORS[d.doc_type] ?? DOC_COLORS.intake;
             return (
               <button key={d.id} onClick={() => onViewDoc(d)}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium hover:bg-muted/50 transition-colors text-left">
                 <FileText className={`h-3.5 w-3.5 ${c.text}`} />
-                <span>{c.label} v{d.version}</span>
+                <span>{c.label}{d.doc_type !== "intake" ? ` v${d.version}` : ""}</span>
                 {d.issued_at && <span className="text-[9px] text-muted-foreground ml-auto">{new Date(d.issued_at).toLocaleDateString()}</span>}
+                {!d.issued_at && d.updated_at && <span className="text-[9px] text-muted-foreground ml-auto">{new Date(d.updated_at).toLocaleDateString()}</span>}
               </button>
             );
           })}
@@ -329,11 +373,7 @@ export function DocViewerModal({
           {doc.doc_type === "opord" && <OpordViewer data={data as unknown as OpordData} />}
           {doc.doc_type === "frago" && <FragoViewer data={data as unknown as FragoData} />}
           {doc.doc_type === "gotwa" && <GotwaViewer data={data as unknown as GotwaData} />}
-          {doc.doc_type === "intake" && (
-            <Section title="Intake Data">
-              <pre className="text-[10px] whitespace-pre-wrap text-muted-foreground">{JSON.stringify(data, null, 2)}</pre>
-            </Section>
-          )}
+          {doc.doc_type === "intake" && <IntakeViewer data={data as unknown as IntakeData} />}
         </div>
       </div>
     </div>

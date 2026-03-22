@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Flag, MapPin, Plus, Loader2, Clock, ChevronDown, ChevronRight,
-  Trash2, Zap, Calendar, Check, X, FileText, FileDown,
+  Trash2, Zap, Calendar, Check, X, FileText,
   Shield, Shirt, AlertTriangle, Building2, Activity, ClipboardList, LogIn, LogOut as LogOutIcon,
   List, LayoutGrid,
 } from "lucide-react";
@@ -136,116 +136,7 @@ function groupByDay(shifts: Shift[]): Map<string, Shift[]> {
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
 
-/* ── OPs Guide Preview (Branded) ──────────────────────── */
-
-function OpsGuidePreview({ ev, guide, companyName, companyLogo, brandColor }: {
-  ev: Event; guide: OpsGuide; companyName: string; companyLogo?: string; brandColor: string;
-}) {
-  return (
-    <div style={{ fontFamily: "system-ui, sans-serif", color: "#1a1a2e", background: "#fff", padding: "32px", maxWidth: "800px", lineHeight: 1.5 }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `3px solid ${brandColor}`, paddingBottom: "16px", marginBottom: "24px" }}>
-        <div>
-          {companyLogo && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={companyLogo} alt="logo" style={{ height: "40px", marginBottom: "8px" }} />
-          )}
-          <h1 style={{ fontSize: "20px", fontWeight: 800, margin: 0, color: brandColor }}>{companyName}</h1>
-          <p style={{ fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", color: "#666", margin: "2px 0 0" }}>Operations Guide</p>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <h2 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>{ev.name}</h2>
-          <p style={{ fontSize: "12px", color: "#666", margin: "2px 0 0" }}>
-            {fmtDateShort(ev.start_date)} — {fmtDateShort(ev.end_date)}
-          </p>
-          <p style={{ fontSize: "11px", color: "#888", margin: "2px 0 0" }}>{ev.location ?? guide.siteAddress}</p>
-        </div>
-      </div>
-
-      {/* Sections */}
-      {guide.clientName && (
-        <Section title="Client Information" color={brandColor}>
-          <Row label="Client" value={guide.clientName} />
-          {guide.clientContact && <Row label="Contact" value={guide.clientContact} />}
-          {guide.clientPhone && <Row label="Phone" value={guide.clientPhone} />}
-          {guide.clientEmail && <Row label="Email" value={guide.clientEmail} />}
-        </Section>
-      )}
-
-      <Section title="Site Details" color={brandColor}>
-        {guide.siteAddress && <Row label="Address" value={guide.siteAddress} />}
-        {guide.siteType && <Row label="Site Type" value={guide.siteType} />}
-        {guide.parkingInfo && <Row label="Parking" value={guide.parkingInfo} />}
-        {guide.checkInProcedure && <Row label="Check-In" value={guide.checkInProcedure} />}
-      </Section>
-
-      {guide.scope && (
-        <Section title="Scope of Work" color={brandColor}>
-          <p style={{ fontSize: "12px", whiteSpace: "pre-wrap" }}>{guide.scope}</p>
-        </Section>
-      )}
-
-      {guide.postOrders && (
-        <Section title="Post Orders" color={brandColor}>
-          <p style={{ fontSize: "12px", whiteSpace: "pre-wrap" }}>{guide.postOrders}</p>
-        </Section>
-      )}
-
-      <Section title="Uniform & Equipment" color={brandColor}>
-        {guide.dressCode && <Row label="Dress Code" value={guide.dressCode} />}
-        {guide.requiredGear && <Row label="Required Gear" value={guide.requiredGear} />}
-      </Section>
-
-      {guide.communicationChannel && (
-        <Section title="Communications" color={brandColor}>
-          <Row label="Channel" value={guide.communicationChannel} />
-          {guide.reportingInstructions && <Row label="Reporting" value={guide.reportingInstructions} />}
-        </Section>
-      )}
-
-      <Section title="Emergency Procedures" color={brandColor}>
-        {guide.emergencyContact && <Row label="Contact" value={guide.emergencyContact} />}
-        {guide.emergencyPhone && <Row label="Phone" value={guide.emergencyPhone} />}
-        {guide.emergencyProcedure && <p style={{ fontSize: "12px", whiteSpace: "pre-wrap" }}>{guide.emergencyProcedure}</p>}
-      </Section>
-
-      {guide.specialInstructions && (
-        <Section title="Special Instructions" color={brandColor}>
-          <p style={{ fontSize: "12px", whiteSpace: "pre-wrap" }}>{guide.specialInstructions}</p>
-        </Section>
-      )}
-
-      {/* Footer */}
-      <div style={{ borderTop: `2px solid ${brandColor}`, marginTop: "24px", paddingTop: "12px", textAlign: "center" }}>
-        <p style={{ fontSize: "10px", color: "#888" }}>
-          CONFIDENTIAL — {companyName} — Generated {new Date().toLocaleDateString()}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function Section({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: "16px" }}>
-      <h3 style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color, borderBottom: `1px solid ${color}33`, paddingBottom: "4px", marginBottom: "8px" }}>
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: "flex", fontSize: "12px", marginBottom: "4px" }}>
-      <span style={{ fontWeight: 600, width: "120px", flexShrink: 0, color: "#555" }}>{label}:</span>
-      <span>{value}</span>
-    </div>
-  );
-}
-
-/* ── Textarea helper ─────────────────────────────────── */
+/* ── Textarea helper ───────────────────────────────── */
 
 function Textarea({ value, onChange, placeholder, rows = 3 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
   return (
@@ -327,13 +218,10 @@ export default function AdminEventsPage() {
   // Conflict warning
   const [conflictWarning, setConflictWarning] = useState<{ shiftId: string; userId: string; conflicts: { role: string; eventName: string; time: string }[]; pendingAction: () => Promise<void> } | null>(null);
 
-  // OPs Guide viewer
-  const [viewingGuide, setViewingGuide] = useState<string | null>(null);
+  // Docs popup/viewer
   const [adminDocsPopup, setAdminDocsPopup] = useState<string | null>(null);
   const [adminViewingDoc, setAdminViewingDoc] = useState<OperationDocument | null>(null);
   const [adminEventDocs, setAdminEventDocs] = useState<Record<string, OperationDocument[]>>({});
-  const [generatingPdf, setGeneratingPdf] = useState(false);
-  const guideRef = useRef<HTMLDivElement>(null);
 
   // Activity feed
   const [showActivity, setShowActivity] = useState(false);
@@ -443,7 +331,7 @@ export default function AdminEventsPage() {
 
   async function toggleExpand(eventId: string) {
     if (expanded === eventId) { setExpanded(null); return; }
-    setExpanded(eventId); setViewingGuide(null);
+    setExpanded(eventId);
     setPosts([]); setSelectedDays(new Set()); setShowCustom(false); setShowBuilder(false);
     setShowActivity(false); setActivityItems([]); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowDocHub(false);
     setAvailability([]); setMergedIntake(null);
@@ -603,27 +491,6 @@ export default function AdminEventsPage() {
 
   function addPost() { if (!newPost.trim() || posts.includes(newPost.trim())) return; setPosts([...posts, newPost.trim()]); setNewPost(""); }
   function toggleDay(d: string) { const n = new Set(selectedDays); if (n.has(d)) n.delete(d); else n.add(d); setSelectedDays(n); }
-
-  /* ── PDF Download ── */
-
-  async function downloadGuidePDF(ev: Event) {
-    if (!guideRef.current) return;
-    setGeneratingPdf(true);
-    try {
-      const html2canvas = (await import("html2canvas")).default;
-      const { jsPDF } = await import("jspdf");
-      const canvas = await html2canvas(guideRef.current, { scale: 2, useCORS: true, logging: false });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfW = 210, pdfH = 297, margin = 10;
-      const maxW = pdfW - margin * 2, maxH = pdfH - margin * 2;
-      let imgW = canvas.width * 0.264583 / 2, imgH = canvas.height * 0.264583 / 2;
-      if (imgW > maxW) { const r = maxW / imgW; imgW = maxW; imgH *= r; }
-      if (imgH > maxH) { const r = maxH / imgH; imgH = maxH; imgW *= r; }
-      pdf.addImage(imgData, "PNG", (pdfW - imgW) / 2, margin, imgW, imgH);
-      pdf.save(`OPs_Guide_${ev.name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`);
-    } catch (err) { console.error(err); } finally { setGeneratingPdf(false); }
-  }
 
   /* ── Derived ── */
 
@@ -935,29 +802,6 @@ export default function AdminEventsPage() {
           </div>
         )}
 
-        {/* ── OPS GUIDE VIEWER (modal-style) ── */}
-        {viewingGuide && (() => {
-          const ev = events.find((e: Event) => e.id === viewingGuide);
-          if (!ev?.ops_guide) return null;
-          const g: OpsGuide = { ...EMPTY_GUIDE, ...ev.ops_guide };
-          return (
-            <div className="rounded-xl border border-primary/30 bg-card overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/30">
-                <h3 className="text-sm font-semibold flex items-center gap-1.5"><FileText className="h-4 w-4 text-primary" /> OPs Guide — {ev.name}</h3>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => downloadGuidePDF(ev)} disabled={generatingPdf}>
-                    {generatingPdf ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileDown className="h-3 w-3" />} PDF
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-7" onClick={() => setViewingGuide(null)}><X className="h-3.5 w-3.5" /></Button>
-                </div>
-              </div>
-              <div className="overflow-auto max-h-[70vh] bg-white" ref={guideRef}>
-                <OpsGuidePreview ev={ev} guide={g} companyName={companyName} companyLogo={companyLogo} brandColor={brandColor} />
-              </div>
-            </div>
-          );
-        })()}
-
         {/* ── Conflict Warning Modal ── */}
         {conflictWarning && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setConflictWarning(null)}>
@@ -1010,7 +854,6 @@ export default function AdminEventsPage() {
             {events.map((ev: Event) => {
               const isExp = expanded === ev.id;
               const opDays = getDaysInRange(ev.start_date, ev.end_date);
-              const hasGuide = !!ev.ops_guide && Object.values(ev.ops_guide).some((v: unknown) => typeof v === "string" && v.length > 0);
 
               return (
                 <div key={ev.id} className="rounded-xl border border-border/50 bg-card overflow-visible">
@@ -1045,9 +888,7 @@ export default function AdminEventsPage() {
                           {adminDocsPopup === ev.id && (
                             <DocsPopup
                               docs={adminEventDocs[ev.id] ?? []}
-                              hasGuide={hasGuide}
                               onViewDoc={(doc) => { setAdminDocsPopup(null); setAdminViewingDoc(doc); }}
-                              onViewGuide={() => { setAdminDocsPopup(null); setViewingGuide(ev.id); setExpanded(null); }}
                               onClose={() => setAdminDocsPopup(null)}
                             />
                           )}
