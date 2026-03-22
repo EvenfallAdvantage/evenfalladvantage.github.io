@@ -321,7 +321,7 @@ function CssISS({ scale = 2, rotate = 0 }: { scale?: number; rotate?: number }) 
 /* ── Satellite info popup ── */
 function SatPopup({ sat, onClose, flipBelow }: { sat: SatData; onClose: () => void; flipBelow?: boolean }) {
   const isISS = sat.id === ISS_ID;
-  const border = isISS ? "rgba(221,140,51,0.5)" : "rgba(100,160,255,0.4)";
+  const border = "rgba(221,140,51,0.5)";
   return (
     <div
       onClick={(e) => { e.stopPropagation(); onClose(); }}
@@ -341,10 +341,10 @@ function SatPopup({ sat, onClose, flipBelow }: { sat: SatData; onClose: () => vo
         pointerEvents: "auto",
         cursor: "default",
         zIndex: 50,
-        boxShadow: `0 0 20px ${isISS ? "rgba(221,140,51,0.15)" : "rgba(100,160,255,0.1)"}`,
+        boxShadow: "0 0 20px rgba(221,140,51,0.15)",
       }}
     >
-      <div style={{ fontFamily: "monospace", fontSize: 11, color: isISS ? "#dd8c33" : "#7db4ff", fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
+      <div style={{ fontFamily: "monospace", fontSize: 11, color: "#dd8c33", fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
         {sat.name}
       </div>
       <div style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>
@@ -679,7 +679,7 @@ function SatelliteOverlay({
       const cx = w / 2;
       const cy = w / 2;
       const satRadius = w * 0.47;
-      const arcRadius = w * 0.40;
+      const arcRadius = w * 0.47;
       const currentPhi = phi.current ?? 0;
       const now = Date.now();
 
@@ -701,7 +701,7 @@ function SatelliteOverlay({
         let d = "";
         let wasVisible = false;
         for (const p of points) {
-          const proj = latLngToScreen(p.lat, p.lng, currentPhi, 0.45, cx, cy, arcRadius, 0);
+          const proj = latLngToScreen(p.lat, p.lng, currentPhi, 0.45, cx, cy, arcRadius, -0.52);
           if (proj.visible && proj.opacity > 0.05) {
             d += wasVisible ? `L${proj.x.toFixed(1)},${proj.y.toFixed(1)}` : `M${proj.x.toFixed(1)},${proj.y.toFixed(1)}`;
             wasVisible = true;
@@ -741,7 +741,7 @@ function SatelliteOverlay({
             key={arc.id}
             d={arc.d}
             fill="none"
-            stroke={arc.id === ISS_ID ? "rgba(255,255,255,0.12)" : "rgba(221,140,51,0.12)"}
+            stroke="rgba(221,140,51,0.15)"
             strokeWidth="1"
             strokeDasharray="4 3"
           />
