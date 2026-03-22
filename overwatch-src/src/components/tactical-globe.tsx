@@ -427,9 +427,10 @@ export function TacticalGlobe() {
   if (isMobile) return null;
 
   // Compute screen positions for clickable markers
+  const globePos = "calc(50% + 24px)";
   const globeStyle = {
-    width: "min(700px, 90vw)",
-    height: "min(700px, 90vw)",
+    width: "min(750px, 92vw)",
+    height: "min(750px, 92vw)",
   };
 
   return (
@@ -440,7 +441,7 @@ export function TacticalGlobe() {
           ...globeStyle,
           position: "absolute",
           left: "50%",
-          top: "50%",
+          top: globePos,
           transform: "translate(-50%, -50%)",
         }}
       />
@@ -451,7 +452,7 @@ export function TacticalGlobe() {
           ...globeStyle,
           position: "absolute",
           left: "50%",
-          top: "50%",
+          top: globePos,
           transform: "translate(-50%, -50%)",
           borderRadius: "50%",
           overflow: "hidden",
@@ -503,6 +504,7 @@ export function TacticalGlobe() {
         selectedSat={selectedSat}
         onSelect={setSelectedSat}
         globeStyle={globeStyle}
+        globeTop={globePos}
       />
 
 
@@ -532,12 +534,14 @@ function SatelliteOverlay({
   selectedSat,
   onSelect,
   globeStyle,
+  globeTop,
 }: {
   satellites: SatData[];
   phi: React.RefObject<number>;
   selectedSat: number | null;
   onSelect: (id: number | null) => void;
   globeStyle: Record<string, string>;
+  globeTop: string;
 }) {
   const overlayRef = useRef<HTMLDivElement>(null);
   const [positions, setPositions] = useState<Record<number, { x: number; y: number; visible: boolean; opacity: number }>>({});
@@ -575,7 +579,7 @@ function SatelliteOverlay({
         ...globeStyle,
         position: "absolute",
         left: "50%",
-        top: "50%",
+        top: globeTop,
         transform: "translate(-50%, -50%)",
         pointerEvents: "none",
       }}
