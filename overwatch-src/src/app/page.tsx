@@ -444,12 +444,12 @@ function HomePageInner() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
+      <section className="relative pt-32 pb-20">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-[#dd8c33]/8 via-transparent to-transparent rounded-full blur-3xl" />
         <TacticalGlobe />
 
-        <div className="relative mx-auto max-w-4xl px-6 text-center">
+        <div className="relative mx-auto max-w-4xl px-6 text-center pointer-events-none">
           <Image src="/images/overwatch_logo.png" alt="Overwatch" width={200} height={200} className="mx-auto mb-6" style={{ width: 200, height: "auto" }} />
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dd8c33]/20 bg-[#dd8c33]/10 px-4 py-1.5 text-xs text-[#dd8c33]">
             <Lock className="h-3 w-3" /> Military-Grade Security Workforce Platform
@@ -464,10 +464,10 @@ function HomePageInner() {
             into one tactical platform built for security professionals.
           </p>
           <div className="flex items-center justify-center gap-3 sm:gap-4">
-            <button onClick={() => setRegisterOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
+            <button onClick={() => setRegisterOpen(true)} className="pointer-events-auto inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
               Deploy Now <ChevronRight className="h-4 w-4" />
             </button>
-            <button onClick={() => setLoginOpen(true)} className="inline-flex items-center gap-2 border border-[#dd8c33]/30 text-white/80 px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl hover:bg-[#dd8c33]/10 transition-all text-sm">
+            <button onClick={() => setLoginOpen(true)} className="pointer-events-auto inline-flex items-center gap-2 border border-[#dd8c33]/30 text-white/80 px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl hover:bg-[#dd8c33]/10 transition-all text-sm">
               Sign In
             </button>
           </div>

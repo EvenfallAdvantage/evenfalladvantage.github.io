@@ -271,18 +271,21 @@ function CssISS({ scale = 2, rotate = 0 }: { scale?: number; rotate?: number }) 
 }
 
 /* ── Satellite info popup ── */
-function SatPopup({ sat, onClose }: { sat: SatData; onClose: () => void }) {
+function SatPopup({ sat, onClose, flipBelow }: { sat: SatData; onClose: () => void; flipBelow?: boolean }) {
   const isISS = sat.id === ISS_ID;
+  const border = isISS ? "rgba(221,140,51,0.5)" : "rgba(100,160,255,0.4)";
   return (
     <div
       onClick={(e) => { e.stopPropagation(); onClose(); }}
       style={{
         position: "absolute",
         left: "50%",
-        bottom: "calc(100% + 8px)",
+        ...(flipBelow
+          ? { top: "calc(100% + 8px)" }
+          : { bottom: "calc(100% + 8px)" }),
         transform: "translateX(-50%)",
         background: "rgba(11, 20, 34, 0.92)",
-        border: `1px solid ${isISS ? "rgba(221,140,51,0.5)" : "rgba(100,160,255,0.4)"}`,
+        border: `1px solid ${border}`,
         borderRadius: 8,
         padding: "8px 12px",
         minWidth: 180,
@@ -302,7 +305,8 @@ function SatPopup({ sat, onClose }: { sat: SatData; onClose: () => void }) {
         <div>LAT {sat.latitude.toFixed(2)}  LNG {sat.longitude.toFixed(2)}</div>
         {isISS && <div>VIS {sat.visibility.toUpperCase()}</div>}
       </div>
-      <div style={{ position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%) rotate(45deg)", width: 8, height: 8, background: "rgba(11,20,34,0.92)", borderRight: `1px solid ${isISS ? "rgba(221,140,51,0.5)" : "rgba(100,160,255,0.4)"}`, borderBottom: `1px solid ${isISS ? "rgba(221,140,51,0.5)" : "rgba(100,160,255,0.4)"}` }} />
+      {/* Arrow */}
+      <div style={{ position: "absolute", ...(flipBelow ? { top: -5 } : { bottom: -5 }), left: "50%", transform: "translateX(-50%) rotate(45deg)", width: 8, height: 8, background: "rgba(11,20,34,0.92)", ...(flipBelow ? { borderLeft: `1px solid ${border}`, borderTop: `1px solid ${border}` } : { borderRight: `1px solid ${border}`, borderBottom: `1px solid ${border}` }) }} />
     </div>
   );
 }
@@ -426,7 +430,7 @@ export function TacticalGlobe() {
   };
 
   return (
-    <div ref={containerRef} className="absolute inset-0 pointer-events-none" aria-hidden="true">
+    <div ref={containerRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }} aria-hidden="true">
       <canvas
         ref={canvasRef}
         style={{
@@ -568,8 +572,8 @@ function SatelliteOverlay({
               onSelect(isSelected ? null : sat.id);
             }}
           >
-            {isISS ? <CssISS scale={0.5} rotate={5} /> : <CssSatellite scale={0.8} rotate={-8} />}
-            {isSelected && <SatPopup sat={sat} onClose={() => onSelect(null)} />}
+            {isISS ? <CssISS scale={1.0} rotate={5} /> : <CssSatellite scale={0.8} rotate={-8} />}
+            {isSelected && <SatPopup sat={sat} onClose={() => onSelect(null)} flipBelow={pos.y < 120} />}
           </div>
         );
       })}
