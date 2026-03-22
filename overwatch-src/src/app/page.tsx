@@ -427,7 +427,7 @@ function HomePageInner() {
     <div className="min-h-screen bg-[#0b1422] text-white">
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0b1422]/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
             <Image src="/images/overwatch_logo.png" alt="Overwatch" width={54} height={54} style={{ width: 54, height: "auto" }} />
             <span className="font-mono text-3xl font-bold tracking-tight leading-none">OVERWATCH</span>
