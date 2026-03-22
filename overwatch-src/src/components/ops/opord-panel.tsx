@@ -194,7 +194,29 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
     try {
       const html2canvas = (await import("html2canvas")).default;
       const { jsPDF } = await import("jspdf");
-      const canvas = await html2canvas(printRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const canvas = await html2canvas(printRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        onclone: (clonedDoc) => {
+          // Strip CSS custom properties using unsupported color functions (lab, oklch, etc.)
+          const root = clonedDoc.documentElement;
+          const rootStyle = root.style;
+          for (let i = rootStyle.length - 1; i >= 0; i--) {
+            const prop = rootStyle[i];
+            const val = rootStyle.getPropertyValue(prop);
+            if (val && (/\blab\s*\(/.test(val) || /\boklch\s*\(/.test(val) || /\blch\s*\(/.test(val))) {
+              rootStyle.removeProperty(prop);
+            }
+          }
+          // Also strip from any <style> tags
+          clonedDoc.querySelectorAll("style").forEach((el) => {
+            if (el.textContent && (/\blab\s*\(/.test(el.textContent) || /\boklch\s*\(/.test(el.textContent))) {
+              el.textContent = el.textContent.replace(/[^;{}]*\b(lab|oklch|lch)\s*\([^)]*\)[^;{}]*/g, "");
+            }
+          });
+        },
+      });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pageW = pdf.internal.pageSize.getWidth();
