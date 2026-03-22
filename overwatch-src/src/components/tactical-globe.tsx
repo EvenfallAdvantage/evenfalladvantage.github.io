@@ -339,7 +339,7 @@ function SatPopup({ sat, onClose, flipBelow }: { sat: SatData; onClose: () => vo
 /* ── Helper: project lat/lng to screen position relative to globe center ── */
 function latLngToScreen(
   lat: number, lng: number, phi: number, theta: number,
-  cx: number, cy: number, radius: number
+  cx: number, cy: number, radius: number, hideZ = 0
 ): { x: number; y: number; visible: boolean; opacity: number } {
   const latR = (lat * Math.PI) / 180;
   const lngR = (lng * Math.PI) / 180;
@@ -352,11 +352,12 @@ function latLngToScreen(
   const y3r = y3 * cosT - z3 * sinT;
   const z3r = y3 * sinT + z3 * cosT;
   // Smooth fade near edge instead of hard cutoff
-  const edgeFade = z3r < 0.2 ? Math.max(0, z3r / 0.2) : 1;
+  const fadeStart = hideZ + 0.15;
+  const edgeFade = z3r < fadeStart ? Math.max(0, (z3r - hideZ) / (fadeStart - hideZ)) : 1;
   return {
     x: cx + x3 * radius,
     y: cy - y3r * radius,
-    visible: z3r > 0,
+    visible: z3r > hideZ,
     opacity: edgeFade,
   };
 }
@@ -592,7 +593,7 @@ function SatelliteOverlay({
 
       const next: Record<number, { x: number; y: number; visible: boolean; opacity: number }> = {};
       for (const s of satellites) {
-        next[s.id] = latLngToScreen(s.latitude, s.longitude, currentPhi, 0.45, cx, cy, radius);
+        next[s.id] = latLngToScreen(s.latitude, s.longitude, currentPhi, 0.45, cx, cy, radius, 0.52);
       }
       setPositions(next);
       rafId = requestAnimationFrame(update);
