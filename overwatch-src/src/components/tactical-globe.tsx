@@ -370,6 +370,10 @@ export function TacticalGlobe() {
   const [satellites, setSatellites] = useState<SatData[]>([]);
   const [selectedSat, setSelectedSat] = useState<number | null>(null);
   const phiRef = useRef(0);
+  const [autoRotate, setAutoRotate] = useState(true);
+  const autoRotateRef = useRef(true);
+  const isDraggingRef = useRef(false);
+  const lastXRef = useRef(0);
 
   const subscribe = useCallback((cb: () => void) => {
     const mq = window.matchMedia(MQ);
@@ -441,15 +445,40 @@ export function TacticalGlobe() {
     const cityMarkers = CITIES.map((c) => ({ location: [c.lat, c.lng] as [number, number], size: 0.018 }));
 
     function animate() {
-      phi += 0.003;
+      if (autoRotateRef.current) phi += 0.003;
       phiRef.current = phi;
       globe.update({ phi, markers: cityMarkers });
       rafId = requestAnimationFrame(animate);
     }
     rafId = requestAnimationFrame(animate);
 
+    // Drag-to-rotate handlers
+    function onDown(e: PointerEvent) {
+      if (autoRotateRef.current) return;
+      isDraggingRef.current = true;
+      lastXRef.current = e.clientX;
+      canvas!.setPointerCapture(e.pointerId);
+    }
+    function onMove(e: PointerEvent) {
+      if (!isDraggingRef.current) return;
+      const dx = e.clientX - lastXRef.current;
+      phi += dx * 0.005;
+      lastXRef.current = e.clientX;
+    }
+    function onUp() {
+      isDraggingRef.current = false;
+    }
+    canvas.addEventListener("pointerdown", onDown);
+    canvas.addEventListener("pointermove", onMove);
+    canvas.addEventListener("pointerup", onUp);
+    canvas.addEventListener("pointercancel", onUp);
+
     return () => {
       cancelAnimationFrame(rafId);
+      canvas.removeEventListener("pointerdown", onDown);
+      canvas.removeEventListener("pointermove", onMove);
+      canvas.removeEventListener("pointerup", onUp);
+      canvas.removeEventListener("pointercancel", onUp);
       globe.destroy();
     };
   }, [isMobile]);
@@ -473,6 +502,8 @@ export function TacticalGlobe() {
           left: "50%",
           top: globePos,
           transform: "translate(-50%, -50%)",
+          pointerEvents: autoRotate ? "none" : "auto",
+          cursor: autoRotate ? "default" : "grab",
         }}
       />
 
@@ -549,6 +580,53 @@ export function TacticalGlobe() {
           pointerEvents: "none",
         }}
       />
+
+      {/* ── Rotation toggle button ── */}
+      <button
+        onClick={() => {
+          const next = !autoRotate;
+          setAutoRotate(next);
+          autoRotateRef.current = next;
+        }}
+        style={{
+          position: "absolute",
+          left: "calc(50% - min(375px, 46vw) + 16px)",
+          bottom: 24,
+          zIndex: 25,
+          pointerEvents: "auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          background: "rgba(11, 20, 34, 0.85)",
+          border: "1px solid rgba(221,140,51,0.25)",
+          borderRadius: 6,
+          padding: "5px 10px",
+          cursor: "pointer",
+          fontFamily: "monospace",
+          fontSize: 10,
+          color: "rgba(221,140,51,0.7)",
+          letterSpacing: 0.5,
+          transition: "border-color 0.2s, color 0.2s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "rgba(221,140,51,0.5)";
+          e.currentTarget.style.color = "#dd8c33";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "rgba(221,140,51,0.25)";
+          e.currentTarget.style.color = "rgba(221,140,51,0.7)";
+        }}
+        aria-label={autoRotate ? "Pause rotation" : "Resume rotation"}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {autoRotate ? (
+            <><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></>
+          ) : (
+            <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
+          )}
+        </svg>
+        {autoRotate ? "DRAG MODE" : "AUTO SPIN"}
+      </button>
 
       <style>{`
         @keyframes radarSweep {
