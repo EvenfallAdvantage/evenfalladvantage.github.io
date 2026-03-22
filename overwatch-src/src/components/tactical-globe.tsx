@@ -434,40 +434,11 @@ export function TacticalGlobe() {
       markers: [],
     });
 
-    const RADAR_PERIOD = 6000; // ms, must match CSS animation
+    const cityMarkers = CITIES.map((loc) => ({ location: loc, size: 0.018 }));
 
     function animate() {
       phi += 0.003;
       phiRef.current = phi;
-
-      // Radar angle (CCW, in radians from 12-o'clock)
-      const now = performance.now();
-      const radarAngle = -((now % RADAR_PERIOD) / RADAR_PERIOD) * 2 * Math.PI;
-
-      // Build city markers with radar-synced pulse
-      const cityMarkers = CITIES.map((loc) => {
-        const latR = (loc[0] * Math.PI) / 180;
-        const lngR = (loc[1] * Math.PI) / 180;
-        const x3 = Math.cos(latR) * Math.sin(lngR + phi);
-        const y3 = Math.sin(latR);
-        const z3 = Math.cos(latR) * Math.cos(lngR + phi);
-        const cosT = Math.cos(0.45);
-        const sinT = Math.sin(0.45);
-        const y3r = y3 * cosT - z3 * sinT;
-        const z3r = y3 * sinT + z3 * cosT;
-        if (z3r < 0) return { location: loc, size: 0 };
-
-        // Screen angle of this city from globe center
-        const cityAngle = Math.atan2(-y3r, x3);
-        // Angular distance from radar sweep (trailing)
-        let diff = radarAngle - cityAngle;
-        diff = ((diff % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-        // Pulse: bright right after radar passes, fade over ~60°
-        const pulse = diff < 1.0 ? 1.0 - diff / 1.0 : 0;
-        const baseSize = 0.015;
-        return { location: loc, size: baseSize + pulse * 0.03 };
-      });
-
       globe.update({ phi, markers: cityMarkers });
       rafId = requestAnimationFrame(animate);
     }
