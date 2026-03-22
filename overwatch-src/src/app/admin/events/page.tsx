@@ -532,7 +532,7 @@ export default function AdminEventsPage() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Flag className="h-5 w-5 sm:h-6 sm:w-6" /> OPERATIONS</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Flag className="h-5 w-5 sm:h-6 sm:w-6" /> PLANNING</h1>
             <p className="text-xs sm:text-sm text-muted-foreground">Plan and manage security operations</p>
           </div>
           <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>

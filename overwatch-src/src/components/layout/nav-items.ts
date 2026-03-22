@@ -21,7 +21,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: "Watch Log", href: "/timeclock", icon: "Clock" },
       { title: "Patrols", href: "/patrols", icon: "Footprints" },
       { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
-      { title: "Deployments", href: "/schedule", icon: "CalendarDays" },
+      { title: "Operations", href: "/schedule", icon: "CalendarDays" },
     ],
   },
   {
@@ -57,7 +57,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Command",
     items: [
       {
-        title: "Operations",
+        title: "Planning",
         href: "/admin/events",
         icon: "Flag",
         roles: ["owner", "admin", "manager"],

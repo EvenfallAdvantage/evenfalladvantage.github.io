@@ -258,7 +258,7 @@ export default function SchedulePage() {
     <>
       <div className="space-y-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarDays className="h-5 w-5 sm:h-6 sm:w-6" /> DEPLOYMENTS</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarDays className="h-5 w-5 sm:h-6 sm:w-6" /> OPERATIONS</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mb-4">Your assigned shifts, operations, and equipment</p>
           <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
             <button onClick={() => setTab("schedule")}

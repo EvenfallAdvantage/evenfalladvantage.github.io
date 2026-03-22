@@ -36,7 +36,6 @@ import {
   ChevronRight,
   ChevronDown,
   Bell,
-  User,
   Building2,
   Plus,
   MessageCircle,
@@ -205,14 +204,6 @@ export default function MorePage() {
           >
             <Bell className="h-[18px] w-[18px] text-muted-foreground" />
             <span className="flex-1">Notifications</span>
-            <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-          </Link>
-          <Link
-            href="/profile"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
-          >
-            <User className="h-[18px] w-[18px] text-muted-foreground" />
-            <span className="flex-1">My Profile</span>
             <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
           </Link>
           {hasMinRole(userRole as CompanyRole, "admin") && (
