@@ -42,6 +42,30 @@ function computeNOAA(now: number): SatData[] {
   });
 }
 
+/* ── Major cities for pulsating markers ── */
+const CITIES: [number, number][] = [
+  [40.71, -74.01],   // New York
+  [51.51, -0.13],    // London
+  [35.68, 139.69],   // Tokyo
+  [48.86, 2.35],     // Paris
+  [-33.87, 151.21],  // Sydney
+  [55.76, 37.62],    // Moscow
+  [39.91, 116.39],   // Beijing
+  [28.61, 77.21],    // New Delhi
+  [-23.55, -46.63],  // São Paulo
+  [30.04, 31.24],    // Cairo
+  [37.77, -122.42],  // San Francisco
+  [1.35, 103.82],    // Singapore
+  [19.43, -99.13],   // Mexico City
+  [-1.29, 36.82],    // Nairobi
+  [25.20, 55.27],    // Dubai
+  [41.01, 28.98],    // Istanbul
+  [34.05, -118.24],  // Los Angeles
+  [22.32, 114.17],   // Hong Kong
+  [52.52, 13.41],    // Berlin
+  [-34.60, -58.38],  // Buenos Aires
+];
+
 async function fetchISS(): Promise<SatData | null> {
   try {
     const r = await fetch(`https://api.wheretheiss.at/v1/satellites/${ISS_ID}`);
@@ -410,10 +434,41 @@ export function TacticalGlobe() {
       markers: [],
     });
 
+    const RADAR_PERIOD = 6000; // ms, must match CSS animation
+
     function animate() {
       phi += 0.003;
       phiRef.current = phi;
-      globe.update({ phi, markers: [] });
+
+      // Radar angle (CCW, in radians from 12-o'clock)
+      const now = performance.now();
+      const radarAngle = -((now % RADAR_PERIOD) / RADAR_PERIOD) * 2 * Math.PI;
+
+      // Build city markers with radar-synced pulse
+      const cityMarkers = CITIES.map((loc) => {
+        const latR = (loc[0] * Math.PI) / 180;
+        const lngR = (loc[1] * Math.PI) / 180;
+        const x3 = Math.cos(latR) * Math.sin(lngR + phi);
+        const y3 = Math.sin(latR);
+        const z3 = Math.cos(latR) * Math.cos(lngR + phi);
+        const cosT = Math.cos(0.45);
+        const sinT = Math.sin(0.45);
+        const y3r = y3 * cosT - z3 * sinT;
+        const z3r = y3 * sinT + z3 * cosT;
+        if (z3r < 0) return { location: loc, size: 0 };
+
+        // Screen angle of this city from globe center
+        const cityAngle = Math.atan2(-y3r, x3);
+        // Angular distance from radar sweep (trailing)
+        let diff = radarAngle - cityAngle;
+        diff = ((diff % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        // Pulse: bright right after radar passes, fade over ~60°
+        const pulse = diff < 1.0 ? 1.0 - diff / 1.0 : 0;
+        const baseSize = 0.015;
+        return { location: loc, size: baseSize + pulse * 0.03 };
+      });
+
+      globe.update({ phi, markers: cityMarkers });
       rafId = requestAnimationFrame(animate);
     }
     rafId = requestAnimationFrame(animate);
@@ -557,7 +612,7 @@ function SatelliteOverlay({
       const h = el.offsetHeight;
       const cx = w / 2;
       const cy = h / 2;
-      const radius = w * 0.44;
+      const radius = w * 0.40;
       const currentPhi = phi.current ?? 0;
 
       const next: Record<number, { x: number; y: number; visible: boolean; opacity: number }> = {};
