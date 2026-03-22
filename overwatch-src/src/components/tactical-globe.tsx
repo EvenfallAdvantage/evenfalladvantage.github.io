@@ -455,7 +455,7 @@ export function TacticalGlobe() {
   if (isMobile) return null;
 
   // Compute screen positions for clickable markers
-  const globePos = "50%";
+  const globePos = "calc(50% + 40px)";
   const globeStyle = {
     width: "min(750px, 92vw)",
     height: "min(750px, 92vw)",
