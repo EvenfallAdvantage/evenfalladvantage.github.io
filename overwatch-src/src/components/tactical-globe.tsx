@@ -583,7 +583,7 @@ function SatelliteOverlay({
       const h = el.offsetHeight;
       const cx = w / 2;
       const cy = h / 2;
-      const radius = w * 0.40;
+      const radius = w * 0.47;
       const currentPhi = phi.current ?? 0;
 
       const next: Record<number, { x: number; y: number; visible: boolean; opacity: number }> = {};
