@@ -327,11 +327,11 @@ function latLngToScreen(
   const y3r = y3 * cosT - z3 * sinT;
   const z3r = y3 * sinT + z3 * cosT;
   // Smooth fade near edge instead of hard cutoff
-  const edgeFade = z3r < 0.15 ? Math.max(0, (z3r + 0.05) / 0.2) : 1;
+  const edgeFade = z3r < 0.2 ? Math.max(0, z3r / 0.2) : 1;
   return {
     x: cx + x3 * radius,
     y: cy - y3r * radius,
-    visible: z3r > -0.05,
+    visible: z3r > 0,
     opacity: edgeFade,
   };
 }
@@ -520,7 +520,7 @@ export function TacticalGlobe() {
       <style>{`
         @keyframes radarSweep {
           from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
+          to   { transform: rotate(-360deg); }
         }
       `}</style>
     </div>
@@ -557,7 +557,7 @@ function SatelliteOverlay({
       const h = el.offsetHeight;
       const cx = w / 2;
       const cy = h / 2;
-      const radius = w * 0.5;
+      const radius = w * 0.44;
       const currentPhi = phi.current ?? 0;
 
       const next: Record<number, { x: number; y: number; visible: boolean; opacity: number }> = {};
