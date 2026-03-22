@@ -315,7 +315,7 @@ function SatPopup({ sat, onClose, flipBelow }: { sat: SatData; onClose: () => vo
 function latLngToScreen(
   lat: number, lng: number, phi: number, theta: number,
   cx: number, cy: number, radius: number
-): { x: number; y: number; visible: boolean } {
+): { x: number; y: number; visible: boolean; opacity: number } {
   const latR = (lat * Math.PI) / 180;
   const lngR = (lng * Math.PI) / 180;
   const x3 = Math.cos(latR) * Math.sin(lngR + phi);
@@ -326,10 +326,13 @@ function latLngToScreen(
   const sinT = Math.sin(theta);
   const y3r = y3 * cosT - z3 * sinT;
   const z3r = y3 * sinT + z3 * cosT;
+  // Smooth fade near edge instead of hard cutoff
+  const edgeFade = z3r < 0.15 ? Math.max(0, (z3r + 0.05) / 0.2) : 1;
   return {
     x: cx + x3 * radius,
     y: cy - y3r * radius,
-    visible: z3r > 0.05,
+    visible: z3r > -0.05,
+    opacity: edgeFade,
   };
 }
 
@@ -442,7 +445,7 @@ export function TacticalGlobe() {
         }}
       />
 
-      {/* ── Radar Sweep ── */}
+      {/* ── Digital Radar ── */}
       <div
         style={{
           ...globeStyle,
@@ -455,12 +458,40 @@ export function TacticalGlobe() {
           pointerEvents: "none",
         }}
       >
+        {/* Concentric range rings */}
+        {[0.2, 0.4, 0.6, 0.8].map((r) => (
+          <div
+            key={r}
+            style={{
+              position: "absolute",
+              top: `${(1 - r) * 50}%`,
+              left: `${(1 - r) * 50}%`,
+              width: `${r * 100}%`,
+              height: `${r * 100}%`,
+              borderRadius: "50%",
+              border: "1px solid rgba(221,140,51,0.08)",
+            }}
+          />
+        ))}
+        {/* Crosshair lines */}
+        <div style={{ position: "absolute", top: "50%", left: 0, width: "100%", height: 1, background: "rgba(221,140,51,0.06)" }} />
+        <div style={{ position: "absolute", left: "50%", top: 0, height: "100%", width: 1, background: "rgba(221,140,51,0.06)" }} />
+        {/* Sweep arm */}
         <div
           style={{
             position: "absolute",
             inset: 0,
-            animation: "radarSweep 8s linear infinite",
-            background: "conic-gradient(from 0deg, transparent 0deg, rgba(221,140,51,0.06) 20deg, transparent 60deg)",
+            animation: "radarSweep 6s linear infinite",
+            background: "conic-gradient(from 0deg, transparent 0deg, rgba(221,140,51,0.18) 5deg, rgba(221,140,51,0.08) 30deg, transparent 55deg)",
+          }}
+        />
+        {/* Bright leading edge */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            animation: "radarSweep 6s linear infinite",
+            background: "conic-gradient(from 0deg, transparent 0deg, rgba(221,140,51,0.5) 0.5deg, rgba(221,140,51,0.15) 2deg, transparent 4deg)",
           }}
         />
       </div>
@@ -509,7 +540,7 @@ function SatelliteOverlay({
   globeStyle: Record<string, string>;
 }) {
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [positions, setPositions] = useState<Record<number, { x: number; y: number; visible: boolean }>>({});
+  const [positions, setPositions] = useState<Record<number, { x: number; y: number; visible: boolean; opacity: number }>>({});
 
   useEffect(() => {
     if (!satellites.length) return;
@@ -525,7 +556,7 @@ function SatelliteOverlay({
       const radius = w * 0.5;
       const currentPhi = phi.current ?? 0;
 
-      const next: Record<number, { x: number; y: number; visible: boolean }> = {};
+      const next: Record<number, { x: number; y: number; visible: boolean; opacity: number }> = {};
       for (const s of satellites) {
         next[s.id] = latLngToScreen(s.latitude, s.longitude, currentPhi, 0.45, cx, cy, radius);
       }
@@ -564,8 +595,10 @@ function SatelliteOverlay({
               top: pos.y,
               transform: "translate(-50%, -50%)",
               zIndex: isSelected ? 40 : 20,
-              pointerEvents: "auto",
+              pointerEvents: pos.opacity > 0.3 ? "auto" : "none",
               cursor: "pointer",
+              opacity: pos.opacity,
+              transition: "opacity 0.3s ease",
             }}
             onClick={(e) => {
               e.stopPropagation();
