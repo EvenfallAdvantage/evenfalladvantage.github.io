@@ -370,6 +370,7 @@ export function TacticalGlobe() {
   const [satellites, setSatellites] = useState<SatData[]>([]);
   const [selectedSat, setSelectedSat] = useState<number | null>(null);
   const phiRef = useRef(0);
+  const orbitPhiRef = useRef(0);
   const [autoRotate, setAutoRotate] = useState(true);
   const autoRotateRef = useRef(true);
   const isDraggingRef = useRef(false);
@@ -444,7 +445,10 @@ export function TacticalGlobe() {
 
     const cityMarkers = CITIES.map((c) => ({ location: [c.lat, c.lng] as [number, number], size: 0.018 }));
 
+    let orbitPhi = 0;
     function animate() {
+      orbitPhi += 0.003;
+      orbitPhiRef.current = orbitPhi;
       if (autoRotateRef.current) phi += 0.003;
       phiRef.current = phi;
       globe.update({ phi, markers: cityMarkers });
@@ -558,18 +562,21 @@ export function TacticalGlobe() {
         />
       </div>
 
-      {/* ── City hover overlay ── */}
-      <CityOverlay phi={phiRef} globeStyle={globeStyle} globeTop={globePos} />
+      {/* Disable overlays in drag mode so canvas receives pointer events */}
+      <div style={{ pointerEvents: autoRotate ? "auto" : "none" }}>
+        {/* ── City hover overlay ── */}
+        <CityOverlay phi={orbitPhiRef} globeStyle={globeStyle} globeTop={globePos} />
 
-      {/* ── Clickable satellite overlay ── */}
-      <SatelliteOverlay
-        satellites={satellites}
-        phi={phiRef}
-        selectedSat={selectedSat}
-        onSelect={setSelectedSat}
-        globeStyle={globeStyle}
-        globeTop={globePos}
-      />
+        {/* ── Clickable satellite overlay ── */}
+        <SatelliteOverlay
+          satellites={satellites}
+          phi={orbitPhiRef}
+          selectedSat={selectedSat}
+          onSelect={setSelectedSat}
+          globeStyle={globeStyle}
+          globeTop={globePos}
+        />
+      </div>
 
 
       {/* Vignette fade around edges */}
@@ -590,22 +597,21 @@ export function TacticalGlobe() {
         }}
         style={{
           position: "absolute",
-          left: "calc(50% - min(375px, 46vw) + 16px)",
-          bottom: 24,
+          left: "calc(50% - min(375px, 46vw) + 12px)",
+          bottom: 20,
           zIndex: 25,
           pointerEvents: "auto",
           display: "flex",
           alignItems: "center",
-          gap: 5,
+          justifyContent: "center",
+          width: 28,
+          height: 28,
           background: "rgba(11, 20, 34, 0.85)",
           border: "1px solid rgba(221,140,51,0.25)",
           borderRadius: 6,
-          padding: "5px 10px",
+          padding: 0,
           cursor: "pointer",
-          fontFamily: "monospace",
-          fontSize: 10,
           color: "rgba(221,140,51,0.7)",
-          letterSpacing: 0.5,
           transition: "border-color 0.2s, color 0.2s",
         }}
         onMouseEnter={(e) => {
@@ -616,16 +622,15 @@ export function TacticalGlobe() {
           e.currentTarget.style.borderColor = "rgba(221,140,51,0.25)";
           e.currentTarget.style.color = "rgba(221,140,51,0.7)";
         }}
-        aria-label={autoRotate ? "Pause rotation" : "Resume rotation"}
+        aria-label={autoRotate ? "Enable drag mode" : "Resume auto-rotation"}
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           {autoRotate ? (
             <><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></>
           ) : (
             <polygon points="5,3 19,12 5,21" fill="currentColor" stroke="none" />
           )}
         </svg>
-        {autoRotate ? "DRAG MODE" : "AUTO SPIN"}
       </button>
 
       <style>{`
