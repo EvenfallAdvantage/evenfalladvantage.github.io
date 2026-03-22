@@ -1013,7 +1013,7 @@ export default function AdminEventsPage() {
               const hasGuide = !!ev.ops_guide && Object.values(ev.ops_guide).some((v: unknown) => typeof v === "string" && v.length > 0);
 
               return (
-                <div key={ev.id} className="rounded-xl border border-border/50 bg-card overflow-hidden">
+                <div key={ev.id} className="rounded-xl border border-border/50 bg-card overflow-visible">
                   {/* Op Header */}
                   <div className="px-3 sm:px-4 py-3 cursor-pointer hover:bg-accent/30 transition-colors" onClick={() => toggleExpand(ev.id)}>
                     <div className="flex items-center gap-3">
