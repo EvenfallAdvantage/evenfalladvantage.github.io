@@ -1,9 +1,9 @@
 1:"$Sreact.fragment"
 2:I[47257,["/overwatch/_next/static/chunks/ff1a16fafef87110.js","/overwatch/_next/static/chunks/d2be314c3ece3fbe.js"],"ClientPageRoot"]
-3:I[45500,["/overwatch/_next/static/chunks/b25ed5ca3a75ed23.js","/overwatch/_next/static/chunks/59a527911f37edda.js","/overwatch/_next/static/chunks/3a038bab6503f274.js","/overwatch/_next/static/chunks/fbab8f1a69a7f961.js","/overwatch/_next/static/chunks/955179dfb80694e5.js","/overwatch/_next/static/chunks/8119129eda10ada8.js","/overwatch/_next/static/chunks/73c47709d034c9dc.js","/overwatch/_next/static/chunks/1867e941533d62af.js","/overwatch/_next/static/chunks/906ab773239e72a5.js"],"default"]
+3:I[45500,["/overwatch/_next/static/chunks/b25ed5ca3a75ed23.js","/overwatch/_next/static/chunks/59a527911f37edda.js","/overwatch/_next/static/chunks/3a038bab6503f274.js","/overwatch/_next/static/chunks/fbab8f1a69a7f961.js","/overwatch/_next/static/chunks/955179dfb80694e5.js","/overwatch/_next/static/chunks/8119129eda10ada8.js","/overwatch/_next/static/chunks/73c47709d034c9dc.js","/overwatch/_next/static/chunks/6171d945b8b710ad.js","/overwatch/_next/static/chunks/906ab773239e72a5.js"],"default"]
 6:I[97367,["/overwatch/_next/static/chunks/ff1a16fafef87110.js","/overwatch/_next/static/chunks/d2be314c3ece3fbe.js"],"OutletBoundary"]
 7:"$Sreact.suspense"
-0:{"buildId":"IRAsNOQW95VrfGDRfZSyT","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/overwatch/_next/static/chunks/1867e941533d62af.js","async":true}],["$","script","script-1",{"src":"/overwatch/_next/static/chunks/906ab773239e72a5.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
+0:{"buildId":"nQzSScZaPWdRspkx5Bvpr","rsc":["$","$1","c",{"children":[["$","$L2",null,{"Component":"$3","serverProvidedParams":{"searchParams":{},"params":{},"promises":["$@4","$@5"]}}],[["$","script","script-0",{"src":"/overwatch/_next/static/chunks/6171d945b8b710ad.js","async":true}],["$","script","script-1",{"src":"/overwatch/_next/static/chunks/906ab773239e72a5.js","async":true}]],["$","$L6",null,{"children":["$","$7",null,{"name":"Next.MetadataOutlet","children":"$@8"}]}]]}],"loading":null,"isPartial":false}
 4:{}
 5:{}
 8:null

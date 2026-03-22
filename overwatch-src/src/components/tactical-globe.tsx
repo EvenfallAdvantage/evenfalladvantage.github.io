@@ -43,27 +43,28 @@ function computeNOAA(now: number): SatData[] {
 }
 
 /* ── Major cities for pulsating markers ── */
-const CITIES: [number, number][] = [
-  [40.71, -74.01],   // New York
-  [51.51, -0.13],    // London
-  [35.68, 139.69],   // Tokyo
-  [48.86, 2.35],     // Paris
-  [-33.87, 151.21],  // Sydney
-  [55.76, 37.62],    // Moscow
-  [39.91, 116.39],   // Beijing
-  [28.61, 77.21],    // New Delhi
-  [-23.55, -46.63],  // São Paulo
-  [30.04, 31.24],    // Cairo
-  [37.77, -122.42],  // San Francisco
-  [1.35, 103.82],    // Singapore
-  [19.43, -99.13],   // Mexico City
-  [-1.29, 36.82],    // Nairobi
-  [25.20, 55.27],    // Dubai
-  [41.01, 28.98],    // Istanbul
-  [34.05, -118.24],  // Los Angeles
-  [22.32, 114.17],   // Hong Kong
-  [52.52, 13.41],    // Berlin
-  [-34.60, -58.38],  // Buenos Aires
+interface CityData { name: string; lat: number; lng: number; }
+const CITIES: CityData[] = [
+  { name: "New York", lat: 40.71, lng: -74.01 },
+  { name: "London", lat: 51.51, lng: -0.13 },
+  { name: "Tokyo", lat: 35.68, lng: 139.69 },
+  { name: "Paris", lat: 48.86, lng: 2.35 },
+  { name: "Sydney", lat: -33.87, lng: 151.21 },
+  { name: "Moscow", lat: 55.76, lng: 37.62 },
+  { name: "Beijing", lat: 39.91, lng: 116.39 },
+  { name: "New Delhi", lat: 28.61, lng: 77.21 },
+  { name: "São Paulo", lat: -23.55, lng: -46.63 },
+  { name: "Cairo", lat: 30.04, lng: 31.24 },
+  { name: "San Francisco", lat: 37.77, lng: -122.42 },
+  { name: "Singapore", lat: 1.35, lng: 103.82 },
+  { name: "Mexico City", lat: 19.43, lng: -99.13 },
+  { name: "Nairobi", lat: -1.29, lng: 36.82 },
+  { name: "Dubai", lat: 25.20, lng: 55.27 },
+  { name: "Istanbul", lat: 41.01, lng: 28.98 },
+  { name: "Los Angeles", lat: 34.05, lng: -118.24 },
+  { name: "Hong Kong", lat: 22.32, lng: 114.17 },
+  { name: "Berlin", lat: 52.52, lng: 13.41 },
+  { name: "Buenos Aires", lat: -34.60, lng: -58.38 },
 ];
 
 async function fetchISS(): Promise<SatData | null> {
@@ -434,7 +435,7 @@ export function TacticalGlobe() {
       markers: [],
     });
 
-    const cityMarkers = CITIES.map((loc) => ({ location: loc, size: 0.018 }));
+    const cityMarkers = CITIES.map((c) => ({ location: [c.lat, c.lng] as [number, number], size: 0.018 }));
 
     function animate() {
       phi += 0.003;
@@ -522,6 +523,9 @@ export function TacticalGlobe() {
           }}
         />
       </div>
+
+      {/* ── City hover overlay ── */}
+      <CityOverlay phi={phiRef} globeStyle={globeStyle} globeTop={globePos} />
 
       {/* ── Clickable satellite overlay ── */}
       <SatelliteOverlay
@@ -637,6 +641,104 @@ function SatelliteOverlay({
           >
             {isISS ? <CssISS scale={1.0} rotate={5} /> : <CssSatellite scale={0.8} rotate={-8} />}
             {isSelected && <SatPopup sat={sat} onClose={() => onSelect(null)} flipBelow={pos.y < 120} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── City hover overlay ── */
+function CityOverlay({
+  phi,
+  globeStyle,
+  globeTop,
+}: {
+  phi: React.RefObject<number>;
+  globeStyle: Record<string, string>;
+  globeTop: string;
+}) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const [positions, setPositions] = useState<Record<string, { x: number; y: number; visible: boolean; opacity: number }>>({});
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  useEffect(() => {
+    let rafId: number;
+    function update() {
+      const el = overlayRef.current;
+      if (!el) { rafId = requestAnimationFrame(update); return; }
+      const w = el.offsetWidth;
+      const cx = w / 2;
+      const cy = w / 2;
+      const radius = w * 0.40;
+      const currentPhi = phi.current ?? 0;
+      const next: Record<string, { x: number; y: number; visible: boolean; opacity: number }> = {};
+      for (const c of CITIES) {
+        next[c.name] = latLngToScreen(c.lat, c.lng, currentPhi, 0.45, cx, cy, radius);
+      }
+      setPositions(next);
+      rafId = requestAnimationFrame(update);
+    }
+    rafId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(rafId);
+  }, [phi]);
+
+  return (
+    <div
+      ref={overlayRef}
+      style={{
+        ...globeStyle,
+        position: "absolute",
+        left: "50%",
+        top: globeTop,
+        transform: "translate(-50%, -50%)",
+        pointerEvents: "none",
+      }}
+    >
+      {CITIES.map((city) => {
+        const pos = positions[city.name];
+        if (!pos || !pos.visible || pos.opacity < 0.2) return null;
+        return (
+          <div
+            key={city.name}
+            onMouseEnter={() => setHovered(city.name)}
+            onMouseLeave={() => setHovered(null)}
+            style={{
+              position: "absolute",
+              left: pos.x,
+              top: pos.y,
+              transform: "translate(-50%, -50%)",
+              width: 16,
+              height: 16,
+              pointerEvents: "auto",
+              cursor: "default",
+              opacity: pos.opacity,
+            }}
+          >
+            {hovered === city.name && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  bottom: "calc(100% + 4px)",
+                  transform: "translateX(-50%)",
+                  background: "rgba(11, 20, 34, 0.9)",
+                  border: "1px solid rgba(221,140,51,0.35)",
+                  borderRadius: 6,
+                  padding: "3px 8px",
+                  whiteSpace: "nowrap",
+                  fontFamily: "monospace",
+                  fontSize: 10,
+                  color: "#dd8c33",
+                  letterSpacing: 0.5,
+                  pointerEvents: "none",
+                  zIndex: 30,
+                  boxShadow: "0 0 12px rgba(221,140,51,0.1)",
+                }}
+              >
+                {city.name.toUpperCase()}
+              </div>
+            )}
           </div>
         );
       })}
