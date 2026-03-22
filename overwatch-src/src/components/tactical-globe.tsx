@@ -42,6 +42,29 @@ function computeNOAA(now: number): SatData[] {
   });
 }
 
+/* ── ISS orbital elements for orbit path computation ── */
+const ISS_ORBIT = { id: ISS_ID, name: "ISS", alt: 408, incl: 51.6, period: 92.68, phase: 0 };
+const ALL_ORBITS = [...NOAA_SATS, ISS_ORBIT];
+
+function computeOrbitalPos(orb: { incl: number; period: number; phase: number }, timestamp: number): { lat: number; lng: number } {
+  const EARTH_ROT = 360 / 86400;
+  const periodSec = orb.period * 60;
+  const frac = ((timestamp / 1000) % periodSec) / periodSec;
+  const angle = 2 * Math.PI * frac + (orb.phase * Math.PI) / 180;
+  const lat = Math.min(90, Math.max(-90, orb.incl * Math.sin(angle)));
+  const lng = ((orb.phase + -360 * frac - EARTH_ROT * (timestamp / 1000)) % 360 + 540) % 360 - 180;
+  return { lat, lng };
+}
+
+function computeOrbitArc(orb: typeof ALL_ORBITS[number], now: number, steps = 120): { lat: number; lng: number }[] {
+  const periodMs = orb.period * 60 * 1000;
+  const points: { lat: number; lng: number }[] = [];
+  for (let i = 0; i < steps; i++) {
+    points.push(computeOrbitalPos(orb, now + (periodMs * i) / steps));
+  }
+  return points;
+}
+
 /* ── Major cities for pulsating markers ── */
 interface CityData { name: string; lat: number; lng: number; }
 const CITIES: CityData[] = [
@@ -367,10 +390,9 @@ function latLngToScreen(
 export function TacticalGlobe() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [satellites, setSatellites] = useState<SatData[]>([]);
+  const issRef = useRef<SatData | null>(null);
   const [selectedSat, setSelectedSat] = useState<number | null>(null);
   const phiRef = useRef(0);
-  const orbitPhiRef = useRef(0);
   const [autoRotate, setAutoRotate] = useState(true);
   const autoRotateRef = useRef(true);
   const isDraggingRef = useRef(false);
@@ -387,29 +409,16 @@ export function TacticalGlobe() {
     () => false,
   );
 
-  // Fetch ISS from API + compute NOAA positions from orbital elements
+  // Fetch ISS position from API every 5s
   useEffect(() => {
     if (isMobile) return;
     let cancelled = false;
-
-    function updateAll(iss: SatData | null) {
-      const noaa = computeNOAA(Date.now());
-      const all = iss ? [iss, ...noaa] : noaa;
-      if (!cancelled) setSatellites(all);
-    }
-
     async function load() {
       const iss = await fetchISS();
-      updateAll(iss);
+      if (!cancelled && iss) issRef.current = iss;
     }
     load();
-
-    // Refresh ISS from API every 5s, recompute NOAA positions each tick
-    const interval = setInterval(async () => {
-      const iss = await fetchISS();
-      updateAll(iss);
-    }, 5000);
-
+    const interval = setInterval(load, 5000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [isMobile]);
 
@@ -445,10 +454,7 @@ export function TacticalGlobe() {
 
     const cityMarkers = CITIES.map((c) => ({ location: [c.lat, c.lng] as [number, number], size: 0.018 }));
 
-    let orbitPhi = 0;
     function animate() {
-      orbitPhi += 0.003;
-      orbitPhiRef.current = orbitPhi;
       if (autoRotateRef.current) phi += 0.003;
       phiRef.current = phi;
       globe.update({ phi, markers: cityMarkers });
@@ -566,8 +572,8 @@ export function TacticalGlobe() {
       <div style={{ pointerEvents: autoRotate ? "auto" : "none" }}>
         {/* ── Clickable satellite overlay ── */}
         <SatelliteOverlay
-          satellites={satellites}
-          phi={orbitPhiRef}
+          issRef={issRef}
+          phi={phiRef}
           selectedSat={selectedSat}
           onSelect={setSelectedSat}
           globeStyle={globeStyle}
@@ -640,16 +646,16 @@ export function TacticalGlobe() {
   );
 }
 
-/* ── Satellite overlay with clickable markers + popups ── */
+/* ── Satellite overlay with per-frame orbital mechanics, orbit arcs, and clickable markers ── */
 function SatelliteOverlay({
-  satellites,
+  issRef,
   phi,
   selectedSat,
   onSelect,
   globeStyle,
   globeTop,
 }: {
-  satellites: SatData[];
+  issRef: React.RefObject<SatData | null>;
   phi: React.RefObject<number>;
   selectedSat: number | null;
   onSelect: (id: number | null) => void;
@@ -657,32 +663,63 @@ function SatelliteOverlay({
   globeTop: string;
 }) {
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [positions, setPositions] = useState<Record<number, { x: number; y: number; visible: boolean; opacity: number }>>({});
+  const [renderState, setRenderState] = useState<{
+    positions: Record<number, { x: number; y: number; visible: boolean; opacity: number }>;
+    arcs: { id: number; d: string }[];
+    satellites: SatData[];
+  }>({ positions: {}, arcs: [], satellites: [] });
 
   useEffect(() => {
-    if (!satellites.length) return;
     let rafId: number;
 
     function update() {
       const el = overlayRef.current;
       if (!el) { rafId = requestAnimationFrame(update); return; }
       const w = el.offsetWidth;
-      const h = el.offsetHeight;
       const cx = w / 2;
-      const cy = h / 2;
-      const radius = w * 0.47;
+      const cy = w / 2;
+      const satRadius = w * 0.47;
+      const arcRadius = w * 0.40;
       const currentPhi = phi.current ?? 0;
+      const now = Date.now();
 
-      const next: Record<number, { x: number; y: number; visible: boolean; opacity: number }> = {};
-      for (const s of satellites) {
-        next[s.id] = latLngToScreen(s.latitude, s.longitude, currentPhi, 0.45, cx, cy, radius, -0.52);
+      // Compute fresh NOAA positions every frame from orbital mechanics
+      const noaa = computeNOAA(now);
+      const iss = issRef.current;
+      const allSats: SatData[] = iss ? [iss, ...noaa] : [...noaa];
+
+      // Project satellite positions
+      const positions: Record<number, { x: number; y: number; visible: boolean; opacity: number }> = {};
+      for (const s of allSats) {
+        positions[s.id] = latLngToScreen(s.latitude, s.longitude, currentPhi, 0.45, cx, cy, satRadius, -0.52);
       }
-      setPositions(next);
+
+      // Compute orbit arc SVG paths
+      const arcs: { id: number; d: string }[] = [];
+      for (const orb of ALL_ORBITS) {
+        const points = computeOrbitArc(orb, now);
+        let d = "";
+        let wasVisible = false;
+        for (const p of points) {
+          const proj = latLngToScreen(p.lat, p.lng, currentPhi, 0.45, cx, cy, arcRadius, 0);
+          if (proj.visible && proj.opacity > 0.05) {
+            d += wasVisible ? `L${proj.x.toFixed(1)},${proj.y.toFixed(1)}` : `M${proj.x.toFixed(1)},${proj.y.toFixed(1)}`;
+            wasVisible = true;
+          } else {
+            wasVisible = false;
+          }
+        }
+        if (d) arcs.push({ id: orb.id, d });
+      }
+
+      setRenderState({ positions, arcs, satellites: allSats });
       rafId = requestAnimationFrame(update);
     }
     rafId = requestAnimationFrame(update);
     return () => cancelAnimationFrame(rafId);
-  }, [satellites, phi]);
+  }, [issRef, phi]);
+
+  const { positions, arcs, satellites } = renderState;
 
   return (
     <div
@@ -697,6 +734,21 @@ function SatelliteOverlay({
         pointerEvents: "none",
       }}
     >
+      {/* Orbit arc paths */}
+      <svg style={{ position: "absolute", inset: 0, overflow: "visible", pointerEvents: "none" }}>
+        {arcs.map((arc) => (
+          <path
+            key={arc.id}
+            d={arc.d}
+            fill="none"
+            stroke={arc.id === ISS_ID ? "rgba(255,255,255,0.12)" : "rgba(221,140,51,0.12)"}
+            strokeWidth="1"
+            strokeDasharray="4 3"
+          />
+        ))}
+      </svg>
+
+      {/* Satellite markers */}
       {satellites.map((sat) => {
         const pos = positions[sat.id];
         if (!pos || !pos.visible) return null;
