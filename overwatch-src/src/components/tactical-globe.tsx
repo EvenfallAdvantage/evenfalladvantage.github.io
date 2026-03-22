@@ -660,9 +660,11 @@ function CityOverlay({
   globeTop: string;
 }) {
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number; visible: boolean; opacity: number }>>({});
+  const posRef = useRef<Record<string, { x: number; y: number; visible: boolean; opacity: number }>>({});
   const [hovered, setHovered] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
+  // Update positions in a ref (no re-renders) at RAF rate
   useEffect(() => {
     let rafId: number;
     function update() {
@@ -677,72 +679,92 @@ function CityOverlay({
       for (const c of CITIES) {
         next[c.name] = latLngToScreen(c.lat, c.lng, currentPhi, 0.45, cx, cy, radius);
       }
-      setPositions(next);
+      posRef.current = next;
       rafId = requestAnimationFrame(update);
     }
     rafId = requestAnimationFrame(update);
     return () => cancelAnimationFrame(rafId);
   }, [phi]);
 
+  const HIT_RADIUS = 18;
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = overlayRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const positions = posRef.current;
+
+    let closest: string | null = null;
+    let closestDist = HIT_RADIUS;
+    let closestPos: { x: number; y: number } | null = null;
+
+    for (const c of CITIES) {
+      const p = positions[c.name];
+      if (!p || !p.visible || p.opacity < 0.2) continue;
+      const dx = mx - p.x;
+      const dy = my - p.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = c.name;
+        closestPos = { x: p.x, y: p.y };
+      }
+    }
+
+    if (closest !== hovered) {
+      setHovered(closest);
+      setTooltipPos(closestPos);
+    } else if (closest && closestPos) {
+      setTooltipPos(closestPos);
+    }
+  }, [hovered]);
+
+  const handleMouseLeave = useCallback(() => {
+    setHovered(null);
+    setTooltipPos(null);
+  }, []);
+
   return (
     <div
       ref={overlayRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       style={{
         ...globeStyle,
         position: "absolute",
         left: "50%",
         top: globeTop,
         transform: "translate(-50%, -50%)",
-        pointerEvents: "none",
+        pointerEvents: "auto",
+        cursor: "default",
       }}
     >
-      {CITIES.map((city) => {
-        const pos = positions[city.name];
-        if (!pos || !pos.visible || pos.opacity < 0.2) return null;
-        return (
-          <div
-            key={city.name}
-            onMouseEnter={() => setHovered(city.name)}
-            onMouseLeave={() => setHovered(null)}
-            style={{
-              position: "absolute",
-              left: pos.x,
-              top: pos.y,
-              transform: "translate(-50%, -50%)",
-              width: 32,
-              height: 32,
-              pointerEvents: "auto",
-              cursor: "default",
-              opacity: pos.opacity,
-            }}
-          >
-            {hovered === city.name && (
-              <div
-                style={{
-                  position: "absolute",
-                  left: "50%",
-                  bottom: "calc(100% + 4px)",
-                  transform: "translateX(-50%)",
-                  background: "rgba(11, 20, 34, 0.9)",
-                  border: "1px solid rgba(221,140,51,0.35)",
-                  borderRadius: 6,
-                  padding: "3px 8px",
-                  whiteSpace: "nowrap",
-                  fontFamily: "monospace",
-                  fontSize: 10,
-                  color: "#dd8c33",
-                  letterSpacing: 0.5,
-                  pointerEvents: "none",
-                  zIndex: 30,
-                  boxShadow: "0 0 12px rgba(221,140,51,0.1)",
-                }}
-              >
-                {city.name.toUpperCase()}
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {hovered && tooltipPos && (
+        <div
+          style={{
+            position: "absolute",
+            left: tooltipPos.x,
+            top: tooltipPos.y - 10,
+            transform: "translate(-50%, -100%)",
+            background: "rgba(11, 20, 34, 0.92)",
+            border: "1px solid rgba(221,140,51,0.4)",
+            borderRadius: 6,
+            padding: "3px 8px",
+            whiteSpace: "nowrap",
+            fontFamily: "monospace",
+            fontSize: 10,
+            color: "#dd8c33",
+            letterSpacing: 0.5,
+            pointerEvents: "none",
+            zIndex: 30,
+            boxShadow: "0 0 12px rgba(221,140,51,0.15)",
+          }}
+        >
+          {hovered.toUpperCase()}
+        </div>
+      )}
     </div>
   );
 }
