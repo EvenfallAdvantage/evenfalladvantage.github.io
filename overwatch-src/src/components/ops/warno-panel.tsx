@@ -63,18 +63,32 @@ export default function WarnoPanel({ eventId, companyId, eventName, companyName,
           setDoc(existing);
           setData({ ...EMPTY_WARNO, ...(existing.data as Partial<WarnoData>) });
         } else if (intakeData) {
-          // Pre-fill from intake
+          // Pre-fill from merged intake (ops_guide + intake doc + event fields)
+          const loc = intakeData.location || intakeData.siteAddress || "TBD";
+          const engTypes = Array.isArray(intakeData.engagementType) ? intakeData.engagementType.join(", ") : (intakeData.engagementType || "");
+          const envNotes = intakeData.environmentNotes || "";
+          const envType = intakeData.environment || "";
+          const commChannel = intakeData.communicationChannel || "";
+          const commMethods: string[] = [];
+          if (commChannel) {
+            if (/phone|call/i.test(commChannel)) commMethods.push("Phone");
+            if (/email/i.test(commChannel)) commMethods.push("Email");
+            if (/in.person|face/i.test(commChannel)) commMethods.push("In-person");
+            if (commMethods.length === 0) commMethods.push("Phone"); // default
+          }
           setData(prev => ({
             ...prev,
-            operationalOverview: `${intakeData.clientName || "Client"} is preparing for ${eventName} at ${intakeData.siteAddress || "TBD"}. ${intakeData.environmentNotes || ""}`.trim(),
+            operationalOverview: `${intakeData.clientName || "Client"} is preparing for ${eventName} at ${loc}. ${envType ? `Environment: ${envType}. ` : ""}${envNotes}`.trim(),
             crowdSizeDensity: intakeData.estimatedAttendance || "",
-            environment: intakeData.environment || "",
-            knownConcerns: intakeData.clientIdentifiedRisks || "",
-            missionStatement: intakeData.missionStatement || `${companyName} will provide ${(intakeData.engagementType || []).join(", ") || "security services"} for ${intakeData.clientName || "client"} at ${intakeData.siteAddress || "TBD"} in order to ensure safe, controlled operations.`,
+            environment: envType,
+            knownConcerns: [intakeData.clientIdentifiedRisks, intakeData.eaRiskAssessment].filter(Boolean).join(". ") || "",
+            missionStatement: intakeData.missionStatement || `${companyName} will provide ${engTypes || "security services"} for ${intakeData.clientName || "client"} at ${loc} in order to ensure safe, controlled operations.`,
             clientPoc: intakeData.clientContact || "",
-            communicationMethod: intakeData.communicationMethod ? [intakeData.communicationMethod] : [],
+            eaPoc: intakeData.emergencyContact || "",
+            communicationMethod: commMethods.length > 0 ? commMethods : prev.communicationMethod,
             eaRole: intakeData.eaRole || [],
-            clientAuthority: `${intakeData.clientName || "Client"} retains operational authority unless otherwise specified.`,
+            clientAuthority: intakeData.onSiteAuthority || `${intakeData.clientName || "Client"} retains operational authority unless otherwise specified.`,
+            assessmentStart: intakeData.startDate ? new Date(intakeData.startDate).toLocaleDateString() : "",
           }));
         }
       } catch (err) { console.error(err); }

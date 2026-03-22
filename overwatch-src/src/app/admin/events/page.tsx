@@ -18,7 +18,7 @@ import {
   getEvents, createEvent, getEventShifts, createShift,
   getCompanyMembers, deleteEvent, deleteShift, updateEventStatus,
   assignShift, getConflictingShifts, getOperationActivity,
-  createDocument, getEventAvailability,
+  createDocument, getEventAvailability, getLatestDocument,
 } from "@/lib/supabase/db";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
 import type { IntakeData } from "@/types/operations";
@@ -349,6 +349,10 @@ export default function AdminEventsPage() {
   // Availability
   const [availability, setAvailability] = useState<OperationAvailability[]>([]);
 
+  // Merged intake data (ops_guide + intake doc)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [mergedIntake, setMergedIntake] = useState<Record<string, any> | null>(null);
+
   /* ── Data ── */
 
   const load = useCallback(async () => {
@@ -437,14 +441,27 @@ export default function AdminEventsPage() {
     setExpanded(eventId); setViewingGuide(null);
     setPosts([]); setSelectedDays(new Set()); setShowCustom(false); setShowBuilder(false);
     setShowActivity(false); setActivityItems([]); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowDocHub(false);
-    setAvailability([]);
+    setAvailability([]); setMergedIntake(null);
     try {
-      const [s, m, avail] = await Promise.all([
+      const ev = events.find((e: Event) => e.id === eventId);
+      const [s, m, avail, intakeDoc] = await Promise.all([
         getEventShifts(eventId),
         activeCompanyId ? getCompanyMembers(activeCompanyId) : Promise.resolve([]),
         getEventAvailability(eventId).catch(() => [] as OperationAvailability[]),
+        getLatestDocument(eventId, "intake").catch(() => null),
       ]);
       setShifts(s); setMembers(m); setAvailability(avail);
+      // Merge ops_guide + intake doc + event-level fields into unified object
+      const guide = ev?.ops_guide || {};
+      const intake = (intakeDoc?.data as Record<string, unknown>) || {};
+      setMergedIntake({
+        ...guide, ...intake,
+        // Event-level overrides
+        location: ev?.location || guide.siteAddress || "",
+        startDate: ev?.start_date || "",
+        endDate: ev?.end_date || "",
+        radioChannels: intake.radioChannels || guide.radioChannels || "",
+      });
     } catch { setShifts([]); }
   }
 
@@ -1127,7 +1144,7 @@ export default function AdminEventsPage() {
                           companyId={activeCompanyId}
                           eventName={ev.name}
                           companyName={companyName}
-                          intakeData={ev.ops_guide}
+                          intakeData={mergedIntake}
                           onClose={() => setShowWarno(false)}
                           onIssued={() => load()}
                         />
@@ -1149,6 +1166,9 @@ export default function AdminEventsPage() {
                         <GotwaPanel
                           eventId={ev.id}
                           companyId={activeCompanyId}
+                          eventName={ev.name}
+                          eventLocation={ev.location ?? ""}
+                          intakeData={mergedIntake}
                           onClose={() => setShowGotwa(false)}
                           onIssued={() => load()}
                         />
@@ -1181,7 +1201,7 @@ export default function AdminEventsPage() {
                           companyName={companyName}
                           companyLogo={companyLogo}
                           brandColor={brandColor}
-                          intakeData={ev.ops_guide}
+                          intakeData={mergedIntake}
                           onClose={() => setShowOpord(false)}
                           onIssued={() => load()}
                         />

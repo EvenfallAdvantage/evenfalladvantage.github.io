@@ -35,11 +35,15 @@ const EMPTY_GOTWA: GotwaData = {
 interface GotwaPanelProps {
   eventId: string;
   companyId: string;
+  eventName?: string;
+  eventLocation?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  intakeData?: Record<string, any> | null;
   onClose: () => void;
   onIssued?: () => void;
 }
 
-export default function GotwaPanel({ eventId, companyId, onClose, onIssued }: GotwaPanelProps) {
+export default function GotwaPanel({ eventId, companyId, eventName, eventLocation, intakeData, onClose, onIssued }: GotwaPanelProps) {
   const [doc, setDoc] = useState<OperationDocument | null>(null);
   const [data, setData] = useState<GotwaData>({ ...EMPTY_GOTWA });
   const [loading, setLoading] = useState(true);
@@ -53,11 +57,28 @@ export default function GotwaPanel({ eventId, companyId, onClose, onIssued }: Go
         if (existing) {
           setDoc(existing);
           setData({ ...EMPTY_GOTWA, ...(existing.data as Partial<GotwaData>) });
+        } else if (intakeData) {
+          // Pre-fill from merged intake data
+          const commChannel = intakeData.communicationChannel || "";
+          const commMethods: string[] = [];
+          if (/radio/i.test(commChannel)) commMethods.push("Radio");
+          if (/phone|call/i.test(commChannel)) commMethods.push("Phone");
+          if (commMethods.length === 0 && commChannel) commMethods.push("Radio");
+          const emergencyInfo = [intakeData.emergencyContact, intakeData.emergencyPhone].filter(Boolean).join(" — ");
+          setData(prev => ({
+            ...prev,
+            area: eventLocation || intakeData.siteAddress || "",
+            objective: eventName ? `Security operations for ${eventName}` : "",
+            communicationMethod: commMethods.length > 0 ? commMethods : prev.communicationMethod,
+            channel: intakeData.radioChannels || commChannel || "",
+            whoToNotify: emergencyInfo || intakeData.clientContact || "",
+            escalationTrigger: intakeData.escalationFlow || "",
+          }));
         }
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     })();
-  }, [eventId]);
+  }, [eventId, intakeData, eventName, eventLocation]);
 
   function upd<K extends keyof GotwaData>(field: K, value: GotwaData[K]) {
     setData(prev => ({ ...prev, [field]: value }));

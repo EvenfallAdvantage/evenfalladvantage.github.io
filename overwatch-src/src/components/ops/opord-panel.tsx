@@ -73,25 +73,70 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
           setDoc(existing);
           setData({ ...EMPTY_OPORD, ...(existing.data as Partial<OpordData>) });
         } else if (intakeData) {
+          // Build venue type from both intake venueType[] and ops_guide siteType
+          const venues: string[] = [];
+          if (Array.isArray(intakeData.venueType) && intakeData.venueType.length > 0) venues.push(...intakeData.venueType);
+          else if (intakeData.siteType) venues.push(intakeData.siteType);
+          // Build equipment from both sources
+          const equip: string[] = [];
+          if (intakeData.requiredGear) equip.push(...intakeData.requiredGear.split(",").map((s: string) => s.trim()).filter(Boolean));
+          if (intakeData.equipmentAvailable) equip.push(...intakeData.equipmentAvailable.split(",").map((s: string) => s.trim()).filter(Boolean));
+          // Build engagement description for mission
+          const engTypes = Array.isArray(intakeData.engagementType) ? intakeData.engagementType.join(", ") : (intakeData.engagementType || "");
           setData(prev => ({
             ...prev,
-            venueType: intakeData.venueType || intakeData.siteType ? [intakeData.siteType] : [],
+            venueType: venues,
             environment: intakeData.environment || "",
-            estimatedAttendance: intakeData.estimatedAttendance || intakeData.attendance || "",
+            estimatedAttendance: intakeData.estimatedAttendance || "",
             threatTypes: intakeData.threatTypes || [],
             riskLevel: intakeData.riskLevel || "",
             knownConstraints: intakeData.constraints || [],
-            missionStatement: intakeData.missionStatement || `${companyName} will provide security services for ${eventName} at ${eventLocation || "TBD"}.`,
+            missionStatement: intakeData.missionStatement || `${companyName} will provide ${engTypes || "security services"} for ${intakeData.clientName || "client"} at ${eventLocation || intakeData.siteAddress || "TBD"} in order to ensure safe, controlled operations.`,
             medicalCapability: intakeData.medicalCapability || "",
             communicationMethod: intakeData.communicationChannel || "",
             radioChannels: intakeData.radioChannels || "",
+            equipment: equip.length > 0 ? equip : prev.equipment,
             commandModel: intakeData.commandModel || "",
             escalationFlow: intakeData.escalationFlow || "",
+            clientRepresentative: intakeData.clientContact || "",
             successCriteria: intakeData.successCriteria || [],
+            additionalSuccessMeasures: intakeData.additionalSuccessMeasures || "",
             specialInstructions: intakeData.specialInstructions || "",
             operationalStart: eventStart ? new Date(eventStart).toLocaleString() : "",
             operationalEnd: eventEnd ? new Date(eventEnd).toLocaleString() : "",
           }));
+          // Auto-run geo-risk assessment if location available and no threat types from intake
+          if ((!intakeData.threatTypes || intakeData.threatTypes.length === 0) && (eventLocation || intakeData.siteAddress)) {
+            (async () => {
+              try {
+                const { geocodeAddress, getMultiTierCrimeData, calculateRiskScore } = await import("@/lib/geo-risk-data");
+                const loc = eventLocation || intakeData.siteAddress || "";
+                // Parse "City, State" or full address
+                const parts = loc.split(",").map((s: string) => s.trim());
+                const city = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
+                const stateRaw = parts.length >= 2 ? parts[parts.length - 1].replace(/\d+/g, "").trim() : "";
+                if (city) {
+                  const geo = await geocodeAddress(loc, city, stateRaw);
+                  const crime = await getMultiTierCrimeData(geo.city || city, geo.county, geo.state || stateRaw);
+                  const score = calculateRiskScore(crime.violent, crime.property, venues[0] || "Event Venue / Arena");
+                  // Map crime data to threat types
+                  const autoThreats: string[] = [];
+                  if (crime.violent >= 600) autoThreats.push("Disorderly Conduct / Fights");
+                  if (crime.violent >= 400) autoThreats.push("Medical Emergencies");
+                  if (crime.property >= 3000) autoThreats.push("Theft");
+                  if (crime.violent >= 800) autoThreats.push("Crowd Surge");
+                  autoThreats.push("Unauthorized Access"); // always relevant for security ops
+                  // Set risk level from geo data if not already set
+                  const autoRisk = score >= 75 ? "Critical" : score >= 55 ? "High" : score >= 35 ? "Moderate" : "Low";
+                  setData(prev => ({
+                    ...prev,
+                    threatTypes: prev.threatTypes.length > 0 ? prev.threatTypes : autoThreats,
+                    riskLevel: prev.riskLevel || autoRisk,
+                  }));
+                }
+              } catch (err) { console.error("Geo-risk auto-assessment:", err); }
+            })();
+          }
         }
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
