@@ -427,9 +427,9 @@ function HomePageInner() {
     <div className="min-h-screen bg-[#0b1422] text-white">
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0b1422]/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-3">
-            <Image src="/images/overwatch_logo.png" alt="Overwatch" width={36} height={36} style={{ width: 36, height: "auto" }} />
+            <Image src="/images/overwatch_logo.png" alt="Overwatch" width={72} height={72} style={{ width: 72, height: "auto" }} />
             <span className="font-mono text-lg font-bold tracking-tight">OVERWATCH</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
@@ -444,13 +444,12 @@ function HomePageInner() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-32 pb-20">
+      <section className="relative pt-32 pb-8">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-[#dd8c33]/8 via-transparent to-transparent rounded-full blur-3xl" />
         <TacticalGlobe />
 
         <div className="relative z-20 mx-auto max-w-4xl px-6 text-center pointer-events-none">
-          <Image src="/images/overwatch_logo.png" alt="Overwatch" width={200} height={200} className="mx-auto mb-6" style={{ width: 200, height: "auto" }} />
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dd8c33]/20 bg-[#dd8c33]/10 px-4 py-1.5 text-xs text-[#dd8c33]">
             <Lock className="h-3 w-3" /> Military-Grade Security Workforce Platform
           </div>
