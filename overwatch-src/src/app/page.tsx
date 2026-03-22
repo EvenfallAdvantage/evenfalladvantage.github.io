@@ -428,9 +428,9 @@ function HomePageInner() {
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0b1422]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <Image src="/images/overwatch_logo.png" alt="Overwatch" width={54} height={54} style={{ width: 54, height: "auto" }} />
-            <span className="font-mono text-3xl font-bold tracking-tight leading-none">OVERWATCH</span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Image src="/images/overwatch_logo.png" alt="Overwatch" width={54} height={54} className="w-8 sm:w-[54px] h-auto" />
+            <span className="font-mono text-xl sm:text-3xl font-bold tracking-tight leading-none">OVERWATCH</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <button onClick={() => setLoginOpen(true)} className="text-xs sm:text-sm text-white/60 hover:text-white transition-colors px-2 sm:px-3 py-1.5">
