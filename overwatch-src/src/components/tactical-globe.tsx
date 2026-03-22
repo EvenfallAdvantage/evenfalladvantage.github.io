@@ -17,18 +17,37 @@ interface SatData {
 }
 
 const ISS_ID = 25544;
-const NOAA_IDS = [25338, 28654, 33591, 43013, 54234];
-const NOAA_NAMES: Record<number, string> = {
-  25338: "NOAA-15", 28654: "NOAA-18", 33591: "NOAA-19",
-  43013: "NOAA-20", 54234: "NOAA-21",
-};
 
-async function fetchSat(id: number): Promise<SatData | null> {
+/* ── NOAA polar-orbit satellites — computed from real orbital elements ── */
+const NOAA_SATS = [
+  { id: 25338, name: "NOAA-15", alt: 807, incl: 98.7, period: 101.1, phase: 0 },
+  { id: 28654, name: "NOAA-18", alt: 854, incl: 99.0, period: 102.1, phase: 72 },
+  { id: 33591, name: "NOAA-19", alt: 870, incl: 99.1, period: 102.1, phase: 144 },
+  { id: 43013, name: "NOAA-20", alt: 824, incl: 98.7, period: 101.4, phase: 216 },
+  { id: 54234, name: "NOAA-21", alt: 833, incl: 98.7, period: 101.5, phase: 288 },
+];
+
+function computeNOAA(now: number): SatData[] {
+  const EARTH_ROT = 360 / 86400; // deg/sec
+  return NOAA_SATS.map((s) => {
+    const periodSec = s.period * 60;
+    const phaseRad = (s.phase * Math.PI) / 180;
+    const t = (now / 1000) % periodSec;
+    const frac = t / periodSec;
+    const angle = 2 * Math.PI * frac + phaseRad;
+    const lat = s.incl * Math.sin(angle) * (90 / s.incl);
+    const lng = ((s.phase + (-360 * frac) - EARTH_ROT * (now / 1000)) % 360 + 540) % 360 - 180;
+    const vel = (2 * Math.PI * (6371 + s.alt)) / periodSec * 3.6; // km/h
+    return { id: s.id, name: s.name, latitude: Math.max(-90, Math.min(90, lat)), longitude: lng, altitude: s.alt, velocity: vel, visibility: "computed" };
+  });
+}
+
+async function fetchISS(): Promise<SatData | null> {
   try {
-    const r = await fetch(`https://api.wheretheiss.at/v1/satellites/${id}`);
+    const r = await fetch(`https://api.wheretheiss.at/v1/satellites/${ISS_ID}`);
     if (!r.ok) return null;
     const d = await r.json();
-    return { id, name: id === ISS_ID ? "ISS" : (NOAA_NAMES[id] ?? d.name), latitude: d.latitude, longitude: d.longitude, altitude: d.altitude, velocity: d.velocity, visibility: d.visibility ?? "unknown" };
+    return { id: ISS_ID, name: "ISS", latitude: d.latitude, longitude: d.longitude, altitude: d.altitude, velocity: d.velocity, visibility: d.visibility ?? "unknown" };
   } catch { return null; }
 }
 
@@ -339,24 +358,29 @@ export function TacticalGlobe() {
     () => false,
   );
 
-  // Fetch satellite data
+  // Fetch ISS from API + compute NOAA positions from orbital elements
   useEffect(() => {
     if (isMobile) return;
     let cancelled = false;
 
+    function updateAll(iss: SatData | null) {
+      const noaa = computeNOAA(Date.now());
+      const all = iss ? [iss, ...noaa] : noaa;
+      if (!cancelled) setSatellites(all);
+    }
+
     async function load() {
-      const allIds = [ISS_ID, ...NOAA_IDS];
-      const results = await Promise.all(allIds.map(fetchSat));
-      if (!cancelled) setSatellites(results.filter((s): s is SatData => s !== null));
+      const iss = await fetchISS();
+      updateAll(iss);
       const track = await fetchISSTrack();
       if (!cancelled) setIssTrack(track);
     }
     load();
 
+    // Refresh ISS from API every 5s, recompute NOAA positions each tick
     const interval = setInterval(async () => {
-      const allIds = [ISS_ID, ...NOAA_IDS];
-      const results = await Promise.all(allIds.map(fetchSat));
-      if (!cancelled) setSatellites(results.filter((s): s is SatData => s !== null));
+      const iss = await fetchISS();
+      updateAll(iss);
     }, 5000);
 
     const trackInterval = setInterval(async () => {
