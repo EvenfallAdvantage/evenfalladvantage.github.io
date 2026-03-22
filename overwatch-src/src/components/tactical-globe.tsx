@@ -51,16 +51,6 @@ async function fetchISS(): Promise<SatData | null> {
   } catch { return null; }
 }
 
-async function fetchISSTrack(): Promise<[number, number][]> {
-  try {
-    const now = Math.floor(Date.now() / 1000);
-    const timestamps = Array.from({ length: 10 }, (_, i) => now + i * 270).join(",");
-    const r = await fetch(`https://api.wheretheiss.at/v1/satellites/${ISS_ID}/positions?timestamps=${timestamps}`);
-    if (!r.ok) return [];
-    const data = await r.json();
-    return data.map((p: { latitude: number; longitude: number }) => [p.latitude, p.longitude] as [number, number]);
-  } catch { return []; }
-}
 
 /* ── CSS-drawn satellite: body + two solar-panel wings ── */
 function CssSatellite({ scale = 1.5, rotate = 0 }: { scale?: number; rotate?: number }) {
@@ -343,7 +333,6 @@ export function TacticalGlobe() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [satellites, setSatellites] = useState<SatData[]>([]);
-  const [issTrack, setIssTrack] = useState<[number, number][]>([]);
   const [selectedSat, setSelectedSat] = useState<number | null>(null);
   const phiRef = useRef(0);
 
@@ -372,8 +361,6 @@ export function TacticalGlobe() {
     async function load() {
       const iss = await fetchISS();
       updateAll(iss);
-      const track = await fetchISSTrack();
-      if (!cancelled) setIssTrack(track);
     }
     load();
 
@@ -383,12 +370,7 @@ export function TacticalGlobe() {
       updateAll(iss);
     }, 5000);
 
-    const trackInterval = setInterval(async () => {
-      const track = await fetchISSTrack();
-      if (!cancelled) setIssTrack(track);
-    }, 60000);
-
-    return () => { cancelled = true; clearInterval(interval); clearInterval(trackInterval); };
+    return () => { cancelled = true; clearInterval(interval); };
   }, [isMobile]);
 
   // Cobe globe
@@ -403,9 +385,6 @@ export function TacticalGlobe() {
     const cssWidth = canvas.offsetWidth;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cobeSize = Math.min(cssWidth, Math.floor(4096 / dpr));
-
-    const GOLD: [number, number, number] = [0.94, 0.59, 0.12];
-    const BLUE: [number, number, number] = [0.49, 0.7, 1.0];
 
     const globe = createGlobe(canvas, {
       devicePixelRatio: dpr,
@@ -427,31 +406,7 @@ export function TacticalGlobe() {
     function animate() {
       phi += 0.003;
       phiRef.current = phi;
-
-      // Build markers from live satellite data
-      const sats = satellites;
-      const track = issTrack;
-      const markers: { location: [number, number]; size: number; color: [number, number, number] }[] = [];
-
-      for (const s of sats) {
-        const isISS = s.id === ISS_ID;
-        markers.push({
-          location: [s.latitude, s.longitude],
-          size: isISS ? 0.06 : 0.03,
-          color: isISS ? GOLD : BLUE,
-        });
-      }
-
-      // ISS ground track as small trail dots
-      for (const pt of track) {
-        markers.push({
-          location: pt,
-          size: 0.008,
-          color: [0.6, 0.4, 0.15],
-        });
-      }
-
-      globe.update({ phi, markers });
+      globe.update({ phi, markers: [] });
       rafId = requestAnimationFrame(animate);
     }
     rafId = requestAnimationFrame(animate);
@@ -460,7 +415,7 @@ export function TacticalGlobe() {
       cancelAnimationFrame(rafId);
       globe.destroy();
     };
-  }, [isMobile, satellites, issTrack]);
+  }, [isMobile]);
 
   if (isMobile) return null;
 
@@ -515,44 +470,6 @@ export function TacticalGlobe() {
         globeStyle={globeStyle}
       />
 
-      {/* ── Orbiting CSS Satellites ── */}
-      <div
-        style={{
-          ...globeStyle,
-          position: "absolute",
-          left: "50%",
-          bottom: 0,
-          transform: "translateX(-50%) translateY(72%)",
-          pointerEvents: "none",
-          perspective: 4000,
-          transformStyle: "preserve-3d",
-        }}
-      >
-        {/* Orbit 1 — tilted right, clockwise, 30s */}
-        <div style={{ position: "absolute", inset: 0, transform: "rotateY(14deg)", transformStyle: "preserve-3d" }}>
-          <div style={{ position: "absolute", inset: 0, animation: "orbitCW 30s linear infinite", transformStyle: "preserve-3d" }}>
-            <div style={{ position: "absolute", top: "7%", left: "50%", transform: "translate(-50%, -50%)" }}>
-              <CssSatellite scale={1.8} rotate={15} />
-            </div>
-          </div>
-        </div>
-        {/* Orbit 2 — tilted left, counter-clockwise, 24s */}
-        <div style={{ position: "absolute", inset: 0, transform: "rotateY(-18deg)", transformStyle: "preserve-3d" }}>
-          <div style={{ position: "absolute", inset: 0, animation: "orbitCCW 24s linear infinite", transformStyle: "preserve-3d" }}>
-            <div style={{ position: "absolute", top: "9%", left: "50%", transform: "translate(-50%, -50%)" }}>
-              <CssSatellite scale={1.5} rotate={-10} />
-            </div>
-          </div>
-        </div>
-        {/* Orbit 3 — ISS model, tilted forward, clockwise, 38s */}
-        <div style={{ position: "absolute", inset: 0, transform: "rotateX(10deg) rotateY(6deg)", transformStyle: "preserve-3d" }}>
-          <div style={{ position: "absolute", inset: 0, animation: "orbitCW 38s linear infinite", transformStyle: "preserve-3d" }}>
-            <div style={{ position: "absolute", top: "5%", left: "50%", transform: "translate(-50%, -50%)" }}>
-              <CssISS scale={1.4} rotate={12} />
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Fade-out at bottom edge */}
       <div
@@ -564,14 +481,6 @@ export function TacticalGlobe() {
       />
 
       <style>{`
-        @keyframes orbitCW {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
-        }
-        @keyframes orbitCCW {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(-360deg); }
-        }
         @keyframes radarSweep {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
@@ -641,7 +550,6 @@ function SatelliteOverlay({
         if (!pos || !pos.visible) return null;
         const isISS = sat.id === ISS_ID;
         const isSelected = selectedSat === sat.id;
-        const dotSize = isISS ? 14 : 8;
 
         return (
           <div
@@ -660,55 +568,11 @@ function SatelliteOverlay({
               onSelect(isSelected ? null : sat.id);
             }}
           >
-            {/* Clickable hit area */}
-            <div
-              style={{
-                width: dotSize + 16,
-                height: dotSize + 16,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              {/* Glow ring */}
-              <div
-                style={{
-                  position: "absolute",
-                  width: dotSize + 10,
-                  height: dotSize + 10,
-                  borderRadius: "50%",
-                  background: isISS ? "rgba(221,140,51,0.15)" : "rgba(100,160,255,0.12)",
-                  animation: "markerPulse 2s ease-in-out infinite",
-                }}
-              />
-              {/* Dot */}
-              <div
-                style={{
-                  width: dotSize,
-                  height: dotSize,
-                  borderRadius: "50%",
-                  background: isISS
-                    ? "radial-gradient(circle, #f0a84a, #dd8c33)"
-                    : "radial-gradient(circle, #a0c8ff, #5a90d0)",
-                  boxShadow: isISS
-                    ? "0 0 8px rgba(221,140,51,0.6)"
-                    : "0 0 6px rgba(100,160,255,0.5)",
-                  position: "relative",
-                  zIndex: 2,
-                }}
-              />
-            </div>
+            {isISS ? <CssISS scale={0.5} rotate={5} /> : <CssSatellite scale={0.8} rotate={-8} />}
             {isSelected && <SatPopup sat={sat} onClose={() => onSelect(null)} />}
           </div>
         );
       })}
-
-      <style>{`
-        @keyframes markerPulse {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50% { transform: scale(1.5); opacity: 0.2; }
-        }
-      `}</style>
     </div>
   );
 }
