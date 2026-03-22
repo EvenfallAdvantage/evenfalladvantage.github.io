@@ -593,7 +593,7 @@ function SatelliteOverlay({
 
       const next: Record<number, { x: number; y: number; visible: boolean; opacity: number }> = {};
       for (const s of satellites) {
-        next[s.id] = latLngToScreen(s.latitude, s.longitude, currentPhi, 0.45, cx, cy, radius, 0.52);
+        next[s.id] = latLngToScreen(s.latitude, s.longitude, currentPhi, 0.45, cx, cy, radius, -0.52);
       }
       setPositions(next);
       rafId = requestAnimationFrame(update);
