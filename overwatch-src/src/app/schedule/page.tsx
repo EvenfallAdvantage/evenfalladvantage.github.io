@@ -314,7 +314,7 @@ export default function SchedulePage() {
             }
 
             const renderOpCard = (ev: Ev, highlight?: boolean, myShifts?: Shift[]) => (
-              <Card key={ev.id} className={highlight ? "border-primary/40 bg-primary/5" : "border-border/40"}>
+              <Card key={ev.id} className={`overflow-visible ${highlight ? "border-primary/40 bg-primary/5" : "border-border/40"}`}>
                 <CardContent className="py-3 px-4">
                   <div className="flex items-center gap-4">
                     <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${highlight ? "bg-primary/15" : "bg-violet-500/10"}`}>
