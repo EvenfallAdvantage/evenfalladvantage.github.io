@@ -474,7 +474,7 @@ function HomePageInner() {
       </section>
 
       {/* Stats Bar */}
-      <section className="relative z-10 border-y border-white/5 bg-[#0b1422]">
+      <section className="relative z-40 border-y border-white/5 bg-[#0b1422]">
         <div className="mx-auto max-w-5xl px-6 py-10 grid grid-cols-2 sm:grid-cols-4 gap-8">
           {STATS.map((s) => (
             <div key={s.label} className="text-center">
