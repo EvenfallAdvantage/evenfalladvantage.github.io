@@ -1,9 +1,9 @@
 :HL["/overwatch/_next/static/chunks/065beaa3034baa10.css","style"]
-:HL["/overwatch/_next/static/chunks/208e05e5e977e896.css","style"]
+:HL["/overwatch/_next/static/chunks/076ce9737aaa8c79.css","style"]
 :HL["/overwatch/_next/static/media/0595f7052377a1a2-s.p.0de08f1e.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/235a0ef330592118-s.p.b3cd1641.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/6ad1cda2f16975ee-s.p.b58dc1ff.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/6c98c9fb873995d2-s.p.4a6499bc.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/a083361d37caf3d1-s.p.5c0d0b0d.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/c6e2684784a55443-s.p.ea91da97.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
-0:{"buildId":"dr8fcJDDtvuWzfawMAz9Q","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"admin","paramType":null,"paramKey":"admin","hasRuntimePrefetch":false,"slots":{"children":{"name":"company","paramType":null,"paramKey":"company","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
+0:{"buildId":"4ESWys3N-5SeMjZAs1cs3","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"admin","paramType":null,"paramKey":"admin","hasRuntimePrefetch":false,"slots":{"children":{"name":"company","paramType":null,"paramKey":"company","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}

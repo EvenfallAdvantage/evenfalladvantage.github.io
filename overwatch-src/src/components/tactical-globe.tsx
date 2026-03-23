@@ -571,8 +571,8 @@ export function TacticalGlobe() {
       `}</style>
     </div>
 
-    {/* Drag-to-rotate overlay at z-25 (above hero text z-20, below satellite popups z-30) */}
-    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 25 }}>
+    {/* Drag-to-rotate overlay at z-15 (above globe z-10, below hero text z-20) */}
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 15 }}>
       <div
         style={{
           ...globeStyle,
