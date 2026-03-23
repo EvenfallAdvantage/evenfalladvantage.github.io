@@ -829,48 +829,51 @@ export default function AdminStaffPage() {
                   const ts = r.timesheets;
                   const statusColor = r.status === "approved" ? "bg-green-500/15 text-green-600" : r.status === "denied" ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600";
                   return (
-                    <div key={r.id} className={`rounded-xl border bg-card px-4 py-3 ${
+                    <div key={r.id} className={`rounded-xl border bg-card px-4 py-3 space-y-2 ${
                       r.status === "pending" ? "border-orange-500/30" : "border-border/50"
                     }`}>
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500/10 text-xs font-bold text-orange-500">
+                      {/* Row 1: Avatar + Name + Status badge */}
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500/10 text-xs font-bold text-orange-500">
                           {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Original: {ts?.clock_in ? parseUTC(ts.clock_in).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} → {ts?.clock_out ? parseUTC(ts.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
-                          </p>
-                          <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
-                            {r.requested_clock_in && (
-                              <span className="text-[10px]"><span className="text-muted-foreground">New In:</span> <span className="font-mono font-medium text-blue-400">{parseUTC(r.requested_clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
-                            )}
-                            {r.requested_clock_out && (
-                              <span className="text-[10px]"><span className="text-muted-foreground">New Out:</span> <span className="font-mono font-medium text-blue-400">{parseUTC(r.requested_clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
-                            )}
-                          </div>
-                          {r.reason && <p className="text-[10px] text-muted-foreground/70 mt-1 italic">&ldquo;{r.reason}&rdquo;</p>}
-                          <p className="text-[9px] text-muted-foreground/50 mt-0.5">Submitted {new Date(r.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
-                        </div>
+                        <p className="font-medium text-sm flex-1 min-w-0 truncate">{u?.first_name} {u?.last_name}</p>
                         <Badge className={`text-[10px] capitalize shrink-0 ${statusColor}`}>{r.status}</Badge>
-                        {r.status === "pending" && canManage && (
-                          <div className="flex gap-1 shrink-0">
-                            <Button size="sm" variant="outline"
-                              className="h-7 gap-1 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
-                              onClick={() => handleTCRReview(r.id, "approved")}
-                              disabled={reviewingTCR === r.id}>
-                              {reviewingTCR === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                              Approve
-                            </Button>
-                            <Button size="sm" variant="outline"
-                              className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10"
-                              onClick={() => handleTCRReview(r.id, "denied")}
-                              disabled={reviewingTCR === r.id}>
-                              <XCircle className="h-3 w-3" /> Deny
-                            </Button>
-                          </div>
-                        )}
                       </div>
+                      {/* Row 2: Time details */}
+                      <div className="ml-12 space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                          Original: {ts?.clock_in ? parseUTC(ts.clock_in).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} → {ts?.clock_out ? parseUTC(ts.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+                        </p>
+                        <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                          {r.requested_clock_in && (
+                            <span className="text-[10px]"><span className="text-muted-foreground">New In:</span> <span className="font-mono font-medium text-blue-400">{parseUTC(r.requested_clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
+                          )}
+                          {r.requested_clock_out && (
+                            <span className="text-[10px]"><span className="text-muted-foreground">New Out:</span> <span className="font-mono font-medium text-blue-400">{parseUTC(r.requested_clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
+                          )}
+                        </div>
+                        {r.reason && <p className="text-[10px] text-muted-foreground/70 italic line-clamp-2">&ldquo;{r.reason}&rdquo;</p>}
+                        <p className="text-[9px] text-muted-foreground/50">Submitted {new Date(r.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                      {/* Row 3: Action buttons */}
+                      {r.status === "pending" && canManage && (
+                        <div className="flex gap-2 ml-12">
+                          <Button size="sm" variant="outline"
+                            className="h-7 flex-1 gap-1 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
+                            onClick={() => handleTCRReview(r.id, "approved")}
+                            disabled={reviewingTCR === r.id}>
+                            {reviewingTCR === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                            Approve
+                          </Button>
+                          <Button size="sm" variant="outline"
+                            className="h-7 flex-1 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10"
+                            onClick={() => handleTCRReview(r.id, "denied")}
+                            disabled={reviewingTCR === r.id}>
+                            <XCircle className="h-3 w-3" /> Deny
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
