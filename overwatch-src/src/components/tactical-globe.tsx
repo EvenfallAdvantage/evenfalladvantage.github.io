@@ -401,6 +401,9 @@ export function TacticalGlobe() {
   const issRef = useRef<SatData | null>(null);
   const [selectedSat, setSelectedSat] = useState<number | null>(null);
   const phiRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const lastXRef = useRef(0);
+  const dragOffsetRef = useRef(0);
 
   const subscribe = useCallback((cb: () => void) => {
     const mq = window.matchMedia(MQ);
@@ -458,7 +461,12 @@ export function TacticalGlobe() {
     const cityMarkers = CITIES.map((c) => ({ location: [c.lat, c.lng] as [number, number], size: 0.018 }));
 
     function animate() {
-      const phi = getSunPhi();
+      const sunPhi = getSunPhi();
+      if (!isDraggingRef.current) {
+        dragOffsetRef.current *= 0.93;
+        if (Math.abs(dragOffsetRef.current) < 0.001) dragOffsetRef.current = 0;
+      }
+      const phi = sunPhi + dragOffsetRef.current;
       phiRef.current = phi;
       globe.update({ phi, markers: cityMarkers });
       rafId = requestAnimationFrame(animate);
@@ -561,6 +569,36 @@ export function TacticalGlobe() {
           to   { transform: rotate(-360deg); }
         }
       `}</style>
+    </div>
+
+    {/* Drag-to-rotate overlay at z-25 (above hero text z-20, below satellite popups z-30) */}
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 25 }}>
+      <div
+        style={{
+          ...globeStyle,
+          position: "absolute",
+          left: "50%",
+          top: globePos,
+          transform: "translate(-50%, -50%)",
+          borderRadius: "50%",
+          pointerEvents: "auto",
+          cursor: "grab",
+          touchAction: "none",
+        }}
+        onPointerDown={(e) => {
+          isDraggingRef.current = true;
+          lastXRef.current = e.clientX;
+          (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          if (!isDraggingRef.current) return;
+          const dx = e.clientX - lastXRef.current;
+          dragOffsetRef.current += dx * 0.005;
+          lastXRef.current = e.clientX;
+        }}
+        onPointerUp={() => { isDraggingRef.current = false; }}
+        onPointerCancel={() => { isDraggingRef.current = false; }}
+      />
     </div>
 
     {/* Satellite overlay at z-30 so popups render above hero text (z-20) */}
