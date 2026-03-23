@@ -450,7 +450,7 @@ function HomePageInner() {
         <TacticalGlobe />
 
         <div className="relative z-20 mx-auto max-w-4xl px-6 text-center pointer-events-none">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dd8c33]/20 bg-[#dd8c33]/10 px-4 py-1.5 text-xs text-[#dd8c33]">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dd8c33]/20 bg-[#dd8c33]/10 px-4 py-1.5 text-xs text-[#dd8c33]" style={{ textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
             <Lock className="h-3 w-3" /> Military-Grade Security Workforce Platform
           </div>
           <h1 className="text-5xl sm:text-7xl font-bold tracking-tight font-mono leading-[1.1] mb-6">
@@ -458,7 +458,7 @@ function HomePageInner() {
             <br />
             <span className="bg-gradient-to-r from-[#dd8c33] via-[#f0a84a] to-[#dd8c33] bg-clip-text text-transparent">YOUR FORCE</span>
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-white/50 leading-relaxed mb-10">
+          <p className="mx-auto max-w-2xl text-lg text-white/60 leading-relaxed mb-10" style={{ textShadow: '0 1px 12px rgba(0,0,0,0.95), 0 0 30px rgba(0,0,0,0.7)' }}>
             Overwatch unifies workforce management, training, compliance, and field operations
             into one tactical platform built for security professionals.
           </p>

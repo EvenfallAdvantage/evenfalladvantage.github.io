@@ -481,6 +481,7 @@ export function TacticalGlobe() {
   };
 
   return (
+    <>
     <div ref={containerRef} className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }} aria-hidden="true">
       <canvas
         ref={canvasRef}
@@ -545,19 +546,6 @@ export function TacticalGlobe() {
         />
       </div>
 
-      <div style={{ pointerEvents: "auto" }}>
-        {/* ── Clickable satellite overlay ── */}
-        <SatelliteOverlay
-          issRef={issRef}
-          phi={phiRef}
-          selectedSat={selectedSat}
-          onSelect={setSelectedSat}
-          globeStyle={globeStyle}
-          globeTop={globePos}
-        />
-      </div>
-
-
       {/* Vignette fade around edges */}
       <div
         className="absolute inset-0"
@@ -574,6 +562,21 @@ export function TacticalGlobe() {
         }
       `}</style>
     </div>
+
+    {/* Satellite overlay at z-30 so popups render above hero text (z-20) */}
+    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 30 }}>
+      <div style={{ pointerEvents: "auto" }}>
+        <SatelliteOverlay
+          issRef={issRef}
+          phi={phiRef}
+          selectedSat={selectedSat}
+          onSelect={setSelectedSat}
+          globeStyle={globeStyle}
+          globeTop={globePos}
+        />
+      </div>
+    </div>
+    </>
   );
 }
 
