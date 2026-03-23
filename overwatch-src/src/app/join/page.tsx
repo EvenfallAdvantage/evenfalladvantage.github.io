@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -16,21 +16,14 @@ import type { CompanyContext } from "@/types";
 
 export default function JoinPage() {
   const router = useRouter();
-  const { setUser, setActiveCompany } = useAuthStore();
+  const { user: storeUser, setUser, setActiveCompany } = useAuthStore();
   const [companyCode, setCompanyCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user: u } }) => {
-      setIsLoggedIn(!!u);
-      setCurrentUserEmail(u?.email ?? null);
-    });
-  }, []);
+  const isLoggedIn = !!storeUser;
+  const currentUserEmail = storeUser?.email ?? null;
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
@@ -39,7 +32,8 @@ export default function JoinPage() {
 
     try {
       const supabase = createClient();
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const authUser = session?.user;
       if (!authUser) {
         // Not logged in — redirect to register with code preserved
         router.push(`/register?code=${encodeURIComponent(companyCode)}`);
@@ -102,6 +96,8 @@ export default function JoinPage() {
         router.refresh();
       }, 1200);
     } catch (err) {
+      // Ignore AbortError from Supabase lock contention — session will resolve via AuthProvider
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(err instanceof Error ? err.message : "Invalid company code or something went wrong");
     } finally {
       setIsLoading(false);
