@@ -237,7 +237,8 @@ export default function FeedPage() {
     setCreatingCo(true);
     try {
       const supabase = createClient();
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const authUser = session?.user;
       if (!authUser) throw new Error("Not authenticated");
 
       await createCompanyWithOwner({
