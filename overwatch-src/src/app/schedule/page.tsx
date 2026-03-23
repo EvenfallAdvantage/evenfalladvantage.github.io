@@ -6,7 +6,7 @@ import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
   FileText, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
-  ClipboardList, Flag, ChevronDown, ChevronLeft, ChevronRight, List,
+  ClipboardList, Flag, ChevronDown, List,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -46,33 +46,150 @@ function ShiftAccordion({ shifts, highlight, conflictIds, statusColor }: {
   statusColor: (s: string) => string;
 }) {
   const [open, setOpen] = useState(highlight);
+  const [view, setView] = useState<"list" | "calendar">("calendar");
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
+
+  // Group shifts by day for calendar
+  const shiftsByDay = new Map<string, Shift[]>();
+  for (const sh of shifts) {
+    const day = new Date(sh.start_time).toISOString().slice(0, 10);
+    if (!shiftsByDay.has(day)) shiftsByDay.set(day, []);
+    shiftsByDay.get(day)!.push(sh);
+  }
+
+  // Calendar grid: span from first to last shift day, padded to full weeks
+  const sortedDays = Array.from(shiftsByDay.keys()).sort();
+  const firstDay = sortedDays.length > 0 ? new Date(sortedDays[0] + "T12:00:00") : new Date();
+  const lastDay = sortedDays.length > 0 ? new Date(sortedDays[sortedDays.length - 1] + "T12:00:00") : new Date();
+  const startOfWeek = new Date(firstDay); startOfWeek.setDate(firstDay.getDate() - firstDay.getDay());
+  const endOfWeek = new Date(lastDay); endOfWeek.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
+  const calDays: string[] = [];
+  const cur = new Date(startOfWeek);
+  while (cur <= endOfWeek) { calDays.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate() + 1); }
+  const opDaySet = new Set(sortedDays);
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   return (
     <div className="mt-2 ml-14 border-t border-primary/10 pt-2">
-      <button type="button" onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors w-full">
-        <ChevronDown className={`h-3 w-3 transition-transform ${open ? "" : "-rotate-90"}`} />
-        {shifts.length} shift{shifts.length !== 1 ? "s" : ""} assigned
-      </button>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => setOpen(!open)}
+          className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <ChevronDown className={`h-3 w-3 transition-transform ${open ? "" : "-rotate-90"}`} />
+          {shifts.length} shift{shifts.length !== 1 ? "s" : ""} assigned
+        </button>
+        {open && shifts.length > 1 && (
+          <div className="flex gap-0.5 rounded bg-muted/50 p-0.5 ml-auto">
+            <button onClick={() => setView("list")}
+              className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${view === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              <List className="h-2.5 w-2.5 inline mr-0.5" />List
+            </button>
+            <button onClick={() => setView("calendar")}
+              className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${view === "calendar" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              <CalendarDays className="h-2.5 w-2.5 inline mr-0.5" />Cal
+            </button>
+          </div>
+        )}
+      </div>
       {open && (
-        <div className="mt-1.5 space-y-1">
-          {shifts.map((sh: Shift) => (
-            <div key={sh.id} className={`text-xs ${conflictIds.has(sh.id) ? "rounded-md bg-amber-500/10 px-2 py-1.5 -mx-2" : ""}`}>
-              <div className="flex items-center gap-2">
-                {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
-                <span className="text-muted-foreground">
-                  {!highlight && `${fmtDate(sh.start_time)} · `}{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
-                </span>
-                <div className="flex items-center gap-1 ml-auto">
-                  {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
-                  <Badge className={`text-[9px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
-                    {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
-                  </Badge>
+        <>
+          {/* ── List View ── */}
+          {view === "list" && (
+            <div className="mt-1.5 space-y-1">
+              {shifts.map((sh: Shift) => (
+                <div key={sh.id} className={`text-xs ${conflictIds.has(sh.id) ? "rounded-md bg-amber-500/10 px-2 py-1.5 -mx-2" : ""}`}>
+                  <div className="flex items-center gap-2">
+                    {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
+                    <span className="text-muted-foreground">
+                      {!highlight && `${fmtDate(sh.start_time)} · `}{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
+                    </span>
+                    <div className="flex items-center gap-1 ml-auto">
+                      {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
+                      <Badge className={`text-[9px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
+                        {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
+                      </Badge>
+                    </div>
+                  </div>
+                  {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-5 mt-0.5">Role: {sh.role}</div>}
                 </div>
-              </div>
-              {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-5 mt-0.5">Role: {sh.role}</div>}
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+
+          {/* ── Calendar View ── */}
+          {view === "calendar" && (
+            <div className="mt-2">
+              <div className="grid grid-cols-7 gap-px mb-0.5">
+                {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+                  <div key={`${d}-${i}`} className="text-center text-[8px] font-semibold uppercase tracking-wider text-muted-foreground/40 py-0.5">{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-0.5">
+                {calDays.map(day => {
+                  const dayShifts = shiftsByDay.get(day) ?? [];
+                  const dayNum = new Date(day + "T12:00:00").getDate();
+                  const isOpDay = opDaySet.has(day);
+                  const isToday = day === todayStr;
+                  const isSelected = selectedDay === day;
+                  const hasConflict = dayShifts.some((s: Shift) => conflictIds.has(s.id));
+                  const totalHrs = dayShifts.reduce((sum: number, s: Shift) => {
+                    const ms = new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
+                    return sum + (ms > 0 ? ms / 3600000 : ms / 3600000 + 24);
+                  }, 0);
+
+                  return (
+                    <button key={day} onClick={() => isOpDay ? setSelectedDay(isSelected ? null : day) : undefined}
+                      className={`relative rounded p-1 min-h-[44px] text-left transition-all border ${
+                        isSelected ? "border-primary bg-primary/10 ring-1 ring-primary/30" :
+                        !isOpDay ? "border-transparent opacity-25" :
+                        hasConflict ? "border-amber-500/30 bg-amber-500/[0.04]" :
+                        dayShifts.length > 0 ? "border-primary/20 bg-primary/[0.03] hover:bg-primary/[0.07]" :
+                        "border-transparent hover:bg-muted/20"
+                      }`}>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[10px] font-mono font-semibold ${isToday ? "text-primary" : isOpDay ? "" : "text-muted-foreground/30"}`}>{dayNum}</span>
+                        {dayShifts.length > 0 && <span className="text-[7px] font-mono text-muted-foreground/50">{totalHrs.toFixed(0)}h</span>}
+                      </div>
+                      {dayShifts.length > 0 && (
+                        <span className={`inline-flex items-center rounded px-0.5 py-0 text-[7px] font-bold ${hasConflict ? "bg-amber-500/15 text-amber-600" : "bg-primary/15 text-primary"}`}>
+                          {dayShifts.length}
+                        </span>
+                      )}
+                      {isToday && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 w-0.5 rounded-full bg-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Expanded day detail */}
+              {selectedDay && shiftsByDay.has(selectedDay) && (
+                <div className="mt-2 rounded-lg border border-primary/20 bg-primary/[0.02] p-2 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-semibold flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3 text-primary" />
+                      {new Date(selectedDay + "T12:00:00").toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+                    </h4>
+                    <button onClick={() => setSelectedDay(null)} className="text-muted-foreground hover:text-foreground text-[10px]">✕</button>
+                  </div>
+                  {(shiftsByDay.get(selectedDay) ?? []).map((sh: Shift) => {
+                    const hasConflict = conflictIds.has(sh.id);
+                    return (
+                      <div key={sh.id} className={`rounded border px-2 py-1.5 ${hasConflict ? "border-amber-500/30 bg-amber-500/[0.04]" : "border-primary/15 bg-primary/[0.02]"}`}>
+                        <div className="flex items-center gap-2 text-xs">
+                          {hasConflict ? <AlertTriangle className="h-2.5 w-2.5 text-amber-500 shrink-0" /> : <Clock className="h-2.5 w-2.5 text-primary/60 shrink-0" />}
+                          <span className="text-muted-foreground font-mono">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
+                          <Badge className={`text-[8px] ml-auto ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
+                            {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
+                          </Badge>
+                        </div>
+                        {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-4 mt-0.5">Role: {sh.role}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -84,9 +201,6 @@ export default function SchedulePage() {
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
 
   const [tab, setTab] = useState<"schedule" | "armory">("schedule");
-  const [scheduleView, setScheduleView] = useState<"list" | "calendar">("list");
-  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
-  const [calSelectedDay, setCalSelectedDay] = useState<string | null>(null);
 
   // Schedule state
   const [events, setEvents] = useState<Ev[]>([]);
@@ -321,7 +435,6 @@ export default function SchedulePage() {
           ) : (() => {
             const today = new Date(); today.setHours(0,0,0,0);
             const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-            const todayStr = today.toISOString().slice(0, 10);
             const isToday = (iso: string) => { const d = new Date(iso); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); };
             const isCurrent = (startIso: string, endIso: string) => {
               const s = new Date(startIso); s.setHours(0,0,0,0);
@@ -344,27 +457,6 @@ export default function SchedulePage() {
               }
             }
 
-            // Group ALL shifts by day for calendar view
-            const shiftsByDay = new Map<string, Shift[]>();
-            for (const sh of shifts) {
-              const day = new Date(sh.start_time).toISOString().slice(0, 10);
-              if (!shiftsByDay.has(day)) shiftsByDay.set(day, []);
-              shiftsByDay.get(day)!.push(sh);
-            }
-
-            // Calendar grid computation
-            const calYear = calMonth.getFullYear();
-            const calMon = calMonth.getMonth();
-            const firstOfMonth = new Date(calYear, calMon, 1);
-            const lastOfMonth = new Date(calYear, calMon + 1, 0);
-            const startPad = firstOfMonth.getDay();
-            const calDays: (string | null)[] = [];
-            for (let i = 0; i < startPad; i++) calDays.push(null);
-            for (let d = 1; d <= lastOfMonth.getDate(); d++) {
-              calDays.push(new Date(calYear, calMon, d).toISOString().slice(0, 10));
-            }
-            while (calDays.length % 7 !== 0) calDays.push(null);
-            const monthLabel = calMonth.toLocaleDateString([], { month: "long", year: "numeric" });
 
             const renderOpCard = (ev: Ev, highlight?: boolean, myShifts?: Shift[]) => (
               <Card key={ev.id} className={`overflow-visible ${highlight ? "border-primary/40 bg-primary/5" : "border-border/40"}`}>
@@ -496,124 +588,16 @@ export default function SchedulePage() {
 
             return (
             <>
-              {/* ── View Toggle ── */}
-              <div className="flex items-center justify-between">
-                <div className="flex gap-1 rounded-lg bg-muted/50 p-0.5 w-fit">
-                  <button onClick={() => setScheduleView("list")}
-                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scheduleView === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                    <List className="h-3 w-3" /> List
-                  </button>
-                  <button onClick={() => setScheduleView("calendar")}
-                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scheduleView === "calendar" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                    <CalendarDays className="h-3 w-3" /> Calendar
-                  </button>
-                </div>
-                {isAdmin && shifts.length > 0 && (
+              {/* ── Send Reminders (admin only) ── */}
+              {isAdmin && shifts.length > 0 && (
+                <div className="flex justify-end">
                   <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
                     onClick={handleSendReminders} disabled={sendingReminders}>
                     {sendingReminders ? <Loader2 className="h-3 w-3 animate-spin" /> : remindersSent ? <Bell className="h-3 w-3 text-green-500" /> : <Bell className="h-3 w-3" />}
                     {remindersSent ? "Sent!" : "Send Reminders"}
                   </Button>
-                )}
-              </div>
-
-              {/* ── Calendar View ── */}
-              {scheduleView === "calendar" && (
-                <div>
-                  {/* Month navigation */}
-                  <div className="flex items-center justify-between mb-3">
-                    <button onClick={() => setCalMonth(new Date(calYear, calMon - 1, 1))}
-                      className="rounded-md p-1 hover:bg-muted transition-colors"><ChevronLeft className="h-4 w-4" /></button>
-                    <h3 className="text-sm font-semibold">{monthLabel}</h3>
-                    <button onClick={() => setCalMonth(new Date(calYear, calMon + 1, 1))}
-                      className="rounded-md p-1 hover:bg-muted transition-colors"><ChevronRight className="h-4 w-4" /></button>
-                  </div>
-
-                  {/* Day headers */}
-                  <div className="grid grid-cols-7 gap-px mb-1">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
-                      <div key={d} className="text-center text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/40 py-1">{d}</div>
-                    ))}
-                  </div>
-
-                  {/* Calendar grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {calDays.map((day, i) => {
-                      if (!day) return <div key={`pad-${i}`} className="min-h-[60px]" />;
-                      const dayShifts = shiftsByDay.get(day) ?? [];
-                      const dayNum = new Date(day + "T12:00:00").getDate();
-                      const isDayToday = day === todayStr;
-                      const isSelected = calSelectedDay === day;
-                      const hasConflict = dayShifts.some((s: Shift) => conflictIds.has(s.id));
-                      const totalHrs = dayShifts.reduce((sum: number, s: Shift) => {
-                        const ms = new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
-                        return sum + (ms > 0 ? ms / 3600000 : ms / 3600000 + 24);
-                      }, 0);
-
-                      return (
-                        <button key={day} onClick={() => dayShifts.length > 0 ? setCalSelectedDay(isSelected ? null : day) : undefined}
-                          className={`relative rounded-lg p-1.5 min-h-[60px] text-left transition-all border ${
-                            isSelected ? "border-primary bg-primary/10 ring-1 ring-primary/30" :
-                            hasConflict ? "border-amber-500/30 bg-amber-500/[0.04]" :
-                            dayShifts.length > 0 ? "border-primary/20 bg-primary/[0.03] hover:bg-primary/[0.07]" :
-                            "border-transparent hover:bg-muted/20"
-                          }`}>
-                          <div className="flex items-center justify-between">
-                            <span className={`text-[11px] font-mono font-semibold ${isDayToday ? "text-primary" : dayShifts.length > 0 ? "" : "text-muted-foreground/30"}`}>{dayNum}</span>
-                            {dayShifts.length > 0 && <span className="text-[8px] font-mono text-muted-foreground/60">{totalHrs.toFixed(0)}h</span>}
-                          </div>
-                          {dayShifts.length > 0 && (
-                            <div className="mt-0.5">
-                              <span className={`inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold ${hasConflict ? "bg-amber-500/15 text-amber-600" : "bg-primary/15 text-primary"}`}>
-                                {dayShifts.length} shift{dayShifts.length !== 1 ? "s" : ""}
-                              </span>
-                            </div>
-                          )}
-                          {isDayToday && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Legend */}
-                  <div className="flex items-center gap-4 mt-3 pt-2 border-t border-border/10">
-                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-primary/30" /> Has Shifts</span>
-                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-amber-500/30" /> Conflict</span>
-                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-1 w-1 rounded-full bg-primary" /> Today</span>
-                  </div>
-
-                  {/* Expanded day detail */}
-                  {calSelectedDay && shiftsByDay.has(calSelectedDay) && (
-                    <div className="mt-3 rounded-xl border border-primary/20 bg-primary/[0.02] p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                          <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                          {new Date(calSelectedDay + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
-                        </h4>
-                        <button onClick={() => setCalSelectedDay(null)} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
-                      </div>
-                      <div className="space-y-1.5">
-                        {(shiftsByDay.get(calSelectedDay) ?? []).map((sh: Shift) => {
-                          const hasConflict = conflictIds.has(sh.id);
-                          return (
-                            <div key={sh.id} className={`rounded-lg border px-2.5 py-2 ${hasConflict ? "border-amber-500/30 bg-amber-500/[0.04]" : "border-primary/15 bg-primary/[0.02]"}`}>
-                              <div className="flex items-center gap-2 text-xs">
-                                {hasConflict ? <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" /> : <Clock className="h-3 w-3 text-primary/60 shrink-0" />}
-                                <span className="font-medium">{sh.events?.name ?? "Shift"}</span>
-                                <span className="text-muted-foreground font-mono ml-auto">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
-                              </div>
-                              {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-5 mt-0.5">Role: {sh.role}</div>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
-
-              {/* ── List View ── */}
-              {scheduleView === "list" && <>
 
               {/* ── Conflict Banner ── */}
               {conflictIds.size > 0 && (
@@ -709,7 +693,6 @@ export default function SchedulePage() {
                   </div>
                 </div>
               )}
-            </>}
             </>
             );
           })()
