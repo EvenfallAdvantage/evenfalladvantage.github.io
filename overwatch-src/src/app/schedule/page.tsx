@@ -663,16 +663,7 @@ export default function SchedulePage() {
 
               {/* ── Upcoming Operations (with nested shifts) ── */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Upcoming Operations</h2>
-                  {isAdmin && shifts.length > 0 && (
-                    <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
-                      onClick={handleSendReminders} disabled={sendingReminders}>
-                      {sendingReminders ? <Loader2 className="h-3 w-3 animate-spin" /> : remindersSent ? <Bell className="h-3 w-3 text-green-500" /> : <Bell className="h-3 w-3" />}
-                      {remindersSent ? "Sent!" : "Send Reminders"}
-                    </Button>
-                  )}
-                </div>
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Upcoming Operations</h2>
                 {upcomingEvents.length === 0 && currentEvents.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
                     <CalendarDays className="mb-3 h-10 w-10 text-muted-foreground/40" />
