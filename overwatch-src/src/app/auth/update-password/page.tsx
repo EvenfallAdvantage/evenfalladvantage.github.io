@@ -82,7 +82,7 @@ export default function UpdatePasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-[#0b1422]">
       <div className="w-full max-w-sm mx-4 rounded-2xl border border-[#dd8c33]/30 bg-[#0f1a2e] p-6 shadow-2xl">
         <div className="flex flex-col items-center mb-5">
-          <Image src="/images/overwatch_logo.png" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
+          <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
           <h2 className="mt-2 text-lg font-bold font-mono text-white">
             {done ? "PASSWORD UPDATED" : "NEW PASSWORD"}
           </h2>

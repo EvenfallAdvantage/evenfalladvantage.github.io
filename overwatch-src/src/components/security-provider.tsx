@@ -102,7 +102,7 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
         {children}
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md">
           <div className="flex flex-col items-center gap-4 text-center max-w-sm mx-4">
-            <Image src="/images/overwatch_logo.png" alt="Overwatch" width={80} height={80} style={{ width: 80, height: "auto" }} />
+            <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={80} height={80} style={{ width: 80, height: "auto" }} />
             <div className="flex items-center gap-2 text-amber-500">
               <Lock className="h-5 w-5" />
               <h2 className="text-lg font-bold font-mono">SESSION LOCKED</h2>

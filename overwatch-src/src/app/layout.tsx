@@ -30,10 +30,10 @@ export const metadata: Metadata = {
   ],
   icons: {
     icon: [
-      { url: "/overwatch/favicon.png", sizes: "32x32", type: "image/png" },
-      { url: "/overwatch/images/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/overwatch/favicon.png?v=2", sizes: "32x32", type: "image/png" },
+      { url: "/overwatch/images/icon-192.png?v=2", sizes: "192x192", type: "image/png" },
     ],
-    apple: "/overwatch/images/apple-touch-icon.png",
+    apple: "/overwatch/images/apple-touch-icon.png?v=2",
   },
   manifest: "/overwatch/manifest.json",
   appleWebApp: {

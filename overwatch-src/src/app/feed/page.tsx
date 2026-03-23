@@ -421,7 +421,7 @@ export default function FeedPage() {
                 <CardContent className="pt-6 pb-4 space-y-4">
                   <div className="text-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/overwatch/images/overwatch_logo.png" alt="Overwatch" className="h-12 w-12 mx-auto mb-3" />
+                    <img src="/overwatch/images/overwatch_logo.png?v=2" alt="Overwatch" className="h-12 w-12 mx-auto mb-3" />
                     <h2 className="text-lg font-bold">Create Your Company</h2>
                     <p className="text-xs text-muted-foreground mt-1">Set up your security operation in seconds.</p>
                   </div>

@@ -5,7 +5,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
       <div className="mb-8 flex flex-col items-center gap-2">
         <Image
-          src="/images/overwatch_logo.png"
+          src="/images/overwatch_logo.png?v=2"
           alt="Overwatch"
           width={120}
           height={120}

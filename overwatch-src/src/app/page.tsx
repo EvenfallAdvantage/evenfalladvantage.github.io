@@ -113,7 +113,7 @@ function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onCl
         <button onClick={onClose} className="absolute top-3 right-3 text-white/40 hover:text-white"><X className="h-5 w-5" /></button>
 
         <div className="flex flex-col items-center mb-5">
-          <Image src="/images/overwatch_logo.png" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
+          <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
           <h2 className="mt-2 text-lg font-bold font-mono text-white">SIGN IN</h2>
         </div>
 
@@ -262,7 +262,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
         <button onClick={onClose} className="absolute top-3 right-3 text-white/40 hover:text-white"><X className="h-5 w-5" /></button>
 
         <div className="flex flex-col items-center mb-5">
-          <Image src="/images/overwatch_logo.png" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
+          <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
           <h2 className="mt-2 text-lg font-bold font-mono text-white">CREATE ACCOUNT</h2>
           {joinCode && <p className="text-[10px] text-[#dd8c33] mt-1 font-mono">JOIN CODE: {joinCode}</p>}
         </div>
@@ -429,7 +429,7 @@ function HomePageInner() {
       <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0b1422]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2 sm:gap-3">
-            <Image src="/images/overwatch_logo.png" alt="Overwatch" width={54} height={54} className="w-8 sm:w-[54px] h-auto" />
+            <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={54} height={54} className="w-8 sm:w-[54px] h-auto" />
             <span className="font-mono text-xl sm:text-3xl font-bold tracking-tight leading-none">OVERWATCH</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
