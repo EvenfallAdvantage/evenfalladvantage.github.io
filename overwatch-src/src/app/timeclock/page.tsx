@@ -193,6 +193,13 @@ export default function TimeClockPage() {
     try { await clockOut(active.id); await load(); } catch (err) { console.error("Clock out failed:", err); } finally { setActing(false); }
   }
 
+  function timeToISO(timeStr: string, refISO: string): string {
+    const refDate = new Date(refISO);
+    const [h, m] = timeStr.split(":").map(Number);
+    refDate.setHours(h, m, 0, 0);
+    return refDate.toISOString();
+  }
+
   async function handleSubmitChangeRequest() {
     if (!selectedEntry || !companyId || !changeReason.trim()) return;
     setSubmittingChange(true);
@@ -200,8 +207,8 @@ export default function TimeClockPage() {
       await createTimeChangeRequest({
         timesheetId: selectedEntry.id,
         companyId,
-        requestedClockIn: changeClockIn || undefined,
-        requestedClockOut: changeClockOut || undefined,
+        requestedClockIn: changeClockIn ? timeToISO(changeClockIn, selectedEntry.clock_in) : undefined,
+        requestedClockOut: changeClockOut && selectedEntry.clock_out ? timeToISO(changeClockOut, selectedEntry.clock_out) : undefined,
         reason: changeReason,
       });
       // Notify managers/admins about the new time correction request
