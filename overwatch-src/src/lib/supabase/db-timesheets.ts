@@ -206,7 +206,7 @@ export async function getCompanyTimeChangeRequests(companyId: string) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("time_change_requests")
-      .select("*, timesheets(clock_in, clock_out), users(first_name, last_name, avatar_url)")
+      .select("*, timesheets(clock_in, clock_out), users!user_id(first_name, last_name, avatar_url)")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .limit(50);
