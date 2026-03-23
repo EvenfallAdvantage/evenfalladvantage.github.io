@@ -6,7 +6,7 @@ import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
   FileText, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
-  ClipboardList, Flag, ChevronDown,
+  ClipboardList, Flag, ChevronDown, ChevronLeft, ChevronRight, List,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -84,6 +84,9 @@ export default function SchedulePage() {
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
 
   const [tab, setTab] = useState<"schedule" | "armory">("schedule");
+  const [scheduleView, setScheduleView] = useState<"list" | "calendar">("list");
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [calSelectedDay, setCalSelectedDay] = useState<string | null>(null);
 
   // Schedule state
   const [events, setEvents] = useState<Ev[]>([]);
@@ -318,6 +321,7 @@ export default function SchedulePage() {
           ) : (() => {
             const today = new Date(); today.setHours(0,0,0,0);
             const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+            const todayStr = today.toISOString().slice(0, 10);
             const isToday = (iso: string) => { const d = new Date(iso); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); };
             const isCurrent = (startIso: string, endIso: string) => {
               const s = new Date(startIso); s.setHours(0,0,0,0);
@@ -339,6 +343,28 @@ export default function SchedulePage() {
                 }
               }
             }
+
+            // Group ALL shifts by day for calendar view
+            const shiftsByDay = new Map<string, Shift[]>();
+            for (const sh of shifts) {
+              const day = new Date(sh.start_time).toISOString().slice(0, 10);
+              if (!shiftsByDay.has(day)) shiftsByDay.set(day, []);
+              shiftsByDay.get(day)!.push(sh);
+            }
+
+            // Calendar grid computation
+            const calYear = calMonth.getFullYear();
+            const calMon = calMonth.getMonth();
+            const firstOfMonth = new Date(calYear, calMon, 1);
+            const lastOfMonth = new Date(calYear, calMon + 1, 0);
+            const startPad = firstOfMonth.getDay();
+            const calDays: (string | null)[] = [];
+            for (let i = 0; i < startPad; i++) calDays.push(null);
+            for (let d = 1; d <= lastOfMonth.getDate(); d++) {
+              calDays.push(new Date(calYear, calMon, d).toISOString().slice(0, 10));
+            }
+            while (calDays.length % 7 !== 0) calDays.push(null);
+            const monthLabel = calMonth.toLocaleDateString([], { month: "long", year: "numeric" });
 
             const renderOpCard = (ev: Ev, highlight?: boolean, myShifts?: Shift[]) => (
               <Card key={ev.id} className={`overflow-visible ${highlight ? "border-primary/40 bg-primary/5" : "border-border/40"}`}>
@@ -470,6 +496,125 @@ export default function SchedulePage() {
 
             return (
             <>
+              {/* ── View Toggle ── */}
+              <div className="flex items-center justify-between">
+                <div className="flex gap-1 rounded-lg bg-muted/50 p-0.5 w-fit">
+                  <button onClick={() => setScheduleView("list")}
+                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scheduleView === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    <List className="h-3 w-3" /> List
+                  </button>
+                  <button onClick={() => setScheduleView("calendar")}
+                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scheduleView === "calendar" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    <CalendarDays className="h-3 w-3" /> Calendar
+                  </button>
+                </div>
+                {isAdmin && shifts.length > 0 && (
+                  <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
+                    onClick={handleSendReminders} disabled={sendingReminders}>
+                    {sendingReminders ? <Loader2 className="h-3 w-3 animate-spin" /> : remindersSent ? <Bell className="h-3 w-3 text-green-500" /> : <Bell className="h-3 w-3" />}
+                    {remindersSent ? "Sent!" : "Send Reminders"}
+                  </Button>
+                )}
+              </div>
+
+              {/* ── Calendar View ── */}
+              {scheduleView === "calendar" && (
+                <div>
+                  {/* Month navigation */}
+                  <div className="flex items-center justify-between mb-3">
+                    <button onClick={() => setCalMonth(new Date(calYear, calMon - 1, 1))}
+                      className="rounded-md p-1 hover:bg-muted transition-colors"><ChevronLeft className="h-4 w-4" /></button>
+                    <h3 className="text-sm font-semibold">{monthLabel}</h3>
+                    <button onClick={() => setCalMonth(new Date(calYear, calMon + 1, 1))}
+                      className="rounded-md p-1 hover:bg-muted transition-colors"><ChevronRight className="h-4 w-4" /></button>
+                  </div>
+
+                  {/* Day headers */}
+                  <div className="grid grid-cols-7 gap-px mb-1">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
+                      <div key={d} className="text-center text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/40 py-1">{d}</div>
+                    ))}
+                  </div>
+
+                  {/* Calendar grid */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {calDays.map((day, i) => {
+                      if (!day) return <div key={`pad-${i}`} className="min-h-[60px]" />;
+                      const dayShifts = shiftsByDay.get(day) ?? [];
+                      const dayNum = new Date(day + "T12:00:00").getDate();
+                      const isDayToday = day === todayStr;
+                      const isSelected = calSelectedDay === day;
+                      const hasConflict = dayShifts.some((s: Shift) => conflictIds.has(s.id));
+                      const totalHrs = dayShifts.reduce((sum: number, s: Shift) => {
+                        const ms = new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
+                        return sum + (ms > 0 ? ms / 3600000 : ms / 3600000 + 24);
+                      }, 0);
+
+                      return (
+                        <button key={day} onClick={() => dayShifts.length > 0 ? setCalSelectedDay(isSelected ? null : day) : undefined}
+                          className={`relative rounded-lg p-1.5 min-h-[60px] text-left transition-all border ${
+                            isSelected ? "border-primary bg-primary/10 ring-1 ring-primary/30" :
+                            hasConflict ? "border-amber-500/30 bg-amber-500/[0.04]" :
+                            dayShifts.length > 0 ? "border-primary/20 bg-primary/[0.03] hover:bg-primary/[0.07]" :
+                            "border-transparent hover:bg-muted/20"
+                          }`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`text-[11px] font-mono font-semibold ${isDayToday ? "text-primary" : dayShifts.length > 0 ? "" : "text-muted-foreground/30"}`}>{dayNum}</span>
+                            {dayShifts.length > 0 && <span className="text-[8px] font-mono text-muted-foreground/60">{totalHrs.toFixed(0)}h</span>}
+                          </div>
+                          {dayShifts.length > 0 && (
+                            <div className="mt-0.5">
+                              <span className={`inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold ${hasConflict ? "bg-amber-500/15 text-amber-600" : "bg-primary/15 text-primary"}`}>
+                                {dayShifts.length} shift{dayShifts.length !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                          )}
+                          {isDayToday && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Legend */}
+                  <div className="flex items-center gap-4 mt-3 pt-2 border-t border-border/10">
+                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-primary/30" /> Has Shifts</span>
+                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-amber-500/30" /> Conflict</span>
+                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-1 w-1 rounded-full bg-primary" /> Today</span>
+                  </div>
+
+                  {/* Expanded day detail */}
+                  {calSelectedDay && shiftsByDay.has(calSelectedDay) && (
+                    <div className="mt-3 rounded-xl border border-primary/20 bg-primary/[0.02] p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                          {new Date(calSelectedDay + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
+                        </h4>
+                        <button onClick={() => setCalSelectedDay(null)} className="text-muted-foreground hover:text-foreground text-xs">✕</button>
+                      </div>
+                      <div className="space-y-1.5">
+                        {(shiftsByDay.get(calSelectedDay) ?? []).map((sh: Shift) => {
+                          const hasConflict = conflictIds.has(sh.id);
+                          return (
+                            <div key={sh.id} className={`rounded-lg border px-2.5 py-2 ${hasConflict ? "border-amber-500/30 bg-amber-500/[0.04]" : "border-primary/15 bg-primary/[0.02]"}`}>
+                              <div className="flex items-center gap-2 text-xs">
+                                {hasConflict ? <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" /> : <Clock className="h-3 w-3 text-primary/60 shrink-0" />}
+                                <span className="font-medium">{sh.events?.name ?? "Shift"}</span>
+                                <span className="text-muted-foreground font-mono ml-auto">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
+                              </div>
+                              {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-5 mt-0.5">Role: {sh.role}</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── List View ── */}
+              {scheduleView === "list" && <>
+
               {/* ── Conflict Banner ── */}
               {conflictIds.size > 0 && (
                 <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
@@ -573,6 +718,7 @@ export default function SchedulePage() {
                   </div>
                 </div>
               )}
+            </>}
             </>
             );
           })()
