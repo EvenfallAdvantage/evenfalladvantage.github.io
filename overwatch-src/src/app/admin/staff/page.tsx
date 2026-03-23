@@ -498,7 +498,7 @@ export default function AdminStaffPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-1">
           {([
             { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0 },
             { key: "applicants" as Tab, label: "Applicants", badge: applicants.filter((a: Applicant) => a.status === "applied").length },
