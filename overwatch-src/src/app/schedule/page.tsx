@@ -56,18 +56,20 @@ function ShiftAccordion({ shifts, highlight, conflictIds, statusColor }: {
       {open && (
         <div className="mt-1.5 space-y-1">
           {shifts.map((sh: Shift) => (
-            <div key={sh.id} className={`flex items-center gap-2 text-xs ${conflictIds.has(sh.id) ? "rounded-md bg-amber-500/10 px-2 py-1 -mx-2" : ""}`}>
-              {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
-              <span className="text-muted-foreground">
-                {!highlight && `${fmtDate(sh.start_time)} · `}{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
-              </span>
-              {sh.role && <span className="text-muted-foreground">· Role: {sh.role}</span>}
-              <div className="flex items-center gap-1 ml-auto">
-                {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
-                <Badge className={`text-[9px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
-                  {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
-                </Badge>
+            <div key={sh.id} className={`text-xs ${conflictIds.has(sh.id) ? "rounded-md bg-amber-500/10 px-2 py-1.5 -mx-2" : ""}`}>
+              <div className="flex items-center gap-2">
+                {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
+                <span className="text-muted-foreground">
+                  {!highlight && `${fmtDate(sh.start_time)} · `}{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
+                </span>
+                <div className="flex items-center gap-1 ml-auto">
+                  {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
+                  <Badge className={`text-[9px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
+                    {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
+                  </Badge>
+                </div>
               </div>
+              {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-5 mt-0.5">Role: {sh.role}</div>}
             </div>
           ))}
         </div>
