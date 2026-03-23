@@ -6,7 +6,7 @@ import {
   CalendarDays, MapPin, Clock, Loader2, QrCode,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
   FileText, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
-  ClipboardList, Flag,
+  ClipboardList, Flag, ChevronDown,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -37,6 +37,43 @@ function fmtDate(iso: string) {
 }
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function ShiftAccordion({ shifts, highlight, conflictIds, statusColor }: {
+  shifts: Shift[];
+  highlight: boolean;
+  conflictIds: Set<string>;
+  statusColor: (s: string) => string;
+}) {
+  const [open, setOpen] = useState(highlight);
+  return (
+    <div className="mt-2 ml-14 border-t border-primary/10 pt-2">
+      <button type="button" onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors w-full">
+        <ChevronDown className={`h-3 w-3 transition-transform ${open ? "" : "-rotate-90"}`} />
+        {shifts.length} shift{shifts.length !== 1 ? "s" : ""} assigned
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-1">
+          {shifts.map((sh: Shift) => (
+            <div key={sh.id} className={`flex items-center gap-2 text-xs ${conflictIds.has(sh.id) ? "rounded-md bg-amber-500/10 px-2 py-1 -mx-2" : ""}`}>
+              {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
+              <span className="text-muted-foreground">
+                {!highlight && `${fmtDate(sh.start_time)} · `}{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
+              </span>
+              {sh.role && <span className="text-muted-foreground">· Role: {sh.role}</span>}
+              <div className="flex items-center gap-1 ml-auto">
+                {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
+                <Badge className={`text-[9px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
+                  {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function SchedulePage() {
@@ -375,25 +412,9 @@ export default function SchedulePage() {
                       </div>
                     </div>
                   )}
-                  {/* Inline shift details */}
+                  {/* Collapsible shift details */}
                   {myShifts && myShifts.length > 0 && (
-                    <div className="mt-2 ml-14 space-y-1 border-t border-primary/10 pt-2">
-                      {myShifts.map((sh: Shift) => (
-                        <div key={sh.id} className={`flex items-center gap-2 text-xs ${conflictIds.has(sh.id) ? "rounded-md bg-amber-500/10 px-2 py-1 -mx-2" : ""}`}>
-                          {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
-                          <span className="text-muted-foreground">
-                            {!highlight && `${fmtDate(sh.start_time)} · `}{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
-                          </span>
-                          {sh.role && <span className="text-muted-foreground">· Role: {sh.role}</span>}
-                          <div className="flex items-center gap-1 ml-auto">
-                            {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
-                            <Badge className={`text-[9px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
-                              {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <ShiftAccordion shifts={myShifts} highlight={!!highlight} conflictIds={conflictIds} statusColor={statusColor} />
                   )}
                   {/* Quick-action buttons for current operations */}
                   {highlight && (
