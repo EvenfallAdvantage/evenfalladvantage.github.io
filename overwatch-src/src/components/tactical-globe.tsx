@@ -27,6 +27,14 @@ const NOAA_SATS = [
   { id: 54234, name: "NOAA-21", alt: 833, incl: 98.7, period: 101.5, phase: 288 },
 ];
 
+/* ── Real-time sun position: phi that places the subsolar point facing the camera ── */
+function getSunPhi(): number {
+  const now = new Date();
+  const utcSec = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds() + now.getUTCMilliseconds() / 1000;
+  // At UTC noon (43200s) phi=0 → prime meridian faces camera (sun over Greenwich)
+  return ((utcSec - 43200) / 86400) * 2 * Math.PI;
+}
+
 function computeNOAA(now: number): SatData[] {
   const EARTH_ROT = 360 / 86400; // deg/sec
   return NOAA_SATS.map((s) => {
@@ -442,12 +450,12 @@ export function TacticalGlobe() {
       phi: 0,
       theta: 0.45,
       dark: 1,
-      diffuse: 1.2,
+      diffuse: 0.4,
       mapSamples: 16000,
-      mapBrightness: 4,
-      baseColor: [0.12, 0.18, 0.28],
+      mapBrightness: 8,
+      baseColor: [0.05, 0.08, 0.15],
       markerColor: [0.94, 0.59, 0.12],
-      glowColor: [0.08, 0.12, 0.2],
+      glowColor: [0.04, 0.06, 0.12],
       markerElevation: 0,
       markers: [],
     });
@@ -455,7 +463,7 @@ export function TacticalGlobe() {
     const cityMarkers = CITIES.map((c) => ({ location: [c.lat, c.lng] as [number, number], size: 0.018 }));
 
     function animate() {
-      if (autoRotateRef.current) phi += 0.003;
+      if (autoRotateRef.current) phi = getSunPhi();
       phiRef.current = phi;
       globe.update({ phi, markers: cityMarkers });
       rafId = requestAnimationFrame(animate);
