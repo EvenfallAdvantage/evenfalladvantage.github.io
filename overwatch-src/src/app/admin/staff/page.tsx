@@ -519,20 +519,22 @@ export default function AdminStaffPage() {
         {/* ── Roster Tab ── */}
         {tab === "roster" && (
           <>
-            <div className="flex items-center gap-2">
-              <div className="relative max-w-sm flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input placeholder="Search personnel..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
-              {members.length > 0 && (
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => exportCSV(members, MEMBER_COLUMNS, `roster-${new Date().toISOString().slice(0,10)}`)}>
-                  <Download className="h-3.5 w-3.5" /> Export
+              <div className="flex items-center gap-2">
+                {members.length > 0 && (
+                  <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => exportCSV(members, MEMBER_COLUMNS, `roster-${new Date().toISOString().slice(0,10)}`)}>
+                    <Download className="h-3.5 w-3.5" /> Export
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => csvInputRef.current?.click()}>
+                  <Upload className="h-3.5 w-3.5" /> Import CSV
                 </Button>
-              )}
-              <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => csvInputRef.current?.click()}>
-                <Upload className="h-3.5 w-3.5" /> Import CSV
-              </Button>
-              <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVFile} />
+                <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVFile} />
+              </div>
             </div>
 
             {/* CSV Import Preview Modal */}
@@ -612,69 +614,77 @@ export default function AdminStaffPage() {
                 {filtered.map((m: Member) => {
                   const u = m.users;
                   return (
-                    <div key={m.id} className="flex items-center gap-4 rounded-xl border border-border/50 bg-card px-4 py-3">
-                      <Avatar className="h-10 w-10 shrink-0">
-                        <AvatarImage src={u?.avatar_url ?? undefined} />
-                        <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
-                          {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
-                        <p className="text-xs text-muted-foreground">{u?.email}</p>
+                    <div key={m.id} className="rounded-xl border border-border/50 bg-card px-4 py-3 space-y-2">
+                      {/* Row 1: Avatar + Name + Role */}
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 shrink-0">
+                          <AvatarImage src={u?.avatar_url ?? undefined} />
+                          <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
+                            {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{u?.first_name} {u?.last_name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{u?.email}</p>
+                        </div>
+                        <div className="relative shrink-0">
+                          {(() => {
+                            const roleOptions = myRole === "owner"
+                              ? ["owner", "admin", "instructor", "manager", "lead", "breaker", "staff"]
+                              : myRole === "admin"
+                                ? ["admin", "instructor", "manager", "lead", "breaker", "staff"]
+                                : ["manager", "lead", "breaker", "staff"];
+                            const canEdit = canManageRoles && roleOptions.includes(m.role);
+                            return canEdit ? (
+                              <>
+                                <select value={m.role}
+                                  onChange={(e) => handleRoleChange(m.id, e.target.value)}
+                                  disabled={changingRole === m.id}
+                                  className="h-6 appearance-none rounded border border-border/40 bg-background px-2 pr-5 text-[10px] font-medium capitalize cursor-pointer disabled:opacity-50">
+                                  {roleOptions.map((r) => (
+                                    <option key={r} value={r}>{r}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+                              </>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
+                            );
+                          })()}
+                        </div>
                       </div>
-                      <div className="relative">
-                        {(() => {
-                          const roleOptions = myRole === "owner"
-                            ? ["owner", "admin", "instructor", "manager", "lead", "breaker", "staff"]
-                            : myRole === "admin"
-                              ? ["admin", "instructor", "manager", "lead", "breaker", "staff"]
-                              : ["manager", "lead", "breaker", "staff"];
-                          const canEdit = canManageRoles && roleOptions.includes(m.role);
-                          return canEdit ? (
-                            <>
-                              <select value={m.role}
-                                onChange={(e) => handleRoleChange(m.id, e.target.value)}
-                                disabled={changingRole === m.id}
-                                className="h-6 appearance-none rounded border border-border/40 bg-background px-2 pr-5 text-[10px] font-medium capitalize cursor-pointer disabled:opacity-50">
-                                {roleOptions.map((r) => (
-                                  <option key={r} value={r}>{r}</option>
-                                ))}
-                              </select>
-                              <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-                            </>
-                          ) : (
-                            <Badge variant="outline" className="text-[10px] capitalize">{m.role}</Badge>
-                          );
-                        })()}
+                      {/* Row 2: Status + Actions */}
+                      <div className="flex items-center gap-2 ml-[52px]">
+                        <Badge variant={m.status === "active" ? "default" : "outline"} className="text-[10px] capitalize">{m.status}</Badge>
+                        <div className="flex items-center gap-1 ml-auto">
+                          {canManage && (
+                            <button onClick={() => openProfile(m.id)} disabled={loadingProfile === m.id}
+                              className="rounded p-1.5 text-muted-foreground/40 hover:text-primary hover:bg-primary/10" title="View profile">
+                              {loadingProfile === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                            </button>
+                          )}
+                          {canManage && (() => {
+                            const r = readiness[m.id];
+                            if (!r) return null;
+                            const hasRequired = r.readingMissing.length > 0;
+                            const hasProfile = r.profileMissing.length > 0;
+                            const isGreen = !hasRequired && !hasProfile;
+                            return (
+                              <button onClick={() => setViewReadiness({ member: m, data: r })}
+                                className={`rounded p-1.5 transition-colors ${isGreen ? "text-green-500 hover:bg-green-500/10" : hasRequired ? "text-red-500 hover:bg-red-500/10" : "text-amber-500 hover:bg-amber-500/10"}`}
+                                title={isGreen ? "All clear" : hasRequired ? "Missing required tasks" : "Incomplete profile"}>
+                                {isGreen ? <ShieldCheck className="h-3.5 w-3.5" /> : hasRequired ? <AlertOctagon className="h-3.5 w-3.5" /> : <AlertOctagon className="h-3.5 w-3.5" />}
+                              </button>
+                            );
+                          })()}
+                          {canManageRoles && m.role !== "owner" && (
+                            <button onClick={() => handleRemoveMember(m.id, `${u?.first_name} ${u?.last_name}`)} disabled={removingMember === m.id}
+                              className="rounded p-1.5 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Remove member">
+                              {removingMember === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <Badge variant={m.status === "active" ? "default" : "outline"} className="text-[10px] capitalize">{m.status}</Badge>
-                      {canManage && (
-                        <button onClick={() => openProfile(m.id)} disabled={loadingProfile === m.id}
-                          className="rounded p-1 text-muted-foreground/40 hover:text-primary hover:bg-primary/10" title="View profile">
-                          {loadingProfile === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
-                        </button>
-                      )}
-                      {canManage && (() => {
-                        const r = readiness[m.id];
-                        if (!r) return null;
-                        const hasRequired = r.readingMissing.length > 0;
-                        const hasProfile = r.profileMissing.length > 0;
-                        const isGreen = !hasRequired && !hasProfile;
-                        return (
-                          <button onClick={() => setViewReadiness({ member: m, data: r })}
-                            className={`rounded p-1 transition-colors ${isGreen ? "text-green-500 hover:bg-green-500/10" : hasRequired ? "text-red-500 hover:bg-red-500/10" : "text-amber-500 hover:bg-amber-500/10"}`}
-                            title={isGreen ? "All clear" : hasRequired ? "Missing required tasks" : "Incomplete profile"}>
-                            {isGreen ? <ShieldCheck className="h-3.5 w-3.5" /> : hasRequired ? <AlertOctagon className="h-3.5 w-3.5" /> : <AlertOctagon className="h-3.5 w-3.5" />}
-                          </button>
-                        );
-                      })()}
-                      {canManageRoles && m.role !== "owner" && (
-                        <button onClick={() => handleRemoveMember(m.id, `${u?.first_name} ${u?.last_name}`)} disabled={removingMember === m.id}
-                          className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Remove member">
-                          {removingMember === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                        </button>
-                      )}
                     </div>
                   );
                 })}
