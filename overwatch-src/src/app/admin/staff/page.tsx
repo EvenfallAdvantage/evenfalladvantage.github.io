@@ -1199,13 +1199,13 @@ export default function AdminStaffPage() {
         {tab === "onboarding" && (
           <>
             <div className="rounded-xl border border-border/50 bg-card p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="font-medium text-sm flex items-center gap-2"><ListChecks className="h-4 w-4" /> Onboarding Checklist</p>
+              <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-sm flex items-center gap-2"><ListChecks className="h-4 w-4 shrink-0" /> Onboarding Checklist</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Configure tasks that new hires must complete. These are auto-assigned when an applicant is hired.</p>
                 </div>
                 {canManage && (
-                  <Button size="sm" className="gap-1.5" onClick={() => setShowAddTask(!showAddTask)}>
+                  <Button size="sm" className="gap-1.5 shrink-0" onClick={() => setShowAddTask(!showAddTask)}>
                     {showAddTask ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
                     {showAddTask ? "Cancel" : "Add Task"}
                   </Button>
@@ -1250,30 +1250,36 @@ export default function AdminStaffPage() {
               ) : (
                 <div className="space-y-1.5">
                   {oTasks.map((t: OTask, i: number) => (
-                    <div key={t.id} className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2.5">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">{i + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{t.title}</p>
-                        {t.description && <p className="text-[10px] text-muted-foreground">{t.description}</p>}
-                      </div>
-                      <Badge variant="outline" className="text-[9px] capitalize">{t.category}</Badge>
-                      {t.is_required && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Required</Badge>}
-                      {canManage && (
-                        <div className="flex items-center gap-0.5">
-                          <button onClick={() => handleMoveTask(i, "up")} disabled={i === 0}
-                            className="rounded p-1 text-muted-foreground/30 hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:pointer-events-none" title="Move up">
-                            <ChevronUp className="h-3 w-3" />
-                          </button>
-                          <button onClick={() => handleMoveTask(i, "down")} disabled={i === oTasks.length - 1}
-                            className="rounded p-1 text-muted-foreground/30 hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:pointer-events-none" title="Move down">
-                            <ChevronDown className="h-3 w-3" />
-                          </button>
-                          <button onClick={() => handleDeleteTask(t.id)}
-                            className="rounded p-1 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10">
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                    <div key={t.id} className="rounded-lg border border-border/40 px-3 py-2.5 space-y-1.5">
+                      {/* Row 1: Number + Title + Badges */}
+                      <div className="flex items-start gap-2.5">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary mt-0.5">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium leading-tight">{t.title}</p>
+                          {t.description && <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{t.description}</p>}
                         </div>
-                      )}
+                      </div>
+                      {/* Row 2: Badges + Actions */}
+                      <div className="flex items-center gap-1.5 ml-[34px]">
+                        <Badge variant="outline" className="text-[9px] capitalize">{t.category}</Badge>
+                        {t.is_required && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Required</Badge>}
+                        {canManage && (
+                          <div className="flex items-center gap-0.5 ml-auto">
+                            <button onClick={() => handleMoveTask(i, "up")} disabled={i === 0}
+                              className="rounded p-1.5 text-muted-foreground/30 hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:pointer-events-none" title="Move up">
+                              <ChevronUp className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => handleMoveTask(i, "down")} disabled={i === oTasks.length - 1}
+                              className="rounded p-1.5 text-muted-foreground/30 hover:text-primary hover:bg-primary/10 disabled:opacity-20 disabled:pointer-events-none" title="Move down">
+                              <ChevronDown className="h-3 w-3" />
+                            </button>
+                            <button onClick={() => handleDeleteTask(t.id)}
+                              className="rounded p-1.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
