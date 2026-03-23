@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,13 +15,23 @@ import { AuthLayout } from "@/components/auth-layout";
 import type { CompanyContext } from "@/types";
 
 export default function JoinPage() {
+  return (
+    <Suspense fallback={<AuthLayout><div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div></AuthLayout>}>
+      <JoinPageInner />
+    </Suspense>
+  );
+}
+
+function JoinPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialMode = searchParams.get("mode") === "create" ? "create" : "join";
   const { user: storeUser, setUser, setActiveCompany } = useAuthStore();
   const [companyCode, setCompanyCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState<string | null>(null);
-  const [mode, setMode] = useState<"join" | "create">("join");
+  const [mode, setMode] = useState<"join" | "create">(initialMode);
   const [newCompanyName, setNewCompanyName] = useState("");
 
   const isLoggedIn = !!storeUser;

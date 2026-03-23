@@ -504,6 +504,11 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               Join Company
             </DropdownMenuItem>
 
+            <DropdownMenuItem className="gap-2" onClick={() => router.push("/join?mode=create")}>
+              <Building2 className="h-4 w-4" />
+              Create Company
+            </DropdownMenuItem>
+
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="gap-2 text-destructive focus:text-destructive"
