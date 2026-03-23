@@ -194,10 +194,11 @@ export default function TimeClockPage() {
   }
 
   function timeToISO(timeStr: string, refISO: string): string {
-    const refDate = new Date(refISO);
+    // Parse ref with parseUTC so Supabase formats (no Z) are handled correctly
+    const ref = parseUTC(refISO);
     const [h, m] = timeStr.split(":").map(Number);
-    refDate.setHours(h, m, 0, 0);
-    return refDate.toISOString();
+    // Use the local calendar date of the original entry, combined with the user's desired local time
+    return new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), h, m, 0, 0).toISOString();
   }
 
   async function handleSubmitChangeRequest() {
