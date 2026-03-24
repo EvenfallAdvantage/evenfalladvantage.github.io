@@ -8,8 +8,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyMembers } from "@/lib/supabase/db";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Member = any;
+type MemberUser = { id: string; first_name: string; last_name: string; email: string | null; phone: string | null; avatar_url: string | null };
+type Member = { id: string; role: string; nickname: string | null; status: string; title: string | null; hide_contact_roster: boolean; users: MemberUser | null };
 
 export default function DirectoryPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -21,7 +21,7 @@ export default function DirectoryPage() {
     if (!activeCompanyId || activeCompanyId === "pending") return;
     try {
       const data = await getCompanyMembers(activeCompanyId);
-      setMembers(data);
+      setMembers(data as unknown as Member[]);
     } catch {
       // DB may not be ready
     }
@@ -31,7 +31,7 @@ export default function DirectoryPage() {
     load();
   }, [load]);
 
-  const filtered = members.filter((m: Member) => {
+  const filtered = members.filter((m) => {
     const name = `${m.users?.first_name ?? ""} ${m.users?.last_name ?? ""}`.toLowerCase();
     return name.includes(search.toLowerCase());
   });
@@ -66,7 +66,7 @@ export default function DirectoryPage() {
               {filtered.length} member{filtered.length !== 1 ? "s" : ""}
             </div>
             <div className="space-y-0.5 max-h-[60vh] overflow-y-auto">
-              {filtered.map((m: Member) => {
+              {filtered.map((m) => {
                 const u = m.users;
                 const initials =
                   (u?.first_name?.[0] ?? "") + (u?.last_name?.[0] ?? "");
