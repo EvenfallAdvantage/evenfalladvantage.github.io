@@ -22,6 +22,7 @@ import { createClient } from "@/lib/supabase/client";
 import { registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
 import { useAuthStore } from "@/stores/auth-store";
 import { checkPasswordStrength } from "@/lib/security";
+import { formatPhone } from "@/lib/format-phone";
 import { logSecurityEvent, checkLoginAttempts, recordFailedAttempt, clearLoginAttempts } from "@/lib/security/audit";
 
 const FEATURES = [
@@ -133,7 +134,7 @@ function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onCl
               <label className="text-xs font-medium text-white/60 block mb-1">Phone number</label>
               <div className="flex gap-2">
                 <span className="flex h-9 items-center rounded-lg border border-white/10 bg-white/5 px-3 text-xs text-white/50">US +1</span>
-                <input type="tel" placeholder="(555) 123-4567" value={phone} onChange={e => setPhone(e.target.value)} required
+                <input type="tel" inputMode="tel" placeholder="(555) 123-4567" value={phone} onChange={e => setPhone(formatPhone(e.target.value))} required
                   className="flex-1 h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/30" />
               </div>
               <p className="text-[10px] text-white/30 mt-1">We&apos;ll text you a verification code</p>
@@ -294,7 +295,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
             </div>
             <div>
               <label className="text-xs font-medium text-white/60 block mb-1">Phone (optional)</label>
-              <input type="tel" placeholder="+1 (555) 123-4567" value={phone} onChange={e => setRegPhone(e.target.value)}
+              <input type="tel" inputMode="tel" placeholder="(555) 123-4567" value={phone} onChange={e => setRegPhone(formatPhone(e.target.value))}
                 className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
             </div>
             <div>

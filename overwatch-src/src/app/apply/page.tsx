@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Loader2, CheckCircle2, AlertTriangle, Send, Building2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -183,8 +184,8 @@ function ApplyForm() {
               </div>
               <div>
                 <label className="text-xs text-zinc-400 mb-1 block">Phone</label>
-                <Input value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))}
-                  type="tel" className="bg-zinc-900 border-zinc-700 text-white" placeholder="(555) 123-4567" />
+                <PhoneInput value={form.phone} onChange={(v) => setForm(p => ({ ...p, phone: v }))}
+                  className="bg-zinc-900 border-zinc-700 text-white" />
               </div>
             </div>
             <div>

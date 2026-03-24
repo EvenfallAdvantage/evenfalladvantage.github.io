@@ -9,6 +9,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 
 type LineItem = {
@@ -395,11 +396,11 @@ export default function InvoicesPage() {
                 <Input placeholder="Address" value={form.yourAddress} onChange={(e) => updateField("yourAddress", e.target.value)} className="h-8 text-sm col-span-2" />
                 <Input placeholder="City" value={form.yourCity} onChange={(e) => updateField("yourCity", e.target.value)} className="h-8 text-sm" />
                 <div className="flex gap-2">
-                  <Input placeholder="State" value={form.yourState} onChange={(e) => updateField("yourState", e.target.value)} className="h-8 text-sm w-20" />
-                  <Input placeholder="ZIP" value={form.yourZip} onChange={(e) => updateField("yourZip", e.target.value)} className="h-8 text-sm flex-1" />
+                  <Input placeholder="State" value={form.yourState} onChange={(e) => updateField("yourState", e.target.value.toUpperCase().slice(0, 2))} maxLength={2} className="h-8 text-sm w-20" />
+                  <Input placeholder="ZIP" value={form.yourZip} onChange={(e) => updateField("yourZip", e.target.value.replace(/[^\d-]/g, "").slice(0, 10))} maxLength={10} className="h-8 text-sm flex-1" />
                 </div>
                 <Input placeholder="Email" type="email" value={form.yourEmail} onChange={(e) => updateField("yourEmail", e.target.value)} className="h-8 text-sm" />
-                <Input placeholder="Phone" value={form.yourPhone} onChange={(e) => updateField("yourPhone", e.target.value)} className="h-8 text-sm" />
+                <PhoneInput value={form.yourPhone} onChange={(v) => updateField("yourPhone", v)} className="h-8 text-sm" />
               </CardContent>
             </Card>
 
@@ -414,8 +415,8 @@ export default function InvoicesPage() {
                 <Input placeholder="Address" value={form.clientAddress} onChange={(e) => updateField("clientAddress", e.target.value)} className="h-8 text-sm col-span-2" />
                 <Input placeholder="City" value={form.clientCity} onChange={(e) => updateField("clientCity", e.target.value)} className="h-8 text-sm" />
                 <div className="flex gap-2">
-                  <Input placeholder="State" value={form.clientState} onChange={(e) => updateField("clientState", e.target.value)} className="h-8 text-sm w-20" />
-                  <Input placeholder="ZIP" value={form.clientZip} onChange={(e) => updateField("clientZip", e.target.value)} className="h-8 text-sm flex-1" />
+                  <Input placeholder="State" value={form.clientState} onChange={(e) => updateField("clientState", e.target.value.toUpperCase().slice(0, 2))} maxLength={2} className="h-8 text-sm w-20" />
+                  <Input placeholder="ZIP" value={form.clientZip} onChange={(e) => updateField("clientZip", e.target.value.replace(/[^\d-]/g, "").slice(0, 10))} maxLength={10} className="h-8 text-sm flex-1" />
                 </div>
               </CardContent>
             </Card>

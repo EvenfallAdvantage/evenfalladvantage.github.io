@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import {
   Pencil, Check, X, FileText, Activity, FolderOpen, Loader2, Clock,
   Lock, Shield, AlertTriangle, CheckCircle2, ListChecks, Camera, Copy, KeyRound, Bell,
@@ -385,7 +386,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground text-xs">Phone</span>
-                      <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="mt-1 h-8 text-sm" placeholder="(555) 123-4567" />
+                      <PhoneInput value={phone} onChange={setPhone} className="mt-1 h-8 text-sm" />
                     </div>
                     <div className="flex gap-2 pt-1">
                       <Button size="sm" className="h-7 gap-1 text-xs" onClick={handleSave} disabled={saving}>
@@ -444,7 +445,7 @@ export default function ProfilePage() {
                       <div>
                         <span className="text-muted-foreground text-xs">Emergency Contact</span>
                         <Input value={compForm.emergencyContactName} onChange={(e) => setCompForm(p => ({ ...p, emergencyContactName: e.target.value }))} className="mt-1 h-8 text-sm" placeholder="Name" />
-                        <Input value={compForm.emergencyContactPhone} onChange={(e) => setCompForm(p => ({ ...p, emergencyContactPhone: e.target.value }))} className="mt-1 h-8 text-sm" placeholder="Phone" />
+                        <PhoneInput value={compForm.emergencyContactPhone} onChange={(v) => setCompForm(p => ({ ...p, emergencyContactPhone: v }))} className="mt-1 h-8 text-sm" />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div>

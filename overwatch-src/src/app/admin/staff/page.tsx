@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
@@ -1109,8 +1110,8 @@ export default function AdminStaffPage() {
                     onChange={(e) => setAppForm(p => ({ ...p, lastName: e.target.value }))} />
                   <Input placeholder="Email *" type="email" value={appForm.email}
                     onChange={(e) => setAppForm(p => ({ ...p, email: e.target.value }))} />
-                  <Input placeholder="Phone" value={appForm.phone}
-                    onChange={(e) => setAppForm(p => ({ ...p, phone: e.target.value }))} />
+                  <PhoneInput value={appForm.phone}
+                    onChange={(v) => setAppForm(p => ({ ...p, phone: v }))} />
                   <Input placeholder="Guard card #" value={appForm.guardCardNumber}
                     onChange={(e) => setAppForm(p => ({ ...p, guardCardNumber: e.target.value }))} />
                   <Input placeholder="Availability (e.g. Weekends, Nights)" value={appForm.availability}

@@ -87,9 +87,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
           });
 
-          console.log("[AuthProvider] raw memberships:", JSON.stringify(profile.memberships));
-          console.log("[AuthProvider] mapped companies:", JSON.stringify(companies.map(c => ({ id: c.companyId, name: c.companyName }))));
-
           seedInternalUserId(profile.user.id);
           setUser({
             id: profile.user.id,
@@ -100,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatarUrl: profile.user.avatar_url ?? null,
             isPlatformAdmin: profile.user.is_platform_admin ?? false,
             companies,
-            activeCompanyId: companies[0]?.companyId ?? null,
+            activeCompanyId: null,
           });
           return;
         }
@@ -151,28 +148,7 @@ function mapSupabaseUser(user: any): SessionUser {
     lastName: meta.last_name || "",
     avatarUrl: meta.avatar_url || null,
     isPlatformAdmin: meta.is_platform_admin || false,
-    companies: meta.company_name
-      ? [
-          {
-            companyId: "pending",
-            companyName: meta.company_name,
-            companySlug: meta.company_name
-              .toLowerCase()
-              .replace(/\s+/g, "-")
-              .replace(/[^a-z0-9-]/g, ""),
-            companyLogo: null,
-            brandColor: "#1d3451",
-            role: "owner",
-            isTrainingProvider: false,
-            settings: {},
-            membership: {
-              id: "pending",
-              nickname: null,
-              status: "active",
-            },
-          },
-        ]
-      : [],
-    activeCompanyId: meta.company_name ? "pending" : null,
+    companies: [],
+    activeCompanyId: null,
   };
 }

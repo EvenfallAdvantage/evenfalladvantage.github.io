@@ -1,4 +1,4 @@
-const CACHE_NAME = "overwatch-v6";
+const CACHE_NAME = "overwatch-v7";
 const OFFLINE_URL = "/overwatch/offline.html";
 const STATIC_ASSETS = [
   "/overwatch/",
@@ -43,15 +43,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for API/data
-  if (request.url.includes("/api/") || request.url.includes("supabase")) {
+  // Network-first for API/data and JS bundles (hashed filenames change per build)
+  if (request.url.includes("/api/") || request.url.includes("supabase") || request.url.match(/\/_next\/.*\.js$/)) {
     event.respondWith(
       fetch(request).catch(() => caches.match(request).then((r) => r || new Response("Offline", { status: 503 })))
     );
     return;
   }
 
-  // Stale-while-revalidate for static assets
+  // Stale-while-revalidate for other static assets (images, fonts, CSS)
   event.respondWith(
     caches.match(request).then((cached) => {
       const networkFetch = fetch(request).then((response) => {

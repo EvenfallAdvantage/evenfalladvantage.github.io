@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -598,7 +599,7 @@ export default function AdminEventsPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div><Label className="text-xs">Client Name</Label><Input placeholder="e.g. Acme Corp" value={guide.clientName} onChange={(e) => updateGuide("clientName", e.target.value)} className="mt-1" /></div>
                     <div><Label className="text-xs">Client Contact Person</Label><Input placeholder="e.g. Jane Smith" value={guide.clientContact} onChange={(e) => updateGuide("clientContact", e.target.value)} className="mt-1" /></div>
-                    <div><Label className="text-xs">Client Phone</Label><Input placeholder="(555) 123-4567" value={guide.clientPhone} onChange={(e) => updateGuide("clientPhone", e.target.value)} className="mt-1" /></div>
+                    <div><Label className="text-xs">Client Phone</Label><PhoneInput value={guide.clientPhone} onChange={(v) => updateGuide("clientPhone", v)} className="mt-1" /></div>
                     <div><Label className="text-xs">Client Email</Label><Input placeholder="jane@acme.com" type="email" value={guide.clientEmail} onChange={(e) => updateGuide("clientEmail", e.target.value)} className="mt-1" /></div>
                     <div className="sm:col-span-2"><Label className="text-xs">Site Address</Label><Input placeholder="Full site address if different from operation location" value={guide.siteAddress} onChange={(e) => updateGuide("siteAddress", e.target.value)} className="mt-1" /></div>
                     <div><Label className="text-xs">Site Type</Label>
@@ -697,7 +698,7 @@ export default function AdminEventsPage() {
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Emergency, risk assessment, command structure, and success criteria.</p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div><Label className="text-xs">Emergency Contact Name</Label><Input placeholder="e.g. Operations Manager" value={guide.emergencyContact} onChange={(e) => updateGuide("emergencyContact", e.target.value)} className="mt-1" /></div>
-                    <div><Label className="text-xs">Emergency Phone</Label><Input placeholder="(555) 999-0000" value={guide.emergencyPhone} onChange={(e) => updateGuide("emergencyPhone", e.target.value)} className="mt-1" /></div>
+                    <div><Label className="text-xs">Emergency Phone</Label><PhoneInput value={guide.emergencyPhone} onChange={(v) => updateGuide("emergencyPhone", v)} className="mt-1" /></div>
                     <div className="sm:col-span-2"><Label className="text-xs">Emergency Procedure</Label><Textarea value={guide.emergencyProcedure} onChange={(v) => updateGuide("emergencyProcedure", v)} placeholder="Evacuation routes, rally points, chain of command" rows={2} /></div>
                   </div>
                   {/* Risk Assessment */}
