@@ -499,15 +499,19 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem className="gap-2" onClick={() => router.push("/join")}>
-              <Plus className="h-4 w-4" />
-              Join Company
-            </DropdownMenuItem>
+            {(!user?.companies || user.companies.length === 0) && (
+              <>
+                <DropdownMenuItem className="gap-2" onClick={() => router.push("/join")}>
+                  <Plus className="h-4 w-4" />
+                  Join Company
+                </DropdownMenuItem>
 
-            <DropdownMenuItem className="gap-2" onClick={() => router.push("/join?mode=create")}>
-              <Building2 className="h-4 w-4" />
-              Create Company
-            </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2" onClick={() => router.push("/join?mode=create")}>
+                  <Building2 className="h-4 w-4" />
+                  Create Company
+                </DropdownMenuItem>
+              </>
+            )}
 
             <DropdownMenuSeparator />
             <DropdownMenuItem

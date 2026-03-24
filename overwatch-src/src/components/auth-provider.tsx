@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (profile?.user) {
-          const companies: CompanyContext[] = (profile.memberships ?? []).map(
+          const allCompanies: CompanyContext[] = (profile.memberships ?? []).map(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (m: any) => ({
               companyId: m.companies?.id ?? m.company_id,
@@ -80,6 +80,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               },
             })
           );
+          const seen = new Set<string>();
+          const companies = allCompanies.filter((c) => {
+            if (seen.has(c.companyId)) return false;
+            seen.add(c.companyId);
+            return true;
+          });
 
           seedInternalUserId(profile.user.id);
           setUser({

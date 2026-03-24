@@ -64,7 +64,7 @@ function JoinPageInner() {
       // Re-fetch profile and update auth store
       const profile = await fetchUserProfile();
       if (profile?.user) {
-        const companies: CompanyContext[] = (profile.memberships ?? []).map(
+        const allCompanies: CompanyContext[] = (profile.memberships ?? []).map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (m: any) => ({
             companyId: m.companies?.id ?? m.company_id,
@@ -82,6 +82,12 @@ function JoinPageInner() {
             },
           })
         );
+        const seen = new Set<string>();
+        const companies = allCompanies.filter((c) => {
+          if (seen.has(c.companyId)) return false;
+          seen.add(c.companyId);
+          return true;
+        });
 
         setUser({
           id: profile.user.id,
@@ -140,7 +146,7 @@ function JoinPageInner() {
       // Re-fetch profile and update auth store with new companies list
       const profile = await fetchUserProfile();
       if (profile?.user) {
-        const companies: CompanyContext[] = (profile.memberships ?? []).map(
+        const allCompanies: CompanyContext[] = (profile.memberships ?? []).map(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (m: any) => ({
             companyId: m.companies?.id ?? m.company_id,
@@ -158,6 +164,12 @@ function JoinPageInner() {
             },
           })
         );
+        const seenJ = new Set<string>();
+        const companies = allCompanies.filter((c) => {
+          if (seenJ.has(c.companyId)) return false;
+          seenJ.add(c.companyId);
+          return true;
+        });
 
         setUser({
           id: profile.user.id,
