@@ -87,6 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
           });
 
+          console.log("[AuthProvider] raw memberships:", JSON.stringify(profile.memberships));
+          console.log("[AuthProvider] mapped companies:", JSON.stringify(companies.map(c => ({ id: c.companyId, name: c.companyName }))));
+
           seedInternalUserId(profile.user.id);
           setUser({
             id: profile.user.id,
