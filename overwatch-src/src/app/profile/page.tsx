@@ -585,7 +585,7 @@ export default function ProfilePage() {
                         try {
                           await updateMemberProfile(activeCompanyId, { notificationsMuted: next });
                           setMp({ ...mp, notifications_muted: next });
-                        } catch {}
+                        } catch (err) { console.warn("Toggle mute failed:", err); }
                       }}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${mp.notifications_muted ? "bg-destructive" : "bg-muted"}`}
                     >
@@ -608,7 +608,7 @@ export default function ProfilePage() {
                               try {
                                 await updateMemberProfile(activeCompanyId, { notificationDays: next });
                                 setMp({ ...mp, notification_days: next });
-                              } catch {}
+                              } catch (err) { console.warn("Update notification days failed:", err); }
                             }}
                             className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium border transition-colors ${active ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:text-foreground"}`}
                           >

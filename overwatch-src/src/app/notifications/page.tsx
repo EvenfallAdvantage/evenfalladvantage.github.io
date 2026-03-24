@@ -46,7 +46,7 @@ export default function NotificationsPage() {
       await markNotificationRead(id);
       setNotifications((prev) => prev.map((n: Notif) => n.id === id ? { ...n, read: true } : n));
       window.dispatchEvent(new Event("notifications-read"));
-    } catch {}
+    } catch (err) { console.warn("Mark read failed:", err); }
   }
 
   async function handleMarkAll() {
@@ -56,7 +56,7 @@ export default function NotificationsPage() {
       await markAllNotificationsRead(activeCompanyId);
       setNotifications((prev) => prev.map((n: Notif) => ({ ...n, read: true })));
       window.dispatchEvent(new Event("notifications-read"));
-    } catch {}
+    } catch (err) { console.warn("Mark all read failed:", err); }
     finally { setMarkingAll(false); }
   }
 

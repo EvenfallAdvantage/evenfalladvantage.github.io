@@ -173,7 +173,7 @@ export default function QuizzesPage() {
         await submitQuizAttempt({ quizId: selected.id, answers: { completed: true }, score: 100, passed: true });
         // Auto-complete linked module
         if (selected.module_id) {
-          try { await completeModule(selected.module_id); } catch {}
+          try { await completeModule(selected.module_id); } catch (err) { console.warn("Auto-complete module failed:", err); }
         }
         setTaking(false);
         setAttempts(await getUserQuizAttempts(selected.id));
@@ -193,7 +193,7 @@ export default function QuizzesPage() {
       await submitQuizAttempt({ quizId: selected.id, answers, score, passed });
       // Auto-complete linked module when quiz is passed
       if (passed && selected.module_id) {
-        try { await completeModule(selected.module_id); } catch {}
+        try { await completeModule(selected.module_id); } catch (err) { console.warn("Auto-complete module failed:", err); }
       }
       setShowResults(true);
       setAttempts(await getUserQuizAttempts(selected.id));
