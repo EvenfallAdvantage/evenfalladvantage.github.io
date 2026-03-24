@@ -81,7 +81,7 @@ async function _ensureInternalUserCore(): Promise<string | null> {
     .single();
 
   if (error) {
-    // 409 / 23505 = unique constraint conflict — another caller already created it
+    // Race condition: another caller already created this user
     const { data: retry } = await supabase
       .from("users")
       .select("id")
@@ -90,6 +90,27 @@ async function _ensureInternalUserCore(): Promise<string | null> {
     if (retry) {
       _cachedInternalId = retry.id;
       return retry.id;
+    }
+    // Phone taken by a different user — retry without phone
+    if (error.message?.includes("users_phone_key")) {
+      const retryId = crypto.randomUUID();
+      const { data: created2 } = await supabase
+        .from("users")
+        .insert({
+          id: retryId,
+          supabase_id: authUser.id,
+          email: authUser.email ?? null,
+          phone: null,
+          first_name: meta.first_name ?? "",
+          last_name: meta.last_name ?? "",
+          ...ts(),
+        })
+        .select("id")
+        .single();
+      if (created2) {
+        _cachedInternalId = created2.id;
+        return created2.id;
+      }
     }
     console.warn("Auto-create user failed:", error.message);
     return null;

@@ -64,7 +64,28 @@ export async function upsertUser(data: {
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    // Phone taken by a different user — retry without phone
+    if (error.message?.includes("users_phone_key")) {
+      const { data: created2, error: err2 } = await supabase
+        .from("users")
+        .insert({
+          id: crypto.randomUUID(),
+          supabase_id: data.supabaseId,
+          email: data.email ?? null,
+          phone: null,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          avatar_url: data.avatarUrl ?? null,
+          ...ts(),
+        })
+        .select()
+        .maybeSingle();
+      if (err2) throw err2;
+      return created2;
+    }
+    throw error;
+  }
   return created;
 }
 
@@ -102,14 +123,34 @@ export async function fetchUserProfile(knownAuthId?: string) {
       .maybeSingle();
 
     if (insertErr) {
-      // 409 / 23505 = unique constraint conflict — another caller already created it
+      // Race condition: another caller already created this user
       const { data: retry } = await supabase
         .from("users")
         .select("*")
         .eq("supabase_id", authId)
         .maybeSingle();
-      if (!retry) return null;
-      user = retry;
+      if (retry) {
+        user = retry;
+      } else if (insertErr.message?.includes("users_phone_key")) {
+        // Phone taken by a different user — retry without phone
+        const { data: created2 } = await supabase
+          .from("users")
+          .insert({
+            id: crypto.randomUUID(),
+            supabase_id: authId,
+            email: authUser.email ?? null,
+            phone: null,
+            first_name: meta.first_name ?? "",
+            last_name: meta.last_name ?? "",
+            ...ts(),
+          })
+          .select("*")
+          .maybeSingle();
+        if (!created2) return null;
+        user = created2;
+      } else {
+        return null;
+      }
     } else {
       if (!created) return null;
       user = created;
@@ -266,6 +307,20 @@ export async function createCompanyWithOwner(params: {
   });
 
   if (error) {
+    // Phone taken by a different user — retry without phone
+    if (error.message?.includes("users_phone_key")) {
+      const { data: data2, error: err2 } = await supabase.rpc("create_company_with_owner", {
+        p_company_name: params.companyName,
+        p_supabase_id: params.supabaseId,
+        p_email: params.email ?? null,
+        p_phone: null,
+        p_first_name: params.firstName ?? "",
+        p_last_name: params.lastName ?? "",
+      });
+      if (err2) throw new Error(err2.message || "Failed to create company");
+      if (!data2) throw new Error("Failed to create company");
+      return { user: data2.user, company: data2.company, membership: data2.membership };
+    }
     throw new Error(error.message || "Failed to create company");
   }
   if (!data) throw new Error("Failed to create company");
@@ -481,6 +536,20 @@ export async function joinCompanyByCode(params: {
     // Map Postgres exception to user-friendly message
     if (error.message?.includes("Invalid company code")) {
       throw new Error("Invalid company code");
+    }
+    // Phone taken by a different user — retry without phone
+    if (error.message?.includes("users_phone_key")) {
+      const { data: data2, error: err2 } = await supabase.rpc("join_company_by_code", {
+        p_join_code: params.joinCode,
+        p_supabase_id: params.supabaseId,
+        p_email: params.email ?? null,
+        p_phone: null,
+        p_first_name: params.firstName ?? "",
+        p_last_name: params.lastName ?? "",
+      });
+      if (err2) throw new Error(err2.message || "Failed to join company");
+      if (!data2) throw new Error("Failed to join company");
+      return { user: data2.user, company: data2.company, membership: data2.membership };
     }
     throw new Error(error.message || "Failed to join company");
   }
