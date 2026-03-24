@@ -9,7 +9,7 @@ import {
   BarChart3, Users, Clock, BookOpen,
   ChevronRight, Zap, Lock, Globe,
   X, Phone, Mail, ArrowRight, Loader2, FileCheck,
-  UserPlus, Plug, Smartphone, Crosshair, AlertTriangle, Fingerprint,
+  UserPlus, QrCode, Crosshair, AlertTriangle, FileText, Award,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { TOSModal } from "@/components/terms-of-service";
@@ -36,12 +36,12 @@ const FEATURES = [
   { icon: MapPin, title: "Geo-Risk Intel", desc: "FBI UCR crime data for any US location with composite risk scoring, threat heat mapping, and historical trend analysis" },
   { icon: UserPlus, title: "Hire-to-Deploy Pipeline", desc: "Public apply form, CSV bulk import, Checkr background checks, DocuSign e-sign, auto-onboarding checklists, and one-click deployment" },
   { icon: Users, title: "Personnel Command", desc: "Full roster management, shift scheduling with conflict detection, leave approvals, role-based access control, and readiness dashboards" },
-  { icon: Fingerprint, title: "Military-Grade Security", desc: "AES-256-GCM encryption at rest, session auto-lock, brute-force protection, rate-limited RPCs, RLS policies, and 90-day audit logs" },
+  { icon: QrCode, title: "Asset & Equipment", desc: "QR-coded asset tracking with checkout/checkin logs, assignment history, maintenance scheduling, depreciation tracking, and bulk import" },
   { icon: Globe, title: "State Laws DB", desc: "All 50 states — licensing, training hours, use-of-force doctrine, citizen's arrest, weapons regs, statutes, and regulatory agency links" },
   { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, incident analytics, personnel stats, weekly trends, org composition charts, and one-click CSV exports" },
-  { icon: Plug, title: "12+ Integrations", desc: "Twilio SMS, Checkr background checks, DocuSign e-sign, Gusto payroll, Fillout forms, OneSignal push, WhatsApp, and more" },
+  { icon: FileText, title: "Invoice Generator", desc: "Professional client invoicing with line items, tax calculations, live preview, branded PDF export, and localStorage draft persistence" },
   { icon: BookOpen, title: "Knowledge Base", desc: "Searchable field manuals, SOPs, company policies, required reading assignments with completion tracking, and document versioning" },
-  { icon: Smartphone, title: "Mobile-First PWA", desc: "Installable app with offline fallback, PWA shortcuts, thumb-optimized navigation, dark/light themes, and sub-second page loads" },
+  { icon: Award, title: "Certifications Hub", desc: "Guard card and license tracking with file uploads, expiration alerts, renewal reminders, compliance dashboards, and PDF certificates" },
 ];
 
 const STATS = [
