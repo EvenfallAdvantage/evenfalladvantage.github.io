@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ListSkeleton } from "@/components/loading-skeleton";
+import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getIncidents,
@@ -178,7 +179,8 @@ export default function IncidentsPage() {
       resetCreateForm();
       setShowCreate(false);
       await load();
-    } catch { /* */ } finally { setCreating(false); }
+      toast.success("Incident reported");
+    } catch { toast.error("Failed to create incident"); } finally { setCreating(false); }
   }
 
   async function handleExpand(id: string) {
@@ -212,8 +214,11 @@ export default function IncidentsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this incident?")) return;
-    await deleteIncident(id);
-    await load();
+    try {
+      await deleteIncident(id);
+      await load();
+      toast.success("Incident deleted");
+    } catch { toast.error("Failed to delete incident"); }
   }
 
   const filtered = incidents.filter((i: Incident) =>

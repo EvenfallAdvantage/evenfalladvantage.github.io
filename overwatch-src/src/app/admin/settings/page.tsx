@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown, LayoutGrid, Upload, Link as LinkIcon } from "lucide-react";
+import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, updateCompanySettings, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
 import { uploadCompanyLogo } from "@/lib/supabase/db-users";
@@ -198,7 +199,8 @@ export default function AdminSettingsPage() {
       await updateCompany(activeCompanyId, { name, brandColor, timezone, logoUrl: logoUrl || undefined, websiteUrl: websiteUrl || undefined });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch (err) { console.error(err); }
+      toast.success("Settings saved");
+    } catch (err) { console.error(err); toast.error("Failed to save settings"); }
     finally { setSaving(false); }
   }
 
@@ -214,7 +216,8 @@ export default function AdminSettingsPage() {
     try {
       await deleteTimeOffPolicy(policyId);
       if (activeCompanyId) setPolicies(await getTimeOffPolicies(activeCompanyId));
-    } catch (err) { console.error(err); }
+      toast.success("Policy deleted");
+    } catch (err) { console.error(err); toast.error("Failed to delete policy"); }
     finally { setDeletingPolicy(null); }
   }
 
@@ -228,7 +231,8 @@ export default function AdminSettingsPage() {
       setSavedInt(provider);
       setTimeout(() => setSavedInt(null), 2000);
       setIntegrations(await getIntegrationsConfig(activeCompanyId));
-    } catch (err) { console.error(err); }
+      toast.success(`${provider} config saved`);
+    } catch (err) { console.error(err); toast.error("Failed to save integration"); }
     finally { setSavingInt(null); }
   }
 
@@ -259,7 +263,8 @@ export default function AdminSettingsPage() {
       await createTimeOffPolicy({ companyId: activeCompanyId, name: policyName.trim(), type: policyType });
       setPolicyName(""); setPolicyType("vacation"); setShowAddPolicy(false);
       setPolicies(await getTimeOffPolicies(activeCompanyId));
-    } catch (err) { console.error(err); }
+      toast.success("Policy created");
+    } catch (err) { console.error(err); toast.error("Failed to create policy"); }
     finally { setCreatingPolicy(false); }
   }
 

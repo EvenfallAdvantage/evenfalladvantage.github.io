@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { toast } from "sonner";
 import {
   Pencil, Check, X, FileText, Activity, FolderOpen, Loader2, Clock,
   Lock, Shield, AlertTriangle, CheckCircle2, ListChecks, Camera, Copy, KeyRound, Bell,
@@ -80,8 +81,10 @@ export default function ProfilePage() {
     try {
       const url = await uploadAvatar(file);
       if (user) setUser({ ...user, avatarUrl: url });
+      toast.success("Avatar updated");
     } catch (err) {
       setAvatarError(err instanceof Error ? err.message : "Upload failed");
+      toast.error("Avatar upload failed");
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -163,7 +166,8 @@ export default function ProfilePage() {
       await updateUserProfile({ firstName, lastName, phone });
       if (user) setUser({ ...user, firstName, lastName, phone });
       setEditing(false);
-    } catch (err) { console.error("Save profile failed:", err); }
+      toast.success("Profile updated");
+    } catch (err) { console.error("Save profile failed:", err); toast.error("Failed to save profile"); }
     finally { setSaving(false); }
   }
 
@@ -174,7 +178,8 @@ export default function ProfilePage() {
       await updateMemberProfile(activeCompanyId, compForm);
       setMp(await getMemberProfile(activeCompanyId));
       setEditingCompany(false);
-    } catch (err) { console.error(err); }
+      toast.success("Company profile updated");
+    } catch (err) { console.error(err); toast.error("Failed to save company profile"); }
     finally { setSavingComp(false); }
   }
 
@@ -193,7 +198,8 @@ export default function ProfilePage() {
     try {
       await completeOnboarding(activeCompanyId);
       setMp(await getMemberProfile(activeCompanyId));
-    } catch (err) { console.error(err); }
+      toast.success("Onboarding complete!");
+    } catch (err) { console.error(err); toast.error("Failed to complete onboarding"); }
   }
 
   function togglePref(pref: string) {

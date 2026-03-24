@@ -21,6 +21,7 @@ import { getUserShifts } from "@/lib/supabase/db-operations";
 import { parseUTC } from "@/lib/parse-utc";
 import { useAuthStore } from "@/stores/auth-store";
 import { dispatch } from "@/lib/services/notification-dispatcher";
+import { toast } from "sonner";
 
 function formatDuration(ms: number) {
   const totalSec = Math.floor(Math.max(0, ms) / 1000);
@@ -167,7 +168,8 @@ export default function TimeClockPage() {
         clockInType: "shift",
       });
       await load();
-    } catch (err) { console.error("Clock in failed:", err); }
+      toast.success("Clocked in");
+    } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); }
     finally { setActing(false); setDetectedShifts([]); }
   }
 
@@ -178,19 +180,20 @@ export default function TimeClockPage() {
     try {
       await clockIn({ clockInType: "admin", notes: adminNotes.trim() });
       await load();
-    } catch (err) { console.error("Clock in failed:", err); }
+      toast.success("Clocked in (admin)");
+    } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); }
     finally { setActing(false); setAdminNotes(""); setDetectedShifts([]); }
   }
 
   async function handleQuickClockIn() {
     setActing(true);
-    try { await clockIn(); await load(); } catch (err) { console.error("Clock in failed:", err); } finally { setActing(false); }
+    try { await clockIn(); await load(); toast.success("Clocked in"); } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); } finally { setActing(false); }
   }
 
   async function handleClockOut() {
     if (!active) return;
     setActing(true);
-    try { await clockOut(active.id); await load(); } catch (err) { console.error("Clock out failed:", err); } finally { setActing(false); }
+    try { await clockOut(active.id); await load(); toast.success("Clocked out"); } catch (err) { console.error("Clock out failed:", err); toast.error("Clock out failed"); } finally { setActing(false); }
   }
 
   function timeToISO(timeStr: string, refISO: string): string {
