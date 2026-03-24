@@ -1,4 +1,4 @@
-const CACHE_NAME = "overwatch-v5";
+const CACHE_NAME = "overwatch-v6";
 const OFFLINE_URL = "/overwatch/offline.html";
 const STATIC_ASSETS = [
   "/overwatch/",

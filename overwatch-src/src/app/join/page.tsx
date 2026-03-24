@@ -52,6 +52,13 @@ function JoinPageInner() {
         return;
       }
 
+      // Guard: skip if user already belongs to a company
+      const existing = await fetchUserProfile(authUser.id);
+      if (existing?.memberships && existing.memberships.length > 0) {
+        router.push("/feed");
+        return;
+      }
+
       const result = await createCompanyWithOwner({
         companyName: newCompanyName.trim(),
         supabaseId: authUser.id,
