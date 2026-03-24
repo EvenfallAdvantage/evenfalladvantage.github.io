@@ -22,6 +22,8 @@ import {
 import type { OperationDocument } from "@/types/operations";
 import type { AvailabilityStatus, OperationAvailability } from "@/lib/supabase/db-availability";
 import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
+import { parseUTC } from "@/lib/parse-utc";
+import { toast } from "sonner";
 
 const QrScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
 
@@ -33,10 +35,10 @@ type Shift = any;
 type Asset = any;
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  return parseUTC(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 }
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return parseUTC(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function ShiftAccordion({ shifts, highlight, conflictIds, statusColor }: {
@@ -52,7 +54,7 @@ function ShiftAccordion({ shifts, highlight, conflictIds, statusColor }: {
   // Group shifts by day for calendar
   const shiftsByDay = new Map<string, Shift[]>();
   for (const sh of shifts) {
-    const day = new Date(sh.start_time).toISOString().slice(0, 10);
+    const day = parseUTC(sh.start_time).toISOString().slice(0, 10);
     if (!shiftsByDay.has(day)) shiftsByDay.set(day, []);
     shiftsByDay.get(day)!.push(sh);
   }
@@ -132,7 +134,7 @@ function ShiftAccordion({ shifts, highlight, conflictIds, statusColor }: {
                   const isSelected = selectedDay === day;
                   const hasConflict = dayShifts.some((s: Shift) => conflictIds.has(s.id));
                   const totalHrs = dayShifts.reduce((sum: number, s: Shift) => {
-                    const ms = new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
+                    const ms = parseUTC(s.end_time).getTime() - parseUTC(s.start_time).getTime();
                     return sum + (ms > 0 ? ms / 3600000 : ms / 3600000 + 24);
                   }, 0);
 
@@ -300,20 +302,21 @@ export default function SchedulePage() {
     try {
       await createAsset({ companyId: activeCompanyId, name: newName.trim(), assetType: newType || undefined, serialNumber: newSerial || undefined });
       setNewName(""); setNewType(""); setNewSerial(""); setShowCreate(false); await loadAssets();
-    } catch (err) { console.error(err); } finally { setCreating(false); }
+      toast.success("Asset created");
+    } catch (err) { console.error(err); toast.error("Failed to create asset"); } finally { setCreating(false); }
   }
 
   async function handleCheckout(id: string) {
     setActing(id);
-    try { await checkoutAsset(id); await loadAssets(); }
-    catch (err) { console.error(err); }
+    try { await checkoutAsset(id); await loadAssets(); toast.success("Asset checked out"); }
+    catch (err) { console.error(err); toast.error("Checkout failed"); }
     finally { setActing(null); }
   }
 
   async function handleCheckin(id: string) {
     setActing(id);
-    try { await checkinAsset(id); await loadAssets(); }
-    catch (err) { console.error(err); }
+    try { await checkinAsset(id); await loadAssets(); toast.success("Asset checked in"); }
+    catch (err) { console.error(err); toast.error("Check-in failed"); }
     finally { setActing(null); }
   }
 
@@ -358,15 +361,16 @@ export default function SchedulePage() {
       }
       setRemindersSent(true);
       setTimeout(() => setRemindersSent(false), 3000);
-    } catch (err) { console.error("Send reminders failed:", err); }
+      toast.success("Reminders sent");
+    } catch (err) { console.error("Send reminders failed:", err); toast.error("Failed to send reminders"); }
     finally { setSendingReminders(false); }
   }
 
   async function handleDeleteAsset(id: string) {
     if (!confirm("Delete this asset?")) return;
     setDeletingAsset(id);
-    try { await deleteAsset(id); await loadAssets(); }
-    catch (err) { console.error(err); }
+    try { await deleteAsset(id); await loadAssets(); toast.success("Asset deleted"); }
+    catch (err) { console.error(err); toast.error("Failed to delete asset"); }
     finally { setDeletingAsset(null); }
   }
 
@@ -435,10 +439,10 @@ export default function SchedulePage() {
           ) : (() => {
             const today = new Date(); today.setHours(0,0,0,0);
             const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-            const isToday = (iso: string) => { const d = new Date(iso); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); };
+            const isToday = (iso: string) => { const d = parseUTC(iso); d.setHours(0,0,0,0); return d.getTime() === today.getTime(); };
             const isCurrent = (startIso: string, endIso: string) => {
-              const s = new Date(startIso); s.setHours(0,0,0,0);
-              const e = new Date(endIso); e.setHours(0,0,0,0);
+              const s = parseUTC(startIso); s.setHours(0,0,0,0);
+              const e = parseUTC(endIso); e.setHours(0,0,0,0);
               return s.getTime() <= today.getTime() && e.getTime() >= today.getTime();
             };
             const currentShifts = shifts.filter((sh: Shift) => isToday(sh.start_time));
@@ -451,7 +455,7 @@ export default function SchedulePage() {
             for (let i = 0; i < shifts.length; i++) {
               for (let j = i + 1; j < shifts.length; j++) {
                 const a = shifts[i], b = shifts[j];
-                if (new Date(a.start_time) < new Date(b.end_time) && new Date(a.end_time) > new Date(b.start_time)) {
+                if (parseUTC(a.start_time) < parseUTC(b.end_time) && parseUTC(a.end_time) > parseUTC(b.start_time)) {
                   conflictIds.add(a.id); conflictIds.add(b.id);
                 }
               }

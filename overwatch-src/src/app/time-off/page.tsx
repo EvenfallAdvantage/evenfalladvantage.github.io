@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest, deleteTimeOffRequest, removeConflictingShifts, getCompanyMembers } from "@/lib/supabase/db";
+import { parseUTC } from "@/lib/parse-utc";
+import { toast } from "sonner";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Request = any;
@@ -75,15 +77,16 @@ export default function TimeOffPage() {
       }).catch(() => {});
       setStartDate(""); setEndDate(""); setNote(""); setSelectedPolicy(""); setShowCreate(false);
       await load();
-    } catch (err) { console.error("Leave request failed:", err); }
+      toast.success("Leave request submitted");
+    } catch (err) { console.error("Leave request failed:", err); toast.error("Failed to submit request"); }
     finally { setCreating(false); }
   }
 
   async function handleCancelRequest(id: string) {
     if (!confirm("Cancel this leave request?")) return;
     setDeletingReq(id);
-    try { await deleteTimeOffRequest(id); await load(); }
-    catch (err) { console.error(err); }
+    try { await deleteTimeOffRequest(id); await load(); toast.success("Request cancelled"); }
+    catch (err) { console.error(err); toast.error("Failed to cancel request"); }
     finally { setDeletingReq(null); }
   }
 
@@ -101,7 +104,7 @@ export default function TimeOffPage() {
               const u = req.users ?? req;
               const empName = `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || "An employee";
               const shiftList = removed.map((s: { start_time: string; role?: string; events?: { name?: string } }) =>
-                `${new Date(s.start_time).toLocaleDateString()} ${s.events?.name ?? ""}${s.role ? ` (${s.role})` : ""}`
+                `${parseUTC(s.start_time).toLocaleDateString()} ${s.events?.name ?? ""}${s.role ? ` (${s.role})` : ""}`
               ).join(", ");
               const mbrs = await getCompanyMembers(activeCompanyId);
               const { dispatch } = await import("@/lib/services/notification-dispatcher");

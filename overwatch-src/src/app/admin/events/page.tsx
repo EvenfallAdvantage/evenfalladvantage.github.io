@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -391,14 +392,14 @@ export default function AdminEventsPage() {
   async function handleDeleteEvent(eventId: string) {
     if (!confirm("Delete this operation and all its shifts?")) return;
     setDeletingEvent(eventId);
-    try { await deleteEvent(eventId); if (expanded === eventId) setExpanded(null); await load(); }
-    catch (err) { console.error(err); } finally { setDeletingEvent(null); }
+    try { await deleteEvent(eventId); if (expanded === eventId) setExpanded(null); await load(); toast.success("Operation deleted"); }
+    catch (err) { console.error(err); toast.error("Failed to delete operation"); } finally { setDeletingEvent(null); }
   }
 
   async function handleDeleteShift(shiftId: string) {
     setDeletingShift(shiftId);
-    try { await deleteShift(shiftId); if (expanded) setShifts(await getEventShifts(expanded)); }
-    catch (err) { console.error(err); } finally { setDeletingShift(null); }
+    try { await deleteShift(shiftId); if (expanded) setShifts(await getEventShifts(expanded)); toast.success("Shift removed"); }
+    catch (err) { console.error(err); toast.error("Failed to remove shift"); } finally { setDeletingShift(null); }
   }
 
   async function handleAssign(shiftId: string, userId: string) {

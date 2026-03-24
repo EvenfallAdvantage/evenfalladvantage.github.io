@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChatSkeleton } from "@/components/loading-skeleton";
+import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getChatChannels, createChatChannel, getChatMessages,
@@ -181,7 +182,8 @@ export default function ChatPage() {
         await updateChatChannel(ch.id, { avatar_url: uploadedUrl });
       }
       setNewName(""); setNewAvatarUrl(""); setNewAvatarFile(null); setShowCreate(false); await loadChannels();
-    } catch (err) { console.error(err); } finally { setCreating(false); }
+      toast.success("Channel created");
+    } catch (err) { console.error(err); toast.error("Failed to create channel"); } finally { setCreating(false); }
   }
 
   async function handleSaveAvatar(channelId: string) {
@@ -206,8 +208,8 @@ export default function ChatPage() {
   async function handleDeleteCh(id: string) {
     if (!confirm("Delete this channel and all messages?")) return;
     setDeletingCh(id);
-    try { await deleteChatChannel(id); if (selected?.id === id) { setSelected(null); setMessages([]); } await loadChannels(); }
-    catch (err) { console.error(err); } finally { setDeletingCh(null); }
+    try { await deleteChatChannel(id); if (selected?.id === id) { setSelected(null); setMessages([]); } await loadChannels(); toast.success("Channel deleted"); }
+    catch (err) { console.error(err); toast.error("Failed to delete channel"); } finally { setDeletingCh(null); }
   }
 
   async function handleAddExternal() {

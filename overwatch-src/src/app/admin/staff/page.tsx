@@ -12,6 +12,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
@@ -321,7 +322,8 @@ export default function AdminStaffPage() {
       setAppForm({ firstName: "", lastName: "", email: "", phone: "", guardCardNumber: "", experience: "", availability: "" });
       setShowAddApp(false);
       setApplicants(await getApplicants(activeCompanyId));
-    } catch (err) { console.error(err); } finally { setSavingApp(false); }
+      toast.success("Applicant added");
+    } catch (err) { console.error(err); toast.error("Failed to add applicant"); } finally { setSavingApp(false); }
   }
 
   async function handleAppStatus(id: string, status: string) {
@@ -365,7 +367,8 @@ export default function AdminStaffPage() {
     try {
       await deleteApplicant(id);
       if (activeCompanyId && activeCompanyId !== "pending") setApplicants(await getApplicants(activeCompanyId));
-    } catch (err) { console.error(err); }
+      toast.success("Applicant deleted");
+    } catch (err) { console.error(err); toast.error("Failed to delete applicant"); }
   }
 
   async function handleAddTask() {
@@ -376,7 +379,8 @@ export default function AdminStaffPage() {
       setTaskForm({ title: "", description: "", category: "general", isRequired: true });
       setShowAddTask(false);
       setOTasks(await getOnboardingTasks(activeCompanyId));
-    } catch (err) { console.error(err); } finally { setSavingTask(false); }
+      toast.success("Task created");
+    } catch (err) { console.error(err); toast.error("Failed to create task"); } finally { setSavingTask(false); }
   }
 
   async function handleTCRReview(id: string, status: "approved" | "denied") {

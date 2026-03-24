@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 import {
   getKBFolders, getKBDocuments, createKBFolder, createKBDocument,
   deleteKBFolder, deleteKBDocument, uploadKBFile, updateKBDocumentRequired,
@@ -109,7 +110,8 @@ export default function KnowledgeBasePage() {
     try {
       await createKBFolder({ companyId: activeCompanyId, name: newName.trim() });
       setNewName(""); setShowCreateFolder(false); await loadFolders();
-    } catch (err) { console.error(err); } finally { setCreating(false); }
+      toast.success("Folder created");
+    } catch (err) { console.error(err); toast.error("Failed to create folder"); } finally { setCreating(false); }
   }
 
   async function handleDeleteFolder(folderId: string) {
@@ -119,7 +121,8 @@ export default function KnowledgeBasePage() {
       await deleteKBFolder(folderId);
       if (selectedFolder?.id === folderId) { setSelectedFolder(null); setDocs([]); }
       await loadFolders();
-    } catch (err) { console.error(err); }
+      toast.success("Folder deleted");
+    } catch (err) { console.error(err); toast.error("Failed to delete folder"); }
     finally { setDeletingFolder(null); }
   }
 
@@ -142,7 +145,8 @@ export default function KnowledgeBasePage() {
       if (selectedFolder) {
         setDocs(await getKBDocuments(selectedFolder.id));
       }
-    } catch (err) { console.error(err); }
+      toast.success("Document deleted");
+    } catch (err) { console.error(err); toast.error("Failed to delete document"); }
     finally { setDeletingDoc(null); }
   }
 
