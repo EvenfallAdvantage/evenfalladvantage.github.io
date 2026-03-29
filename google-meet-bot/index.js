@@ -15,7 +15,7 @@ class GoogleMeetBot {
   }
 
   async initialize() {
-    console.log('🤖 Initializing Evenfall Advantage AI Bot...');
+    
     
     // Launch browser
     this.browser = await puppeteer.launch({
@@ -32,20 +32,20 @@ class GoogleMeetBot {
     // Set user agent
     await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
     
-    console.log('✅ Browser initialized');
+    
   }
 
   async joinMeeting() {
-    console.log('🔗 Joining Google Meet...');
+    
     
     try {
       // Navigate to meeting
       await this.page.goto(this.meetingUrl, { waitUntil: 'networkidle2', timeout: 60000 });
       
       // Wait for page to load
-      await this.page.waitForTimeout(5000);
+            await this.page.waitForSelector('[class*="audio"], [class*="video"], .join-button', { timeout: 5000 });
       
-      console.log('📝 Entering bot name...');
+      
       
       // Try multiple selectors for name input
       try {
@@ -54,17 +54,17 @@ class GoogleMeetBot {
         if (nameInputs.length > 0) {
           await nameInputs[0].click();
           await nameInputs[0].type('Clunt Westwood (AI Assistant)', { delay: 100 });
-          console.log('✅ Name entered');
+          
         }
       } catch (e) {
         console.log('⚠️ Could not find name input, continuing...');
       }
       
       // Wait a bit
-      await this.page.waitForTimeout(2000);
+            await this.page.waitForSelector('[class*="media"], .camera-button, .mic-button', { timeout: 2000 });
       
       // Try to turn off camera and mic
-      console.log('🎥 Disabling camera and microphone...');
+      
       try {
         // Click camera button
         const buttons = await this.page.$$('button');
@@ -90,7 +90,7 @@ class GoogleMeetBot {
         console.log('⚠️ Could not disable camera/mic, continuing...');
       }
       
-      await this.page.waitForTimeout(2000);
+      await this.page.waitForSelector('.join-button, [role="button"]', { timeout: 2000 });
       
       // Click join/ask to join button
       console.log('🚪 Attempting to join meeting...');
@@ -112,7 +112,7 @@ class GoogleMeetBot {
       }
       
       // Wait for meeting to load
-      await this.page.waitForTimeout(5000);
+            await this.page.waitForSelector('[class*="caption"], [class*="chat"], .in-meeting', { timeout: 5000 });
       console.log('✅ Bot should now be in the meeting');
       
       // Start monitoring chat
