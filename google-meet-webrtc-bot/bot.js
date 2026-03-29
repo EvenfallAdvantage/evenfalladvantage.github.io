@@ -24,9 +24,6 @@ class GoogleMeetBot {
     }
 
     async initialize() {
-        
-        
-        
         this.browser = await puppeteer.launch({
             headless: false, // Set to true for production
             args: [
@@ -57,18 +54,13 @@ class GoogleMeetBot {
             'camera',
             'notifications'
         ]);
-        
-        
     }
 
     async login() {
         if (!GOOGLE_EMAIL || !GOOGLE_PASSWORD) {
-            
             return;
         }
 
-        
-        
         try {
             await this.page.goto('https://accounts.google.com', { waitUntil: 'networkidle2' });
             
@@ -77,33 +69,26 @@ class GoogleMeetBot {
             await this.page.type('input[type="email"]', GOOGLE_EMAIL, { delay: 100 });
             await this.page.keyboard.press('Enter');
 
-                        // Wait and enter password
-                        await this.page.waitForSelector('input[type="password"]', { timeout: 2000 });
+            // Wait and enter password
             await this.page.waitForSelector('input[type="password"]', { timeout: 10000 });
             await this.page.type('input[type="password"]', GOOGLE_PASSWORD, { delay: 100 });
             await this.page.keyboard.press('Enter');
             
             await this.page.waitForSelector('.join-button', { timeout: 3000 });
-            
-            
         } catch (error) {
-            
+            console.warn('Login failed or not needed:', error.message);
         }
     }
 
     async joinMeeting() {
-        
-        
         try {
-            await this.page.goto(this.meetingUrl, { 
+            await this.page.goto(this.meetingUrl, {
                 waitUntil: 'networkidle2',
-                timeout: 60000 
-                            });
+                timeout: 60000
+            });
 
-                            await this.page.waitForSelector('[class*="audio"], [class*="video"], .join-button', { timeout: 5000 });
-            
-            
-            
+            await this.page.waitForSelector('[class*="audio"], [class*="video"], .join-button', { timeout: 5000 });
+
             // Try to find and fill name input
             try {
                 const nameSelectors = [
@@ -111,40 +96,36 @@ class GoogleMeetBot {
                     'input[aria-label*="name" i]',
                     'input[type="text"]'
                 ];
-                
+
                 for (const selector of nameSelectors) {
                     const input = await this.page.$(selector);
                     if (input) {
                         await input.click();
                         await input.type('Clunt Westwood (AI Assistant)', { delay: 50 });
+                        break;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not set name:', e.message);
+            }
 
-                                                break;
-                                            }
-                                        }
-                                    } catch (e) {
+            await this.page.waitForSelector('[class*="media"], .camera-button, .mic-button', { timeout: 2000 });
 
-                                    }
-
-                                    await this.page.waitForSelector('[class*="media"], .camera-button, .mic-button', { timeout: 2000 });
-            
             // Turn off camera and microphone initially
-            
             await this.toggleMediaDevices();
 
-                        await this.page.waitForSelector('.join-button, [role="button"]', { timeout: 2000 });
+            await this.page.waitForSelector('.join-button, [role="button"]', { timeout: 2000 });
 
-                        // Click join button
-            
+            // Click join button
             await this.clickJoinButton();
 
-                        await this.page.waitForSelector('[class*="caption"], [class*="chat"], .in-meeting', { timeout: 5000 });
+            await this.page.waitForSelector('[class*="caption"], [class*="chat"], .in-meeting', { timeout: 5000 });
 
-
-                        // Start listening for captions/questions
+            // Start listening for captions/questions
             this.startListening();
-            
+
         } catch (error) {
-            
+            console.warn('Error joining meeting:', error.message);
             throw error;
         }
     }
@@ -162,25 +143,23 @@ class GoogleMeetBot {
                 const label = (ariaLabel || title || text || '').toLowerCase();
                 
                 // Turn off camera
-                                if (label.includes('camera') || label.includes('video')) {
-                                    if (label.includes('on') || !label.includes('off')) {
-                                        await button.click();
-
-                                        await this.page.waitForSelector('[class*="camera"], [class*="video"]', { timeout: 500 });
+                if (label.includes('camera') || label.includes('video')) {
+                    if (label.includes('on') || !label.includes('off')) {
+                        await button.click();
+                        await this.page.waitForSelector('[class*="camera"], [class*="video"]', { timeout: 500 });
                     }
                 }
-                
-                // Keep microphone on for speaking
-                                if (label.includes('microphone') || label.includes('mic')) {
-                                    if (label.includes('off')) {
-                                        await button.click();
 
-                                        await this.page.waitForSelector('[class*="microphone"], [class*="mic"]', { timeout: 500 });
+                // Keep microphone on for speaking
+                if (label.includes('microphone') || label.includes('mic')) {
+                    if (label.includes('off')) {
+                        await button.click();
+                        await this.page.waitForSelector('[class*="microphone"], [class*="mic"]', { timeout: 500 });
                     }
                 }
             }
         } catch (error) {
-            
+            console.warn('Could not configure media devices:', error.message);
         }
     }
 
@@ -196,19 +175,17 @@ class GoogleMeetBot {
                 
                 if (label.includes('join') || label.includes('ask to join')) {
                     await button.click();
-                    
                     return;
                 }
             }
-            
-            
+
+            console.warn('Could not find join button');
         } catch (error) {
-            
+            console.warn('Error clicking join button:', error.message);
         }
     }
 
     startListening() {
-        
         this.isListening = true;
         
         // Monitor captions for questions
@@ -219,8 +196,6 @@ class GoogleMeetBot {
     }
 
     async monitorCaptions() {
-        
-        
         // Check for captions every 2 seconds
         setInterval(async () => {
             if (!this.isListening) return;
@@ -242,8 +217,6 @@ class GoogleMeetBot {
     }
 
     async monitorChat() {
-        
-        
         let lastMessage = '';
         
         setInterval(async () => {
@@ -261,7 +234,6 @@ class GoogleMeetBot {
                 
                 if (messages && messages !== lastMessage && messages.length > 5) {
                     lastMessage = messages;
-                    
                     await this.processQuestion(messages);
                 }
             } catch (error) {
@@ -276,9 +248,7 @@ class GoogleMeetBot {
         const hasQuestionWord = questionWords.some(word => question.toLowerCase().includes(word));
         
         if (!hasQuestionWord) return;
-        
-        
-        
+
         // Get response from ElevenLabs
         const response = await this.getAIResponse(question);
         
@@ -290,8 +260,6 @@ class GoogleMeetBot {
 
     async getAIResponse(question) {
         try {
-            
-            
             // Use ElevenLabs widget endpoint (since direct API doesn't work)
             // For now, return a placeholder
             // In production, you'd integrate with the working widget or use a different approach
@@ -299,15 +267,13 @@ class GoogleMeetBot {
             return `Based on my 40 years of security experience, here's what I can tell you about that: [Response would come from ElevenLabs agent here]`;
             
         } catch (error) {
-            
+            console.warn('Error getting AI response:', error.message);
             return null;
         }
     }
 
     async speakResponse(text) {
         try {
-            
-            
             // Use browser's speech synthesis
             await this.page.evaluate((text) => {
                 const utterance = new SpeechSynthesisUtterance(text);
@@ -316,16 +282,12 @@ class GoogleMeetBot {
                 utterance.volume = 1.0;
                 window.speechSynthesis.speak(utterance);
             }, text);
-            
-            
-            
         } catch (error) {
-            
+            console.warn('Error speaking response:', error.message);
         }
     }
 
     async leaveMeeting() {
-        
         this.isListening = false;
         if (this.browser) {
             await this.browser.close();
@@ -338,33 +300,29 @@ async function main() {
     const meetingUrl = process.argv[2];
     
     if (!meetingUrl || !meetingUrl.includes('meet.google.com')) {
-        
-        
+        console.error('Usage: node bot.js <google-meet-url>');
         process.exit(1);
     }
-    
-    
-    
-    
+
+    console.log('Evenfall Advantage - Google Meet WebRTC Bot');
+
     const bot = new GoogleMeetBot(meetingUrl);
     
     try {
         await bot.initialize();
         await bot.login();
         await bot.joinMeeting();
-        
-        
-        
-        
+
+        console.log('Bot is active. Press Ctrl+C to stop.');
+
         // Handle graceful shutdown
         process.on('SIGINT', async () => {
-            
             await bot.leaveMeeting();
             process.exit(0);
         });
         
     } catch (error) {
-        
+        console.error('Fatal error:', error.message);
         await bot.leaveMeeting();
         process.exit(1);
     }

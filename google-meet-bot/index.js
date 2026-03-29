@@ -15,8 +15,6 @@ class GoogleMeetBot {
   }
 
   async initialize() {
-    
-    
     // Launch browser
     this.browser = await puppeteer.launch({
       headless: false, // Set to true for production
@@ -31,22 +29,16 @@ class GoogleMeetBot {
     
     // Set user agent
     await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
-    
-    
   }
 
   async joinMeeting() {
-    
-    
     try {
       // Navigate to meeting
       await this.page.goto(this.meetingUrl, { waitUntil: 'networkidle2', timeout: 60000 });
       
       // Wait for page to load
-            await this.page.waitForSelector('[class*="audio"], [class*="video"], .join-button', { timeout: 5000 });
-      
-      
-      
+      await this.page.waitForSelector('[class*="audio"], [class*="video"], .join-button', { timeout: 5000 });
+
       // Try multiple selectors for name input
       try {
         await this.page.waitForSelector('input[type="text"]', { timeout: 10000 });
@@ -54,17 +46,15 @@ class GoogleMeetBot {
         if (nameInputs.length > 0) {
           await nameInputs[0].click();
           await nameInputs[0].type('Clunt Westwood (AI Assistant)', { delay: 100 });
-          
         }
       } catch (e) {
         console.log('⚠️ Could not find name input, continuing...');
       }
       
-      // Wait a bit
-            await this.page.waitForSelector('[class*="media"], .camera-button, .mic-button', { timeout: 2000 });
-      
+      // Wait for media controls
+      await this.page.waitForSelector('[class*="media"], .camera-button, .mic-button', { timeout: 2000 });
+
       // Try to turn off camera and mic
-      
       try {
         // Click camera button
         const buttons = await this.page.$$('button');
@@ -112,7 +102,7 @@ class GoogleMeetBot {
       }
       
       // Wait for meeting to load
-            await this.page.waitForSelector('[class*="caption"], [class*="chat"], .in-meeting', { timeout: 5000 });
+      await this.page.waitForSelector('[class*="caption"], [class*="chat"], .in-meeting', { timeout: 5000 });
       console.log('✅ Bot should now be in the meeting');
       
       // Start monitoring chat
