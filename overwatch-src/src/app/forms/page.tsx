@@ -161,7 +161,7 @@ export default function FormsPage() {
 
         {/* Report type tabs */}
         {!selected && (
-          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
             <Link
               href="/incidents"
               className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"

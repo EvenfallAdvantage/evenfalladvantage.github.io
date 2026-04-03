@@ -174,7 +174,7 @@ export default function PatrolsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
           <Link href="/timeclock"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
             Clock
@@ -208,16 +208,16 @@ export default function PatrolsPage() {
         </Card>
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto max-w-full">
           {TABS.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
                 tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"
               }`}
             >
-              <t.icon className="h-3.5 w-3.5" />
+              {tab === t.id && <t.icon className="h-3.5 w-3.5" />}
               {t.label}
             </button>
           ))}

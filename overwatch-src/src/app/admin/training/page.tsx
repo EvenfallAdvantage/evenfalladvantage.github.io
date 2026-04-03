@@ -371,7 +371,7 @@ export default function AdminTrainingPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><NotebookPen className="h-5 w-5 sm:h-6 sm:w-6" /> TRAINING ADMIN</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mb-4">Manage training modules, slides, and assessment questions</p>
-          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
             <button onClick={() => setTab("modules")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "modules" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               {tab === "modules" && <GraduationCap className="h-3.5 w-3.5" />}Modules
