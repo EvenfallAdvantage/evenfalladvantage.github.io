@@ -15,7 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Radio } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
-import { getPosts, createPost, togglePinPost, deletePost, getPostComments, addPostComment, deletePostComment, getPostReactions, togglePostReaction } from "@/lib/supabase/db";
+import { getPosts, createPost, togglePinPost, deletePost, getPostComments, addPostComment, deletePostComment, getPostReactions, togglePostReaction, getChatChannels } from "@/lib/supabase/db";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Post = any;
@@ -146,6 +146,10 @@ export default function UpdatesPage() {
   const [sendingComment, setSendingComment] = useState(false);
   const [togglingReaction, setTogglingReaction] = useState<string | null>(null);
 
+  // Channel counts for unified tab bar
+  const [channelCount, setChannelCount] = useState(0);
+  const [externalCount, setExternalCount] = useState(0);
+
   // Composer state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -157,7 +161,18 @@ export default function UpdatesPage() {
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
-    try { setPosts(await getPosts(activeCompanyId)); } catch {} finally { setLoading(false); }
+    try {
+      const [postsData, channelsData] = await Promise.all([
+        getPosts(activeCompanyId),
+        getChatChannels(activeCompanyId).catch(() => []),
+      ]);
+      setPosts(postsData);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const chs = channelsData as any[];
+      const ext = chs.filter((c: any) => { try { const m = JSON.parse(c.description || ""); return m?.external; } catch { return false; } });
+      setChannelCount(chs.length - ext.length);
+      setExternalCount(ext.length);
+    } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
@@ -262,7 +277,7 @@ export default function UpdatesPage() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Radio className="h-5 w-5 sm:h-6 sm:w-6" /> Comms</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Team channels, external groups, and messaging</p>
@@ -278,11 +293,13 @@ export default function UpdatesPage() {
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
             <Hash className="h-3.5 w-3.5" />
             Channels
+            {channelCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{channelCount}</Badge>}
           </Link>
           <Link href="/chat?tab=external"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
             <ExternalLink className="h-3.5 w-3.5" />
             External Groups
+            {externalCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{externalCount}</Badge>}
           </Link>
         </div>
 
