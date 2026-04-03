@@ -70,6 +70,7 @@ export default function MorePage() {
   const { user, clearSession, activeCompanyId, setActiveCompany } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const userRole = activeCompany?.role ?? "staff";
+  const isTrainingProvider = activeCompany?.isTrainingProvider ?? false;
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
   const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ Academy: true, Tools: true });
@@ -115,6 +116,7 @@ export default function MorePage() {
               (item) =>
                 (!item.roles || item.roles.includes(userRole)) &&
                 (!item.superAdminOnly || isSuperAdmin(user?.email)) &&
+                (!item.trainingProviderOnly || isTrainingProvider) &&
                 !hiddenTabs.has(item.href)
             )
             .map((item) =>
