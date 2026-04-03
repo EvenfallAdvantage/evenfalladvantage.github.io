@@ -285,7 +285,7 @@ export default function IncidentsPage() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
@@ -309,7 +309,6 @@ export default function IncidentsPage() {
             href="/forms"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
           >
-            <ClipboardList className="h-3.5 w-3.5" />
             Field Reports
           </Link>
         </div>

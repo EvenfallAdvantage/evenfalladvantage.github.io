@@ -164,7 +164,7 @@ export default function PatrolsPage() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2">
             <Clock className="h-5 w-5 sm:h-6 sm:w-6" />

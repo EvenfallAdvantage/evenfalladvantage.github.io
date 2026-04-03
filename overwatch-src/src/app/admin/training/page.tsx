@@ -366,7 +366,7 @@ export default function AdminTrainingPage() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Header + Tabs */}
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><NotebookPen className="h-5 w-5 sm:h-6 sm:w-6" /> TRAINING ADMIN</h1>
@@ -374,15 +374,15 @@ export default function AdminTrainingPage() {
           <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
             <button onClick={() => setTab("modules")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "modules" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              <GraduationCap className="h-3.5 w-3.5" />Modules
+              {tab === "modules" && <GraduationCap className="h-3.5 w-3.5" />}Modules
             </button>
             <button onClick={() => setTab("questions")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "questions" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              <HelpCircle className="h-3.5 w-3.5" />Question Bank
+              {tab === "questions" && <HelpCircle className="h-3.5 w-3.5" />}Question Bank
             </button>
             <button onClick={() => setTab("progress")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "progress" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              <BarChart3 className="h-3.5 w-3.5" />Staff Progress
+              {tab === "progress" && <BarChart3 className="h-3.5 w-3.5" />}Staff Progress
             </button>
           </div>
         </div>

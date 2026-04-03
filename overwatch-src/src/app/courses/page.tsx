@@ -137,7 +137,7 @@ function CoursesContent() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Status banners from Stripe redirect */}
         {status === "success" && (
           <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 flex items-center gap-2 text-sm text-green-600">
@@ -156,14 +156,14 @@ function CoursesContent() {
             <Video className="h-5 w-5 sm:h-6 sm:w-6" /> COURSES
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Professional security training courses</p>
-          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit mt-3">
+          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
             <button onClick={() => setPageTab("courses")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${pageTab === "courses" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              <ShoppingCart className="h-3.5 w-3.5" />Courses
+              {pageTab === "courses" && <ShoppingCart className="h-3.5 w-3.5" />}Courses
             </button>
             <button onClick={() => setPageTab("conference")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${pageTab === "conference" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              <Video className="h-3.5 w-3.5" />Conference
+              {pageTab === "conference" && <Video className="h-3.5 w-3.5" />}Conference
             </button>
           </div>
         </div>

@@ -136,7 +136,7 @@ export default function FormsPage() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
             {selected ? (
@@ -166,7 +166,6 @@ export default function FormsPage() {
               href="/incidents"
               className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
             >
-              <AlertTriangle className="h-3.5 w-3.5" />
               Incidents
             </Link>
             <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">

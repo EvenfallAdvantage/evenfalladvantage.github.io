@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, CalendarOff, ClipboardList, CheckCircle2, XCircle,
   UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock, ShieldCheck, AlertOctagon, BookOpen,
   AlertTriangle, MapPin, Flag,
+  BookOpenCheck, CalendarClock, FileEdit,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -503,7 +504,7 @@ export default function AdminStaffPage() {
 
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><UserCog className="h-5 w-5 sm:h-6 sm:w-6" /> PERSONNEL</h1>
@@ -553,16 +554,17 @@ export default function AdminStaffPage() {
         {/* Tabs */}
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-1">
           {([
-            { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0 },
-            { key: "applicants" as Tab, label: "Applicants", badge: applicants.filter((a: Applicant) => a.status === "applied").length },
-            { key: "onboarding" as Tab, label: "Onboarding", badge: 0 },
-            { key: "timesheets" as Tab, label: "Timesheets", badge: pendingSheets.length },
-            { key: "corrections" as Tab, label: "Corrections", badge: pendingTCR.length },
-            { key: "leave" as Tab, label: "Leave", badge: pendingLeave.length },
-            { key: "forms" as Tab, label: "Forms", badge: pendingForms.length + openIncidents.length },
+            { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0, icon: Users },
+            { key: "applicants" as Tab, label: "Applicants", badge: applicants.filter((a: Applicant) => a.status === "applied").length, icon: UserPlus },
+            { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
+            { key: "timesheets" as Tab, label: "Timesheets", badge: pendingSheets.length, icon: CalendarClock },
+            { key: "corrections" as Tab, label: "Corrections", badge: pendingTCR.length, icon: FileEdit },
+            { key: "leave" as Tab, label: "Leave", badge: pendingLeave.length, icon: CalendarOff },
+            { key: "forms" as Tab, label: "Forms", badge: pendingForms.length + openIncidents.length, icon: FileText },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+              {tab === t.key && <t.icon className="h-3.5 w-3.5" />}
               {t.label}
               {t.badge > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-amber-500/20 text-amber-600">{t.badge}</Badge>}
             </button>
