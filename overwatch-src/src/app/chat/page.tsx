@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
-  Radio, Plus, Send, Loader2, Trash2, Search, ExternalLink,
+  Radio, Radar, Plus, Send, Loader2, Trash2, Search, ExternalLink,
   Reply, X, Hash, MessageSquare,
   Smile, Paperclip, Upload, Pencil,
 } from "lucide-react";
@@ -14,6 +14,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChatSkeleton } from "@/components/loading-skeleton";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getChatChannels, createChatChannel, getChatMessages,
@@ -60,6 +61,7 @@ export default function ChatPage() {
   const { user, activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+  const searchParams = useSearchParams();
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selected, setSelected] = useState<Channel | null>(null);
@@ -67,7 +69,7 @@ export default function ChatPage() {
   const [msgText, setMsgText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [tab, setTab] = useState<Tab>("channels");
+  const [tab, setTab] = useState<Tab>((searchParams.get("tab") === "external" ? "external" : "channels") as Tab);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [searchQ, setSearchQ] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -242,18 +244,21 @@ export default function ChatPage() {
       <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
         <Link href="/updates"
           className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+          <Radar className="h-3.5 w-3.5" />
           Briefing
         </Link>
-        {([
-          { key: "channels" as Tab, label: "Channels", count: internal.length },
-          { key: "external" as Tab, label: "External Groups", count: external.length },
-        ]).map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-            {t.label}
-            {t.count > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{t.count}</Badge>}
-          </button>
-        ))}
+        <button onClick={() => setTab("channels")}
+          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "channels" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+          <Hash className="h-3.5 w-3.5" />
+          Channels
+          {internal.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{internal.length}</Badge>}
+        </button>
+        <button onClick={() => setTab("external")}
+          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "external" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+          <ExternalLink className="h-3.5 w-3.5" />
+          External Groups
+          {external.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{external.length}</Badge>}
+        </button>
       </div>
 
       {/* ────────── CHANNELS TAB ────────── */}

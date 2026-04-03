@@ -6,7 +6,7 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Radar, Send, Loader2, ImageIcon, Link2, Pin, PinOff,
   Megaphone, AlertTriangle, ChevronDown, ExternalLink, X, Trash2,
-  ThumbsUp, MessageCircle,
+  ThumbsUp, MessageCircle, Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -276,7 +276,13 @@ export default function UpdatesPage() {
           </div>
           <Link href="/chat"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+            <Hash className="h-3.5 w-3.5" />
             Channels
+          </Link>
+          <Link href="/chat?tab=external"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+            <ExternalLink className="h-3.5 w-3.5" />
+            External Groups
           </Link>
         </div>
 
