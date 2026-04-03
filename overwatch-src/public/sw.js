@@ -1,4 +1,4 @@
-const CACHE_NAME = "overwatch-v7";
+const CACHE_NAME = "overwatch-v8";
 const OFFLINE_URL = "/overwatch/offline.html";
 const STATIC_ASSETS = [
   "/overwatch/",
@@ -43,10 +43,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for API/data and JS bundles (hashed filenames change per build)
-  if (request.url.includes("/api/") || request.url.includes("supabase") || request.url.match(/\/_next\/.*\.js$/)) {
+  // Skip API and Supabase calls entirely (no caching)
+  if (request.url.includes("/api/") || request.url.includes("supabase")) return;
+
+  // Network-only for JS/CSS bundles (hashed filenames change per build, stale cache causes 404s)
+  if (request.url.match(/\/_next\/.*\.(js|css)$/)) {
     event.respondWith(
-      fetch(request).catch(() => caches.match(request).then((r) => r || new Response("Offline", { status: 503 })))
+      fetch(request).then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(request).then((r) => r || new Response("Offline", { status: 503 })))
     );
     return;
   }
