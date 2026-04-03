@@ -8,6 +8,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Loader2, CheckCircle2, AlertTriangle, Send, Building2, Plus, X, FileText, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import AddressAutocomplete from "@/components/address-autocomplete";
 
 const DOCUMENT_TYPES = [
   "Guard Card",
@@ -356,8 +357,13 @@ function ApplyForm() {
             </div>
             <div>
               <label className="text-xs text-zinc-400 mb-1 block">Address</label>
-              <Input value={form.address} onChange={(e) => setForm(p => ({ ...p, address: e.target.value }))}
-                className="bg-zinc-900 border-zinc-700 text-white" placeholder="123 Main St, City, State ZIP" />
+              <AddressAutocomplete
+                value={form.address}
+                onChange={(v) => setForm(p => ({ ...p, address: v }))}
+                onSelect={(s) => setForm(p => ({ ...p, address: s.displayName }))}
+                placeholder="123 Main St, City, State ZIP"
+                inputClassName="bg-zinc-900 border-zinc-700 text-white"
+              />
             </div>
           </div>
 
