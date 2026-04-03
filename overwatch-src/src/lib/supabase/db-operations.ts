@@ -29,6 +29,8 @@ export async function createEvent(params: {
   riskLevel?: string;
   tlpStep?: string;
   siteMapUrl?: string;
+  locationLat?: number;
+  locationLng?: number;
 }) {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -39,6 +41,8 @@ export async function createEvent(params: {
       name: params.name,
       description: params.description ?? null,
       location: params.location ?? null,
+      location_lat: params.locationLat ?? null,
+      location_lng: params.locationLng ?? null,
       start_date: params.startDate,
       end_date: params.endDate,
       ops_guide: params.opsGuide ?? null,

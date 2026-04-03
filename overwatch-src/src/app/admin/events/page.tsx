@@ -38,6 +38,8 @@ import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import type { TlpStep } from "@/types/operations";
 import StoryboardEditor from "@/components/storyboard-editor";
 import type { StoryboardPin } from "@/components/storyboard-editor";
+import AddressAutocomplete from "@/components/address-autocomplete";
+import type { AddressSelection } from "@/components/address-autocomplete";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Event = any;
@@ -168,6 +170,8 @@ export default function AdminEventsPage() {
   const [createStep, setCreateStep] = useState(0);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLng, setLocationLng] = useState<number | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [guide, setGuide] = useState<OpsGuide>({ ...EMPTY_GUIDE });
@@ -271,7 +275,7 @@ export default function AdminEventsPage() {
   useEffect(() => { load(); }, [load]);
 
   function resetCreate() {
-    setName(""); setLocation(""); setStartDate(""); setEndDate("");
+    setName(""); setLocation(""); setLocationLat(null); setLocationLng(null); setStartDate(""); setEndDate("");
     setGuide({ ...EMPTY_GUIDE }); setCreateStep(0); setShowCreate(false);
     setSiteMapFile(null); setSiteMapPreview(null);
     setIntakeEngagement([]); setIntakeMission(""); setIntakeTimeSensitivity("Medium");
@@ -321,6 +325,8 @@ export default function AdminEventsPage() {
         companyId: activeCompanyId,
         name: name.trim(),
         location: location || guide.siteAddress || undefined,
+        locationLat: locationLat ?? undefined,
+        locationLng: locationLng ?? undefined,
         startDate, endDate,
         opsGuide: guide,
         engagementType: intakeEngagement.join(", ") || undefined,
@@ -614,7 +620,7 @@ export default function AdminEventsPage() {
                 <>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="sm:col-span-2"><Label className="text-xs">Operation Name *</Label><Input placeholder="e.g. Spring Festival Security" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" /></div>
-                    <div className="sm:col-span-2"><Label className="text-xs">Location</Label><Input placeholder="e.g. 123 Main St, Los Angeles, CA" value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1" /></div>
+                    <div className="sm:col-span-2"><Label className="text-xs">Location</Label><AddressAutocomplete value={location} onChange={setLocation} onSelect={(s: AddressSelection) => { setLocation(s.displayName); setLocationLat(s.lat); setLocationLng(s.lon); if (s.street && !guide.siteAddress) setGuide(g => ({ ...g, siteAddress: `${s.street}, ${s.city}, ${s.state} ${s.postcode}`.trim() })); }} onClear={() => { setLocationLat(null); setLocationLng(null); }} placeholder="e.g. 123 Main St, Los Angeles, CA" className="mt-1" /></div>
                     <div><Label className="text-xs">Start Date & Time *</Label><Input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1" /></div>
                     <div><Label className="text-xs">End Date & Time *</Label><Input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1" /></div>
                   </div>
@@ -653,7 +659,7 @@ export default function AdminEventsPage() {
                     <div><Label className="text-xs">Client Contact Person</Label><Input placeholder="e.g. Jane Smith" value={guide.clientContact} onChange={(e) => updateGuide("clientContact", e.target.value)} className="mt-1" /></div>
                     <div><Label className="text-xs">Client Phone</Label><PhoneInput value={guide.clientPhone} onChange={(v) => updateGuide("clientPhone", v)} className="mt-1" /></div>
                     <div><Label className="text-xs">Client Email</Label><Input placeholder="jane@acme.com" type="email" value={guide.clientEmail} onChange={(e) => updateGuide("clientEmail", e.target.value)} className="mt-1" /></div>
-                    <div className="sm:col-span-2"><Label className="text-xs">Site Address</Label><Input placeholder="Full site address if different from operation location" value={guide.siteAddress} onChange={(e) => updateGuide("siteAddress", e.target.value)} className="mt-1" /></div>
+                    <div className="sm:col-span-2"><Label className="text-xs">Site Address</Label><AddressAutocomplete value={guide.siteAddress} onChange={(v) => updateGuide("siteAddress", v)} onSelect={(s: AddressSelection) => { updateGuide("siteAddress", `${s.street}, ${s.city}, ${s.state} ${s.postcode}`.trim()); if (!locationLat) { setLocationLat(s.lat); setLocationLng(s.lon); } }} placeholder="Full site address if different from operation location" className="mt-1" /></div>
                     <div><Label className="text-xs">Site Type</Label>
                       <select value={guide.siteType} onChange={(e) => updateGuide("siteType", e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                         <option value="">Select...</option>
