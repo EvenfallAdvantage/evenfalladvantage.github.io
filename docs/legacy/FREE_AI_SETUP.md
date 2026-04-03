@@ -1,169 +1,57 @@
-# FREE AI Question Generator Setup
+# AI Question Generator Setup
 
-Generate assessment questions automatically using **100% FREE** AI services!
-
-## 🎉 Free Options
-
-### Option 1: Google Gemini (RECOMMENDED - Completely Free!)
-
-**Limits**: 60 requests/minute (more than enough!)
-
-**Setup**:
-1. Go to https://makersuite.google.com/app/apikey
-2. Sign in with Google account
-3. Click "Create API Key"
-4. Copy the key
-5. Open `admin/js/ai-question-generator-free.js`
-6. Replace `YOUR_GEMINI_API_KEY` with your key (line 7)
-7. Make sure `USE_GEMINI = true` (line 10)
-
-**Cost**: $0 forever! ✨
-
----
-
-### Option 2: Hugging Face (Free Tier)
-
-**Limits**: 30,000 characters/month
-
-**Setup**:
-1. Go to https://huggingface.co/settings/tokens
-2. Create free account
-3. Click "New token" → "Read" access
-4. Copy the token
-5. Open `admin/js/ai-question-generator-free.js`
-6. Replace `YOUR_HF_API_KEY` with your token (line 4)
-7. Set `USE_GEMINI = false` (line 10)
-
-**Cost**: $0/month (free tier)
-
----
-
-### Option 3: Local Fallback (NO API NEEDED!)
-
-If both APIs fail, the system automatically falls back to a template-based generator that works offline!
-
-**Features**:
-- No API key needed
-- Works offline
-- Generates basic questions from slide content
-- Good for testing/development
-
----
-
-## Quick Setup (5 minutes)
-
-1. **Create Database Table**
-   ```sql
-   -- Run in Supabase SQL Editor
-   -- File: CREATE_ASSESSMENT_QUESTIONS_TABLE.sql
-   ```
-
-2. **Get FREE Gemini API Key**
-   - Visit: https://makersuite.google.com/app/apikey
-   - Click "Create API Key"
-   - Copy it
-
-3. **Configure**
-   - Open: `admin/js/ai-question-generator-free.js`
-   - Line 7: Paste your Gemini API key
-   - Save file
-
-4. **Test**
-   - Create a module with slides
-   - Questions auto-generate!
-
----
+> **UPDATED April 2026:** The AI question generator has been completely rewritten to support multiple providers. API keys are now stored in the browser's localStorage — **never hardcoded in source files**.
 
 ## How It Works
 
-1. **Extracts** text from all slides
-2. **Sends** to FREE AI (Gemini or Hugging Face)
-3. **Generates** 10 multiple-choice questions
-4. **Saves** to database
-5. **Fallback** to local generation if AI fails
+The admin dashboard (`/admin/`) includes an AI-powered assessment question generator. When an admin clicks "Generate Questions" for a training module, the system:
 
----
+1. Extracts text content from the module's slides
+2. Sends a structured prompt to the selected AI provider
+3. Parses the returned JSON into multiple-choice questions
+4. Saves them to the `assessment_questions` table
+5. Falls back to a local template-based generator if the API call fails
 
-## Comparison
+## Supported Providers
 
-| Feature | Google Gemini | Hugging Face | Local Fallback |
-|---------|---------------|--------------|----------------|
-| Cost | FREE | FREE | FREE |
-| Quality | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
-| Speed | Fast | Medium | Instant |
-| Limit | 60/min | 30K chars/mo | Unlimited |
-| Setup | 2 min | 3 min | 0 min |
+| Provider | API Style | Free Tier? |
+|----------|-----------|------------|
+| Google Gemini | Custom REST | Yes (60 req/min) |
+| OpenAI | OpenAI-compatible | No |
+| Anthropic (Claude) | Custom REST | No (may have CORS issues from browser) |
+| Groq | OpenAI-compatible | Yes (generous) |
+| OpenRouter | OpenAI-compatible | Some free models |
+| Mistral | OpenAI-compatible | Yes (limited) |
+| Together AI | OpenAI-compatible | Yes (limited) |
+| Ollama (Local) | OpenAI-compatible | Free (self-hosted) |
+| Custom | OpenAI-compatible | User-defined |
 
----
+## Setup
 
-## Question Quality
+1. Open the admin dashboard at `/admin/`
+2. Navigate to a course and click "Generate Questions"
+3. On first use, a **Settings panel** appears
+4. Select your provider, paste your API key, choose a model
+5. Click "Save & Generate"
+6. Settings are saved in `localStorage` under the key `ea_ai_provider_config`
 
-**AI-Generated (Gemini/HF)**:
-- Tests understanding
-- Mix of difficulty levels
-- Practical application
-- Clear explanations
-- Context-aware
+No code changes or file edits are needed. The API key never leaves your browser.
 
-**Local Fallback**:
-- Basic comprehension
-- Template-based
-- Good for testing
-- Can be manually improved
+## Recommended Free Options
 
----
+**Google Gemini** — Create a key at https://makersuite.google.com/app/apikey. Select model `gemini-2.0-flash`. 60 requests/minute, completely free.
 
-## Troubleshooting
+**Groq** — Sign up at https://console.groq.com. Select model `llama-3.3-70b-versatile`. Very fast inference, generous free tier.
 
-### "Gemini API error: 400"
-- Check API key is correct
-- Ensure you copied the full key
-- Try regenerating the key
+**OpenRouter** — Sign up at https://openrouter.ai. Some models are free (e.g., `meta-llama/llama-3.3-70b-instruct`).
 
-### "Rate limit exceeded"
-- Gemini: Wait 1 minute (60 requests/min limit)
-- Hugging Face: Wait until next month or upgrade
+## Security
 
-### Questions are generic
-- Add more detailed content to slides
-- Use slide notes for additional context
-- AI needs good content to generate good questions!
+- API keys are stored in `localStorage` only — never in source code, never sent to your server
+- Keys are scoped to the admin's browser — switching browsers requires re-entering the key
+- The old approach of hardcoding API keys in `ai-question-generator-free.js` has been removed
+- If the AI call fails, the system falls back to locally generated template questions
 
-### No API key? No problem!
-- System automatically uses local fallback
-- Questions will be simpler but functional
-- Perfect for development/testing
+## File
 
----
-
-## Cost Breakdown
-
-| Service | Monthly Cost | Annual Cost |
-|---------|--------------|-------------|
-| Google Gemini | $0 | $0 |
-| Hugging Face | $0 | $0 |
-| Local Fallback | $0 | $0 |
-| **TOTAL** | **$0** | **$0** |
-
-Compare to OpenAI GPT-4: ~$30-100/month
-
----
-
-## Tips for Best Results
-
-1. **Write detailed slide content** - More context = better questions
-2. **Use slide notes** - Add instructor notes for AI to reference
-3. **Review generated questions** - Edit in Supabase if needed
-4. **Test with students** - Improve based on feedback
-
----
-
-## Next Steps
-
-1. ✅ Run `CREATE_ASSESSMENT_QUESTIONS_TABLE.sql`
-2. ✅ Get free Gemini API key
-3. ✅ Update `ai-question-generator-free.js`
-4. ✅ Create a test module
-5. ✅ Watch questions generate automatically!
-
-**Questions? Issues? Check the console for detailed logs!**
+The implementation is in `admin/js/ai-question-generator-free.js`.

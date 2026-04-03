@@ -163,3 +163,55 @@ User logs into Overwatch
 - Write operations will use the linked student's auth context
 - No service role keys exposed to client
 - All cross-DB calls go through the bridge service (not direct client calls)
+
+## Security Hardening (April 2026)
+
+The following security improvements were applied across the entire platform:
+
+### Edge Functions
+- **CORS**: All 6 Edge Functions restrict `Access-Control-Allow-Origin` to specific domains (no wildcard `*`)
+- **JWT**: `send-email` now requires JWT authentication (`verify_jwt = true`)
+- **Admin Checks**: `create-student`, `delete-student`, `send-email` verify caller is in `administrators` table
+- **Webhook Signature**: `process-course-payment` rejects unsigned payloads (no fallback to unverified JSON)
+
+### XSS Prevention
+- `escapeHTML()` and `escapeAttr()` applied to all 52 innerHTML vectors across 18 JS files
+- Shared `js/sanitize.js` utility loaded on all legacy portals
+- Covers: student-portal, instructor-portal, admin dashboard
+
+### Database
+- `administrators` INSERT policy fixed to prevent self-promotion (only existing admins can insert)
+- Storyboards table has full RLS (company membership required)
+- Applicant documents bucket allows anon upload (public form) but only authenticated delete
+
+### Client-Side
+- Gemini API key removed from source code; replaced with localStorage-based multi-provider config
+- Cookie consent banner on all public pages
+- Accessibility: ARIA roles, skip-nav, semantic navigation, lazy loading
+
+## Features Added (April 2026)
+
+### Applicant Pipeline Enhancement
+- Public application form expanded to 6 sections: personal info, credentials, education (repeatable), experience (repeatable), cert uploads, additional info
+- Applicant detail modal in Personnel page with full info view
+- Convert-to-member carries over education, work history, and migrates uploaded cert files to certifications table
+- Member profile page: editable Education and Work History sections
+
+### Storyboard System
+- `StoryboardEditor` component: pin-based annotation on site map images
+- Site map upload in operation wizard (Client & Site step)
+- Storyboard section on operation detail view with auto-save
+- Optional storyboard pin attachment on incident reports
+
+### Address Autocomplete
+- Nominatim (OpenStreetMap) powered typeahead with debounced search
+- Applied to planning form (Location + Site Address) and public application form
+- Captures lat/lon for geocoded operations
+
+### UI Polish
+- In-page subtabs for Comms (Briefing/Channels/External Groups) and Watch Log (Clock/Patrols)
+- Unified subtab behavior across all 12 pages: icons on active tab only, consistent spacing
+- All tab bars scroll horizontally on mobile
+- Mobile overflow fixes across 7 pages
+- Dashboard clock-in uses same shift-detection modal as Watch Log
+- Briefing page loads reactions/comments on initial page load

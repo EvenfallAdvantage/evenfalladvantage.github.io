@@ -201,24 +201,62 @@ supabase functions logs process-course-payment
 - Ensure you're calling from an allowed origin
 - Check browser console for specific CORS errors
 
+## All Edge Functions
+
+| Function | Purpose | JWT Required | Admin Check |
+|----------|---------|-------------|-------------|
+| `create-checkout-session` | Creates Stripe Checkout session | Yes (default) | No |
+| `process-course-payment` | Handles Stripe webhooks | No (webhook) | No (signature verified) |
+| `send-email` | Sends email via Resend API | Yes | Yes (admin or instructor) |
+| `send-welcome-email` | Sends welcome email to new students | Yes | Yes (admin) |
+| `create-student` | Creates student account | Yes | Yes (admin) |
+| `delete-student` | Deletes student account | Yes | Yes (admin) |
+
+### Deploy All Functions
+
+```bash
+npx supabase link --project-ref vaagvairvwmgyzsmymhs
+npx supabase functions deploy send-email
+npx supabase functions deploy send-welcome-email
+npx supabase functions deploy create-student
+npx supabase functions deploy delete-student
+npx supabase functions deploy create-checkout-session
+npx supabase functions deploy process-course-payment
+```
+
+## Security (Updated April 2026)
+
+### CORS Hardening
+
+All Edge Functions use a shared CORS module (`_shared/cors.ts`) that restricts origins to:
+- `https://www.evenfalladvantage.com`
+- `https://evenfalladvantage.github.io`
+- `http://localhost:3000` (development only)
+
+The wildcard `*` origin is no longer used. Each function calls `getCorsHeaders(req.headers.get('origin'))` to dynamically set the `Access-Control-Allow-Origin` header.
+
+### JWT Verification
+
+`send-email` has `verify_jwt = true` in `config.toml` (previously `false`). All functions except `process-course-payment` (which uses Stripe webhook signature verification) require a valid JWT.
+
+### Admin Role Verification
+
+`create-student`, `delete-student`, and `send-email` verify that the authenticated caller exists in the `administrators` table (or `instructors` table for send-email) before executing. Unauthorized callers receive a `403 Forbidden` response.
+
+### Webhook Signature Enforcement
+
+`process-course-payment` now **rejects** requests missing the `stripe-signature` header or `STRIPE_WEBHOOK_SECRET` environment variable. Previously it fell back to parsing unsigned JSON, which was a security bypass.
+
 ## Security Checklist
 
-- ✅ Webhook signature verification enabled
+- ✅ CORS restricted to specific origins (no wildcard)
+- ✅ JWT verification on all non-webhook functions
+- ✅ Admin/instructor role checks on sensitive functions
+- ✅ Webhook signature verification enforced (no unsigned fallback)
 - ✅ Stripe keys stored as Supabase secrets (not in code)
 - ✅ RLS policies prevent unauthorized access
-- ✅ Payment transactions only created by service role
-- ✅ Student IDs verified before creating enrollments
 - ✅ HTTPS only for production webhooks
-
-## Next Steps
-
-After deploying Edge Functions:
-1. Build course catalog UI
-2. Implement checkout flow in student portal
-3. Add enrollment verification to module access
-4. Test complete purchase flow
-5. Set up email notifications for purchases
 
 ---
 
-**Last Updated:** January 23, 2026
+**Last Updated:** April 3, 2026
