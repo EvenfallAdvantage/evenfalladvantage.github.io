@@ -126,15 +126,15 @@ async function renderMyCourses() {
             <div class="course-card-inline enrolled" onclick="selectCourse('${course.id}')">
                 <div class="enrolled-badge">ENROLLED</div>
                 <div class="course-thumbnail-inline">
-                    <i class="fas ${course.icon || 'fa-graduation-cap'}"></i>
+                    <i class="fas ${escapeHTML(course.icon || 'fa-graduation-cap')}"></i>
                 </div>
                 <div class="course-card-content">
-                    <h3 class="course-card-title">${course.course_name}</h3>
+                    <h3 class="course-card-title">${escapeHTML(course.course_name)}</h3>
                     <div class="course-card-meta">
-                        ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${course.duration_hours} hours</span>` : ''}
-                        ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${course.difficulty_level}</span>` : ''}
+                        ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${escapeHTML(String(course.duration_hours))} hours</span>` : ''}
+                        ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${escapeHTML(course.difficulty_level)}</span>` : ''}
                     </div>
-                    <p class="course-card-description">${course.short_description || course.description || ''}</p>
+                    <p class="course-card-description">${escapeHTML(course.short_description || course.description || '')}</p>
                     <div class="course-progress-inline">
                         <div class="progress-label-inline">
                             <span>Modules: ${moduleProgress.completed}/${moduleProgress.total}</span>
@@ -172,20 +172,20 @@ function renderAvailableCourses() {
         return `
             <div class="course-card-inline">
                 <div class="course-thumbnail-inline">
-                    <i class="fas ${course.icon || 'fa-graduation-cap'}"></i>
+                    <i class="fas ${escapeHTML(course.icon || 'fa-graduation-cap')}"></i>
                 </div>
                 <div class="course-card-content">
-                    <h3 class="course-card-title">${course.course_name}</h3>
+                    <h3 class="course-card-title">${escapeHTML(course.course_name)}</h3>
                     <div class="course-card-meta">
-                        ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${course.duration_hours} hours</span>` : ''}
-                        ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${course.difficulty_level}</span>` : ''}
+                        ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${escapeHTML(String(course.duration_hours))} hours</span>` : ''}
+                        ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${escapeHTML(course.difficulty_level)}</span>` : ''}
                     </div>
-                    <p class="course-card-description">${course.short_description || course.description || ''}</p>
+                    <p class="course-card-description">${escapeHTML(course.short_description || course.description || '')}</p>
                     <div class="course-card-footer">
                         <div class="course-price-inline ${isFree ? 'free' : ''}">
-                            ${isFree ? 'FREE' : `$${course.price.toFixed(2)}`}
+                            ${isFree ? 'FREE' : `$${escapeHTML(course.price.toFixed(2))}`}
                         </div>
-                        <button class="btn ${isFree ? 'btn-primary' : 'btn-secondary'}" onclick="${isFree ? `enrollInCourse('${course.id}')` : `alert('Please contact support to enroll in this course.')`}">
+                        <button class="btn ${isFree ? 'btn-primary' : 'btn-secondary'}" onclick="${isFree ? `enrollInCourse('${escapeHTML(course.id)}')` : `alert('Please contact support to enroll in this course.')`}">
                             <i class="fas ${isFree ? 'fa-user-plus' : 'fa-envelope'}"></i> ${isFree ? 'Enroll Now' : 'Contact Support'}
                         </button>
                     </div>

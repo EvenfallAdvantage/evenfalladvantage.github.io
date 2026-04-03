@@ -1,6 +1,27 @@
 import { createClient } from "./client";
 import { ensureInternalUser } from "./db-helpers";
 
+// ─── Helpers ────────────────────────────────────────────
+
+function mapDocTypeToCertCategory(type: string): string {
+  switch (type) {
+    case "Guard Card":
+    case "Security License":
+      return "state_license";
+    case "CPR/First Aid":
+    case "EMT":
+      return "first_aid";
+    case "OSHA":
+    case "Military":
+    case "LEO":
+      return "specialty";
+    case "Firearms":
+      return "firearms";
+    default:
+      return "general";
+  }
+}
+
 // ─── Applicants ─────────────────────────────────────────
 
 export async function getApplicants(companyId: string, status?: string) {
@@ -42,6 +63,9 @@ export async function createApplicant(companyId: string, applicant: {
   coverLetter?: string;
   source?: string;
   customFields?: Record<string, unknown>;
+  education?: Record<string, unknown>[];
+  workHistory?: Record<string, unknown>[];
+  documents?: Record<string, unknown>[];
 }) {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -63,6 +87,9 @@ export async function createApplicant(companyId: string, applicant: {
       cover_letter: applicant.coverLetter ?? null,
       source: applicant.source ?? "overwatch",
       custom_fields: applicant.customFields ?? {},
+      education: applicant.education ?? [],
+      work_history: applicant.workHistory ?? [],
+      documents: applicant.documents ?? [],
     })
     .select()
     .maybeSingle();
@@ -188,10 +215,27 @@ export async function convertApplicantToUser(applicantId: string, companyId: str
       guard_card_expiry: applicant.guard_card_expiry,
       address: applicant.address,
       work_preferences: applicant.work_preferences ?? [],
+      education: applicant.education || [],
+      work_history: applicant.work_history || [],
       hire_date: new Date().toISOString(),
       onboarding_complete: false,
     }, { onConflict: "user_id,company_id" });
   if (memberErr) throw memberErr;
+
+  // Migrate applicant documents to certifications table
+  if (applicant.documents && applicant.documents.length > 0) {
+    const certRecords = applicant.documents.map((doc: any) => ({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      cert_type: doc.type || 'general',
+      document_url: doc.fileUrl,
+      category: mapDocTypeToCertCategory(doc.type),
+      status: 'active',
+      created_at: new Date().toISOString(),
+    }));
+
+    await supabase.from('certifications').insert(certRecords);
+  }
 
   // Mark applicant as converted
   await supabase

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
+import { createClient } from "@/lib/supabase/client";
 import {
   getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet,
   updateMemberRole, removeMember, getAllTimeOffRequests, reviewTimeOffRequest,
@@ -28,7 +29,7 @@ import {
 import { parseUTC } from "@/lib/parse-utc";
 import { exportCSV, TIMESHEET_COLUMNS, MEMBER_COLUMNS, INCIDENT_COLUMNS } from "@/lib/csv-export";
 import { parseCSV, validateStaffRows, type StaffImportRow } from "@/lib/csv-import";
-import { Download, Upload } from "lucide-react";
+import { Download, Upload, FileText } from "lucide-react";
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
 import { bulkCreateApplicants } from "@/lib/supabase/db-onboarding";
 
@@ -77,8 +78,18 @@ export default function AdminStaffPage() {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [appFilter, setAppFilter] = useState("all");
   const [showAddApp, setShowAddApp] = useState(false);
-  const [appForm, setAppForm] = useState({ firstName: "", lastName: "", email: "", phone: "", guardCardNumber: "", experience: "", availability: "" });
+  const [appForm, setAppForm] = useState({
+    firstName: "", lastName: "", email: "", phone: "", address: "",
+    guardCardNumber: "", guardCardExpiry: "",
+    availability: "", experience: "", notes: "",
+    education: [] as { institution: string; degree: string; startYear: string; endYear: string }[],
+    workHistory: [] as { employer: string; title: string; startDate: string; endDate: string; description: string }[],
+    pendingFiles: [] as { name: string; type: string; file: File }[],
+  });
   const [savingApp, setSavingApp] = useState(false);
+  // Applicant detail modal
+  const [viewingApplicant, setViewingApplicant] = useState<Applicant | null>(null);
+  const appFileInputRef = useRef<HTMLInputElement>(null);
   const [updatingApp, setUpdatingApp] = useState<string | null>(null);
   // Onboarding tasks
   const [oTasks, setOTasks] = useState<OTask[]>([]);
@@ -318,8 +329,44 @@ export default function AdminStaffPage() {
     if (!appForm.firstName.trim() || !appForm.email.trim() || !activeCompanyId || activeCompanyId === "pending") return;
     setSavingApp(true);
     try {
-      await createApplicant(activeCompanyId, appForm);
-      setAppForm({ firstName: "", lastName: "", email: "", phone: "", guardCardNumber: "", experience: "", availability: "" });
+      // Upload files first if any
+      const uploadedDocs: { name: string; type: string; fileUrl: string }[] = [];
+      if (appForm.pendingFiles.length > 0) {
+        const supabase = createClient();
+        const applicantId = crypto.randomUUID();
+        for (const pf of appForm.pendingFiles) {
+          const ext = pf.file.name.split(".").pop() || "bin";
+          const filePath = `${activeCompanyId}/${applicantId}/${crypto.randomUUID()}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from("applicant-documents")
+            .upload(filePath, pf.file, { cacheControl: "3600", upsert: false });
+          if (upErr) { toast.error(`Upload failed: ${pf.name}`); continue; }
+          const { data: urlData } = supabase.storage.from("applicant-documents").getPublicUrl(filePath);
+          uploadedDocs.push({ name: pf.name, type: pf.type, fileUrl: urlData.publicUrl });
+        }
+      }
+      await createApplicant(activeCompanyId, {
+        firstName: appForm.firstName,
+        lastName: appForm.lastName,
+        email: appForm.email,
+        phone: appForm.phone || undefined,
+        address: appForm.address || undefined,
+        guardCardNumber: appForm.guardCardNumber || undefined,
+        guardCardExpiry: appForm.guardCardExpiry || undefined,
+        availability: appForm.availability || undefined,
+        experience: appForm.experience || undefined,
+        education: appForm.education.length > 0 ? appForm.education : undefined,
+        workHistory: appForm.workHistory.length > 0 ? appForm.workHistory : undefined,
+        documents: uploadedDocs.length > 0 ? uploadedDocs : undefined,
+      });
+      // If notes were provided, update them after creation
+      // (createApplicant doesn't accept notes, so we skip for now — notes are set via detail modal)
+      setAppForm({
+        firstName: "", lastName: "", email: "", phone: "", address: "",
+        guardCardNumber: "", guardCardExpiry: "",
+        availability: "", experience: "", notes: "",
+        education: [], workHistory: [], pendingFiles: [],
+      });
       setShowAddApp(false);
       setApplicants(await getApplicants(activeCompanyId));
       toast.success("Applicant added");
@@ -433,6 +480,7 @@ export default function AdminStaffPage() {
     hired: "bg-green-500/15 text-green-600", rejected: "bg-red-500/15 text-red-500",
     withdrawn: "bg-zinc-500/15 text-zinc-400",
   };
+  const DOCUMENT_TYPES = ["Guard Card", "CPR/First Aid", "EMT", "OSHA", "Firearms", "Security License", "Military", "LEO", "Other"] as const;
   const filteredApplicants = appFilter === "all" ? applicants : applicants.filter((a: Applicant) => a.status === appFilter);
 
   const filtered = members.filter((m: Member) => {
@@ -1105,24 +1153,138 @@ export default function AdminStaffPage() {
             </div>
 
             {showAddApp && (
-              <div className="rounded-xl border border-primary/30 bg-card p-4 space-y-3">
+              <div className="rounded-xl border border-primary/30 bg-card p-4 space-y-4 max-h-[70vh] overflow-auto">
                 <p className="text-sm font-medium flex items-center gap-2"><UserPlus className="h-4 w-4" /> Add Applicant Manually</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Input placeholder="First name *" value={appForm.firstName}
-                    onChange={(e) => setAppForm(p => ({ ...p, firstName: e.target.value }))} />
-                  <Input placeholder="Last name" value={appForm.lastName}
-                    onChange={(e) => setAppForm(p => ({ ...p, lastName: e.target.value }))} />
-                  <Input placeholder="Email *" type="email" value={appForm.email}
-                    onChange={(e) => setAppForm(p => ({ ...p, email: e.target.value }))} />
-                  <PhoneInput value={appForm.phone}
-                    onChange={(v) => setAppForm(p => ({ ...p, phone: v }))} />
-                  <Input placeholder="Guard card #" value={appForm.guardCardNumber}
-                    onChange={(e) => setAppForm(p => ({ ...p, guardCardNumber: e.target.value }))} />
-                  <Input placeholder="Availability (e.g. Weekends, Nights)" value={appForm.availability}
-                    onChange={(e) => setAppForm(p => ({ ...p, availability: e.target.value }))} />
+
+                {/* Personal Information */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Personal Information</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Input placeholder="First name *" value={appForm.firstName}
+                      onChange={(e) => setAppForm(p => ({ ...p, firstName: e.target.value }))} />
+                    <Input placeholder="Last name" value={appForm.lastName}
+                      onChange={(e) => setAppForm(p => ({ ...p, lastName: e.target.value }))} />
+                    <Input placeholder="Email *" type="email" value={appForm.email}
+                      onChange={(e) => setAppForm(p => ({ ...p, email: e.target.value }))} />
+                    <PhoneInput value={appForm.phone}
+                      onChange={(v) => setAppForm(p => ({ ...p, phone: v }))} />
+                    <Input placeholder="Address" className="sm:col-span-2" value={appForm.address}
+                      onChange={(e) => setAppForm(p => ({ ...p, address: e.target.value }))} />
+                  </div>
                 </div>
-                <Input placeholder="Experience / background" value={appForm.experience}
-                  onChange={(e) => setAppForm(p => ({ ...p, experience: e.target.value }))} />
+
+                {/* Credentials */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Credentials</p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Input placeholder="Guard card #" value={appForm.guardCardNumber}
+                      onChange={(e) => setAppForm(p => ({ ...p, guardCardNumber: e.target.value }))} />
+                    <Input placeholder="Guard card expiry" type="date" value={appForm.guardCardExpiry}
+                      onChange={(e) => setAppForm(p => ({ ...p, guardCardExpiry: e.target.value }))} />
+                  </div>
+                </div>
+
+                {/* Availability & Experience */}
+                <div className="space-y-2">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Input placeholder="Availability (e.g. Weekends, Nights)" value={appForm.availability}
+                      onChange={(e) => setAppForm(p => ({ ...p, availability: e.target.value }))} />
+                    <Input placeholder="Experience / background" value={appForm.experience}
+                      onChange={(e) => setAppForm(p => ({ ...p, experience: e.target.value }))} />
+                  </div>
+                </div>
+
+                {/* Education */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Education</p>
+                    <button type="button" onClick={() => setAppForm(p => ({ ...p, education: [...p.education, { institution: "", degree: "", startYear: "", endYear: "" }] }))}
+                      className="text-[10px] text-primary hover:underline flex items-center gap-0.5"><Plus className="h-3 w-3" /> Add</button>
+                  </div>
+                  {appForm.education.map((edu, idx) => (
+                    <div key={idx} className="grid gap-2 sm:grid-cols-4 rounded-lg border border-border/40 p-2 relative">
+                      <Input placeholder="Institution" value={edu.institution}
+                        onChange={(e) => setAppForm(p => { const ed = [...p.education]; ed[idx] = { ...ed[idx], institution: e.target.value }; return { ...p, education: ed }; })} />
+                      <Input placeholder="Degree" value={edu.degree}
+                        onChange={(e) => setAppForm(p => { const ed = [...p.education]; ed[idx] = { ...ed[idx], degree: e.target.value }; return { ...p, education: ed }; })} />
+                      <Input placeholder="Start year" value={edu.startYear}
+                        onChange={(e) => setAppForm(p => { const ed = [...p.education]; ed[idx] = { ...ed[idx], startYear: e.target.value }; return { ...p, education: ed }; })} />
+                      <div className="flex gap-1">
+                        <Input placeholder="End year" value={edu.endYear}
+                          onChange={(e) => setAppForm(p => { const ed = [...p.education]; ed[idx] = { ...ed[idx], endYear: e.target.value }; return { ...p, education: ed }; })} />
+                        <button type="button" onClick={() => setAppForm(p => ({ ...p, education: p.education.filter((_, i) => i !== idx) }))}
+                          className="shrink-0 rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10"><X className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Work History */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Experience / Work History</p>
+                    <button type="button" onClick={() => setAppForm(p => ({ ...p, workHistory: [...p.workHistory, { employer: "", title: "", startDate: "", endDate: "", description: "" }] }))}
+                      className="text-[10px] text-primary hover:underline flex items-center gap-0.5"><Plus className="h-3 w-3" /> Add</button>
+                  </div>
+                  {appForm.workHistory.map((wh, idx) => (
+                    <div key={idx} className="rounded-lg border border-border/40 p-2 space-y-2 relative">
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <Input placeholder="Employer" value={wh.employer}
+                          onChange={(e) => setAppForm(p => { const wh2 = [...p.workHistory]; wh2[idx] = { ...wh2[idx], employer: e.target.value }; return { ...p, workHistory: wh2 }; })} />
+                        <Input placeholder="Title" value={wh.title}
+                          onChange={(e) => setAppForm(p => { const wh2 = [...p.workHistory]; wh2[idx] = { ...wh2[idx], title: e.target.value }; return { ...p, workHistory: wh2 }; })} />
+                        <Input placeholder="Start date" type="date" value={wh.startDate}
+                          onChange={(e) => setAppForm(p => { const wh2 = [...p.workHistory]; wh2[idx] = { ...wh2[idx], startDate: e.target.value }; return { ...p, workHistory: wh2 }; })} />
+                        <Input placeholder="End date" type="date" value={wh.endDate}
+                          onChange={(e) => setAppForm(p => { const wh2 = [...p.workHistory]; wh2[idx] = { ...wh2[idx], endDate: e.target.value }; return { ...p, workHistory: wh2 }; })} />
+                      </div>
+                      <div className="flex gap-1">
+                        <Input placeholder="Description" value={wh.description}
+                          onChange={(e) => setAppForm(p => { const wh2 = [...p.workHistory]; wh2[idx] = { ...wh2[idx], description: e.target.value }; return { ...p, workHistory: wh2 }; })} />
+                        <button type="button" onClick={() => setAppForm(p => ({ ...p, workHistory: p.workHistory.filter((_, i) => i !== idx) }))}
+                          className="shrink-0 rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10"><X className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Documents */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Documents</p>
+                    <button type="button" onClick={() => appFileInputRef.current?.click()}
+                      className="text-[10px] text-primary hover:underline flex items-center gap-0.5"><Upload className="h-3 w-3" /> Upload</button>
+                  </div>
+                  <input ref={appFileInputRef} type="file" className="hidden" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setAppForm(p => ({ ...p, pendingFiles: [...p.pendingFiles, { name: file.name, type: "Other", file }] }));
+                    if (appFileInputRef.current) appFileInputRef.current.value = "";
+                  }} />
+                  {appForm.pendingFiles.map((pf, idx) => (
+                    <div key={idx} className="flex items-center gap-2 rounded-lg border border-border/40 px-3 py-2">
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="text-xs truncate flex-1">{pf.name}</span>
+                      <select value={pf.type}
+                        onChange={(e) => setAppForm(p => { const pfs = [...p.pendingFiles]; pfs[idx] = { ...pfs[idx], type: e.target.value }; return { ...p, pendingFiles: pfs }; })}
+                        className="h-6 rounded border border-border/40 bg-background px-1.5 text-[10px]">
+                        {DOCUMENT_TYPES.map(dt => <option key={dt} value={dt}>{dt}</option>)}
+                      </select>
+                      <button type="button" onClick={() => setAppForm(p => ({ ...p, pendingFiles: p.pendingFiles.filter((_, i) => i !== idx) }))}
+                        className="shrink-0 rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10"><X className="h-3 w-3" /></button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Notes (admin-only) */}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Admin Notes</p>
+                  <textarea placeholder="Internal notes about this applicant..."
+                    value={appForm.notes}
+                    onChange={(e) => setAppForm(p => ({ ...p, notes: e.target.value }))}
+                    className="w-full rounded-lg border border-border/40 bg-background px-3 py-2 text-xs min-h-[60px] resize-y" />
+                </div>
+
                 <Button size="sm" onClick={handleAddApplicant} disabled={!appForm.firstName.trim() || !appForm.email.trim() || savingApp}>
                   {savingApp ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Applicant"}
                 </Button>
@@ -1140,7 +1302,8 @@ export default function AdminStaffPage() {
             ) : (
               <div className="space-y-2">
                 {filteredApplicants.map((a: Applicant) => (
-                  <div key={a.id} className={`rounded-xl border bg-card px-4 py-3 ${a.status === "applied" ? "border-blue-500/30" : "border-border/50"}`}>
+                  <div key={a.id} className={`rounded-xl border bg-card px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${a.status === "applied" ? "border-blue-500/30" : "border-border/50"}`}
+                    onClick={() => setViewingApplicant(a)}>
                     <div className="flex items-center gap-4">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-xs font-bold text-blue-500">
                         {(a.first_name?.[0] ?? "")}{(a.last_name?.[0] ?? "")}
@@ -1158,7 +1321,7 @@ export default function AdminStaffPage() {
                       </div>
                       <Badge className={`text-[10px] capitalize ${STATUS_COLORS[a.status] ?? "bg-muted text-muted-foreground"}`}>{a.status}</Badge>
                       {canManage && a.status !== "hired" && a.status !== "rejected" && a.status !== "withdrawn" && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                           {a.status === "applied" && (
                             <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
                               onClick={() => handleAppStatus(a.id, "reviewing")} disabled={updatingApp === a.id}>
@@ -1190,7 +1353,7 @@ export default function AdminStaffPage() {
                         </div>
                       )}
                       {canManage && (a.status === "hired" || a.status === "rejected" || a.status === "withdrawn") && (
-                        <button onClick={() => handleDeleteApp(a.id)}
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteApp(a.id); }}
                           className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -1337,6 +1500,213 @@ export default function AdminStaffPage() {
           </>
         )}
       </div>
+
+      {/* ── Applicant Detail Modal ── */}
+      {viewingApplicant && (() => {
+        const a = viewingApplicant;
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewingApplicant(null)}>
+            <div className="relative w-full max-w-lg max-h-[85vh] rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-center gap-3 border-b border-border/40 px-5 py-4 shrink-0">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-500/10 text-sm font-bold text-blue-500">
+                  {(a.first_name?.[0] ?? "")}{(a.last_name?.[0] ?? "")}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{a.first_name} {a.last_name}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Badge className={`text-[9px] capitalize ${STATUS_COLORS[a.status] ?? "bg-muted text-muted-foreground"}`}>{a.status}</Badge>
+                    {a.source && a.source !== "overwatch" && (
+                      <Badge variant="outline" className="text-[9px]">{a.source}</Badge>
+                    )}
+                  </div>
+                </div>
+                <button onClick={() => setViewingApplicant(null)} className="rounded-lg p-1.5 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
+                {/* Personal Information */}
+                <div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Personal Information</h3>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                      <span className="text-muted-foreground text-[10px]">Email</span>
+                      <p className="text-xs font-medium">{a.email || "—"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px]">Phone</span>
+                      <p className="text-xs font-medium">{a.phone || "—"}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground text-[10px]">Address</span>
+                      <p className="text-xs font-medium">{a.address || "—"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px]">Applied</span>
+                      <p className="text-xs font-medium">{new Date(a.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-border/30" />
+
+                {/* Credentials */}
+                <div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1"><Shield className="h-3 w-3" /> Credentials</h3>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                      <span className="text-muted-foreground text-[10px]">Guard Card Number</span>
+                      <p className="text-xs font-medium">{a.guard_card_number || "—"}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px]">Guard Card Expiry</span>
+                      <p className="text-xs font-medium">{a.guard_card_expiry ? new Date(a.guard_card_expiry).toLocaleDateString() : "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Education */}
+                {a.education?.length > 0 && (
+                  <>
+                    <hr className="border-border/30" />
+                    <div>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1"><BookOpen className="h-3 w-3" /> Education</h3>
+                      <div className="space-y-1.5">
+                        {a.education.map((edu: { institution: string; degree: string; startYear: string; endYear: string }, idx: number) => (
+                          <div key={idx} className="rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                            <p className="text-xs font-medium">{edu.institution}{edu.degree ? ` — ${edu.degree}` : ""}</p>
+                            {(edu.startYear || edu.endYear) && (
+                              <p className="text-[10px] text-muted-foreground">{edu.startYear || "?"} - {edu.endYear || "Present"}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Work History / Experience */}
+                {a.work_history?.length > 0 && (
+                  <>
+                    <hr className="border-border/30" />
+                    <div>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Experience</h3>
+                      <div className="space-y-2">
+                        {a.work_history.map((wh: { employer: string; title: string; startDate: string; endDate: string; description: string }, idx: number) => (
+                          <div key={idx} className="rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                            <p className="text-xs font-medium">{wh.title}{wh.employer ? ` at ${wh.employer}` : ""}</p>
+                            {(wh.startDate || wh.endDate) && (
+                              <p className="text-[10px] text-muted-foreground">{wh.startDate || "?"} - {wh.endDate || "Present"}</p>
+                            )}
+                            {wh.description && <p className="text-[10px] text-muted-foreground/80 mt-1">{wh.description}</p>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Documents */}
+                {a.documents?.length > 0 && (
+                  <>
+                    <hr className="border-border/30" />
+                    <div>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Documents</h3>
+                      <div className="space-y-1.5">
+                        {a.documents.map((doc: { name: string; type: string; fileUrl: string }, idx: number) => (
+                          <div key={idx} className="flex items-center gap-2 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                            <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-xs font-medium truncate flex-1">{doc.name}</span>
+                            <Badge variant="outline" className="text-[9px] shrink-0">{doc.type}</Badge>
+                            {doc.fileUrl && (
+                              <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                                className="text-[10px] text-primary hover:underline shrink-0"
+                                onClick={(e) => e.stopPropagation()}>View</a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Notes */}
+                <hr className="border-border/30" />
+                <div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notes</h3>
+                  <textarea
+                    className="w-full rounded-lg border border-border/40 bg-background px-3 py-2 text-xs min-h-[60px] resize-y"
+                    placeholder="Add internal notes about this applicant..."
+                    defaultValue={a.notes ?? ""}
+                    onBlur={async (e) => {
+                      const newNotes = e.target.value;
+                      if (newNotes !== (a.notes ?? "")) {
+                        try {
+                          await updateApplicantStatus(a.id, a.status, newNotes);
+                          // Update local state
+                          setViewingApplicant({ ...a, notes: newNotes });
+                          setApplicants(prev => prev.map((ap: Applicant) => ap.id === a.id ? { ...ap, notes: newNotes } : ap));
+                        } catch (err) { console.error(err); toast.error("Failed to save notes"); }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              {canManage && a.status !== "hired" && a.status !== "rejected" && a.status !== "withdrawn" && (
+                <div className="border-t border-border/40 px-5 py-3 shrink-0">
+                  <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                    {a.status === "applied" && (
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs gap-1"
+                        onClick={async () => { await handleAppStatus(a.id, "reviewing"); if (activeCompanyId && activeCompanyId !== "pending") { const updated = await getApplicants(activeCompanyId); setApplicants(updated); const fresh = updated.find((x: Applicant) => x.id === a.id); if (fresh) setViewingApplicant(fresh); else setViewingApplicant(null); } }}
+                        disabled={updatingApp === a.id}>
+                        {updatingApp === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Review"}
+                      </Button>
+                    )}
+                    {a.status === "reviewing" && (
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs gap-1"
+                        onClick={async () => { await handleAppStatus(a.id, "interviewing"); if (activeCompanyId && activeCompanyId !== "pending") { const updated = await getApplicants(activeCompanyId); setApplicants(updated); const fresh = updated.find((x: Applicant) => x.id === a.id); if (fresh) setViewingApplicant(fresh); else setViewingApplicant(null); } }}
+                        disabled={updatingApp === a.id}>
+                        {updatingApp === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Interview"}
+                      </Button>
+                    )}
+                    {a.status === "interviewing" && (
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs gap-1"
+                        onClick={async () => { await handleAppStatus(a.id, "offered"); if (activeCompanyId && activeCompanyId !== "pending") { const updated = await getApplicants(activeCompanyId); setApplicants(updated); const fresh = updated.find((x: Applicant) => x.id === a.id); if (fresh) setViewingApplicant(fresh); else setViewingApplicant(null); } }}
+                        disabled={updatingApp === a.id}>
+                        {updatingApp === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Offer"}
+                      </Button>
+                    )}
+                    {(a.status === "offered" || a.status === "interviewing") && (
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs gap-1 text-green-600 border-green-500/30 hover:bg-green-500/10"
+                        onClick={async () => { await handleAppStatus(a.id, "hired"); if (activeCompanyId && activeCompanyId !== "pending") { const updated = await getApplicants(activeCompanyId); setApplicants(updated); const fresh = updated.find((x: Applicant) => x.id === a.id); if (fresh) setViewingApplicant(fresh); else setViewingApplicant(null); } }}
+                        disabled={updatingApp === a.id}>
+                        {updatingApp === a.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <><ArrowRight className="h-3 w-3" /> Hire</>}
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" className="h-8 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10"
+                      onClick={async () => { await handleAppStatus(a.id, "rejected"); if (activeCompanyId && activeCompanyId !== "pending") { const updated = await getApplicants(activeCompanyId); setApplicants(updated); const fresh = updated.find((x: Applicant) => x.id === a.id); if (fresh) setViewingApplicant(fresh); else setViewingApplicant(null); } }}
+                      disabled={updatingApp === a.id}>
+                      <XCircle className="h-3 w-3" /> Reject
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Close button for terminal statuses */}
+              {(a.status === "hired" || a.status === "rejected" || a.status === "withdrawn" || !canManage) && (
+                <div className="border-t border-border/40 px-5 py-3 shrink-0">
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => setViewingApplicant(null)}>Close</Button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Member Profile Modal ── */}
       {viewProfile && (

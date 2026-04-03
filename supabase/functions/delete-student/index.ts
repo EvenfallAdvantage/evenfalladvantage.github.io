@@ -2,17 +2,46 @@
 // Deletes a student from both the database and Supabase Auth
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 console.log("Delete Student Function Started")
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: getCorsHeaders(req.headers.get('origin')) })
   }
 
   try {
+    // Verify the caller is an administrator
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      throw new Error('Missing authorization header')
+    }
+    const callerClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+    const { data: { user: caller } } = await callerClient.auth.getUser()
+    if (!caller) throw new Error('Unauthorized')
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+
+    const { data: adminRecord } = await supabaseAdmin
+      .from('administrators').select('id').eq('user_id', caller.id).single()
+
+    if (!adminRecord) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: admin access required' }),
+        { headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' }, status: 403 }
+      )
+    }
+
     const { studentId } = await req.json()
     
     if (!studentId) {
@@ -20,18 +49,6 @@ Deno.serve(async (req) => {
     }
     
     console.log(`Deleting student: ${studentId}`)
-    
-    // Create Supabase client with service role key (has admin privileges)
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
     
     // Delete from student_profiles first (foreign key constraint)
     const { error: profileError } = await supabaseAdmin
@@ -68,7 +85,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ success: true, message: 'Student deleted successfully' }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' },
         status: 200 
       }
     )
@@ -77,7 +94,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' },
         status: 400 
       }
     )

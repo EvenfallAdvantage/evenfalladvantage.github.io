@@ -21,7 +21,9 @@ import {
   getCompanyMembers, deleteEvent, deleteShift, updateEventStatus,
   assignShift, getConflictingShifts, getOperationActivity,
   createDocument, getEventAvailability, getLatestDocument, getEventDocuments,
+  loadStoryboard, saveStoryboard,
 } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
 import type { OperationDocument } from "@/types/operations";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
 import type { IntakeData } from "@/types/operations";
@@ -34,6 +36,8 @@ import GotwaPanel from "@/components/ops/gotwa-panel";
 import DocHub from "@/components/ops/doc-hub";
 import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import type { TlpStep } from "@/types/operations";
+import StoryboardEditor from "@/components/storyboard-editor";
+import type { StoryboardPin } from "@/components/storyboard-editor";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Event = any;
@@ -169,6 +173,10 @@ export default function AdminEventsPage() {
   const [guide, setGuide] = useState<OpsGuide>({ ...EMPTY_GUIDE });
   const [creating, setCreating] = useState(false);
 
+  // Site map upload (wizard step 1)
+  const [siteMapFile, setSiteMapFile] = useState<File | null>(null);
+  const [siteMapPreview, setSiteMapPreview] = useState<string | null>(null);
+
   // SOP intake fields (supplement wizard)
   const [intakeEngagement, setIntakeEngagement] = useState<string[]>([]);
   const [intakeMission, setIntakeMission] = useState("");
@@ -248,6 +256,11 @@ export default function AdminEventsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mergedIntake, setMergedIntake] = useState<Record<string, any> | null>(null);
 
+  // Storyboard (expanded op detail)
+  const [storyboardPins, setStoryboardPins] = useState<StoryboardPin[]>([]);
+  const [storyboardId, setStoryboardId] = useState<string | null>(null);
+  const [storyboardLoading, setStoryboardLoading] = useState(false);
+
   /* ── Data ── */
 
   const load = useCallback(async () => {
@@ -260,6 +273,7 @@ export default function AdminEventsPage() {
   function resetCreate() {
     setName(""); setLocation(""); setStartDate(""); setEndDate("");
     setGuide({ ...EMPTY_GUIDE }); setCreateStep(0); setShowCreate(false);
+    setSiteMapFile(null); setSiteMapPreview(null);
     setIntakeEngagement([]); setIntakeMission(""); setIntakeTimeSensitivity("Medium");
     setIntakeVenueType([]); setIntakeAttendance(""); setIntakeEnvironment(""); setIntakeEnvNotes("");
     setIntakeClientRequest(""); setIntakeServices([]); setIntakeDeliverables(""); setIntakeOutOfScope("");
@@ -281,7 +295,29 @@ export default function AdminEventsPage() {
     if (!name.trim() || !startDate || !endDate || !activeCompanyId || activeCompanyId === "pending") return;
     setCreating(true);
     try {
+      // Pre-generate event ID so we can use it for file upload path
+      const eventId = crypto.randomUUID();
+
+      // Upload site map if provided
+      let siteMapUrl: string | undefined;
+      if (siteMapFile) {
+        const supabase = createClient();
+        const filePath = `${activeCompanyId}/${eventId}/${siteMapFile.name}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("operation-maps")
+          .upload(filePath, siteMapFile, { upsert: true });
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage
+            .from("operation-maps")
+            .getPublicUrl(filePath);
+          siteMapUrl = urlData?.publicUrl;
+        } else {
+          console.error("Site map upload failed:", uploadErr);
+        }
+      }
+
       const ev = await createEvent({
+        id: eventId,
         companyId: activeCompanyId,
         name: name.trim(),
         location: location || guide.siteAddress || undefined,
@@ -292,6 +328,7 @@ export default function AdminEventsPage() {
         estimatedAttendance: intakeAttendance || undefined,
         riskLevel: intakeRiskLevel || undefined,
         tlpStep: "receive_mission",
+        siteMapUrl,
       });
       // Create intake document for SOP tracking
       if (ev?.id) {
@@ -337,6 +374,7 @@ export default function AdminEventsPage() {
     setPosts([]); setSelectedDays(new Set()); setShowCustom(false); setShowBuilder(false);
     setShowActivity(false); setActivityItems([]); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowDocHub(false);
     setAvailability([]); setMergedIntake(null);
+    setStoryboardPins([]); setStoryboardId(null); setStoryboardLoading(false);
     try {
       const ev = events.find((e: Event) => e.id === eventId);
       const [s, m, avail, intakeDoc] = await Promise.all([
@@ -357,6 +395,19 @@ export default function AdminEventsPage() {
         endDate: ev?.end_date || "",
         radioChannels: intake.radioChannels || guide.radioChannels || "",
       });
+
+      // Load storyboard if event has a site map
+      if (ev?.site_map_url) {
+        setStoryboardLoading(true);
+        try {
+          const sb = await loadStoryboard(eventId);
+          if (sb) {
+            setStoryboardId(sb.id);
+            setStoryboardPins((sb.pins as StoryboardPin[]) ?? []);
+          }
+        } catch (e) { console.error("Failed to load storyboard:", e); }
+        finally { setStoryboardLoading(false); }
+      }
     } catch { setShifts([]); }
   }
 
@@ -636,6 +687,50 @@ export default function AdminEventsPage() {
                       </div>
                       <div className="sm:col-span-1"><Label className="text-xs">Environment Notes</Label><Input placeholder="e.g. Urban, multi-level" value={intakeEnvNotes} onChange={(e) => setIntakeEnvNotes(e.target.value)} className="mt-1" /></div>
                     </div>
+                  </div>
+                  {/* Site Map Upload */}
+                  <div className="pt-2 border-t border-border/20 space-y-2">
+                    <Label className="text-xs">Site Map / Floor Plan <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                    {siteMapPreview ? (
+                      <div className="relative rounded-lg border border-border/40 bg-muted/20 p-3">
+                        <div className="flex items-center gap-3">
+                          {siteMapFile?.type === "application/pdf" ? (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <FileText className="h-8 w-8" />
+                              <span className="text-sm font-medium truncate">{siteMapFile.name}</span>
+                            </div>
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={siteMapPreview} alt="Site map preview" className="max-h-32 rounded-md border border-border/30 object-contain" />
+                          )}
+                          <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600 ml-auto" onClick={() => { setSiteMapFile(null); setSiteMapPreview(null); }}>
+                            <X className="h-3.5 w-3.5 mr-1" /> Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border/50 bg-muted/10 p-6 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-colors">
+                        <MapPin className="h-6 w-6 text-muted-foreground/50" />
+                        <span className="text-xs text-muted-foreground">Drop or click to upload a site map</span>
+                        <span className="text-[10px] text-muted-foreground/60">Supported: JPEG, PNG, SVG, PDF</span>
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          className="sr-only"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setSiteMapFile(file);
+                            if (file.type === "application/pdf") {
+                              setSiteMapPreview("pdf");
+                            } else {
+                              const url = URL.createObjectURL(file);
+                              setSiteMapPreview(url);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
                   </div>
                 </>
               )}
@@ -1188,6 +1283,45 @@ export default function AdminEventsPage() {
                           )}
                         </div>
                       )}
+
+                      {/* ── Site Map & Storyboard ── */}
+                      {(() => {
+                        const hasSiteMap = !!ev.site_map_url;
+                        return (
+                          <div className="px-3 sm:px-4 py-3 border-b border-border/20">
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-2">
+                              <MapPin className="h-3 w-3" /> Site Map &amp; Storyboard
+                            </p>
+                            {hasSiteMap ? (
+                              storyboardLoading ? (
+                                <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                              ) : (
+                                <StoryboardEditor
+                                  imageUrl={ev.site_map_url}
+                                  pins={storyboardPins}
+                                  onPinsChange={async (newPins) => {
+                                    setStoryboardPins(newPins);
+                                    // Auto-save storyboard
+                                    if (activeCompanyId && activeCompanyId !== "pending") {
+                                      try {
+                                        const result = await saveStoryboard(activeCompanyId, ev.id, newPins, storyboardId ?? undefined);
+                                        if (result && !storyboardId) {
+                                          setStoryboardId(result.id);
+                                        }
+                                      } catch (e) { console.error("Failed to save storyboard:", e); }
+                                    }
+                                  }}
+                                />
+                              )
+                            ) : (
+                              <div className="text-center py-6 text-xs text-muted-foreground/60">
+                                <MapPin className="h-6 w-6 mx-auto text-muted-foreground/30 mb-1" />
+                                <p>No site map uploaded. Edit this operation to add one.</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* ── Shift Grid by Day (List View) ── */}
                       {shiftView === "list" && (

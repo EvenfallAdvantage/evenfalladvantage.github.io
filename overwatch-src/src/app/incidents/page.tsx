@@ -22,6 +22,9 @@ import {
   Trash2,
   ClipboardList,
   Flag,
+  X,
+  Map,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -39,7 +42,12 @@ import {
   deleteIncident,
   getCompanyMembers,
   getActiveTimesheet,
+  loadStoryboard,
+  saveStoryboard,
+  getEventSiteMapUrl,
 } from "@/lib/supabase/db";
+import StoryboardEditor from "@/components/storyboard-editor";
+import type { StoryboardPin } from "@/components/storyboard-editor";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Incident = any;
@@ -124,6 +132,20 @@ export default function IncidentsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [activeTimesheet, setActiveTimesheet] = useState<any>(null);
 
+  // Storyboard — incident creation (location marking)
+  const [showSiteMapModal, setShowSiteMapModal] = useState(false);
+  const [incidentSiteMapUrl, setIncidentSiteMapUrl] = useState<string | null>(null);
+  const [incidentStoryboardId, setIncidentStoryboardId] = useState<string | null>(null);
+  const [incidentExistingPins, setIncidentExistingPins] = useState<StoryboardPin[]>([]);
+  const [incidentLocationPin, setIncidentLocationPin] = useState<StoryboardPin | null>(null);
+  const [siteMapLoading, setSiteMapLoading] = useState(false);
+
+  // Storyboard — incident detail (view on map)
+  const [viewMapIncidentId, setViewMapIncidentId] = useState<string | null>(null);
+  const [viewMapUrl, setViewMapUrl] = useState<string | null>(null);
+  const [viewMapPins, setViewMapPins] = useState<StoryboardPin[]>([]);
+  const [viewMapLoading, setViewMapLoading] = useState(false);
+
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
     try {
@@ -165,17 +187,49 @@ export default function IncidentsPage() {
     setInjuryLevel("None"); setInjuryDetails(""); setPropertyDamage("None"); setDamageDetails("");
     setServicesNotified([]); setEvidenceCollected([]); setActionsTaken([]);
     setSuspectDesc(""); setFollowUp(false); setFollowUpNotes(""); setShowAdvanced(false);
+    setIncidentLocationPin(null); setIncidentStoryboardId(null);
+    setIncidentExistingPins([]); setIncidentSiteMapUrl(null);
   }
 
   async function handleCreate() {
     if (!newTitle.trim() || !activeCompanyId) return;
     setCreating(true);
     try {
-      await createIncident(activeCompanyId, {
+      // If there's an incident location pin, save it to the operation's storyboard
+      let savedStoryboardId: string | undefined;
+      let savedPinId: string | undefined;
+      if (incidentLocationPin && activeTimesheet?.event_id) {
+        try {
+          const allPins = [...incidentExistingPins, incidentLocationPin];
+          const result = await saveStoryboard(
+            activeCompanyId,
+            activeTimesheet.event_id,
+            allPins,
+            incidentStoryboardId ?? undefined,
+          );
+          if (result) {
+            savedStoryboardId = result.id;
+            savedPinId = incidentLocationPin.id;
+          }
+        } catch (e) { console.error("Failed to save incident pin:", e); }
+      }
+
+      const inc = await createIncident(activeCompanyId, {
         title: newTitle, description: buildDescription(), type: newType,
         severity: newSeverity, priority: newPriority, location: newLocation,
         eventId: activeTimesheet?.event_id ?? undefined,
       });
+
+      // Update incident with storyboard references if pin was saved
+      if (inc?.id && savedStoryboardId && savedPinId) {
+        try {
+          await updateIncident(inc.id, {
+            storyboard_id: savedStoryboardId,
+            storyboard_pin_id: savedPinId,
+          });
+        } catch (e) { console.error("Failed to link storyboard to incident:", e); }
+      }
+
       resetCreateForm();
       setShowCreate(false);
       await load();
@@ -466,6 +520,64 @@ export default function IncidentsPage() {
                       <Input placeholder="Describe required follow-up actions..." value={followUpNotes} onChange={e => setFollowUpNotes(e.target.value)} />
                     )}
                   </div>
+
+                  {/* Location on Site Map */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location on Site Map</p>
+                    {activeTimesheet?.event_id ? (
+                      <>
+                        {incidentLocationPin ? (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-green-500/15 text-green-700 border border-green-500/30">
+                              <Check className="h-3 w-3" /> Location marked
+                            </span>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => setIncidentLocationPin(null)}>
+                              Clear
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={async () => {
+                              setSiteMapLoading(true);
+                              try {
+                                if (!incidentSiteMapUrl) {
+                                  const url = await getEventSiteMapUrl(activeTimesheet.event_id);
+                                  setIncidentSiteMapUrl(url);
+                                  if (!url) return;
+                                }
+                                setShowSiteMapModal(true);
+                              } catch { /* */ }
+                              finally { setSiteMapLoading(false); }
+                            }}>
+                              <Map className="h-3 w-3" /> Re-mark
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={async () => {
+                            setSiteMapLoading(true);
+                            try {
+                              const url = await getEventSiteMapUrl(activeTimesheet.event_id);
+                              setIncidentSiteMapUrl(url);
+                              if (!url) {
+                                toast.error("No site map available for this operation");
+                                return;
+                              }
+                              // Load existing storyboard pins
+                              const sb = await loadStoryboard(activeTimesheet.event_id);
+                              if (sb) {
+                                setIncidentStoryboardId(sb.id);
+                                setIncidentExistingPins((sb.pins as StoryboardPin[]) ?? []);
+                              }
+                              setShowSiteMapModal(true);
+                            } catch { toast.error("Failed to load site map"); }
+                            finally { setSiteMapLoading(false); }
+                          }} disabled={siteMapLoading}>
+                            {siteMapLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Map className="h-3 w-3" />}
+                            Mark on Site Map
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground/60 italic">(No site map available for the current operation)</p>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -611,6 +723,39 @@ export default function IncidentsPage() {
                         );
                       })()}
 
+                      {/* View on Map button (if incident has storyboard pin) */}
+                      {inc.storyboard_pin_id && inc.event_id && (
+                        <div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-xs"
+                            disabled={viewMapLoading && viewMapIncidentId === inc.id}
+                            onClick={async () => {
+                              setViewMapLoading(true);
+                              setViewMapIncidentId(inc.id);
+                              try {
+                                const [url, sb] = await Promise.all([
+                                  getEventSiteMapUrl(inc.event_id),
+                                  loadStoryboard(inc.event_id),
+                                ]);
+                                if (url && sb?.pins) {
+                                  setViewMapUrl(url);
+                                  // Show only the incident pin (highlighted)
+                                  const allPins = sb.pins as StoryboardPin[];
+                                  const pin = allPins.find((p: StoryboardPin) => p.id === inc.storyboard_pin_id);
+                                  setViewMapPins(pin ? [pin] : allPins);
+                                }
+                              } catch { toast.error("Failed to load map"); }
+                              finally { setViewMapLoading(false); }
+                            }}
+                          >
+                            {viewMapLoading && viewMapIncidentId === inc.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Map className="h-3 w-3" />}
+                            View on Map
+                          </Button>
+                        </div>
+                      )}
+
                       {/* Actions */}
                       {isAdmin && (
                         <div className="flex flex-wrap gap-3 items-center">
@@ -701,6 +846,78 @@ export default function IncidentsPage() {
           </div>
         )}
       </div>
+
+      {/* ── Site Map Modal — Mark incident location ── */}
+      {showSiteMapModal && incidentSiteMapUrl && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowSiteMapModal(false)}>
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border/50 bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-border/30 px-5 py-3">
+              <div>
+                <h3 className="text-sm font-bold">Mark Incident Location</h3>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Click &quot;Add Pin&quot; then click on the map to place the incident marker. Existing operation pins are shown for reference.</p>
+              </div>
+              <button onClick={() => setShowSiteMapModal(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-5">
+              <StoryboardEditor
+                imageUrl={incidentSiteMapUrl}
+                pins={incidentLocationPin ? [...incidentExistingPins, incidentLocationPin] : incidentExistingPins}
+                singlePinMode={false}
+                readOnly={false}
+                onPinsChange={(newPins) => {
+                  // The last pin added (beyond existing pins) is the incident pin
+                  if (newPins.length > incidentExistingPins.length) {
+                    const newPin = newPins[newPins.length - 1];
+                    setIncidentLocationPin({
+                      ...newPin,
+                      label: newPin.label || newTitle || "Incident Location",
+                      icon: "incident",
+                      color: "#ef4444",
+                    });
+                  } else if (newPins.length <= incidentExistingPins.length) {
+                    // User deleted the incident pin or only existing pins remain
+                    setIncidentLocationPin(null);
+                  }
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-border/30 px-5 py-3">
+              <Button size="sm" variant="outline" onClick={() => setShowSiteMapModal(false)}>Cancel</Button>
+              <Button size="sm" onClick={() => {
+                setShowSiteMapModal(false);
+                if (incidentLocationPin) {
+                  toast.success("Incident location marked on site map");
+                }
+              }}>
+                {incidentLocationPin ? "Confirm Location" : "Close"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── View on Map Modal (read-only) ── */}
+      {viewMapUrl && viewMapIncidentId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => { setViewMapUrl(null); setViewMapIncidentId(null); setViewMapPins([]); }}>
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border/50 bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-border/30 px-5 py-3">
+              <h3 className="text-sm font-bold">Incident Location on Site Map</h3>
+              <button onClick={() => { setViewMapUrl(null); setViewMapIncidentId(null); setViewMapPins([]); }} className="text-muted-foreground hover:text-foreground transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-5">
+              <StoryboardEditor
+                imageUrl={viewMapUrl}
+                pins={viewMapPins}
+                readOnly
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

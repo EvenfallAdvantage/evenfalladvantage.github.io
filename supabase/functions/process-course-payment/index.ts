@@ -5,6 +5,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 import Stripe from 'https://esm.sh/stripe@14.5.0?target=deno'
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
@@ -19,10 +20,7 @@ serve(async (req) => {
   const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
 
   // CORS headers
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
-  }
+  const corsHeaders = getCorsHeaders(req.headers.get('origin'))
 
   // Handle OPTIONS request for CORS
   if (req.method === 'OPTIONS') {
@@ -34,19 +32,22 @@ serve(async (req) => {
     const body = await req.text()
     let event: Stripe.Event
 
-    if (signature && webhookSecret) {
-      try {
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-      } catch (err) {
-        console.error('Webhook signature verification failed:', err)
-        return new Response(
-          JSON.stringify({ error: 'Webhook signature verification failed' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    } else {
-      // For testing without webhook signature
-      event = JSON.parse(body)
+    if (!signature || !webhookSecret) {
+      console.error('Missing stripe-signature header or STRIPE_WEBHOOK_SECRET')
+      return new Response(
+        JSON.stringify({ error: 'Webhook signature verification required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err)
+      return new Response(
+        JSON.stringify({ error: 'Webhook signature verification failed' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     console.log('Processing event:', event.type)
