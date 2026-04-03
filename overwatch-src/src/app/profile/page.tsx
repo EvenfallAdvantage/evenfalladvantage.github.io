@@ -14,11 +14,13 @@ import { toast } from "sonner";
 import {
   Pencil, Check, X, FileText, Activity, FolderOpen, Loader2, Clock,
   Lock, Shield, AlertTriangle, CheckCircle2, ListChecks, Camera, Copy, KeyRound, Bell,
+  GraduationCap, Briefcase, ChevronDown, ChevronUp, Plus, Trash2,
 } from "lucide-react";
 import {
   updateUserProfile, uploadAvatar, getCompanyDetails, getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts,
   getMemberProfile, updateMemberProfile, getMyOnboardingProgress, toggleOnboardingTask, completeOnboarding,
 } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sub = any;
@@ -32,6 +34,24 @@ type Attempt = any;
 type MemberProfile = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OProgress = any;
+
+interface EducationEntry {
+  institution: string;
+  degree: string;
+  startYear: string;
+  endYear: string;
+}
+
+interface WorkHistoryEntry {
+  employer: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+}
+
+const EMPTY_EDU: EducationEntry = { institution: "", degree: "", startYear: "", endYear: "" };
+const EMPTY_WORK: WorkHistoryEntry = { employer: "", title: "", startDate: "", endDate: "", description: "" };
 
 const WORK_PREF_OPTIONS = ["Weekdays", "Weekends", "Nights", "Mornings", "Events", "Overtime", "Holidays"];
 const DIETARY_OPTIONS = [
@@ -66,6 +86,17 @@ export default function ProfilePage() {
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
   const isLeadership = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+
+  // Education & Work History state
+  const [eduExpanded, setEduExpanded] = useState<boolean | null>(null); // null = not yet set
+  const [eduEditing, setEduEditing] = useState<number | "new" | null>(null);
+  const [eduForm, setEduForm] = useState<EducationEntry>(EMPTY_EDU);
+  const [eduSaving, setEduSaving] = useState(false);
+
+  const [workExpanded, setWorkExpanded] = useState<boolean | null>(null);
+  const [workEditing, setWorkEditing] = useState<number | "new" | null>(null);
+  const [workForm, setWorkForm] = useState<WorkHistoryEntry>(EMPTY_WORK);
+  const [workSaving, setWorkSaving] = useState(false);
 
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
@@ -126,6 +157,9 @@ export default function ProfilePage() {
             hideContactFromRoster: profile.hide_contact_roster ?? false,
             workPreferences: profile.work_preferences ?? [],
           });
+          // Default expand if entries exist
+          setEduExpanded((profile.education ?? []).length > 0);
+          setWorkExpanded((profile.work_history ?? []).length > 0);
         }
       } catch {}
       try { setOnboardingProgress(await getMyOnboardingProgress(activeCompanyId)); } catch {}
@@ -209,6 +243,82 @@ export default function ProfilePage() {
         ? p.workPreferences.filter(w => w !== pref)
         : [...p.workPreferences, pref],
     }));
+  }
+
+  // ─── Education CRUD ───────────────────────────────────
+  async function saveEducationEntry() {
+    if (!mp?.id || !eduForm.institution.trim()) return;
+    setEduSaving(true);
+    try {
+      const current: EducationEntry[] = mp.education ?? [];
+      let updated: EducationEntry[];
+      if (eduEditing === "new") {
+        updated = [...current, { ...eduForm }];
+      } else if (typeof eduEditing === "number") {
+        updated = current.map((e: EducationEntry, i: number) => i === eduEditing ? { ...eduForm } : e);
+      } else {
+        return;
+      }
+      const supabase = createClient();
+      const { error } = await supabase.from("company_memberships").update({ education: updated }).eq("id", mp.id);
+      if (error) throw error;
+      setMp({ ...mp, education: updated });
+      setEduEditing(null);
+      setEduForm(EMPTY_EDU);
+      toast.success("Education updated");
+    } catch (err) { console.error(err); toast.error("Failed to save education"); }
+    finally { setEduSaving(false); }
+  }
+
+  async function deleteEducationEntry(idx: number) {
+    if (!mp?.id) return;
+    const current: EducationEntry[] = mp.education ?? [];
+    const updated = current.filter((_: EducationEntry, i: number) => i !== idx);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("company_memberships").update({ education: updated }).eq("id", mp.id);
+      if (error) throw error;
+      setMp({ ...mp, education: updated });
+      toast.success("Education entry removed");
+    } catch (err) { console.error(err); toast.error("Failed to delete education entry"); }
+  }
+
+  // ─── Work History CRUD ────────────────────────────────
+  async function saveWorkHistoryEntry() {
+    if (!mp?.id || !workForm.employer.trim()) return;
+    setWorkSaving(true);
+    try {
+      const current: WorkHistoryEntry[] = mp.work_history ?? [];
+      let updated: WorkHistoryEntry[];
+      if (workEditing === "new") {
+        updated = [...current, { ...workForm }];
+      } else if (typeof workEditing === "number") {
+        updated = current.map((e: WorkHistoryEntry, i: number) => i === workEditing ? { ...workForm } : e);
+      } else {
+        return;
+      }
+      const supabase = createClient();
+      const { error } = await supabase.from("company_memberships").update({ work_history: updated }).eq("id", mp.id);
+      if (error) throw error;
+      setMp({ ...mp, work_history: updated });
+      setWorkEditing(null);
+      setWorkForm(EMPTY_WORK);
+      toast.success("Work history updated");
+    } catch (err) { console.error(err); toast.error("Failed to save work history"); }
+    finally { setWorkSaving(false); }
+  }
+
+  async function deleteWorkHistoryEntry(idx: number) {
+    if (!mp?.id) return;
+    const current: WorkHistoryEntry[] = mp.work_history ?? [];
+    const updated = current.filter((_: WorkHistoryEntry, i: number) => i !== idx);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("company_memberships").update({ work_history: updated }).eq("id", mp.id);
+      if (error) throw error;
+      setMp({ ...mp, work_history: updated });
+      toast.success("Work history entry removed");
+    } catch (err) { console.error(err); toast.error("Failed to delete work history entry"); }
   }
 
   const loadSubmissions = useCallback(async () => {
@@ -620,6 +730,189 @@ export default function ProfilePage() {
                     <p className="text-[10px] text-muted-foreground mt-1">You&apos;ll only receive push/email notifications on selected days.</p>
                   </div>
                 </CardContent>
+              </Card>
+            )}
+
+            {/* Education */}
+            {mpLoaded && mp && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <button
+                    onClick={() => setEduExpanded(prev => !prev)}
+                    className="flex items-center justify-between w-full text-left"
+                  >
+                    <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                      <GraduationCap className="h-3.5 w-3.5" /> Education
+                      {(mp.education ?? []).length > 0 && (
+                        <Badge variant="secondary" className="text-[9px] ml-1">{(mp.education ?? []).length}</Badge>
+                      )}
+                    </CardTitle>
+                    <div className="flex items-center gap-1">
+                      {eduEditing === null && (
+                        <Button
+                          variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1"
+                          onClick={(e) => { e.stopPropagation(); setEduExpanded(true); setEduEditing("new"); setEduForm(EMPTY_EDU); }}
+                        >
+                          <Plus className="h-3 w-3" /> Add
+                        </Button>
+                      )}
+                      {eduExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </div>
+                  </button>
+                </CardHeader>
+                {eduExpanded && (
+                  <CardContent className="space-y-2 pt-0">
+                    {(mp.education ?? []).map((entry: EducationEntry, idx: number) => (
+                      eduEditing === idx ? (
+                        <div key={idx} className="space-y-2 rounded-lg border border-border/40 p-3">
+                          <Input placeholder="Institution" value={eduForm.institution} onChange={(e) => setEduForm(p => ({ ...p, institution: e.target.value }))} className="h-8 text-sm" />
+                          <Input placeholder="Degree / Program" value={eduForm.degree} onChange={(e) => setEduForm(p => ({ ...p, degree: e.target.value }))} className="h-8 text-sm" />
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input placeholder="Start Year" value={eduForm.startYear} onChange={(e) => setEduForm(p => ({ ...p, startYear: e.target.value }))} className="h-8 text-sm" />
+                            <Input placeholder="End Year" value={eduForm.endYear} onChange={(e) => setEduForm(p => ({ ...p, endYear: e.target.value }))} className="h-8 text-sm" />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" className="h-7 gap-1 text-xs" onClick={saveEducationEntry} disabled={eduSaving}>
+                              {eduSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => { setEduEditing(null); setEduForm(EMPTY_EDU); }}>
+                              <X className="h-3 w-3" /> Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={idx} className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{entry.institution}{entry.degree ? ` — ${entry.degree}` : ""}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {entry.startYear}{entry.endYear ? ` - ${entry.endYear}` : ""}
+                            </p>
+                          </div>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setEduEditing(idx); setEduForm(entry); }}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive" onClick={() => deleteEducationEntry(idx)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )
+                    ))}
+                    {eduEditing === "new" && (
+                      <div className="space-y-2 rounded-lg border border-border/40 p-3">
+                        <Input placeholder="Institution" value={eduForm.institution} onChange={(e) => setEduForm(p => ({ ...p, institution: e.target.value }))} className="h-8 text-sm" />
+                        <Input placeholder="Degree / Program" value={eduForm.degree} onChange={(e) => setEduForm(p => ({ ...p, degree: e.target.value }))} className="h-8 text-sm" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input placeholder="Start Year" value={eduForm.startYear} onChange={(e) => setEduForm(p => ({ ...p, startYear: e.target.value }))} className="h-8 text-sm" />
+                          <Input placeholder="End Year" value={eduForm.endYear} onChange={(e) => setEduForm(p => ({ ...p, endYear: e.target.value }))} className="h-8 text-sm" />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" className="h-7 gap-1 text-xs" onClick={saveEducationEntry} disabled={eduSaving}>
+                            {eduSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => { setEduEditing(null); setEduForm(EMPTY_EDU); }}>
+                            <X className="h-3 w-3" /> Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {(mp.education ?? []).length === 0 && eduEditing === null && (
+                      <p className="text-[10px] text-muted-foreground text-center py-2">No education entries yet.</p>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
+            )}
+
+            {/* Work History */}
+            {mpLoaded && mp && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <button
+                    onClick={() => setWorkExpanded(prev => !prev)}
+                    className="flex items-center justify-between w-full text-left"
+                  >
+                    <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+                      <Briefcase className="h-3.5 w-3.5" /> Work History
+                      {(mp.work_history ?? []).length > 0 && (
+                        <Badge variant="secondary" className="text-[9px] ml-1">{(mp.work_history ?? []).length}</Badge>
+                      )}
+                    </CardTitle>
+                    <div className="flex items-center gap-1">
+                      {workEditing === null && (
+                        <Button
+                          variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1"
+                          onClick={(e) => { e.stopPropagation(); setWorkExpanded(true); setWorkEditing("new"); setWorkForm(EMPTY_WORK); }}
+                        >
+                          <Plus className="h-3 w-3" /> Add
+                        </Button>
+                      )}
+                      {workExpanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </div>
+                  </button>
+                </CardHeader>
+                {workExpanded && (
+                  <CardContent className="space-y-2 pt-0">
+                    {(mp.work_history ?? []).map((entry: WorkHistoryEntry, idx: number) => (
+                      workEditing === idx ? (
+                        <div key={idx} className="space-y-2 rounded-lg border border-border/40 p-3">
+                          <Input placeholder="Employer" value={workForm.employer} onChange={(e) => setWorkForm(p => ({ ...p, employer: e.target.value }))} className="h-8 text-sm" />
+                          <Input placeholder="Job Title" value={workForm.title} onChange={(e) => setWorkForm(p => ({ ...p, title: e.target.value }))} className="h-8 text-sm" />
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input type="month" placeholder="Start Date" value={workForm.startDate} onChange={(e) => setWorkForm(p => ({ ...p, startDate: e.target.value }))} className="h-8 text-sm" />
+                            <Input type="month" placeholder="End Date" value={workForm.endDate} onChange={(e) => setWorkForm(p => ({ ...p, endDate: e.target.value }))} className="h-8 text-sm" />
+                          </div>
+                          <Input placeholder="Description" value={workForm.description} onChange={(e) => setWorkForm(p => ({ ...p, description: e.target.value }))} className="h-8 text-sm" />
+                          <div className="flex gap-2">
+                            <Button size="sm" className="h-7 gap-1 text-xs" onClick={saveWorkHistoryEntry} disabled={workSaving}>
+                              {workSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => { setWorkEditing(null); setWorkForm(EMPTY_WORK); }}>
+                              <X className="h-3 w-3" /> Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div key={idx} className="flex items-start gap-3 rounded-lg border border-border/40 px-3 py-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{entry.title}{entry.employer ? ` at ${entry.employer}` : ""}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {entry.startDate}{entry.endDate ? ` - ${entry.endDate}` : " - Present"}
+                            </p>
+                            {entry.description && <p className="text-xs text-muted-foreground mt-0.5">{entry.description}</p>}
+                          </div>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0" onClick={() => { setWorkEditing(idx); setWorkForm(entry); }}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive shrink-0" onClick={() => deleteWorkHistoryEntry(idx)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )
+                    ))}
+                    {workEditing === "new" && (
+                      <div className="space-y-2 rounded-lg border border-border/40 p-3">
+                        <Input placeholder="Employer" value={workForm.employer} onChange={(e) => setWorkForm(p => ({ ...p, employer: e.target.value }))} className="h-8 text-sm" />
+                        <Input placeholder="Job Title" value={workForm.title} onChange={(e) => setWorkForm(p => ({ ...p, title: e.target.value }))} className="h-8 text-sm" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input type="month" placeholder="Start Date" value={workForm.startDate} onChange={(e) => setWorkForm(p => ({ ...p, startDate: e.target.value }))} className="h-8 text-sm" />
+                          <Input type="month" placeholder="End Date" value={workForm.endDate} onChange={(e) => setWorkForm(p => ({ ...p, endDate: e.target.value }))} className="h-8 text-sm" />
+                        </div>
+                        <Input placeholder="Description" value={workForm.description} onChange={(e) => setWorkForm(p => ({ ...p, description: e.target.value }))} className="h-8 text-sm" />
+                        <div className="flex gap-2">
+                          <Button size="sm" className="h-7 gap-1 text-xs" onClick={saveWorkHistoryEntry} disabled={workSaving}>
+                            {workSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => { setWorkEditing(null); setWorkForm(EMPTY_WORK); }}>
+                            <X className="h-3 w-3" /> Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {(mp.work_history ?? []).length === 0 && workEditing === null && (
+                      <p className="text-[10px] text-muted-foreground text-center py-2">No work history entries yet.</p>
+                    )}
+                  </CardContent>
+                )}
               </Card>
             )}
           </div>

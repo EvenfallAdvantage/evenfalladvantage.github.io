@@ -399,6 +399,9 @@ export type ApplicantRow = {
   experience: string | null;
   resume_url: string | null;
   cover_letter: string | null;
+  education: { institution: string; degree: string; startYear: string; endYear: string }[];
+  work_history: { employer: string; title: string; startDate: string; endDate: string; description: string }[];
+  documents: { name: string; type: string; fileUrl: string }[];
   source: string;
   status: string;
   notes: string | null;

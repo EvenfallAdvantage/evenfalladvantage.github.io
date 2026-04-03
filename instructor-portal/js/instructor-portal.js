@@ -102,16 +102,16 @@ async function loadUpcomingClasses() {
             <tbody>
                 ${classes.map(cls => `
                     <tr>
-                        <td><strong>${cls.class_name}</strong><br><small>${cls.class_type}</small></td>
-                        <td>${formatDate(cls.scheduled_date)}</td>
-                        <td>${formatTime(cls.start_time)}</td>
-                        <td>${cls.enrollments?.[0]?.count || 0} / ${cls.capacity}</td>
+                        <td><strong>${escapeHTML(cls.class_name)}</strong><br><small>${escapeHTML(cls.class_type)}</small></td>
+                        <td>${escapeHTML(formatDate(cls.scheduled_date))}</td>
+                        <td>${escapeHTML(formatTime(cls.start_time))}</td>
+                        <td>${escapeHTML(cls.enrollments?.[0]?.count || 0)} / ${escapeHTML(cls.capacity)}</td>
                         <td>
                             <div class="table-actions-cell">
-                                <button class="action-btn view" onclick="viewClassDetails('${cls.id}')">
+                                <button class="action-btn view" onclick="viewClassDetails('${escapeAttr(cls.id)}')">
                                     <i class="fas fa-eye"></i> View
                                 </button>
-                                <button class="action-btn delete" onclick="deleteClass('${cls.id}', '${cls.class_name}')">
+                                <button class="action-btn delete" onclick="deleteClass('${escapeAttr(cls.id)}', '${escapeAttr(cls.class_name)}')">
                                     <i class="fas fa-trash"></i> Delete
                                 </button>
                             </div>
@@ -141,10 +141,10 @@ function renderStudentsTable(students) {
     tbody.innerHTML = students.map(s => {
         const progress = s.progress?.[0]?.count || 0;
         const certs = s.certificates?.[0]?.count || 0;
-        return `<tr><td><strong>${s.first_name} ${s.last_name}</strong></td><td>${s.email}</td>
-        <td><div class="progress-bar"><div class="progress-fill" style="width:${(progress/7)*100}%">${progress}/7</div></div></td>
-        <td><span class="badge badge-${certs > 0 ? 'success' : 'warning'}">${certs}</span></td>
-        <td><button class="action-btn view" onclick="viewStudentDetails('${s.id}')"><i class="fas fa-eye"></i></button></td></tr>`;
+        return `<tr><td><strong>${escapeHTML(s.first_name)} ${escapeHTML(s.last_name)}</strong></td><td>${escapeHTML(s.email)}</td>
+        <td><div class="progress-bar"><div class="progress-fill" style="width:${(progress/7)*100}%">${escapeHTML(progress)}/7</div></div></td>
+        <td><span class="badge badge-${certs > 0 ? 'success' : 'warning'}">${escapeHTML(certs)}</span></td>
+        <td><button class="action-btn view" onclick="viewStudentDetails('${escapeAttr(s.id)}')"><i class="fas fa-eye"></i></button></td></tr>`;
     }).join('');
 }
 
@@ -162,13 +162,13 @@ async function viewStudentDetails(studentId) {
     if (!result.success) return;
     const s = result.data;
     document.getElementById('studentDetailsBody').innerHTML = `<div class="student-profile">
-        <div class="profile-header"><div class="profile-avatar">${s.first_name[0]}${s.last_name[0]}</div>
-        <div class="profile-info"><h2>${s.first_name} ${s.last_name}</h2><p>${s.email}</p></div></div>
+        <div class="profile-header"><div class="profile-avatar">${escapeHTML(s.first_name[0])}${escapeHTML(s.last_name[0])}</div>
+        <div class="profile-info"><h2>${escapeHTML(s.first_name)} ${escapeHTML(s.last_name)}</h2><p>${escapeHTML(s.email)}</p></div></div>
         <h3>Progress</h3>${s.progress?.length ? `<table><thead><tr><th>Module</th><th>Progress</th><th>Status</th></tr></thead><tbody>
-        ${s.progress.map(p => `<tr><td>${p.module?.module_name}</td><td><div class="progress-bar"><div class="progress-fill" style="width:${p.progress_percentage}%">${p.progress_percentage}%</div></div></td>
-        <td><span class="badge badge-${p.status === 'completed' ? 'success' : 'warning'}">${p.status}</span></td></tr>`).join('')}</tbody></table>` : '<p>No progress</p>'}
+        ${s.progress.map(p => `<tr><td>${escapeHTML(p.module?.module_name)}</td><td><div class="progress-bar"><div class="progress-fill" style="width:${escapeHTML(p.progress_percentage)}%">${escapeHTML(p.progress_percentage)}%</div></div></td>
+        <td><span class="badge badge-${p.status === 'completed' ? 'success' : 'warning'}">${escapeHTML(p.status)}</span></td></tr>`).join('')}</tbody></table>` : '<p>No progress</p>'}
         <h3>Certificates</h3>${s.certificates?.length ? `<table><tbody>${s.certificates.map(c => 
-        `<tr><td>${c.certificate_number}</td><td>${c.certificate_name}</td><td>${formatDate(c.issue_date)}</td></tr>`).join('')}</tbody></table>` : '<p>No certificates</p>'}
+        `<tr><td>${escapeHTML(c.certificate_number)}</td><td>${escapeHTML(c.certificate_name)}</td><td>${escapeHTML(formatDate(c.issue_date))}</td></tr>`).join('')}</tbody></table>` : '<p>No certificates</p>'}
     </div>`;
     document.getElementById('studentDetailsModal').classList.add('active');
 }
@@ -192,12 +192,12 @@ function renderClassesGrid(classes) {
         grid.innerHTML = '<div class="empty-state"><h3>No Classes</h3><button class="btn btn-primary" onclick="showCreateClassModal()"><i class="fas fa-plus"></i> Schedule Class</button></div>';
         return;
     }
-    grid.innerHTML = classes.map(c => `<div class="card"><div class="card-header"><h3>${c.class_name}</h3><span class="badge badge-primary">${c.status}</span></div>
-        <div class="card-body"><p><i class="fas fa-calendar"></i> ${formatDate(c.scheduled_date)}</p><p><i class="fas fa-clock"></i> ${formatTime(c.start_time)} (${c.duration_hours}h)</p>
-        <p><i class="fas fa-users"></i> ${c.enrollments?.[0]?.count || 0}/${c.capacity}</p></div>
+    grid.innerHTML = classes.map(c => `<div class="card"><div class="card-header"><h3>${escapeHTML(c.class_name)}</h3><span class="badge badge-primary">${escapeHTML(c.status)}</span></div>
+        <div class="card-body"><p><i class="fas fa-calendar"></i> ${escapeHTML(formatDate(c.scheduled_date))}</p><p><i class="fas fa-clock"></i> ${escapeHTML(formatTime(c.start_time))} (${escapeHTML(c.duration_hours)}h)</p>
+        <p><i class="fas fa-users"></i> ${escapeHTML(c.enrollments?.[0]?.count || 0)}/${escapeHTML(c.capacity)}</p></div>
         <div class="card-footer">
-            <button class="btn btn-outline" onclick="viewClassDetails('${c.id}')"><i class="fas fa-eye"></i> View</button>
-            ${c.status === 'scheduled' ? `<button class="btn btn-outline" style="color: var(--secondary); border-color: var(--secondary);" onclick="deleteClass('${c.id}', '${c.class_name}')"><i class="fas fa-trash"></i> Delete</button>` : ''}
+            <button class="btn btn-outline" onclick="viewClassDetails('${escapeAttr(c.id)}')"><i class="fas fa-eye"></i> View</button>
+            ${c.status === 'scheduled' ? `<button class="btn btn-outline" style="color: var(--secondary); border-color: var(--secondary);" onclick="deleteClass('${escapeAttr(c.id)}', '${escapeAttr(c.class_name)}')"><i class="fas fa-trash"></i> Delete</button>` : ''}
         </div></div>`).join('');
 }
 

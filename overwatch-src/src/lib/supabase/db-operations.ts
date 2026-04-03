@@ -14,6 +14,7 @@ export async function getEvents(companyId: string) {
 }
 
 export async function createEvent(params: {
+  id?: string;
   companyId: string;
   name: string;
   description?: string;
@@ -27,12 +28,13 @@ export async function createEvent(params: {
   estimatedAttendance?: string;
   riskLevel?: string;
   tlpStep?: string;
+  siteMapUrl?: string;
 }) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("events")
     .insert({
-      id: crypto.randomUUID(),
+      id: params.id ?? crypto.randomUUID(),
       company_id: params.companyId,
       name: params.name,
       description: params.description ?? null,
@@ -46,6 +48,7 @@ export async function createEvent(params: {
       estimated_attendance: params.estimatedAttendance ?? null,
       risk_level: params.riskLevel ?? null,
       tlp_step: params.tlpStep ?? "receive_mission",
+      site_map_url: params.siteMapUrl ?? null,
       ...ts(),
     })
     .select()
@@ -570,4 +573,64 @@ export async function getOperationActivity(eventId: string): Promise<ActivityIte
   // Sort all items chronologically (newest first)
   items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   return items;
+}
+
+// ─── Storyboards ─────────────────────────────────────
+
+export async function loadStoryboard(eventId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("storyboards")
+    .select("*")
+    .eq("event_id", eventId)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveStoryboard(
+  companyId: string,
+  eventId: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pins: any[],
+  storyboardId?: string,
+) {
+  const supabase = createClient();
+  if (storyboardId) {
+    // Update existing
+    const { data, error } = await supabase
+      .from("storyboards")
+      .update({ pins, updated_at: new Date().toISOString() })
+      .eq("id", storyboardId)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  } else {
+    // Create new
+    const { data, error } = await supabase
+      .from("storyboards")
+      .insert({
+        id: crypto.randomUUID(),
+        company_id: companyId,
+        event_id: eventId,
+        pins,
+        ...ts(),
+      })
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+}
+
+export async function getEventSiteMapUrl(eventId: string): Promise<string | null> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("events")
+    .select("site_map_url")
+    .eq("id", eventId)
+    .maybeSingle();
+  return data?.site_map_url ?? null;
 }

@@ -349,25 +349,25 @@ function displayStudents(students) {
         const progressPercentage = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
         
         return `
-            <tr data-student-id="${student.id}">
-                <td>${student.first_name} ${student.last_name}</td>
-                <td>${student.email}</td>
-                <td>${profile.phone || 'N/A'}</td>
-                <td>${new Date(student.created_at).toLocaleDateString()}</td>
+            <tr data-student-id="${escapeAttr(student.id)}">
+                <td>${escapeHTML(student.first_name)} ${escapeHTML(student.last_name)}</td>
+                <td>${escapeHTML(student.email)}</td>
+                <td>${escapeHTML(profile.phone || 'N/A')}</td>
+                <td>${escapeHTML(new Date(student.created_at).toLocaleDateString())}</td>
                 <td>
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: ${progressPercentage}%"></div>
                     </div>
-                    <small style="color: var(--admin-text-secondary); font-size: 0.75rem;">${completedModules}/${totalModules} modules</small>
+                    <small style="color: var(--admin-text-secondary); font-size: 0.75rem;">${escapeHTML(completedModules)}/${totalModules} modules</small>
                 </td>
                 <td class="table-actions">
-                    <button class="btn-icon" onclick="viewStudent('${student.id}')" title="View">
+                    <button class="btn-icon" onclick="viewStudent('${escapeAttr(student.id)}')" title="View">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn-icon" onclick="editStudent('${student.id}')" title="Edit">
+                    <button class="btn-icon" onclick="editStudent('${escapeAttr(student.id)}')" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-icon danger" onclick="deleteStudent('${student.id}')" title="Delete">
+                    <button class="btn-icon danger" onclick="deleteStudent('${escapeAttr(student.id)}')" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
@@ -403,20 +403,20 @@ function displayClients(clients) {
     }
 
     tbody.innerHTML = clients.map(client => `
-        <tr data-client-id="${client.id}">
-            <td>${client.company_name}</td>
-            <td>${client.first_name} ${client.last_name}</td>
-            <td>${client.email}</td>
-            <td>${client.phone || 'N/A'}</td>
+        <tr data-client-id="${escapeAttr(client.id)}">
+            <td>${escapeHTML(client.company_name)}</td>
+            <td>${escapeHTML(client.first_name)} ${escapeHTML(client.last_name)}</td>
+            <td>${escapeHTML(client.email)}</td>
+            <td>${escapeHTML(client.phone || 'N/A')}</td>
             <td><span class="badge badge-success">Active</span></td>
             <td class="table-actions">
-                <button class="btn-icon" onclick="viewClient('${client.id}')" title="View">
+                <button class="btn-icon" onclick="viewClient('${escapeAttr(client.id)}')" title="View">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button class="btn-icon" onclick="editClient('${client.id}')" title="Edit">
+                <button class="btn-icon" onclick="editClient('${escapeAttr(client.id)}')" title="Edit">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn-icon danger" onclick="deleteClient('${client.id}')" title="Delete">
+                <button class="btn-icon danger" onclick="deleteClient('${escapeAttr(client.id)}')" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -455,17 +455,17 @@ function displayCertificates(certificates) {
     }
 
     tbody.innerHTML = certificates.map(cert => `
-        <tr data-cert-id="${cert.id}">
-            <td>${cert.students?.first_name} ${cert.students?.last_name}</td>
-            <td>${cert.name}</td>
-            <td><span class="badge badge-${getCategoryColor(cert.category)}">${cert.category}</span></td>
-            <td>${new Date(cert.issue_date).toLocaleDateString()}</td>
-            <td>${cert.expiry_date ? new Date(cert.expiry_date).toLocaleDateString() : 'N/A'}</td>
+        <tr data-cert-id="${escapeAttr(cert.id)}">
+            <td>${escapeHTML(cert.students?.first_name)} ${escapeHTML(cert.students?.last_name)}</td>
+            <td>${escapeHTML(cert.name)}</td>
+            <td><span class="badge badge-${getCategoryColor(cert.category)}">${escapeHTML(cert.category)}</span></td>
+            <td>${escapeHTML(new Date(cert.issue_date).toLocaleDateString())}</td>
+            <td>${cert.expiry_date ? escapeHTML(new Date(cert.expiry_date).toLocaleDateString()) : 'N/A'}</td>
             <td class="table-actions">
-                <button class="btn-icon" onclick="viewCertificate('${cert.id}')" title="View">
+                <button class="btn-icon" onclick="viewCertificate('${escapeAttr(cert.id)}')" title="View">
                     <i class="fas fa-eye"></i>
                 </button>
-                <button class="btn-icon danger" onclick="revokeCertificate('${cert.id}')" title="Revoke">
+                <button class="btn-icon danger" onclick="revokeCertificate('${escapeAttr(cert.id)}')" title="Revoke">
                     <i class="fas fa-ban"></i>
                 </button>
             </td>

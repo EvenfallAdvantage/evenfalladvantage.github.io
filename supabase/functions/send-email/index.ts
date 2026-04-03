@@ -7,19 +7,67 @@ const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 
 console.log("Email sending function initialized")
 
-// CORS headers for browser requests
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Allowed origins for CORS
+const allowedOrigins = [
+  'https://www.evenfalladvantage.com',
+  'https://evenfalladvantage.github.io',
+  'http://localhost:3000', // for local development
+];
+
+// Helper to get CORS headers based on request origin
+function getCorsHeaders(origin) {
+  const headers = {
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+  if (allowedOrigins.includes(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin;
+  }
+  return headers;
 }
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: getCorsHeaders(req.headers.get('origin')) })
   }
 
   try {
+    // Verify the caller is an administrator or instructor
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+      )
+    }
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.0')
+    const verifyClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+    const { data: { user: caller } } = await verifyClient.auth.getUser()
+    if (!caller) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+      )
+    }
+    // Check if caller is admin or instructor
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+    const { data: adminRow } = await adminClient.from('administrators').select('id').eq('user_id', caller.id).single()
+    const { data: instructorRow } = await adminClient.from('instructors').select('id').eq('id', caller.id).eq('is_active', true).single()
+    if (!adminRow && !instructorRow) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: admin or instructor access required' }),
+        { status: 403, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Parse request body
     const { to, subject, html } = await req.json()
 
@@ -29,7 +77,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Missing required fields: to, subject, html' }),
         { 
           status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), "Content-Type": "application/json" } 
         }
       )
     }
@@ -41,7 +89,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Email service not configured' }),
         { 
           status: 500, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), "Content-Type": "application/json" } 
         }
       )
     }
@@ -71,7 +119,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Failed to send email', details: data }),
         { 
           status: res.status, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), "Content-Type": "application/json" } 
         }
       )
     }
@@ -80,17 +128,17 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, data }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...getCorsHeaders(req.headers.get('origin')), "Content-Type": "application/json" } }
     )
 
   } catch (error) {
     console.error('Email function error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+        { 
+          status: 500, 
+          headers: { ...getCorsHeaders(req.headers.get('origin')), "Content-Type": "application/json" } 
+        }
     )
   }
 })
