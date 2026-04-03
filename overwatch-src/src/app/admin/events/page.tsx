@@ -603,10 +603,10 @@ export default function AdminEventsPage() {
         {showCreate && (
           <div className="rounded-xl border border-primary/30 bg-card overflow-hidden">
             {/* Step indicator */}
-            <div className="flex border-b border-border/30 bg-muted/30">
+            <div className="flex border-b border-border/30 bg-muted/30 overflow-x-auto">
               {CREATE_STEPS.map((step, i) => (
                 <button key={step} onClick={() => { if (i === 0 || name.trim()) setCreateStep(i); }}
-                  className={`flex-1 px-3 py-2.5 text-[10px] font-medium uppercase tracking-wider transition-colors border-b-2 ${
+                  className={`flex-1 shrink-0 whitespace-nowrap px-3 py-2.5 text-[10px] font-medium uppercase tracking-wider transition-colors border-b-2 ${
                     createStep === i ? "border-primary text-primary bg-primary/5" : i < createStep ? "border-green-500/50 text-green-600" : "border-transparent text-muted-foreground"
                   }`}>
                   {i < createStep ? <Check className="h-3 w-3 inline mr-1" /> : null}{step}

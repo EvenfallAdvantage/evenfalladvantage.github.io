@@ -171,7 +171,7 @@ function CoursesContent() {
         {pageTab === "courses" && <>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <Card className="border-border/40"><CardContent className="p-3 text-center">
             <p className="text-2xl font-bold font-mono">{totalCourses}</p>
             <p className="text-[10px] text-muted-foreground">Available</p>

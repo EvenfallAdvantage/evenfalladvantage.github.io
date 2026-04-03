@@ -300,7 +300,7 @@ export default function IncidentsPage() {
         </div>
 
         {/* Report type tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
           <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
             <AlertTriangle className="h-3.5 w-3.5" />
             Incidents
@@ -597,7 +597,7 @@ export default function IncidentsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input className="pl-9" placeholder="Search incidents..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {[{ value: "all", label: "All", color: "" }, ...STATUS].map(s => (
               <Button
                 key={s.value}
@@ -613,7 +613,7 @@ export default function IncidentsPage() {
         </div>
 
         {/* Stats Bar */}
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Open", count: incidents.filter((i: Incident) => i.status === "open").length, color: "text-red-500" },
             { label: "Investigating", count: incidents.filter((i: Incident) => i.status === "investigating").length, color: "text-amber-500" },
@@ -663,7 +663,7 @@ export default function IncidentsPage() {
                           {inc.type.replace(/_/g, " ")}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <User className="h-3 w-3" />
                           {inc.reported_user?.first_name} {inc.reported_user?.last_name}

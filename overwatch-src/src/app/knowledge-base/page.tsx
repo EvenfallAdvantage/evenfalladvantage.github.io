@@ -364,7 +364,7 @@ export default function KnowledgeBasePage() {
                         return (
                           <div key={d.id} className={`rounded-lg border bg-card p-3 cursor-pointer transition-colors hover:border-primary/30 ${isRead ? "border-green-500/20" : "border-border/50"}`}
                             onClick={() => setViewDoc(d)}>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 flex-wrap">
                               {fileIcon(d.mime_type)}
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">

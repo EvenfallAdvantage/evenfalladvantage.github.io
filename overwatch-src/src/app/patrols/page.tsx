@@ -289,7 +289,7 @@ export default function PatrolsPage() {
 
                     {showScanDetails && (
                       <div className="space-y-3 rounded-lg border border-border/50 bg-muted/20 p-3">
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className="text-xs font-medium text-muted-foreground">Weather</label>
                             <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={scanWeather} onChange={e => setScanWeather(e.target.value)}>

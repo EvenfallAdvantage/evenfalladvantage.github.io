@@ -801,7 +801,7 @@ export default function AdminStaffPage() {
                               const hrs = ((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1);
                               const u = t.users;
                               return (
-                                <div key={t.id} className="flex items-center gap-4 rounded-lg border border-border/30 bg-background/50 px-4 py-2.5">
+                                <div key={t.id} className="flex items-center gap-4 rounded-lg border border-border/30 bg-background/50 px-4 py-2.5 flex-wrap">
                                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-500/10 text-xs font-bold text-green-600">
                                     {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                                   </div>
@@ -972,7 +972,7 @@ export default function AdminStaffPage() {
                     <div key={r.id} className={`rounded-xl border bg-card px-4 py-3 ${
                       r.status === "pending" ? "border-amber-500/30" : "border-border/50"
                     }`}>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 flex-wrap">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-500/10 text-xs font-bold text-violet-500">
                           {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                         </div>
