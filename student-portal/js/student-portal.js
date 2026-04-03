@@ -372,19 +372,19 @@ async function loadTrainingModules(courseId) {
             const moduleNum = moduleNumbers[module.module_code] !== undefined ? moduleNumbers[module.module_code] : cm.module_order;
             
             return `
-                <div class="module-card ${statusClass}" data-module="${module.module_code}">
+                <div class="module-card ${statusClass}" data-module="${escapeAttr(module.module_code)}">
                     ${statusBadge}
                     ${cm.is_required ? '<div class="required-badge">Required</div>' : ''}
                     <div class="module-icon">
-                        <i class="fas ${module.icon || 'fa-book'}"></i>
+                        <i class="fas ${escapeAttr(module.icon || 'fa-book')}"></i>
                     </div>
-                    <h3>Module ${moduleNum}: ${module.module_name}</h3>
-                    <p>${module.description || 'No description available'}</p>
+                    <h3>Module ${moduleNum}: ${escapeHTML(module.module_name)}</h3>
+                    <p>${escapeHTML(module.description || 'No description available')}</p>
                     <div class="module-meta">
-                        <span><i class="fas fa-clock"></i> ${module.estimated_time || 'TBD'}</span>
-                        <span><i class="fas fa-signal"></i> ${module.difficulty_level || 'Essential'}</span>
+                        <span><i class="fas fa-clock"></i> ${escapeHTML(module.estimated_time || 'TBD')}</span>
+                        <span><i class="fas fa-signal"></i> ${escapeHTML(module.difficulty_level || 'Essential')}</span>
                     </div>
-                    <button class="btn btn-secondary" onclick="startModule('${module.module_code}')">
+                    <button class="btn btn-secondary" onclick="startModule('${escapeAttr(module.module_code)}')">
                         <i class="fas ${buttonIcon}"></i> ${buttonText}
                     </button>
                 </div>
@@ -461,13 +461,13 @@ async function loadAssessments() {
                 
                 return `
                     <div class="assessment-item" 
-                         data-assessment="${moduleCode}" 
-                         data-required-module="${moduleCode}"
-                         onclick="startAssessment('${moduleCode}')">
-                        <i class="fas ${assessment.icon || 'fa-clipboard-check'}"></i>
+                         data-assessment="${escapeAttr(moduleCode)}" 
+                         data-required-module="${escapeAttr(moduleCode)}"
+                         onclick="startAssessment('${escapeAttr(moduleCode)}')">
+                        <i class="fas ${escapeAttr(assessment.icon || 'fa-clipboard-check')}"></i>
                         <div>
-                            <h4>${displayName}</h4>
-                            <p>${assessment.total_questions || 10} questions • ${assessment.time_limit_minutes || 20} minutes</p>
+                            <h4>${escapeHTML(displayName)}</h4>
+                            <p>${escapeHTML(assessment.total_questions || 10)} questions • ${escapeHTML(assessment.time_limit_minutes || 20)} minutes</p>
                         </div>
                         <button class="btn btn-small btn-primary">Start</button>
                     </div>
@@ -486,13 +486,13 @@ async function loadAssessments() {
                 
                 return `
                     <div class="assessment-item" 
-                         data-assessment="${moduleCode}" 
-                         data-required-module="${moduleCode}"
-                         onclick="startAssessment('${moduleCode}')">
-                        <i class="fas ${assessment.icon || 'fa-clipboard-check'}"></i>
+                         data-assessment="${escapeAttr(moduleCode)}" 
+                         data-required-module="${escapeAttr(moduleCode)}"
+                         onclick="startAssessment('${escapeAttr(moduleCode)}')">
+                        <i class="fas ${escapeAttr(assessment.icon || 'fa-clipboard-check')}"></i>
                         <div>
-                            <h4>${displayName}</h4>
-                            <p>${assessment.total_questions || 10} questions • ${assessment.time_limit_minutes || 20} minutes</p>
+                            <h4>${escapeHTML(displayName)}</h4>
+                            <p>${escapeHTML(assessment.total_questions || 10)} questions • ${escapeHTML(assessment.time_limit_minutes || 20)} minutes</p>
                         </div>
                         <button class="btn btn-small btn-primary">Start</button>
                     </div>
@@ -508,10 +508,10 @@ async function loadAssessments() {
                          data-assessment="comprehensive" 
                          data-required-all="true"
                          onclick="startAssessment('comprehensive')">
-                        <i class="fas ${assessment.icon || 'fa-certificate'}"></i>
+                        <i class="fas ${escapeAttr(assessment.icon || 'fa-certificate')}"></i>
                         <div>
-                            <h4>${assessment.assessment_name}</h4>
-                            <p>${assessment.total_questions || 50} questions • ${assessment.time_limit_minutes || 75} minutes</p>
+                            <h4>${escapeHTML(assessment.assessment_name)}</h4>
+                            <p>${escapeHTML(assessment.total_questions || 50)} questions • ${escapeHTML(assessment.time_limit_minutes || 75)} minutes</p>
                         </div>
                         <button class="btn btn-small btn-primary">Start</button>
                     </div>
@@ -813,7 +813,7 @@ function showLockedMessage(message) {
     notification.className = 'locked-notification';
     notification.innerHTML = `
         <i class="fas fa-lock"></i>
-        <p>${message}</p>
+        <p>${escapeHTML(message)}</p>
     `;
     document.body.appendChild(notification);
     
@@ -5087,7 +5087,7 @@ function loadQuestion(index) {
     
     let html = `
         <div class="question">
-            <h4>${index + 1}. ${question.question}</h4>
+            <h4>${index + 1}. ${escapeHTML(question.question)}</h4>
             <div class="options">
     `;
     
@@ -5096,7 +5096,7 @@ function loadQuestion(index) {
         html += `
             <div class="option ${selected}" onclick="selectAnswer(${i})">
                 <div class="option-label">${String.fromCharCode(65 + i)}</div>
-                <div>${option}</div>
+                <div>${escapeHTML(option)}</div>
             </div>
         `;
     });
@@ -5236,9 +5236,9 @@ function reviewAnswers() {
                             Correct
                         </span>
                     </div>
-                    <p class="review-question-text"><strong>${q.question}</strong></p>
+                    <p class="review-question-text"><strong>${escapeHTML(q.question)}</strong></p>
                     <div class="locked-message">
-                        <i class="fas fa-lock"></i> <strong>Your Answer:</strong> ${correctAnswerText}
+                        <i class="fas fa-lock"></i> <strong>Your Answer:</strong> ${escapeHTML(correctAnswerText)}
                     </div>
                 </div>
             `;
@@ -5253,9 +5253,9 @@ function reviewAnswers() {
                             Incorrect - Change Your Answer
                         </span>
                     </div>
-                    <p class="review-question-text"><strong>${q.question}</strong></p>
+                    <p class="review-question-text"><strong>${escapeHTML(q.question)}</strong></p>
                     <div class="review-answer-section">
-                        <p class="module-reference"><strong>📚 Study Reference:</strong> ${moduleRef}</p>
+                        <p class="module-reference"><strong>📚 Study Reference:</strong> ${escapeHTML(moduleRef)}</p>
                     </div>
                     <div class="review-options">
                         ${q.options.map((optionText, optIndex) => `
@@ -5267,7 +5267,7 @@ function reviewAnswers() {
                                        ${userAnswerIndex === optIndex ? 'checked' : ''}>
                                 <label for="review-q${index}-opt${optIndex}">
                                     <span class="option-label">${String.fromCharCode(65 + optIndex)}</span>
-                                    <span class="option-text">${optionText}</span>
+                                    <span class="option-text">${escapeHTML(optionText)}</span>
                                 </label>
                             </div>
                         `).join('')}
@@ -5553,9 +5553,9 @@ function updateProgressDisplay() {
                         <div class="assessment-history-header">
                             <div>
                                 <span style="color: #d4a574; font-weight: 600; font-size: 1.75rem; display: block; margin-bottom: 0.5rem;">
-                                    ${courseTitle}
+                                    ${escapeHTML(courseTitle)}
                                 </span>
-                                <h4>${title}</h4>
+                                <h4>${escapeHTML(title)}</h4>
                                 <span style="color: var(--text-secondary); font-size: 0.875rem;">
                                     ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}
                                 </span>
@@ -5664,7 +5664,7 @@ function updateProgressDisplay() {
             return `
                 <div class="activity-item">
                     <i class="fas fa-check-circle"></i>
-                    <p>${activity.description}</p>
+                    <p>${escapeHTML(activity.description)}</p>
                     <span style="color: var(--text-secondary); font-size: 0.875rem;">
                         ${date.toLocaleDateString()}
                     </span>
@@ -5735,7 +5735,7 @@ async function updateModuleProgressDisplay() {
                     return `
                         <div class="progress-item">
                             <div class="progress-item-header">
-                                <span>${module.module_name}</span>
+                                <span>${escapeHTML(module.module_name)}</span>
                                 <span>${percentage}%</span>
                             </div>
                             <div class="progress-bar">

@@ -850,16 +850,16 @@ const SiteAssessments = {
             ${locationNote}
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                 <div>
-                    <strong>Data Source:</strong> ${source}
+                    <strong>Data Source:</strong> ${escapeHTML(source)}
                 </div>
                 <div>
-                    <strong>Crime Rating:</strong> ${riskEmoji} ${crimeRating}
+                    <strong>Crime Rating:</strong> ${riskEmoji} ${escapeHTML(crimeRating)}
                 </div>
                 <div>
-                    <strong>Violent Crime Rate:</strong> ${violentRate} per 100k
+                    <strong>Violent Crime Rate:</strong> ${escapeHTML(violentRate)} per 100k
                 </div>
                 <div>
-                    <strong>Property Crime Rate:</strong> ${propertyRate} per 100k
+                    <strong>Property Crime Rate:</strong> ${escapeHTML(propertyRate)} per 100k
                 </div>
             </div>
             ${incidentsSection}
@@ -867,14 +867,14 @@ const SiteAssessments = {
                 <div style="background: rgba(52, 152, 219, 0.1); padding: 1rem; border-radius: 0.25rem; margin-top: 1rem;">
                     <strong><i class="fas fa-calculator"></i> Holistic Risk Analysis:</strong>
                     <ul style="margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.9rem;">
-                        ${holisticRisk.analysis.factors.map(factor => `<li>${factor}</li>`).join('')}
+                        ${holisticRisk.analysis.factors.map(factor => `<li>${escapeHTML(factor)}</li>`).join('')}
                     </ul>
                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(0,0,0,0.1);">
                         <strong>Calculated Risk Levels:</strong><br>
-                        <span style="display: inline-block; margin: 0.25rem 0.5rem 0.25rem 0;">Threat: <strong>${holisticRisk.threatLikelihood}</strong></span> |
-                        <span style="display: inline-block; margin: 0.25rem 0.5rem;">Impact: <strong>${holisticRisk.potentialImpact}</strong></span> |
-                        <span style="display: inline-block; margin: 0.25rem 0.5rem;">Vulnerability: <strong>${holisticRisk.overallVulnerability}</strong></span> |
-                        <span style="display: inline-block; margin: 0.25rem 0.5rem;">Resilience: <strong>${holisticRisk.resilienceLevel}</strong></span>
+                        <span style="display: inline-block; margin: 0.25rem 0.5rem 0.25rem 0;">Threat: <strong>${escapeHTML(holisticRisk.threatLikelihood)}</strong></span> |
+                        <span style="display: inline-block; margin: 0.25rem 0.5rem;">Impact: <strong>${escapeHTML(holisticRisk.potentialImpact)}</strong></span> |
+                        <span style="display: inline-block; margin: 0.25rem 0.5rem;">Vulnerability: <strong>${escapeHTML(holisticRisk.overallVulnerability)}</strong></span> |
+                        <span style="display: inline-block; margin: 0.25rem 0.5rem;">Resilience: <strong>${escapeHTML(holisticRisk.resilienceLevel)}</strong></span>
                     </div>
                 </div>
             ` : ''}

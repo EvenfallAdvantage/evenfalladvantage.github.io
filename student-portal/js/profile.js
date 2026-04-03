@@ -56,7 +56,7 @@ async function loadProfileData() {
         
         // Load profile picture
         if (profile.profile_picture_url) {
-            document.getElementById('profileAvatar').innerHTML = `<img src="${profile.profile_picture_url}" alt="Profile">`;
+            document.getElementById('profileAvatar').innerHTML = `<img src="${escapeAttr(profile.profile_picture_url)}" alt="Profile">`;
         }
     }
 }
@@ -154,12 +154,12 @@ function displaySkills(skills) {
     const container = document.getElementById('skillsContainer');
     container.innerHTML = skills.map((skill, index) => `
         <div class="skill-tag">
-            ${skill}
+            ${escapeHTML(skill)}
             <div class="skill-actions">
-                <button onclick="editSkill(${index}, '${skill.replace(/'/g, "\\'")}')", title="Edit skill">
+                <button onclick="editSkill(${index}, '${escapeAttr(skill.replace(/'/g, "\\'"))}')", title="Edit skill">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button onclick="removeSkill('${skill.replace(/'/g, "\\'")}')", title="Remove skill">
+                <button onclick="removeSkill('${escapeAttr(skill.replace(/'/g, "\\'"))}')", title="Remove skill">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
@@ -290,23 +290,23 @@ function displayExperience(experiences) {
         <div class="experience-item">
             <div class="experience-header">
                 <div>
-                    <h4>${exp.job_title}</h4>
-                    <p class="experience-company">${exp.company_name}</p>
+                    <h4>${escapeHTML(exp.job_title)}</h4>
+                    <p class="experience-company">${escapeHTML(exp.company_name)}</p>
                     <p class="experience-dates">
                         ${new Date(exp.start_date).toLocaleDateString()} - 
                         ${exp.end_date ? new Date(exp.end_date).toLocaleDateString() : 'Present'}
                     </p>
                 </div>
                 <div class="experience-actions">
-                    <button onclick="editExperience('${exp.id}')" title="Edit">
+                    <button onclick="editExperience('${escapeAttr(exp.id)}')" title="Edit">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button onclick="removeExperience('${exp.id}')" title="Delete">
+                    <button onclick="removeExperience('${escapeAttr(exp.id)}')" title="Delete">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
-            ${exp.description ? `<p class="experience-description">${exp.description}</p>` : ''}
+            ${exp.description ? `<p class="experience-description">${escapeHTML(exp.description)}</p>` : ''}
         </div>
     `).join('');
 }
@@ -519,20 +519,20 @@ function displayCertifications(certifications) {
                         ${grouped[category].map(cert => `
                             <div class="cert-item">
                                 <div class="cert-info">
-                                    <h5>${cert.name}</h5>
-                                    <p class="cert-issuer">${cert.issuing_organization}</p>
+                                    <h5>${escapeHTML(cert.name)}</h5>
+                                    <p class="cert-issuer">${escapeHTML(cert.issuing_organization)}</p>
                                     <p class="cert-date">
                                         Issued: ${new Date(cert.issue_date).toLocaleDateString()}
                                         ${cert.expiry_date ? ` | Expires: ${new Date(cert.expiry_date).toLocaleDateString()}` : ''}
                                     </p>
-                                    ${cert.credential_id ? `<p class="cert-credential">ID: ${cert.credential_id}</p>` : ''}
-                                    ${cert.file_url ? `<a href="${cert.file_url}" target="_blank" class="cert-link"><i class="fas fa-file-pdf"></i> View Certificate</a>` : ''}
+                                    ${cert.credential_id ? `<p class="cert-credential">ID: ${escapeHTML(cert.credential_id)}</p>` : ''}
+                                    ${cert.file_url ? `<a href="${escapeAttr(cert.file_url)}" target="_blank" class="cert-link"><i class="fas fa-file-pdf"></i> View Certificate</a>` : ''}
                                 </div>
                                 <div class="cert-actions">
-                                    <button class="btn-icon-edit" onclick="editCertification('${cert.id}')" title="Edit">
+                                    <button class="btn-icon-edit" onclick="editCertification('${escapeAttr(cert.id)}')" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn-icon-danger" onclick="removeCertification('${cert.id}')" title="Delete">
+                                    <button class="btn-icon-danger" onclick="removeCertification('${escapeAttr(cert.id)}')" title="Delete">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -813,7 +813,7 @@ document.getElementById('profilePictureInput').addEventListener('change', async 
     });
     
     // Display the picture
-    document.getElementById('profileAvatar').innerHTML = `<img src="${urlData.publicUrl}" alt="Profile">`;
+    document.getElementById('profileAvatar').innerHTML = `<img src="${escapeAttr(urlData.publicUrl)}" alt="Profile">`;
 });
 
 // Export functions

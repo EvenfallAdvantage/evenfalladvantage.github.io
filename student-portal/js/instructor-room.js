@@ -273,7 +273,7 @@ function updateParticipantsList() {
         item.className = 'participant-item';
         item.innerHTML = `
             <i class="fas fa-${participant.muted ? 'microphone-slash' : 'microphone'}"></i>
-            <span>${participant.name}</span>
+            <span>${escapeHTML(participant.name)}</span>
         `;
         participantsList.appendChild(item);
     });

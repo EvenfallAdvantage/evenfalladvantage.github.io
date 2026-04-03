@@ -73,18 +73,18 @@ async function loadAssessmentCourses() {
         const progressPercent = progress.total > 0 ? Math.min(100, Math.round((progress.completed / progress.total) * 100)) : 0;
         
         return `
-        <div class="course-card-inline enrolled" onclick="selectAssessmentCourse('${course.id}')">
+        <div class="course-card-inline enrolled" onclick="selectAssessmentCourse('${escapeAttr(course.id)}')">
             <div class="enrolled-badge">ENROLLED</div>
             <div class="course-thumbnail-inline">
-                <i class="fas ${course.icon || 'fa-trophy'}"></i>
+                <i class="fas ${escapeAttr(course.icon || 'fa-trophy')}"></i>
             </div>
             <div class="course-card-content">
-                <h3 class="course-card-title">${course.course_name}</h3>
+                <h3 class="course-card-title">${escapeHTML(course.course_name)}</h3>
                 <div class="course-card-meta">
-                    ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${course.duration_hours} hours</span>` : ''}
-                    ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${course.difficulty_level}</span>` : ''}
+                    ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${escapeHTML(course.duration_hours)} hours</span>` : ''}
+                    ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${escapeHTML(course.difficulty_level)}</span>` : ''}
                 </div>
-                <p class="course-card-description">${course.short_description || course.description || ''}</p>
+                <p class="course-card-description">${escapeHTML(course.short_description || course.description || '')}</p>
                 ${progress.total > 0 ? `
                 <div class="course-progress" style="margin-top: 1rem;">
                     <div class="progress-header" style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">

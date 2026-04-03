@@ -43,13 +43,13 @@ function renderStudentSelectionList(students) {
         
         return `
             <div style="border: 2px solid #e0e0e0; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; cursor: pointer; transition: all 0.3s;" 
-                 onclick="toggleStudentSelection('${s.id}', this)">
+                 onclick="toggleStudentSelection('${escapeAttr(s.id)}', this)">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 1rem;">
-                        <input type="checkbox" class="student-checkbox" data-student-id="${s.id}" style="width: 20px; height: 20px; cursor: pointer;">
+                        <input type="checkbox" class="student-checkbox" data-student-id="${escapeAttr(s.id)}" style="width: 20px; height: 20px; cursor: pointer;">
                         <div>
-                            <strong style="font-size: 1.6rem;">${s.first_name} ${s.last_name}</strong>
-                            <div style="color: var(--gray); font-size: 1.4rem;">${s.email}</div>
+                            <strong style="font-size: 1.6rem;">${escapeHTML(s.first_name)} ${escapeHTML(s.last_name)}</strong>
+                            <div style="color: var(--gray); font-size: 1.4rem;">${escapeHTML(s.email)}</div>
                         </div>
                     </div>
                     <div style="text-align: right;">

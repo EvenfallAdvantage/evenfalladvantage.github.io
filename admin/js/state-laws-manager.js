@@ -52,16 +52,16 @@ function displayStates(states) {
     container.innerHTML = states.map(state => `
         <div class="state-card">
             <div class="state-header">
-                <h3>${state.state_code} - ${state.state_name}</h3>
-                <button class="btn btn-sm btn-primary" onclick="editState('${state.id}')">
+                <h3>${escapeHTML(state.state_code)} - ${escapeHTML(state.state_name)}</h3>
+                <button class="btn btn-sm btn-primary" onclick="editState('${escapeAttr(state.id)}')">
                     <i class="fas fa-edit"></i> Edit
                 </button>
             </div>
             <div class="state-info">
-                <p><strong>Licensing:</strong> ${truncate(state.licensing, 80)}</p>
-                <p><strong>Training:</strong> ${state.training_hours}</p>
-                <p><strong>Min Age:</strong> ${state.min_age}</p>
-                <p><strong>Agency:</strong> ${truncate(state.regulatory_agency, 60)}</p>
+                <p><strong>Licensing:</strong> ${escapeHTML(truncate(state.licensing, 80))}</p>
+                <p><strong>Training:</strong> ${escapeHTML(state.training_hours)}</p>
+                <p><strong>Min Age:</strong> ${escapeHTML(state.min_age)}</p>
+                <p><strong>Agency:</strong> ${escapeHTML(truncate(state.regulatory_agency, 60))}</p>
             </div>
         </div>
     `).join('');

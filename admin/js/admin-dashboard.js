@@ -542,16 +542,16 @@ function displayAdminCourses(courses) {
 
     grid.innerHTML = courses.map(course => {
         return `
-            <div class="course-card" onclick="selectAdminCourse('${course.id}', '${course.course_name}')" style="cursor: pointer;">
+            <div class="course-card" onclick="selectAdminCourse('${escapeAttr(course.id)}', '${escapeAttr(course.course_name)}')" style="cursor: pointer;">
                 <div class="course-card-header">
-                    <h3>${course.course_name}</h3>
-                    <span class="badge badge-primary">${course.course_code}</span>
+                    <h3>${escapeHTML(course.course_name)}</h3>
+                    <span class="badge badge-primary">${escapeHTML(course.course_code)}</span>
                 </div>
                 <div class="course-card-body">
-                    <p>${course.description || 'No description available'}</p>
+                    <p>${escapeHTML(course.description || 'No description available')}</p>
                     <div class="course-meta">
-                        <span><i class="fas ${course.icon || 'fa-graduation-cap'}"></i> ${course.difficulty_level || 'Course'}</span>
-                        <span><i class="fas fa-clock"></i> ${course.duration_hours || 'TBD'} hours</span>
+                        <span><i class="fas ${escapeAttr(course.icon || 'fa-graduation-cap')}"></i> ${escapeHTML(course.difficulty_level || 'Course')}</span>
+                        <span><i class="fas fa-clock"></i> ${escapeHTML(course.duration_hours || 'TBD')} hours</span>
                         <span><i class="fas fa-check-circle"></i> Active</span>
                     </div>
                 </div>
@@ -620,24 +620,24 @@ function displayCourses(courses) {
         return `
             <div class="course-card">
                 <div class="course-card-header">
-                    <h3>${course.module_name}</h3>
+                    <h3>${escapeHTML(course.module_name)}</h3>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         ${categoryBadge}
-                        <span class="badge badge-secondary">${course.module_code}</span>
+                        <span class="badge badge-secondary">${escapeHTML(course.module_code)}</span>
                     </div>
                 </div>
                 <div class="course-card-body">
-                    <p>${course.description || 'No description available'}</p>
+                    <p>${escapeHTML(course.description || 'No description available')}</p>
                     <div class="course-meta">
-                        <span><i class="fas ${course.icon || 'fa-book'}"></i> ${course.difficulty_level || 'Module'}</span>
-                        <span><i class="fas fa-clock"></i> ${course.estimated_time || 'TBD'}</span>
+                        <span><i class="fas ${escapeAttr(course.icon || 'fa-book')}"></i> ${escapeHTML(course.difficulty_level || 'Module')}</span>
+                        <span><i class="fas fa-clock"></i> ${escapeHTML(course.estimated_time || 'TBD')}</span>
                         <span><i class="fas ${course.is_active ? 'fa-check-circle' : 'fa-times-circle'}"></i> ${course.is_active ? 'Active' : 'Inactive'}</span>
                     </div>
                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                        <button class="btn btn-secondary btn-small" onclick="editCourse('${course.id}')">
+                        <button class="btn btn-secondary btn-small" onclick="editCourse('${escapeAttr(course.id)}')">
                             <i class="fas fa-edit"></i> Edit Module
                         </button>
-                        <button class="btn btn-danger btn-small" onclick="deleteCourse('${course.id}', '${course.module_name}')">
+                        <button class="btn btn-danger btn-small" onclick="deleteCourse('${escapeAttr(course.id)}', '${escapeAttr(course.module_name)}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

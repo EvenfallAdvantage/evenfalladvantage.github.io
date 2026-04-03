@@ -795,7 +795,7 @@ const GeoRiskService = {
         `;
         notification.innerHTML = `
             <i class="fas fa-check-circle" style="font-size: 1.5rem;"></i>
-            <span>${message}</span>
+            <span>${escapeHTML(message)}</span>
         `;
         document.body.appendChild(notification);
         setTimeout(() => document.body.removeChild(notification), 3000);
@@ -823,7 +823,7 @@ const GeoRiskService = {
         `;
         notification.innerHTML = `
             <i class="fas fa-exclamation-circle" style="font-size: 1.5rem;"></i>
-            <span>${message}</span>
+            <span>${escapeHTML(message)}</span>
         `;
         document.body.appendChild(notification);
         setTimeout(() => document.body.removeChild(notification), 4000);

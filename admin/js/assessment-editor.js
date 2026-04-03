@@ -38,13 +38,13 @@ function displayAssessmentCourses(courses) {
 
     grid.innerHTML = courses.map(course => {
         return `
-            <div class="course-card" onclick="selectAssessmentCourse('${course.id}', '${course.course_name}')" style="cursor: pointer;">
+            <div class="course-card" onclick="selectAssessmentCourse('${escapeAttr(course.id)}', '${escapeAttr(course.course_name)}')" style="cursor: pointer;">
                 <div class="course-card-header">
-                    <h3>${course.course_name}</h3>
-                    <span class="badge badge-primary">${course.course_code}</span>
+                    <h3>${escapeHTML(course.course_name)}</h3>
+                    <span class="badge badge-primary">${escapeHTML(course.course_code)}</span>
                 </div>
                 <div class="course-card-body">
-                    <p>${course.description || 'No description available'}</p>
+                    <p>${escapeHTML(course.description || 'No description available')}</p>
                     <div class="course-meta">
                         <span><i class="fas fa-trophy"></i> Assessments</span>
                         <span><i class="fas fa-check-circle"></i> Active</span>
@@ -130,13 +130,13 @@ function displayAssessments(assessments) {
             <tbody>
                 ${assessments.map(assessment => `
                     <tr>
-                        <td>${assessment.training_modules?.module_name || 'N/A'}</td>
-                        <td>${assessment.assessment_name}</td>
-                        <td>${assessment.total_questions || 0}</td>
-                        <td>${assessment.passing_score}%</td>
-                        <td>${assessment.time_limit_minutes || 'No limit'} min</td>
+                        <td>${escapeHTML(assessment.training_modules?.module_name || 'N/A')}</td>
+                        <td>${escapeHTML(assessment.assessment_name)}</td>
+                        <td>${escapeHTML(assessment.total_questions || 0)}</td>
+                        <td>${escapeHTML(assessment.passing_score)}%</td>
+                        <td>${escapeHTML(assessment.time_limit_minutes || 'No limit')} min</td>
                         <td>
-                            <button class="btn btn-sm btn-primary" onclick="editAssessment('${assessment.id}')">
+                            <button class="btn btn-sm btn-primary" onclick="editAssessment('${escapeAttr(assessment.id)}')">
                                 <i class="fas fa-edit"></i> Edit Questions
                             </button>
                         </td>

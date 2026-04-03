@@ -3555,7 +3555,7 @@ function loadSlide(index) {
     
     // Add title if exists
     if (slide.title) {
-        slideHTML += `<h2 class="slide-title">${slide.title}</h2>`;
+        slideHTML += `<h2 class="slide-title">${escapeHTML(slide.title)}</h2>`;
     }
     
     // Add content
@@ -3567,7 +3567,7 @@ function loadSlide(index) {
     if (slide.image_url) {
         slideHTML += `
             <div class="slide-media">
-                <img src="${slide.image_url}" alt="${slide.title || 'Slide image'}" style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0;">
+                <img src="${escapeAttr(slide.image_url)}" alt="${escapeAttr(slide.title || 'Slide image')}" style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0;">
             </div>
         `;
     }
@@ -3584,7 +3584,7 @@ function loadSlide(index) {
                     <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; margin: 1.5rem 0;">
                         <iframe 
                             style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
-                            src="https://www.youtube.com/embed/${videoId}" 
+                            src="https://www.youtube.com/embed/${escapeAttr(videoId)}" 
                             frameborder="0" 
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                             allowfullscreen>
@@ -3597,7 +3597,7 @@ function loadSlide(index) {
             slideHTML += `
                 <div class="slide-media">
                     <video controls style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; display: block;">
-                        <source src="${slide.video_url}" type="video/mp4">
+                        <source src="${escapeAttr(slide.video_url)}" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
                 </div>
@@ -3611,9 +3611,9 @@ function loadSlide(index) {
         slideHTML += `
             <div class="slide-audio" style="margin: 1.5rem 0;">
                 <audio id="${audioId}" controls style="width: 100%; max-width: 500px;">
-                    <source src="${slide.audio_url}" type="audio/mpeg">
-                    <source src="${slide.audio_url}" type="audio/wav">
-                    <source src="${slide.audio_url}" type="audio/ogg">
+                    <source src="${escapeAttr(slide.audio_url)}" type="audio/mpeg">
+                    <source src="${escapeAttr(slide.audio_url)}" type="audio/wav">
+                    <source src="${escapeAttr(slide.audio_url)}" type="audio/ogg">
                     Your browser does not support the audio element.
                 </audio>
             </div>

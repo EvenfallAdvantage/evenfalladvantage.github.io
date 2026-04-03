@@ -132,16 +132,16 @@ async function loadMessages() {
         const isActive = currentConversationUserId === otherUserId ? 'active' : '';
         
         conversationsHTML += `
-            <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''} ${isActive}" onclick="viewConversation('${otherUserId}', '${participant.company_name}')">
+            <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''} ${isActive}" onclick="viewConversation('${escapeAttr(otherUserId)}', '${escapeAttr(participant.company_name)}')">
                 <div class="conversation-avatar">
                     <i class="fas fa-building"></i>
                 </div>
                 <div class="conversation-info">
                     <div class="conversation-header">
-                        <h4>${participant.company_name}</h4>
+                        <h4>${escapeHTML(participant.company_name)}</h4>
                         ${unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : ''}
                     </div>
-                    <p class="conversation-preview">${preview}</p>
+                    <p class="conversation-preview">${escapeHTML(preview)}</p>
                     <span class="conversation-time">${timeAgo}</span>
                 </div>
             </div>
@@ -217,7 +217,7 @@ async function viewConversation(userId, companyName) {
         return `
             <div class="message-bubble ${isFromMe ? 'sent' : 'received'}">
                 <div class="bubble-content">
-                    ${msg.message}
+                    ${escapeHTML(msg.message)}
                 </div>
                 <div class="bubble-time">${timeStr}</div>
             </div>

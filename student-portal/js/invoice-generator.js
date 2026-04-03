@@ -144,7 +144,7 @@ const InvoiceGenerator = {
                 <div class="line-item-field">
                     <label>Description</label>
                     <input type="text" 
-                           value="${item.description}" 
+                           value="${escapeAttr(item.description)}" 
                            placeholder="Service description"
                            onchange="InvoiceGenerator.updateLineItem(${item.id}, 'description', this.value)">
                 </div>
@@ -293,7 +293,7 @@ const InvoiceGenerator = {
     generateTemplate(template, data) {
         const lineItemsHTML = this.lineItems.map(item => `
             <tr>
-                <td>${item.description}</td>
+                <td>${escapeHTML(item.description)}</td>
                 <td style="text-align: center;">${item.quantity}</td>
                 <td style="text-align: right;">$${item.rate.toFixed(2)}</td>
                 <td style="text-align: right;">$${(item.quantity * item.rate).toFixed(2)}</td>
@@ -661,7 +661,7 @@ const InvoiceGenerator = {
             font-weight: 500;
             animation: slideIn 0.3s ease-out;
         `;
-        notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+        notification.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${escapeHTML(message)}`;
         document.body.appendChild(notification);
 
         setTimeout(() => {

@@ -146,33 +146,33 @@ function createCourseCard(course, enrollment = null) {
     const isFree = course.price === 0 || course.price === null;
 
     return `
-        <div class="course-card ${isEnrolled ? 'enrolled' : ''}" data-course-id="${course.id}">
+        <div class="course-card ${isEnrolled ? 'enrolled' : ''}" data-course-id="${escapeAttr(course.id)}">
             <div class="course-thumbnail">
                 ${course.thumbnail_url 
-                    ? `<img src="${course.thumbnail_url}" alt="${course.course_name}">`
-                    : `<i class="${course.icon || 'fa-graduation-cap'} fas"></i>`
+                    ? `<img src="${escapeAttr(course.thumbnail_url)}" alt="${escapeAttr(course.course_name)}">`
+                    : `<i class="${escapeAttr(course.icon || 'fa-graduation-cap')} fas"></i>`
                 }
             </div>
             <div class="course-content">
                 <div class="course-header">
-                    <h3 class="course-title">${course.course_name}</h3>
+                    <h3 class="course-title">${escapeHTML(course.course_name)}</h3>
                     <div class="course-meta">
                         ${course.duration_hours ? `
                             <span class="course-meta-item">
                                 <i class="fas fa-clock"></i>
-                                ${course.duration_hours} hours
+                                ${escapeHTML(course.duration_hours)} hours
                             </span>
                         ` : ''}
                         ${course.difficulty_level ? `
                             <span class="course-meta-item">
                                 <i class="fas fa-signal"></i>
-                                ${course.difficulty_level}
+                                ${escapeHTML(course.difficulty_level)}
                             </span>
                         ` : ''}
                     </div>
                 </div>
                 <p class="course-description">
-                    ${course.short_description || course.description || 'No description available'}
+                    ${escapeHTML(course.short_description || course.description || 'No description available')}
                 </p>
                 ${isEnrolled ? `
                     <div class="course-progress">
@@ -190,7 +190,7 @@ function createCourseCard(course, enrollment = null) {
                         ${isFree ? 'FREE' : `$${course.price.toFixed(2)}`}
                     </div>
                     <div class="course-actions">
-                        <button class="btn-course btn-secondary view-details-btn" data-course-id="${course.id}">
+                        <button class="btn-course btn-secondary view-details-btn" data-course-id="${escapeAttr(course.id)}">
                             <i class="fas fa-info-circle"></i> Details
                         </button>
                         ${isEnrolled ? `
@@ -198,7 +198,7 @@ function createCourseCard(course, enrollment = null) {
                                 <i class="fas fa-play"></i> Continue
                             </a>
                         ` : `
-                            <button class="btn-course btn-primary enroll-btn" data-course-id="${course.id}">
+                            <button class="btn-course btn-primary enroll-btn" data-course-id="${escapeAttr(course.id)}">
                                 <i class="fas fa-shopping-cart"></i> ${isFree ? 'Enroll' : 'Purchase'}
                             </button>
                         `}
@@ -262,24 +262,24 @@ async function showCourseDetails(courseId) {
     const modalContent = `
         <div class="course-detail-header">
             <span class="close">&times;</span>
-            <h2>${course.course_name}</h2>
+            <h2>${escapeHTML(course.course_name)}</h2>
             <div class="course-meta">
-                ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${course.duration_hours} hours</span>` : ''}
-                ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${course.difficulty_level}</span>` : ''}
+                ${course.duration_hours ? `<span><i class="fas fa-clock"></i> ${escapeHTML(course.duration_hours)} hours</span>` : ''}
+                ${course.difficulty_level ? `<span><i class="fas fa-signal"></i> ${escapeHTML(course.difficulty_level)}</span>` : ''}
                 ${modules.length ? `<span><i class="fas fa-book"></i> ${modules.length} modules</span>` : ''}
             </div>
         </div>
         <div class="course-detail-body">
             <div class="detail-section">
                 <h3><i class="fas fa-info-circle"></i> About This Course</h3>
-                <p>${course.description || 'No description available'}</p>
+                <p>${escapeHTML(course.description || 'No description available')}</p>
             </div>
 
             ${course.learning_objectives && course.learning_objectives.length > 0 ? `
                 <div class="detail-section">
                     <h3><i class="fas fa-bullseye"></i> Learning Objectives</h3>
                     <ul class="objectives-list">
-                        ${course.learning_objectives.map(obj => `<li>${obj}</li>`).join('')}
+                        ${course.learning_objectives.map(obj => `<li>${escapeHTML(obj)}</li>`).join('')}
                     </ul>
                 </div>
             ` : ''}
@@ -287,7 +287,7 @@ async function showCourseDetails(courseId) {
             ${course.target_audience ? `
                 <div class="detail-section">
                     <h3><i class="fas fa-users"></i> Who This Course Is For</h3>
-                    <p>${course.target_audience}</p>
+                    <p>${escapeHTML(course.target_audience)}</p>
                 </div>
             ` : ''}
 
@@ -299,11 +299,11 @@ async function showCourseDetails(courseId) {
                             <div class="module-item">
                                 <div class="module-info">
                                     <div class="module-name">
-                                        Module ${cm.module_order}: ${cm.training_modules.module_name}
+                                        Module ${cm.module_order}: ${escapeHTML(cm.training_modules.module_name)}
                                     </div>
                                     <div class="module-meta">
-                                        ${cm.training_modules.duration_minutes ? `${cm.training_modules.duration_minutes} minutes` : ''}
-                                        ${cm.training_modules.difficulty_level ? ` • ${cm.training_modules.difficulty_level}` : ''}
+                                        ${cm.training_modules.duration_minutes ? `${escapeHTML(cm.training_modules.duration_minutes)} minutes` : ''}
+                                        ${cm.training_modules.difficulty_level ? ` • ${escapeHTML(cm.training_modules.difficulty_level)}` : ''}
                                     </div>
                                 </div>
                                 <span class="module-status ${cm.is_required ? 'required' : 'optional'}">
@@ -324,7 +324,7 @@ async function showCourseDetails(courseId) {
                     <i class="fas fa-play"></i> Go to Course
                 </a>
             ` : `
-                <button class="btn-course btn-primary" onclick="handleEnrollment('${courseId}')">
+                <button class="btn-course btn-primary" onclick="handleEnrollment('${escapeAttr(courseId)}')">
                     <i class="fas fa-shopping-cart"></i> ${isFree ? 'Enroll Now' : 'Purchase Course'}
                 </button>
             `}

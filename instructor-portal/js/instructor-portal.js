@@ -254,27 +254,27 @@ async function viewClassDetails(classId) {
     document.getElementById('classDetailsBody').innerHTML = `
         <div>
             <div style="margin-bottom: 2rem; padding: 2rem; background: var(--instructor-light); border-radius: 8px;">
-                <h3 style="margin-top: 0;">${c.class_name}</h3>
-                <p><strong>Type:</strong> ${c.class_type}</p>
+                <h3 style="margin-top: 0;">${escapeHTML(c.class_name)}</h3>
+                <p><strong>Type:</strong> ${escapeHTML(c.class_type)}</p>
                 <p><strong>Date:</strong> ${formatDate(c.scheduled_date)}</p>
                 <p><strong>Time:</strong> ${formatTime(c.start_time)} - ${formatTime(c.end_time)}</p>
                 <p><strong>Duration:</strong> ${c.duration_hours} hour${c.duration_hours !== 1 ? 's' : ''}</p>
-                ${c.location ? `<p><strong>Location:</strong> ${c.location}</p>` : '<p><strong>Location:</strong> <em>Not specified</em></p>'}
-                ${c.meeting_link ? `<p><strong>Meeting Link:</strong> <a href="${c.meeting_link}" target="_blank" style="color: var(--secondary-color);">${c.meeting_link}</a></p>` : ''}
-                ${c.description ? `<p><strong>Description:</strong> ${c.description}</p>` : ''}
+                ${c.location ? `<p><strong>Location:</strong> ${escapeHTML(c.location)}</p>` : '<p><strong>Location:</strong> <em>Not specified</em></p>'}
+                ${c.meeting_link ? `<p><strong>Meeting Link:</strong> <a href="${escapeAttr(c.meeting_link)}" target="_blank" style="color: var(--secondary-color);">${escapeHTML(c.meeting_link)}</a></p>` : ''}
+                ${c.description ? `<p><strong>Description:</strong> ${escapeHTML(c.description)}</p>` : ''}
                 <p><strong>Capacity:</strong> ${enrollments.length} / ${c.capacity}</p>
-                <p><strong>Status:</strong> <span class="badge badge-primary">${c.status}</span></p>
+                <p><strong>Status:</strong> <span class="badge badge-primary">${escapeHTML(c.status)}</span></p>
             </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 2rem 0 1rem 0;">
                 <h4 style="margin: 0;">Enrolled Students (${enrollments.length})</h4>
-                ${canAddStudents ? `<button class="btn btn-primary" onclick="showAddStudentsModal('${classId}', '${c.class_name.replace(/'/g, "&apos;")}')">
+                ${canAddStudents ? `<button class="btn btn-primary" onclick="showAddStudentsModal('${escapeAttr(classId)}', '${escapeAttr(c.class_name)}')">
                     <i class="fas fa-user-plus"></i> Add Students
                 </button>` : ''}
             </div>
             ${enrollments.length ? `<table><thead><tr><th>Student</th><th>Email</th><th>Actions</th></tr></thead><tbody>
-            ${enrollments.map(e => `<tr><td>${e.student?.first_name} ${e.student?.last_name}</td><td>${e.student?.email}</td>
-            <td><button class="action-btn delete" onclick="removeStudentFromClass('${classId}', '${e.student_id}')"><i class="fas fa-times"></i> Remove</button></td></tr>`).join('')}</tbody></table>` : '<p>No enrollments</p>'}
+            ${enrollments.map(e => `<tr><td>${escapeHTML(e.student?.first_name)} ${escapeHTML(e.student?.last_name)}</td><td>${escapeHTML(e.student?.email)}</td>
+            <td><button class="action-btn delete" onclick="removeStudentFromClass('${escapeAttr(classId)}', '${escapeAttr(e.student_id)}')"><i class="fas fa-times"></i> Remove</button></td></tr>`).join('')}</tbody></table>` : '<p>No enrollments</p>'}
         </div>`;
     document.getElementById('classDetailsModal').classList.add('active');
 }
@@ -320,8 +320,8 @@ async function loadCertificates() {
     document.getElementById('eligibleStudentsList').innerHTML = '<div class="empty-state"><h3>Check student progress to determine eligibility</h3></div>';
     const tbody = document.getElementById('certificatesTableBody');
     const { data } = await supabase.from('certificates').select(`*, student:students(first_name, last_name)`).eq('issued_by', currentInstructor.id);
-    tbody.innerHTML = data?.length ? data.map(c => `<tr><td>${c.certificate_number}</td><td>${c.student?.first_name} ${c.student?.last_name}</td>
-        <td>${c.certificate_type}</td><td>${formatDate(c.issue_date)}</td><td><span class="badge badge-success">${c.status}</span></td><td></td></tr>`).join('') 
+    tbody.innerHTML = data?.length ? data.map(c => `<tr><td>${escapeHTML(c.certificate_number)}</td><td>${escapeHTML(c.student?.first_name)} ${escapeHTML(c.student?.last_name)}</td>
+        <td>${escapeHTML(c.certificate_type)}</td><td>${formatDate(c.issue_date)}</td><td><span class="badge badge-success">${escapeHTML(c.status)}</span></td><td></td></tr>`).join('') 
         : '<tr><td colspan="6"><div class="empty-state"><h3>No Certificates Issued</h3></div></td></tr>';
 }
 
