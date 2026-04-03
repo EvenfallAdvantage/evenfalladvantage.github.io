@@ -22,6 +22,7 @@ import { parseUTC } from "@/lib/parse-utc";
 import { useAuthStore } from "@/stores/auth-store";
 import { dispatch } from "@/lib/services/notification-dispatcher";
 import { toast } from "sonner";
+import Link from "next/link";
 
 function formatDuration(ms: number) {
   const totalSec = Math.floor(Math.max(0, ms) / 1000);
@@ -280,6 +281,18 @@ export default function TimeClockPage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Clock className="h-5 w-5 sm:h-6 sm:w-6" /> Watch Log</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">Clock in/out and track your duty hours</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
+            <Clock className="h-3.5 w-3.5" />
+            Clock
+          </div>
+          <Link href="/patrols"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+            Patrols
+          </Link>
         </div>
 
         {/* Upcoming Shift */}

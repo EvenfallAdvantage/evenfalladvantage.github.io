@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getCheckpoints,
@@ -165,11 +166,23 @@ export default function PatrolsPage() {
     <>
       <div className="space-y-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <Footprints className="h-5 w-5 sm:h-6 sm:w-6" />
-            PATROLS
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2">
+            <Clock className="h-5 w-5 sm:h-6 sm:w-6" />
+            Watch Log
           </h1>
-          <p className="text-sm text-muted-foreground">Checkpoint verification & patrol tracking</p>
+          <p className="text-sm text-muted-foreground">Clock in/out and track your duty hours</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+          <Link href="/timeclock"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+            Clock
+          </Link>
+          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
+            <Footprints className="h-3.5 w-3.5" />
+            Patrols
+          </div>
         </div>
 
         {/* Compliance Banner */}

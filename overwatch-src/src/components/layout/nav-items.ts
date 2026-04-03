@@ -10,30 +10,14 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "",
     items: [
       { title: "Dashboard", href: "/feed", icon: "LayoutDashboard" },
-      {
-        title: "Comms",
-        href: "/chat",
-        icon: "Radio",
-        children: [
-          { title: "Briefing", href: "/updates", icon: "Radar" },
-          { title: "Channels", href: "/chat", icon: "Radio" },
-        ],
-      },
+      { title: "Comms", href: "/chat", icon: "Radio" },
       { title: "Roster", href: "/directory", icon: "Users" },
     ],
   },
   {
     label: "Field Ops",
     items: [
-      {
-        title: "Watch Log",
-        href: "/timeclock",
-        icon: "Clock",
-        children: [
-          { title: "Clock", href: "/timeclock", icon: "Clock" },
-          { title: "Patrols", href: "/patrols", icon: "Footprints" },
-        ],
-      },
+      { title: "Watch Log", href: "/timeclock", icon: "Clock" },
       { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
       { title: "Operations", href: "/schedule", icon: "CalendarDays" },
     ],

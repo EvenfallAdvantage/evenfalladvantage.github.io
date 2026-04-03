@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChatSkeleton } from "@/components/loading-skeleton";
 import { toast } from "sonner";
+import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getChatChannels, createChatChannel, getChatMessages,
@@ -239,6 +240,10 @@ export default function ChatPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+        <Link href="/updates"
+          className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+          Briefing
+        </Link>
         {([
           { key: "channels" as Tab, label: "Channels", count: internal.length },
           { key: "external" as Tab, label: "External Groups", count: external.length },

@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import Link from "next/link";
+import { Radio } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getPosts, createPost, togglePinPost, deletePost, getPostComments, addPostComment, deletePostComment, getPostReactions, togglePostReaction } from "@/lib/supabase/db";
 
@@ -262,8 +264,20 @@ export default function UpdatesPage() {
     <>
       <div className="space-y-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Radar className="h-5 w-5 sm:h-6 sm:w-6" /> BRIEFING</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Announcements, alerts, and team updates</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Radio className="h-5 w-5 sm:h-6 sm:w-6" /> Comms</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Team channels, external groups, and messaging</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
+            <Radar className="h-3.5 w-3.5" />
+            Briefing
+          </div>
+          <Link href="/chat"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+            Channels
+          </Link>
         </div>
 
         {/* Composer — leadership only */}
