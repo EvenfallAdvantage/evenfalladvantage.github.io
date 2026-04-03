@@ -172,6 +172,22 @@ export default function UpdatesPage() {
       const ext = chs.filter((c: any) => { try { const m = JSON.parse(c.description || ""); return m?.external; } catch { return false; } });
       setChannelCount(chs.length - ext.length);
       setExternalCount(ext.length);
+
+      // Pre-load reactions and comments for all posts
+      if (postsData.length > 0) {
+        const [allReactions, allComments] = await Promise.all([
+          Promise.all(postsData.map((p: { id: string }) => getPostReactions(p.id).catch(() => []))),
+          Promise.all(postsData.map((p: { id: string }) => getPostComments(p.id).catch(() => []))),
+        ]);
+        const rMap: Record<string, any[]> = {};
+        const cMap: Record<string, any[]> = {};
+        postsData.forEach((p: { id: string }, i: number) => {
+          rMap[p.id] = allReactions[i];
+          cMap[p.id] = allComments[i];
+        });
+        setReactions(rMap);
+        setComments(cMap);
+      }
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
