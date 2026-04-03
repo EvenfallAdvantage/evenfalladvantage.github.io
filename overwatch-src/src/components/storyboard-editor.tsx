@@ -152,7 +152,7 @@ function PinForm({
             borderColor: "#1a2a3a",
             border: "1px solid #1a2a3a",
           }}
-          onFocus={(e) => (e.target.style.ringColor = "#d59b3c")}
+          onFocus={(e) => (e.target.style.outlineColor = "#d59b3c")}
         />
       </div>
 
@@ -595,7 +595,7 @@ export default function StoryboardEditor({
                     background: pin.color,
                     borderColor: "rgba(255,255,255,0.25)",
                     boxShadow: `0 2px 8px ${pin.color}66, 0 0 0 ${isSelected ? "3" : "0"}px ${pin.color}44`,
-                    ringColor: pin.color,
+                    outlineColor: pin.color,
                   }}
                 >
                   <IconComp size={15} strokeWidth={2.5} className="text-white drop-shadow" />
