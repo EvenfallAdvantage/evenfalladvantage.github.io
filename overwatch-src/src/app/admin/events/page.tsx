@@ -412,7 +412,9 @@ export default function AdminEventsPage() {
           if (sb) {
             setStoryboardId(sb.id);
             storyboardIdRef.current = sb.id;
-            setStoryboardPins((sb.pins as StoryboardPin[]) ?? []);
+            // Filter out incident pins — those belong on the individual incident storyboard views
+            const allPins = (sb.pins as StoryboardPin[]) ?? [];
+            setStoryboardPins(allPins.filter(p => p.icon !== "incident"));
           }
         } catch (e) { console.error("Failed to load storyboard:", e); }
         finally { setStoryboardLoading(false); }
@@ -1293,13 +1295,13 @@ export default function AdminEventsPage() {
                         </div>
                       )}
 
-                      {/* ── Site Map & Storyboard ── */}
+                      {/* ── Site Map ── */}
                       {(() => {
                         const hasSiteMap = !!ev.site_map_url;
                         return (
                           <div className="px-3 sm:px-4 py-3 border-b border-border/20">
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 mb-2">
-                              <MapPin className="h-3 w-3" /> Site Map &amp; Storyboard
+                              <MapPin className="h-3 w-3" /> Site Map
                             </p>
                             {hasSiteMap ? (
                               storyboardLoading ? (
@@ -1310,13 +1312,22 @@ export default function AdminEventsPage() {
                                   pins={storyboardPins}
                                    onPinsChange={(newPins) => {
                                     setStoryboardPins(newPins);
-                                    // Debounced auto-save using ref for latest storyboardId
+                                    // Debounced auto-save — merge planning pins with incident pins before saving
                                     if (activeCompanyId && activeCompanyId !== "pending") {
                                       if ((window as any).__sbSaveTimer) clearTimeout((window as any).__sbSaveTimer);
                                       (window as any).__sbSaveTimer = setTimeout(async () => {
                                         try {
                                           const currentSbId = storyboardIdRef.current;
-                                          const result = await saveStoryboard(activeCompanyId, ev.id, newPins, currentSbId ?? undefined, internalUserId);
+                                          // Reload full storyboard to get incident pins, then merge
+                                          let incidentPins: StoryboardPin[] = [];
+                                          if (currentSbId) {
+                                            const fullSb = await loadStoryboard(ev.id);
+                                            if (fullSb?.pins) {
+                                              incidentPins = (fullSb.pins as StoryboardPin[]).filter(p => p.icon === "incident");
+                                            }
+                                          }
+                                          const mergedPins = [...newPins, ...incidentPins];
+                                          const result = await saveStoryboard(activeCompanyId, ev.id, mergedPins, currentSbId ?? undefined, internalUserId);
                                           if (result && !currentSbId) {
                                             setStoryboardId(result.id);
                                             storyboardIdRef.current = result.id;
