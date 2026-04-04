@@ -23,6 +23,7 @@ import {
   createDocument, getEventAvailability, getLatestDocument, getEventDocuments,
   loadStoryboard, saveStoryboard,
 } from "@/lib/supabase/db";
+import { issueDocument } from "@/lib/supabase/db-documents";
 import { createClient } from "@/lib/supabase/client";
 import type { OperationDocument } from "@/types/operations";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
@@ -356,10 +357,14 @@ export default function AdminEventsPage() {
           successCriteria: intakeSuccessCriteria, additionalSuccessMeasures: intakeSuccessNotes,
         };
         try {
-          await createDocument({
+          const intakeDoc = await createDocument({
             eventId: ev.id, companyId: activeCompanyId, docType: "intake",
             data: intakeData as unknown as Record<string, unknown>,
           });
+          // Auto-issue intake since it's complete at creation
+          if (intakeDoc?.id) {
+            await issueDocument(intakeDoc.id);
+          }
         } catch (docErr) { console.error("Intake doc creation failed:", docErr); }
       }
       resetCreate(); await load();
@@ -1129,9 +1134,15 @@ export default function AdminEventsPage() {
                         <DocHub
                           eventId={ev.id}
                           onClose={() => setShowDocHub(false)}
-                          onOpenDoc={(type) => {
+                          onOpenDoc={async (type) => {
                             setShowDocHub(false);
-                            if (type === "warno") setShowWarno(true);
+                            if (type === "intake") {
+                              try {
+                                const doc = await getLatestDocument(ev.id, "intake");
+                                if (doc) setAdminViewingDoc(doc);
+                              } catch {}
+                            }
+                            else if (type === "warno") setShowWarno(true);
                             else if (type === "opord") setShowOpord(true);
                             else if (type === "frago") setShowFrago(true);
                             else if (type === "gotwa") setShowGotwa(true);
