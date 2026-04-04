@@ -373,7 +373,7 @@ export default function FeedPage() {
   async function handleShiftClockIn(shift: any) {
     setActing(true); setShowClockInModal(false);
     try {
-      await clockIn({ shiftId: shift.id, eventId: shift.events?.id ?? shift.event_id, clockInType: "shift" });
+      await clockIn({ shiftId: shift.id, eventId: shift.events?.id ?? shift.event_id, companyId: activeCompanyId ?? undefined, clockInType: "shift" });
       await load();
     } catch (err) { console.error("Clock in failed:", err); }
     finally { setActing(false); setDetectedShifts([]); }
@@ -383,7 +383,7 @@ export default function FeedPage() {
     if (!adminNotes.trim()) return;
     setActing(true); setShowClockInModal(false);
     try {
-      await clockIn({ clockInType: "admin", notes: adminNotes.trim() });
+      await clockIn({ clockInType: "admin", notes: adminNotes.trim(), companyId: activeCompanyId ?? undefined });
       await load();
     } catch (err) { console.error("Clock in failed:", err); }
     finally { setActing(false); setAdminNotes(""); setDetectedShifts([]); }
@@ -391,7 +391,7 @@ export default function FeedPage() {
 
   async function handleQuickClockIn() {
     setActing(true); setShowClockInModal(false);
-    try { await clockIn(); await load(); } catch (err) { console.error("Clock in failed:", err); }
+    try { await clockIn({ companyId: activeCompanyId ?? undefined }); await load(); } catch (err) { console.error("Clock in failed:", err); }
     finally { setActing(false); }
   }
 

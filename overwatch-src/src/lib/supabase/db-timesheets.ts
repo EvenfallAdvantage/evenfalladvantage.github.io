@@ -23,6 +23,7 @@ export async function getActiveTimesheet() {
 export async function clockIn(params?: {
   shiftId?: string;
   eventId?: string;
+  companyId?: string;
   clockInType?: "shift" | "admin" | "manual";
   notes?: string;
 }) {
@@ -30,6 +31,18 @@ export async function clockIn(params?: {
   if (!userId) throw new Error("Not authenticated");
 
   const supabase = createClient();
+
+  // Resolve company_id: from params, or from the event, or from the shift
+  let companyId = params?.companyId ?? null;
+  if (!companyId && params?.eventId) {
+    const { data: ev } = await supabase.from("events").select("company_id").eq("id", params.eventId).maybeSingle();
+    companyId = ev?.company_id ?? null;
+  }
+  if (!companyId && params?.shiftId) {
+    const { data: sh } = await supabase.from("shifts").select("events(company_id)").eq("id", params.shiftId).maybeSingle();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    companyId = (sh as any)?.events?.company_id ?? null;
+  }
 
   const { data, error } = await supabase
     .from("timesheets")
@@ -40,6 +53,7 @@ export async function clockIn(params?: {
       clock_method: "app",
       shift_id: params?.shiftId ?? null,
       event_id: params?.eventId ?? null,
+      company_id: companyId,
       clock_in_type: params?.clockInType ?? "shift",
       notes: params?.notes ?? null,
       ...ts(),
@@ -108,7 +122,19 @@ export async function getRecentTimesheets(limit = 10) {
 
 export async function getCompanyTimesheets(companyId: string) {
   const supabase = createClient();
-  // Get member user IDs first, then filter timesheets at DB level
+
+  // Primary: filter by company_id (set on newer timesheets)
+  const { data: directData } = await supabase
+    .from("timesheets")
+    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location), shifts(id, role, events(id, name, location))")
+    .eq("company_id", companyId)
+    .order("clock_in", { ascending: false })
+    .limit(50);
+
+  if (directData && directData.length > 0) return directData;
+
+  // Fallback for legacy timesheets without company_id:
+  // Get member user IDs, then filter by user AND (event belongs to company OR no event)
   const { data: members } = await supabase
     .from("company_memberships")
     .select("user_id")
@@ -116,13 +142,24 @@ export async function getCompanyTimesheets(companyId: string) {
     .eq("status", "active");
   const userIds = (members ?? []).map((m: { user_id: string }) => m.user_id);
   if (userIds.length === 0) return [];
-  const { data } = await supabase
+
+  const { data: allTimesheets } = await supabase
     .from("timesheets")
-    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location), shifts(id, role, events(id, name, location))")
+    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location, company_id), shifts(id, role, events(id, name, location))")
     .in("user_id", userIds)
+    .is("company_id", null)
     .order("clock_in", { ascending: false })
-    .limit(50);
-  return data ?? [];
+    .limit(100);
+
+  // Filter: only include timesheets where event belongs to this company, or no event at all
+  const filtered = (allTimesheets ?? []).filter((t: Record<string, unknown>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ev = t.events as any;
+    if (!ev) return true; // No event = admin/off-shift, could belong to any company
+    return ev.company_id === companyId;
+  });
+
+  return filtered.slice(0, 50);
 }
 
 export async function approveTimesheet(timesheetId: string) {

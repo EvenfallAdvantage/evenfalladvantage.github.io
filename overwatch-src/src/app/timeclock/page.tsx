@@ -76,6 +76,7 @@ type Shift = any;
 
 export default function TimeClockPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const authUser = useAuthStore((s) => s.user);
   const companyId = activeCompany?.companyId ?? "";
   const [active, setActive] = useState<Timesheet | null>(null);
@@ -166,6 +167,7 @@ export default function TimeClockPage() {
       await clockIn({
         shiftId: shift.id,
         eventId: shift.events?.id ?? shift.event_id,
+        companyId: activeCompanyId ?? undefined,
         clockInType: "shift",
       });
       await load();
@@ -179,7 +181,7 @@ export default function TimeClockPage() {
     setActing(true);
     setShowClockInModal(false);
     try {
-      await clockIn({ clockInType: "admin", notes: adminNotes.trim() });
+      await clockIn({ clockInType: "admin", notes: adminNotes.trim(), companyId: activeCompanyId ?? undefined });
       await load();
       toast.success("Clocked in (admin)");
     } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); }
@@ -188,7 +190,7 @@ export default function TimeClockPage() {
 
   async function handleQuickClockIn() {
     setActing(true);
-    try { await clockIn(); await load(); toast.success("Clocked in"); } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); } finally { setActing(false); }
+    try { await clockIn({ companyId: activeCompanyId ?? undefined }); await load(); toast.success("Clocked in"); } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); } finally { setActing(false); }
   }
 
   async function handleClockOut() {
