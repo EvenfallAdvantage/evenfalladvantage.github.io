@@ -260,7 +260,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
             </select>
           </div>
           <div><Label className="text-xs">Equipment Available</Label><Input value={data.equipmentAvailable} onChange={(e) => upd("equipmentAvailable", e.target.value)} placeholder="e.g. Radios, barriers, PPE" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-          <div><Label className="text-xs">Radio Channels</Label><Input value={(data as Record<string, unknown>).radioChannels as string ?? ""} onChange={(e) => setData(prev => ({ ...prev, radioChannels: e.target.value } as IntakeData))} placeholder="Ch 1: Cmd, Ch 2: Sec" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label className="text-xs">Radio Channels</Label><Input value={(data as unknown as Record<string, string>).radioChannels ?? ""} onChange={(e) => setData(prev => ({ ...prev, radioChannels: e.target.value } as IntakeData))} placeholder="Ch 1: Cmd, Ch 2: Sec" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
       </div>
 
