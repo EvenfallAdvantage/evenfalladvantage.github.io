@@ -9,7 +9,7 @@ import {
   BarChart3, Users, Clock, BookOpen,
   ChevronRight, Zap, Lock, Globe,
   X, Phone, Mail, ArrowRight, Loader2, FileCheck,
-  UserPlus, QrCode, Crosshair, AlertTriangle, FileText, Award,
+  UserPlus, QrCode, Crosshair, AlertTriangle, FileText, Award, Eye, EyeOff,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { TOSModal } from "@/components/terms-of-service";
@@ -57,6 +57,7 @@ function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onCl
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showLoginPw, setShowLoginPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -154,8 +155,13 @@ function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onCl
             </div>
             <div>
               <label className="text-xs font-medium text-white/60 block mb-1">Password</label>
-              <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password"
-                className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/30" />
+              <div className="relative">
+                <input type={showLoginPw ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password"
+                  className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 pr-9 text-sm text-white outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/30" />
+                <button type="button" onClick={() => setShowLoginPw(!showLoginPw)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                  {showLoginPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
             </div>
             {error && <p className="text-xs text-red-400">{error}</p>}
             <button type="submit" disabled={loading || !email || !password}
@@ -184,6 +190,9 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
   const [email, setEmail] = useState("");
   const [phone, setRegPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [companyName, setCompanyName] = useState("");
   const [step, setStep] = useState<"info" | "company" | "done">(joinCode ? "info" : "info");
   const [loading, setLoading] = useState(false);
@@ -193,6 +202,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
   const [useJoinCode, setUseJoinCode] = useState(false);
   const [joinCodeInput, setJoinCodeInput] = useState(joinCode);
   const pwCheck = password.length > 0 ? checkPasswordStrength(password) : null;
+  const passwordsMatch = confirmPassword.length === 0 || password === confirmPassword;
 
   if (!open) return null;
 
@@ -255,7 +265,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
   }
 
   const strengthColors: Record<string, string> = { weak: "bg-red-500 w-1/5", fair: "bg-orange-500 w-2/5", good: "bg-yellow-500 w-3/5", strong: "bg-green-500 w-4/5", military: "bg-emerald-400 w-full" };
-  const infoValid = firstName && lastName && email && password && (pwCheck?.valid ?? false);
+  const infoValid = firstName && lastName && email && password && confirmPassword && password === confirmPassword && (pwCheck?.valid ?? false);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -300,14 +310,30 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
             </div>
             <div>
               <label className="text-xs font-medium text-white/60 block mb-1">Password</label>
-              <input type="password" placeholder="Min 12 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={12} autoComplete="new-password"
-                className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+              <div className="relative">
+                <input type={showPw ? "text" : "password"} placeholder="Min 12 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={12} autoComplete="new-password"
+                  className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 pr-9 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                  {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
               {pwCheck && (
                 <div className="mt-1.5">
                   <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden"><div className={`h-full rounded-full transition-all ${strengthColors[pwCheck.strength] ?? ""}`} /></div>
                   <p className="text-[10px] text-white/40 mt-0.5 uppercase tracking-wider">{pwCheck.strength}</p>
                 </div>
               )}
+            </div>
+            <div>
+              <label className="text-xs font-medium text-white/60 block mb-1">Confirm Password</label>
+              <div className="relative">
+                <input type={showConfirmPw ? "text" : "password"} placeholder="Re-enter password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={12} autoComplete="new-password"
+                  className={`w-full h-9 rounded-lg border bg-white/5 px-3 pr-9 text-sm text-white outline-none placeholder:text-white/30 ${!passwordsMatch ? "border-red-500/50 focus:border-red-500/70" : "border-white/10 focus:border-[#dd8c33]/50"}`} />
+                <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                  {showConfirmPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+              {!passwordsMatch && <p className="text-[10px] text-red-400 mt-1">Passwords do not match</p>}
             </div>
             <button type="submit" disabled={!infoValid || loading}
               className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
