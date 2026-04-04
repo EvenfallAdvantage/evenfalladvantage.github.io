@@ -2,21 +2,30 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  MapPin,
-  DoorOpen,
-  Camera,
-  ShieldAlert,
-  Heart,
-  Flame,
-  User,
-  Radio,
-  Car,
-  Star,
-  Plus,
-  Trash2,
-  GripVertical,
-  X,
+  MapPin, DoorOpen, Camera, ShieldAlert, Heart, Flame,
+  User, Radio, Car, Star, Plus, Trash2, GripVertical, X,
+  Search, ChevronDown,
+  // Extended icon library for searchable picker
+  Building2, Warehouse, ParkingCircle, Fence, TreePine, Mountain,
+  Waves, Tent, Flag, Target, Eye, EyeOff, Lock, Unlock,
+  Shield, Siren, Zap, AlertTriangle, Ban, CircleAlert,
+  Phone, Wifi, Satellite, Router, Megaphone,
+  Ambulance, Stethoscope, Pill, Cross, HeartPulse,
+  Flashlight, Wrench, Key, Hammer, HardHat,
+  Users, UserCheck, UserX, Baby, Dog, Footprints,
+  Truck, Bus, Bike, Plane, Ship, TrainFront,
+  Coffee, UtensilsCrossed, Droplets, Thermometer, Wind, CloudRain,
+  Cctv, Scan, QrCode, Fingerprint, ScanLine,
+  ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CornerDownRight,
+  Circle, Square, Triangle, Hexagon, Octagon,
+  Clock, Calendar, Timer, Hourglass,
+  Package, Box, Briefcase, FileText, ClipboardList,
+  Lightbulb, Power, Plug, Battery, BatteryWarning,
+  Volume2, VolumeX, Music, Bell, BellRing,
+  MapPinned, Navigation, Compass, Globe, Locate,
+  Skull, Bomb, Radiation, Biohazard, CircleDot,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ── Types ── */
@@ -44,33 +53,122 @@ export type StoryboardEditorProps = {
 
 /* ── Icon map ── */
 
-const ICON_MAP: Record<string, typeof MapPin> = {
-  pin: MapPin,
-  gate: DoorOpen,
-  camera: Camera,
-  incident: ShieldAlert,
-  medical: Heart,
-  fire: Flame,
-  personnel: User,
-  radio: Radio,
-  car: Car,
-  star: Star,
-  exit: DoorOpen,
-};
+type IconEntry = { value: string; label: string; icon: LucideIcon; tags: string[] };
 
-const ICON_OPTIONS: { value: string; label: string }[] = [
-  { value: "pin", label: "Pin" },
-  { value: "gate", label: "Gate" },
-  { value: "camera", label: "Camera" },
-  { value: "incident", label: "Incident" },
-  { value: "medical", label: "Medical" },
-  { value: "fire", label: "Fire" },
-  { value: "personnel", label: "Personnel" },
-  { value: "radio", label: "Radio" },
-  { value: "car", label: "Vehicle" },
-  { value: "star", label: "Star" },
-  { value: "exit", label: "Exit" },
+const ICON_CATEGORIES: { label: string; icons: IconEntry[] }[] = [
+  { label: "Common", icons: [
+    { value: "pin", label: "Pin", icon: MapPin, tags: ["location", "marker", "point"] },
+    { value: "star", label: "Star", icon: Star, tags: ["important", "favorite", "command"] },
+    { value: "flag", label: "Flag", icon: Flag, tags: ["checkpoint", "rally", "marker"] },
+    { value: "target", label: "Target", icon: Target, tags: ["objective", "focus", "goal"] },
+    { value: "circle", label: "Circle", icon: Circle, tags: ["area", "zone", "point"] },
+    { value: "pinned", label: "Pinned", icon: MapPinned, tags: ["fixed", "location"] },
+  ]},
+  { label: "Security", icons: [
+    { value: "incident", label: "Incident", icon: ShieldAlert, tags: ["alert", "security", "breach"] },
+    { value: "shield", label: "Shield", icon: Shield, tags: ["protection", "secure", "guard"] },
+    { value: "siren", label: "Siren", icon: Siren, tags: ["alarm", "emergency", "alert"] },
+    { value: "eye", label: "Observation", icon: Eye, tags: ["watch", "surveillance", "lookout"] },
+    { value: "eyeoff", label: "Blind Spot", icon: EyeOff, tags: ["hidden", "concealed", "no coverage"] },
+    { value: "lock", label: "Locked", icon: Lock, tags: ["secure", "restricted", "closed"] },
+    { value: "unlock", label: "Unlocked", icon: Unlock, tags: ["open", "access", "unsecured"] },
+    { value: "ban", label: "Restricted", icon: Ban, tags: ["prohibited", "no entry", "blocked"] },
+    { value: "alert", label: "Warning", icon: AlertTriangle, tags: ["caution", "danger", "hazard"] },
+    { value: "skull", label: "Danger", icon: Skull, tags: ["lethal", "extreme", "death"] },
+    { value: "scan", label: "Scanner", icon: Scan, tags: ["check", "inspect", "verify"] },
+  ]},
+  { label: "Access", icons: [
+    { value: "gate", label: "Gate / Door", icon: DoorOpen, tags: ["entrance", "exit", "entry"] },
+    { value: "exit", label: "Exit", icon: DoorOpen, tags: ["egress", "way out", "emergency exit"] },
+    { value: "fence", label: "Fence", icon: Fence, tags: ["barrier", "perimeter", "boundary"] },
+    { value: "key", label: "Key Access", icon: Key, tags: ["keycard", "badge", "credential"] },
+    { value: "fingerprint", label: "Biometric", icon: Fingerprint, tags: ["access control", "scanner"] },
+    { value: "qrcode", label: "QR Code", icon: QrCode, tags: ["scan", "ticket", "credential"] },
+  ]},
+  { label: "Surveillance", icons: [
+    { value: "camera", label: "Camera", icon: Camera, tags: ["cctv", "surveillance", "photo"] },
+    { value: "cctv", label: "CCTV", icon: Cctv, tags: ["surveillance", "monitor", "security camera"] },
+    { value: "flashlight", label: "Flashlight", icon: Flashlight, tags: ["light", "search", "patrol"] },
+  ]},
+  { label: "Medical", icons: [
+    { value: "medical", label: "Medical", icon: Heart, tags: ["first aid", "health", "aid station"] },
+    { value: "heartpulse", label: "Heart Pulse", icon: HeartPulse, tags: ["vital", "emergency", "aed"] },
+    { value: "ambulance", label: "Ambulance", icon: Ambulance, tags: ["ems", "transport", "medevac"] },
+    { value: "stethoscope", label: "Stethoscope", icon: Stethoscope, tags: ["doctor", "nurse", "triage"] },
+    { value: "cross", label: "Red Cross", icon: Cross, tags: ["aid", "first aid", "medical station"] },
+    { value: "pill", label: "Pharmacy", icon: Pill, tags: ["medication", "drugs", "narcan"] },
+  ]},
+  { label: "Hazards", icons: [
+    { value: "fire", label: "Fire", icon: Flame, tags: ["hazard", "burn", "emergency"] },
+    { value: "zap", label: "Electrical", icon: Zap, tags: ["shock", "power", "hazard"] },
+    { value: "radiation", label: "Radiation", icon: Radiation, tags: ["hazmat", "nuclear", "contamination"] },
+    { value: "biohazard", label: "Biohazard", icon: Biohazard, tags: ["contamination", "biological", "hazmat"] },
+    { value: "bomb", label: "Explosive", icon: Bomb, tags: ["ied", "suspicious package", "eod"] },
+    { value: "droplets", label: "Water/Flood", icon: Droplets, tags: ["leak", "flooding", "spill"] },
+  ]},
+  { label: "Personnel", icons: [
+    { value: "personnel", label: "Person", icon: User, tags: ["guard", "staff", "individual"] },
+    { value: "users", label: "Group", icon: Users, tags: ["team", "crowd", "assembly"] },
+    { value: "usercheck", label: "Verified", icon: UserCheck, tags: ["cleared", "confirmed", "vip"] },
+    { value: "userx", label: "Denied", icon: UserX, tags: ["ejected", "banned", "trespasser"] },
+    { value: "baby", label: "Child", icon: Baby, tags: ["minor", "lost child", "family"] },
+    { value: "dog", label: "K9", icon: Dog, tags: ["canine", "animal", "service dog"] },
+    { value: "footprints", label: "Footprints", icon: Footprints, tags: ["patrol", "route", "track"] },
+    { value: "hardhat", label: "Hard Hat", icon: HardHat, tags: ["construction", "worker", "safety"] },
+  ]},
+  { label: "Vehicles", icons: [
+    { value: "car", label: "Car", icon: Car, tags: ["vehicle", "parking", "automobile"] },
+    { value: "truck", label: "Truck", icon: Truck, tags: ["delivery", "large vehicle", "semi"] },
+    { value: "bus", label: "Bus", icon: Bus, tags: ["transport", "shuttle", "transit"] },
+    { value: "bike", label: "Bicycle", icon: Bike, tags: ["cycle", "bike rack"] },
+    { value: "plane", label: "Aircraft", icon: Plane, tags: ["helicopter", "aviation", "drone"] },
+    { value: "ship", label: "Boat", icon: Ship, tags: ["watercraft", "marine", "dock"] },
+    { value: "train", label: "Train", icon: TrainFront, tags: ["rail", "station", "transit"] },
+    { value: "parking", label: "Parking", icon: ParkingCircle, tags: ["lot", "garage", "valet"] },
+  ]},
+  { label: "Comms", icons: [
+    { value: "radio", label: "Radio", icon: Radio, tags: ["communication", "walkie talkie", "comms"] },
+    { value: "phone", label: "Phone", icon: Phone, tags: ["call", "telephone", "landline"] },
+    { value: "wifi", label: "WiFi", icon: Wifi, tags: ["internet", "network", "connectivity"] },
+    { value: "satellite", label: "Satellite", icon: Satellite, tags: ["gps", "tracking", "comms"] },
+    { value: "megaphone", label: "Megaphone", icon: Megaphone, tags: ["announcement", "pa system", "broadcast"] },
+    { value: "bell", label: "Bell", icon: Bell, tags: ["alarm", "notification", "alert"] },
+    { value: "bellring", label: "Alarm Bell", icon: BellRing, tags: ["fire alarm", "emergency alarm"] },
+  ]},
+  { label: "Facilities", icons: [
+    { value: "building", label: "Building", icon: Building2, tags: ["structure", "office", "facility"] },
+    { value: "warehouse", label: "Warehouse", icon: Warehouse, tags: ["storage", "depot", "staging"] },
+    { value: "tent", label: "Tent", icon: Tent, tags: ["temporary", "canopy", "shelter"] },
+    { value: "coffee", label: "Break Area", icon: Coffee, tags: ["rest", "break room", "canteen"] },
+    { value: "utensils", label: "Food", icon: UtensilsCrossed, tags: ["concessions", "catering", "kitchen"] },
+    { value: "power", label: "Power", icon: Power, tags: ["generator", "electrical", "outlet"] },
+    { value: "lightbulb", label: "Lighting", icon: Lightbulb, tags: ["light", "illumination", "lamp"] },
+    { value: "package", label: "Storage", icon: Package, tags: ["supply", "equipment", "staging area"] },
+  ]},
+  { label: "Navigation", icons: [
+    { value: "arrowup", label: "North", icon: ArrowUp, tags: ["direction", "up"] },
+    { value: "arrowdown", label: "South", icon: ArrowDown, tags: ["direction", "down"] },
+    { value: "arrowleft", label: "West", icon: ArrowLeft, tags: ["direction", "left"] },
+    { value: "arrowright", label: "East", icon: ArrowRight, tags: ["direction", "right"] },
+    { value: "compass", label: "Compass", icon: Compass, tags: ["orientation", "bearing"] },
+    { value: "navigate", label: "Navigate", icon: Navigation, tags: ["route", "direction", "heading"] },
+  ]},
+  { label: "Terrain", icons: [
+    { value: "tree", label: "Tree / Woods", icon: TreePine, tags: ["forest", "vegetation", "nature"] },
+    { value: "mountain", label: "Mountain", icon: Mountain, tags: ["hill", "elevation", "terrain"] },
+    { value: "waves", label: "Water", icon: Waves, tags: ["river", "lake", "ocean", "shore"] },
+  ]},
 ];
+
+// Flat lookup for rendering pins
+const ICON_MAP: Record<string, LucideIcon> = {};
+const ALL_ICONS: IconEntry[] = [];
+for (const cat of ICON_CATEGORIES) {
+  for (const entry of cat.icons) {
+    ICON_MAP[entry.value] = entry.icon;
+    ALL_ICONS.push(entry);
+  }
+}
 
 const DEFAULT_COLORS = [
   "#d59b3c",
@@ -100,6 +198,120 @@ function PinIcon({
 }) {
   const Comp = ICON_MAP[icon] ?? MapPin;
   return <Comp size={size} strokeWidth={2.5} />;
+}
+
+/* ── Icon Picker (searchable dropdown) ── */
+
+function IconPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  const selectedEntry = ALL_ICONS.find(i => i.value === value);
+  const SelectedIcon = ICON_MAP[value] ?? MapPin;
+
+  const query = search.toLowerCase().trim();
+  const filtered = query
+    ? ALL_ICONS.filter(i => i.label.toLowerCase().includes(query) || i.tags.some(t => t.includes(query)))
+    : null;
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="text-[10px] font-medium uppercase tracking-wider text-slate-400 mb-1 block">Icon</label>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-slate-200 border transition-colors"
+        style={{ background: "#111b2a", borderColor: open ? "#d59b3c" : "#1a2a3a" }}
+      >
+        <span className="flex items-center justify-center w-6 h-6 rounded bg-[#d59b3c]/15 text-[#d59b3c]">
+          <SelectedIcon size={14} strokeWidth={2.5} />
+        </span>
+        <span className="flex-1 text-left truncate">{selectedEntry?.label ?? value}</span>
+        <ChevronDown size={12} className={cn("text-slate-500 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div
+          className="absolute z-[100] mt-1 w-full rounded-lg border overflow-hidden"
+          style={{ background: "#0d1520", borderColor: "#1a2a3a", boxShadow: "0 12px 40px rgba(0,0,0,0.7)" }}
+        >
+          {/* Search input */}
+          <div className="flex items-center gap-2 px-2.5 py-2 border-b" style={{ borderColor: "#1a2a3a" }}>
+            <Search size={12} className="text-slate-500 shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search icons..."
+              autoFocus
+              className="flex-1 bg-transparent text-xs text-slate-200 placeholder:text-slate-600 outline-none"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch("")} className="text-slate-600 hover:text-slate-300">
+                <X size={10} />
+              </button>
+            )}
+          </div>
+
+          {/* Icon grid */}
+          <div className="max-h-[200px] overflow-y-auto p-2 space-y-2">
+            {filtered ? (
+              filtered.length === 0 ? (
+                <p className="text-[10px] text-slate-600 text-center py-3">No icons found</p>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {filtered.map(entry => {
+                    const Ic = entry.icon;
+                    const active = value === entry.value;
+                    return (
+                      <button key={entry.value} type="button" title={entry.label}
+                        onClick={() => { onChange(entry.value); setOpen(false); setSearch(""); }}
+                        className={cn("flex items-center justify-center w-8 h-8 rounded-md border transition-colors",
+                          active ? "border-[#d59b3c] bg-[#d59b3c]/15 text-[#d59b3c]" : "border-[#1a2a3a] bg-[#111b2a] text-slate-500 hover:text-slate-300 hover:border-slate-600"
+                        )}>
+                        <Ic size={14} strokeWidth={2.5} />
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              ICON_CATEGORIES.map(cat => (
+                <div key={cat.label}>
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-slate-600 mb-1 px-0.5">{cat.label}</p>
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {cat.icons.map(entry => {
+                      const Ic = entry.icon;
+                      const active = value === entry.value;
+                      return (
+                        <button key={entry.value} type="button" title={entry.label}
+                          onClick={() => { onChange(entry.value); setOpen(false); setSearch(""); }}
+                          className={cn("flex items-center justify-center w-8 h-8 rounded-md border transition-colors",
+                            active ? "border-[#d59b3c] bg-[#d59b3c]/15 text-[#d59b3c]" : "border-[#1a2a3a] bg-[#111b2a] text-slate-500 hover:text-slate-300 hover:border-slate-600"
+                          )}>
+                          <Ic size={14} strokeWidth={2.5} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ── Pin Form (inline popover) ── */
@@ -174,33 +386,8 @@ function PinForm({
         />
       </div>
 
-      {/* Icon select */}
-      <div>
-        <label className="text-[10px] font-medium uppercase tracking-wider text-slate-400 mb-1 block">
-          Icon
-        </label>
-        <div className="flex flex-wrap gap-1.5">
-          {ICON_OPTIONS.map((opt) => {
-            const active = form.icon === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setForm({ ...form, icon: opt.value })}
-                title={opt.label}
-                className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-md border transition-colors",
-                  active
-                    ? "border-[#d59b3c] bg-[#d59b3c]/15 text-[#d59b3c]"
-                    : "border-[#1a2a3a] bg-[#111b2a] text-slate-500 hover:text-slate-300 hover:border-slate-600"
-                )}
-              >
-                <PinIcon icon={opt.value} size={14} />
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Icon select — searchable dropdown */}
+      <IconPicker value={form.icon} onChange={(v) => setForm({ ...form, icon: v })} />
 
       {/* Color picker */}
       <div>
