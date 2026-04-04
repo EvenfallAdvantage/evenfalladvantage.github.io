@@ -434,6 +434,9 @@ export default function StoryboardEditor({
   );
 
   /* ── Pin drag ── */
+  // Track live drag position without triggering saves
+  const [dragPos, setDragPos] = useState<{ pinId: string; x: number; y: number } | null>(null);
+
   const handlePinDragStart = useCallback(
     (e: React.MouseEvent, pinId: string) => {
       if (readOnly) return;
@@ -444,27 +447,33 @@ export default function StoryboardEditor({
       setEditingPinId(null);
       setNewPinPos(null);
 
+      let lastX = 0, lastY = 0;
+
       const onMove = (me: MouseEvent) => {
         const img = imageRef.current;
         if (!img) return;
         const rect = img.getBoundingClientRect();
-        const x = clamp((me.clientX - rect.left) / rect.width, 0, 1);
-        const y = clamp((me.clientY - rect.top) / rect.height, 0, 1);
-        // Live update
-        const next = pins.map((p) => (p.id === pinId ? { ...p, x, y } : p));
-        updatePins(next);
+        lastX = clamp((me.clientX - rect.left) / rect.width, 0, 1);
+        lastY = clamp((me.clientY - rect.top) / rect.height, 0, 1);
+        // Visual update only (no save triggered)
+        setDragPos({ pinId, x: lastX, y: lastY });
       };
 
       const onUp = () => {
         setDraggingPinId(null);
+        setDragPos(null);
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
+        // Commit final position — this triggers the save via onPinsChange
+        if (lastX || lastY) {
+          onPinsChange?.(pins.map((p) => (p.id === pinId ? { ...p, x: lastX, y: lastY } : p)));
+        }
       };
 
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
     },
-    [readOnly, pins, updatePins]
+    [readOnly, pins, onPinsChange]
   );
 
   const selectedPin = pins.find((p) => p.id === selectedPinId) ?? null;
@@ -556,19 +565,22 @@ export default function StoryboardEditor({
             const IconComp = ICON_MAP[pin.icon] ?? MapPin;
             const isSelected = selectedPinId === pin.id;
             const isDragging = draggingPinId === pin.id;
+            // Use live drag position during drag, otherwise use saved position
+            const displayX = (isDragging && dragPos) ? dragPos.x : pin.x;
+            const displayY = (isDragging && dragPos) ? dragPos.y : pin.y;
 
             return (
               <div
                 key={pin.id}
                 className={cn(
-                  "absolute flex items-center justify-center transition-transform",
-                  isDragging ? "z-50 scale-110" : "z-20",
+                  "absolute flex items-center justify-center",
+                  isDragging ? "z-50 scale-110" : "z-20 transition-transform",
                   isSelected && "z-40",
                   !readOnly && "cursor-grab active:cursor-grabbing"
                 )}
                 style={{
-                  left: `${pin.x * 100}%`,
-                  top: `${pin.y * 100}%`,
+                  left: `${displayX * 100}%`,
+                  top: `${displayY * 100}%`,
                   transform: `translate(-50%, -50%)${isDragging ? " scale(1.15)" : ""}`,
                 }}
                 onClick={(e) => handlePinClick(e, pin)}
