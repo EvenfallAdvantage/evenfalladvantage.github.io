@@ -599,20 +599,10 @@ export async function saveStoryboard(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pins: any[],
   storyboardId?: string,
+  createdByUserId?: string | null,
 ) {
   const supabase = createClient();
-
-  // Get internal user ID (users.id) from auth UUID (users.supabase_id)
-  const { data: { user: authUser } } = await supabase.auth.getUser();
-  let userId: string | null = null;
-  if (authUser?.id) {
-    const { data: userRow } = await supabase
-      .from("users")
-      .select("id")
-      .eq("supabase_id", authUser.id)
-      .maybeSingle();
-    userId = userRow?.id ?? null;
-  }
+  const userId = createdByUserId ?? null;
 
   if (storyboardId) {
     // Update existing

@@ -157,6 +157,7 @@ function Textarea({ value, onChange, placeholder, rows = 3 }: { value: string; o
 
 export default function AdminEventsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+  const internalUserId = useAuthStore((s) => s.user?.id ?? null);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const companyName = activeCompany?.companyName ?? "Company";
   const companyLogo = activeCompany?.companyLogo ?? undefined;
@@ -1305,20 +1306,23 @@ export default function AdminEventsPage() {
                                 <StoryboardEditor
                                   imageUrl={ev.site_map_url}
                                   pins={storyboardPins}
-                                   onPinsChange={async (newPins) => {
+                                   onPinsChange={(newPins) => {
                                     setStoryboardPins(newPins);
-                                    // Auto-save storyboard
+                                    // Debounced auto-save (prevents rapid-fire saves and auth lock contention)
                                     if (activeCompanyId && activeCompanyId !== "pending") {
-                                      try {
-                                        const result = await saveStoryboard(activeCompanyId, ev.id, newPins, storyboardId ?? undefined);
-                                        if (result && !storyboardId) {
-                                          setStoryboardId(result.id);
+                                      if ((window as any).__sbSaveTimer) clearTimeout((window as any).__sbSaveTimer);
+                                      (window as any).__sbSaveTimer = setTimeout(async () => {
+                                        try {
+                                          const result = await saveStoryboard(activeCompanyId, ev.id, newPins, storyboardId ?? undefined, internalUserId);
+                                          if (result && !storyboardId) {
+                                            setStoryboardId(result.id);
+                                          }
+                                          toast.success("Storyboard saved");
+                                        } catch (e: any) {
+                                          console.error("Failed to save storyboard:", e);
+                                          toast.error(`Storyboard save failed: ${e?.message || "unknown error"}`);
                                         }
-                                        toast.success("Storyboard saved");
-                                      } catch (e: any) {
-                                        console.error("Failed to save storyboard:", e);
-                                        toast.error(`Storyboard save failed: ${e?.message || "unknown error"}`);
-                                      }
+                                      }, 600);
                                     }
                                   }}
                                 />
