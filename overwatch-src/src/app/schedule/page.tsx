@@ -564,30 +564,26 @@ export default function SchedulePage() {
               </Card>
             );
 
-            // Group today's shifts by their event for folding
-            const shiftsByEvent = new Map<string, Shift[]>();
-            for (const sh of currentShifts) {
-              const eid = sh.events?.id ?? sh.event_id;
-              if (!shiftsByEvent.has(eid)) shiftsByEvent.set(eid, []);
-              shiftsByEvent.get(eid)!.push(sh);
-            }
-            // Find shifts whose event is NOT in currentEvents (orphan shifts)
-            const currentEventIds = new Set(currentEvents.map((ev: Ev) => ev.id));
-            const orphanShifts = currentShifts.filter((sh: Shift) => !currentEventIds.has(sh.events?.id ?? sh.event_id));
-
-            // Group upcoming shifts by their event for nesting
-            const upcomingShiftsByEvent = new Map<string, Shift[]>();
-            for (const sh of upcomingShifts) {
+            // Group ALL shifts by their event (not just today's)
+            const allShiftsByEvent = new Map<string, Shift[]>();
+            for (const sh of shifts) {
               const eid = sh.events?.id ?? sh.event_id;
               if (eid) {
-                if (!upcomingShiftsByEvent.has(eid)) upcomingShiftsByEvent.set(eid, []);
-                upcomingShiftsByEvent.get(eid)!.push(sh);
+                if (!allShiftsByEvent.has(eid)) allShiftsByEvent.set(eid, []);
+                allShiftsByEvent.get(eid)!.push(sh);
               }
             }
+
+            // Current event shifts = all shifts belonging to current events
+            const currentEventIds = new Set(currentEvents.map((ev: Ev) => ev.id));
             const upcomingEventIds = new Set(upcomingEvents.map((ev: Ev) => ev.id));
+            const allEventIds = new Set([...currentEventIds, ...upcomingEventIds]);
+
+            // Orphan shifts = shifts whose event doesn't appear in either current or upcoming events
+            const orphanShifts = currentShifts.filter((sh: Shift) => !allEventIds.has(sh.events?.id ?? sh.event_id));
             const orphanUpcomingShifts = upcomingShifts.filter((sh: Shift) => {
               const eid = sh.events?.id ?? sh.event_id;
-              return !eid || !upcomingEventIds.has(eid);
+              return !eid || !allEventIds.has(eid);
             });
 
             return (
@@ -623,7 +619,7 @@ export default function SchedulePage() {
                     <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> Current Operation
                   </h2>
                   <div className="space-y-2">
-                    {currentEvents.map((ev: Ev) => renderOpCard(ev, true, shiftsByEvent.get(ev.id)))}
+                    {currentEvents.map((ev: Ev) => renderOpCard(ev, true, allShiftsByEvent.get(ev.id)))}
                     {/* Orphan shifts without a matching event card */}
                     {orphanShifts.map((sh: Shift) => (
                       <Card key={sh.id} className={`${conflictIds.has(sh.id) ? "border-amber-500/40 bg-amber-500/5" : "border-primary/40 bg-primary/5"}`}>
@@ -664,7 +660,7 @@ export default function SchedulePage() {
                   <p className="text-xs text-muted-foreground/50 italic">No additional upcoming operations.</p>
                 ) : (
                   <div className="space-y-2">
-                    {upcomingEvents.map((ev: Ev) => renderOpCard(ev, false, upcomingShiftsByEvent.get(ev.id)))}
+                    {upcomingEvents.map((ev: Ev) => renderOpCard(ev, false, allShiftsByEvent.get(ev.id)))}
                   </div>
                 )}
               </div>
