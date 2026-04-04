@@ -42,41 +42,23 @@ ALTER TABLE incidents
 -- 4. RLS policies for storyboards
 ALTER TABLE storyboards ENABLE ROW LEVEL SECURITY;
 
+-- Uses is_company_member() helper which correctly joins through
+-- users.supabase_id = auth.uid()::text (NOT user_id = auth.uid() directly)
 CREATE POLICY "Company members can view storyboards"
-  ON storyboards FOR SELECT
-  TO authenticated
-  USING (
-    company_id IN (
-      SELECT company_id FROM company_memberships WHERE user_id = auth.uid()
-    )
-  );
+  ON storyboards FOR SELECT TO authenticated
+  USING (is_company_member(company_id));
 
 CREATE POLICY "Company members can create storyboards"
-  ON storyboards FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    company_id IN (
-      SELECT company_id FROM company_memberships WHERE user_id = auth.uid()
-    )
-  );
+  ON storyboards FOR INSERT TO authenticated
+  WITH CHECK (is_company_member(company_id));
 
 CREATE POLICY "Company members can update storyboards"
-  ON storyboards FOR UPDATE
-  TO authenticated
-  USING (
-    company_id IN (
-      SELECT company_id FROM company_memberships WHERE user_id = auth.uid()
-    )
-  );
+  ON storyboards FOR UPDATE TO authenticated
+  USING (is_company_member(company_id));
 
 CREATE POLICY "Company members can delete storyboards"
-  ON storyboards FOR DELETE
-  TO authenticated
-  USING (
-    company_id IN (
-      SELECT company_id FROM company_memberships WHERE user_id = auth.uid()
-    )
-  );
+  ON storyboards FOR DELETE TO authenticated
+  USING (is_company_member(company_id));
 
 -- 5. Create operation-maps storage bucket
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
