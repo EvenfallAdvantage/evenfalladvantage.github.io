@@ -601,6 +601,11 @@ export async function saveStoryboard(
   storyboardId?: string,
 ) {
   const supabase = createClient();
+
+  // Get current user ID for created_by field
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id ?? null;
+
   if (storyboardId) {
     // Update existing
     const { data, error } = await supabase
@@ -608,23 +613,34 @@ export async function saveStoryboard(
       .update({ pins, updated_at: new Date().toISOString() })
       .eq("id", storyboardId)
       .select()
-      .maybeSingle();
-    if (error) throw error;
+      .single();
+    if (error) {
+      console.error("Storyboard update error:", error);
+      throw error;
+    }
     return data;
   } else {
     // Create new
+    const newId = crypto.randomUUID();
     const { data, error } = await supabase
       .from("storyboards")
       .insert({
-        id: crypto.randomUUID(),
+        id: newId,
         company_id: companyId,
         event_id: eventId,
         pins,
+        created_by: userId,
         ...ts(),
       })
       .select()
-      .maybeSingle();
-    if (error) throw error;
+      .single();
+    if (error) {
+      console.error("Storyboard insert error:", error);
+      throw error;
+    }
+    if (!data) {
+      throw new Error("Storyboard insert returned no data — possible RLS policy issue");
+    }
     return data;
   }
 }

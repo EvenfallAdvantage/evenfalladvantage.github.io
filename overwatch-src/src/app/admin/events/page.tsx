@@ -1305,7 +1305,7 @@ export default function AdminEventsPage() {
                                 <StoryboardEditor
                                   imageUrl={ev.site_map_url}
                                   pins={storyboardPins}
-                                  onPinsChange={async (newPins) => {
+                                   onPinsChange={async (newPins) => {
                                     setStoryboardPins(newPins);
                                     // Auto-save storyboard
                                     if (activeCompanyId && activeCompanyId !== "pending") {
@@ -1314,7 +1314,11 @@ export default function AdminEventsPage() {
                                         if (result && !storyboardId) {
                                           setStoryboardId(result.id);
                                         }
-                                      } catch (e) { console.error("Failed to save storyboard:", e); }
+                                        toast.success("Storyboard saved");
+                                      } catch (e: any) {
+                                        console.error("Failed to save storyboard:", e);
+                                        toast.error(`Storyboard save failed: ${e?.message || "unknown error"}`);
+                                      }
                                     }
                                   }}
                                 />
