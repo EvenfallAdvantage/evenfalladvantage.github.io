@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { FileText, Send, Loader2, Check, X, Download, ChevronDown, ChevronUp, Pencil, Save } from "lucide-react";
+import { FileText, Send, Loader2, Check, X, Download, ChevronDown, ChevronUp, Pencil, Save, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -301,6 +301,22 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
           <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={onClose}><X className="h-3.5 w-3.5" /></Button>
         </div>
       </div>
+
+      {/* Intake Updated Banner */}
+      {(data as Record<string, any>)._intakeUpdated && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 flex items-center gap-2 text-xs">
+          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+          <div>
+            <p className="font-semibold text-amber-400">Intake Updated — Review Required</p>
+            <p className="text-muted-foreground">Fields were auto-updated from the latest Intake changes on {new Date((data as Record<string, any>)._intakeUpdateDate).toLocaleDateString()}. Please review and re-issue.</p>
+          </div>
+          <Button size="sm" variant="ghost" className="ml-auto text-[10px]" onClick={() => {
+            const updated = { ...data, _intakeUpdated: false } as OpordData;
+            setData(updated);
+            handleSave();
+          }}>Dismiss</Button>
+        </div>
+      )}
 
       {/* Header fields */}
       <div className="grid gap-2 sm:grid-cols-2">

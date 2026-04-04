@@ -23,7 +23,9 @@ import {
   createDocument, getEventAvailability, getLatestDocument, getEventDocuments,
   loadStoryboard, saveStoryboard,
 } from "@/lib/supabase/db";
-import { issueDocument } from "@/lib/supabase/db-documents";
+import { issueDocument, updateDocument as updateDocumentById, createDocument as createDocumentById, getLatestDocument as getLatestDocById } from "@/lib/supabase/db-documents";
+import { IntakePanel } from "@/components/ops/intake-panel";
+import type { IntakeChange } from "@/components/ops/intake-panel";
 import { createClient } from "@/lib/supabase/client";
 import type { OperationDocument } from "@/types/operations";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
@@ -254,6 +256,7 @@ export default function AdminEventsPage() {
   const [showFrago, setShowFrago] = useState(false);
   const [showGotwa, setShowGotwa] = useState(false);
   const [showDocHub, setShowDocHub] = useState(false);
+  const [showIntake, setShowIntake] = useState(false);
 
   // Availability
   const [availability, setAvailability] = useState<OperationAvailability[]>([]);
@@ -385,7 +388,7 @@ export default function AdminEventsPage() {
     if (expanded === eventId) { setExpanded(null); return; }
     setExpanded(eventId);
     setPosts([]); setSelectedDays(new Set()); setShowCustom(false); setShowBuilder(false);
-    setShowActivity(false); setActivityItems([]); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowDocHub(false);
+    setShowActivity(false); setActivityItems([]); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowDocHub(false); setShowIntake(false);
     setAvailability([]); setMergedIntake(null);
     setStoryboardPins([]); setStoryboardId(null); storyboardIdRef.current = null; setStoryboardLoading(false);
     try {
@@ -1129,6 +1132,110 @@ export default function AdminEventsPage() {
                         />
                       )}
 
+                      {/* ── Intake Panel ── */}
+                      {showIntake && activeCompanyId && activeCompanyId !== "pending" && (
+                        <IntakePanel
+                          eventId={ev.id}
+                          companyId={activeCompanyId}
+                          eventName={ev.name}
+                          eventLocation={ev.location}
+                          companyName={companyName}
+                          onClose={() => setShowIntake(false)}
+                          onSaved={async (changes: IntakeChange[]) => {
+                            if (changes.length === 0) return;
+                            // CASCADE LOGIC:
+                            try {
+                              // 1. Load latest OPORD (if exists)
+                              const opord = await getLatestDocById(ev.id, "opord");
+                              if (opord) {
+                                const opordData = (opord.data || {}) as Record<string, any>;
+                                // Map Intake fields → OPORD fields
+                                const intakeToOpord: Record<string, string> = {
+                                  venueType: "venueType",
+                                  environment: "environment",
+                                  estimatedAttendance: "estimatedAttendance",
+                                  missionStatement: "missionStatement",
+                                  threatTypes: "threatTypes",
+                                  riskLevel: "riskLevel",
+                                  constraints: "knownConstraints",
+                                  medicalCapability: "medicalCapability",
+                                  commandModel: "commandModel",
+                                  escalationFlow: "escalationFlow",
+                                  successCriteria: "successCriteria",
+                                  additionalSuccessMeasures: "additionalSuccessMeasures",
+                                };
+                                let opordUpdated = false;
+                                const updatedOpordData = { ...opordData };
+                                for (const change of changes) {
+                                  const opordField = intakeToOpord[change.field];
+                                  if (opordField) {
+                                    updatedOpordData[opordField] = JSON.parse(change.to);
+                                    opordUpdated = true;
+                                  }
+                                }
+                                if (opordUpdated) {
+                                  updatedOpordData._intakeUpdated = true;
+                                  updatedOpordData._intakeUpdateDate = new Date().toISOString();
+                                  await updateDocumentById(opord.id, { data: updatedOpordData });
+                                }
+                              }
+
+                              // 2. Load latest GOTWA (if exists)
+                              const gotwa = await getLatestDocById(ev.id, "gotwa");
+                              if (gotwa) {
+                                const gotwaData = (gotwa.data || {}) as Record<string, any>;
+                                const intakeToGotwa: Record<string, string> = {
+                                  missionStatement: "objective",
+                                  riskLevel: "status",
+                                };
+                                let gotwaUpdated = false;
+                                const updatedGotwaData = { ...gotwaData };
+                                for (const change of changes) {
+                                  const gotwaField = intakeToGotwa[change.field];
+                                  if (gotwaField) {
+                                    const parsed = JSON.parse(change.to);
+                                    updatedGotwaData[gotwaField] = typeof parsed === 'string' ? parsed : change.to;
+                                    gotwaUpdated = true;
+                                  }
+                                }
+                                if (gotwaUpdated) {
+                                  updatedGotwaData._intakeUpdated = true;
+                                  updatedGotwaData._intakeUpdateDate = new Date().toISOString();
+                                  await updateDocumentById(gotwa.id, { data: updatedGotwaData });
+                                }
+                              }
+
+                              // 3. Auto-create draft FRAGO with change summary
+                              const changeSummary = changes.map(c => `\u2022 ${c.label}: ${c.from || '(empty)'} \u2192 ${c.to || '(empty)'}`).join('\n');
+                              await createDocumentById({
+                                eventId: ev.id,
+                                companyId: activeCompanyId,
+                                docType: "frago",
+                                data: {
+                                  reason: "Intake document updated",
+                                  changes: changeSummary,
+                                  changesDetail: changes,
+                                  effectiveDateTime: new Date().toISOString(),
+                                  affectedElements: changes.map(c => c.label),
+                                  newTasking: "",
+                                  newCoordination: "",
+                                  supplyChanges: "",
+                                  commandChanges: "",
+                                  safetyUpdates: "",
+                                  issuerNotes: `Auto-generated from Intake update on ${new Date().toLocaleDateString()}`,
+                                },
+                              });
+
+                              toast.success(`Intake saved. ${opord ? 'OPORD updated. ' : ''}${gotwa ? 'GOTWA updated. ' : ''}Draft FRAGO created.`);
+                              await load();
+                            } catch (e: any) {
+                              console.error("Cascade failed:", e);
+                              toast.error(`Cascade update failed: ${e?.message || 'unknown error'}`);
+                            }
+                          }}
+                        />
+                      )}
+
                       {/* ── Document Hub ── */}
                       {showDocHub && (
                         <DocHub
@@ -1137,10 +1244,7 @@ export default function AdminEventsPage() {
                           onOpenDoc={async (type) => {
                             setShowDocHub(false);
                             if (type === "intake") {
-                              try {
-                                const doc = await getLatestDocument(ev.id, "intake");
-                                if (doc) setAdminViewingDoc(doc);
-                              } catch {}
+                              setShowIntake(true);
                             }
                             else if (type === "warno") setShowWarno(true);
                             else if (type === "opord") setShowOpord(true);
