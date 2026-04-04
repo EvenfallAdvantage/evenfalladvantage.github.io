@@ -587,6 +587,7 @@ export async function loadStoryboard(eventId: string) {
     .from("storyboards")
     .select("*")
     .eq("event_id", eventId)
+    .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error) throw error;
@@ -604,12 +605,25 @@ export async function saveStoryboard(
   const supabase = createClient();
   const userId = createdByUserId ?? null;
 
-  if (storyboardId) {
+  // If no storyboardId provided, try to find an existing one for this event
+  let resolvedId = storyboardId;
+  if (!resolvedId) {
+    const { data: existing } = await supabase
+      .from("storyboards")
+      .select("id")
+      .eq("event_id", eventId)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing) resolvedId = existing.id;
+  }
+
+  if (resolvedId) {
     // Update existing
     const { data, error } = await supabase
       .from("storyboards")
       .update({ pins, updated_at: new Date().toISOString() })
-      .eq("id", storyboardId)
+      .eq("id", resolvedId)
       .select()
       .single();
     if (error) {
@@ -618,7 +632,7 @@ export async function saveStoryboard(
     }
     return data;
   } else {
-    // Create new
+    // Create new (only if no storyboard exists for this event)
     const newId = crypto.randomUUID();
     const { data, error } = await supabase
       .from("storyboards")
