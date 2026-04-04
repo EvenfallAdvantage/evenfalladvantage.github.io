@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Flag, MapPin, Plus, Loader2, Clock, ChevronDown, ChevronRight,
   Trash2, Zap, Calendar, Check, X, FileText,
@@ -264,6 +264,7 @@ export default function AdminEventsPage() {
   // Storyboard (expanded op detail)
   const [storyboardPins, setStoryboardPins] = useState<StoryboardPin[]>([]);
   const [storyboardId, setStoryboardId] = useState<string | null>(null);
+  const storyboardIdRef = useRef<string | null>(null);
   const [storyboardLoading, setStoryboardLoading] = useState(false);
 
   /* ── Data ── */
@@ -381,7 +382,7 @@ export default function AdminEventsPage() {
     setPosts([]); setSelectedDays(new Set()); setShowCustom(false); setShowBuilder(false);
     setShowActivity(false); setActivityItems([]); setShowWarno(false); setShowOpord(false); setShowFrago(false); setShowGotwa(false); setShowDocHub(false);
     setAvailability([]); setMergedIntake(null);
-    setStoryboardPins([]); setStoryboardId(null); setStoryboardLoading(false);
+    setStoryboardPins([]); setStoryboardId(null); storyboardIdRef.current = null; setStoryboardLoading(false);
     try {
       const ev = events.find((e: Event) => e.id === eventId);
       const [s, m, avail, intakeDoc] = await Promise.all([
@@ -410,6 +411,7 @@ export default function AdminEventsPage() {
           const sb = await loadStoryboard(eventId);
           if (sb) {
             setStoryboardId(sb.id);
+            storyboardIdRef.current = sb.id;
             setStoryboardPins((sb.pins as StoryboardPin[]) ?? []);
           }
         } catch (e) { console.error("Failed to load storyboard:", e); }
@@ -1308,14 +1310,16 @@ export default function AdminEventsPage() {
                                   pins={storyboardPins}
                                    onPinsChange={(newPins) => {
                                     setStoryboardPins(newPins);
-                                    // Debounced auto-save (prevents rapid-fire saves and auth lock contention)
+                                    // Debounced auto-save using ref for latest storyboardId
                                     if (activeCompanyId && activeCompanyId !== "pending") {
                                       if ((window as any).__sbSaveTimer) clearTimeout((window as any).__sbSaveTimer);
                                       (window as any).__sbSaveTimer = setTimeout(async () => {
                                         try {
-                                          const result = await saveStoryboard(activeCompanyId, ev.id, newPins, storyboardId ?? undefined, internalUserId);
-                                          if (result && !storyboardId) {
+                                          const currentSbId = storyboardIdRef.current;
+                                          const result = await saveStoryboard(activeCompanyId, ev.id, newPins, currentSbId ?? undefined, internalUserId);
+                                          if (result && !currentSbId) {
                                             setStoryboardId(result.id);
+                                            storyboardIdRef.current = result.id;
                                           }
                                           toast.success("Storyboard saved");
                                         } catch (e: any) {
