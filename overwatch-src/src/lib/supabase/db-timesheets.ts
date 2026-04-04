@@ -151,11 +151,12 @@ export async function getCompanyTimesheets(companyId: string) {
     .order("clock_in", { ascending: false })
     .limit(100);
 
-  // Filter: only include timesheets where event belongs to this company, or no event at all
+  // Filter: only include timesheets where event belongs to this company
+  // Timesheets with no event AND no company_id are orphaned dev data — exclude them
   const filtered = (allTimesheets ?? []).filter((t: Record<string, unknown>) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ev = t.events as any;
-    if (!ev) return true; // No event = admin/off-shift, could belong to any company
+    if (!ev) return false; // No event + no company_id = orphaned, don't show
     return ev.company_id === companyId;
   });
 
