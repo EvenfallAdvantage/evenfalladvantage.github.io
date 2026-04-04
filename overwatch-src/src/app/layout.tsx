@@ -18,7 +18,7 @@ const barlow = Barlow({
 
 export const metadata: Metadata = {
   title: {
-    default: "Overwatch — Security Workforce Platform | Evenfall Advantage",
+    default: "Overwatch",
     template: "%s | Overwatch",
   },
   description:
