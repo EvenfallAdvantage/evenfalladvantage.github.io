@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Loader2, Check, X, Pencil, Save } from "lucide-react";
+import { FileText, Loader2, Check, X, Pencil, Save, Upload, MapPin, Trash2, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   getLatestDocument, updateDocument,
 } from "@/lib/supabase/db-documents";
+import { createClient } from "@/lib/supabase/client";
 import type { IntakeData, OperationDocument } from "@/types/operations";
 
 /* ── Chip option lists ──────────────────────────────── */
@@ -117,15 +118,25 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
   const [saving, setSaving] = useState(false);
   const [editOverride, setEditOverride] = useState(false);
 
+  // Site map state
+  const [siteMapUrl, setSiteMapUrl] = useState<string | null>(null);
+  const [uploadingSiteMap, setUploadingSiteMap] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
-        const existing = await getLatestDocument(eventId, "intake");
+        const [existing, eventRow] = await Promise.all([
+          getLatestDocument(eventId, "intake"),
+          createClient().from("events").select("site_map_url").eq("id", eventId).maybeSingle(),
+        ]);
         if (existing) {
           setDoc(existing);
           const merged = { ...EMPTY_INTAKE, ...(existing.data as Partial<IntakeData>) };
           setData(merged);
           setOriginalData(merged);
+        }
+        if (eventRow?.data?.site_map_url) {
+          setSiteMapUrl(eventRow.data.site_map_url);
         }
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
@@ -151,6 +162,31 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       onSaved?.(changes);
     } catch (err) { console.error(err); }
     finally { setSaving(false); }
+  }
+
+  async function handleSiteMapUpload(file: File) {
+    setUploadingSiteMap(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop() ?? "png";
+      const path = `${companyId}/${eventId}/${crypto.randomUUID()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("operation-maps").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("operation-maps").getPublicUrl(path);
+      const url = urlData.publicUrl;
+      // Update event record
+      await supabase.from("events").update({ site_map_url: url }).eq("id", eventId);
+      setSiteMapUrl(url);
+    } catch (err) { console.error("Site map upload failed:", err); }
+    finally { setUploadingSiteMap(false); }
+  }
+
+  async function handleSiteMapRemove() {
+    try {
+      const supabase = createClient();
+      await supabase.from("events").update({ site_map_url: null }).eq("id", eventId);
+      setSiteMapUrl(null);
+    } catch (err) { console.error("Site map remove failed:", err); }
   }
 
   if (loading) {
@@ -237,6 +273,44 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
           </div>
           <div><Label className="text-xs">Environment Notes</Label><Input value={data.environmentNotes} onChange={(e) => upd("environmentNotes", e.target.value)} placeholder="e.g. Urban, multi-level" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
+      </div>
+
+      {/* Site Map */}
+      <SectionHeader title="Site Map / Floor Plan" />
+      <div className="space-y-2">
+        {siteMapUrl ? (
+          <div className="space-y-2">
+            <div className="relative rounded-lg border border-border overflow-hidden">
+              <img src={siteMapUrl} alt="Site map" className="w-full h-auto max-h-48 object-contain bg-black/20" />
+              {!isLocked && (
+                <button type="button" onClick={handleSiteMapRemove}
+                  className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-red-500/90 px-2 py-1 text-[10px] font-semibold text-white hover:bg-red-600 transition-colors">
+                  <Trash2 size={11} /> Remove
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-muted-foreground flex items-center gap-1"><MapPin size={10} /> Site map uploaded</p>
+          </div>
+        ) : (
+          <div>
+            {isLocked ? (
+              <p className="text-xs text-muted-foreground italic">No site map uploaded.</p>
+            ) : (
+              <label className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-6 cursor-pointer hover:border-primary/40 hover:bg-muted/30 transition-colors">
+                {uploadingSiteMap ? (
+                  <Loader2 size={20} className="animate-spin text-muted-foreground" />
+                ) : (
+                  <Upload size={20} className="text-muted-foreground" />
+                )}
+                <span className="text-xs text-muted-foreground">{uploadingSiteMap ? "Uploading..." : "Click to upload site map"}</span>
+                <span className="text-[10px] text-muted-foreground/60">JPEG, PNG, SVG, or PDF</span>
+                <input type="file" accept="image/*,application/pdf" className="hidden"
+                  disabled={isLocked || uploadingSiteMap}
+                  onChange={(e) => { if (e.target.files?.[0]) handleSiteMapUpload(e.target.files[0]); }} />
+              </label>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Scope */}
