@@ -516,7 +516,7 @@ export default function StoryboardEditor({
       <div
         ref={containerRef}
         className={cn(
-          "relative rounded-lg border overflow-hidden select-none",
+          "relative rounded-lg border select-none",
           addMode && "cursor-crosshair"
         )}
         style={{
@@ -639,40 +639,54 @@ export default function StoryboardEditor({
           </div>
         )}
 
-        {/* ── New pin form popover ── */}
-        {newPinPos && imageLoaded && (
-          <div
-            className="absolute z-[60]"
-            style={{
-              left: popoverPos.left,
-              top: popoverPos.top,
-            }}
-          >
-            <PinForm
-              initial={{
-                label: "",
-                description: "",
-                icon: "pin",
-                color: "#d59b3c",
-              }}
-              onSubmit={handleNewPinSubmit}
-              onCancel={() => {
-                setNewPinPos(null);
-                setAddMode(false);
-              }}
-              submitLabel="Place Pin"
-            />
-          </div>
-        )}
+        {/* ── New pin form popover (rendered as fixed overlay to avoid clipping) ── */}
+        {newPinPos && imageLoaded && (() => {
+          const container = containerRef.current;
+          const cRect = container?.getBoundingClientRect();
+          const img = imageRef.current;
+          const iRect = img?.getBoundingClientRect();
+          if (!cRect || !iRect) return null;
+          // Calculate screen position of the pin
+          const pinScreenX = iRect.left + newPinPos.x * iRect.width;
+          const pinScreenY = iRect.top + newPinPos.y * iRect.height;
+          // Position popover: prefer right/below the pin, flip if near edges
+          const popW = 288, popH = 380;
+          let left = pinScreenX + 20;
+          let top = pinScreenY - 20;
+          if (left + popW > window.innerWidth - 8) left = pinScreenX - popW - 10;
+          if (top + popH > window.innerHeight - 8) top = window.innerHeight - popH - 8;
+          if (top < 8) top = 8;
+          if (left < 8) left = 8;
+          return (
+            <div className="fixed z-[200]" style={{ left, top }} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+              <PinForm
+                initial={{ label: "", description: "", icon: "pin", color: "#d59b3c" }}
+                onSubmit={handleNewPinSubmit}
+                onCancel={() => { setNewPinPos(null); setAddMode(false); }}
+                submitLabel="Place Pin"
+              />
+            </div>
+          );
+        })()}
 
-        {/* ── Selected pin detail popover ── */}
-        {selectedPin && !editingPinId && imageLoaded && (
+        {/* ── Selected pin detail popover (fixed to avoid clipping) ── */}
+        {selectedPin && !editingPinId && imageLoaded && (() => {
+          const img = imageRef.current;
+          const iRect = img?.getBoundingClientRect();
+          if (!iRect) return null;
+          const pinScreenX = iRect.left + selectedPin.x * iRect.width;
+          const pinScreenY = iRect.top + selectedPin.y * iRect.height;
+          const popW = 240, popH = 200;
+          let left = pinScreenX + 20;
+          let top = pinScreenY - 20;
+          if (left + popW > window.innerWidth - 8) left = pinScreenX - popW - 10;
+          if (top + popH > window.innerHeight - 8) top = window.innerHeight - popH - 8;
+          if (top < 8) top = 8;
+          if (left < 8) left = 8;
+          return (
           <div
-            className="absolute z-[60]"
-            style={{
-              left: popoverPos.left,
-              top: popoverPos.top,
-            }}
+            className="fixed z-[200]"
+            style={{ left, top }}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -742,32 +756,39 @@ export default function StoryboardEditor({
               )}
             </div>
           </div>
-        )}
+          );
+        })()}
 
-        {/* ── Editing pin form popover ── */}
-        {editingPin && imageLoaded && (
-          <div
-            className="absolute z-[60]"
-            style={{
-              left: popoverPos.left,
-              top: popoverPos.top,
-            }}
-          >
-            <PinForm
-              initial={{
-                label: editingPin.label,
-                description: editingPin.description,
-                icon: editingPin.icon,
-                color: editingPin.color,
-              }}
-              onSubmit={handleEditSubmit}
-              onCancel={() => {
-                setEditingPinId(null);
-              }}
-              submitLabel="Save"
-            />
-          </div>
-        )}
+        {/* ── Editing pin form popover (fixed to avoid clipping) ── */}
+        {editingPin && imageLoaded && (() => {
+          const img = imageRef.current;
+          const iRect = img?.getBoundingClientRect();
+          if (!iRect) return null;
+          const pinScreenX = iRect.left + editingPin.x * iRect.width;
+          const pinScreenY = iRect.top + editingPin.y * iRect.height;
+          const popW = 288, popH = 380;
+          let left = pinScreenX + 20;
+          let top = pinScreenY - 20;
+          if (left + popW > window.innerWidth - 8) left = pinScreenX - popW - 10;
+          if (top + popH > window.innerHeight - 8) top = window.innerHeight - popH - 8;
+          if (top < 8) top = 8;
+          if (left < 8) left = 8;
+          return (
+            <div className="fixed z-[200]" style={{ left, top }} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
+              <PinForm
+                initial={{
+                  label: editingPin.label,
+                  description: editingPin.description,
+                  icon: editingPin.icon,
+                  color: editingPin.color,
+                }}
+                onSubmit={handleEditSubmit}
+                onCancel={() => { setEditingPinId(null); }}
+                submitLabel="Save"
+              />
+            </div>
+          );
+        })()}
 
         {/* ── Add-mode overlay hint ── */}
         {addMode && !newPinPos && imageLoaded && (
