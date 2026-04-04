@@ -25,6 +25,7 @@ import {
   X,
   Map,
   Check,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,8 @@ export default function IncidentsPage() {
   const [updates, setUpdates] = useState<Record<string, IncidentUpdate[]>>({});
   const [newComment, setNewComment] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [editingIncidentId, setEditingIncidentId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
 
   // Create form — core
   const [newTitle, setNewTitle] = useState("");
@@ -683,7 +686,68 @@ export default function IncidentsPage() {
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                   </div>
 
-                  {isExpanded && (
+                  {isExpanded && editingIncidentId === inc.id ? (
+                    <div className="border-t px-4 py-4 space-y-4 bg-muted/10">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Title</label>
+                          <Input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} className="text-sm" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Location / Post</label>
+                          <Input value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} className="text-sm" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Type</label>
+                          <select value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                            {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex gap-3">
+                          <div className="flex-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Severity</label>
+                            <select value={editForm.severity} onChange={e => setEditForm(f => ({ ...f, severity: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                              {["critical","high","medium","low"].map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Priority</label>
+                            <select value={editForm.priority} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                              {["low","medium","high","urgent"].map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Narrative / Description</label>
+                        <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[120px] resize-y" />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setEditingIncidentId(null)}>Cancel</Button>
+                        <Button size="sm" className="gap-1.5 bg-primary hover:bg-primary/90" onClick={async () => {
+                          try {
+                            await updateIncident(inc.id, {
+                              title: editForm.title,
+                              type: editForm.type,
+                              severity: editForm.severity,
+                              priority: editForm.priority,
+                              location: editForm.location,
+                              description: editForm.description,
+                            });
+                            await addIncidentUpdate(inc.id, 'Incident details updated', 'update');
+                            setEditingIncidentId(null);
+                            await load();
+                            toast.success('Incident updated');
+                          } catch (e: any) {
+                            toast.error(`Update failed: ${e?.message || 'unknown error'}`);
+                          }
+                        }}>
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Save Changes
+                        </Button>
+                      </div>
+                    </div>
+                  ) : isExpanded && (
                     <div className="border-t px-4 py-4 space-y-4 bg-muted/10">
                       {inc.description && (() => {
                         const raw: string = inc.description;
@@ -758,6 +822,25 @@ export default function IncidentsPage() {
                       {/* Actions */}
                       {isAdmin && (
                         <div className="flex flex-wrap gap-3 items-center">
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs"
+                            onClick={() => {
+                              if (editingIncidentId === inc.id) {
+                                setEditingIncidentId(null);
+                              } else {
+                                setEditingIncidentId(inc.id);
+                                setEditForm({
+                                  title: inc.title || '',
+                                  type: inc.type || 'general',
+                                  severity: inc.severity || 'low',
+                                  priority: inc.priority || 'medium',
+                                  location: inc.location || '',
+                                  description: inc.description || '',
+                                });
+                              }
+                            }}>
+                            {editingIncidentId === inc.id ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+                            {editingIncidentId === inc.id ? 'Cancel' : 'Edit'}
+                          </Button>
                           <div>
                             <label className="text-xs text-muted-foreground">Status</label>
                             <select
@@ -902,7 +985,7 @@ export default function IncidentsPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => { setViewMapUrl(null); setViewMapIncidentId(null); setViewMapPins([]); }}>
           <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-border/50 bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-border/30 px-5 py-3">
-              <h3 className="text-sm font-bold">Incident Location on Site Map</h3>
+              <h3 className="text-sm font-bold">Incident Location on Site Map {isAdmin && <span className="text-[10px] text-muted-foreground font-normal ml-2">(click to edit)</span>}</h3>
               <button onClick={() => { setViewMapUrl(null); setViewMapIncidentId(null); setViewMapPins([]); }} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X className="h-4 w-4" />
               </button>
@@ -911,7 +994,20 @@ export default function IncidentsPage() {
               <StoryboardEditor
                 imageUrl={viewMapUrl}
                 pins={viewMapPins}
-                readOnly
+                readOnly={!isAdmin}
+                onPinsChange={isAdmin ? async (newPins) => {
+                  setViewMapPins(newPins);
+                  // Save the updated storyboard
+                  try {
+                    const sb = await loadStoryboard(incidents.find(i => i.id === viewMapIncidentId)?.event_id ?? '');
+                    if (sb) {
+                      await saveStoryboard(activeCompanyId!, incidents.find(i => i.id === viewMapIncidentId)?.event_id ?? '', newPins, sb.id);
+                      toast.success('Storyboard updated');
+                    }
+                  } catch (e: any) {
+                    toast.error(`Save failed: ${e?.message || 'unknown error'}`);
+                  }
+                } : undefined}
               />
             </div>
           </div>

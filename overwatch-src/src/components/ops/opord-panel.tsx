@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { FileText, Send, Loader2, Check, X, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { FileText, Send, Loader2, Check, X, Download, ChevronDown, ChevronUp, Pencil, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,6 +63,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
   const [issuing, setIssuing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [editOverride, setEditOverride] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -248,6 +249,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
   }
 
   const isIssued = doc?.status === "issued";
+  const isLocked = isIssued && !editOverride;
 
   function SectionHeader({ id, title }: { id: string; title: string }) {
     return (
@@ -264,7 +266,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
     return (
       <div className="flex flex-wrap gap-1.5 mt-1">
         {options.map(t => (
-          <button key={t} type="button" onClick={() => !isIssued && toggle(field, t)}
+          <button key={t} type="button" onClick={() => !isLocked && toggle(field, t)}
             className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${arr.includes(t) ? colorClass : "border-border/40 text-muted-foreground hover:border-border"}`}>
             {arr.includes(t) && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{t}
           </button>
@@ -282,6 +284,13 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
           <span className="text-xs font-semibold uppercase tracking-wider">OPERATION ORDER (OPORD)</span>
           {isIssued && <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold bg-green-500/15 text-green-600"><Check className="h-2.5 w-2.5" /> Issued</span>}
           {doc && !isIssued && <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-bold bg-amber-500/15 text-amber-600">Draft v{doc.version}</span>}
+          {isIssued && (
+            <Button size="sm" variant={editOverride ? "default" : "outline"} className="gap-1.5 text-xs ml-2"
+              onClick={() => setEditOverride(!editOverride)}>
+              {editOverride ? <X className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+              {editOverride ? 'Lock' : 'Edit'}
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-1">
           {doc && (
@@ -295,8 +304,8 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
 
       {/* Header fields */}
       <div className="grid gap-2 sm:grid-cols-2">
-        <div><Label className="text-xs">Prepared By</Label><Input value={data.preparedBy} onChange={(e) => upd("preparedBy", e.target.value)} placeholder="Your name" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-        <div><Label className="text-xs">Version</Label><Input value={data.version} onChange={(e) => upd("version", e.target.value)} placeholder="1.0" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+        <div><Label className="text-xs">Prepared By</Label><Input value={data.preparedBy} onChange={(e) => upd("preparedBy", e.target.value)} placeholder="Your name" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+        <div><Label className="text-xs">Version</Label><Input value={data.version} onChange={(e) => upd("version", e.target.value)} placeholder="1.0" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
       </div>
 
       {/* 1. Situation */}
@@ -305,10 +314,10 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
         <div className="space-y-2">
           <div><Label className="text-xs">Venue Type</Label><Chips field="venueType" options={VENUE_TYPES} /></div>
           <div className="grid gap-2 sm:grid-cols-3">
-            <div><Label className="text-xs">Environment</Label><Input value={data.environment} onChange={(e) => upd("environment", e.target.value)} placeholder="Indoor / Outdoor / Hybrid" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-            <div><Label className="text-xs">Est. Attendance</Label><Input value={data.estimatedAttendance} onChange={(e) => upd("estimatedAttendance", e.target.value)} placeholder="e.g. 500" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+            <div><Label className="text-xs">Environment</Label><Input value={data.environment} onChange={(e) => upd("environment", e.target.value)} placeholder="Indoor / Outdoor / Hybrid" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+            <div><Label className="text-xs">Est. Attendance</Label><Input value={data.estimatedAttendance} onChange={(e) => upd("estimatedAttendance", e.target.value)} placeholder="e.g. 500" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
             <div><Label className="text-xs">Risk Level</Label>
-              <select value={data.riskLevel} onChange={(e) => upd("riskLevel", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+              <select value={data.riskLevel} onChange={(e) => upd("riskLevel", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
                 <option value="">Select...</option>
                 {["Low", "Moderate", "High", "Critical"].map(r => <option key={r} value={r}>{r}</option>)}
               </select>
@@ -321,7 +330,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       {/* 2. Mission */}
       <SectionHeader id="mission" title="2. Mission" />
       {!collapsed.mission && (
-        <div><Txt value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName} will provide [service] for [client] at [location] in order to [purpose].`} rows={2} disabled={isIssued} /></div>
+        <div><Txt value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName} will provide [service] for [client] at [location] in order to [purpose].`} rows={2} disabled={isLocked} /></div>
       )}
 
       {/* 3. Execution */}
@@ -330,7 +339,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
         <div className="space-y-2">
           <div className="grid gap-2 sm:grid-cols-2">
             <div><Label className="text-xs">Security Posture</Label>
-              <select value={data.securityPosture} onChange={(e) => upd("securityPosture", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+              <select value={data.securityPosture} onChange={(e) => upd("securityPosture", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
                 <option value="">Select...</option>
                 <option value="Low Visibility">Low Visibility</option>
                 <option value="High Visibility">High Visibility</option>
@@ -341,9 +350,9 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
           <div><Label className="text-xs">Operational Approach</Label><Chips field="operationalApproach" options={OPS_APPROACHES} /></div>
           <div><Label className="text-xs">Primary Focus Areas</Label><Chips field="primaryFocusAreas" options={FOCUS_AREAS} /></div>
           <div className="grid gap-2 sm:grid-cols-3">
-            <div><Label className="text-xs">Entry Points</Label><Input value={data.entryPoints} onChange={(e) => upd("entryPoints", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-            <div><Label className="text-xs">High-Risk Zones</Label><Input value={data.highRiskZones} onChange={(e) => upd("highRiskZones", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-            <div><Label className="text-xs">Restricted Areas</Label><Input value={data.restrictedAreas} onChange={(e) => upd("restrictedAreas", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+            <div><Label className="text-xs">Entry Points</Label><Input value={data.entryPoints} onChange={(e) => upd("entryPoints", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+            <div><Label className="text-xs">High-Risk Zones</Label><Input value={data.highRiskZones} onChange={(e) => upd("highRiskZones", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+            <div><Label className="text-xs">Restricted Areas</Label><Input value={data.restrictedAreas} onChange={(e) => upd("restrictedAreas", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
           </div>
         </div>
       )}
@@ -354,13 +363,13 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
         <div className="space-y-2">
           <div className="grid gap-2 sm:grid-cols-3">
             <div><Label className="text-xs">Medical Capability</Label>
-              <select value={data.medicalCapability} onChange={(e) => upd("medicalCapability", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+              <select value={data.medicalCapability} onChange={(e) => upd("medicalCapability", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
                 <option value="">Select...</option>
                 {["None", "Basic First Aid", "STOP THE BLEED\u00ae", "EMS On-site"].map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
-            <div><Label className="text-xs">Comms Method</Label><Input value={data.communicationMethod} onChange={(e) => upd("communicationMethod", e.target.value)} placeholder="e.g. Radio + WhatsApp" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-            <div><Label className="text-xs">Radio Channels</Label><Input value={data.radioChannels} onChange={(e) => upd("radioChannels", e.target.value)} placeholder="Ch 1: Cmd, Ch 2: Sec" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+            <div><Label className="text-xs">Comms Method</Label><Input value={data.communicationMethod} onChange={(e) => upd("communicationMethod", e.target.value)} placeholder="e.g. Radio + WhatsApp" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+            <div><Label className="text-xs">Radio Channels</Label><Input value={data.radioChannels} onChange={(e) => upd("radioChannels", e.target.value)} placeholder="Ch 1: Cmd, Ch 2: Sec" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
           </div>
           <div><Label className="text-xs">Equipment</Label><Chips field="equipment" options={EQUIPMENT_LIST} /></div>
         </div>
@@ -372,18 +381,18 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
         <div className="space-y-2">
           <div className="grid gap-2 sm:grid-cols-3">
             <div><Label className="text-xs">Command Model</Label>
-              <select value={data.commandModel} onChange={(e) => upd("commandModel", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+              <select value={data.commandModel} onChange={(e) => upd("commandModel", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
                 <option value="">Select...</option>
                 {COMMAND_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
-            <div><Label className="text-xs">Overall Lead</Label><Input value={data.overallLead} onChange={(e) => upd("overallLead", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-            <div><Label className="text-xs">Client Rep</Label><Input value={data.clientRepresentative} onChange={(e) => upd("clientRepresentative", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+            <div><Label className="text-xs">Overall Lead</Label><Input value={data.overallLead} onChange={(e) => upd("overallLead", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+            <div><Label className="text-xs">Client Rep</Label><Input value={data.clientRepresentative} onChange={(e) => upd("clientRepresentative", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
-            <div><Label className="text-xs">Supervisors</Label><Input value={data.supervisors} onChange={(e) => upd("supervisors", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+            <div><Label className="text-xs">Supervisors</Label><Input value={data.supervisors} onChange={(e) => upd("supervisors", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
             <div><Label className="text-xs">Escalation Flow</Label>
-              <select value={data.escalationFlow} onChange={(e) => upd("escalationFlow", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+              <select value={data.escalationFlow} onChange={(e) => upd("escalationFlow", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
                 <option value="">Select...</option>
                 <option value="Staff → Supervisor → Command">Staff → Supervisor → Command</option>
                 <option value="Direct to Command">Direct to Command</option>
@@ -397,11 +406,11 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       <SectionHeader id="contingency" title="6. Contingency (PACE)" />
       {!collapsed.contingency && (
         <div className="grid gap-2 sm:grid-cols-2">
-          <div><Label className="text-xs">Primary Plan</Label><Txt value={data.primaryPlan} onChange={(v) => upd("primaryPlan", v)} placeholder="Standard operations continue as planned" rows={1} disabled={isIssued} /></div>
-          <div><Label className="text-xs">Alternate Plan</Label><Txt value={data.alternatePlan} onChange={(v) => upd("alternatePlan", v)} placeholder="Adjust posture or redistribute personnel" rows={1} disabled={isIssued} /></div>
-          <div><Label className="text-xs">Contingency Plan</Label><Txt value={data.contingencyPlan} onChange={(v) => upd("contingencyPlan", v)} placeholder="Activate contingency team, notify command" rows={1} disabled={isIssued} /></div>
-          <div><Label className="text-xs">Emergency Plan</Label><Txt value={data.emergencyPlan} onChange={(v) => upd("emergencyPlan", v)} placeholder="Full activation, coordinate with EMS/LE" rows={1} disabled={isIssued} /></div>
-          <div className="sm:col-span-2"><Label className="text-xs">Recovery Plan</Label><Txt value={data.recoveryPlan} onChange={(v) => upd("recoveryPlan", v)} placeholder="Post-incident debrief, AAR, resume normal ops" rows={1} disabled={isIssued} /></div>
+          <div><Label className="text-xs">Primary Plan</Label><Txt value={data.primaryPlan} onChange={(v) => upd("primaryPlan", v)} placeholder="Standard operations continue as planned" rows={1} disabled={isLocked} /></div>
+          <div><Label className="text-xs">Alternate Plan</Label><Txt value={data.alternatePlan} onChange={(v) => upd("alternatePlan", v)} placeholder="Adjust posture or redistribute personnel" rows={1} disabled={isLocked} /></div>
+          <div><Label className="text-xs">Contingency Plan</Label><Txt value={data.contingencyPlan} onChange={(v) => upd("contingencyPlan", v)} placeholder="Activate contingency team, notify command" rows={1} disabled={isLocked} /></div>
+          <div><Label className="text-xs">Emergency Plan</Label><Txt value={data.emergencyPlan} onChange={(v) => upd("emergencyPlan", v)} placeholder="Full activation, coordinate with EMS/LE" rows={1} disabled={isLocked} /></div>
+          <div className="sm:col-span-2"><Label className="text-xs">Recovery Plan</Label><Txt value={data.recoveryPlan} onChange={(v) => upd("recoveryPlan", v)} placeholder="Post-incident debrief, AAR, resume normal ops" rows={1} disabled={isLocked} /></div>
         </div>
       )}
 
@@ -409,9 +418,9 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       <SectionHeader id="timeline" title="7. Timeline" />
       {!collapsed.timeline && (
         <div className="grid gap-2 sm:grid-cols-3">
-          <div><Label className="text-xs">Operational Start</Label><Input value={data.operationalStart} onChange={(e) => upd("operationalStart", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-          <div><Label className="text-xs">Peak Periods</Label><Input value={data.peakPeriods} onChange={(e) => upd("peakPeriods", e.target.value)} placeholder="e.g. 2100–0100" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-          <div><Label className="text-xs">Operational End</Label><Input value={data.operationalEnd} onChange={(e) => upd("operationalEnd", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label className="text-xs">Operational Start</Label><Input value={data.operationalStart} onChange={(e) => upd("operationalStart", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label className="text-xs">Peak Periods</Label><Input value={data.peakPeriods} onChange={(e) => upd("peakPeriods", e.target.value)} placeholder="e.g. 2100–0100" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label className="text-xs">Operational End</Label><Input value={data.operationalEnd} onChange={(e) => upd("operationalEnd", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
       )}
 
@@ -420,25 +429,27 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       {!collapsed.success && (
         <div className="space-y-2">
           <Chips field="successCriteria" options={SUCCESS_OPTIONS} color="green" />
-          <div><Label className="text-xs">Additional Measures</Label><Txt value={data.additionalSuccessMeasures} onChange={(v) => upd("additionalSuccessMeasures", v)} placeholder="Any additional success metrics" rows={1} disabled={isIssued} /></div>
+          <div><Label className="text-xs">Additional Measures</Label><Txt value={data.additionalSuccessMeasures} onChange={(v) => upd("additionalSuccessMeasures", v)} placeholder="Any additional success metrics" rows={1} disabled={isLocked} /></div>
         </div>
       )}
 
       {/* 9. Notes */}
       <SectionHeader id="notes" title="9. Special Instructions / Notes" />
       {!collapsed.notes && (
-        <div><Txt value={data.specialInstructions} onChange={(v) => upd("specialInstructions", v)} placeholder="VIP details, restricted areas, weather contingencies..." rows={2} disabled={isIssued} /></div>
+        <div><Txt value={data.specialInstructions} onChange={(v) => upd("specialInstructions", v)} placeholder="VIP details, restricted areas, weather contingencies..." rows={2} disabled={isLocked} /></div>
       )}
 
       {/* Actions */}
-      {!isIssued && (
+      {(!isIssued || editOverride) && (
         <div className="flex items-center gap-2 pt-2 border-t border-border/20">
           <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />} Save Draft
+            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} {editOverride ? 'Save Changes' : 'Save Draft'}
           </Button>
-          <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={handleIssue} disabled={issuing || !data.missionStatement.trim()}>
-            {issuing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />} Issue OPORD
-          </Button>
+          {!isIssued && !editOverride && (
+            <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={handleIssue} disabled={issuing || !data.missionStatement.trim()}>
+              {issuing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />} Issue OPORD
+            </Button>
+          )}
         </div>
       )}
 
