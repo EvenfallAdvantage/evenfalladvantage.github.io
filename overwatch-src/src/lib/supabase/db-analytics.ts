@@ -239,9 +239,9 @@ export async function getOwnerIntel(companyId: string) {
     safeCount(supabase.from("time_off_requests").select("id, time_off_policies!inner(company_id)", { count: "exact", head: true })
       .eq("time_off_policies.company_id", companyId).eq("status", "pending")),
     safeCount(supabase.from("form_submissions").select("id", { count: "exact", head: true })
-      .eq("status", "submitted")),
+      .eq("company_id", companyId).eq("status", "submitted")),
     safeCount(supabase.from("timesheets").select("id", { count: "exact", head: true })
-      .eq("approved", false).not("clock_out", "is", null)),
+      .eq("company_id", companyId).eq("approved", false).not("clock_out", "is", null)),
   ]);
   const approvals = {
     timeCorrections: pendingTimeCorrections ?? 0,
@@ -298,7 +298,7 @@ export async function getOwnerIntel(companyId: string) {
     const { data: sheets } = await supabase
       .from("timesheets")
       .select("clock_in, clock_out, approved")
-      .in("user_id", uids)
+      .eq("company_id", companyId)
       .not("clock_out", "is", null)
       .gte("clock_in", weekStart.toISOString())
       .limit(500);
