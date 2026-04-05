@@ -321,8 +321,8 @@ export default function FeedPage() {
   const load = useCallback(async () => {
     try {
       const [ts, history] = await Promise.all([
-        getActiveTimesheet(),
-        getRecentTimesheets(3),
+        getActiveTimesheet(activeCompanyId ?? undefined),
+        getRecentTimesheets(3, activeCompanyId ?? undefined),
       ]);
       setActive(ts);
       setRecentShifts(history.filter((t: Timesheet) => t.clock_out));

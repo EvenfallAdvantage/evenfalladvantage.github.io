@@ -3,20 +3,24 @@ import { ts, ensureInternalUser } from "./db-helpers";
 
 // ─── Timesheets (Watch Log) ──────────────────────────────
 
-export async function getActiveTimesheet() {
+export async function getActiveTimesheet(companyId?: string) {
   const userId = await ensureInternalUser();
   if (!userId) return null;
 
   const supabase = createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("timesheets")
     .select("*, shifts(id, role, start_time, end_time, events(id, name, location)), events(id, name, location)")
     .eq("user_id", userId)
     .is("clock_out", null)
     .order("clock_in", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
+  if (companyId) {
+    query = query.eq("company_id", companyId);
+  }
+
+  const { data } = await query.maybeSingle();
   return data;
 }
 
@@ -102,20 +106,45 @@ export async function clockOut(timesheetId: string) {
   return data;
 }
 
-export async function getRecentTimesheets(limit = 10) {
+export async function getRecentTimesheets(limit = 10, companyId?: string) {
   const userId = await ensureInternalUser();
   if (!userId) return [];
 
   const supabase = createClient();
 
-  const { data } = await supabase
+  let query = supabase
     .from("timesheets")
-    .select("*, events(id, name, location)")
+    .select("*, events(id, name, location, company_id)")
     .eq("user_id", userId)
     .order("clock_in", { ascending: false })
-    .limit(limit);
+    .limit(companyId ? limit * 2 : limit); // fetch extra for post-filter
 
-  return data ?? [];
+  // Filter by company_id if available
+  if (companyId) {
+    query = query.eq("company_id", companyId);
+  }
+
+  const { data } = await query;
+  let results = data ?? [];
+
+  // Fallback: for legacy timesheets without company_id, filter by event.company_id
+  if (companyId && results.length === 0) {
+    const { data: fallback } = await supabase
+      .from("timesheets")
+      .select("*, events(id, name, location, company_id)")
+      .eq("user_id", userId)
+      .is("company_id", null)
+      .order("clock_in", { ascending: false })
+      .limit(limit * 2);
+
+    results = (fallback ?? []).filter((t: any) => {
+      const ev = t.events as any;
+      if (!ev) return false;
+      return ev.company_id === companyId;
+    });
+  }
+
+  return results.slice(0, limit);
 }
 
 // ─── Timesheet approval (admin) ──────────────────────

@@ -115,8 +115,8 @@ export default function TimeClockPage() {
   const load = useCallback(async () => {
     try {
       const [ts, history] = await Promise.all([
-        getActiveTimesheet(),
-        getRecentTimesheets(20),
+        getActiveTimesheet(activeCompanyId ?? undefined),
+        getRecentTimesheets(20, activeCompanyId ?? undefined),
       ]);
       setActive(ts);
       setRecent(history.filter((t: Timesheet) => t.clock_out));
