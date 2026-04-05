@@ -36,8 +36,8 @@ function adjustBrightness(hex: string, factor: number): string {
 
 export default function BrandThemeProvider() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
-  const brandColor = activeCompany?.brandColor ?? "#1d3451";
-  const accentColor = (activeCompany as any)?.accentColor ?? "#d59b3c";
+  const brandColor = activeCompany?.brandColor || "#1d3451";
+  const accentColor = (activeCompany as any)?.accentColor || "#d59b3c";
 
   useEffect(() => {
     const root = document.documentElement;

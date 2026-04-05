@@ -125,7 +125,7 @@ export default function AdminSettingsPage() {
   const [name, setName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [timezone, setTimezone] = useState("");
-  const [brandColor, setBrandColor] = useState("");
+  const [brandColor, setBrandColor] = useState("#1d3451");
   const [accentColor, setAccentColor] = useState("#d59b3c");
   const [logoUrl, setLogoUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -166,8 +166,8 @@ export default function AdminSettingsPage() {
         setName(c.name ?? "");
         setJoinCode(c.join_code ?? "");
         setTimezone(c.timezone ?? "");
-        setBrandColor(c.brand_color ?? "#1d3451");
-        setAccentColor(c.accent_color ?? "#d59b3c");
+        setBrandColor(c.brand_color || "#1d3451");
+        setAccentColor(c.accent_color || "#d59b3c");
         setLogoUrl(c.logo_url ?? "");
         setWebsiteUrl(c.website_url ?? "");
         if (c.settings) {
