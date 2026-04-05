@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown, LayoutGrid, Upload, Link as LinkIcon } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown, LayoutGrid, Upload, Link as LinkIcon, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, updateCompanySettings, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
@@ -102,6 +102,20 @@ const ALL_TIMEZONES: string[] = typeof Intl !== "undefined" && Intl.supportedVal
 
 const DEVICE_TZ = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "";
 
+function getLuminance(hex: string): number {
+  const h = hex.replace("#", "");
+  const [r, g, b] = [parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255]
+    .map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function adjustBrightness(hex: string, factor: number): string {
+  const h = hex.replace("#", "");
+  const clamp = (v: number) => Math.min(255, Math.max(0, Math.round(v)));
+  const [r, g, b] = [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  return `#${[clamp(r * factor), clamp(g * factor), clamp(b * factor)].map(v => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
 export default function AdminSettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
@@ -112,6 +126,7 @@ export default function AdminSettingsPage() {
   const [joinCode, setJoinCode] = useState("");
   const [timezone, setTimezone] = useState("");
   const [brandColor, setBrandColor] = useState("");
+  const [accentColor, setAccentColor] = useState("#d59b3c");
   const [logoUrl, setLogoUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [saving, setSaving] = useState(false);
@@ -152,6 +167,7 @@ export default function AdminSettingsPage() {
         setJoinCode(c.join_code ?? "");
         setTimezone(c.timezone ?? "");
         setBrandColor(c.brand_color ?? "#1d3451");
+        setAccentColor(c.accent_color ?? "#d59b3c");
         setLogoUrl(c.logo_url ?? "");
         setWebsiteUrl(c.website_url ?? "");
         if (c.settings) {
@@ -196,7 +212,7 @@ export default function AdminSettingsPage() {
     if (!activeCompanyId || activeCompanyId === "pending") return;
     setSaving(true);
     try {
-      await updateCompany(activeCompanyId, { name, brandColor, timezone, logoUrl: logoUrl || undefined, websiteUrl: websiteUrl || undefined });
+      await updateCompany(activeCompanyId, { name, brandColor, accentColor, timezone, logoUrl: logoUrl || undefined, websiteUrl: websiteUrl || undefined });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       toast.success("Settings saved");
@@ -394,11 +410,57 @@ export default function AdminSettingsPage() {
                 )}
               </div>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Brand Color</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="h-9 w-12 cursor-pointer rounded border border-border" />
-                <Input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="flex-1 font-mono" />
+            {/* Brand Colors */}
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Primary Color (dark backgrounds)</Label>
+                <p className="text-[10px] text-muted-foreground/60 mb-1.5">Used for sidebar, dark surfaces. Must be a dark color.</p>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={brandColor} onChange={(e) => {
+                    const lum = getLuminance(e.target.value);
+                    if (lum > 0.15) { /* warn but don't block */ }
+                    setBrandColor(e.target.value);
+                  }} className="h-9 w-9 rounded-md border border-border cursor-pointer bg-transparent" />
+                  <Input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="flex-1 font-mono" />
+                  {getLuminance(brandColor) > 0.15 && (
+                    <span className="text-[10px] text-amber-500 flex items-center gap-1"><AlertTriangle size={12} /> Too light</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Accent Color (highlights &amp; buttons)</Label>
+                <p className="text-[10px] text-muted-foreground/60 mb-1.5">Used for buttons, active states, badges. Should be bright/visible.</p>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-9 w-9 rounded-md border border-border cursor-pointer bg-transparent" />
+                  <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="flex-1 font-mono" />
+                  {getLuminance(accentColor) < 0.1 && (
+                    <span className="text-[10px] text-amber-500 flex items-center gap-1"><AlertTriangle size={12} /> Too dark</span>
+                  )}
+                </div>
+              </div>
+              {/* Live preview card */}
+              <div className="rounded-lg border border-border overflow-hidden">
+                <div className="px-3 py-2 text-[10px] text-muted-foreground uppercase tracking-wider">Preview</div>
+                <div className="flex">
+                  <div className="w-16 p-2 flex flex-col gap-1.5" style={{ background: brandColor }}>
+                    <div className="w-full h-1.5 rounded-full opacity-30" style={{ background: "#ffffff" }} />
+                    <div className="w-full h-1.5 rounded-full" style={{ background: accentColor }} />
+                    <div className="w-full h-1.5 rounded-full opacity-30" style={{ background: "#ffffff" }} />
+                    <div className="w-full h-1.5 rounded-full opacity-30" style={{ background: "#ffffff" }} />
+                  </div>
+                  <div className="flex-1 p-3 space-y-2" style={{ background: adjustBrightness(brandColor, 1.15) }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded-full" style={{ background: accentColor }} />
+                      <div className="h-2 w-24 rounded-full bg-white/20" />
+                    </div>
+                    <div className="flex gap-1.5">
+                      <div className="h-6 px-3 rounded-md text-[10px] font-semibold flex items-center text-white" style={{ background: accentColor }}>Button</div>
+                      <div className="h-6 px-3 rounded-md text-[10px] font-semibold flex items-center border" style={{ borderColor: accentColor, color: accentColor }}>Outline</div>
+                    </div>
+                    <div className="h-2 w-32 rounded-full bg-white/10" />
+                    <div className="h-2 w-20 rounded-full bg-white/10" />
+                  </div>
+                </div>
               </div>
             </div>
             <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>

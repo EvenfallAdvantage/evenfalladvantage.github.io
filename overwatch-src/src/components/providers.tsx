@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth-provider";
 import { SecurityProvider } from "@/components/security-provider";
+import BrandThemeProvider from "@/components/brand-theme-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { useState, useEffect } from "react";
 
@@ -36,6 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <BrandThemeProvider />
           <SecurityProvider>
             <TooltipProvider delay={0}>
               {children}

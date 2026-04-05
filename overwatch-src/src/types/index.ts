@@ -20,6 +20,7 @@ export type CompanyContext = {
   companySlug: string;
   companyLogo: string | null;
   brandColor: string;
+  accentColor: string;
   role: string;
   isTrainingProvider: boolean;
   settings: CompanySettings;
@@ -102,6 +103,7 @@ export type UserProfilePayload = {
 export type CompanyPayload = {
   name?: string;
   brand_color?: string;
+  accent_color?: string;
   timezone?: string;
   logo_url?: string;
   website_url?: string;

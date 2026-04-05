@@ -173,6 +173,7 @@ export async function fetchUserProfile(knownAuthId?: string) {
         slug,
         logo_url,
         brand_color,
+        accent_color,
         join_code,
         settings,
         is_training_provider
@@ -198,6 +199,7 @@ function generateJoinCode(): string {
 export async function createCompany(data: {
   name: string;
   brandColor?: string;
+  accentColor?: string;
 }) {
   const supabase = createClient();
   const slug = data.name
@@ -213,6 +215,7 @@ export async function createCompany(data: {
       slug,
       join_code: generateJoinCode(),
       brand_color: data.brandColor ?? "#1d3451",
+      accent_color: data.accentColor ?? "#d59b3c",
       timezone: "America/Los_Angeles",
       settings: {},
       ...ts(),
@@ -477,6 +480,7 @@ export async function getCompanyDetails(companyId: string) {
 export async function updateCompany(companyId: string, updates: {
   name?: string;
   brandColor?: string;
+  accentColor?: string;
   timezone?: string;
   logoUrl?: string;
   websiteUrl?: string;
@@ -485,6 +489,7 @@ export async function updateCompany(companyId: string, updates: {
   const payload: CompanyPayload = {};
   if (updates.name !== undefined) payload.name = updates.name;
   if (updates.brandColor !== undefined) payload.brand_color = updates.brandColor;
+  if (updates.accentColor !== undefined) payload.accent_color = updates.accentColor;
   if (updates.timezone !== undefined) payload.timezone = updates.timezone;
   if (updates.logoUrl !== undefined) payload.logo_url = updates.logoUrl;
   if (updates.websiteUrl !== undefined) payload.website_url = updates.websiteUrl;
