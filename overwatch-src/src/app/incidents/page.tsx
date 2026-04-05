@@ -94,6 +94,16 @@ export default function IncidentsPage() {
   const activeCompany = useAuthStore(s => s.getActiveCompany());
   const isAdmin = activeCompany && hasMinRole(activeCompany.role as CompanyRole, "manager");
 
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [updates, setUpdates] = useState<Record<string, IncidentUpdate[]>>({});
+  const [newComment, setNewComment] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
@@ -108,16 +118,6 @@ export default function IncidentsPage() {
     );
     return () => clearHeader();
   }, [setHeader, clearHeader, showCreate]);
-
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [updates, setUpdates] = useState<Record<string, IncidentUpdate[]>>({});
-  const [newComment, setNewComment] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
   const [editingIncidentId, setEditingIncidentId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
 
