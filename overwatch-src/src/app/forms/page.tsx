@@ -23,17 +23,26 @@ export default function FormsPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
 
+  const [forms, setForms] = useState<Form[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("REPORTS", "Incident reports, field reports, and documentation", <AlertTriangle className="h-5 w-5" />);
+    setHeader(
+      "REPORTS",
+      "Incident reports, field reports, and documentation",
+      <AlertTriangle className="h-5 w-5" />,
+      isAdmin ? (
+        <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 w-full sm:w-auto">
+          <Plus className="h-4 w-4" /> New Form
+        </Button>
+      ) : undefined
+    );
     return () => clearHeader();
-  }, [setHeader, clearHeader]);
-
-  const [forms, setForms] = useState<Form[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
+  }, [setHeader, clearHeader, showCreate, isAdmin]);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [creating, setCreating] = useState(false);
@@ -161,13 +170,7 @@ export default function FormsPage() {
             </div>
           </div>
         )}
-        {!selected && isAdmin && (
-          <div className="flex justify-end">
-            <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
-              <Plus className="h-4 w-4" /> New Form
-            </Button>
-          </div>
-        )}
+        {/* New Form button moved to topbar header actions */}
 
         {/* Report type tabs */}
         {!selected && (
