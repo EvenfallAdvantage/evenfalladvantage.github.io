@@ -475,6 +475,29 @@ export async function updateMemberProfile(companyId: string, updates: {
     .select()
     .maybeSingle();
   if (error) throw error;
+
+  // Sync personal profile fields across ALL company memberships for this user
+  // (so the user only has to fill out their profile once)
+  const personalFields: Record<string, unknown> = {};
+  const syncKeys = [
+    "address", "bio", "guard_card_number", "guard_card_expiry",
+    "emergency_contact_name", "emergency_contact_phone",
+    "shirt_size", "jacket_size", "dietary_restrictions",
+    "work_preferences", "whatsapp_opted_in",
+  ];
+  for (const key of syncKeys) {
+    if (key in payload) personalFields[key] = payload[key];
+  }
+  if (Object.keys(personalFields).length > 0) {
+    personalFields.updated_at = new Date().toISOString();
+    await supabase
+      .from("company_memberships")
+      .update(personalFields)
+      .eq("user_id", userId)
+      .neq("company_id", companyId)
+      .then(() => {}); // fire-and-forget, don't block on cross-company sync
+  }
+
   return data;
 }
 

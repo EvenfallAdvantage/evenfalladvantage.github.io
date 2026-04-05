@@ -542,7 +542,10 @@ export default function ProfilePage() {
             {mpLoaded && mp && (
               <Card>
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm font-medium">Company Profile</CardTitle>
+                  <div>
+                    <CardTitle className="text-sm font-medium">Personal Profile</CardTitle>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Synced across all your companies</p>
+                  </div>
                   {!editingCompany && (
                     <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditingCompany(true)}>
                       <Pencil className="h-3.5 w-3.5" />
