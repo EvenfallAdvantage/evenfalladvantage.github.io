@@ -31,6 +31,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
   const companyInitial = activeCompany?.companyName?.charAt(0)?.toUpperCase() ?? "O";
 
   return (
+    <>
     <header
       className={cn(
         "fixed top-0 right-0 z-30 flex h-14 sm:h-16 items-center gap-2 sm:gap-4 border-b border-border/50 bg-background/80 px-3 sm:px-6 backdrop-blur-xl transition-all duration-300",
@@ -66,7 +67,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
 
       <div className="flex-1" />
 
-      {/* Page-specific action buttons */}
+      {/* Page-specific action buttons — full in topbar on desktop */}
       {actions && <div className="hidden sm:flex items-center gap-2">{actions}</div>}
 
       <div className="flex items-center gap-2">
@@ -84,5 +85,13 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
         </Link>
       </div>
     </header>
+
+    {/* Mobile FAB — floating action button above mobile nav */}
+    {actions && (
+      <div className="fixed bottom-20 right-4 z-40 sm:hidden [&_button]:shadow-lg [&_button]:shadow-primary/25 [&_button]:rounded-full [&_button]:h-11 [&_button]:min-w-11 [&_button]:text-xs">
+        {actions}
+      </div>
+    )}
+    </>
   );
 }
