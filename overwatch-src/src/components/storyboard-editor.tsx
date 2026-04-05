@@ -170,8 +170,16 @@ for (const cat of ICON_CATEGORIES) {
   }
 }
 
+// Get brand accent at runtime for default pin color
+function getBrandAccent(): string {
+  if (typeof document !== "undefined") {
+    return getComputedStyle(document.documentElement).getPropertyValue("--brand-accent").trim() || "#d59b3c";
+  }
+  return "#d59b3c";
+}
+
 const DEFAULT_COLORS = [
-  "#d59b3c",
+  "#d59b3c", // will be replaced by brand accent at render time
   "#ef4444",
   "#22c55e",
   "#3b82f6",
@@ -231,9 +239,9 @@ function IconPicker({ value, onChange }: { value: string; onChange: (v: string) 
         type="button"
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-slate-200 border transition-colors"
-        style={{ background: "#111b2a", borderColor: open ? "#d59b3c" : "#1a2a3a" }}
+        style={{ background: "color-mix(in srgb, var(--brand-primary, #0d1520), #ffffff 8%)", borderColor: open ? "var(--brand-accent, #d59b3c)" : "var(--brand-primary-light, #1a2a3a)" }}
       >
-        <span className="flex items-center justify-center w-6 h-6 rounded bg-[#d59b3c]/15 text-[#d59b3c]">
+        <span className="flex items-center justify-center w-6 h-6 rounded" style={{ background: "color-mix(in srgb, var(--brand-accent, #d59b3c), transparent 85%)", color: "var(--brand-accent, #d59b3c)" }}>
           <SelectedIcon size={14} strokeWidth={2.5} />
         </span>
         <span className="flex-1 text-left truncate">{selectedEntry?.label ?? value}</span>
@@ -243,7 +251,7 @@ function IconPicker({ value, onChange }: { value: string; onChange: (v: string) 
       {open && (
         <div
           className="absolute z-[100] mt-1 w-full rounded-lg border overflow-hidden"
-          style={{ background: "#0d1520", borderColor: "#1a2a3a", boxShadow: "0 12px 40px rgba(0,0,0,0.7)" }}
+          style={{ background: "var(--brand-primary, #0d1520)", borderColor: "var(--brand-primary-light, #1a2a3a)", boxShadow: "0 12px 40px rgba(0,0,0,0.7)" }}
         >
           {/* Search input */}
           <div className="flex items-center gap-2 px-2.5 py-2 border-b" style={{ borderColor: "#1a2a3a" }}>
@@ -277,7 +285,7 @@ function IconPicker({ value, onChange }: { value: string; onChange: (v: string) 
                       <button key={entry.value} type="button" title={entry.label}
                         onClick={() => { onChange(entry.value); setOpen(false); setSearch(""); }}
                         className={cn("flex items-center justify-center w-8 h-8 rounded-md border transition-colors",
-                          active ? "border-[#d59b3c] bg-[#d59b3c]/15 text-[#d59b3c]" : "border-[#1a2a3a] bg-[#111b2a] text-slate-500 hover:text-slate-300 hover:border-slate-600"
+                          active ? "border-[var(--brand-accent,#d59b3c)] bg-primary/15 text-primary" : "border-border bg-card text-slate-500 hover:text-slate-300 hover:border-slate-600"
                         )}>
                         <Ic size={14} strokeWidth={2.5} />
                       </button>
@@ -297,7 +305,7 @@ function IconPicker({ value, onChange }: { value: string; onChange: (v: string) 
                         <button key={entry.value} type="button" title={entry.label}
                           onClick={() => { onChange(entry.value); setOpen(false); setSearch(""); }}
                           className={cn("flex items-center justify-center w-8 h-8 rounded-md border transition-colors",
-                            active ? "border-[#d59b3c] bg-[#d59b3c]/15 text-[#d59b3c]" : "border-[#1a2a3a] bg-[#111b2a] text-slate-500 hover:text-slate-300 hover:border-slate-600"
+                            active ? "border-[var(--brand-accent,#d59b3c)] bg-primary/15 text-primary" : "border-border bg-card text-slate-500 hover:text-slate-300 hover:border-slate-600"
                           )}>
                           <Ic size={14} strokeWidth={2.5} />
                         </button>
@@ -340,8 +348,8 @@ function PinForm({
     <div
       className="flex flex-col gap-2.5 p-3 rounded-lg border min-w-[260px]"
       style={{
-        background: "#0d1520",
-        borderColor: "#1a2a3a",
+        background: "var(--brand-primary, #0d1520)",
+        borderColor: "var(--brand-primary-light, #1a2a3a)",
         boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
       }}
       onClick={(e) => e.stopPropagation()}
@@ -357,14 +365,13 @@ function PinForm({
           value={form.label}
           onChange={(e) => setForm({ ...form, label: e.target.value })}
           placeholder="e.g. Main entrance"
-          autoFocus
-          className="w-full rounded-md px-2.5 py-1.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none focus:ring-1"
-          style={{
-            background: "#111b2a",
-            borderColor: "#1a2a3a",
-            border: "1px solid #1a2a3a",
-          }}
-          onFocus={(e) => (e.target.style.outlineColor = "#d59b3c")}
+            autoFocus
+            className="w-full rounded-md px-2.5 py-1.5 text-sm text-slate-200 placeholder:text-slate-600 outline-none focus:ring-1"
+            style={{
+              background: "color-mix(in srgb, var(--brand-primary, #0d1520), #ffffff 8%)",
+              border: "1px solid var(--brand-primary-light, #1a2a3a)",
+            }}
+            onFocus={(e) => (e.target.style.outlineColor = "var(--brand-accent, #d59b3c)")}
         />
       </div>
 
@@ -424,7 +431,7 @@ function PinForm({
           className={cn(
             "flex-1 rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors",
             form.label.trim()
-              ? "bg-[#d59b3c] text-black hover:bg-[#e5ab4c]"
+              ? "bg-primary text-primary-foreground hover:opacity-90"
               : "bg-slate-800 text-slate-600 cursor-not-allowed"
           )}
         >
