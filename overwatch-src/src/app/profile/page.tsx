@@ -645,9 +645,11 @@ export default function ProfilePage() {
                         )}
                         {mp.hire_date && (
                           <div><span className="text-muted-foreground text-xs">Hire Date</span><p className="font-medium">{new Date(mp.hire_date).toLocaleDateString()}</p></div>
-                      )}
-                    </>
-                  )}
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
                 </CardContent>
               </Card>
 
