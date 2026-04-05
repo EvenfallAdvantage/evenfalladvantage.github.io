@@ -119,14 +119,19 @@ export default function CertificationsPage() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
+  const [showAdd, setShowAdd] = useState(false);
+
   useEffect(() => {
-    setHeader("CERTIFICATIONS", "Manage credentials, generate certificates, and verify", <Award className="h-5 w-5" />);
+    setHeader("CERTIFICATIONS", "Manage credentials, generate certificates, and verify", <Award className="h-5 w-5" />,
+      <Button size="sm" className="gap-1.5" onClick={() => setShowAdd(true)}>
+        <Plus className="h-3.5 w-3.5" /> Add Certification
+      </Button>
+    );
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
   const [certs, setCerts] = useState<Cert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -249,12 +254,6 @@ export default function CertificationsPage() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex justify-end">
-          <Button size="sm" className="gap-1.5" onClick={() => setShowAdd(true)}>
-            <Plus className="h-3.5 w-3.5" /> Add Certification
-          </Button>
-        </div>
-
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Card className="border-border/40"><CardContent className="p-3 text-center">

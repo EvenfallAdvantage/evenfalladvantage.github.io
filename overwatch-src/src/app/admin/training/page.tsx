@@ -36,12 +36,28 @@ export default function AdminTrainingPage() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
-  useEffect(() => {
-    setHeader("TRAINING ADMIN", "Manage training modules, slides, and assessment questions", <GraduationCap className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
-
   const [tab, setTab] = useState<"modules" | "questions" | "progress">("modules");
+
+  // New module form (declared before useEffect that references it)
+  const [showNewModule, setShowNewModule] = useState(false);
+
+  // Question Bank show form (declared before useEffect that references it)
+  const [showNewQ, setShowNewQ] = useState(false);
+
+  useEffect(() => {
+    setHeader("TRAINING ADMIN", "Manage training modules, slides, and assessment questions", <GraduationCap className="h-5 w-5" />,
+      tab === "modules" ? (
+        <Button onClick={() => setShowNewModule(true)} className="gap-1.5" disabled={showNewModule}>
+          <Plus className="h-4 w-4" /> New Module
+        </Button>
+      ) : tab === "questions" ? (
+        <Button onClick={() => setShowNewQ(true)} className="gap-1.5" disabled={showNewQ}>
+          <Plus className="h-4 w-4" /> New Question
+        </Button>
+      ) : undefined
+    );
+    return () => clearHeader();
+  }, [setHeader, clearHeader, tab, showNewModule, showNewQ]);
 
   // ── Modules state ──
   const [modules, setModules] = useState<TrainingModule[]>([]);
@@ -57,7 +73,6 @@ export default function AdminTrainingPage() {
   const [filterModule, setFilterModule] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterDifficulty, setFilterDifficulty] = useState("");
-  const [showNewQ, setShowNewQ] = useState(false);
   const [newQText, setNewQText] = useState("");
   const [newQType, setNewQType] = useState<string>("multiple_choice");
   const [newQOptions, setNewQOptions] = useState(["", "", "", ""]);
@@ -86,8 +101,6 @@ export default function AdminTrainingPage() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [progressLoading, setProgressLoading] = useState(false);
 
-  // New module form
-  const [showNewModule, setShowNewModule] = useState(false);
   const [newCode, setNewCode] = useState("");
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -397,12 +410,6 @@ export default function AdminTrainingPage() {
 
         {/* ═══ MODULES TAB ═══ */}
         {tab === "modules" && <>
-        <div className="flex justify-end">
-          <Button onClick={() => setShowNewModule(true)} className="gap-1.5" disabled={showNewModule}>
-            <Plus className="h-4 w-4" /> New Module
-          </Button>
-        </div>
-
         {/* New module form */}
         {showNewModule && (
           <Card className="border-primary/30">
@@ -609,34 +616,29 @@ export default function AdminTrainingPage() {
 
         {/* ═══ QUESTION BANK TAB ═══ */}
         {tab === "questions" && <>
-        <div className="flex items-center justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <select value={filterModule} onChange={(e) => setFilterModule(e.target.value)}
-              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs">
-              <option value="">All Modules</option>
-              {modules.map((m) => <option key={m.id} value={m.id}>{m.module_name}</option>)}
-            </select>
-            <select value={filterDifficulty} onChange={(e) => setFilterDifficulty(e.target.value)}
-              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs">
-              <option value="">All Difficulties</option>
-              {Q_DIFFICULTY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-            <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
-              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs">
-              <option value="">All Categories</option>
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-            {(filterModule || filterDifficulty || filterCategory) && (
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => {
-                setFilterModule(""); setFilterDifficulty(""); setFilterCategory("");
-              }}>Clear</Button>
-            )}
-            <span className="text-xs text-muted-foreground font-mono">{questions.length} questions</span>
-          </div>
-          <Button onClick={() => setShowNewQ(true)} className="gap-1.5" disabled={showNewQ}>
-            <Plus className="h-4 w-4" /> New Question
-          </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <select value={filterModule} onChange={(e) => setFilterModule(e.target.value)}
+            className="h-8 rounded-md border border-input bg-transparent px-2 text-xs">
+            <option value="">All Modules</option>
+            {modules.map((m) => <option key={m.id} value={m.id}>{m.module_name}</option>)}
+          </select>
+          <select value={filterDifficulty} onChange={(e) => setFilterDifficulty(e.target.value)}
+            className="h-8 rounded-md border border-input bg-transparent px-2 text-xs">
+            <option value="">All Difficulties</option>
+            {Q_DIFFICULTY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
+            className="h-8 rounded-md border border-input bg-transparent px-2 text-xs">
+            <option value="">All Categories</option>
+            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {(filterModule || filterDifficulty || filterCategory) && (
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => {
+              setFilterModule(""); setFilterDifficulty(""); setFilterCategory("");
+            }}>Clear</Button>
+          )}
+          <span className="text-xs text-muted-foreground font-mono">{questions.length} questions</span>
         </div>
 
         {/* New question form */}

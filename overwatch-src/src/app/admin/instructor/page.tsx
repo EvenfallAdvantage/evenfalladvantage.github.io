@@ -42,14 +42,29 @@ export default function InstructorHQPage() {
 
   const [tab, setTab] = useState<Tab>("courses");
   const [instructorId, setInstructorId] = useState<string | null>(null);
+  const [triggerNew, setTriggerNew] = useState(0);
 
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("INSTRUCTOR HQ", "Legacy course management for Evenfall Advantage", <GraduationCap className="h-5 w-5" />);
+    setHeader("INSTRUCTOR HQ", "Legacy course management for Evenfall Advantage", <GraduationCap className="h-5 w-5" />,
+      tab === "courses" ? (
+        <Button size="sm" className="gap-1.5" onClick={() => setTriggerNew((n) => n + 1)}>
+          <Plus className="h-3.5 w-3.5" /> New Course
+        </Button>
+      ) : tab === "classes" ? (
+        <Button size="sm" className="gap-1.5" onClick={() => setTriggerNew((n) => n + 1)} disabled={!instructorId}>
+          <Plus className="h-3.5 w-3.5" /> Schedule Class
+        </Button>
+      ) : tab === "assessments" ? (
+        <Button size="sm" className="gap-1.5" onClick={() => setTriggerNew((n) => n + 1)}>
+          <Plus className="h-3.5 w-3.5" /> New Assessment
+        </Button>
+      ) : undefined
+    );
     return () => clearHeader();
-  }, [setHeader, clearHeader]);
+  }, [setHeader, clearHeader, tab, instructorId]);
   const [linking, setLinking] = useState(false);
 
   const linkInstructor = useCallback(async () => {
@@ -103,10 +118,10 @@ export default function InstructorHQPage() {
         ))}
       </div>
 
-      {tab === "courses" && <CoursesTab />}
-      {tab === "classes" && <ClassesTab instructorId={instructorId} />}
+      {tab === "courses" && <CoursesTab triggerNew={triggerNew} />}
+      {tab === "classes" && <ClassesTab instructorId={instructorId} triggerNew={triggerNew} />}
       {tab === "students" && <StudentsTab instructorId={instructorId} />}
-      {tab === "assessments" && <AssessmentsTab />}
+      {tab === "assessments" && <AssessmentsTab triggerNew={triggerNew} />}
     </div>
   );
 }
@@ -201,10 +216,14 @@ function SlidesPanel({ slides, slidesLoading, editSlide, previewSlide, SLIDE_TYP
 // COURSES TAB (Course → Modules → Slides hierarchy)
 // ═══════════════════════════════════════════════════════
 
-function CoursesTab() {
+function CoursesTab({ triggerNew }: { triggerNew: number }) {
   const [courses, setCourses] = useState<LegacyCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+
+  useEffect(() => {
+    if (triggerNew > 0) setShowNew(true);
+  }, [triggerNew]);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [xCourseId, setXCourseId] = useState<string | null>(null);
@@ -343,12 +362,9 @@ function CoursesTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{courses.length} courses</p>
-        <div className="flex gap-2">
-          <a href="../../admin/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-[#dd8c33] transition-colors">
-            <ExternalLink className="h-3 w-3" /> Legacy Editor
-          </a>
-          <Button size="sm" className="gap-1.5" onClick={() => setShowNew(true)}><Plus className="h-3.5 w-3.5" /> New Course</Button>
-        </div>
+        <a href="../../admin/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-[#dd8c33] transition-colors">
+          <ExternalLink className="h-3 w-3" /> Legacy Editor
+        </a>
       </div>
       {showNew && (
         <Card className="border-primary/30"><CardContent className="space-y-3 pt-4">
@@ -499,10 +515,14 @@ function CoursesTab() {
 // CLASSES TAB
 // ═══════════════════════════════════════════════════════
 
-function ClassesTab({ instructorId }: { instructorId: string | null }) {
+function ClassesTab({ instructorId, triggerNew }: { instructorId: string | null; triggerNew: number }) {
   const [classes, setClasses] = useState<LegacyScheduledClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+
+  useEffect(() => {
+    if (triggerNew > 0) setShowNew(true);
+  }, [triggerNew]);
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [enrollments, setEnrollments] = useState<ClassEnrollmentRow[]>([]);
@@ -566,9 +586,6 @@ function ClassesTab({ instructorId }: { instructorId: string | null }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{classes.length} upcoming classes</p>
-        <Button size="sm" className="gap-1.5" onClick={() => setShowNew(true)} disabled={!instructorId}>
-          <Plus className="h-3.5 w-3.5" /> Schedule Class
-        </Button>
       </div>
 
       {showNew && (
@@ -798,11 +815,15 @@ function StudentsTab({ instructorId }: { instructorId: string | null }) {
 // ASSESSMENTS TAB
 // ═══════════════════════════════════════════════════════
 
-function AssessmentsTab() {
+function AssessmentsTab({ triggerNew }: { triggerNew: number }) {
   const [assessments, setAssessments] = useState<LegacyAssessment[]>([]);
   const [modules, setModules] = useState<LegacyModule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+
+  useEffect(() => {
+    if (triggerNew > 0) setShowNew(true);
+  }, [triggerNew]);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   // New assessment
@@ -871,7 +892,6 @@ function AssessmentsTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{assessments.length} assessments</p>
-        <Button size="sm" className="gap-1.5" onClick={() => setShowNew(true)}><Plus className="h-3.5 w-3.5" /> New Assessment</Button>
       </div>
 
       {showNew && (

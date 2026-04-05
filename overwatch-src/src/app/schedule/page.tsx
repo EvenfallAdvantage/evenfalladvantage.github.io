@@ -206,12 +206,10 @@ export default function SchedulePage() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
-  useEffect(() => {
-    setHeader("OPERATIONS", "Your assigned shifts, operations, and equipment", <CalendarDays className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
-
   const [tab, setTab] = useState<"schedule" | "armory">("schedule");
+
+  // Armory "show create" state (declared before useEffect)
+  const [showCreate, setShowCreate] = useState(false);
 
   // Schedule state
   const [events, setEvents] = useState<Ev[]>([]);
@@ -229,7 +227,6 @@ export default function SchedulePage() {
   // Armory state
   const [assets, setAssets] = useState<Asset[]>([]);
   const [assetsLoading, setAssetsLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState("");
   const [newSerial, setNewSerial] = useState("");
@@ -242,6 +239,17 @@ export default function SchedulePage() {
   // QR scanner state
   const [scanMode, setScanMode] = useState<null | "serial" | "checkinout">(null);
   const [scanResult, setScanResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  useEffect(() => {
+    setHeader("OPERATIONS", "Your assigned shifts, operations, and equipment", <CalendarDays className="h-5 w-5" />,
+      tab === "armory" && isAdmin ? (
+        <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
+          <Plus className="h-4 w-4" /> Add Gear
+        </Button>
+      ) : undefined
+    );
+    return () => clearHeader();
+  }, [setHeader, clearHeader, tab, isAdmin]);
 
   const loadSchedule = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -735,15 +743,10 @@ export default function SchedulePage() {
             )}
 
             {/* Action buttons */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-start">
               <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setScanMode("checkinout")}>
                 <ScanLine className="h-4 w-4" /> Scan Check In / Out
               </Button>
-              {isAdmin && (
-                <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
-                  <Plus className="h-4 w-4" /> Add Gear
-                </Button>
-              )}
             </div>
 
             {showCreate && (

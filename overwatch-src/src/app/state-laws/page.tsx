@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Scale, Search, IdCard, Clock, User, Shield, Handshake,
   Crosshair, Building2, Gavel, AlertTriangle, ChevronDown, ChevronRight,
@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { STATE_LAWS, type StateLaw } from "@/lib/state-laws-data";
+import { usePageHeader } from "@/stores/page-header-store";
 
 function hasLicense(s: StateLaw) {
   const l = s.licensing.toLowerCase();
@@ -26,6 +27,14 @@ const INFO_SECTIONS: { key: keyof StateLaw; label: string; icon: React.ReactNode
 ];
 
 export default function StateLawsPage() {
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("STATE GUARD LAWS", "Security guard licensing requirements by state", <Scale className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
+
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "licensed" | "unlicensed">("all");
@@ -49,14 +58,6 @@ export default function StateLawsPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <Scale className="h-5 w-5 sm:h-6 sm:w-6" /> STATE GUARD LAWS
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Security guard licensing requirements by state</p>
-        </div>
-
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           <Card className="border-border/40">

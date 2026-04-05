@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
+import { usePageHeader } from "@/stores/page-header-store";
 
 type LineItem = {
   id: number;
@@ -53,6 +54,9 @@ const EMPTY_FORM: InvoiceData = {
 const STORAGE_KEY = "overwatch_invoice_current";
 
 export default function InvoicesPage() {
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
   const [form, setForm] = useState<InvoiceData>(EMPTY_FORM);
   const [items, setItems] = useState<LineItem[]>([]);
   const [nextId, setNextId] = useState(1);
@@ -61,6 +65,11 @@ export default function InvoicesPage() {
   const [generating, setGenerating] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setHeader("INVOICES", "Professional invoicing", <FileText className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
 
   // Load from localStorage
   useEffect(() => {
@@ -339,25 +348,19 @@ export default function InvoicesPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><FileText className="h-5 w-5 sm:h-6 sm:w-6" /> INVOICES</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Professional invoicing</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowPreview(!showPreview)}>
-              {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              <span className="hidden sm:inline">{showPreview ? "Hide" : "Show"}</span> Preview
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={clearForm}>
-              <RotateCcw className="h-3.5 w-3.5" /> Clear
-            </Button>
-            <Button size="sm" className="gap-1.5" onClick={downloadPDF} disabled={generating}>
-              {generating ? <Save className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
-              PDF
-            </Button>
-          </div>
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowPreview(!showPreview)}>
+            {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{showPreview ? "Hide" : "Show"}</span> Preview
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={clearForm}>
+            <RotateCcw className="h-3.5 w-3.5" /> Clear
+          </Button>
+          <Button size="sm" className="gap-1.5" onClick={downloadPDF} disabled={generating}>
+            {generating ? <Save className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+            PDF
+          </Button>
         </div>
 
         <div className={`grid gap-6 ${showPreview ? "lg:grid-cols-2" : ""}`}>

@@ -60,16 +60,23 @@ export default function KnowledgeBasePage() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+
   useEffect(() => {
-    setHeader("FIELD MANUAL", "SOPs, protocols, and training materials", <BookOpen className="h-5 w-5" />);
+    setHeader("FIELD MANUAL", "SOPs, protocols, and training materials", <BookOpen className="h-5 w-5" />,
+      isAdmin ? (
+        <Button size="sm" className="gap-1.5" onClick={() => setShowCreateFolder(true)}>
+          <Plus className="h-4 w-4" /> New Folder
+        </Button>
+      ) : undefined
+    );
     return () => clearHeader();
-  }, [setHeader, clearHeader]);
+  }, [setHeader, clearHeader, isAdmin, showCreateFolder]);
 
   const [folders, setFolders] = useState<Folder[]>([]);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showCreateDoc, setShowCreateDoc] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDocTitle, setNewDocTitle] = useState("");
@@ -236,14 +243,6 @@ export default function KnowledgeBasePage() {
   return (
     <>
       <div className="space-y-6">
-        {isAdmin && (
-          <div className="flex justify-end">
-            <Button size="sm" className="gap-1.5" onClick={() => setShowCreateFolder(true)}>
-              <Plus className="h-4 w-4" /> New Folder
-            </Button>
-          </div>
-        )}
-
         {showCreateFolder && (
           <div className="flex gap-2 rounded-xl border border-primary/30 bg-card p-4">
             <Input placeholder="Folder name..." value={newName} onChange={(e) => setNewName(e.target.value)}
