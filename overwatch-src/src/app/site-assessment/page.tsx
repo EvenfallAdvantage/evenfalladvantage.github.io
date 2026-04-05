@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
+import { usePageHeader } from "@/stores/page-header-store";
 import { geocodeAddress } from "@/lib/geo-risk-data";
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
@@ -260,6 +261,14 @@ export default function SiteAssessmentPage() {
   const [lon, setLon] = useState<number | null>(null);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const { resolvedTheme } = useTheme();
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("SITE ASSESSMENT", "Professional security evaluation and risk scoring", <ClipboardCheck className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Address autocomplete state
@@ -820,18 +829,11 @@ export default function SiteAssessmentPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6" /> SITE ASSESSMENT</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Professional security evaluation and risk scoring</p>
-          </div>
-          <div className="flex gap-2">
-            <Badge variant="outline" className="text-[10px] font-mono">{completionPct}% complete</Badge>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={clearForm}>
-              <RotateCcw className="h-3.5 w-3.5" /> Clear
-            </Button>
-          </div>
+        <div className="flex items-center justify-end gap-2">
+          <Badge variant="outline" className="text-[10px] font-mono">{completionPct}% complete</Badge>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={clearForm}>
+            <RotateCcw className="h-3.5 w-3.5" /> Clear
+          </Button>
         </div>
 
         {/* Progress bar */}

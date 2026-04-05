@@ -22,6 +22,7 @@ import {
   updateLastRead, getUnreadCounts, updateChatChannel, uploadChannelAvatar,
 } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
+import { usePageHeader } from "@/stores/page-header-store";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Channel = any;
@@ -62,6 +63,14 @@ export default function ChatPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
   const searchParams = useSearchParams();
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("COMMS", "Team channels, external groups, and messaging", <Radio className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
 
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selected, setSelected] = useState<Channel | null>(null);
@@ -233,13 +242,6 @@ export default function ChatPage() {
   /* ── RENDER ── */
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2">
-          <Radio className="h-5 w-5 sm:h-6 sm:w-6" /> Comms
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground">Team channels, external groups, and messaging</p>
-      </div>
-
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
         <Link href="/updates"

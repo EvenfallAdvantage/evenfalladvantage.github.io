@@ -10,6 +10,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest, deleteTimeOffRequest, removeConflictingShifts, getCompanyMembers } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { toast } from "sonner";
+import { usePageHeader } from "@/stores/page-header-store";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Request = any;
@@ -20,6 +21,22 @@ export default function TimeOffPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader(
+      "LEAVE",
+      "Request and track leave days",
+      <CalendarOff className="h-5 w-5" />,
+      <Button size="sm" className="gap-1.5 w-full sm:w-auto" onClick={() => setShowCreate(true)}>
+        <Plus className="h-4 w-4" /> Request Leave
+      </Button>
+    );
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
+
   const [requests, setRequests] = useState<Request[]>([]);
   const [allRequests, setAllRequests] = useState<Request[]>([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
@@ -142,16 +159,6 @@ export default function TimeOffPage() {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarOff className="h-5 w-5 sm:h-6 sm:w-6" /> LEAVE</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Request and track leave days</p>
-          </div>
-          <Button size="sm" className="gap-1.5 w-full sm:w-auto" onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4" /> Request Leave
-          </Button>
-        </div>
-
         {/* Admin tabs */}
         {isAdmin && (
           <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">

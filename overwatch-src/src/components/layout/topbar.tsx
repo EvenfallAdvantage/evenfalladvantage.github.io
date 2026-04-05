@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
+import { usePageHeader } from "@/stores/page-header-store";
 import { useEffect, useState } from "react";
 import { getUnreadNotificationCount } from "@/lib/supabase/db";
 
@@ -14,6 +15,7 @@ interface TopbarProps {
 export function Topbar({ sidebarCollapsed }: TopbarProps) {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const { title, subtitle, icon, actions } = usePageHeader();
 
   const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => {
@@ -36,7 +38,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
         "max-md:left-0"
       )}
     >
-      {/* Company avatar + name (fills blank space on mobile) */}
+      {/* Mobile: company avatar + name */}
       <div className="flex items-center gap-2 min-w-0 md:hidden">
         {activeCompany?.companyLogo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -46,15 +48,29 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
             {companyInitial}
           </div>
         )}
-        {activeCompany?.companyName && (
+        {!title && activeCompany?.companyName && (
           <span className="text-xs font-semibold truncate max-w-[140px]">{activeCompany.companyName}</span>
         )}
       </div>
 
+      {/* Page title + subtitle (fills the header space) */}
+      {title && (
+        <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+          {icon && <span className="text-primary shrink-0">{icon}</span>}
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-base font-bold font-mono uppercase tracking-tight truncate leading-tight">{title}</h1>
+            {subtitle && <p className="text-[10px] text-muted-foreground truncate leading-tight">{subtitle}</p>}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1" />
 
+      {/* Page-specific action buttons */}
+      {actions && <div className="hidden sm:flex items-center gap-2">{actions}</div>}
+
       <div className="flex items-center gap-2">
-        {/* Notifications — real link with live count */}
+        {/* Notifications */}
         <Link
           href="/notifications"
           className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

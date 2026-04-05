@@ -33,6 +33,7 @@ import { parseCSV, validateStaffRows, type StaffImportRow } from "@/lib/csv-impo
 import { Download, Upload, FileText } from "lucide-react";
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
 import { bulkCreateApplicants } from "@/lib/supabase/db-onboarding";
+import { usePageHeader } from "@/stores/page-header-store";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -162,6 +163,24 @@ export default function AdminStaffPage() {
     } catch (err) { console.error(err); }
     finally { setLoadingProfile(null); }
   }
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader(
+      "PERSONNEL",
+      "Manage team members, timesheets, leave, and submissions",
+      <Users className="h-5 w-5" />,
+      joinCode ? (
+        <Button size="sm" variant="outline" className="gap-1.5 font-mono" onClick={copyCode}>
+          {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+          {joinCode}
+        </Button>
+      ) : undefined
+    );
+    return () => clearHeader();
+  }, [setHeader, clearHeader, joinCode, copied]);
 
   const myRole = user?.companies.find((c) => c.companyId === activeCompanyId)?.role ?? "staff";
   const canManageRoles = myRole === "owner" || myRole === "admin";
@@ -505,19 +524,6 @@ export default function AdminStaffPage() {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><UserCog className="h-5 w-5 sm:h-6 sm:w-6" /> PERSONNEL</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Manage team members, timesheets, leave, and submissions</p>
-          </div>
-          {joinCode && (
-            <Button size="sm" variant="outline" className="gap-1.5 font-mono" onClick={copyCode}>
-              {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-              {joinCode}
-            </Button>
-          )}
-        </div>
-
         {joinCode && (
           <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-2 text-xs text-muted-foreground">
             Share the code <span className="font-mono font-bold text-foreground">{joinCode}</span> with team members so they can join your organization.

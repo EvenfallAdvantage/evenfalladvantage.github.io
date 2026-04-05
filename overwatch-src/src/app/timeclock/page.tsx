@@ -23,6 +23,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { dispatch } from "@/lib/services/notification-dispatcher";
 import { toast } from "sonner";
 import Link from "next/link";
+import { usePageHeader } from "@/stores/page-header-store";
 
 function formatDuration(ms: number) {
   const totalSec = Math.floor(Math.max(0, ms) / 1000);
@@ -79,6 +80,15 @@ export default function TimeClockPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const authUser = useAuthStore((s) => s.user);
   const companyId = activeCompany?.companyId ?? "";
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("WATCH LOG", "Clock in/out and track your duty hours", <Clock className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
+
   const [active, setActive] = useState<Timesheet | null>(null);
   const [recent, setRecent] = useState<Timesheet[]>([]);
   const [weekTimesheets, setWeekTimesheets] = useState<Timesheet[]>([]);
@@ -280,11 +290,6 @@ export default function TimeClockPage() {
   return (
     <>
       <div className="space-y-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Clock className="h-5 w-5 sm:h-6 sm:w-6" /> Watch Log</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Clock in/out and track your duty hours</p>
-        </div>
-
         {/* Tabs */}
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
           <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">

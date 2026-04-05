@@ -14,8 +14,9 @@ import { toast } from "sonner";
 import {
   Pencil, Check, X, FileText, Activity, FolderOpen, Loader2, Clock,
   Lock, Shield, AlertTriangle, CheckCircle2, ListChecks, Camera, Copy, KeyRound, Bell,
-  GraduationCap, Briefcase, ChevronDown, ChevronUp, Plus, Trash2,
+  GraduationCap, Briefcase, ChevronDown, ChevronUp, Plus, Trash2, User,
 } from "lucide-react";
+import { usePageHeader } from "@/stores/page-header-store";
 import {
   updateUserProfile, uploadAvatar, getCompanyDetails, getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts,
   getMemberProfile, updateMemberProfile, getMyOnboardingProgress, toggleOnboardingTask, completeOnboarding,
@@ -86,6 +87,14 @@ export default function ProfilePage() {
   const [joinCode, setJoinCode] = useState("");
   const [copied, setCopied] = useState(false);
   const isLeadership = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("PROFILE", `${user?.firstName ?? "Your"} ${user?.lastName ?? "Name"}`, <User className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader, user?.firstName, user?.lastName]);
 
   // Education & Work History state
   const [eduExpanded, setEduExpanded] = useState<boolean | null>(null); // null = not yet set
@@ -345,36 +354,29 @@ export default function ProfilePage() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative group">
-              <Avatar className="h-16 w-16 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <AvatarImage src={user?.avatarUrl ?? undefined} />
-                <AvatarFallback className="bg-primary/20 text-lg font-semibold text-primary">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingAvatar}
-                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                {uploadingAvatar ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
-              </button>
-              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleAvatarUpload} />
-              {avatarError && <p className="absolute -bottom-5 left-0 text-[10px] text-red-500 whitespace-nowrap">{avatarError}</p>}
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono">
-                {user?.firstName ?? "Your"} {user?.lastName ?? "Name"}
-              </h1>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="secondary" className="text-xs capitalize">
-                  {activeCompany?.role ?? "Staff"}
-                </Badge>
-                {isOnboarding && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Onboarding</Badge>}
-              </div>
-            </div>
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <Avatar className="h-16 w-16 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <AvatarImage src={user?.avatarUrl ?? undefined} />
+              <AvatarFallback className="bg-primary/20 text-lg font-semibold text-primary">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              {uploadingAvatar ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleAvatarUpload} />
+            {avatarError && <p className="absolute -bottom-5 left-0 text-[10px] text-red-500 whitespace-nowrap">{avatarError}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs capitalize">
+              {activeCompany?.role ?? "Staff"}
+            </Badge>
+            {isOnboarding && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Onboarding</Badge>}
           </div>
         </div>
 

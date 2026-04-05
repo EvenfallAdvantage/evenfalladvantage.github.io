@@ -16,6 +16,7 @@ import Link from "next/link";
 import { Radio } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getPosts, createPost, togglePinPost, deletePost, getPostComments, addPostComment, deletePostComment, getPostReactions, togglePostReaction, getChatChannels } from "@/lib/supabase/db";
+import { usePageHeader } from "@/stores/page-header-store";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Post = any;
@@ -132,6 +133,15 @@ export default function UpdatesPage() {
   const { user, activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("COMMS", "Team channels, external groups, and messaging", <Radio className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
@@ -294,11 +304,6 @@ export default function UpdatesPage() {
   return (
     <>
       <div className="space-y-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Radio className="h-5 w-5 sm:h-6 sm:w-6" /> Comms</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Team channels, external groups, and messaging</p>
-        </div>
-
         {/* Tabs */}
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
           <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">

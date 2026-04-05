@@ -24,6 +24,7 @@ import type { AvailabilityStatus, OperationAvailability } from "@/lib/supabase/d
 import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import { parseUTC } from "@/lib/parse-utc";
 import { toast } from "sonner";
+import { usePageHeader } from "@/stores/page-header-store";
 
 const QrScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
 
@@ -201,6 +202,14 @@ export default function SchedulePage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("OPERATIONS", "Your assigned shifts, operations, and equipment", <CalendarDays className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
 
   const [tab, setTab] = useState<"schedule" | "armory">("schedule");
 
@@ -418,8 +427,6 @@ export default function SchedulePage() {
     <>
       <div className="space-y-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><CalendarDays className="h-5 w-5 sm:h-6 sm:w-6" /> OPERATIONS</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-4">Your assigned shifts, operations, and equipment</p>
           <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
             <button onClick={() => setTab("schedule")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "schedule" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>

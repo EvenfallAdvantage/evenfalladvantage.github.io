@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updateForm, getActiveTimesheet } from "@/lib/supabase/db";
+import { usePageHeader } from "@/stores/page-header-store";
 
 type FormField = { id: string; label: string; type: "text" | "textarea" | "select" | "checkbox"; required: boolean; options?: string[] };
 
@@ -21,6 +22,15 @@ export default function FormsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("REPORTS", "Incident reports, field reports, and documentation", <AlertTriangle className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
+
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -137,27 +147,27 @@ export default function FormsPage() {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            {selected ? (
+        {selected && (
+          <div className="flex items-center justify-between">
+            <div>
               <button onClick={() => setSelected(null)} className="flex items-center gap-1 text-xs text-primary hover:underline mb-1">
                 <ChevronLeft className="h-3 w-3" /> All Forms
               </button>
-            ) : null}
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />
-              {selected ? selected.name : "REPORTS"}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {selected ? "Fill out and submit this report" : "Incident reports, field reports, and documentation"}
-            </p>
+              <h2 className="text-lg font-bold tracking-tight font-mono flex items-center gap-2">
+                <ClipboardList className="h-5 w-5" />
+                {selected.name}
+              </h2>
+              <p className="text-sm text-muted-foreground">Fill out and submit this report</p>
+            </div>
           </div>
-          {!selected && isAdmin && (
+        )}
+        {!selected && isAdmin && (
+          <div className="flex justify-end">
             <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
               <Plus className="h-4 w-4" /> New Form
             </Button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Report type tabs */}
         {!selected && (

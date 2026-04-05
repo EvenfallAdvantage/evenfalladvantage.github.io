@@ -43,6 +43,7 @@ import StoryboardEditor from "@/components/storyboard-editor";
 import type { StoryboardPin } from "@/components/storyboard-editor";
 import AddressAutocomplete from "@/components/address-autocomplete";
 import type { AddressSelection } from "@/components/address-autocomplete";
+import { usePageHeader } from "@/stores/page-header-store";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Event = any;
@@ -165,6 +166,21 @@ export default function AdminEventsPage() {
   const companyName = activeCompany?.companyName ?? "Company";
   const companyLogo = activeCompany?.companyLogo ?? undefined;
   const brandColor = activeCompany?.brandColor ?? "#6366f1";
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader(
+      "PLANNING",
+      "Plan and manage security operations",
+      <Flag className="h-5 w-5" />,
+      <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
+        <Plus className="h-4 w-4" /> New Operation
+      </Button>
+    );
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -601,17 +617,6 @@ export default function AdminEventsPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Flag className="h-5 w-5 sm:h-6 sm:w-6" /> PLANNING</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Plan and manage security operations</p>
-          </div>
-          <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
-            <Plus className="h-4 w-4" /> New Operation
-          </Button>
-        </div>
-
         {/* ── CREATE WIZARD ── */}
         {showCreate && (
           <div className="rounded-xl border border-primary/30 bg-card overflow-hidden">

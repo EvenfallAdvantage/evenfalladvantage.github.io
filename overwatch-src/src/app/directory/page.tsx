@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Users, Search, Mail, Phone, Shield, EyeOff } from "lucide-react";
+import { usePageHeader } from "@/stores/page-header-store";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -13,6 +14,15 @@ type Member = { id: string; role: string; nickname: string | null; status: strin
 
 export default function DirectoryPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("ROSTER", "Personnel directory and contact info", <Users className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
+
   const [members, setMembers] = useState<Member[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Member | null>(null);
@@ -44,13 +54,6 @@ export default function DirectoryPage() {
   return (
     <>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><Users className="h-5 w-5 sm:h-6 sm:w-6" /> Roster</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Personnel directory and contact info
-          </p>
-        </div>
-
         <div className="grid gap-4 md:grid-cols-[280px_1fr]">
           <div className="space-y-3 rounded-xl border border-border/50 bg-card p-3">
             <div className="relative">

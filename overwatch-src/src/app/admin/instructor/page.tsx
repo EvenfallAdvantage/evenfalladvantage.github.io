@@ -29,6 +29,7 @@ import {
   type LegacyModuleProgress, type ClassEnrollmentRow, type ClassAttendanceRow,
 } from "@/lib/legacy-bridge";
 import { ensureInstructorLinked } from "@/lib/account-linker";
+import { usePageHeader } from "@/stores/page-header-store";
 
 type Tab = "courses" | "classes" | "students" | "assessments";
 
@@ -41,6 +42,14 @@ export default function InstructorHQPage() {
 
   const [tab, setTab] = useState<Tab>("courses");
   const [instructorId, setInstructorId] = useState<string | null>(null);
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("INSTRUCTOR HQ", "Legacy course management for Evenfall Advantage", <GraduationCap className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
   const [linking, setLinking] = useState(false);
 
   const linkInstructor = useCallback(async () => {
@@ -85,15 +94,6 @@ export default function InstructorHQPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 sm:h-6 sm:w-6" /> INSTRUCTOR HQ
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Legacy course management for Evenfall Advantage</p>
-        </div>
-      </div>
-
       <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}

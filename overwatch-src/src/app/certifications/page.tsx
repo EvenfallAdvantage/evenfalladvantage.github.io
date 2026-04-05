@@ -13,6 +13,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getUserCertifications, addCertification, deleteCertification, verifyCertificate } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
+import { usePageHeader } from "@/stores/page-header-store";
 
 const DocumentScanner = dynamic(() => import("@/components/document-scanner"), { ssr: false });
 
@@ -114,6 +115,15 @@ function generateCertPDF(cert: Cert, userName: string) {
 export default function CertificationsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const user = useAuthStore((s) => s.user);
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("CERTIFICATIONS", "Manage credentials, generate certificates, and verify", <Award className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
+
   const [certs, setCerts] = useState<Cert[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -239,14 +249,7 @@ export default function CertificationsPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <Award className="h-5 w-5 sm:h-6 sm:w-6" /> CERTIFICATIONS
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Manage credentials, generate certificates, and verify</p>
-          </div>
+        <div className="flex justify-end">
           <Button size="sm" className="gap-1.5" onClick={() => setShowAdd(true)}>
             <Plus className="h-3.5 w-3.5" /> Add Certification
           </Button>

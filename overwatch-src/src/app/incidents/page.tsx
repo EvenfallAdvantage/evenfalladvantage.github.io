@@ -49,6 +49,7 @@ import {
 } from "@/lib/supabase/db";
 import StoryboardEditor from "@/components/storyboard-editor";
 import type { StoryboardPin } from "@/components/storyboard-editor";
+import { usePageHeader } from "@/stores/page-header-store";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Incident = any;
@@ -92,6 +93,21 @@ export default function IncidentsPage() {
   const { activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore(s => s.getActiveCompany());
   const isAdmin = activeCompany && hasMinRole(activeCompany.role as CompanyRole, "manager");
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader(
+      "REPORTS",
+      "Incident reports, field reports, and documentation",
+      <AlertTriangle className="h-5 w-5" />,
+      <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 w-full sm:w-auto">
+        <Plus className="h-4 w-4" /> Report Incident
+      </Button>
+    );
+    return () => clearHeader();
+  }, [setHeader, clearHeader, showCreate]);
 
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -289,19 +305,6 @@ export default function IncidentsPage() {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6" />
-              REPORTS
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">Incident reports, field reports, and documentation</p>
-          </div>
-          <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 w-full sm:w-auto">
-            <Plus className="h-4 w-4" /> Report Incident
-          </Button>
-        </div>
-
         {/* Report type tabs */}
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
           <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">

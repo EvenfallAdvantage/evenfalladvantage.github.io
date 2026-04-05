@@ -35,6 +35,7 @@ import {
   type LegacyCertificate,
 } from "@/lib/legacy-bridge";
 import type { TrainingModule, StudentModuleProgress } from "@/types";
+import { usePageHeader } from "@/stores/page-header-store";
 
 type Cert = { id: string; cert_type: string; issue_date: string | null; expiry_date: string | null; status: string };
 type LinkedQuiz = { id: string; title: string; passing_score: number };
@@ -77,6 +78,14 @@ export default function AcademyPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
   const showCourses = !hiddenTabs.has("/courses");
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("ACADEMY HUB", "Training, SOPs, assessments & certifications", <GraduationCap className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
 
   const [tab, setTab] = useState<Tab>("courses");
   const [loading, setLoading] = useState(true);
@@ -213,23 +222,15 @@ export default function AcademyPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header with readiness indicator */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <Compass className="h-5 w-5 sm:h-6 sm:w-6" /> ACADEMY HUB
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Training, SOPs, assessments &amp; certifications</p>
+      {/* Readiness indicator */}
+      <div className="flex items-center gap-2 justify-end">
+        <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card px-3 py-1.5">
+          <span className={`h-2 w-2 rounded-full ${readinessLevel === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-amber-500"}`} />
+          <span className={`text-xs font-mono font-bold ${readinessLevel === "ACTIVE" ? "text-green-500" : "text-amber-500"}`}>{readinessLevel}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card px-3 py-1.5">
-            <span className={`h-2 w-2 rounded-full ${readinessLevel === "ACTIVE" ? "bg-green-500 animate-pulse" : "bg-amber-500"}`} />
-            <span className={`text-xs font-mono font-bold ${readinessLevel === "ACTIVE" ? "text-green-500" : "text-amber-500"}`}>{readinessLevel}</span>
-          </div>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={loadAll}>
-            <RefreshCw className="h-3.5 w-3.5" /> Refresh
-          </Button>
-        </div>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={loadAll}>
+          <RefreshCw className="h-3.5 w-3.5" /> Refresh
+        </Button>
       </div>
 
       {/* Readiness Gauges */}

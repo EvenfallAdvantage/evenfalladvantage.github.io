@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
+import { usePageHeader } from "@/stores/page-header-store";
 import {
   getKBFolders, getKBDocuments, createKBFolder, createKBDocument,
   deleteKBFolder, deleteKBDocument, uploadKBFile, updateKBDocumentRequired,
@@ -55,6 +56,15 @@ export default function KnowledgeBasePage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("FIELD MANUAL", "SOPs, protocols, and training materials", <BookOpen className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
+
   const [folders, setFolders] = useState<Folder[]>([]);
   const [docs, setDocs] = useState<Doc[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
@@ -226,17 +236,13 @@ export default function KnowledgeBasePage() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono uppercase flex items-center gap-2"><BookOpen className="h-5 w-5 sm:h-6 sm:w-6" /> Field Manual</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">SOPs, protocols, and training materials</p>
-          </div>
-          {isAdmin && (
+        {isAdmin && (
+          <div className="flex justify-end">
             <Button size="sm" className="gap-1.5" onClick={() => setShowCreateFolder(true)}>
               <Plus className="h-4 w-4" /> New Folder
             </Button>
-          )}
-        </div>
+          </div>
+        )}
 
         {showCreateFolder && (
           <div className="flex gap-2 rounded-xl border border-primary/30 bg-card p-4">

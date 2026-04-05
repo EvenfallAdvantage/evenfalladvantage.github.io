@@ -19,6 +19,7 @@ import {
   getQuestionCategories, getAllModuleProgress, getCompanyMembers, getQuizzes,
 } from "@/lib/supabase/db";
 import type { TrainingModule, ModuleSlide, AssessmentQuestion } from "@/types";
+import { usePageHeader } from "@/stores/page-header-store";
 
 const DIFFICULTY_OPTIONS = ["Beginner", "Intermediate", "Advanced", "Critical", "Essential"];
 const Q_DIFFICULTY_OPTIONS = ["easy", "medium", "hard"] as const;
@@ -31,6 +32,15 @@ const DIFF_COLORS: Record<string, string> = {
 
 export default function AdminTrainingPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("TRAINING ADMIN", "Manage training modules, slides, and assessment questions", <GraduationCap className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
+
   const [tab, setTab] = useState<"modules" | "questions" | "progress">("modules");
 
   // ── Modules state ──
@@ -367,10 +377,8 @@ export default function AdminTrainingPage() {
   return (
     <>
       <div className="space-y-4">
-        {/* Header + Tabs */}
+        {/* Tabs */}
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><NotebookPen className="h-5 w-5 sm:h-6 sm:w-6" /> TRAINING ADMIN</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mb-4">Manage training modules, slides, and assessment questions</p>
           <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
             <button onClick={() => setTab("modules")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "modules" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>

@@ -20,6 +20,7 @@ import jsPDF from "jspdf";
 import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import { useAuthStore } from "@/stores/auth-store";
+import { usePageHeader } from "@/stores/page-header-store";
 import {
   fetchMapOverlayData, getNSOPWSearchUrl, hasFamilyWatchdogKey,
   setFamilyWatchdogKey, getFamilyWatchdogKey,
@@ -105,6 +106,14 @@ export default function GeoRiskPage() {
   const [history, setHistory] = useState<RiskResult[]>([]);
   const { resolvedTheme } = useTheme();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("GEO-RISK", "FBI crime data + facility risk scoring", <MapPin className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
 
   // Map overlay state
   const [incidents, setIncidents] = useState<CrimeIncident[]>([]);
@@ -893,13 +902,6 @@ export default function GeoRiskPage() {
   return (
     <>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <MapPin className="h-5 w-5 sm:h-6 sm:w-6" /> GEO-RISK
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">FBI crime data + facility risk scoring</p>
-        </div>
-
         {/* Address Search */}
         <Card className="border-border/40">
           <CardContent className="p-4 space-y-4">

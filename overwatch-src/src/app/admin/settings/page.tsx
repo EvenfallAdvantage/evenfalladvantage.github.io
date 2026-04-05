@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown, LayoutGrid, Upload, Link as LinkIcon, AlertTriangle } from "lucide-react";
+import { Save, Loader2, Check, Copy, Plus, CalendarOff, ImageIcon, Trash2, Building2, Globe, MapPin, Plug, Mail, Eye, EyeOff, ChevronDown, LayoutGrid, Upload, Link as LinkIcon, AlertTriangle, Settings } from "lucide-react";
+import { usePageHeader } from "@/stores/page-header-store";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, updateCompanySettings, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
@@ -122,6 +123,14 @@ export default function AdminSettingsPage() {
   const { user, setUser } = useAuthStore();
   const isOwner = activeCompany?.role === "owner";
   const isAdminPlus = ["owner", "admin"].includes(activeCompany?.role ?? "");
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader("HQ CONFIG", "Organization profile and settings", <Settings className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader]);
   const [name, setName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [timezone, setTimezone] = useState("");
@@ -297,11 +306,6 @@ export default function AdminSettingsPage() {
   return (
     <>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono flex items-center gap-2"><Building2 className="h-5 w-5 sm:h-6 sm:w-6" /> HQ CONFIG</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">Organization profile and settings</p>
-        </div>
-
         <Card>
           <CardContent className="space-y-4 pt-6">
             <h3 className="text-sm font-semibold">Company Profile</h3>

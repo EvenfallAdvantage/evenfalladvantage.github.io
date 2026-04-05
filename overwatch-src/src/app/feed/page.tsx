@@ -40,6 +40,7 @@ import {
   Briefcase,
   Flag,
   X,
+  LayoutDashboard,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { parseUTC } from "@/lib/parse-utc";
+import { usePageHeader } from "@/stores/page-header-store";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Timesheet = any;
@@ -242,6 +244,18 @@ export default function FeedPage() {
   const [newCoName, setNewCoName] = useState("");
   const [creatingCo, setCreatingCo] = useState(false);
   const createCoRef = useRef<HTMLInputElement>(null);
+
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader(
+      `Welcome back, ${user?.firstName || "Staff"}`,
+      new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }),
+      <LayoutDashboard className="h-5 w-5" />
+    );
+    return () => clearHeader();
+  }, [setHeader, clearHeader, user?.firstName]);
 
   async function handleCreateCompany() {
     if (!newCoName.trim() || !user?.id) return;
@@ -425,14 +439,6 @@ export default function FeedPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight font-mono">{greeting}</h1>
-          <p className="text-sm text-muted-foreground">
-            {new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
-          </p>
-        </div>
-
         {/* No-company onboarding banner */}
         {user && (!user.companies || user.companies.length === 0 || (user.companies.length === 1 && user.companies[0].companyId === "pending")) && (
           <Card className="border-[#dd8c33]/40 bg-gradient-to-r from-[#dd8c33]/10 via-[#dd8c33]/5 to-transparent">
