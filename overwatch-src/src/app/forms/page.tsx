@@ -179,7 +179,7 @@ export default function FormsPage() {
               Incidents
             </Link>
             <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
-              <ClipboardList className="h-3.5 w-3.5" />
+              <ClipboardList className="h-3.5 w-3.5 text-primary" />
               Field Reports
             </div>
           </div>

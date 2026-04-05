@@ -98,7 +98,7 @@ export default function InstructorHQPage() {
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-            {tab === t.id && <t.icon className="h-3.5 w-3.5" />} {t.label}
+            {tab === t.id && <t.icon className="h-3.5 w-3.5 text-primary" />} {t.label}
           </button>
         ))}
       </div>

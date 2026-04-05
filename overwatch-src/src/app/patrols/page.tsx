@@ -181,7 +181,7 @@ export default function PatrolsPage() {
             Clock
           </Link>
           <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
-            <Footprints className="h-3.5 w-3.5" />
+            <Footprints className="h-3.5 w-3.5 text-primary" />
             Patrols
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function PatrolsPage() {
                 tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"
               }`}
             >
-              {tab === t.id && <t.icon className="h-3.5 w-3.5" />}
+              {tab === t.id && <t.icon className="h-3.5 w-3.5 text-primary" />}
               {t.label}
             </button>
           ))}

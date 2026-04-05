@@ -308,7 +308,7 @@ export default function IncidentsPage() {
         {/* Report type tabs */}
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
           <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
-            <AlertTriangle className="h-3.5 w-3.5" />
+            <AlertTriangle className="h-3.5 w-3.5 text-primary" />
             Incidents
           </div>
           <Link

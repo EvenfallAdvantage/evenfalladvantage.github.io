@@ -250,13 +250,13 @@ export default function ChatPage() {
         </Link>
         <button onClick={() => setTab("channels")}
           className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "channels" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-          {tab === "channels" && <Hash className="h-3.5 w-3.5" />}
+          {tab === "channels" && <Hash className="h-3.5 w-3.5 text-primary" />}
           Channels
           {internal.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{internal.length}</Badge>}
         </button>
         <button onClick={() => setTab("external")}
           className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "external" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-          {tab === "external" && <ExternalLink className="h-3.5 w-3.5" />}
+          {tab === "external" && <ExternalLink className="h-3.5 w-3.5 text-primary" />}
           External Groups
           {external.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{external.length}</Badge>}
         </button>

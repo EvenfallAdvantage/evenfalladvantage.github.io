@@ -570,7 +570,7 @@ export default function AdminStaffPage() {
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {tab === t.key && <t.icon className="h-3.5 w-3.5" />}
+              {tab === t.key && <t.icon className="h-3.5 w-3.5 text-primary" />}
               {t.label}
               {t.badge > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-amber-500/20 text-amber-600">{t.badge}</Badge>}
             </button>
