@@ -86,12 +86,6 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
       </div>
     </header>
 
-    {/* Mobile FAB — floating action button above mobile nav */}
-    {actions && (
-      <div className="fixed bottom-20 right-4 z-40 sm:hidden [&_button]:shadow-lg [&_button]:shadow-primary/25 [&_button]:rounded-full [&_button]:h-11 [&_button]:min-w-11 [&_button]:text-xs">
-        {actions}
-      </div>
-    )}
     </>
   );
 }

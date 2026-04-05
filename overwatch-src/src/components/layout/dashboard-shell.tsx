@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { AppSidebar } from "./app-sidebar";
 import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
+import { MobilePageAction } from "@/components/mobile-page-action";
 
 const STORAGE_KEY = "overwatch-sidebar-collapsed";
 
@@ -40,7 +41,13 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           collapsed ? "md:pl-[68px]" : "md:pl-[260px]"
         )}
       >
-        <div className="mx-auto max-w-7xl px-3 py-4 sm:p-6">{children}</div>
+        <div className="mx-auto max-w-7xl px-3 py-4 sm:p-6">
+          {/* Mobile action button — right-aligned above page content */}
+          <div className="flex justify-end mb-2 sm:hidden">
+            <MobilePageAction />
+          </div>
+          {children}
+        </div>
       </main>
 
       {/* Mobile bottom nav */}
