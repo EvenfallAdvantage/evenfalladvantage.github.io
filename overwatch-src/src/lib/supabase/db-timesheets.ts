@@ -206,11 +206,11 @@ export async function approveTimesheet(timesheetId: string) {
   return data;
 }
 
-export async function getTimesheetsForDateRange(startISO: string, endISO: string) {
+export async function getTimesheetsForDateRange(startISO: string, endISO: string, companyId?: string) {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("timesheets")
     .select("*")
     .eq("user_id", userId)
@@ -218,7 +218,12 @@ export async function getTimesheetsForDateRange(startISO: string, endISO: string
     .gte("clock_in", startISO)
     .lte("clock_in", endISO)
     .order("clock_in", { ascending: true });
-  return data ?? [];
+
+  if (companyId) {
+    query = query.eq("company_id", companyId);
+  }
+
+  return (await query).data ?? [];
 }
 
 // ─── Time Change Requests ────────────────────────────

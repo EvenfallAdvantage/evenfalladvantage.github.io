@@ -142,8 +142,8 @@ export default function TimeClockPage() {
     const dates = getWeekDates(weekOffset);
     const start = dates[0].toISOString();
     const end = new Date(dates[6].getTime() + 86400000 - 1).toISOString();
-    getTimesheetsForDateRange(start, end).then(setWeekTimesheets).catch(() => {});
-  }, [weekOffset, recent]);
+    getTimesheetsForDateRange(start, end, activeCompanyId ?? undefined).then(setWeekTimesheets).catch(() => {});
+  }, [weekOffset, recent, activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
 
