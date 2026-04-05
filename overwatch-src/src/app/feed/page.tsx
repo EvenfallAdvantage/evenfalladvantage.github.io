@@ -1086,38 +1086,7 @@ export default function FeedPage() {
           </div>
         </div>
 
-        {/* Recent Activity — all non-pinned briefs, visible to everyone */}
-        {posts.filter((p: Post) => !p.is_pinned).length > 0 && (
-          <div>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
-                Recent Briefing
-              </h2>
-              <Link href="/updates" className="flex items-center gap-1 text-xs text-primary hover:underline">
-                View all <ChevronRight className="h-3 w-3" />
-              </Link>
-            </div>
-            <div className="space-y-2">
-              {posts.filter((p: Post) => !p.is_pinned).map((post: Post) => {
-                const author = post.users;
-                return (
-                  <div key={post.id} className="flex items-start gap-3 rounded-lg border border-border/40 bg-card p-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                      {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{author?.first_name} {author?.last_name}</span>
-                        <span className="text-[10px] text-muted-foreground">{timeAgo(post.created_at)}</span>
-                      </div>
-                      <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{post.content}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        {/* Recent Briefing section removed — pinned briefings at top are sufficient */}
       </div>
 
       {/* Clock-In Modal */}
