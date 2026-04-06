@@ -75,11 +75,6 @@ export default function MobileHeroRadar() {
     ctx.lineWidth = 0.5;
     ctx.stroke();
 
-    // Draw sweep gradient
-    const sweepGrad = ctx.createConicalGradient
-      ? null // not widely supported, use manual approach
-      : null;
-
     // Draw sweep as a filled wedge
     ctx.save();
     ctx.globalAlpha = 0.12;
