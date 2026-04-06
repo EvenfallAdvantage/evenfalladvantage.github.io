@@ -73,6 +73,7 @@ export default function AdminStaffPage() {
   const [removingMember, setRemovingMember] = useState<string | null>(null);
   const [reviewingLeave, setReviewingLeave] = useState<string | null>(null);
   const [reviewingForm, setReviewingForm] = useState<string | null>(null);
+  const [expandedFormSub, setExpandedFormSub] = useState<string | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [leaveFilter, setLeaveFilter] = useState<"pending" | "all">("pending");
   const [error, setError] = useState<string | null>(null);
@@ -1087,50 +1088,62 @@ export default function AdminStaffPage() {
                 {formSubmissions.map((f: FormSub) => {
                   const u = f.users;
                   const isReviewed = f.status === "reviewed";
-                  const dataEntries = f.data ? Object.entries(f.data as Record<string, unknown>).slice(0, 3) : [];
+                  const allFields = f.data ? Object.entries(f.data as Record<string, unknown>) : [];
+                  const isOpen = expandedFormSub === f.id;
 
                   return (
-                    <div key={f.id} className={`rounded-xl border bg-card px-4 py-3 ${
+                    <div key={f.id} className={`rounded-xl border bg-card overflow-hidden ${
                       !isReviewed ? "border-amber-500/30" : "border-border/50"
                     }`}>
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/10 text-xs font-bold text-rose-500">
+                      <button
+                        className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+                        onClick={() => setExpandedFormSub(isOpen ? null : f.id)}
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/10 text-xs font-bold text-rose-500 shrink-0">
                           {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
+                            {isReviewed ? (
+                              <Badge className="text-[10px] bg-green-500/15 text-green-600">Reviewed</Badge>
+                            ) : (
+                              <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Pending</Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {f.forms?.name ?? "Form"} · {new Date(f.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                           </p>
-                          {dataEntries.length > 0 && (
-                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                              {dataEntries.map(([key, val]) => (
-                                <span key={key} className="text-[10px] text-muted-foreground/70">
-                                  <span className="font-medium">{key}:</span> {String(val).slice(0, 40)}
-                                </span>
-                              ))}
+                        </div>
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      {isOpen && (
+                        <div className="border-t border-border/30 px-4 py-3 space-y-3 bg-muted/10">
+                          {allFields.map(([key, val]) => (
+                            <div key={key}>
+                              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">
+                                {key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                              </label>
+                              <p className="text-sm whitespace-pre-wrap">{String(val ?? "—")}</p>
+                            </div>
+                          ))}
+                          {!isReviewed && canManage && (
+                            <div className="flex items-center gap-2 pt-2 border-t border-border/20">
+                              <Input placeholder="Review note..." value={reviewingForm === f.id ? reviewNote : ""}
+                                onChange={(e) => { setReviewingForm(f.id); setReviewNote(e.target.value); }}
+                                className="h-7 flex-1 text-xs" />
+                              <Button size="sm" variant="outline"
+                                className="h-7 gap-1 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
+                                onClick={() => { setReviewingForm(f.id); handleFormReview(f.id); }}>
+                                <CheckCircle2 className="h-3 w-3" /> Mark Reviewed
+                              </Button>
                             </div>
                           )}
+                          {f.review_note && (
+                            <p className="text-[10px] text-muted-foreground italic">Review note: {f.review_note}</p>
+                          )}
                         </div>
-                        {isReviewed ? (
-                          <Badge className="text-[10px] bg-green-500/15 text-green-600">Reviewed</Badge>
-                        ) : canManage ? (
-                          <div className="flex items-center gap-2">
-                            <Input placeholder="Note..." value={reviewingForm === f.id ? reviewNote : ""}
-                              onChange={(e) => { setReviewingForm(f.id); setReviewNote(e.target.value); }}
-                              className="h-7 w-28 text-xs" />
-                            <Button size="sm" variant="outline"
-                              className="h-7 gap-1 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
-                              onClick={() => { setReviewingForm(f.id); handleFormReview(f.id); }}
-                              disabled={reviewingForm === f.id && !reviewNote && reviewingForm !== null}>
-                              {reviewingForm === f.id && reviewNote === "" ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                              Review
-                            </Button>
-                          </div>
-                        ) : (
-                          <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Pending</Badge>
-                        )}
-                      </div>
+                      )}
                     </div>
                   );
                 })}

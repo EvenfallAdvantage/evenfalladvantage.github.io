@@ -313,19 +313,48 @@ export default function FormsPage() {
             {/* Previous submissions */}
             {submissions.length > 0 && (
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Previous Submissions</h3>
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  Submissions ({submissions.length})
+                </h3>
                 <div className="space-y-2">
-                  {submissions.map((s: Submission) => (
-                    <div key={s.id} className="rounded-lg border border-border/40 bg-card px-4 py-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-muted-foreground">
-                          {s.users?.first_name} {s.users?.last_name} · {new Date(s.created_at).toLocaleDateString()}
-                        </span>
-                        <Badge variant="secondary" className="text-[10px] capitalize">{s.status}</Badge>
+                  {submissions.map((s: Submission) => {
+                    const isExpanded = expandedSubmission === s.id;
+                    const fields = s.data as Record<string, unknown> | null;
+                    return (
+                      <div key={s.id} className="rounded-lg border border-border/40 bg-card overflow-hidden">
+                        <button
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+                          onClick={() => setExpandedSubmission(isExpanded ? null : s.id)}
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                            {(s.users?.first_name?.[0] ?? "")}{(s.users?.last_name?.[0] ?? "")}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{s.users?.first_name} {s.users?.last_name}</span>
+                              <Badge variant="secondary" className="text-[10px] capitalize">{s.status}</Badge>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(s.created_at).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} at {new Date(s.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        </button>
+                        {isExpanded && fields && (
+                          <div className="border-t border-border/30 px-4 py-3 space-y-3 bg-muted/10">
+                            {Object.entries(fields).map(([key, value]) => (
+                              <div key={key}>
+                                <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">
+                                  {key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                                </label>
+                                <p className="text-sm whitespace-pre-wrap">{String(value ?? "—")}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm">{s.data?.report ?? JSON.stringify(s.data)}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
