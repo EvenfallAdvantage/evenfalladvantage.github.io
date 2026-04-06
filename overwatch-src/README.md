@@ -83,6 +83,11 @@ SQL migrations live in `prisma/`. Run them in **Supabase Dashboard > SQL Editor*
 | 10 | `fix-rls-linter-warnings.sql` | RLS policy fixes |
 | 11 | `add-applicant-enhancements.sql` | Education, work_history, documents on applicants + company_memberships; applicant-documents storage bucket |
 | 12 | `add-storyboard-system.sql` | Storyboards table, site_map_url on events, storyboard_id/pin on incidents; operation-maps storage bucket |
+| 13 | `fix-storyboard-rls.sql` | Fix RLS policies to use is_company_member() |
+| 14 | `fix-storyboard-function-search-path.sql` | Set search_path on trigger function |
+| 15 | `fix-timesheet-company-isolation.sql` | Add company_id to timesheets + backfill |
+| 16 | `fix-add-dietary-restrictions.sql` | Add dietary_restrictions to company_memberships |
+| 17 | `add-accent-color.sql` | Add accent_color to companies for brand theming |
 
 ## Project Structure
 
@@ -120,6 +125,11 @@ src/
     theme-toggle.tsx      # Dark/Light/System theme
     security-provider.tsx # Session lock, inactivity timeout
     pwa-install-prompt.tsx
+    brand-theme-provider.tsx  # Dynamic CSS variable injection from company brand colors
+    mobile-hero-radar.tsx     # Animated radar sweep canvas for mobile landing page
+    mobile-page-action.tsx    # Renders page actions on mobile (above subtabs)
+    privacy-policy-modal.tsx  # Privacy policy modal for landing page
+    join-company-modal.tsx    # Join company modal for landing page
   lib/
     supabase/             # DB layer (9 domain modules)
       db.ts               # Main exports
@@ -134,6 +144,7 @@ src/
     geo-risk-data.ts      # Crime data aggregation + geocoding
   stores/
     auth-store.ts         # Zustand auth + company state
+    page-header-store.ts      # Zustand store for topbar page title/subtitle/actions
   types/
     index.ts              # 30+ typed DB row interfaces
 ```
@@ -148,6 +159,12 @@ src/
 - **Storyboard System** with site map upload, pin-based annotation, incident location marking
 - **Comms** with briefing posts, channels, external groups (WhatsApp, Signal, Discord)
 - **Knowledge Base** with folders, documents, required reading
+- **Dynamic Brand Theming** with dual color picker (primary + accent), luminance guardrails, and live preview
+- **Cross-Company Data Isolation** on all timesheet and analytics queries
+- **Personal Profile Sync** across all company memberships (fill once, available everywhere)
+- **Page Titles in Topbar** with page-specific action buttons
+- **Mobile:** inline action button above subtabs, horizontal feature carousel with active dots
+- **Mobile:** animated radar sweep particle grid on landing page hero
 
 ### Workforce
 - **Applicant Pipeline** with enhanced application form (education, experience, cert uploads), detail modal, CSV import, hire orchestration
@@ -167,6 +184,11 @@ src/
 - **Planning** with multi-step operation wizard (5 steps), site map upload, storyboard annotations
 - **Address Autocomplete** on Location and Site Address fields
 - **Geo-Risk Assessment** with multi-tier crime data from 10+ public APIs
+- **Intake Edit Cascade:** changes auto-update OPORD and GOTWA, auto-create draft FRAGO
+- **Editable Incidents** after creation (admin/manager)
+- **Storyboard Pin Editing** on incident detail view
+- **Re-editable OPORD and GOTWA** after issuance (edit/lock toggle)
+- **Searchable Icon Picker** with 90+ icons across 12 categories
 
 ### Security
 - AES-256-GCM encryption, session lock, audit logs, brute-force protection
@@ -192,3 +214,17 @@ All in-page tab bars follow a consistent pattern:
 - Flex rows use `flex-wrap` where content could overflow
 - Grids use responsive breakpoints (e.g., `grid-cols-2 sm:grid-cols-4`)
 - Tab bars scroll horizontally on narrow screens
+
+### Page Titles in Topbar
+All page titles render in the topbar header via `usePageHeader` Zustand store:
+- Pages call `setHeader(title, subtitle, icon, actions)` in useEffect
+- Action buttons (+ New Operation, + Report Incident, etc.) render in the topbar on desktop
+- On mobile, action buttons render inline above page content via `MobilePageAction`
+- 26 pages use this pattern
+
+### Brand Theming
+- `BrandThemeProvider` injects company brand colors as CSS custom properties
+- Primary color: sidebar background, card backgrounds (dark mode), borders
+- Accent color: buttons, active states, badges, focus rings, chart colors
+- Luminance guardrails in HQ Config: warns if primary too light or accent too dark
+- Live preview card shows sidebar + content area with selected colors

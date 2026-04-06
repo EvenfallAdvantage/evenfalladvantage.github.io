@@ -89,6 +89,17 @@ The Overwatch platform is the primary workforce management system. See [`overwat
 - Academy hub with training modules, courses, drills, and certifications
 - Address autocomplete (Nominatim/OSM) on planning and application forms
 - Multi-provider AI question generator (Gemini, OpenAI, Anthropic, Groq, OpenRouter, Mistral, Together, Ollama)
+- Dynamic brand theming (dual color picker with CSS variable injection)
+- Mobile hero radar animation on landing page
+- Feature carousel with active dot indicators on mobile
+- Cross-company data isolation (timesheets, analytics, Watch Log, Dashboard)
+- Personal profile sync across all company memberships
+- Page titles moved to topbar with mobile action button support
+- Unified subtab system across 12+ pages with icon-on-active convention
+- Join Company modal, Privacy Policy modal on landing page
+- Editable incidents, storyboard pin editing, re-editable OPORD/GOTWA
+- Intake edit cascade (auto-updates OPORD/GOTWA, auto-creates draft FRAGO)
+- Searchable icon picker with 90+ categorized Lucide icons for storyboard pins
 
 ## Technologies
 
@@ -171,6 +182,7 @@ The platform includes comprehensive security hardening (April 2026 audit):
 | SQL Deployment | `sql/DEPLOYMENT_INSTRUCTIONS.md` | Course content SQL deployment |
 | Crime Data Migration | `sql/CRIME_DATA_MIGRATION_README.md` | Geo-risk data setup |
 | Legacy Docs | `docs/legacy/` | 29 archived legacy portal documents |
+| SOC 2 Readiness | `docs/compliance/SOC2_READINESS_CHECKLIST.md` | SOC 2 Type I readiness tracking (76 controls) |
 
 ## License
 

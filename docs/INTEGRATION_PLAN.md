@@ -215,3 +215,29 @@ The following security improvements were applied across the entire platform:
 - Mobile overflow fixes across 7 pages
 - Dashboard clock-in uses same shift-detection modal as Watch Log
 - Briefing page loads reactions/comments on initial page load
+
+## Cross-Company Data Isolation (April 2026)
+
+All timesheet and analytics queries now filter by company_id to prevent data
+bleeding between companies when a user belongs to multiple organizations.
+
+### Changes Made
+- `timesheets` table: added `company_id` column (FK to companies)
+- `clockIn()`: stores company_id from active company context
+- `getRecentTimesheets()`: filters by company_id
+- `getActiveTimesheet()`: filters by company_id
+- `getTimesheetsForDateRange()`: filters by company_id (Weekly Hours calendar)
+- `getCompanyTimesheets()`: filters by company_id (Personnel admin view)
+- `getOwnerIntel()`: unapproved timesheets, form submissions, payroll hours all scoped by company_id
+
+### Personal Profile Sync
+- `updateMemberProfile()` now syncs personal fields (address, guard card, emergency contact,
+  sizes, dietary, work preferences) across ALL company memberships for the user
+- Synced fields: address, bio, guard_card_number, guard_card_expiry, emergency_contact_name,
+  emergency_contact_phone, shirt_size, jacket_size, dietary_restrictions, work_preferences, whatsapp_opted_in
+
+### Brand Theming Architecture
+- Companies have `brand_color` (dark primary) and `accent_color` (bright highlights)
+- `BrandThemeProvider` component injects these as CSS custom properties on document root
+- All shadcn/ui components automatically inherit the brand colors via --primary, --accent, --ring, --sidebar vars
+- Light/dark mode: sidebar always uses brand primary; dark mode derives background/card/popover from brand primary
