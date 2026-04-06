@@ -71,7 +71,7 @@ Evidence paths reference files in the Overwatch codebase.
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
 | 3.1.1 | Annual risk assessment performed | `[x]` | `docs/compliance/RISK_ASSESSMENT_TEMPLATE.md` | Template with 10 identified threats, risk scoring, treatment plan |
-| 3.1.2 | Threat modeling for key assets | `[~]` | Security audit (Apr 2026) | One-time audit performed; needs to be recurring |
+| 3.1.2 | Threat modeling for key assets | `[x]` | `docs/compliance/THREAT_MODEL.md` | STRIDE analysis: 22 threats identified, 19 mitigated, 3 partially mitigated, 0 open |
 | 3.1.3 | Vendor risk assessments | `[ ]` | — | Need assessments for Supabase, Stripe, Resend, GitHub |
 | 3.1.4 | Risk register maintained | `[ ]` | — | Need formal risk register |
 
@@ -86,8 +86,8 @@ Evidence paths reference files in the Overwatch codebase.
 | 4.1.1 | Security event logging | `[x]` | `src/lib/security/security-audit.ts` | Audit logs with 90-day retention |
 | 4.1.2 | Log review procedures | `[x]` | `docs/compliance/LOG_REVIEW_PROCEDURES.md` | Daily error triage, weekly security audit, monthly auth review, quarterly full audit |
 | 4.1.3 | Automated vulnerability scanning | `[x]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | Dependabot (weekly npm + actions), CodeQL (weekly + on push/PR) |
-| 4.1.4 | Uptime monitoring | `[ ]` | — | Need external uptime monitor (e.g., UptimeRobot) |
-| 4.1.5 | Error tracking / APM | `[ ]` | — | Need Sentry or similar |
+| 4.1.4 | Uptime monitoring with alerting | `[x]` | UptimeRobot (monitor #802774563), `/overwatch/health/` | 5-minute keyword monitoring; alert contacts configured |
+| 4.1.5 | Error tracking / APM with alerting | `[x]` | `error_logs` table, `error-tracker.ts`, `error-alerter.ts`, HQ Config viewer | Built-in: auto-tracking, dedup, ErrorBoundary, admin digest via Briefing posts |
 | 4.1.6 | Penetration testing (annual) | `[ ]` | — | Need third-party pen test |
 
 ---
@@ -142,8 +142,8 @@ Evidence paths reference files in the Overwatch codebase.
 |---|---------|--------|----------|-------|
 | 6.1.1 | Production database access restricted | `[x]` | Supabase Dashboard | Only owners have Supabase console access; RLS enforces app-level isolation |
 | 6.1.2 | Service role keys not in client code | `[x]` | `.env.local` (gitignored), Edge Functions | Service keys only in Edge Functions; client uses anon key |
-| 6.1.3 | GitHub repository access controlled | `[~]` | GitHub org settings | Need to document who has access and review quarterly |
-| 6.1.4 | No shared accounts | `[~]` | — | Need to verify and document |
+| 6.1.3 | GitHub repository access controlled | `[x]` | GitHub org settings, branch protection, `ACCESS_REVIEW_CHECKLIST.md` | Branch protection enforced; quarterly access review process defined |
+| 6.1.4 | No shared accounts | `[x]` | `docs/compliance/SHARED_ACCOUNTS_AUDIT.md` | Audit completed: 0 shared accounts across all 6 production systems |
 
 ### CC6.2 — Physical Security
 
@@ -250,29 +250,33 @@ Evidence paths reference files in the Overwatch codebase.
 |----------|------|---------|-----|-------|
 | CC1: Control Environment | 5 | 0 | 0 | 5 |
 | CC2: Communication | 7 | 0 | 0 | 7 |
-| CC3: Risk Assessment | 1 | 1 | 2 | 4 |
-| CC4: Monitoring | 3 | 0 | 2 | 5 |
+| CC3: Risk Assessment | 2 | 0 | 2 | 4 |
+| CC4: Monitoring | 5 | 0 | 0 | 5 |
 | CC5: Control Activities | 17 | 1 | 1 | 19 |
-| CC6: Access Controls | 3 | 2 | 0 | 5 |
+| CC6: Access Controls | 5 | 0 | 0 | 5 |
 | CC7: System Operations | 9 | 0 | 1 | 10 |
 | CC8: Change Management | 8 | 1 | 0 | 9 |
 | CC9: Additional | 8 | 2 | 2 | 12 |
-| **TOTAL** | **61** | **7** | **8** | **76** |
+| **TOTAL** | **66** | **4** | **6** | **76** |
 
-**Readiness Score: 80% complete (61/76 fully implemented)**
+**Readiness Score: 87% complete (66/76 fully implemented)**
 
-### Remaining 8 Gaps (require process execution or external services)
+### Categories at 100%
+- CC1: Control Environment (5/5)
+- CC2: Communication and Information (7/7)
+- CC4: Monitoring Activities (5/5)
+- CC6: Logical and Physical Access Controls (5/5)
 
-| # | Control | Category | What's Needed |
-|---|---------|----------|--------------|
-| 1 | Threat modeling for key assets | CC3 | Formal threat model document (extend risk assessment) |
-| 2 | Risk register maintained | CC3 | Quarterly updates to risk assessment |
-| 3 | Uptime monitoring with alerting | CC4 | Configure UptimeRobot alert contacts (already monitoring) |
-| 4 | Error tracking / APM alerting | CC4 | Add alerting to built-in error tracker |
-| 5 | Penetration testing (annual) | CC4 | Hire third-party firm ($5-15K) |
-| 6 | Staging environment | CC8 | Create second Supabase project |
-| 7 | Backup restoration tested | CC7 | Conduct Supabase PITR drill (1 hour) |
-| 8 | No shared accounts verified | CC6 | Audit and document |
+### Remaining 6 Gaps
+
+| # | Control | Category | What's Needed | Type |
+|---|---------|----------|--------------|------|
+| 1 | Risk register maintained quarterly | CC3 | Execute the risk assessment template each quarter | Process |
+| 2 | Vendor SOC 2 reports reviewed | CC3 | Request annual reports from Supabase, Stripe, GitHub | Process |
+| 3 | MFA enforced (not just recommended) | CC5 | Enforce MFA for admin/owner roles in Supabase Auth | Technical |
+| 4 | Penetration testing (annual) | CC5 (partial) | Hire third-party firm ($5-15K) | External |
+| 5 | Staging environment | CC8 (partial) | Create second Supabase project + staging deploy | Technical |
+| 6 | Backup restoration tested | CC7 | Conduct Supabase PITR drill (1 hour) | Process |
 
 ### Priority Remediation (Top 10)
 

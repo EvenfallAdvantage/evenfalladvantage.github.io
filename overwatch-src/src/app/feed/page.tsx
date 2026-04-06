@@ -358,6 +358,15 @@ export default function FeedPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Error alerting for admins — check for new errors on dashboard load
+  useEffect(() => {
+    if (isLeadership && activeCompanyId && activeCompanyId !== "pending" && user?.id) {
+      import("@/lib/error-alerter").then(({ checkErrorsAndAlert }) => {
+        checkErrorsAndAlert(activeCompanyId, user.id).catch(() => {});
+      });
+    }
+  }, [isLeadership, activeCompanyId, user?.id]);
+
   useEffect(() => {
     if (!active) { setElapsed(0); return; }
     const tick = () => setElapsed(Date.now() - parseUTC(active.clock_in).getTime());
