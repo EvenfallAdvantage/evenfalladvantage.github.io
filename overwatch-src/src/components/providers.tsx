@@ -8,6 +8,8 @@ import { AuthProvider } from "@/components/auth-provider";
 import { SecurityProvider } from "@/components/security-provider";
 import BrandThemeProvider from "@/components/brand-theme-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { installGlobalErrorHandlers } from "@/lib/error-tracker";
+import { useAuthStore } from "@/stores/auth-store";
 import { useState, useEffect } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -15,6 +17,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/overwatch/sw.js").catch(() => {});
     }
+    // Install global error tracking
+    installGlobalErrorHandlers();
+  }, []);
+
+  // Expose auth store for error tracker context (non-reactive, just a reference)
+  useEffect(() => {
+    const unsub = useAuthStore.subscribe((state) => {
+      (window as any).__OVERWATCH_AUTH_STORE__ = {
+        user: state.user,
+        activeCompanyId: state.activeCompanyId,
+      };
+    });
+    return unsub;
   }, []);
   const [queryClient] = useState(
     () =>

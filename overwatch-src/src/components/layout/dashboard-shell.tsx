@@ -6,6 +6,7 @@ import { AppSidebar } from "./app-sidebar";
 import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
 import { MobilePageAction } from "@/components/mobile-page-action";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const STORAGE_KEY = "overwatch-sidebar-collapsed";
 
@@ -46,7 +47,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <div className="flex justify-end mb-2 sm:hidden">
             <MobilePageAction />
           </div>
-          {children}
+          <ErrorBoundary>{children}</ErrorBoundary>
         </div>
       </main>
 
