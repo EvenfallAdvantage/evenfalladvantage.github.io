@@ -352,7 +352,7 @@ export default function FormsPage() {
                       {f.type === "rating" && (
                         <div className="flex gap-1">
                           {[1, 2, 3, 4, 5].map((star) => (
-                            <button key={star} type="button" onClick={() => setFormValues((prev) => ({ ...prev, [f.label]: star }))}
+                            <button key={star} type="button" onClick={() => setFormValues((prev) => ({ ...prev, [f.label]: String(star) }))}
                               className={`text-xl transition-colors ${Number(formValues[f.label] ?? 0) >= star ? "text-amber-400" : "text-muted-foreground/30"}`}>
                               ★
                             </button>
