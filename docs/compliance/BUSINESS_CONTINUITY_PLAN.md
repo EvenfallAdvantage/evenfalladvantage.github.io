@@ -16,12 +16,12 @@ This plan ensures the Overwatch platform can maintain or rapidly restore critica
 | Service | RPO | RTO | Priority |
 |---------|-----|-----|----------|
 | Overwatch web application | 0 (static site) | < 30 min | P1 |
-| Supabase database (OverwatchDB) | < 5 min (PITR) | < 1 hour | P1 |
+| Supabase database (OverwatchDB) | < 24 hrs (daily export) | < 1 hour | P1 |
 | User authentication (Supabase Auth) | 0 (managed) | < 15 min | P1 |
 | File storage (Supabase Storage) | < 5 min | < 1 hour | P2 |
 | Payment processing (Stripe) | 0 (managed) | N/A (external) | P2 |
 | Email delivery (Resend) | 0 (managed) | N/A (external) | P3 |
-| Legacy training DB (EADB) | < 5 min (PITR) | < 2 hours | P3 |
+| Legacy training DB (EADB) | < 24 hrs (daily export) | < 2 hours | P3 |
 
 **RPO** = Recovery Point Objective (max data loss)
 **RTO** = Recovery Time Objective (max downtime)
