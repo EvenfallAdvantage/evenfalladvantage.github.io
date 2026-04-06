@@ -14,6 +14,7 @@ import {
 import dynamic from "next/dynamic";
 import { TOSModal } from "@/components/terms-of-service";
 
+const MobileHeroRadar = dynamic(() => import("@/components/mobile-hero-radar"), { ssr: false });
 const TacticalGlobe = dynamic(() => import("@/components/tactical-globe").then((m) => m.TacticalGlobe), {
   ssr: false,
   loading: () => <div style={{ height: "clamp(160px, 22vw, 280px)" }} />,
@@ -474,7 +475,10 @@ function HomePageInner() {
       <section className="relative pt-44 pb-24">
         <div className="absolute inset-0 z-[15] pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-[#dd8c33]/8 via-transparent to-transparent rounded-full blur-3xl" />
-        <TacticalGlobe />
+        {/* Desktop: 3D Globe */}
+        <div className="hidden md:block"><TacticalGlobe /></div>
+        {/* Mobile: Animated Radar Grid */}
+        <div className="md:hidden relative z-10 -mb-16"><MobileHeroRadar /></div>
 
         <div className="relative z-20 mx-auto max-w-4xl px-6 text-center pointer-events-none">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dd8c33]/20 bg-[#dd8c33]/10 px-4 py-1.5 text-xs text-[#dd8c33]" style={{ textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
