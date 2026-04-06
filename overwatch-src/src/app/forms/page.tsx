@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { ClipboardList, Plus, Loader2, Send, ChevronLeft, ChevronDown, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle, Flag } from "lucide-react";
+import { ClipboardList, Plus, Loader2, Send, ChevronLeft, ChevronDown, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle, Flag, Pencil, Check } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
-import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updateForm, getActiveTimesheet } from "@/lib/supabase/db";
+import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updateForm, getActiveTimesheet, getUserFormSubmissions } from "@/lib/supabase/db";
+import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
 
 type FormField = { id: string; label: string; type: "text" | "textarea" | "select" | "checkbox"; required: boolean; options?: string[] };
@@ -61,6 +62,9 @@ export default function FormsPage() {
   const [formValues, setFormValues] = useState<Record<string, string | boolean>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [activeTimesheet, setActiveTimesheet] = useState<any>(null);
+  const [mySubmissions, setMySubmissions] = useState<Submission[]>([]);
+  const [editingSubmission, setEditingSubmission] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -68,6 +72,8 @@ export default function FormsPage() {
       const [f, ts] = await Promise.all([getForms(activeCompanyId), getActiveTimesheet()]);
       setForms(f);
       setActiveTimesheet(ts);
+      // Load user's own submissions across all forms
+      try { setMySubmissions(await getUserFormSubmissions()); } catch {}
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -371,6 +377,7 @@ export default function FormsPage() {
             </p>
           </div>
         ) : (
+          <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {forms.map((form: Form) => (
               <div key={form.id} onClick={() => selectForm(form)}
@@ -393,6 +400,95 @@ export default function FormsPage() {
               </div>
             ))}
           </div>
+
+          {/* My Submissions */}
+          {mySubmissions.length > 0 && !selected && (
+            <div className="mt-6">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+                My Submissions ({mySubmissions.length})
+              </h3>
+              <div className="space-y-2">
+                {mySubmissions.map((s: Submission) => {
+                  const isExpanded = expandedSubmission === s.id;
+                  const fields = s.data as Record<string, unknown> | null;
+                  const isEditing = editingSubmission === s.id;
+                  return (
+                    <div key={s.id} className="rounded-lg border border-border/40 bg-card overflow-hidden">
+                      <button className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+                        onClick={() => setExpandedSubmission(isExpanded ? null : s.id)}>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                          <ClipboardList className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{s.forms?.name ?? "Report"}</span>
+                            <Badge variant="secondary" className="text-[10px] capitalize">{s.status}</Badge>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(s.created_at).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} at {new Date(s.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                      </button>
+                      {isExpanded && fields && (
+                        <div className="border-t border-border/30 px-4 py-3 space-y-3 bg-muted/10">
+                          {isEditing ? (
+                            <>
+                              {Object.entries(fields).map(([key, val]) => (
+                                <div key={key}>
+                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">
+                                    {key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                                  </label>
+                                  <textarea
+                                    value={String(editFormData[key] ?? val ?? "")}
+                                    onChange={(e) => setEditFormData(prev => ({ ...prev, [key]: e.target.value }))}
+                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[60px] resize-y"
+                                  />
+                                </div>
+                              ))}
+                              <div className="flex gap-2 pt-1">
+                                <Button size="sm" className="h-7 gap-1 text-xs" onClick={async () => {
+                                  try {
+                                    const supabase = (await import("@/lib/supabase/client")).createClient();
+                                    await supabase.from("form_submissions").update({ data: editFormData }).eq("id", s.id);
+                                    const updated = mySubmissions.map(sub => sub.id === s.id ? { ...sub, data: editFormData } : sub);
+                                    setMySubmissions(updated);
+                                    setEditingSubmission(null);
+                                    toast.success("Report updated");
+                                  } catch { toast.error("Failed to update"); }
+                                }}><Check className="h-3 w-3" /> Save</Button>
+                                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => setEditingSubmission(null)}>
+                                  <X className="h-3 w-3" /> Cancel
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {Object.entries(fields).map(([key, val]) => (
+                                <div key={key}>
+                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">
+                                    {key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                                  </label>
+                                  <p className="text-sm whitespace-pre-wrap">{String(val ?? "\u2014")}</p>
+                                </div>
+                              ))}
+                              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => {
+                                setEditingSubmission(s.id);
+                                setEditFormData(fields as Record<string, string>);
+                              }}>
+                                <Pencil className="h-3 w-3" /> Edit Report
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
     </>

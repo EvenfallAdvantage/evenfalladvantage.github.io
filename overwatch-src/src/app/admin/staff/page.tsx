@@ -567,7 +567,7 @@ export default function AdminStaffPage() {
             { key: "timesheets" as Tab, label: "Timesheets", badge: pendingSheets.length, icon: CalendarClock },
             { key: "corrections" as Tab, label: "Corrections", badge: pendingTCR.length, icon: FileEdit },
             { key: "leave" as Tab, label: "Leave", badge: pendingLeave.length, icon: CalendarOff },
-            { key: "forms" as Tab, label: "Forms", badge: pendingForms.length + openIncidents.length, icon: FileText },
+            { key: "forms" as Tab, label: "Reports", badge: pendingForms.length + openIncidents.length, icon: FileText },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>

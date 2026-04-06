@@ -99,12 +99,18 @@ export async function submitForm(params: {
 
 export async function getAllFormSubmissions(companyId: string) {
   const supabase = createClient();
+  // Fetch all submissions with form data, then filter client-side by company
+  // (avoids !inner join filter which can return empty results if relationship isn't configured correctly)
   const { data } = await supabase
     .from("form_submissions")
-    .select("*, users(first_name, last_name, avatar_url), forms!inner(name, company_id), events(id, name)")
-    .eq("forms.company_id", companyId)
+    .select("*, users(first_name, last_name, avatar_url), forms(name, company_id), events(id, name)")
     .order("created_at", { ascending: false });
-  return data ?? [];
+  // Filter client-side by company
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filtered = (data ?? []).filter((s: any) => {
+    return s.forms?.company_id === companyId;
+  });
+  return filtered;
 }
 
 export async function getEventFormSubmissions(eventId: string) {
