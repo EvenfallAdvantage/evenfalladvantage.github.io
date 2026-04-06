@@ -156,11 +156,11 @@ export function TOSModal({ open, onClose }: TOSModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-white/10 px-6 py-4 shrink-0 flex items-center justify-between">
-          <p className="text-[10px] text-white/30">&copy; {new Date().getFullYear()} Evenfall Advantage LLC. All rights reserved.</p>
+        <div className="border-t border-white/10 px-4 sm:px-6 py-3 shrink-0 flex items-center justify-between gap-3">
+          <p className="text-[10px] text-white/30 hidden sm:block">&copy; {new Date().getFullYear()} Evenfall Advantage LLC.</p>
           <button
             onClick={onClose}
-            className="px-6 py-2 rounded-lg bg-[#dd8c33] text-white text-sm font-semibold hover:bg-[#c47a2a] transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-[#dd8c33] text-white text-xs font-semibold hover:bg-[#c47a2a] transition-colors ml-auto"
           >
             I Understand
           </button>

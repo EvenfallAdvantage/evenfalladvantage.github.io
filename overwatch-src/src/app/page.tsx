@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { TOSModal } from "@/components/terms-of-service";
+import { PrivacyPolicyModal } from "@/components/privacy-policy-modal";
+import { JoinCompanyModal } from "@/components/join-company-modal";
 
 const MobileHeroRadar = dynamic(() => import("@/components/mobile-hero-radar"), { ssr: false });
 const TacticalGlobe = dynamic(() => import("@/components/tactical-globe").then((m) => m.TacticalGlobe), {
@@ -483,6 +485,8 @@ function HomePageInner() {
   const [loginOpen, setLoginOpen] = useState(authParam === "login");
   const [registerOpen, setRegisterOpen] = useState(authParam === "register" || !!codeParam);
   const [tosOpen, setTosOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
   const [partners, setPartners] = useState<{ name: string; logo_url: string | null; website_url: string | null }[]>([]);
 
   useEffect(() => {
@@ -676,36 +680,30 @@ function HomePageInner() {
       <footer className="relative border-t border-white/5 bg-[#070d18]">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:60px_60px]" />
         <div className="relative mx-auto max-w-6xl px-6 py-12">
-          {/* Top row: branding + nav columns */}
-          <div className="grid gap-8 sm:grid-cols-3 mb-10">
-            {/* Brand */}
-            <div className="flex flex-col items-center sm:items-start gap-3">
-              <a href="https://www.evenfalladvantage.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5">
-                <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={32} height={32} style={{ width: 32, height: "auto" }} />
-                <span className="font-mono font-bold text-sm tracking-wider text-white/80">OVERWATCH</span>
-              </a>
-              <p className="text-[11px] text-white/30 leading-relaxed text-center sm:text-left max-w-[220px]">
-                Military-grade workforce management for security professionals.
-              </p>
-              <a href="https://www.evenfalladvantage.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 mt-1">
-                <Image src="/images/logo.png" alt="Evenfall Advantage" width={100} height={30} className="w-[80px] h-auto opacity-50 hover:opacity-80 transition-opacity" />
-              </a>
-            </div>
-
+          {/* Footer nav columns */}
+          <div className="grid gap-8 grid-cols-2 sm:grid-cols-3 mb-10">
             {/* Platform links */}
             <div className="flex flex-col items-center sm:items-start gap-2.5">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/20 mb-1">Platform</h4>
               <button onClick={() => setLoginOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Sign In</button>
               <button onClick={() => setRegisterOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Create Account</button>
-              <Link href="/join" className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Join a Company</Link>
+              <button onClick={() => setJoinOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Join a Company</button>
             </div>
 
             {/* Legal links */}
             <div className="flex flex-col items-center sm:items-start gap-2.5">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/20 mb-1">Legal</h4>
               <button onClick={() => setTosOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Terms of Service</button>
-              <a href="https://www.evenfalladvantage.com/privacy-policy.html" target="_blank" rel="noopener noreferrer" className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Privacy Policy</a>
+              <button onClick={() => setPrivacyOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Privacy Policy</button>
               <a href="mailto:contact@evenfalladvantage.com" className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Contact</a>
+            </div>
+
+            {/* Branding — desktop only, subtle */}
+            <div className="hidden sm:flex flex-col items-start gap-2.5">
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/20 mb-1">Powered By</h4>
+              <a href="https://www.evenfalladvantage.com" target="_blank" rel="noopener noreferrer">
+                <Image src="/images/logo.png" alt="Evenfall Advantage" width={120} height={36} className="w-[100px] h-auto opacity-40 hover:opacity-70 transition-opacity" />
+              </a>
             </div>
           </div>
 
@@ -721,6 +719,8 @@ function HomePageInner() {
       <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} onSwitchToRegister={() => { setLoginOpen(false); setRegisterOpen(true); }} />
       <RegisterModal open={registerOpen} onClose={() => setRegisterOpen(false)} onSwitchToLogin={() => { setRegisterOpen(false); setLoginOpen(true); }} joinCode={codeParam} />
       <TOSModal open={tosOpen} onClose={() => setTosOpen(false)} />
+      <PrivacyPolicyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
+      <JoinCompanyModal open={joinOpen} onClose={() => setJoinOpen(false)} onSwitchToRegister={() => { setJoinOpen(false); setRegisterOpen(true); }} />
     </div>
   );
 }
