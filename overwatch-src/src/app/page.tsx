@@ -707,8 +707,48 @@ function HomePageInner() {
             </div>
           </div>
 
+          {/* Compliance Badges */}
+          <div className="border-t border-white/5 pt-6 pb-4">
+            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+              {[
+                { label: "SOC 2", sub: "Type I Ready", href: "https://www.aicpa-cima.com/topic/audit-assurance/audit-and-assurance-greater-than-soc-2", icon: (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                )},
+                { label: "CCPA", sub: "Compliant", href: "https://oag.ca.gov/privacy/ccpa", icon: (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                )},
+                { label: "AES-256", sub: "Encrypted", href: "https://en.wikipedia.org/wiki/Advanced_Encryption_Standard", icon: (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                )},
+                { label: "TLS 1.2+", sub: "Enforced", href: "https://en.wikipedia.org/wiki/Transport_Layer_Security", icon: (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                )},
+                { label: "WCAG", sub: "Accessible", href: "https://www.w3.org/WAI/standards-guidelines/wcag/", icon: (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                )},
+                { label: "99.5%", sub: "Uptime SLA", href: "https://en.wikipedia.org/wiki/Service-level_agreement", icon: (
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                )},
+              ].map((badge) => (
+                <a
+                  key={badge.label}
+                  href={badge.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-white/30 hover:text-white/50 hover:border-white/10 hover:bg-white/[0.04] transition-all group"
+                >
+                  <span className="text-[#dd8c33]/50 group-hover:text-[#dd8c33]/80 transition-colors">{badge.icon}</span>
+                  <span className="flex flex-col leading-none">
+                    <span className="text-[10px] font-bold font-mono tracking-wider">{badge.label}</span>
+                    <span className="text-[8px] text-white/20 group-hover:text-white/30">{badge.sub}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+
           {/* Bottom bar */}
-          <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="border-t border-white/5 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-[10px] text-white/20 font-mono">&copy; {new Date().getFullYear()} Evenfall Advantage LLC. All rights reserved.</p>
             <p className="text-[10px] text-white/15 font-mono">Built with purpose. Deployed with precision.</p>
           </div>
