@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # Overwatch (Next.js) dependencies
+  - package-ecosystem: "npm"
+    directory: "/overwatch-src"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+    reviewers:
+      - "denalifox"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "ci"

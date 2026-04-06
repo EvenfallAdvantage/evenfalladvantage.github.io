@@ -26,7 +26,7 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 1.1.1 | Information Security Policy documented | `[ ]` | — | Need formal policy document |
+| 1.1.1 | Information Security Policy documented | `[x]` | `docs/compliance/INFORMATION_SECURITY_POLICY.md` | Covers data classification, access control, encryption, vulnerability management, change management, acceptable use |
 | 1.1.2 | Acceptable Use Policy documented | `[ ]` | — | Need formal policy document |
 | 1.1.3 | Security roles and responsibilities defined | `[~]` | `src/lib/permissions.ts` | Role hierarchy exists (staff < manager < admin < owner) but not formally documented as a policy |
 | 1.1.4 | Management commitment to security | `[~]` | This checklist | In progress |
@@ -59,7 +59,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 2.2.1 | Terms of Service published | `[x]` | `terms-of-service.html`, ToS modal | Arizona law, comprehensive 17 sections |
 | 2.2.2 | Privacy Policy published | `[x]` | `privacy-policy.html`, Privacy modal | CCPA-compliant, 8 sections |
 | 2.2.3 | Cookie consent mechanism | `[x]` | `includes/footer.html` | Accept/Decline banner, localStorage |
-| 2.2.4 | Data breach notification procedures | `[ ]` | — | Need formal breach notification plan |
+| 2.2.4 | Data breach notification procedures | `[x]` | `docs/compliance/INCIDENT_RESPONSE_PLAN.md` | Section 6: Communication — 72hr customer notification, regulatory requirements |
 | 2.2.5 | Subprocessor / vendor list published | `[ ]` | — | Need public list of subprocessors |
 
 ---
@@ -85,7 +85,7 @@ Evidence paths reference files in the Overwatch codebase.
 |---|---------|--------|----------|-------|
 | 4.1.1 | Security event logging | `[x]` | `src/lib/security/security-audit.ts` | Audit logs with 90-day retention |
 | 4.1.2 | Log review procedures | `[ ]` | — | Logs exist but no formal review process |
-| 4.1.3 | Automated vulnerability scanning | `[ ]` | — | Need GitHub Dependabot + CodeQL |
+| 4.1.3 | Automated vulnerability scanning | `[x]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | Dependabot (weekly npm + actions), CodeQL (weekly + on push/PR) |
 | 4.1.4 | Uptime monitoring | `[ ]` | — | Need external uptime monitor (e.g., UptimeRobot) |
 | 4.1.5 | Error tracking / APM | `[ ]` | — | Need Sentry or similar |
 | 4.1.6 | Penetration testing (annual) | `[ ]` | — | Need third-party pen test |
@@ -182,7 +182,7 @@ Evidence paths reference files in the Overwatch codebase.
 |---|---------|--------|----------|-------|
 | 7.3.1 | Security incident logging | `[x]` | Audit logs (`security-audit.ts`) | All security events logged with 90-day retention |
 | 7.3.2 | Incident severity classification | `[x]` | `/incidents` page | Critical/High/Medium/Low severity tiers |
-| 7.3.3 | Incident response runbook | `[ ]` | — | Need documented runbook |
+| 7.3.3 | Incident response runbook | `[x]` | `docs/compliance/INCIDENT_RESPONSE_PLAN.md` | 6-phase IRP: detection, assessment, containment, eradication, recovery, post-mortem |
 | 7.3.4 | Post-incident review process | `[ ]` | — | Need formal post-mortem process |
 
 ---
@@ -199,7 +199,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 8.1.4 | Separate dev/staging/production environments | `[~]` | Local dev + production | No formal staging environment |
 | 8.1.5 | Code review / PR approval required | `[~]` | GitHub PRs | PRs used but not enforced via branch protection |
 | 8.1.6 | Automated testing | `[ ]` | — | No test suite; need unit + integration tests |
-| 8.1.7 | Dependency vulnerability scanning | `[ ]` | — | Need GitHub Dependabot + CodeQL |
+| 8.1.7 | Dependency vulnerability scanning | `[x]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | Dependabot weekly scans + CodeQL SAST |
 | 8.1.8 | Database migration tracking | `[x]` | `prisma/*.sql` | 15+ versioned SQL migration files |
 
 ### CC8.2 — Release Management
@@ -248,18 +248,18 @@ Evidence paths reference files in the Overwatch codebase.
 
 | Category | Done | Partial | Gap | Total |
 |----------|------|---------|-----|-------|
-| CC1: Control Environment | 0 | 2 | 3 | 5 |
-| CC2: Communication | 3 | 2 | 2 | 7 |
+| CC1: Control Environment | 1 | 2 | 2 | 5 |
+| CC2: Communication | 4 | 1 | 2 | 7 |
 | CC3: Risk Assessment | 0 | 1 | 3 | 4 |
-| CC4: Monitoring | 1 | 0 | 4 | 5 |
+| CC4: Monitoring | 2 | 0 | 3 | 5 |
 | CC5: Control Activities | 16 | 1 | 2 | 19 |
 | CC6: Access Controls | 2 | 2 | 1 | 5 |
-| CC7: System Operations | 4 | 0 | 6 | 10 |
-| CC8: Change Management | 4 | 3 | 2 | 9 |
+| CC7: System Operations | 5 | 0 | 5 | 10 |
+| CC8: Change Management | 5 | 3 | 1 | 9 |
 | CC9: Additional | 4 | 4 | 4 | 12 |
-| **TOTAL** | **34** | **15** | **27** | **76** |
+| **TOTAL** | **39** | **14** | **23** | **76** |
 
-**Readiness Score: 45% complete (34/76 fully implemented)**
+**Readiness Score: 51% complete (39/76 fully implemented)**
 
 ### Priority Remediation (Top 10)
 
