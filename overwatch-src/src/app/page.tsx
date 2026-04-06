@@ -684,7 +684,7 @@ function HomePageInner() {
           <div className="grid gap-8 grid-cols-2 sm:grid-cols-3 mb-10">
             {/* Platform links */}
             <div className="flex flex-col items-center sm:items-start gap-2.5">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/20 mb-1">Platform</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Platform</h4>
               <button onClick={() => setLoginOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Sign In</button>
               <button onClick={() => setRegisterOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Create Account</button>
               <button onClick={() => setJoinOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Join a Company</button>
@@ -692,7 +692,7 @@ function HomePageInner() {
 
             {/* Legal links */}
             <div className="flex flex-col items-center sm:items-start gap-2.5">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/20 mb-1">Legal</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Legal</h4>
               <button onClick={() => setTosOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Terms of Service</button>
               <button onClick={() => setPrivacyOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Privacy Policy</button>
               <a href="mailto:contact@evenfalladvantage.com" className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Contact</a>
@@ -700,7 +700,7 @@ function HomePageInner() {
 
             {/* Branding — desktop only, subtle */}
             <div className="hidden sm:flex flex-col items-start gap-2.5">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/20 mb-1">Powered By</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Powered By</h4>
               <a href="https://www.evenfalladvantage.com" target="_blank" rel="noopener noreferrer">
                 <Image src="/images/logo.png" alt="Evenfall Advantage" width={120} height={36} className="w-[100px] h-auto opacity-40 hover:opacity-70 transition-opacity" />
               </a>
@@ -740,7 +740,7 @@ function HomePageInner() {
                   <span className="text-[#dd8c33]/50 group-hover:text-[#dd8c33]/80 transition-colors">{badge.icon}</span>
                   <span className="flex flex-col leading-none">
                     <span className="text-[10px] font-bold font-mono tracking-wider">{badge.label}</span>
-                    <span className="text-[8px] text-white/20 group-hover:text-white/30">{badge.sub}</span>
+                    <span className="text-[8px] text-white/50 group-hover:text-white/60">{badge.sub}</span>
                   </span>
                 </a>
               ))}
@@ -749,8 +749,8 @@ function HomePageInner() {
 
           {/* Bottom bar */}
           <div className="border-t border-white/5 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[10px] text-white/20 font-mono">&copy; {new Date().getFullYear()} Evenfall Advantage LLC. All rights reserved.</p>
-            <p className="text-[10px] text-white/15 font-mono">Built with purpose. Deployed with precision.</p>
+            <p className="text-[10px] text-white/50 font-mono">&copy; {new Date().getFullYear()} Evenfall Advantage LLC. All rights reserved.</p>
+            <p className="text-[10px] text-white/50 font-mono">Built with purpose. Deployed with precision.</p>
           </div>
         </div>
       </footer>

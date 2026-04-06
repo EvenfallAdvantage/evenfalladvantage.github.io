@@ -388,11 +388,11 @@ export default function TimeClockPage() {
                 Weekly Hours
               </h3>
               <div className="flex items-center gap-1">
-                <button onClick={() => setWeekOffset(w => w - 1)} className="p-1 rounded hover:bg-muted/50 text-muted-foreground"><ChevronLeft className="h-4 w-4" /></button>
+                <button onClick={() => setWeekOffset(w => w - 1)} className="p-1 rounded hover:bg-muted/50 text-muted-foreground" aria-label="Previous week"><ChevronLeft className="h-4 w-4" /></button>
                 {!isCurrentWeek && (
                   <button onClick={() => setWeekOffset(0)} className="text-[10px] text-primary px-2 py-0.5 rounded hover:bg-primary/10">Today</button>
                 )}
-                <button onClick={() => setWeekOffset(w => w + 1)} disabled={isCurrentWeek} className="p-1 rounded hover:bg-muted/50 text-muted-foreground disabled:opacity-30"><ChevronRight className="h-4 w-4" /></button>
+                <button onClick={() => setWeekOffset(w => w + 1)} disabled={isCurrentWeek} className="p-1 rounded hover:bg-muted/50 text-muted-foreground disabled:opacity-30" aria-label="Next week"><ChevronRight className="h-4 w-4" /></button>
               </div>
             </div>
             <div className="text-[10px] text-muted-foreground mb-2">
@@ -469,7 +469,7 @@ export default function TimeClockPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => { setSelectedEntry(null); setShowChangeRequest(false); setChangeSuccess(false); }}>
           <div className="relative w-full max-w-md rounded-2xl border border-border/50 bg-card shadow-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <button onClick={() => { setSelectedEntry(null); setShowChangeRequest(false); setChangeSuccess(false); }}
-              className="absolute top-3 right-3 text-muted-foreground/50 hover:text-foreground"><X className="h-5 w-5" /></button>
+              className="absolute top-3 right-3 text-muted-foreground/50 hover:text-foreground" aria-label="Close"><X className="h-5 w-5" /></button>
 
             <div className="p-6 space-y-5">
               {/* Header */}
@@ -597,7 +597,7 @@ export default function TimeClockPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => { setShowClockInModal(false); setAdminNotes(""); }}>
           <div className="relative w-full max-w-md rounded-2xl border border-border/50 bg-card shadow-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <button onClick={() => { setShowClockInModal(false); setAdminNotes(""); }}
-              className="absolute top-3 right-3 text-muted-foreground/50 hover:text-foreground"><X className="h-5 w-5" /></button>
+              className="absolute top-3 right-3 text-muted-foreground/50 hover:text-foreground" aria-label="Close"><X className="h-5 w-5" /></button>
 
             <div className="p-6 space-y-5">
               <div>

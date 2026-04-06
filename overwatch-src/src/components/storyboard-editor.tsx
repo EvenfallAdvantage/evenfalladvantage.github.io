@@ -262,10 +262,10 @@ function IconPicker({ value, onChange }: { value: string; onChange: (v: string) 
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search icons..."
               autoFocus
-              className="flex-1 bg-transparent text-xs text-slate-200 placeholder:text-slate-600 outline-none"
+              className="flex-1 bg-transparent text-xs text-slate-200 placeholder:text-slate-600 outline-none focus:ring-1 focus:ring-primary"
             />
             {search && (
-              <button type="button" onClick={() => setSearch("")} className="text-slate-600 hover:text-slate-300">
+              <button type="button" onClick={() => setSearch("")} className="text-slate-600 hover:text-slate-300" aria-label="Clear search">
                 <X size={10} />
               </button>
             )}

@@ -24,6 +24,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Skip navigation — WCAG 2.4.1 */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[999] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg">
+        Skip to main content
+      </a>
+
       {/* Desktop sidebar */}
       <div className="hidden md:block">
         <AppSidebar
@@ -37,6 +42,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main
+        id="main-content"
         className={cn(
           "min-h-screen pt-14 sm:pt-16 pb-20 transition-all duration-300 md:pb-0",
           collapsed ? "md:pl-[68px]" : "md:pl-[260px]"

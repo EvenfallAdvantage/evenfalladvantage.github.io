@@ -432,7 +432,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
-              "flex w-full items-center gap-3 rounded-lg p-2 text-sm transition-colors hover:bg-accent outline-none",
+              "flex w-full items-center gap-3 rounded-lg p-2 text-sm transition-colors hover:bg-accent outline-none focus-visible:ring-2 focus-visible:ring-ring",
               collapsed && "justify-center"
             )}
           >
@@ -528,7 +528,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         <ThemeToggle collapsed={collapsed} />
         {!collapsed && (
           <div className="flex flex-col items-center space-y-1">
-            <Image src="/images/overwatch_logo.png?v=2" alt="" width={24} height={24} className="h-6 w-auto opacity-40" />
+            <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={24} height={24} className="h-6 w-auto opacity-40" />
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 font-mono">
               Overwatch
             </p>

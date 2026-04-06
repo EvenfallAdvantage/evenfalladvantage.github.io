@@ -429,7 +429,7 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                   <div className="h-7 w-7 rounded-full overflow-hidden bg-primary/15 flex items-center justify-center">
                     {selected.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={selected.avatar_url} alt="" className="h-full w-full object-cover" />
+                      <img src={selected.avatar_url} alt="Channel avatar" className="h-full w-full object-cover" />
                     ) : (
                       <Hash className="h-3.5 w-3.5 text-primary" />
                     )}
@@ -465,7 +465,7 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                   <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => handleSaveAvatar(selected.id)} disabled={savingAvatar || (!editAvatarUrl.trim() && !editAvatarFile)}>
                     {savingAvatar ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
                   </Button>
-                  <button onClick={() => { setEditingAvatar(null); setEditAvatarUrl(""); setEditAvatarFile(null); }} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => { setEditingAvatar(null); setEditAvatarUrl(""); setEditAvatarFile(null); }} className="text-muted-foreground hover:text-foreground" aria-label="Close"><X className="h-3.5 w-3.5" /></button>
                 </div>
               )}
               {showSearch && (
@@ -474,7 +474,7 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                   <Input placeholder="Search messages..." value={searchQ} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQ(e.target.value)}
                     className="h-7 text-xs flex-1" autoFocus />
                   {searchQ && <span className="text-[10px] text-muted-foreground shrink-0">{filteredMsgs.length} found</span>}
-                  <button onClick={() => { setShowSearch(false); setSearchQ(""); }} className="text-muted-foreground hover:text-foreground shrink-0"><X className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => { setShowSearch(false); setSearchQ(""); }} className="text-muted-foreground hover:text-foreground shrink-0" aria-label="Close"><X className="h-3.5 w-3.5" /></button>
                 </div>
               )}
               <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 max-h-[50vh]">
@@ -576,7 +576,7 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                     <span className="text-[10px] font-semibold">{replyTo.users?.first_name} {replyTo.users?.last_name}</span>
                     <p className="text-[10px] text-muted-foreground truncate">{(replyTo.content ?? "").slice(0, 80)}</p>
                   </div>
-                  <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground shrink-0"><X className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground shrink-0" aria-label="Close"><X className="h-3.5 w-3.5" /></button>
                 </div>
               )}
               <div className="border-t border-border/50 p-3">
@@ -585,7 +585,7 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setMsgText(e.target.value); broadcastTyping(); }}
                     onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                     className="flex-1" />
-                  <Button size="sm" onClick={handleSend} disabled={!msgText.trim() || sending}>
+                  <Button size="sm" onClick={handleSend} disabled={!msgText.trim() || sending} aria-label="Send message">
                     {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>

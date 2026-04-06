@@ -78,7 +78,7 @@ export function JoinCompanyModal({ open, onClose, onSwitchToRegister }: JoinComp
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               required
-              className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white uppercase tracking-wider font-mono outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/30 placeholder:normal-case placeholder:tracking-normal placeholder:font-sans"
+              className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white uppercase tracking-wider font-mono outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/60 placeholder:normal-case placeholder:tracking-normal placeholder:font-sans"
             />
           </div>
 

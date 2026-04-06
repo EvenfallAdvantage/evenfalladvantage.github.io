@@ -149,7 +149,7 @@ export function TOSModal({ open, onClose }: TOSModalProps) {
           </section>
 
           <div className="pt-4 border-t border-white/10">
-            <p className="text-[10px] text-white/30 text-center">
+            <p className="text-[10px] text-white/60 text-center">
               By using Overwatch, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
             </p>
           </div>
@@ -157,7 +157,7 @@ export function TOSModal({ open, onClose }: TOSModalProps) {
 
         {/* Footer */}
         <div className="border-t border-white/10 px-4 sm:px-6 py-3 shrink-0 flex items-center justify-between gap-3">
-          <p className="text-[10px] text-white/30 hidden sm:block">&copy; {new Date().getFullYear()} Evenfall Advantage LLC.</p>
+          <p className="text-[10px] text-white/60 hidden sm:block">&copy; {new Date().getFullYear()} Evenfall Advantage LLC.</p>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-[#dd8c33] text-white text-xs font-semibold hover:bg-[#c47a2a] transition-colors ml-auto"

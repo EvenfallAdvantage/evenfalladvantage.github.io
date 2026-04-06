@@ -607,7 +607,7 @@ export default function FeedPage() {
                             onKeyDown={(e) => e.key === "Enter" && handleSendComment(post.id)}
                             className="flex-1 rounded-md border border-border/40 bg-background px-2 py-1 text-xs outline-none focus:border-primary/50" />
                           <button onClick={() => handleSendComment(post.id)} disabled={sendingComment || !commentText.trim()}
-                            className="rounded-md p-1 text-primary hover:bg-primary/10 disabled:opacity-40">
+                            className="rounded-md p-1 text-primary hover:bg-primary/10 disabled:opacity-40" aria-label="Send comment">
                             <Send className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -1103,7 +1103,7 @@ export default function FeedPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => { setShowClockInModal(false); setAdminNotes(""); }}>
           <div className="relative w-full max-w-md rounded-2xl border border-border/50 bg-card shadow-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <button onClick={() => { setShowClockInModal(false); setAdminNotes(""); }}
-              className="absolute top-3 right-3 text-muted-foreground/50 hover:text-foreground"><X className="h-5 w-5" /></button>
+              className="absolute top-3 right-3 text-muted-foreground/50 hover:text-foreground" aria-label="Close"><X className="h-5 w-5" /></button>
 
             <div className="p-6 space-y-5">
               <div>

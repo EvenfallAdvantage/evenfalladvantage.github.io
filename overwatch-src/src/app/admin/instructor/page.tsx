@@ -164,7 +164,7 @@ function SlidesPanel({ slides, slidesLoading, editSlide, previewSlide, SLIDE_TYP
               <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setPreviewSlide(null)}><X className="h-2.5 w-2.5" /></Button>
             </div>
           </div>
-          {previewSlide.image_url && <img src={previewSlide.image_url} alt="" className="rounded max-h-40 object-contain" />}
+          {previewSlide.image_url && <img src={previewSlide.image_url} alt="Slide preview" className="rounded max-h-40 object-contain" />}
           {previewSlide.content ? (
             <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed" dangerouslySetInnerHTML={{ __html: previewSlide.content }} />
           ) : <p className="text-[10px] text-muted-foreground italic">No content</p>}
