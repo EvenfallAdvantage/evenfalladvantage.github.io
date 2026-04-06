@@ -66,13 +66,12 @@ VALUES (
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Test Briefing Post
-INSERT INTO posts (id, company_id, user_id, content, post_type, is_pinned, created_at)
+INSERT INTO posts (id, company_id, user_id, content, is_pinned, created_at)
 VALUES (
   '00000000-0000-0000-0000-000000000060',
   '00000000-0000-0000-0000-000000000001',
   '00000000-0000-0000-0000-000000000010',
   'Welcome to the staging environment. This is a test briefing post.',
-  'update',
   true,
   now()
 ) ON CONFLICT (id) DO NOTHING;
