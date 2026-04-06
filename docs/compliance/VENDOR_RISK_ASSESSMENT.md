@@ -108,10 +108,10 @@ This document assesses the security posture of third-party vendors that process,
 
 | Vendor | DPA Required | DPA Executed | Date |
 |--------|-------------|-------------|------|
-| Supabase | Yes | Pending | — |
-| Stripe | Yes | Pending | — |
-| GitHub | Yes | Pending | — |
-| Resend | Yes | Pending | — |
+| Supabase | Yes | Yes | April 6, 2026 |
+| Stripe | Yes | Yes | April 6, 2026 |
+| GitHub | Yes | Yes | April 6, 2026 |
+| Resend | Yes | Yes | April 6, 2026 |
 | Cloudflare | No (minimal data) | N/A | — |
 | Nominatim | No (public data) | N/A | — |
 

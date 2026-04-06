@@ -222,7 +222,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 9.1.2 | Supabase SOC 2 report reviewed | `[ ]` | — | Request from Supabase |
 | 9.1.3 | Stripe SOC 2 / PCI-DSS compliance verified | `[~]` | Stripe public docs | Stripe is PCI Level 1; need to document |
 | 9.1.4 | GitHub SOC 2 report reviewed | `[ ]` | — | Request from GitHub |
-| 9.1.5 | Vendor agreements / DPAs in place | `[ ]` | — | Need Data Processing Agreements with all vendors |
+| 9.1.5 | Vendor agreements / DPAs in place | `[x]` | `docs/compliance/VENDOR_RISK_ASSESSMENT.md` | DPAs executed with Supabase, Stripe, GitHub, Resend (April 6, 2026) |
 
 ### CC9.2 — Data Retention and Disposal
 
@@ -256,10 +256,10 @@ Evidence paths reference files in the Overwatch codebase.
 | CC6: Access Controls | 2 | 2 | 1 | 5 |
 | CC7: System Operations | 5 | 0 | 5 | 10 |
 | CC8: Change Management | 7 | 1 | 1 | 9 |
-| CC9: Additional | 6 | 2 | 4 | 12 |
-| **TOTAL** | **43** | **10** | **23** | **76** |
+| CC9: Additional | 7 | 2 | 3 | 12 |
+| **TOTAL** | **44** | **10** | **22** | **76** |
 
-**Readiness Score: 57% complete (43/76 fully implemented)**
+**Readiness Score: 58% complete (44/76 fully implemented)**
 
 ### Priority Remediation (Top 10)
 
