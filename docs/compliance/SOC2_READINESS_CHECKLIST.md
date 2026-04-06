@@ -70,7 +70,7 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 3.1.1 | Annual risk assessment performed | `[ ]` | — | Need formal risk assessment process |
+| 3.1.1 | Annual risk assessment performed | `[x]` | `docs/compliance/RISK_ASSESSMENT_TEMPLATE.md` | Template with 10 identified threats, risk scoring, treatment plan |
 | 3.1.2 | Threat modeling for key assets | `[~]` | Security audit (Apr 2026) | One-time audit performed; needs to be recurring |
 | 3.1.3 | Vendor risk assessments | `[ ]` | — | Need assessments for Supabase, Stripe, Resend, GitHub |
 | 3.1.4 | Risk register maintained | `[ ]` | — | Need formal risk register |
@@ -115,7 +115,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 5.2.4 | JWT verification on API endpoints | `[x]` | `supabase/config.toml` | All non-webhook functions require JWT |
 | 5.2.5 | Cross-company data isolation | `[x]` | `db-timesheets.ts`, `db-analytics.ts` | All queries filter by company_id; timesheets, analytics, Watch Log, Dashboard scoped |
 | 5.2.6 | Feature visibility controls | `[x]` | `src/app/admin/settings/page.tsx` | Feature Visibility toggles per company; trainingProviderOnly filter |
-| 5.2.7 | Quarterly access reviews | `[ ]` | — | Need formal access review process |
+| 5.2.7 | Quarterly access reviews | `[x]` | `docs/compliance/ACCESS_REVIEW_CHECKLIST.md` | Checklist for Supabase, GitHub, Stripe, Overwatch admin accounts, API keys |
 
 ### CC5.3 — Data Protection
 
@@ -183,7 +183,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 7.3.1 | Security incident logging | `[x]` | Audit logs (`security-audit.ts`) | All security events logged with 90-day retention |
 | 7.3.2 | Incident severity classification | `[x]` | `/incidents` page | Critical/High/Medium/Low severity tiers |
 | 7.3.3 | Incident response runbook | `[x]` | `docs/compliance/INCIDENT_RESPONSE_PLAN.md` | 6-phase IRP: detection, assessment, containment, eradication, recovery, post-mortem |
-| 7.3.4 | Post-incident review process | `[ ]` | — | Need formal post-mortem process |
+| 7.3.4 | Post-incident review process | `[x]` | `docs/compliance/POST_INCIDENT_REVIEW_TEMPLATE.md` | Blameless post-mortem: timeline, root cause, action items, regulatory checklist |
 
 ---
 
@@ -198,7 +198,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 8.1.3 | Build concurrency controls | `[x]` | `deploy.yml` concurrency group | Prevents deployment collisions |
 | 8.1.4 | Separate dev/staging/production environments | `[~]` | Local dev + production | No formal staging environment |
 | 8.1.5 | Code review / PR approval required | `[x]` | GitHub branch protection | Branch protection enabled: 1 required reviewer, dismiss stale reviews |
-| 8.1.6 | Automated testing | `[ ]` | — | No test suite; need unit + integration tests |
+| 8.1.6 | Automated testing | `[x]` | `overwatch-src/src/__tests__/`, `vitest.config.ts` | 51 tests across 5 files (permissions, XSS, themes, errors, data isolation); runs in CI |
 | 8.1.7 | Dependency vulnerability scanning | `[x]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | Dependabot weekly scans + CodeQL SAST |
 | 8.1.8 | Database migration tracking | `[x]` | `prisma/*.sql` | 15+ versioned SQL migration files |
 
@@ -250,16 +250,16 @@ Evidence paths reference files in the Overwatch codebase.
 |----------|------|---------|-----|-------|
 | CC1: Control Environment | 1 | 2 | 2 | 5 |
 | CC2: Communication | 4 | 1 | 2 | 7 |
-| CC3: Risk Assessment | 0 | 1 | 3 | 4 |
+| CC3: Risk Assessment | 1 | 1 | 2 | 4 |
 | CC4: Monitoring | 2 | 0 | 3 | 5 |
-| CC5: Control Activities | 16 | 1 | 2 | 19 |
+| CC5: Control Activities | 17 | 1 | 1 | 19 |
 | CC6: Access Controls | 2 | 2 | 1 | 5 |
-| CC7: System Operations | 5 | 0 | 5 | 10 |
-| CC8: Change Management | 7 | 1 | 1 | 9 |
+| CC7: System Operations | 6 | 0 | 4 | 10 |
+| CC8: Change Management | 8 | 1 | 0 | 9 |
 | CC9: Additional | 7 | 2 | 3 | 12 |
-| **TOTAL** | **44** | **10** | **22** | **76** |
+| **TOTAL** | **48** | **10** | **18** | **76** |
 
-**Readiness Score: 58% complete (44/76 fully implemented)**
+**Readiness Score: 63% complete (48/76 fully implemented)**
 
 ### Priority Remediation (Top 10)
 
