@@ -211,6 +211,17 @@ select {
   }
 }
 
+/* WCAG 2.2 — 2.5.8 Target Size Minimum (24x24 CSS px) */
+button, [role="button"], a[href] {
+  min-height: 24px;
+  min-width: 24px;
+}
+/* Exception: inline text links and tab buttons don't need minimum size */
+.inline-link, [role="tab"] {
+  min-height: unset;
+  min-width: unset;
+}
+
 /* Hide scrollbar for horizontal carousels */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

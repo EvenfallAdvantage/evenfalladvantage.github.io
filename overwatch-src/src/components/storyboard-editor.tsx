@@ -479,10 +479,25 @@ export default function StoryboardEditor({
         setEditingPinId(null);
         setNewPinPos(null);
       }
+      // WCAG 2.5.7: Arrow key nudging as alternative to drag
+      if (selectedPinId && !readOnly && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        e.preventDefault();
+        const step = e.shiftKey ? 0.05 : 0.01; // Shift = bigger steps
+        const updated = pins.map((p) => {
+          if (p.id !== selectedPinId) return p;
+          let { x, y } = p;
+          if (e.key === "ArrowUp") y = Math.max(0, y - step);
+          if (e.key === "ArrowDown") y = Math.min(1, y + step);
+          if (e.key === "ArrowLeft") x = Math.max(0, x - step);
+          if (e.key === "ArrowRight") x = Math.min(1, x + step);
+          return { ...p, x, y };
+        });
+        onPinsChange?.(updated);
+      }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [selectedPinId, readOnly, pins, onPinsChange]);
 
   const updatePins = useCallback(
     (next: StoryboardPin[]) => {

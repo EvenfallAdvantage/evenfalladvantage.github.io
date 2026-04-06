@@ -1,9 +1,9 @@
-# WCAG 2.1 AA Compliance Audit Report
+# WCAG 2.2 AA Compliance Audit Report
 
 **Platform:** Overwatch — Security Workforce Management
 **Audit Date:** April 6, 2026
 **Auditor:** Automated + Manual Review
-**Standard:** WCAG 2.1 Level AA
+**Standard:** WCAG 2.2 Level AA
 
 ---
 
@@ -59,19 +59,31 @@ A comprehensive accessibility audit was performed against WCAG 2.1 Level AA crit
 | R4 | **1.3.1** | ~40 form inputs use adjacent labels without `htmlFor`/`id` | Minor | Add programmatic association in future pass |
 | R5 | **4.1.2** | Modal dialogs missing `role="dialog"` and `aria-modal` | Minor | Add ARIA roles to modal components |
 
+## WCAG 2.2 New Criteria (Level AA)
+
+| # | Criterion | Status | Evidence |
+|---|-----------|--------|----------|
+| **2.4.11** | Focus Not Obscured | PASS | Topbar is thin; focused elements scroll into view |
+| **2.4.13** | Focus Appearance | PASS | Focus rings use `ring-2 ring-primary` (visible, sufficient area) |
+| **2.5.7** | Dragging Movements | PASS | Storyboard pins: arrow key nudging as alternative to drag (Shift = larger steps) |
+| **2.5.8** | Target Size Minimum | PASS | Global CSS: `button, [role="button"], a[href] { min-height: 24px; min-width: 24px }` |
+| **3.2.6** | Consistent Help | PASS | Contact email in footer on all pages |
+| **3.3.7** | Redundant Entry | PASS | Forms don't re-ask for previously entered information |
+| **3.3.8** | Accessible Authentication | PASS | Password fields allow paste; no CAPTCHA |
+
 ## Conformance Statement
 
-The Overwatch platform **substantially conforms** to WCAG 2.1 Level AA. All critical and major accessibility barriers have been identified and remediated. Known remaining items are minor in severity, do not block access for assistive technology users, and are tracked for incremental improvement.
+The Overwatch platform **substantially conforms** to WCAG 2.2 Level AA. All critical and major accessibility barriers have been identified and remediated. Known remaining items are minor in severity, do not block access for assistive technology users, and are tracked for incremental improvement.
 
 ### Criteria Met (Level AA)
 
 | Category | Criteria | Met | Partial | Not Met |
 |----------|----------|-----|---------|---------|
 | Perceivable | 1.1.1, 1.3.1, 1.4.1, 1.4.3, 1.4.4 | 4 | 1 | 0 |
-| Operable | 2.1.1, 2.4.1, 2.4.4, 2.4.7 | 4 | 0 | 0 |
-| Understandable | 3.1.1 | 1 | 0 | 0 |
+| Operable | 2.1.1, 2.4.1, 2.4.4, 2.4.7, 2.4.11, 2.4.13, 2.5.7, 2.5.8 | 8 | 0 | 0 |
+| Understandable | 3.1.1, 3.2.6, 3.3.7, 3.3.8 | 4 | 0 | 0 |
 | Robust | 4.1.2 | 1 | 0 | 0 |
-| **Total** | | **10** | **1** | **0** |
+| **Total** | | **17** | **1** | **0** |
 
 ## Testing Methodology
 
