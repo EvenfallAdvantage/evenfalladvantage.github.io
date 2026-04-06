@@ -74,6 +74,7 @@ export default function AdminStaffPage() {
   const [reviewingLeave, setReviewingLeave] = useState<string | null>(null);
   const [reviewingForm, setReviewingForm] = useState<string | null>(null);
   const [expandedFormSub, setExpandedFormSub] = useState<string | null>(null);
+  const [expandedIncident, setExpandedIncident] = useState<string | null>(null);
   const [reviewNote, setReviewNote] = useState("");
   const [leaveFilter, setLeaveFilter] = useState<"pending" | "all">("pending");
   const [error, setError] = useState<string | null>(null);
@@ -1053,14 +1054,16 @@ export default function AdminStaffPage() {
                           ? "bg-blue-500/15 text-blue-400"
                           : "bg-amber-500/15 text-amber-600";
                         const sevColor = inc.severity === "critical" ? "text-red-500" : inc.severity === "high" ? "text-orange-500" : inc.severity === "medium" ? "text-amber-500" : "text-blue-400";
+                        const isIncOpen = expandedIncident === inc.id;
                         return (
-                          <div key={inc.id} className={`rounded-xl border bg-card px-4 py-3 ${inc.status === "open" ? "border-amber-500/30" : "border-border/50"}`}>
-                            <div className="flex items-center gap-3">
+                          <div key={inc.id} className={`rounded-xl border bg-card overflow-hidden ${inc.status === "open" || inc.status === "investigating" ? "border-amber-500/30" : "border-border/50"}`}>
+                            <button className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
+                              onClick={() => setExpandedIncident(isIncOpen ? null : inc.id)}>
                               <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 shrink-0`}>
                                 <AlertTriangle className={`h-4 w-4 ${sevColor}`} />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <p className="font-medium text-sm truncate">{inc.title}</p>
                                   <Badge className={`text-[9px] capitalize ${statusColor}`}>{inc.status}</Badge>
                                   <Badge variant="outline" className={`text-[9px] capitalize ${sevColor}`}>{inc.severity}</Badge>
@@ -1070,8 +1073,25 @@ export default function AdminStaffPage() {
                                 </p>
                                 {inc.location && <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3" />{inc.location}</p>}
                               </div>
-                              <Link href="/incidents" className="text-xs text-primary hover:underline shrink-0">View →</Link>
-                            </div>
+                              <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isIncOpen ? "rotate-180" : ""}`} />
+                            </button>
+                            {isIncOpen && (
+                              <div className="border-t border-border/30 px-4 py-3 space-y-3 bg-muted/10">
+                                {inc.description && (
+                                  <div>
+                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Narrative</label>
+                                    <p className="text-sm whitespace-pre-wrap">{inc.description}</p>
+                                  </div>
+                                )}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                                  <div><span className="text-muted-foreground/60">Type</span><p className="font-medium capitalize">{inc.type}</p></div>
+                                  <div><span className="text-muted-foreground/60">Severity</span><p className={`font-medium capitalize ${sevColor}`}>{inc.severity}</p></div>
+                                  <div><span className="text-muted-foreground/60">Priority</span><p className="font-medium capitalize">{inc.priority}</p></div>
+                                  <div><span className="text-muted-foreground/60">Status</span><p className="font-medium capitalize">{inc.status}</p></div>
+                                </div>
+                                <Link href="/incidents" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">View full report →</Link>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1079,14 +1099,28 @@ export default function AdminStaffPage() {
                   </div>
                 )}
 
-                {/* ── Form Submissions ── */}
+                {/* ── Field Reports ── */}
                 {formSubmissions.length > 0 && (
                   <div>
-                    {incidents.length > 0 && (
-                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-                        <ClipboardList className="h-3.5 w-3.5" /> Form Submissions ({formSubmissions.length})
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <ClipboardList className="h-3.5 w-3.5 text-primary" /> Field Reports ({formSubmissions.length})
                       </p>
-                    )}
+                      <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-6 px-2" onClick={() => {
+                        const rows = formSubmissions.map((f: FormSub) => {
+                          const d = f.data as Record<string, unknown> ?? {};
+                          return { submitter: `${f.users?.first_name ?? ""} ${f.users?.last_name ?? ""}`, form: f.forms?.name ?? "", status: f.status, date: new Date(f.created_at).toLocaleString(), ...Object.fromEntries(Object.entries(d).map(([k, v]) => [k, String(v ?? "")])) };
+                        });
+                        const cols = Object.keys(rows[0] ?? {});
+                        const csv = [cols.join(","), ...rows.map(r => cols.map(c => `"${String((r as Record<string,string>)[c] ?? "").replace(/"/g, '""')}"`).join(","))].join("\n");
+                        const blob = new Blob([csv], { type: "text/csv" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a"); a.href = url; a.download = `field-reports-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+                        URL.revokeObjectURL(url);
+                      }}>
+                        <Download className="h-3 w-3" /> CSV
+                      </Button>
+                    </div>
                     <div className="space-y-2">
                 {formSubmissions.map((f: FormSub) => {
                   const u = f.users;
@@ -1102,7 +1136,7 @@ export default function AdminStaffPage() {
                         className="w-full flex items-center gap-4 px-4 py-3 text-left hover:bg-muted/20 transition-colors"
                         onClick={() => setExpandedFormSub(isOpen ? null : f.id)}
                       >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500/10 text-xs font-bold text-rose-500 shrink-0">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
                           {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                         </div>
                         <div className="flex-1 min-w-0">
