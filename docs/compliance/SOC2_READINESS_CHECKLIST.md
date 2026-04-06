@@ -36,8 +36,8 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 1.2.1 | Organizational chart with security responsibilities | `[ ]` | — | Need org chart |
-| 1.2.2 | Security awareness training program | `[ ]` | — | Need annual training plan |
+| 1.2.1 | Organizational chart with security responsibilities | `[x]` | `docs/compliance/ORGANIZATION_CHART.md` | Roles, RBAC mapping, key contacts, segregation of duties |
+| 1.2.2 | Security awareness training program | `[x]` | `docs/compliance/SECURITY_AWARENESS_TRAINING.md` | Onboarding, annual refresher, phishing awareness, admin training, tracking metrics |
 | 1.2.3 | Background checks for employees | `[~]` | Applicant pipeline | Application collects guard card, but no formal background check policy |
 
 ---
@@ -48,8 +48,8 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 2.1.1 | Security policies communicated to employees | `[ ]` | — | Policies need to be written first |
-| 2.1.2 | Incident reporting procedures communicated | `[~]` | `/incidents` page | Incident reporting exists in-app but no formal policy document |
+| 2.1.1 | Security policies communicated to employees | `[x]` | `docs/compliance/SECURITY_AWARENESS_TRAINING.md` | New hire onboarding includes policy review + acknowledgment; annual refresher |
+| 2.1.2 | Incident reporting procedures communicated | `[x]` | `INCIDENT_RESPONSE_PLAN.md`, `SECURITY_AWARENESS_TRAINING.md` | IRP Section 1-2 + training covers reporting; in-app incident reporting at /incidents |
 | 2.1.3 | Change management procedures documented | `[~]` | `.github/workflows/deploy.yml` | CI/CD exists but no formal change approval process |
 
 ### CC2.2 — External Communication
@@ -84,7 +84,7 @@ Evidence paths reference files in the Overwatch codebase.
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
 | 4.1.1 | Security event logging | `[x]` | `src/lib/security/security-audit.ts` | Audit logs with 90-day retention |
-| 4.1.2 | Log review procedures | `[ ]` | — | Logs exist but no formal review process |
+| 4.1.2 | Log review procedures | `[x]` | `docs/compliance/LOG_REVIEW_PROCEDURES.md` | Daily error triage, weekly security audit, monthly auth review, quarterly full audit |
 | 4.1.3 | Automated vulnerability scanning | `[x]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | Dependabot (weekly npm + actions), CodeQL (weekly + on push/PR) |
 | 4.1.4 | Uptime monitoring | `[ ]` | — | Need external uptime monitor (e.g., UptimeRobot) |
 | 4.1.5 | Error tracking / APM | `[ ]` | — | Need Sentry or similar |
@@ -248,18 +248,31 @@ Evidence paths reference files in the Overwatch codebase.
 
 | Category | Done | Partial | Gap | Total |
 |----------|------|---------|-----|-------|
-| CC1: Control Environment | 3 | 2 | 0 | 5 |
-| CC2: Communication | 5 | 1 | 1 | 7 |
+| CC1: Control Environment | 5 | 0 | 0 | 5 |
+| CC2: Communication | 7 | 0 | 0 | 7 |
 | CC3: Risk Assessment | 1 | 1 | 2 | 4 |
-| CC4: Monitoring | 2 | 0 | 3 | 5 |
+| CC4: Monitoring | 3 | 0 | 2 | 5 |
 | CC5: Control Activities | 17 | 1 | 1 | 19 |
 | CC6: Access Controls | 3 | 2 | 0 | 5 |
 | CC7: System Operations | 9 | 0 | 1 | 10 |
 | CC8: Change Management | 8 | 1 | 0 | 9 |
 | CC9: Additional | 8 | 2 | 2 | 12 |
-| **TOTAL** | **56** | **10** | **10** | **76** |
+| **TOTAL** | **61** | **7** | **8** | **76** |
 
-**Readiness Score: 74% complete (56/76 fully implemented)**
+**Readiness Score: 80% complete (61/76 fully implemented)**
+
+### Remaining 8 Gaps (require process execution or external services)
+
+| # | Control | Category | What's Needed |
+|---|---------|----------|--------------|
+| 1 | Threat modeling for key assets | CC3 | Formal threat model document (extend risk assessment) |
+| 2 | Risk register maintained | CC3 | Quarterly updates to risk assessment |
+| 3 | Uptime monitoring with alerting | CC4 | Configure UptimeRobot alert contacts (already monitoring) |
+| 4 | Error tracking / APM alerting | CC4 | Add alerting to built-in error tracker |
+| 5 | Penetration testing (annual) | CC4 | Hire third-party firm ($5-15K) |
+| 6 | Staging environment | CC8 | Create second Supabase project |
+| 7 | Backup restoration tested | CC7 | Conduct Supabase PITR drill (1 hour) |
+| 8 | No shared accounts verified | CC6 | Audit and document |
 
 ### Priority Remediation (Top 10)
 
