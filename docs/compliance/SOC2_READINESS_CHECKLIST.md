@@ -197,7 +197,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 8.1.2 | CI/CD pipeline | `[x]` | `.github/workflows/deploy.yml` | Automated build + deploy on push to main |
 | 8.1.3 | Build concurrency controls | `[x]` | `deploy.yml` concurrency group | Prevents deployment collisions |
 | 8.1.4 | Separate dev/staging/production environments | `[~]` | Local dev + production | No formal staging environment |
-| 8.1.5 | Code review / PR approval required | `[~]` | GitHub PRs | PRs used but not enforced via branch protection |
+| 8.1.5 | Code review / PR approval required | `[x]` | GitHub branch protection | Branch protection enabled: 1 required reviewer, dismiss stale reviews |
 | 8.1.6 | Automated testing | `[ ]` | — | No test suite; need unit + integration tests |
 | 8.1.7 | Dependency vulnerability scanning | `[x]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | Dependabot weekly scans + CodeQL SAST |
 | 8.1.8 | Database migration tracking | `[x]` | `prisma/*.sql` | 15+ versioned SQL migration files |
@@ -206,7 +206,7 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 8.2.1 | Change log maintained | `[~]` | Git commit history | Detailed commit messages but no formal CHANGELOG |
+| 8.2.1 | Change log maintained | `[x]` | `CHANGELOG.md` | Comprehensive changelog with categorized entries |
 | 8.2.2 | Rollback procedures documented | `[~]` | Git revert capability | Can revert commits but no formal rollback plan |
 | 8.2.3 | Edge Function deployment documented | `[x]` | `EDGE_FUNCTIONS_DEPLOYMENT.md` | All 6 functions documented with deploy commands |
 
@@ -218,7 +218,7 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 9.1.1 | Vendor inventory | `[~]` | `README.md` Technologies section | Listed but no formal risk assessment per vendor |
+| 9.1.1 | Vendor inventory and risk assessment | `[x]` | `docs/compliance/VENDOR_RISK_ASSESSMENT.md` | 7 vendors assessed with SOC 2 status, DPA tracking |
 | 9.1.2 | Supabase SOC 2 report reviewed | `[ ]` | — | Request from Supabase |
 | 9.1.3 | Stripe SOC 2 / PCI-DSS compliance verified | `[~]` | Stripe public docs | Stripe is PCI Level 1; need to document |
 | 9.1.4 | GitHub SOC 2 report reviewed | `[ ]` | — | Request from GitHub |
@@ -228,7 +228,7 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 9.2.1 | Data retention policy defined | `[~]` | Audit logs: 90-day retention | Need comprehensive policy for all data types |
+| 9.2.1 | Data retention policy defined | `[x]` | `docs/compliance/DATA_RETENTION_POLICY.md` | 16 data categories with specific retention periods, deletion methods, DSAR workflow |
 | 9.2.2 | User data deletion capability | `[~]` | Edge Functions (delete-student) | Can delete users but no formal "right to erasure" workflow |
 | 9.2.3 | Data export capability | `[~]` | CSV export in Personnel, Timesheets | Some export exists but not comprehensive |
 
@@ -255,11 +255,11 @@ Evidence paths reference files in the Overwatch codebase.
 | CC5: Control Activities | 16 | 1 | 2 | 19 |
 | CC6: Access Controls | 2 | 2 | 1 | 5 |
 | CC7: System Operations | 5 | 0 | 5 | 10 |
-| CC8: Change Management | 5 | 3 | 1 | 9 |
-| CC9: Additional | 4 | 4 | 4 | 12 |
-| **TOTAL** | **39** | **14** | **23** | **76** |
+| CC8: Change Management | 7 | 1 | 1 | 9 |
+| CC9: Additional | 6 | 2 | 4 | 12 |
+| **TOTAL** | **43** | **10** | **23** | **76** |
 
-**Readiness Score: 51% complete (39/76 fully implemented)**
+**Readiness Score: 57% complete (43/76 fully implemented)**
 
 ### Priority Remediation (Top 10)
 
