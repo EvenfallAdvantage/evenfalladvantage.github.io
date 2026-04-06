@@ -27,10 +27,10 @@ Evidence paths reference files in the Overwatch codebase.
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
 | 1.1.1 | Information Security Policy documented | `[x]` | `docs/compliance/INFORMATION_SECURITY_POLICY.md` | Covers data classification, access control, encryption, vulnerability management, change management, acceptable use |
-| 1.1.2 | Acceptable Use Policy documented | `[ ]` | — | Need formal policy document |
+| 1.1.2 | Acceptable Use Policy documented | `[x]` | `docs/compliance/ACCEPTABLE_USE_POLICY.md` | Devices, authentication, development, data handling, prohibited uses |
 | 1.1.3 | Security roles and responsibilities defined | `[~]` | `src/lib/permissions.ts` | Role hierarchy exists (staff < manager < admin < owner) but not formally documented as a policy |
 | 1.1.4 | Management commitment to security | `[~]` | This checklist | In progress |
-| 1.1.5 | Code of conduct / ethics policy | `[ ]` | — | Need formal document |
+| 1.1.5 | Code of conduct / ethics policy | `[x]` | `docs/compliance/CODE_OF_CONDUCT.md` | Core values, professional standards, reporting procedures |
 
 ### CC1.2 — Organizational Structure
 
@@ -60,7 +60,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 2.2.2 | Privacy Policy published | `[x]` | `privacy-policy.html`, Privacy modal | CCPA-compliant, 8 sections |
 | 2.2.3 | Cookie consent mechanism | `[x]` | `includes/footer.html` | Accept/Decline banner, localStorage |
 | 2.2.4 | Data breach notification procedures | `[x]` | `docs/compliance/INCIDENT_RESPONSE_PLAN.md` | Section 6: Communication — 72hr customer notification, regulatory requirements |
-| 2.2.5 | Subprocessor / vendor list published | `[ ]` | — | Need public list of subprocessors |
+| 2.2.5 | Subprocessor / vendor list published | `[x]` | `docs/compliance/SUBPROCESSOR_LIST.md` | 7 subprocessors listed with data processed, location, DPA status |
 
 ---
 
@@ -150,7 +150,7 @@ Evidence paths reference files in the Overwatch codebase.
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
 | 6.2.1 | Data center physical security | `[x]` | Supabase (AWS), GitHub (Azure) | Cloud providers handle physical security; SOC 2 reports available |
-| 6.2.2 | Endpoint security for developers | `[ ]` | — | Need policy: disk encryption, screen lock, antivirus |
+| 6.2.2 | Endpoint security for developers | `[x]` | `docs/compliance/ACCEPTABLE_USE_POLICY.md` | Section 3.2: full-disk encryption, auto-lock, antivirus, update requirements |
 
 ---
 
@@ -160,7 +160,7 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 7.1.1 | Defined SLA / uptime target | `[ ]` | — | Need formal SLA (e.g., 99.9%) |
+| 7.1.1 | Defined SLA / uptime target | `[x]` | `docs/compliance/SLA_DEFINITION.md` | 99.5% monthly uptime, P1-P4 response times, RPO/RTO, maintenance windows |
 | 7.1.2 | Uptime monitoring with alerting | `[ ]` | — | Need UptimeRobot, Pingdom, or similar |
 | 7.1.3 | Incident response plan | `[ ]` | — | Need formal IRP with roles, escalation, communication |
 | 7.1.4 | Service worker for offline fallback | `[x]` | `public/sw.js` | PWA with offline page, network-first for JS bundles |
@@ -171,9 +171,9 @@ Evidence paths reference files in the Overwatch codebase.
 |---|---------|--------|----------|-------|
 | 7.2.1 | Automated database backups | `[x]` | Supabase PITR | Point-in-time recovery enabled on Supabase |
 | 7.2.2 | Backup restoration tested | `[ ]` | — | Need to test and document a recovery drill |
-| 7.2.3 | Recovery Point Objective (RPO) defined | `[ ]` | — | Need formal RPO (Supabase PITR supports ~seconds) |
-| 7.2.4 | Recovery Time Objective (RTO) defined | `[ ]` | — | Need formal RTO |
-| 7.2.5 | Business continuity plan | `[ ]` | — | Need formal BCP |
+| 7.2.3 | Recovery Point Objective (RPO) defined | `[x]` | `docs/compliance/SLA_DEFINITION.md`, `BUSINESS_CONTINUITY_PLAN.md` | RPO < 5 min (Supabase PITR) |
+| 7.2.4 | Recovery Time Objective (RTO) defined | `[x]` | `docs/compliance/SLA_DEFINITION.md`, `BUSINESS_CONTINUITY_PLAN.md` | RTO < 1 hour (automated redeploy) |
+| 7.2.5 | Business continuity plan | `[x]` | `docs/compliance/BUSINESS_CONTINUITY_PLAN.md` | 6 disaster scenarios, recovery procedures, communication plan |
 | 7.2.6 | Source code backed up | `[x]` | GitHub | Git repository with full history |
 
 ### CC7.3 — Incident Management
@@ -238,7 +238,7 @@ Evidence paths reference files in the Overwatch codebase.
 |---|---------|--------|----------|-------|
 | 9.3.1 | Privacy notice provided at data collection | `[x]` | Application form, cookie consent | Consent text on apply page and cookie banner |
 | 9.3.2 | Opt-out mechanism for communications | `[x]` | Profile notification preferences | Per-day notification control, mute toggle |
-| 9.3.3 | Data subject access request process | `[ ]` | — | Need formal DSAR workflow |
+| 9.3.3 | Data subject access request process | `[x]` | `docs/compliance/DATA_RETENTION_POLICY.md` | Section 3: DSAR workflow — verify, export within 30 days, 30-day deletion grace period |
 | 9.3.4 | Cross-company data isolation | `[x]` | All queries company-scoped | Timesheets, analytics, Watch Log, Dashboard all isolated |
 | 9.3.5 | Personal profile sync (user controls their data) | `[x]` | `db-onboarding.ts` | User edits sync across all companies; user owns their data |
 
@@ -248,18 +248,18 @@ Evidence paths reference files in the Overwatch codebase.
 
 | Category | Done | Partial | Gap | Total |
 |----------|------|---------|-----|-------|
-| CC1: Control Environment | 1 | 2 | 2 | 5 |
-| CC2: Communication | 4 | 1 | 2 | 7 |
+| CC1: Control Environment | 3 | 2 | 0 | 5 |
+| CC2: Communication | 5 | 1 | 1 | 7 |
 | CC3: Risk Assessment | 1 | 1 | 2 | 4 |
 | CC4: Monitoring | 2 | 0 | 3 | 5 |
 | CC5: Control Activities | 17 | 1 | 1 | 19 |
-| CC6: Access Controls | 2 | 2 | 1 | 5 |
-| CC7: System Operations | 6 | 0 | 4 | 10 |
+| CC6: Access Controls | 3 | 2 | 0 | 5 |
+| CC7: System Operations | 9 | 0 | 1 | 10 |
 | CC8: Change Management | 8 | 1 | 0 | 9 |
-| CC9: Additional | 7 | 2 | 3 | 12 |
-| **TOTAL** | **48** | **10** | **18** | **76** |
+| CC9: Additional | 8 | 2 | 2 | 12 |
+| **TOTAL** | **56** | **10** | **10** | **76** |
 
-**Readiness Score: 63% complete (48/76 fully implemented)**
+**Readiness Score: 74% complete (56/76 fully implemented)**
 
 ### Priority Remediation (Top 10)
 
