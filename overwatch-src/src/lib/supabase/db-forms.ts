@@ -101,20 +101,28 @@ export async function getAllFormSubmissions(companyId: string) {
   const supabase = createClient();
 
   // Step 1: Get all form IDs for this company
-  const { data: companyForms } = await supabase
+  const { data: companyForms, error: formsError } = await supabase
     .from("forms")
-    .select("id")
+    .select("id, name")
     .eq("company_id", companyId);
 
+  console.log("[getAllFormSubmissions] companyId:", companyId);
+  console.log("[getAllFormSubmissions] forms found:", companyForms?.length, companyForms, "error:", formsError);
+
   const formIds = (companyForms ?? []).map((f: { id: string }) => f.id);
-  if (formIds.length === 0) return [];
+  if (formIds.length === 0) {
+    console.log("[getAllFormSubmissions] No forms found for company, returning []");
+    return [];
+  }
 
   // Step 2: Get all submissions for those forms
-  const { data } = await supabase
+  const { data, error: subsError } = await supabase
     .from("form_submissions")
     .select("*, users(first_name, last_name, avatar_url), forms(name), events(id, name)")
     .in("form_id", formIds)
     .order("created_at", { ascending: false });
+
+  console.log("[getAllFormSubmissions] submissions found:", data?.length, "error:", subsError);
 
   return data ?? [];
 }
