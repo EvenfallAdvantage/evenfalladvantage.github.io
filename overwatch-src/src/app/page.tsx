@@ -477,8 +477,10 @@ function HomePageInner() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-[#dd8c33]/8 via-transparent to-transparent rounded-full blur-3xl" />
         {/* Desktop: 3D Globe */}
         <div className="hidden md:block"><TacticalGlobe /></div>
-        {/* Mobile: Animated Radar Grid */}
-        <div className="md:hidden relative z-10 -mb-16"><MobileHeroRadar /></div>
+        {/* Mobile: Animated Radar Grid — centered behind hero text */}
+        <div className="md:hidden absolute inset-0 z-10 flex items-center justify-center" style={{ top: "30%" }}>
+          <MobileHeroRadar />
+        </div>
 
         <div className="relative z-20 mx-auto max-w-4xl px-6 text-center pointer-events-none">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dd8c33]/20 bg-[#dd8c33]/10 px-4 py-1.5 text-xs text-[#dd8c33]" style={{ textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>

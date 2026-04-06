@@ -179,7 +179,7 @@ export default function MobileHeroRadar() {
   return (
     <canvas
       ref={canvasRef}
-      className="w-full h-[280px] opacity-60"
+      className="w-[100vw] h-[420px] opacity-50"
       style={{ touchAction: "none" }}
     />
   );
