@@ -135,7 +135,7 @@ export default function FormsPage() {
     if (hasFields) {
       // Check required fields
       for (const f of selected.fields as FormField[]) {
-        if (f.required && !formValues[f.id]) { alert(`"${f.label}" is required`); return; }
+        if (f.required && !formValues[f.label]) { alert(`"${f.label}" is required`); return; }
       }
     } else if (!reportText.trim()) return;
 
@@ -278,14 +278,14 @@ export default function FormsPage() {
                     <div key={f.id} className="space-y-1">
                       <label className="text-xs font-medium">{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</label>
                       {f.type === "text" && (
-                        <Input value={(formValues[f.id] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.id]: e.target.value }))} placeholder={f.label} className="h-8 text-sm" />
+                        <Input value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.label} className="h-8 text-sm" />
                       )}
                       {f.type === "textarea" && (
-                        <textarea value={(formValues[f.id] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.id]: e.target.value }))} placeholder={f.label}
+                        <textarea value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.label}
                           className="w-full resize-none rounded-lg border border-border/50 bg-muted/50 px-3 py-2 text-sm outline-none min-h-[80px] focus:border-primary/50 focus:ring-1 focus:ring-primary/20" rows={3} />
                       )}
                       {f.type === "select" && (
-                        <select value={(formValues[f.id] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                        <select value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))}
                           className="w-full rounded-lg border border-border/50 bg-muted/50 px-3 py-2 text-sm outline-none h-8">
                           <option value="">Select...</option>
                           {(f.options ?? []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
@@ -293,7 +293,7 @@ export default function FormsPage() {
                       )}
                       {f.type === "checkbox" && (
                         <label className="flex items-center gap-2 text-sm">
-                          <input type="checkbox" checked={!!formValues[f.id]} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.id]: e.target.checked }))} />
+                          <input type="checkbox" checked={!!formValues[f.label]} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.checked }))} />
                           {f.label}
                         </label>
                       )}
