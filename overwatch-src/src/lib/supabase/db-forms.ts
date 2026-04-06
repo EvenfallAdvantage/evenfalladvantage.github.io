@@ -118,7 +118,7 @@ export async function getAllFormSubmissions(companyId: string) {
   // Step 2: Get all submissions for those forms
   const { data, error: subsError } = await supabase
     .from("form_submissions")
-    .select("*, users(first_name, last_name, avatar_url), forms(name), events(id, name)")
+    .select("*, users!form_submissions_user_id_fkey(first_name, last_name, avatar_url), forms(name), events(id, name)")
     .in("form_id", formIds)
     .order("created_at", { ascending: false });
 
