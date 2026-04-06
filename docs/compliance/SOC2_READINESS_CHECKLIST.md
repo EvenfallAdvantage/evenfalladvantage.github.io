@@ -196,7 +196,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 8.1.1 | Version control for all code | `[x]` | Git + GitHub | All code version-controlled |
 | 8.1.2 | CI/CD pipeline | `[x]` | `.github/workflows/deploy.yml` | Automated build + deploy on push to main |
 | 8.1.3 | Build concurrency controls | `[x]` | `deploy.yml` concurrency group | Prevents deployment collisions |
-| 8.1.4 | Separate dev/staging/production environments | `[~]` | Local dev + production | No formal staging environment |
+| 8.1.4 | Separate dev/staging/production environments | `[x]` | `docs/STAGING_ENVIRONMENT.md`, `supabase/`, `.env.staging` | Local Supabase staging (Docker): isolated DB, Auth, Storage. 18 migrations, seed data, npm scripts |
 | 8.1.5 | Code review / PR approval required | `[x]` | GitHub branch protection | Branch protection enabled: 1 required reviewer, dismiss stale reviews |
 | 8.1.6 | Automated testing | `[x]` | `overwatch-src/src/__tests__/`, `vitest.config.ts` | 51 tests across 5 files (permissions, XSS, themes, errors, data isolation); runs in CI |
 | 8.1.7 | Dependency vulnerability scanning | `[x]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | Dependabot weekly scans + CodeQL SAST |
@@ -255,11 +255,11 @@ Evidence paths reference files in the Overwatch codebase.
 | CC5: Control Activities | 17 | 1 | 1 | 19 |
 | CC6: Access Controls | 5 | 0 | 0 | 5 |
 | CC7: System Operations | 9 | 0 | 1 | 10 |
-| CC8: Change Management | 8 | 1 | 0 | 9 |
+| CC8: Change Management | 9 | 0 | 0 | 9 |
 | CC9: Additional | 8 | 2 | 2 | 12 |
-| **TOTAL** | **66** | **4** | **6** | **76** |
+| **TOTAL** | **67** | **3** | **6** | **76** |
 
-**Readiness Score: 87% complete (66/76 fully implemented)**
+**Readiness Score: 88% complete (67/76 fully implemented)**
 
 ### Categories at 100%
 - CC1: Control Environment (5/5)
@@ -275,8 +275,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 2 | Vendor SOC 2 reports reviewed | CC3 | Request annual reports from Supabase, Stripe, GitHub | Process |
 | 3 | MFA enforced (not just recommended) | CC5 | Enforce MFA for admin/owner roles in Supabase Auth | Technical |
 | 4 | Penetration testing (annual) | CC5 (partial) | Hire third-party firm ($5-15K) | External |
-| 5 | Staging environment | CC8 (partial) | Create second Supabase project + staging deploy | Technical |
-| 6 | Backup restoration tested | CC7 | Conduct Supabase PITR drill (1 hour) | Process |
+| 5 | Backup restoration tested | CC7 | Conduct Supabase PITR drill (1 hour) | Process |
 
 ### Priority Remediation (Top 10)
 
