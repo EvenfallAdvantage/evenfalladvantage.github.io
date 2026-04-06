@@ -211,6 +211,10 @@ select {
   }
 }
 
+/* Hide scrollbar for horizontal carousels */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Partners marquee scroll */
 @keyframes scroll {
   0% { transform: translateX(0); }

@@ -526,7 +526,8 @@ function HomePageInner() {
             <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight mb-4">FULL-SPECTRUM OPERATIONS</h2>
             <p className="text-white/40 max-w-xl mx-auto">Everything your security operation needs — from applicant intake to field deployment — in one platform.</p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Desktop: grid layout */}
+          <div className="hidden sm:grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => (
               <div key={f.title} className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 hover:border-[#dd8c33]/20 hover:bg-[#dd8c33]/5 transition-all">
                 <f.icon className="h-8 w-8 text-[#dd8c33]/80 mb-4" />
@@ -534,6 +535,23 @@ function HomePageInner() {
                 <p className="text-xs text-white/40 leading-relaxed">{f.desc}</p>
               </div>
             ))}
+          </div>
+          {/* Mobile: horizontal scroll carousel */}
+          <div className="sm:hidden -mx-6 px-6">
+            <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
+              {FEATURES.map((f) => (
+                <div key={f.title} className="flex-none w-[260px] snap-start rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+                  <f.icon className="h-7 w-7 text-[#dd8c33]/80 mb-3" />
+                  <h3 className="text-sm font-bold mb-1">{f.title}</h3>
+                  <p className="text-[11px] text-white/40 leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-center gap-1 mt-2">
+              {FEATURES.map((_, i) => (
+                <div key={i} className="h-1 w-4 rounded-full bg-white/10" />
+              ))}
+            </div>
           </div>
         </div>
       </section>
