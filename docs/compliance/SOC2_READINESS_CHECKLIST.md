@@ -73,7 +73,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 3.1.1 | Annual risk assessment performed | `[x]` | `docs/compliance/RISK_ASSESSMENT_TEMPLATE.md` | Template with 10 identified threats, risk scoring, treatment plan |
 | 3.1.2 | Threat modeling for key assets | `[x]` | `docs/compliance/THREAT_MODEL.md` | STRIDE analysis: 22 threats identified, 19 mitigated, 3 partially mitigated, 0 open |
 | 3.1.3 | Vendor risk assessments | `[ ]` | — | Need assessments for Supabase, Stripe, Resend, GitHub |
-| 3.1.4 | Risk register maintained | `[ ]` | — | Need formal risk register |
+| 3.1.4 | Risk register maintained | `[x]` | `docs/compliance/risk-assessments/Q2-2026.md` | Q2 2026 assessment completed: 12 threats, 5 action items, next review Q3 |
 
 ---
 
@@ -250,16 +250,16 @@ Evidence paths reference files in the Overwatch codebase.
 |----------|------|---------|-----|-------|
 | CC1: Control Environment | 5 | 0 | 0 | 5 |
 | CC2: Communication | 7 | 0 | 0 | 7 |
-| CC3: Risk Assessment | 2 | 0 | 2 | 4 |
+| CC3: Risk Assessment | 3 | 0 | 1 | 4 |
 | CC4: Monitoring | 5 | 0 | 0 | 5 |
 | CC5: Control Activities | 18 | 0 | 1 | 19 |
 | CC6: Access Controls | 5 | 0 | 0 | 5 |
 | CC7: System Operations | 9 | 0 | 1 | 10 |
 | CC8: Change Management | 9 | 0 | 0 | 9 |
 | CC9: Additional | 8 | 2 | 2 | 12 |
-| **TOTAL** | **68** | **2** | **6** | **76** |
+| **TOTAL** | **69** | **2** | **5** | **76** |
 
-**Readiness Score: 89% complete (68/76 fully implemented)**
+**Readiness Score: 91% complete (69/76 fully implemented)**
 
 ### Categories at 100%
 - CC1: Control Environment (5/5)
@@ -271,10 +271,9 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Category | What's Needed | Type |
 |---|---------|----------|--------------|------|
-| 1 | Risk register maintained quarterly | CC3 | Execute the risk assessment template each quarter | Process |
-| 2 | Vendor SOC 2 reports reviewed | CC3 | Request annual reports from Supabase, Stripe, GitHub | Process |
-| 3 | Penetration testing (annual) | CC4 | Hire third-party firm ($5-15K) | External |
-| 4 | Backup restoration tested | CC7 | Conduct Supabase PITR drill (1 hour) | Process |
+| 1 | Vendor SOC 2 reports reviewed | CC3 | Emails drafted — send and file reports when received | Process |
+| 2 | Penetration testing (annual) | CC4 | Hire third-party firm ($5-15K) | External |
+| 3 | Backup restoration tested | CC7 | Conduct Supabase PITR drill (instructions provided) | Process |
 
 ### Priority Remediation (Top 10)
 
