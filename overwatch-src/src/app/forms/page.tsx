@@ -51,6 +51,7 @@ export default function FormsPage() {
   const [reportText, setReportText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [expandedSubmission, setExpandedSubmission] = useState<string | null>(null);
   const [deletingForm, setDeletingForm] = useState<string | null>(null);
   // Field builder
   const [editingFields, setEditingFields] = useState(false);
