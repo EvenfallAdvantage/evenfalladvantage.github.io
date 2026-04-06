@@ -26,6 +26,7 @@ import {
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask, reorderOnboardingTasks,
   getCompanyTimeChangeRequests, reviewTimeChangeRequest,
   getMemberProfileById, getCompanyReadiness, getIncidents,
+  updateIncident, deleteIncident, addIncidentUpdate,
 } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { exportCSV, TIMESHEET_COLUMNS, MEMBER_COLUMNS, INCIDENT_COLUMNS } from "@/lib/csv-export";
@@ -75,6 +76,9 @@ export default function AdminStaffPage() {
   const [reviewingForm, setReviewingForm] = useState<string | null>(null);
   const [expandedFormSub, setExpandedFormSub] = useState<string | null>(null);
   const [expandedIncident, setExpandedIncident] = useState<string | null>(null);
+  const [editingIncident, setEditingIncident] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [editIncData, setEditIncData] = useState<Record<string, any>>({});
   const [reviewNote, setReviewNote] = useState("");
   const [leaveFilter, setLeaveFilter] = useState<"pending" | "all">("pending");
   const [error, setError] = useState<string | null>(null);
@@ -1083,13 +1087,100 @@ export default function AdminStaffPage() {
                                     <p className="text-sm whitespace-pre-wrap">{inc.description}</p>
                                   </div>
                                 )}
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                                  <div><span className="text-muted-foreground/60">Type</span><p className="font-medium capitalize">{inc.type}</p></div>
-                                  <div><span className="text-muted-foreground/60">Severity</span><p className={`font-medium capitalize ${sevColor}`}>{inc.severity}</p></div>
-                                  <div><span className="text-muted-foreground/60">Priority</span><p className="font-medium capitalize">{inc.priority}</p></div>
-                                  <div><span className="text-muted-foreground/60">Status</span><p className="font-medium capitalize">{inc.status}</p></div>
-                                </div>
-                                <Link href="/incidents" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">View full report →</Link>
+                                {editingIncident === inc.id ? (
+                                  <>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div>
+                                        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Title</label>
+                                        <Input value={editIncData.title ?? ""} onChange={e => setEditIncData(p => ({ ...p, title: e.target.value }))} className="h-8 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Location</label>
+                                        <Input value={editIncData.location ?? ""} onChange={e => setEditIncData(p => ({ ...p, location: e.target.value }))} className="h-8 text-sm" />
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Type</label>
+                                        <select value={editIncData.type ?? ""} onChange={e => setEditIncData(p => ({ ...p, type: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
+                                          {["general","medical","fire","theft","assault","trespass","disturbance","weather","other"].map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <div className="flex-1">
+                                          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Severity</label>
+                                          <select value={editIncData.severity ?? ""} onChange={e => setEditIncData(p => ({ ...p, severity: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
+                                            {["critical","high","medium","low"].map(s => <option key={s} value={s}>{s}</option>)}
+                                          </select>
+                                        </div>
+                                        <div className="flex-1">
+                                          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Priority</label>
+                                          <select value={editIncData.priority ?? ""} onChange={e => setEditIncData(p => ({ ...p, priority: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
+                                            {["low","medium","high","urgent"].map(p => <option key={p} value={p}>{p}</option>)}
+                                          </select>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Status</label>
+                                        <select value={editIncData.status ?? ""} onChange={e => setEditIncData(p => ({ ...p, status: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
+                                          {["open","investigating","resolved","closed"].map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Narrative</label>
+                                      <textarea value={editIncData.description ?? ""} onChange={e => setEditIncData(p => ({ ...p, description: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[100px] resize-y" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button size="sm" className="h-7 gap-1 text-xs" onClick={async () => {
+                                        try {
+                                          // Build change summary
+                                          const changed: string[] = [];
+                                          for (const k of ["title","type","severity","priority","status","location","description"]) {
+                                            if (String(editIncData[k] ?? "") !== String((inc as any)[k] ?? "")) changed.push(k);
+                                          }
+                                          await updateIncident(inc.id, editIncData);
+                                          if (changed.length > 0) {
+                                            await addIncidentUpdate(inc.id, `Edited via Personnel: ${changed.join(", ")} updated`, "update");
+                                          }
+                                          setEditingIncident(null);
+                                          await load();
+                                          toast.success("Incident updated");
+                                        } catch { toast.error("Failed to update"); }
+                                      }}><Check className="h-3 w-3" /> Save</Button>
+                                      <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => setEditingIncident(null)}>
+                                        <X className="h-3 w-3" /> Cancel
+                                      </Button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                                      <div><span className="text-muted-foreground/60">Type</span><p className="font-medium capitalize">{inc.type}</p></div>
+                                      <div><span className="text-muted-foreground/60">Severity</span><p className={`font-medium capitalize ${sevColor}`}>{inc.severity}</p></div>
+                                      <div><span className="text-muted-foreground/60">Priority</span><p className="font-medium capitalize">{inc.priority}</p></div>
+                                      <div><span className="text-muted-foreground/60">Status</span><p className="font-medium capitalize">{inc.status}</p></div>
+                                    </div>
+                                    {canManage && (
+                                      <div className="flex gap-2 pt-2 border-t border-border/20">
+                                        <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => {
+                                          setEditingIncident(inc.id);
+                                          setEditIncData({ title: inc.title, type: inc.type, severity: inc.severity, priority: inc.priority, status: inc.status, location: inc.location, description: inc.description });
+                                        }}><Pencil className="h-3 w-3" /> Edit</Button>
+                                        <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={async () => {
+                                          if (!confirm("Delete this incident report?")) return;
+                                          try {
+                                            await deleteIncident(inc.id);
+                                            setIncidents((prev: any[]) => prev.filter((i: any) => i.id !== inc.id));
+                                            toast.success("Incident deleted");
+                                          } catch { toast.error("Failed to delete"); }
+                                        }}><Trash2 className="h-3 w-3" /> Delete</Button>
+                                        <Link href="/incidents" className="inline-flex items-center gap-1 text-xs text-primary hover:underline ml-auto">View full report →</Link>
+                                      </div>
+                                    )}
+                                    {!canManage && (
+                                      <Link href="/incidents" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">View full report →</Link>
+                                    )}
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>
