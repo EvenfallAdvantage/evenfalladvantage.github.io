@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { ClipboardList, Plus, Loader2, Send, ChevronLeft, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle, Flag } from "lucide-react";
+import { ClipboardList, Plus, Loader2, Send, ChevronLeft, ChevronDown, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle, Flag } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
