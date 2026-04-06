@@ -35,7 +35,10 @@ jobs:
       - name: Security audit (npm)
         working-directory: overwatch-src
         run: npm audit --audit-level=high || true
-        # Logs high/critical vulnerabilities but doesn't block deploy
+
+      - name: Run tests
+        working-directory: overwatch-src
+        run: npm test
 
       - name: Build Overwatch (Next.js static export)
         working-directory: overwatch-src
