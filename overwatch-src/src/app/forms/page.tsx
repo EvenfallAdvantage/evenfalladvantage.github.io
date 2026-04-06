@@ -12,7 +12,25 @@ import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updat
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
 
-type FormField = { id: string; label: string; type: "text" | "textarea" | "select" | "checkbox"; required: boolean; options?: string[] };
+type FieldType = "text" | "textarea" | "select" | "checkbox" | "date" | "time" | "datetime" | "number" | "email" | "phone" | "url" | "radio" | "rating" | "signature";
+type FormField = { id: string; label: string; type: FieldType; required: boolean; options?: string[]; placeholder?: string; min?: number; max?: number };
+
+const FIELD_TYPES: { type: FieldType; label: string; icon: string }[] = [
+  { type: "text", label: "Text", icon: "Aa" },
+  { type: "textarea", label: "Long Text", icon: "¶" },
+  { type: "number", label: "Number", icon: "#" },
+  { type: "date", label: "Date", icon: "📅" },
+  { type: "time", label: "Time", icon: "🕐" },
+  { type: "datetime", label: "Date & Time", icon: "📆" },
+  { type: "select", label: "Dropdown", icon: "▼" },
+  { type: "radio", label: "Radio", icon: "◉" },
+  { type: "checkbox", label: "Checkbox", icon: "☑" },
+  { type: "email", label: "Email", icon: "@" },
+  { type: "phone", label: "Phone", icon: "📞" },
+  { type: "url", label: "URL", icon: "🔗" },
+  { type: "rating", label: "Rating (1-5)", icon: "⭐" },
+  { type: "signature", label: "Signature", icon: "✍" },
+];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Form = any;
@@ -113,8 +131,11 @@ export default function FormsPage() {
     setEditingFields(true);
   }
 
-  function addField(type: FormField["type"]) {
-    setFields((prev) => [...prev, { id: crypto.randomUUID(), label: "", type, required: false, ...(type === "select" ? { options: ["Option 1", "Option 2"] } : {}) }]);
+  function addField(type: FieldType) {
+    const defaults: Partial<FormField> = {};
+    if (type === "select" || type === "radio") defaults.options = ["Option 1", "Option 2"];
+    if (type === "rating") { defaults.min = 1; defaults.max = 5; }
+    setFields((prev) => [...prev, { id: crypto.randomUUID(), label: "", type, required: false, ...defaults }]);
   }
 
   async function saveFields() {
@@ -221,10 +242,10 @@ export default function FormsPage() {
               <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold">Form Fields</p>
-                  <div className="flex gap-1">
-                    {(["text", "textarea", "select", "checkbox"] as const).map((t) => (
-                      <Button key={t} size="sm" variant="outline" className="h-6 text-[10px] px-2" onClick={() => addField(t)}>
-                        + {t}
+                  <div className="flex gap-1 flex-wrap justify-end">
+                    {FIELD_TYPES.map((ft) => (
+                      <Button key={ft.type} size="sm" variant="outline" className="h-6 text-[10px] px-2 gap-1" onClick={() => addField(ft.type)}>
+                        <span className="opacity-60">{ft.icon}</span> {ft.label}
                       </Button>
                     ))}
                   </div>
@@ -296,6 +317,56 @@ export default function FormsPage() {
                           <input type="checkbox" checked={!!formValues[f.label]} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.checked }))} />
                           {f.label}
                         </label>
+                      )}
+                      {f.type === "date" && (
+                        <Input type="date" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} className="h-8 text-sm" />
+                      )}
+                      {f.type === "time" && (
+                        <Input type="time" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} className="h-8 text-sm" />
+                      )}
+                      {f.type === "datetime" && (
+                        <Input type="datetime-local" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} className="h-8 text-sm" />
+                      )}
+                      {f.type === "number" && (
+                        <Input type="number" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "0"} className="h-8 text-sm" />
+                      )}
+                      {f.type === "email" && (
+                        <Input type="email" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "email@example.com"} className="h-8 text-sm" />
+                      )}
+                      {f.type === "phone" && (
+                        <Input type="tel" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "(555) 123-4567"} className="h-8 text-sm" />
+                      )}
+                      {f.type === "url" && (
+                        <Input type="url" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "https://..."} className="h-8 text-sm" />
+                      )}
+                      {f.type === "radio" && (
+                        <div className="flex flex-col gap-1.5">
+                          {(f.options ?? []).map((opt) => (
+                            <label key={opt} className="flex items-center gap-2 text-sm">
+                              <input type="radio" name={f.label} value={opt} checked={formValues[f.label] === opt} onChange={() => setFormValues((prev) => ({ ...prev, [f.label]: opt }))} />
+                              {opt}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {f.type === "rating" && (
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button key={star} type="button" onClick={() => setFormValues((prev) => ({ ...prev, [f.label]: star }))}
+                              className={`text-xl transition-colors ${Number(formValues[f.label] ?? 0) >= star ? "text-amber-400" : "text-muted-foreground/30"}`}>
+                              ★
+                            </button>
+                          ))}
+                          {formValues[f.label] && <span className="text-xs text-muted-foreground ml-2 self-center">{formValues[f.label]}/5</span>}
+                        </div>
+                      )}
+                      {f.type === "signature" && (
+                        <div className="space-y-1">
+                          <Input value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder="Type your full name as signature" className="h-8 text-sm italic font-serif" />
+                          {formValues[f.label] && (
+                            <p className="text-xs text-muted-foreground">Electronically signed as: <span className="italic font-serif">{String(formValues[f.label])}</span> on {new Date().toLocaleDateString()}</p>
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}
