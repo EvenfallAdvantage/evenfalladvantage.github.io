@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -424,6 +424,50 @@ const INTEGRATIONS_LOGOS = [
   { name: "Supabase", src: "/images/integrations/supabase.jpeg", alt: "Supabase" },
 ];
 
+function FeatureCarousel() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      const cardWidth = 260 + 12; // w-[260px] + gap-3 (12px)
+      const idx = Math.round(el.scrollLeft / cardWidth);
+      setActiveIdx(Math.min(idx, FEATURES.length - 1));
+    };
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return (
+    <div className="sm:hidden -mx-6 px-6">
+      <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
+        {FEATURES.map((f) => (
+          <div key={f.title} className="flex-none w-[260px] snap-start rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+            <f.icon className="h-7 w-7 text-[#dd8c33]/80 mb-3" />
+            <h3 className="text-sm font-bold mb-1">{f.title}</h3>
+            <p className="text-[11px] text-white/40 leading-relaxed">{f.desc}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-center gap-1.5 mt-2">
+        {FEATURES.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => {
+              scrollRef.current?.scrollTo({ left: i * (260 + 12), behavior: "smooth" });
+            }}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              i === activeIdx ? "w-6 bg-[#dd8c33]" : "w-3 bg-white/15"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#0b1422]" />}>
@@ -537,22 +581,7 @@ function HomePageInner() {
             ))}
           </div>
           {/* Mobile: horizontal scroll carousel */}
-          <div className="sm:hidden -mx-6 px-6">
-            <div className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
-              {FEATURES.map((f) => (
-                <div key={f.title} className="flex-none w-[260px] snap-start rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-                  <f.icon className="h-7 w-7 text-[#dd8c33]/80 mb-3" />
-                  <h3 className="text-sm font-bold mb-1">{f.title}</h3>
-                  <p className="text-[11px] text-white/40 leading-relaxed">{f.desc}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-center gap-1 mt-2">
-              {FEATURES.map((_, i) => (
-                <div key={i} className="h-1 w-4 rounded-full bg-white/10" />
-              ))}
-            </div>
-          </div>
+          <FeatureCarousel />
         </div>
       </section>
 
