@@ -446,11 +446,11 @@ export default function FormsPage() {
                                   />
                                 </div>
                               ))}
-                              <div className="flex gap-2 pt-1">
+                                <div className="flex gap-2 pt-1">
                                 <Button size="sm" className="h-7 gap-1 text-xs" onClick={async () => {
                                   try {
-                                    const supabase = (await import("@/lib/supabase/client")).createClient();
-                                    await supabase.from("form_submissions").update({ data: editFormData }).eq("id", s.id);
+                                    const { editFormSubmission } = await import("@/lib/supabase/db-forms");
+                                    await editFormSubmission(s.id, editFormData);
                                     const updated = mySubmissions.map(sub => sub.id === s.id ? { ...sub, data: editFormData } : sub);
                                     setMySubmissions(updated);
                                     setEditingSubmission(null);
@@ -472,13 +472,42 @@ export default function FormsPage() {
                                   <p className="text-sm whitespace-pre-wrap">{String(val ?? "\u2014")}</p>
                                 </div>
                               ))}
-                              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => {
-                                setEditingSubmission(s.id);
-                                setEditFormData(fields as Record<string, string>);
-                              }}>
-                                <Pencil className="h-3 w-3" /> Edit Report
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => {
+                                  setEditingSubmission(s.id);
+                                  setEditFormData(fields as Record<string, string>);
+                                }}>
+                                  <Pencil className="h-3 w-3" /> Edit
+                                </Button>
+                                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={async () => {
+                                  if (!confirm("Delete this report?")) return;
+                                  try {
+                                    const { deleteFormSubmission } = await import("@/lib/supabase/db-forms");
+                                    await deleteFormSubmission(s.id);
+                                    setMySubmissions(prev => prev.filter(sub => sub.id !== s.id));
+                                    toast.success("Report deleted");
+                                  } catch { toast.error("Failed to delete"); }
+                                }}>
+                                  <Trash2 className="h-3 w-3" /> Delete
+                                </Button>
+                              </div>
                             </>
+                          )}
+                          {s.change_log && Array.isArray(s.change_log) && s.change_log.length > 0 && (
+                            <div className="border-t border-border/20 pt-2 mt-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">Change History</p>
+                              {(s.change_log as { timestamp: string; action: string; changes?: { field: string; from: string; to: string }[] }[]).map((log, i) => (
+                                <div key={i} className="text-[10px] text-muted-foreground mb-1">
+                                  <span className="text-muted-foreground/60">{new Date(log.timestamp).toLocaleString()}</span>
+                                  {" — "}{log.action}
+                                  {log.changes?.map((c, j) => (
+                                    <span key={j} className="ml-1">
+                                      <span className="font-medium">{c.field}</span>: &quot;{c.from.slice(0, 30)}&quot; → &quot;{c.to.slice(0, 30)}&quot;
+                                    </span>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}

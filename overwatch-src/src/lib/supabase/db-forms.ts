@@ -106,14 +106,8 @@ export async function getAllFormSubmissions(companyId: string) {
     .select("id, name")
     .eq("company_id", companyId);
 
-  console.log("[getAllFormSubmissions] companyId:", companyId);
-  console.log("[getAllFormSubmissions] forms found:", companyForms?.length, companyForms, "error:", formsError);
-
   const formIds = (companyForms ?? []).map((f: { id: string }) => f.id);
-  if (formIds.length === 0) {
-    console.log("[getAllFormSubmissions] No forms found for company, returning []");
-    return [];
-  }
+  if (formIds.length === 0) return [];
 
   // Step 2: Get all submissions for those forms
   const { data, error: subsError } = await supabase
@@ -122,8 +116,7 @@ export async function getAllFormSubmissions(companyId: string) {
     .in("form_id", formIds)
     .order("created_at", { ascending: false });
 
-  console.log("[getAllFormSubmissions] submissions found:", data?.length, "error:", subsError);
-
+  if (subsError) console.error("[getAllFormSubmissions] error:", subsError);
   return data ?? [];
 }
 
@@ -166,4 +159,66 @@ export async function reviewFormSubmission(submissionId: string, note: string) {
     .maybeSingle();
   if (error) throw error;
   return data;
+}
+
+// ─── Edit form submission (with change log) ──────────
+
+export async function editFormSubmission(
+  submissionId: string,
+  newData: Record<string, unknown>,
+  reason?: string,
+) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+
+  // Get current data for change log
+  const { data: current } = await supabase
+    .from("form_submissions")
+    .select("data, change_log")
+    .eq("id", submissionId)
+    .single();
+
+  // Build change log entry
+  const oldData = (current?.data ?? {}) as Record<string, unknown>;
+  const changes: { field: string; from: string; to: string }[] = [];
+  for (const key of Object.keys(newData)) {
+    if (String(oldData[key] ?? "") !== String(newData[key] ?? "")) {
+      changes.push({ field: key, from: String(oldData[key] ?? ""), to: String(newData[key] ?? "") });
+    }
+  }
+
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    user_id: userId,
+    action: "edit",
+    reason: reason ?? "",
+    changes,
+  };
+
+  const existingLog = Array.isArray(current?.change_log) ? current.change_log : [];
+
+  const { data, error } = await supabase
+    .from("form_submissions")
+    .update({
+      data: newData,
+      change_log: [...existingLog, logEntry],
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", submissionId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Delete form submission ──────────────────────────
+
+export async function deleteFormSubmission(submissionId: string) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("form_submissions")
+    .delete()
+    .eq("id", submissionId);
+  if (error) throw error;
 }

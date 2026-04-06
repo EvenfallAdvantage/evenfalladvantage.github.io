@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, CalendarOff, ClipboardList, CheckCircle2, XCircle,
   UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock, ShieldCheck, AlertOctagon, BookOpen,
   AlertTriangle, MapPin, Flag,
-  BookOpenCheck, CalendarClock, FileEdit,
+  BookOpenCheck, CalendarClock, FileEdit, Pencil, Save,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getCompanyMembers, getCompanyDetails, getCompanyTimesheets, approveTimesheet,
   updateMemberRole, removeMember, getAllTimeOffRequests, reviewTimeOffRequest,
-  getAllFormSubmissions, reviewFormSubmission, removeConflictingShifts,
+  getAllFormSubmissions, reviewFormSubmission, editFormSubmission, deleteFormSubmission, removeConflictingShifts,
   getApplicants, createApplicant, updateApplicantStatus, deleteApplicant, convertApplicantToUser,
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask, reorderOnboardingTasks,
   getCompanyTimeChangeRequests, reviewTimeChangeRequest,
@@ -102,6 +102,9 @@ export default function AdminStaffPage() {
   // Time change requests
   const [timeChangeReqs, setTimeChangeReqs] = useState<TCR[]>([]);
   const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
+  // Form submission editing
+  const [editingFormSub, setEditingFormSub] = useState<string | null>(null);
+  const [editFormSubData, setEditFormSubData] = useState<Record<string, string>>({});
   // Hire integration results
   const [hireResult, setHireResult] = useState<HireResult | null>(null);
   // CSV Import
@@ -1119,14 +1122,46 @@ export default function AdminStaffPage() {
                       </button>
                       {isOpen && (
                         <div className="border-t border-border/30 px-4 py-3 space-y-3 bg-muted/10">
-                          {allFields.map(([key, val]) => (
-                            <div key={key}>
-                              <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">
-                                {key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
-                              </label>
-                              <p className="text-sm whitespace-pre-wrap">{String(val ?? "—")}</p>
-                            </div>
-                          ))}
+                          {editingFormSub === f.id ? (
+                            <>
+                              {allFields.map(([key, val]) => (
+                                <div key={key}>
+                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">
+                                    {key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                                  </label>
+                                  <textarea
+                                    value={String(editFormSubData[key] ?? val ?? "")}
+                                    onChange={(e) => setEditFormSubData(prev => ({ ...prev, [key]: e.target.value }))}
+                                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[60px] resize-y"
+                                  />
+                                </div>
+                              ))}
+                              <div className="flex gap-2 pt-1">
+                                <Button size="sm" className="h-7 gap-1 text-xs" onClick={async () => {
+                                  try {
+                                    const updated = await editFormSubmission(f.id, editFormSubData);
+                                    setFormSubmissions(prev => prev.map(sub => sub.id === f.id ? { ...sub, data: editFormSubData, change_log: updated?.change_log } : sub));
+                                    setEditingFormSub(null);
+                                    toast.success("Submission updated");
+                                  } catch { toast.error("Failed to update"); }
+                                }}><Save className="h-3 w-3" /> Save</Button>
+                                <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs" onClick={() => setEditingFormSub(null)}>
+                                  <X className="h-3 w-3" /> Cancel
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {allFields.map(([key, val]) => (
+                                <div key={key}>
+                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">
+                                    {key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                                  </label>
+                                  <p className="text-sm whitespace-pre-wrap">{String(val ?? "—")}</p>
+                                </div>
+                              ))}
+                            </>
+                          )}
                           {!isReviewed && canManage && (
                             <div className="flex items-center gap-2 pt-2 border-t border-border/20">
                               <Input placeholder="Review note..." value={reviewingForm === f.id ? reviewNote : ""}
@@ -1141,6 +1176,43 @@ export default function AdminStaffPage() {
                           )}
                           {f.review_note && (
                             <p className="text-[10px] text-muted-foreground italic">Review note: {f.review_note}</p>
+                          )}
+                          {canManage && editingFormSub !== f.id && (
+                            <div className="flex gap-2 pt-2 border-t border-border/20">
+                              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => {
+                                setExpandedFormSub(f.id);
+                                setEditingFormSub(f.id);
+                                setEditFormSubData(allFields.reduce((acc, [k, v]) => ({ ...acc, [k]: String(v ?? "") }), {} as Record<string, string>));
+                              }}>
+                                <Pencil className="h-3 w-3" /> Edit
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={async () => {
+                                if (!confirm("Delete this submission?")) return;
+                                try {
+                                  await deleteFormSubmission(f.id);
+                                  setFormSubmissions(prev => prev.filter(sub => sub.id !== f.id));
+                                  toast.success("Submission deleted");
+                                } catch { toast.error("Failed to delete"); }
+                              }}>
+                                <Trash2 className="h-3 w-3" /> Delete
+                              </Button>
+                            </div>
+                          )}
+                          {f.change_log && Array.isArray(f.change_log) && f.change_log.length > 0 && (
+                            <div className="border-t border-border/20 pt-2 mt-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">Change History</p>
+                              {(f.change_log as { timestamp: string; action: string; changes?: { field: string; from: string; to: string }[] }[]).map((log, i) => (
+                                <div key={i} className="text-[10px] text-muted-foreground mb-1">
+                                  <span className="text-muted-foreground/60">{new Date(log.timestamp).toLocaleString()}</span>
+                                  {" — "}{log.action}
+                                  {log.changes?.map((c, j) => (
+                                    <span key={j} className="ml-1">
+                                      <span className="font-medium">{c.field}</span>: &quot;{c.from.slice(0, 30)}&quot; → &quot;{c.to.slice(0, 30)}&quot;
+                                    </span>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}
