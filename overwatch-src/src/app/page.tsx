@@ -478,7 +478,7 @@ function HomePageInner() {
         {/* Desktop: 3D Globe */}
         <div className="hidden md:block"><TacticalGlobe /></div>
         {/* Mobile: Animated Radar Grid — centered behind hero text */}
-        <div className="md:hidden absolute inset-0 z-10 flex items-center justify-center" style={{ top: "30%" }}>
+        <div className="md:hidden absolute inset-x-0 z-10 flex items-center justify-center" style={{ top: "15%" }}>
           <MobileHeroRadar />
         </div>
 
