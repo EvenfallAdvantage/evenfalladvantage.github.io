@@ -723,7 +723,7 @@ function HomePageInner() {
                 { label: "TLS 1.2+", sub: "Enforced", href: "https://en.wikipedia.org/wiki/Transport_Layer_Security", icon: (
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 )},
-                { label: "WCAG", sub: "Accessible", href: "https://www.w3.org/WAI/standards-guidelines/wcag/", icon: (
+                { label: "WCAG", sub: "2.1 AA", href: "https://www.w3.org/WAI/standards-guidelines/wcag/", icon: (
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
                 )},
                 { label: "99.5%", sub: "Uptime SLA", href: "https://en.wikipedia.org/wiki/Service-level_agreement", icon: (
