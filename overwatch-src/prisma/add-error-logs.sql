@@ -25,10 +25,13 @@ CREATE POLICY "Company admins can view error logs"
   ON error_logs FOR SELECT TO authenticated
   USING (is_company_member(company_id));
 
--- Anyone authenticated can insert (errors happen for all users)
+-- Authenticated users can log their own errors (or anonymous with null user_id)
 CREATE POLICY "Authenticated users can log errors"
   ON error_logs FOR INSERT TO authenticated
-  WITH CHECK (true);
+  WITH CHECK (
+    user_id IS NULL
+    OR user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text)
+  );
 
 -- Auto-cleanup: delete logs older than 30 days
 CREATE OR REPLACE FUNCTION cleanup_old_error_logs()
