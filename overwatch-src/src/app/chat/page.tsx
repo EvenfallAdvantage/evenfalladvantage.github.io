@@ -343,7 +343,7 @@ export default function ChatPage() {
         isAdmin={isAdmin} external={external} showAddExt={showAddExt} setShowAddExt={setShowAddExt}
         extName={extName} setExtName={setExtName} extPlat={extPlat} setExtPlat={setExtPlat}
         extUrl={extUrl} setExtUrl={setExtUrl} creatingExt={creatingExt} handleAddExternal={handleAddExternal}
-        handleDeleteCh={handleDeleteCh}
+        handleDeleteCh={handleDeleteCh} loadChannels={loadChannels}
       />)}
 
     </div>
