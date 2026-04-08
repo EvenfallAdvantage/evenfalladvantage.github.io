@@ -1,154 +1,88 @@
-# Session Handoff — April 3-6, 2026
+# Session Handoff — April 8, 2026
 
 **Project:** Evenfall Advantage — Overwatch Platform
 **Repo:** https://github.com/EvenfallAdvantage/evenfalladvantage.github.io
 **Working Clone:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io\audit-clone`
-**Commits this session:** 80+
-**SOC 2 Readiness:** 92% (70/76 controls)
-**WCAG:** 2.2 AA (17/18 criteria met)
+**CRITICAL:** Always use the `audit-clone` directory. The root repo is a stale copy — do NOT edit files there.
+**Latest commit:** `c20f1f9ae` on `main`
+**Commits this session:** 7
+**CI/CD:** All green (Build, Deploy, CodeQL all passing)
+**SOC 2 Readiness:** 92% (70/76 controls — unchanged)
+**WCAG:** 2.2 AA (17/18 criteria met — unchanged)
 
 ---
 
-## What Was Completed
+## What Was Completed This Session
 
-### Security (Session 1)
-- XSS sanitization: 52 innerHTML vectors across 18 JS files
-- CORS hardening on all 6 Edge Functions (origin allowlist)
-- JWT enforcement on send-email function
-- Admin role verification on create-student, delete-student, send-email
-- Stripe webhook signature enforcement (no unsigned fallback)
-- Admin INSERT policy fix (prevents self-promotion)
-- Multi-provider AI question generator (8 providers, localStorage config)
-- Gemini API key removed and rotated
+### Beta Feedback Items (6 of 7 implemented)
 
-### Features (Session 1)
-- Applicant pipeline: 6-section form, detail modal, carry-over, profile sections
-- Storyboard system: StoryboardEditor (90+ icons), site map upload, incident pins
-- Address autocomplete (Nominatim) on planning + apply forms
-- Intake edit cascade (auto-updates OPORD/GOTWA, auto-creates draft FRAGO)
-- Editable incidents, re-editable OPORD/GOTWA, IntakePanel with site map
+1. **Edit External Group Cards (Item 1)** — Already done in prior session. This session fixed a missing `loadChannels` prop that caused save to fail, and migrated `handleSaveExtEdit` from raw Supabase call to `updateChatChannel()`.
 
-### Features (Session 2)
-- Dynamic brand theming: dual color picker, CSS variable injection, BrandThemeProvider
-- Page titles moved to topbar (26 pages), mobile action buttons
-- Unified subtabs (12+ pages), icons on active only
-- Dashboard clock-in modal with shift detection
-- Landing page: mobile radar animation, feature carousel, footer redesign
-- Join Company modal, Privacy Policy modal
-- Confirm password + eye toggles on auth forms
-- Personal profile syncs across all company memberships
-- Cross-company data isolation (timesheets, analytics, Watch Log, Dashboard)
-- Built-in error tracking system (error_logs + ErrorBoundary + admin viewer + alerting)
-- Health check page (/overwatch/health/) for UptimeRobot
-- Expanded form builder (14 field types)
-- Field report submissions as expandable cards (user + admin views)
-- Edit/delete field reports + incidents with audit trail (change_log)
+2. **Dictate / Speech-to-Text (Item 2)** — New page + component:
+   - `src/components/dictation-recorder.tsx` — Web Speech API recorder with mic permission check, auto-restart on timeout, elapsed timer, browser support detection, actionable error messages
+   - `src/app/dictate/page.tsx` — Full dictation page with metadata fields (person type, person name, linked incident), transcript editing, save to DB via form_submissions, expandable saved transcript cards
+   - Uses a "Dictation (System)" form auto-created per company
 
-### Infrastructure
-- CI/CD: Next.js built in GitHub Actions, concurrency groups
-- Removed 603 committed build artifacts
-- Service worker cache versioned (v9)
-- Dependabot + CodeQL + npm audit in CI
-- Branch protection on main (1 required reviewer)
-- Automated daily database backup via GitHub Actions (pg_dump)
-- Local Supabase staging environment
-- 51 automated tests (Vitest)
+3. **Reorder Reports Subtabs (Item 3)** — Tab order across all 3 report pages: Dictate → Field Reports → Incidents
 
-### Compliance (SOC 2: 92%)
-- 20 compliance documents in docs/compliance/
-- Information Security Policy, Incident Response Plan, Data Retention Policy
-- Vendor Risk Assessment (DPAs executed with all 4 vendors)
-- Risk Assessment (Q2 2026 completed), Access Review Checklist
-- Business Continuity Plan, SLA, Subprocessor List
-- Security Awareness Training, Org Chart, Log Review Procedures
-- Threat Model (STRIDE), Shared Accounts Audit
-- WCAG 2.2 AA Audit Report
-- Backup drill report
+4. **Move Join Code to HQ Config (Item 4)** — Removed join code card from `profile/page.tsx`, removed join code banner + topbar button from `admin/staff/page.tsx`. Join code already exists in `admin/settings/page.tsx`. Note: `joinCode` state is kept in staff page because the hiring orchestrator still uses it.
 
-### Accessibility (WCAG 2.2 AA)
-- Skip-to-content link, mobile zoom re-enabled
-- 52 aria-labels on icon-only buttons
-- Text contrast fixes (white/15-40 → white/50-60)
-- Focus indicators added
-- Global CSS min 24x24px target size
-- Storyboard arrow key nudging (drag alternative)
+5. **Real-time Chat (Item 5)** — Was already implemented (Supabase Realtime at `chat/page.tsx:128-148`).
+
+6. **Channel Role Permissions (Item 6)** — Added `permissions` JSONB support:
+   - `ChannelPermissions` type: `{ can_post, can_react, can_pin }` with role arrays
+   - Settings2 gear icon in channel header opens permission editor
+   - Role toggle chips for all 7 roles (owner, admin, instructor, manager, lead, breaker, staff)
+   - Message input disabled with notice when user's role not in `can_post`
+   - `updateChatChannel` and `createChatChannel` accept `permissions` param
+
+7. **Client Intake Portal (Item 7)** — New public form:
+   - `src/app/client-intake/page.tsx` — Token-based public form at `/overwatch/client-intake/?token=xxx`
+   - `src/lib/supabase/db-client-intake.ts` — CRUD for `client_intake_tokens` table
+   - Company branded (logo + colors), 4-section tabbed form, revisitable, validates required fields
+   - Sections: Site Information, Coverage Requirements, Access & Infrastructure, Security Concerns
+
+### Bug Fixes
+- Service worker cache bumped v9 → v10 (fixes stale chunk 404s after deploys)
+- CSP `connect-src` updated with `https://*.google.com https://*.googleapis.com` for Web Speech API
+- Dictation recorder requests mic permission explicitly via `getUserMedia()` before starting recognition
+- External group edit now uses `updateChatChannel()` instead of raw Supabase call
+- `loadChannels` prop passed to `ExternalTab` component
+
+### Subtab Icon Consistency
+- All report subtabs (Dictate, Field Reports, Incidents) now follow convention: icon only on active tab
+- Fixed `forms/page.tsx` header icon: was `AlertTriangle`, now `ClipboardList` (matches its active subtab)
+- Fixed `academy/page.tsx` subtab icons: were showing on all tabs, now conditional with `text-primary`
+- Audited all 16 subtab navigations across 15 pages — all now consistent
 
 ---
 
-## In-Progress / Uncommitted Work
+## Known Issues — NOT YET RESOLVED
 
-**NO uncommitted work.** Everything has been committed and pushed.
+### Dictation "network" Error
+The Web Speech API still fails with "Could not connect to the speech recognition service" for the beta tester. Root cause is likely:
+- **Ad blocker** blocking Google speech endpoints (the console shows `ERR_BLOCKED_BY_CLIENT`)
+- **Corporate network/firewall** blocking `*.google.com` speech API traffic
+- Chrome's speech recognition sends audio to Google servers — this is a hard dependency
 
----
+**Recommended next steps:**
+1. Test with ad blocker disabled for `evenfalladvantage.com`
+2. Test in Chrome Incognito (no extensions)
+3. If still failing, implement **Whisper.js fallback** (offline, 40MB model cached in IndexedDB) — this was the original design decision from the handoff
+4. The Whisper.js fallback should be a toggle in the UI: "Use offline recognition (slower but works everywhere)"
 
-## Remaining Items — Beta Tester Feedback (NOT YET STARTED)
+### External Group Edit — May Still Need Testing
+The `handleSaveExtEdit` was rewritten to use `updateChatChannel()`. The `description` param was added to the function signature. Needs verification that it actually saves now.
 
-These 7 items were just discussed but implementation was interrupted:
-
-### Item 1: Edit External Group Cards (LOW — 30 min)
-**File:** `src/app/chat/page.tsx`
-- Add edit button (Pencil) on external group cards
-- Inline edit: name, URL, platform dropdown
-- Save updates channel's `description` JSON metadata
-- State needed: `editingExternal`, `extEditForm`
-
-### Item 2: Dictate / Speech-to-Text (HIGH — 3-4 hrs)
-**New files needed:**
-- `src/components/dictation-recorder.tsx` — Recording component
-- `src/app/dictate/page.tsx` — New Dictate page
-
-**Design decisions made:**
-- Primary: Web Speech API (free, real-time, Chrome/Edge/Safari)
-- Fallback: Whisper.js for offline (40MB model, cached in IndexedDB)
-- Store transcript only (no audio files)
-- Fields: person type, person name, transcript, date/time, linked incident
-- Tab order: Dictate → Field Reports → Incidents
-
-### Item 3: Reorder Reports Subtabs (LOW — 5 min)
-**Files:** `src/app/incidents/page.tsx`, `src/app/forms/page.tsx`, new `src/app/dictate/page.tsx`
-- New order: Dictate (Mic icon), Field Reports, Incidents
-- Add Dictate link tab to existing incidents and forms pages
-- Import `Mic` from lucide-react
-
-### Item 4: Move Join Code to HQ Config (LOW — 15 min)
-- Remove from `src/app/profile/page.tsx` (the "TEAM JOIN CODE" card)
-- Remove from `src/app/admin/staff/page.tsx` (the amber banner + topbar button)
-- Already exists in `src/app/admin/settings/page.tsx` (verify)
-
-### Item 5: Real-time Chat (MEDIUM — 1-2 hrs)
-**File:** `src/app/chat/page.tsx`
-- Use Supabase Realtime: `supabase.channel('chat').on('postgres_changes', ...)`
-- Subscribe on channel select, unsubscribe on unmount
-- Append new messages to local state
-- Also subscribe to reactions for live emoji updates
-
-### Item 6: Channel Role Permissions (MEDIUM — 1-2 hrs)
-**DB change:** Add `permissions` JSONB to `chat_channels`
-```json
-{ "can_post": ["owner","admin","manager","staff"], "can_react": [...], "can_pin": [...] }
+### Git Push Slowness
+`git push origin main` consistently times out from this machine. Workaround: use explicit URL:
 ```
-- New Channel modal: role permission checkboxes
-- Channel settings: gear icon to edit permissions
-- Disable message input if user's role not in `can_post`
-
-### Item 7: Client Intake Portal (HIGH — 3-4 hrs)
-**New files needed:**
-- `src/app/client-intake/[token]/page.tsx` — Public intake form
-- `prisma/add-client-intake-tokens.sql` — Token table
-- `src/lib/supabase/db-client-intake.ts` — DB functions
-
-**Design decisions made:**
-- Shareable link: `/overwatch/client-intake/[token]`
-- No account needed for client
-- Company branded (logo + colors from company settings)
-- Client can revisit to iterate/update
-- Admin gets Briefing notification on submission
-- Token expires when operation starts or manually revoked
-- Embeddable widget deferred to Phase 2
+git push https://EvenfallAdvantage@github.com/EvenfallAdvantage/evenfalladvantage.github.io.git main
+```
 
 ---
 
-## Remaining SOC 2 Gaps (3 items)
+## Remaining SOC 2 Gaps (3 items — unchanged)
 
 | # | Control | What's Needed |
 |---|---------|--------------|
@@ -158,58 +92,102 @@ These 7 items were just discussed but implementation was interrupted:
 
 ---
 
-## SQL Migrations Pending
+## SQL Migrations Run This Session
 
-Check if these have been run in OverwatchDB:
 ```sql
--- Form submissions changelog (may already be done)
-ALTER TABLE form_submissions ADD COLUMN IF NOT EXISTS change_log JSONB DEFAULT '[]';
-ALTER TABLE form_submissions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+-- Channel permissions column (run by user)
+ALTER TABLE chat_channels ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT NULL;
 
--- Error logs RLS fix (may already be done)
--- Check: SELECT policyname FROM pg_policies WHERE tablename = 'error_logs';
+-- Client intake tokens table (run by user)
+CREATE TABLE IF NOT EXISTS client_intake_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+  token TEXT NOT NULL UNIQUE,
+  client_name TEXT,
+  client_email TEXT,
+  data JSONB DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','submitted','expired','revoked')),
+  created_by UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ
+);
+
+ALTER TABLE client_intake_tokens ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read by token" ON client_intake_tokens FOR SELECT USING (true);
+CREATE POLICY "Public update by token" ON client_intake_tokens FOR UPDATE USING (status IN ('active','submitted'));
+CREATE POLICY "Authenticated insert" ON client_intake_tokens FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated delete" ON client_intake_tokens FOR DELETE USING (auth.uid() IS NOT NULL);
 ```
 
 ---
 
-## GitHub Secrets Required
+## Dependabot PRs (New)
 
-| Secret | Status |
-|--------|--------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Set |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Set |
-| `SUPABASE_DB_URL` | Set (for daily backup workflow) |
+Dependabot created 14 PRs during this session. They should be reviewed and merged:
+- GitHub Actions version bumps (checkout, configure-pages, deploy-pages, setup-node, codeql-action)
+- npm dependency updates (eslint, framer-motion, lucide-react, react-hook-form, recharts, stripe-js, supabase/ssr, tailwindcss/postcss, types/node, types/qrcode.react)
 
 ---
 
-## Key Architecture Notes
+## Key Architecture Notes (Updated)
 
+- **CRITICAL: Working directory is `audit-clone/`** — The root `evenfalladvantage.github.io/` has a stale `overwatch-src/` from before the audit. Always `cd audit-clone` first.
 - **Static export:** `output: "export"` in next.config.ts — no API routes in production
 - **Two Supabase instances:** Legacy (`vaagvairvwmgyzsmymhs`) + Overwatch (`nneueuvyeohwnspbwfub`)
 - **Auth pattern:** `users.id` (internal UUID) ≠ `auth.uid()` (Supabase Auth UUID). Bridge via `users.supabase_id = auth.uid()::text`
 - **RLS helper:** `is_company_member(company_id)` — use this for all new RLS policies
 - **Brand theming:** `BrandThemeProvider` injects CSS vars from company's `brand_color` + `accent_color`
 - **Page headers:** Use `usePageHeader` store — `setHeader(title, subtitle, icon, actions)` in useEffect
-- **Subtab convention:** Icons only on active tab, `overflow-x-auto` on all tab bars
+- **Subtab convention:** Icons only on active tab, `overflow-x-auto` on all tab bars, `text-primary` on active icon
 - **Edge Functions:** All require JWT except webhooks; CORS restricted to evenfalladvantage.com
 - **Storyboard:** `created_by` must be internal user ID (not auth UUID); use `storyboardIdRef` for debounced saves
 - **Cross-company isolation:** ALL timesheet/analytics queries must filter by `company_id`
+- **Service worker:** Currently at v10 — bump on each deploy if chunk 404s appear
+- **CSP:** Meta tag in `layout.tsx:72` — includes Google speech endpoints, Supabase, Cloudflare, many open data APIs
+- **Dictation:** Stores transcripts as form_submissions under a "Dictation (System)" auto-created form per company
+- **Client intake:** Token-based public form, no auth needed. Uses query param `?token=xxx` (not dynamic route, since static export)
+- **Git push workaround:** If `git push origin main` hangs, use: `git push https://EvenfallAdvantage@github.com/EvenfallAdvantage/evenfalladvantage.github.io.git main`
 
 ---
 
-## Files to Know
+## Files Changed This Session
+
+| File | What Changed |
+|------|-------------|
+| `src/app/chat/page.tsx` | Channel role permissions (gear icon, permission editor panel, can_post check on input), `loadChannels` prop to ExternalTab, `Settings2` import |
+| `src/app/dictate/page.tsx` | **NEW** — Full dictation page with recording, metadata, saved transcripts |
+| `src/app/client-intake/page.tsx` | **NEW** — Public tokenized client intake form |
+| `src/app/incidents/page.tsx` | Tab reorder (Dictate → Field Reports → Incidents), Mic import, removed icon from inactive Dictate tab |
+| `src/app/forms/page.tsx` | Tab reorder, Mic import, removed icon from inactive Dictate tab, header icon → ClipboardList |
+| `src/app/profile/page.tsx` | Removed join code card, removed joinCode/copied/copyCode state, removed Copy/KeyRound/getCompanyDetails imports |
+| `src/app/admin/staff/page.tsx` | Removed join code banner + topbar button, removed copied state + copyCode function |
+| `src/app/academy/page.tsx` | Fixed subtab icons: conditional render with text-primary |
+| `src/app/layout.tsx` | Added `https://*.google.com https://*.googleapis.com` to CSP connect-src |
+| `src/components/dictation-recorder.tsx` | **NEW** — Web Speech API recorder with explicit mic permission, error messages |
+| `src/lib/supabase/db-content.ts` | Extended `createChatChannel` + `updateChatChannel` with `permissions` and `description` params |
+| `src/lib/supabase/db-client-intake.ts` | **NEW** — CRUD for client_intake_tokens table |
+| `src/lib/supabase/db.ts` | Added barrel export for db-client-intake |
+| `public/sw.js` | Cache version v9 → v10 |
+
+---
+
+## Files to Know (Updated)
 
 | File | Purpose |
 |------|---------|
 | `src/stores/page-header-store.ts` | Zustand store for topbar title/subtitle/icon/actions |
 | `src/stores/auth-store.ts` | Auth + active company state |
 | `src/components/brand-theme-provider.tsx` | CSS variable injection from company colors |
+| `src/components/dictation-recorder.tsx` | Web Speech API recorder with mic permission + error handling |
 | `src/components/storyboard-editor.tsx` | Pin-based map annotation (~1100 lines) |
 | `src/components/address-autocomplete.tsx` | Nominatim geocoding typeahead |
 | `src/components/mobile-page-action.tsx` | Renders page actions on mobile |
 | `src/components/error-boundary.tsx` | React error boundary + error_logs |
 | `src/lib/error-tracker.ts` | Global error handler + Supabase logging |
 | `src/lib/error-alerter.ts` | Auto-posts Briefing alert for new errors |
+| `src/lib/supabase/db-client-intake.ts` | Client intake token CRUD |
 | `src/components/layout/topbar.tsx` | Top header bar with page title + actions |
 | `src/components/layout/dashboard-shell.tsx` | Main layout wrapper with skip-nav |
 | `src/components/ops/intake-panel.tsx` | Editable intake with cascade logic |
@@ -220,4 +198,24 @@ ALTER TABLE form_submissions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEF
 
 ---
 
-**End of handoff. Next session should start with Phase 1 quick wins (items 1, 3, 4) then proceed to Phase 2-4.**
+## Pre-existing TypeScript Error (Not from this session)
+
+```
+src/__tests__/error-tracker.test.ts:55:19 - error TS2339: Property 'slice' does not exist on type 'never'.
+```
+This exists in the test file and is not a blocker for build (tests pass via Vitest, `tsc` just flags the type).
+
+---
+
+## Recommended Next Steps
+
+1. **Fix dictation for ad-blocker users** — Implement Whisper.js offline fallback as originally planned
+2. **Verify external group edit works** — The save function was rewritten; needs manual testing
+3. **Merge Dependabot PRs** — 14 pending version bumps
+4. **Admin UI for client intake tokens** — Need a way for admins to create/manage/revoke intake tokens from the admin panel (currently only DB functions exist, no UI)
+5. **Continue SOC 2 gaps** — Follow up on vendor SOC 2 report requests
+6. **Consider removing stale root repo overwatch-src** — Or add a README warning. It's caused confusion twice now.
+
+---
+
+**End of handoff. Always work in `audit-clone/` directory.**
