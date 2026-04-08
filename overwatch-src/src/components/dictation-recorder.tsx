@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Mic, MicOff, Square } from "lucide-react";
+import { Mic, MicOff, Square, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /* ── Web Speech API type stubs ── */
@@ -15,6 +15,13 @@ function getSpeechRecognitionCtor(): (new () => SpeechRecognitionInstance) | nul
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  "not-allowed": "Microphone access was denied. Please allow microphone permission in your browser settings and try again.",
+  "network": "Could not connect to the speech recognition service. Check your internet connection, disable any ad blockers for this site, and try again.",
+  "audio-capture": "No microphone was found. Please connect a microphone and try again.",
+  "service-not-allowed": "Speech recognition service is not allowed. This may be due to browser settings or extensions blocking the service.",
+};
+
 interface DictationRecorderProps {
   onTranscript: (text: string, isFinal: boolean) => void;
   disabled?: boolean;
@@ -25,12 +32,22 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
   const [isSupported, setIsSupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const [micPermission, setMicPermission] = useState<"unknown" | "granted" | "denied" | "prompt">("unknown");
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingRef = useRef(false);
 
   useEffect(() => {
     if (!getSpeechRecognitionCtor()) setIsSupported(false);
+
+    // Check microphone permission state
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "microphone" as PermissionName }).then(result => {
+        setMicPermission(result.state as "granted" | "denied" | "prompt");
+        result.onchange = () => setMicPermission(result.state as "granted" | "denied" | "prompt");
+      }).catch(() => { /* permissions API not available for microphone in some browsers */ });
+    }
+
     return () => {
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch {}
@@ -39,11 +56,23 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     };
   }, []);
 
-  const startRecording = useCallback(() => {
+  const startRecording = useCallback(async () => {
     setError(null);
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) {
       setError("Speech recognition is not supported in this browser. Use Chrome, Edge, or Safari.");
+      return;
+    }
+
+    // Request microphone permission explicitly first
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Stop the stream immediately — we just needed permission
+      stream.getTracks().forEach(t => t.stop());
+      setMicPermission("granted");
+    } catch (err) {
+      setMicPermission("denied");
+      setError("Microphone access was denied. Please allow microphone permission in your browser settings and try again.");
       return;
     }
 
@@ -77,7 +106,8 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     recognition.onerror = (event: any) => {
       if (event.error === "no-speech") return;
       if (event.error === "aborted") return;
-      setError(`Recognition error: ${event.error}`);
+      const msg = ERROR_MESSAGES[event.error] ?? `Speech recognition error: ${event.error}. Try disabling browser extensions or using a different browser.`;
+      setError(msg);
       setIsRecording(false);
       recordingRef.current = false;
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -91,10 +121,14 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
 
     recognitionRef.current = recognition;
     recordingRef.current = true;
-    recognition.start();
-    setIsRecording(true);
-    setElapsed(0);
-    timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
+    try {
+      recognition.start();
+      setIsRecording(true);
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
+    } catch (err) {
+      setError("Failed to start speech recognition. Please try again.");
+    }
   }, [onTranscript]);
 
   const stopRecording = useCallback(() => {
@@ -145,7 +179,18 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
           </div>
         )}
       </div>
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {micPermission === "denied" && !error && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-600 flex items-start gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <span>Microphone permission is blocked. Click the lock icon in your browser address bar to allow microphone access.</span>
+        </div>
+      )}
+      {error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-500 flex items-start gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <span>{error}</span>
+        </div>
+      )}
     </div>
   );
 }
