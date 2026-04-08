@@ -709,15 +709,12 @@ function ExternalTab({ isAdmin, external, showAddExt, setShowAddExt, extName, se
     if (!extEditForm.name.trim() || !extEditForm.url.trim()) return;
     setSavingExtEdit(true);
     try {
-      const supabase = createClient();
-      await supabase.from("chat_channels").update({
-        name: extEditForm.name.trim(),
-        description: JSON.stringify({ external: true, platform: extEditForm.platform, url: extEditForm.url.trim() }),
-      }).eq("id", channelId);
+      const desc = JSON.stringify({ external: true, platform: extEditForm.platform, url: extEditForm.url.trim() });
+      await updateChatChannel(channelId, { name: extEditForm.name.trim(), description: desc });
       setEditingExternal(null);
       await loadChannels();
       toast.success("External group updated");
-    } catch (err) { console.error(err); toast.error("Failed to update group"); }
+    } catch (err) { console.error("External group update failed:", err); toast.error("Failed to update group"); }
     finally { setSavingExtEdit(false); }
   }
 

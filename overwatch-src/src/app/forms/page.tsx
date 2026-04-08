@@ -53,7 +53,7 @@ export default function FormsPage() {
     setHeader(
       "REPORTS",
       "Incident reports, field reports, and documentation",
-      <AlertTriangle className="h-5 w-5" />,
+      <ClipboardList className="h-5 w-5" />,
       isAdmin ? (
         <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> New Form
@@ -207,7 +207,6 @@ export default function FormsPage() {
               href="/dictate"
               className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
             >
-              <Mic className="h-3.5 w-3.5" />
               Dictate
             </Link>
             <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
