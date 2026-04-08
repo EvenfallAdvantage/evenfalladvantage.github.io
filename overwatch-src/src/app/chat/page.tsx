@@ -45,7 +45,7 @@ function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d`;
 }
 
-type ExtMeta = { external: true; platform: "whatsapp" | "signal"; url: string };
+type ExtMeta = { external: true; platform: string; url: string };
 
 function parseExt(desc: string | null): ExtMeta | null {
   if (!desc) return null;
@@ -56,7 +56,13 @@ function parseExt(desc: string | null): ExtMeta | null {
 const PLAT: Record<string, { color: string; bg: string; label: string; logo: string }> = {
   whatsapp: { color: "text-green-500", bg: "bg-green-500/10", label: "WhatsApp", logo: "/overwatch/images/integrations/whatsapp.svg" },
   signal: { color: "text-blue-400", bg: "bg-blue-400/10", label: "Signal", logo: "/overwatch/images/integrations/signal.svg" },
+  discord: { color: "text-indigo-400", bg: "bg-indigo-400/10", label: "Discord", logo: "/overwatch/images/integrations/discord.svg" },
+  telegram: { color: "text-sky-400", bg: "bg-sky-400/10", label: "Telegram", logo: "/overwatch/images/integrations/telegram.svg" },
+  slack: { color: "text-purple-500", bg: "bg-purple-500/10", label: "Slack", logo: "/overwatch/images/integrations/slack.svg" },
+  other: { color: "text-muted-foreground", bg: "bg-muted/50", label: "Other", logo: "" },
 };
+
+const EXT_PLATFORM_OPTIONS = ["whatsapp", "signal", "discord", "telegram", "slack", "other"] as const;
 
 export default function ChatPage() {
   const { user, activeCompanyId } = useAuthStore();
@@ -605,7 +611,27 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ExternalTab({ isAdmin, external, showAddExt, setShowAddExt, extName, setExtName, extPlat, setExtPlat, extUrl, setExtUrl, creatingExt, handleAddExternal, handleDeleteCh }: any) {
+function ExternalTab({ isAdmin, external, showAddExt, setShowAddExt, extName, setExtName, extPlat, setExtPlat, extUrl, setExtUrl, creatingExt, handleAddExternal, handleDeleteCh, loadChannels }: any) {
+  const [editingExternal, setEditingExternal] = useState<string | null>(null);
+  const [extEditForm, setExtEditForm] = useState({ name: "", url: "", platform: "" });
+  const [savingExtEdit, setSavingExtEdit] = useState(false);
+
+  async function handleSaveExtEdit(channelId: string) {
+    if (!extEditForm.name.trim() || !extEditForm.url.trim()) return;
+    setSavingExtEdit(true);
+    try {
+      const supabase = createClient();
+      await supabase.from("chat_channels").update({
+        name: extEditForm.name.trim(),
+        description: JSON.stringify({ external: true, platform: extEditForm.platform, url: extEditForm.url.trim() }),
+      }).eq("id", channelId);
+      setEditingExternal(null);
+      await loadChannels();
+      toast.success("External group updated");
+    } catch (err) { console.error(err); toast.error("Failed to update group"); }
+    finally { setSavingExtEdit(false); }
+  }
+
   return (
     <div className="space-y-4">
       {isAdmin && !showAddExt && (
@@ -651,30 +677,56 @@ function ExternalTab({ isAdmin, external, showAddExt, setShowAddExt, extName, se
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {external.map((g: Channel & { meta: ExtMeta }) => {
             const p = PLAT[g.meta.platform] ?? PLAT.whatsapp;
+            const isEditing = editingExternal === g.id;
             return (
               <div key={g.id} className="rounded-xl border border-border/50 bg-card p-4 flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${p.bg} overflow-hidden`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.logo} alt={p.label} className="h-6 w-6 object-contain" />
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <Input placeholder="Group name" value={extEditForm.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtEditForm(f => ({ ...f, name: e.target.value }))} className="h-8 text-sm" />
+                    <Input placeholder="Group URL" value={extEditForm.url} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setExtEditForm(f => ({ ...f, url: e.target.value }))} className="h-8 text-sm" />
+                    <select value={extEditForm.platform} onChange={(e) => setExtEditForm(f => ({ ...f, platform: e.target.value }))}
+                      className="w-full h-8 rounded-md border border-border/40 bg-background px-2 text-xs">
+                      {EXT_PLATFORM_OPTIONS.map(opt => <option key={opt} value={opt}>{PLAT[opt]?.label ?? opt}</option>)}
+                    </select>
+                    <div className="flex gap-2">
+                      <Button size="sm" className="h-7 gap-1 text-xs" onClick={() => handleSaveExtEdit(g.id)} disabled={savingExtEdit || !extEditForm.name.trim() || !extEditForm.url.trim()}>
+                        {savingExtEdit ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingExternal(null)}>Cancel</Button>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{g.name}</p>
-                    <p className={`text-xs ${p.color}`}>{p.label} Group</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <a href={g.meta.url} target="_blank" rel="noopener noreferrer"
-                    className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg ${p.bg} ${p.color} px-3 py-2 text-xs font-medium hover:opacity-80 transition-opacity`}>
-                    <ExternalLink className="h-3.5 w-3.5" /> Open in {p.label}
-                  </a>
-                  {isAdmin && (
-                    <button onClick={() => handleDeleteCh(g.id)}
-                      className="rounded-lg border border-border/40 px-2.5 text-muted-foreground/40 hover:text-red-500 hover:border-red-500/30 transition-colors">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${p.bg} overflow-hidden`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={p.logo} alt={p.label} className="h-6 w-6 object-contain" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">{g.name}</p>
+                        <p className={`text-xs ${p.color}`}>{p.label} Group</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <a href={g.meta.url} target="_blank" rel="noopener noreferrer"
+                        className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg ${p.bg} ${p.color} px-3 py-2 text-xs font-medium hover:opacity-80 transition-opacity`}>
+                        <ExternalLink className="h-3.5 w-3.5" /> Open in {p.label}
+                      </a>
+                      {isAdmin && (
+                        <button onClick={() => { setEditingExternal(g.id); setExtEditForm({ name: g.name, url: g.meta.url, platform: g.meta.platform }); }}
+                          className="rounded-lg border border-border/40 px-2.5 text-muted-foreground/40 hover:text-primary hover:border-primary/30 transition-colors">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button onClick={() => handleDeleteCh(g.id)}
+                          className="rounded-lg border border-border/40 px-2.5 text-muted-foreground/40 hover:text-red-500 hover:border-red-500/30 transition-colors">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}
