@@ -61,7 +61,6 @@ export default function AdminStaffPage() {
   const [companyName, setCompanyName] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<Tab>("roster");
   const [timesheets, setTimesheets] = useState<Sheet[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveReq[]>([]);
@@ -181,15 +180,9 @@ export default function AdminStaffPage() {
       "PERSONNEL",
       "Manage team members, timesheets, leave, and submissions",
       <Users className="h-5 w-5" />,
-      joinCode ? (
-        <Button size="sm" variant="outline" className="gap-1.5 font-mono" onClick={copyCode}>
-          {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-          {joinCode}
-        </Button>
-      ) : undefined
     );
     return () => clearHeader();
-  }, [setHeader, clearHeader, joinCode, copied]);
+  }, [setHeader, clearHeader]);
 
   const myRole = user?.companies.find((c) => c.companyId === activeCompanyId)?.role ?? "staff";
   const canManageRoles = myRole === "owner" || myRole === "admin";
@@ -221,12 +214,6 @@ export default function AdminStaffPage() {
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
-
-  function copyCode() {
-    navigator.clipboard.writeText(joinCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
 
   async function handleRoleChange(membershipId: string, newRole: string) {
     const member = members.find((m: Member) => m.id === membershipId);
@@ -533,12 +520,6 @@ export default function AdminStaffPage() {
   return (
     <>
       <div className="space-y-4">
-        {joinCode && (
-          <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-2 text-xs text-muted-foreground">
-            Share the code <span className="font-mono font-bold text-foreground">{joinCode}</span> with team members so they can join your organization.
-          </div>
-        )}
-
         {error && (
           <div className="rounded-lg bg-red-500/10 border border-red-500/30 px-4 py-2 text-xs text-red-500 flex items-center justify-between">
             <span>{error}</span>

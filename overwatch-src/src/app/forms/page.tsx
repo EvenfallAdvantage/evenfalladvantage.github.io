@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { ClipboardList, Plus, Loader2, Send, ChevronLeft, ChevronDown, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle, Flag, Pencil, Check } from "lucide-react";
+import { ClipboardList, Plus, Loader2, Send, ChevronLeft, ChevronDown, CheckCircle2, Trash2, PencilLine, Save, X, AlertTriangle, Flag, Pencil, Check, Mic } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -204,15 +204,22 @@ export default function FormsPage() {
         {!selected && (
           <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
             <Link
-              href="/incidents"
+              href="/dictate"
               className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
             >
-              Incidents
+              <Mic className="h-3.5 w-3.5" />
+              Dictate
             </Link>
             <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
               <ClipboardList className="h-3.5 w-3.5 text-primary" />
               Field Reports
             </div>
+            <Link
+              href="/incidents"
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
+            >
+              Incidents
+            </Link>
           </div>
         )}
 

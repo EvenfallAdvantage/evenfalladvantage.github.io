@@ -5,7 +5,7 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Radio, Radar, Plus, Send, Loader2, Trash2, Search, ExternalLink,
   Reply, X, Hash, MessageSquare,
-  Smile, Paperclip, Upload, Pencil,
+  Smile, Paperclip, Upload, Pencil, Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,19 @@ type Message = any;
 type Tab = "channels" | "external";
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "✅"];
+
+const ALL_ROLES = ["owner", "admin", "instructor", "manager", "lead", "breaker", "staff"] as const;
+type ChannelPermissions = { can_post: string[]; can_react: string[]; can_pin: string[] };
+const DEFAULT_PERMS: ChannelPermissions = {
+  can_post: ["owner", "admin", "instructor", "manager", "lead", "breaker", "staff"],
+  can_react: ["owner", "admin", "instructor", "manager", "lead", "breaker", "staff"],
+  can_pin: ["owner", "admin", "manager"],
+};
+
+function getChannelPerms(channel: Channel): ChannelPermissions {
+  if (channel?.permissions && typeof channel.permissions === "object") return { ...DEFAULT_PERMS, ...channel.permissions };
+  return DEFAULT_PERMS;
+}
 
 /* ── helpers ────────────────────────────────────── */
 
@@ -103,6 +116,9 @@ export default function ChatPage() {
   const [extPlat, setExtPlat] = useState<"whatsapp" | "signal">("whatsapp");
   const [extUrl, setExtUrl] = useState("");
   const [creatingExt, setCreatingExt] = useState(false);
+  const [showPermEditor, setShowPermEditor] = useState(false);
+  const [permForm, setPermForm] = useState<ChannelPermissions>(DEFAULT_PERMS);
+  const [savingPerms, setSavingPerms] = useState(false);
   const [unread, setUnread] = useState<Record<string, number>>({});
   const [emojiPicker, setEmojiPicker] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
@@ -240,6 +256,36 @@ export default function ChatPage() {
     } catch (err) { console.error(err); } finally { setCreatingExt(false); }
   }
 
+  function openPermEditor() {
+    if (!selected) return;
+    setPermForm(getChannelPerms(selected));
+    setShowPermEditor(true);
+  }
+
+  function togglePermRole(action: keyof ChannelPermissions, role: string) {
+    setPermForm(prev => ({
+      ...prev,
+      [action]: prev[action].includes(role)
+        ? prev[action].filter(r => r !== role)
+        : [...prev[action], role],
+    }));
+  }
+
+  async function handleSavePerms() {
+    if (!selected) return;
+    setSavingPerms(true);
+    try {
+      await updateChatChannel(selected.id, { permissions: permForm });
+      setShowPermEditor(false);
+      await loadChannels();
+      if (activeCompanyId) {
+        const updated = (await getChatChannels(activeCompanyId)).find((c: Channel) => c.id === selected.id);
+        if (updated) setSelected(updated);
+      }
+      toast.success("Channel permissions updated");
+    } catch (err) { console.error(err); toast.error("Failed to save permissions"); }
+    finally { setSavingPerms(false); }
+  }
 
   const filteredMsgs = showSearch && searchQ
     ? messages.filter((m: Message) => m.content?.toLowerCase().includes(searchQ.toLowerCase()))
@@ -285,6 +331,11 @@ export default function ChatPage() {
         editAvatarUrl={editAvatarUrl} setEditAvatarUrl={setEditAvatarUrl}
         editAvatarFile={editAvatarFile} setEditAvatarFile={setEditAvatarFile}
         savingAvatar={savingAvatar} handleSaveAvatar={handleSaveAvatar}
+        userRole={(activeCompany?.role ?? "staff")}
+        showPermEditor={showPermEditor} setShowPermEditor={setShowPermEditor}
+        permForm={permForm} togglePermRole={togglePermRole}
+        savingPerms={savingPerms} handleSavePerms={handleSavePerms}
+        openPermEditor={openPermEditor}
       />)}
 
       {/* ────────── EXTERNAL GROUPS TAB ────────── */}
@@ -310,6 +361,7 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
   unread, emojiPicker, setEmojiPicker, handleReaction, typingUsers, broadcastTyping,
   editingAvatar, setEditingAvatar, editAvatarUrl, setEditAvatarUrl, editAvatarFile, setEditAvatarFile,
   savingAvatar, handleSaveAvatar,
+  userRole, showPermEditor, setShowPermEditor, permForm, togglePermRole, savingPerms, handleSavePerms, openPermEditor,
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }: any) {
 
@@ -449,6 +501,13 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                   )}
                 </div>
                 <h2 className="font-semibold text-sm flex-1 min-w-0">{selected.name}</h2>
+                {isAdmin && (
+                  <button onClick={openPermEditor}
+                    className={`rounded p-1.5 transition-colors ${showPermEditor ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}`}
+                    title="Channel permissions" aria-label="Channel permissions">
+                    <Settings2 className="h-4 w-4" />
+                  </button>
+                )}
                 <button onClick={() => { setShowSearch(!showSearch); setSearchQ(""); }}
                   className={`rounded p-1.5 transition-colors ${showSearch ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-accent"}`}>
                   <Search className="h-4 w-4" />
@@ -472,6 +531,32 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                     {savingAvatar ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
                   </Button>
                   <button onClick={() => { setEditingAvatar(null); setEditAvatarUrl(""); setEditAvatarFile(null); }} className="text-muted-foreground hover:text-foreground" aria-label="Close"><X className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
+              {showPermEditor && (
+                <div className="border-b border-border/50 px-4 py-3 bg-muted/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold">Channel Permissions</p>
+                    <button onClick={() => setShowPermEditor(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                  </div>
+                  {(["can_post", "can_react", "can_pin"] as const).map(action => (
+                    <div key={action}>
+                      <p className="text-[10px] font-medium text-muted-foreground mb-1 capitalize">{action.replace("can_", "Can ")}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {ALL_ROLES.map(role => (
+                          <button key={role} onClick={() => togglePermRole(action, role)}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium border transition-colors capitalize ${
+                              permForm[action].includes(role) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:text-foreground"
+                            }`}>
+                            {role}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <Button size="sm" className="h-6 text-[10px] px-3 gap-1" onClick={handleSavePerms} disabled={savingPerms}>
+                    {savingPerms ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save Permissions"}
+                  </Button>
                 </div>
               )}
               {showSearch && (
@@ -586,15 +671,19 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                 </div>
               )}
               <div className="border-t border-border/50 p-3">
-                <div className="flex gap-2">
-                  <Input placeholder={replyTo ? "Type your reply..." : "Type a message..."} value={msgText}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setMsgText(e.target.value); broadcastTyping(); }}
-                    onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                    className="flex-1" />
-                  <Button size="sm" onClick={handleSend} disabled={!msgText.trim() || sending} aria-label="Send message">
-                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  </Button>
-                </div>
+                {getChannelPerms(selected).can_post.includes(userRole) ? (
+                  <div className="flex gap-2">
+                    <Input placeholder={replyTo ? "Type your reply..." : "Type a message..."} value={msgText}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setMsgText(e.target.value); broadcastTyping(); }}
+                      onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                      className="flex-1" />
+                    <Button size="sm" onClick={handleSend} disabled={!msgText.trim() || sending} aria-label="Send message">
+                      {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-center text-xs text-muted-foreground py-1">You don&apos;t have permission to post in this channel.</p>
+                )}
               </div>
             </div>
           ) : (

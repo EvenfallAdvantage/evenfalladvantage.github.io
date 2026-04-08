@@ -13,6 +13,7 @@ import {
   MapPin,
   User,
   MessageSquare,
+  Mic,
   Send,
   Shield,
   Flame,
@@ -307,16 +308,23 @@ export default function IncidentsPage() {
       <div className="space-y-4">
         {/* Report type tabs */}
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
-          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
-            <AlertTriangle className="h-3.5 w-3.5 text-primary" />
-            Incidents
-          </div>
+          <Link
+            href="/dictate"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
+          >
+            <Mic className="h-3.5 w-3.5" />
+            Dictate
+          </Link>
           <Link
             href="/forms"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors"
           >
             Field Reports
           </Link>
+          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
+            <AlertTriangle className="h-3.5 w-3.5 text-primary" />
+            Incidents
+          </div>
         </div>
 
         {/* Create Form */}

@@ -356,6 +356,7 @@ export async function createChatChannel(params: {
   name: string;
   description?: string;
   avatarUrl?: string;
+  permissions?: Record<string, string[]>;
 }) {
   const supabase = createClient();
   const payload: Record<string, unknown> = {
@@ -366,6 +367,7 @@ export async function createChatChannel(params: {
     created_at: new Date().toISOString(),
   };
   if (params.avatarUrl) payload.avatar_url = params.avatarUrl;
+  if (params.permissions) payload.permissions = params.permissions;
   const { data, error } = await supabase
     .from("chat_channels")
     .insert(payload)
@@ -375,7 +377,7 @@ export async function createChatChannel(params: {
   return data;
 }
 
-export async function updateChatChannel(channelId: string, updates: { name?: string; avatar_url?: string | null }) {
+export async function updateChatChannel(channelId: string, updates: { name?: string; avatar_url?: string | null; description?: string | null; permissions?: Record<string, string[]> | null }) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("chat_channels")
