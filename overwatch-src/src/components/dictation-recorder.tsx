@@ -17,7 +17,7 @@ function getSpeechRecognitionCtor(): (new () => SpeechRecognitionInstance) | nul
 
 const ERROR_MESSAGES: Record<string, string> = {
   "not-allowed": "Microphone access was denied. Please allow microphone permission in your browser settings and try again.",
-  "network": "Could not connect to the speech recognition service. This is usually caused by an ad blocker or privacy extension. Try disabling extensions for this site, or type your transcript directly in the text box below.",
+  "network": "Could not connect to Google's speech recognition service. Chrome sends audio to Google servers for transcription. If you use a Pi-hole, DNS-level ad blocker, or VPN, it may be blocking www.google.com or speech.google.com. Whitelist those domains, or type your transcript directly in the text box below.",
   "audio-capture": "No microphone was found. Please connect a microphone and try again.",
   "service-not-allowed": "Speech recognition service is not allowed. This may be due to browser settings or extensions blocking the service.",
 };
@@ -66,11 +66,26 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       return;
     }
 
-    // Don't pre-request mic via getUserMedia — Chrome's SpeechRecognition
-    // manages its own audio pipeline and will prompt for permission itself.
-    // Calling getUserMedia + immediately stopping the stream can cause a
-    // race condition where the OS releases the mic before SpeechRecognition
-    // can acquire it, resulting in a spurious "network" error.
+    // Pre-check: can we reach Google's speech service?
+    // Chrome's Web Speech API streams audio to Google servers for processing.
+    // If DNS-level blocking (Pi-hole, corporate firewall, VPN) prevents
+    // reaching www.google.com, recognition.start() will silently fail with
+    // a "network" error and nothing appears in DevTools.
+    try {
+      const probe = await fetch("https://www.google.com/generate_204", {
+        method: "HEAD",
+        mode: "no-cors",
+        cache: "no-store",
+        signal: AbortSignal.timeout(5000),
+      });
+      // mode: "no-cors" means we get an opaque response — that's fine,
+      // we only care that the request didn't throw (i.e. DNS resolved + TCP connected)
+      void probe;
+    } catch {
+      setError("Cannot reach Google's speech servers (www.google.com). Chrome requires an internet connection to Google for speech-to-text. If you use a Pi-hole or network-level ad blocker, whitelist www.google.com and speech.google.com. You can still type your transcript directly in the text box below.");
+      setErrorType("network");
+      return;
+    }
 
     const recognition = new Ctor();
     recognition.continuous = true;
@@ -193,7 +208,10 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
         <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-500">
           <div className="flex items-start gap-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <div>
+              <span>{error}</span>
+              {errorType && <span className="block mt-1 text-[10px] text-red-400/40 font-mono">error code: {errorType}</span>}
+            </div>
           </div>
           {(errorType === "network" || errorType === "service-not-allowed") && (
             <div className="mt-2 flex items-center gap-2 pl-5">
