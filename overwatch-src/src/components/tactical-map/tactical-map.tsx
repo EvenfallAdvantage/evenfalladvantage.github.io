@@ -58,6 +58,7 @@ interface TacticalMapProps {
 const CONUS_CENTER = { lat: 39.8283, lng: -98.5795 };
 
 export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, onSelectOperation }: TacticalMapProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
@@ -1203,9 +1204,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     });
   }, []);
 
-  // Fullscreen toggle
+  // Fullscreen toggle — fullscreens the WRAPPER (which contains all overlays)
   const handleFullscreen = useCallback(() => {
-    const el = containerRef.current;
+    const el = wrapperRef.current;
     if (!el) return;
     if (!document.fullscreenElement) {
       el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
@@ -1237,7 +1238,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   }, [operations]);
 
   return (
-    <div className="relative w-full rounded-xl overflow-hidden border border-border/50" style={{ height: "calc(100vh - 180px)", minHeight: 500 }}>
+    <div ref={wrapperRef} className="relative w-full rounded-xl overflow-hidden border border-border/50 bg-[#0b1422]" style={{ height: isFullscreen ? "100vh" : "calc(100vh - 180px)", minHeight: 500 }}>
       {loading && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0b1422]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
