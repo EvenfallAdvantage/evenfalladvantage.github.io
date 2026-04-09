@@ -390,6 +390,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
       if (buildings) {
         buildings.style = undefined;
       }
+      viewer.scene.globe.enableLighting = false;
       return;
     }
 
@@ -411,13 +412,19 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
     darkLayer.alpha = 1.0;
     entityGroupsRef.current.nvDarkLayer = darkLayer;
 
-    // Style 3D buildings with green outlines
+    // Style 3D buildings: dark fill with neon green edges
+    // Using a very low-alpha bright green — the building faces render
+    // semi-transparent while edges (where multiple faces overlap at
+    // geometry seams) accumulate to a brighter neon green outline effect.
     if (buildings) {
       buildings.style = new Cesium.Cesium3DTileStyle({
-        color: "color('rgba(0, 40, 0, 0.6)')",
+        color: "color('rgba(0, 255, 65, 0.15)')",
         show: true,
       });
     }
+
+    // Enable silhouette-like effect via scene lighting
+    viewer.scene.globe.enableLighting = true;
   }, [layers.nightVision, loading]);
 
   // ─── Weather Radar Auto-Refresh (every 5 min) ──────
