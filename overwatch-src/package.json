@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "copy-cesium": "cpx \"node_modules/cesium/Build/Cesium/Workers/**\" \"public/cesium/Workers\" && cpx \"node_modules/cesium/Build/Cesium/ThirdParty/**\" \"public/cesium/ThirdParty\" && cpx \"node_modules/cesium/Build/Cesium/Assets/**\" \"public/cesium/Assets\" && cpx \"node_modules/cesium/Build/Cesium/Widgets/**\" \"public/cesium/Widgets\"",
+    "copy-cesium": "node -e \"const fs=require('fs');const p=require('path');function cpR(s,d){fs.mkdirSync(d,{recursive:true});for(const e of fs.readdirSync(s,{withFileTypes:true})){const sp=p.join(s,e.name),dp=p.join(d,e.name);e.isDirectory()?cpR(sp,dp):fs.copyFileSync(sp,dp)}}const base='node_modules/cesium/Build/Cesium';['Workers','ThirdParty','Assets','Widgets'].forEach(d=>cpR(p.join(base,d),p.join('public/cesium',d)));console.log('Cesium assets copied to public/cesium/')\"",
     "dev": "npm run copy-cesium && next dev",
     "build": "npm run copy-cesium && next build",
     "start": "next start",
