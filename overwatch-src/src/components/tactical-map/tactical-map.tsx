@@ -66,6 +66,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   const [measurePoint1, setMeasurePoint1] = useState<{ lat: number; lng: number } | null>(null);
   const [rangeCenter, setRangeCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [aligningOp, setAligningOp] = useState<OperationPin | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<{ id: string; name: string; description: string; screenX: number; screenY: number } | null>(null);
+  const popupAnimFrame = useRef<number>(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const entityGroupsRef = useRef<Record<string, any>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,13 +90,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           geocoder: false,
           homeButton: false,
           sceneModePicker: false,
-          selectionIndicator: true,
+          selectionIndicator: false,
           timeline: false,
           animation: false,
           fullscreenButton: false,
           vrButton: false,
           navigationHelpButton: false,
-          infoBox: true,
+          infoBox: false,
           creditContainer: document.createElement("div"),
         });
 
@@ -600,9 +602,26 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
         });
         return;
       }
+
+      // No tool active — check for entity pick to show popup
+      if (activeTool === "none") {
+        const picked = viewer.scene.pick(click.position);
+        if (Cesium.defined(picked) && picked.id?.id && picked.id?.name) {
+          const entity = picked.id;
+          setSelectedEntity({
+            id: entity.id,
+            name: entity.name ?? "",
+            description: entity.description?.getValue?.() ?? entity.description ?? "",
+            screenX: click.position.x,
+            screenY: click.position.y,
+          });
+        } else {
+          setSelectedEntity(null);
+        }
+      }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-    // Double click — entity selection
+    // Double click — fly to entity / operation callback
     handler.setInputAction((click: { position: { x: number; y: number } }) => {
       const picked = viewer.scene.pick(click.position);
       if (Cesium.defined(picked) && picked.id?.id) {
@@ -615,6 +634,37 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
 
     return () => handler.destroy();
   }, [loading, onSelectOperation, activeTool, measurePoint1, aligningOp]);
+
+  // Track selected entity screen position as camera moves
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || !selectedEntity) {
+      cancelAnimationFrame(popupAnimFrame.current);
+      return;
+    }
+
+    const entity = viewer.entities.getById(selectedEntity.id);
+    if (!entity?.position) return;
+
+    function updatePosition() {
+      if (!viewer || !Cesium || !entity?.position) return;
+      try {
+        const pos = entity.position.getValue(viewer.clock.currentTime);
+        if (pos) {
+          const screenPos = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, pos);
+          if (screenPos) {
+            setSelectedEntity((prev) =>
+              prev ? { ...prev, screenX: screenPos.x, screenY: screenPos.y } : null
+            );
+          }
+        }
+      } catch {}
+      popupAnimFrame.current = requestAnimationFrame(updatePosition);
+    }
+    popupAnimFrame.current = requestAnimationFrame(updatePosition);
+    return () => cancelAnimationFrame(popupAnimFrame.current);
+  }, [selectedEntity?.id, loading]);
 
   // Clean up tool entities when tool changes
   useEffect(() => {
@@ -663,6 +713,37 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
         </div>
       )}
       <div ref={containerRef} className="w-full h-full" />
+
+      {/* Custom entity popup — floating near selected point */}
+      {selectedEntity && (
+        <div
+          className="absolute z-20 pointer-events-auto"
+          style={{
+            left: Math.min(Math.max(selectedEntity.screenX - 140, 8), (containerRef.current?.clientWidth ?? 800) - 296),
+            top: Math.max(selectedEntity.screenY - 10, 8),
+            transform: "translateY(-100%)",
+          }}
+        >
+          {/* Connector line */}
+          <div className="absolute left-1/2 bottom-0 w-px h-2 bg-[#dd8c33]" style={{ transform: "translateX(-50%) translateY(100%)" }} />
+          {/* Popup card */}
+          <div className="w-72 rounded-xl bg-[#0f1a2e]/95 backdrop-blur-md border border-[#dd8c33]/30 shadow-xl shadow-black/40 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-[#dd8c33]/10">
+              <span className="text-xs font-bold font-mono text-[#dd8c33] truncate">{selectedEntity.name}</span>
+              <button onClick={() => setSelectedEntity(null)} className="text-white/40 hover:text-white text-xs ml-2 shrink-0">✕</button>
+            </div>
+            {/* Body */}
+            {selectedEntity.description && (
+              <div
+                className="px-3 py-2 text-[11px] text-white/80 font-mono leading-relaxed max-h-40 overflow-y-auto [&_strong]:text-white [&_span]:text-[#dd8c33]"
+                dangerouslySetInnerHTML={{ __html: selectedEntity.description }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} />}
       {!error && !loading && (
         <MapToolsBar
