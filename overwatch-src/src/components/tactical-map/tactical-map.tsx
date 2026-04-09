@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-layers-panel";
+import { MapToolsBar, type ActiveTool, haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "./map-tools";
+import { SiteMapAligner } from "./site-map-aligner";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -59,6 +61,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerVisibility>(DEFAULT_LAYERS);
+  const [activeTool, setActiveTool] = useState<ActiveTool>("none");
+  const [measureResult, setMeasureResult] = useState<{ distanceM: number; distanceMi: number; bearing: number } | null>(null);
+  const [measurePoint1, setMeasurePoint1] = useState<{ lat: number; lng: number } | null>(null);
+  const [rangeCenter, setRangeCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [aligningOp, setAligningOp] = useState<OperationPin | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const entityGroupsRef = useRef<Record<string, any[]>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -374,13 +381,125 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
     }
   }, [layers.satellite, loading]);
 
-  // ─── Click handler ───────────────────────────────────
+  // ─── Click handler (tools + entity selection) ────────
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+    // Single click — tools
+    handler.setInputAction((click: { position: { x: number; y: number } }) => {
+      // Get globe position from click
+      const ray = viewer.camera.getPickRay(click.position);
+      const cartesian = ray ? viewer.scene.globe.pick(ray, viewer.scene) : null;
+      if (!cartesian) return;
+      const carto = Cesium.Cartographic.fromCartesian(cartesian);
+      const lat = Cesium.Math.toDegrees(carto.latitude);
+      const lng = Cesium.Math.toDegrees(carto.longitude);
+
+      // Site map aligner — feed globe points
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const alignerFn = (window as any).__siteMapAlignerAddPoint;
+      if (alignerFn && aligningOp) {
+        alignerFn(lat, lng);
+        return;
+      }
+
+      // Measurement tool
+      if (activeTool === "measure") {
+        if (!measurePoint1) {
+          setMeasurePoint1({ lat, lng });
+          setMeasureResult(null);
+          // Place point 1 marker
+          viewer.entities.removeById("measure-p1");
+          viewer.entities.removeById("measure-p2");
+          viewer.entities.removeById("measure-line");
+          viewer.entities.add({
+            id: "measure-p1",
+            position: Cesium.Cartesian3.fromDegrees(lng, lat),
+            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+          });
+        } else {
+          // Point 2 — compute distance
+          const dist = haversineDistance(measurePoint1.lat, measurePoint1.lng, lat, lng);
+          const bear = initialBearing(measurePoint1.lat, measurePoint1.lng, lat, lng);
+          setMeasureResult({ distanceM: dist, distanceMi: dist / 1609.34, bearing: bear });
+
+          viewer.entities.removeById("measure-p2");
+          viewer.entities.removeById("measure-line");
+          viewer.entities.add({
+            id: "measure-p2",
+            position: Cesium.Cartesian3.fromDegrees(lng, lat),
+            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+          });
+          viewer.entities.add({
+            id: "measure-line",
+            polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArray([measurePoint1.lng, measurePoint1.lat, lng, lat]),
+              width: 2,
+              material: Cesium.Color.LIME.withAlpha(0.8),
+              clampToGround: true,
+            },
+          });
+          setMeasurePoint1(null); // Reset for next measurement
+        }
+        return;
+      }
+
+      // Range rings tool
+      if (activeTool === "range-rings") {
+        // Clear old rings
+        RANGE_RING_RADII_M.forEach((_, i) => { viewer.entities.removeById(`ring-${i}`); viewer.entities.removeById(`ring-label-${i}`); });
+        viewer.entities.removeById("ring-center");
+
+        setRangeCenter({ lat, lng });
+
+        // Place center point
+        viewer.entities.add({
+          id: "ring-center",
+          position: Cesium.Cartesian3.fromDegrees(lng, lat),
+          point: { pixelSize: 8, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        });
+
+        // Draw concentric rings
+        RANGE_RING_RADII_M.forEach((radius, i) => {
+          viewer.entities.add({
+            id: `ring-${i}`,
+            position: Cesium.Cartesian3.fromDegrees(lng, lat),
+            ellipse: {
+              semiMajorAxis: radius,
+              semiMinorAxis: radius,
+              material: Cesium.Color.CYAN.withAlpha(0.05),
+              outline: true,
+              outlineColor: Cesium.Color.CYAN.withAlpha(0.4),
+              outlineWidth: 1,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            },
+          });
+          // Label at the north edge of each ring
+          const labelLat = lat + (radius / 111320); // rough degrees per meter
+          viewer.entities.add({
+            id: `ring-label-${i}`,
+            position: Cesium.Cartesian3.fromDegrees(lng, labelLat),
+            label: {
+              text: RANGE_RING_LABELS[i],
+              font: "10px monospace",
+              fillColor: Cesium.Color.CYAN,
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 2,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+          });
+        });
+        return;
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // Double click — entity selection
     handler.setInputAction((click: { position: { x: number; y: number } }) => {
       const picked = viewer.scene.pick(click.position);
       if (Cesium.defined(picked) && picked.id?.id) {
@@ -392,7 +511,24 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
     return () => handler.destroy();
-  }, [loading, onSelectOperation]);
+  }, [loading, onSelectOperation, activeTool, measurePoint1, aligningOp]);
+
+  // Clean up tool entities when tool changes
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || loading) return;
+
+    if (activeTool !== "measure") {
+      ["measure-p1", "measure-p2", "measure-line"].forEach(id => { try { viewer.entities.removeById(id); } catch {} });
+      setMeasurePoint1(null);
+      setMeasureResult(null);
+    }
+    if (activeTool !== "range-rings") {
+      RANGE_RING_RADII_M.forEach((_, i) => { try { viewer.entities.removeById(`ring-${i}`); viewer.entities.removeById(`ring-label-${i}`); } catch {} });
+      try { viewer.entities.removeById("ring-center"); } catch {}
+      setRangeCenter(null);
+    }
+  }, [activeTool, loading]);
 
   const handleFlyToAll = useCallback(() => {
     const viewer = viewerRef.current;
@@ -425,6 +561,39 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
       )}
       <div ref={containerRef} className="w-full h-full" />
       {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} />}
+      {!error && !loading && (
+        <MapToolsBar
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          measureResult={measureResult}
+          rangeCenter={rangeCenter}
+        />
+      )}
+      {aligningOp && aligningOp.siteMapUrl && (
+        <SiteMapAligner
+          imageUrl={aligningOp.siteMapUrl}
+          operationName={aligningOp.name}
+          onAlign={(bounds) => {
+            // Apply the aligned overlay
+            const viewer = viewerRef.current;
+            const Cesium = cesiumRef.current;
+            if (viewer && Cesium && aligningOp.siteMapUrl) {
+              try {
+                const provider = new Cesium.SingleTileImageryProvider({
+                  url: aligningOp.siteMapUrl,
+                  rectangle: Cesium.Rectangle.fromDegrees(bounds.west, bounds.south, bounds.east, bounds.north),
+                });
+                const layer = viewer.imageryLayers.addImageryProvider(provider);
+                layer.alpha = 0.75;
+              } catch (err) {
+                console.error("[TacticalMap] Failed to apply aligned overlay:", err);
+              }
+            }
+            setAligningOp(null);
+          }}
+          onCancel={() => setAligningOp(null)}
+        />
+      )}
     </div>
   );
 }
