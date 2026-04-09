@@ -4,13 +4,12 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-layers-panel";
-import { MapToolsBar, type ActiveTool, haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "./map-tools";
+import { MapToolsBar, type ActiveTool, type DrawMode, haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "./map-tools";
 import { SiteMapAligner } from "./site-map-aligner";
 import { getSiteMapBounds, saveSiteMapBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
 import { getLocationHistory } from "@/lib/supabase/db-location";
 import { getAnnotations, createAnnotation, deleteAnnotation, subscribeAnnotations, type MapAnnotation } from "@/lib/supabase/db-annotations";
 import { getNearbyPOIs, getSunPosition, getRecentGeofenceAlerts, type NearbyPOI, type GeofenceAlert } from "./env-intel";
-import { DrawToolsBar, type DrawMode } from "./draw-tools";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -140,6 +139,14 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         // Expose viewer for site-map-aligner globe markers
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).__tacticalMapViewer = viewer;
+
+        // Expose annotation delete handler for popup onclick
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).__deleteAnnotation = (annId: string) => {
+          deleteAnnotation(annId).then(() => {
+            setSelectedEntity(null);
+          });
+        };
 
         // Add 3D buildings
         const buildingsTileset = await Cesium.createOsmBuildingsAsync();
@@ -1003,16 +1010,25 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       }
 
       // No tool active — check for entity or 3D tile pick to show popup
-      if (activeTool === "none") {
+      if (activeTool === "none" && drawMode === "none") {
         const picked = viewer.scene.pick(click.position);
         if (Cesium.defined(picked)) {
-          // Entity pick (our operations/staff/incident pins)
+          // Entity pick (our operations/staff/incident pins + annotations)
           if (picked.id?.id && picked.id?.name) {
             const entity = picked.id;
+            const entityId = entity.id as string;
+
+            // Check if it's an annotation — add delete button to description
+            const isAnnotation = entityId.startsWith("ann-");
+            const annId = isAnnotation ? entityId.replace("ann-", "") : null;
+            const deleteBtn = isAnnotation && isAdmin
+              ? `<br/><br/><span style="cursor:pointer;color:#ef4444" onclick="window.__deleteAnnotation&&window.__deleteAnnotation('${annId}')">🗑 Delete this drawing</span>`
+              : "";
+
             setSelectedEntity({
-              id: entity.id,
+              id: entityId,
               name: entity.name ?? "",
-              description: entity.description?.getValue?.() ?? entity.description ?? "",
+              description: (entity.description?.getValue?.() ?? entity.description ?? "") + deleteBtn,
               screenX: click.position.x,
               screenY: click.position.y,
             });
@@ -1222,25 +1238,21 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         setAligningOp(op);
       }} />}
       {!error && !loading && (
-        <>
-          <MapToolsBar
-            activeTool={activeTool}
-            onToolChange={setActiveTool}
-            measureResult={measureResult}
-            rangeCenter={rangeCenter}
-          />
-          <DrawToolsBar
-            mode={drawMode}
-            onModeChange={setDrawMode}
-            onClear={handleClearAnnotations}
-            drawColor={drawColor}
-            onColorChange={setDrawColor}
-            pointCount={drawPoints.length}
-            onFinish={handleDrawFinish}
-            onCancel={handleDrawCancel}
-            isAdmin={isAdmin ?? false}
-          />
-        </>
+        <MapToolsBar
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          measureResult={measureResult}
+          rangeCenter={rangeCenter}
+          drawMode={drawMode}
+          onDrawModeChange={setDrawMode}
+          drawColor={drawColor}
+          onDrawColorChange={setDrawColor}
+          drawPointCount={drawPoints.length}
+          onDrawFinish={handleDrawFinish}
+          onDrawCancel={handleDrawCancel}
+          onDrawClearAll={handleClearAnnotations}
+          isAdmin={isAdmin ?? false}
+        />
       )}
       {/* Geofence Alert Ticker */}
       {geofenceAlerts.length > 0 && (
