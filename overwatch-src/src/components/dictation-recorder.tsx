@@ -15,9 +15,20 @@ function getSpeechRecognitionCtor(): (new () => SpeechRecognitionInstance) | nul
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+function isBraveBrowser(): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return !!(navigator as any).brave;
+}
+
+function getNetworkErrorMessage(): string {
+  if (isBraveBrowser()) {
+    return "Brave Browser blocks speech recognition by default to protect privacy (audio would be sent to Google servers). To enable: click the Brave shield icon (lion) in the address bar → disable Shields for this site, or switch to Chrome/Edge. You can also type your transcript directly in the text box below.";
+  }
+  return "Could not connect to the speech recognition service. This can be caused by a browser extension, network-level ad blocker, or Brave Browser's privacy shields. Try Chrome or Edge, or type your transcript directly in the text box below.";
+}
+
 const ERROR_MESSAGES: Record<string, string> = {
   "not-allowed": "Microphone access was denied. Please allow microphone permission in your browser settings and try again.",
-  "network": "Speech recognition failed. This can be caused by Cloudflare Rocket Loader interfering with browser APIs. If your domain uses Cloudflare, disable Rocket Loader in Speed > Optimization > Content Optimization. You can still type your transcript directly in the text box below.",
   "audio-capture": "No microphone was found. Please connect a microphone and try again.",
   "service-not-allowed": "Speech recognition service is not allowed. This may be due to browser settings or extensions blocking the service.",
 };
@@ -109,7 +120,9 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
         setMicPermission("denied");
       }
 
-      const msg = ERROR_MESSAGES[event.error] ?? `Speech recognition error: ${event.error}. Try disabling browser extensions or using a different browser.`;
+      const msg = event.error === "network"
+        ? getNetworkErrorMessage()
+        : ERROR_MESSAGES[event.error] ?? `Speech recognition error: ${event.error}. Try disabling browser extensions or using a different browser.`;
       setError(msg);
       setErrorType(event.error);
       setIsRecording(false);
@@ -162,8 +175,16 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     );
   }
 
+  const brave = isBraveBrowser();
+
   return (
     <div className="space-y-2">
+      {brave && !isRecording && !error && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-600 flex items-start gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <span>Brave Browser blocks speech recognition for privacy. Click the Brave shield icon (lion) in the address bar and disable Shields for this site, or use Chrome/Edge. You can also type directly in the transcript box.</span>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         {isRecording ? (
           <Button size="sm" variant="destructive" className="gap-2" onClick={stopRecording} disabled={disabled} aria-label="Stop recording">
