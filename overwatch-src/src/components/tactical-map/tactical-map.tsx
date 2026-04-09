@@ -367,42 +367,57 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   }, [operations, layers.siteOverlays, loading]);
 
   // ─── Night Vision Mode ───────────────────────────────
+  // Swaps to a dark basemap (CartoDB Dark Matter) and styles 3D buildings
+  // with green outlines for a tactical night-ops aesthetic.
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
-    // Remove existing NV stage if present
-    const existingNv = entityGroupsRef.current.nvStage;
-    if (existingNv) {
-      try { viewer.scene.postProcessStages.remove(existingNv); } catch {}
-      entityGroupsRef.current.nvStage = null;
+    // Remove existing dark basemap layer
+    if (entityGroupsRef.current.nvDarkLayer) {
+      try { viewer.imageryLayers.remove(entityGroupsRef.current.nvDarkLayer, false); } catch {}
+      entityGroupsRef.current.nvDarkLayer = null;
     }
 
-    if (!layers.nightVision) return;
+    // Restore default building style
+    const buildings = entityGroupsRef.current.buildings?.[0];
 
-    // GLSL fragment shader: convert to luminance, tint green, add grain
-    const nvStage = new Cesium.PostProcessStage({
-      fragmentShader: `
-        uniform sampler2D colorTexture;
-        in vec2 v_textureCoordinates;
-        void main() {
-          vec4 color = texture(colorTexture, v_textureCoordinates);
-          float luminance = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-          // Boost contrast
-          luminance = clamp(luminance * 1.6, 0.0, 1.0);
-          // Green phosphor tint
-          vec3 nv = vec3(luminance * 0.1, luminance * 0.95, luminance * 0.15);
-          // Subtle vignette
-          vec2 uv = v_textureCoordinates;
-          float vignette = smoothstep(0.8, 0.3, length(uv - 0.5));
-          nv *= mix(0.6, 1.0, vignette);
-          out_FragColor = vec4(nv, 1.0);
-        }
-      `,
+    if (!layers.nightVision) {
+      // Restore: show base imagery, reset building style
+      const baseLayer = viewer.imageryLayers.get(0);
+      if (baseLayer) baseLayer.show = true;
+      if (buildings) {
+        buildings.style = undefined;
+      }
+      return;
+    }
+
+    // Hide the default satellite/street base imagery
+    const baseLayer = viewer.imageryLayers.get(0);
+    if (baseLayer) baseLayer.show = false;
+    // Also hide OSM layer if active
+    const osmRef = entityGroupsRef.current.osmLayerRef;
+    if (osmRef?.[0]) osmRef[0].show = false;
+
+    // Add CartoDB Dark Matter tiles as the base
+    const darkProvider = new Cesium.UrlTemplateImageryProvider({
+      url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+      credit: "CartoDB Dark Matter",
+      minimumLevel: 0,
+      maximumLevel: 18,
     });
-    viewer.scene.postProcessStages.add(nvStage);
-    entityGroupsRef.current.nvStage = nvStage;
+    const darkLayer = viewer.imageryLayers.addImageryProvider(darkProvider, 0);
+    darkLayer.alpha = 1.0;
+    entityGroupsRef.current.nvDarkLayer = darkLayer;
+
+    // Style 3D buildings with green outlines
+    if (buildings) {
+      buildings.style = new Cesium.Cesium3DTileStyle({
+        color: "color('rgba(0, 40, 0, 0.6)')",
+        show: true,
+      });
+    }
   }, [layers.nightVision, loading]);
 
   // ─── Weather Radar Auto-Refresh (every 5 min) ──────

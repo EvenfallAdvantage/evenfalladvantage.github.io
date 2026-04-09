@@ -28,6 +28,7 @@ declare namespace Cesium {
   const Cartographic: { fromCartesian: (cartesian: any) => { latitude: number; longitude: number; height: number } };
   const Math: { toDegrees: (radians: number) => number; toRadians: (degrees: number) => number };
   class PostProcessStage { constructor(opts: { fragmentShader: string }); }
+  class Cesium3DTileStyle { constructor(opts: any); }
   function createOsmBuildingsAsync(): Promise<any>;
   function defined(value: any): boolean;
 }
