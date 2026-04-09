@@ -603,18 +603,46 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
         return;
       }
 
-      // No tool active — check for entity pick to show popup
+      // No tool active — check for entity or 3D tile pick to show popup
       if (activeTool === "none") {
         const picked = viewer.scene.pick(click.position);
-        if (Cesium.defined(picked) && picked.id?.id && picked.id?.name) {
-          const entity = picked.id;
-          setSelectedEntity({
-            id: entity.id,
-            name: entity.name ?? "",
-            description: entity.description?.getValue?.() ?? entity.description ?? "",
-            screenX: click.position.x,
-            screenY: click.position.y,
-          });
+        if (Cesium.defined(picked)) {
+          // Entity pick (our operations/staff/incident pins)
+          if (picked.id?.id && picked.id?.name) {
+            const entity = picked.id;
+            setSelectedEntity({
+              id: entity.id,
+              name: entity.name ?? "",
+              description: entity.description?.getValue?.() ?? entity.description ?? "",
+              screenX: click.position.x,
+              screenY: click.position.y,
+            });
+          }
+          // 3D Tile feature pick (OSM buildings)
+          else if (picked.getProperty) {
+            const name = picked.getProperty("name") || picked.getProperty("building") || "Building";
+            const height = picked.getProperty("cesium#estimatedHeight") || picked.getProperty("height");
+            const type = picked.getProperty("building") || picked.getProperty("type") || "";
+            const addr = picked.getProperty("addr:street") || "";
+            const houseNum = picked.getProperty("addr:housenumber") || "";
+
+            let desc = `<strong>${name}</strong>`;
+            if (addr) desc += `<br/>${houseNum ? houseNum + " " : ""}${addr}`;
+            if (type && type !== name) desc += `<br/>Type: ${type}`;
+            if (height) desc += `<br/>Height: ~${Math.round(Number(height))}m`;
+            desc += `<br/><span style="opacity:0.4">Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</span>`;
+
+            setSelectedEntity({
+              id: `bldg-${click.position.x}-${click.position.y}`,
+              name: String(name),
+              description: desc,
+              screenX: click.position.x,
+              screenY: click.position.y,
+            });
+          }
+          else {
+            setSelectedEntity(null);
+          }
         } else {
           setSelectedEntity(null);
         }
@@ -728,18 +756,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           <div className="absolute left-1/2 bottom-0 w-px h-2 bg-[#dd8c33]" style={{ transform: "translateX(-50%) translateY(100%)" }} />
           {/* Popup card */}
           <div className="w-72 rounded-xl bg-[#0f1a2e]/95 backdrop-blur-md border border-[#dd8c33]/30 shadow-xl shadow-black/40 overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-[#dd8c33]/10">
-              <span className="text-xs font-bold font-mono text-[#dd8c33] truncate">{selectedEntity.name}</span>
-              <button onClick={() => setSelectedEntity(null)} className="text-white/40 hover:text-white text-xs ml-2 shrink-0">✕</button>
-            </div>
+            {/* Close button */}
+            <button onClick={() => setSelectedEntity(null)} className="absolute top-1.5 right-2 text-white/30 hover:text-white text-xs z-10">✕</button>
             {/* Body */}
-            {selectedEntity.description && (
-              <div
-                className="px-3 py-2 text-[11px] text-white/80 font-mono leading-relaxed max-h-40 overflow-y-auto [&_strong]:text-white [&_span]:text-[#dd8c33]"
-                dangerouslySetInnerHTML={{ __html: selectedEntity.description }}
-              />
-            )}
+            <div
+              className="px-3 py-2.5 text-[11px] text-white/80 font-mono leading-relaxed max-h-48 overflow-y-auto [&_strong]:text-[#dd8c33] [&_span]:text-[#dd8c33]"
+              dangerouslySetInnerHTML={{ __html: selectedEntity.description || `<strong>${selectedEntity.name}</strong>` }}
+            />
           </div>
         </div>
       )}
