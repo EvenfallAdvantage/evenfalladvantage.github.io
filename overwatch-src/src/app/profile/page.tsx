@@ -637,6 +637,25 @@ export default function ProfilePage() {
                       <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${mp.notifications_muted ? "translate-x-4" : "translate-x-0"}`} />
                     </button>
                   </label>
+                  <label className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs">Share location while on shift</span>
+                      <p className="text-[10px] text-muted-foreground">Your GPS position will be visible to your team on the tactical map when you&apos;re clocked in.</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!activeCompanyId || activeCompanyId === "pending") return;
+                        const next = !(mp.location_sharing ?? true);
+                        try {
+                          await updateMemberProfile(activeCompanyId, { locationSharing: next });
+                          setMp({ ...mp, location_sharing: next });
+                        } catch (err) { console.warn("Toggle location sharing failed:", err); }
+                      }}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${(mp.location_sharing ?? true) ? "bg-primary" : "bg-muted"}`}
+                    >
+                      <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${(mp.location_sharing ?? true) ? "translate-x-4" : "translate-x-0"}`} />
+                    </button>
+                  </label>
                   <div>
                     <span className="text-xs text-muted-foreground">Notification days</span>
                     <div className="flex flex-wrap gap-1.5 mt-1">

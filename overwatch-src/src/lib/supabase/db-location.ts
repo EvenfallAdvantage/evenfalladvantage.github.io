@@ -9,6 +9,24 @@
  */
 
 import { createClient } from "./client";
+import { ensureInternalUser } from "./db-helpers";
+
+/**
+ * Check if the current user has location sharing enabled for this company.
+ * Defaults to true if the column doesn't exist yet.
+ */
+export async function isLocationSharingEnabled(companyId: string): Promise<boolean> {
+  const userId = await ensureInternalUser();
+  if (!userId) return false;
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("company_memberships")
+    .select("location_sharing")
+    .eq("user_id", userId)
+    .eq("company_id", companyId)
+    .maybeSingle();
+  return (data?.location_sharing as boolean) ?? true; // default true
+}
 
 interface LocationUpdate {
   userId: string;

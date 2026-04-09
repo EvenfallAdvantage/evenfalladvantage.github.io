@@ -448,6 +448,7 @@ export async function updateMemberProfile(companyId: string, updates: {
   hideContactFromRoster?: boolean;
   notificationsMuted?: boolean;
   notificationDays?: string[];
+  locationSharing?: boolean;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
@@ -467,6 +468,7 @@ export async function updateMemberProfile(companyId: string, updates: {
   if (updates.hideContactFromRoster !== undefined) payload.hide_contact_roster = updates.hideContactFromRoster;
   if (updates.notificationsMuted !== undefined) payload.notifications_muted = updates.notificationsMuted;
   if (updates.notificationDays !== undefined) payload.notification_days = updates.notificationDays;
+  if (updates.locationSharing !== undefined) payload.location_sharing = updates.locationSharing;
   const { data, error } = await supabase
     .from("company_memberships")
     .update(payload)

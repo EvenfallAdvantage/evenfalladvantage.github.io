@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { Clock, LogIn, LogOut, History, Loader2, CalendarDays, MapPin, X, Send, ChevronLeft, ChevronRight, AlertCircle, Timer, Flag, Briefcase, LocateFixed } from "lucide-react";
+import { Clock, LogIn, LogOut, History, Loader2, CalendarDays, MapPin, X, Send, ChevronLeft, ChevronRight, AlertCircle, Timer, Flag, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { dispatch } from "@/lib/services/notification-dispatcher";
 import { toast } from "sonner";
 import Link from "next/link";
-import { startLocationWatcher, clearStaffLocation } from "@/lib/supabase/db-location";
+import { startLocationWatcher, clearStaffLocation, isLocationSharingEnabled } from "@/lib/supabase/db-location";
 import { usePageHeader } from "@/stores/page-header-store";
 
 function formatDuration(ms: number) {
@@ -110,7 +110,6 @@ export default function TimeClockPage() {
   const [detectedShifts, setDetectedShifts] = useState<Shift[]>([]);
   const [loadingShifts, setLoadingShifts] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
-  const [shareLocation, setShareLocation] = useState(false);
   const locationStopRef = useRef<(() => void) | null>(null);
 
   const weekDates = getWeekDates(weekOffset);
@@ -183,13 +182,22 @@ export default function TimeClockPage() {
         companyId: activeCompanyId ?? undefined,
         clockInType: "shift",
       });
-      if (shareLocation && authUser?.id && activeCompanyId) {
-        locationStopRef.current = startLocationWatcher(authUser.id, activeCompanyId);
-      }
+      await startLocationIfEnabled();
       await load();
       toast.success("Clocked in");
     } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); }
     finally { setActing(false); setDetectedShifts([]); }
+  }
+
+  // Auto-start location tracking based on profile preference
+  async function startLocationIfEnabled() {
+    if (!authUser?.id || !activeCompanyId) return;
+    try {
+      const enabled = await isLocationSharingEnabled(activeCompanyId);
+      if (enabled) {
+        locationStopRef.current = startLocationWatcher(authUser.id, activeCompanyId);
+      }
+    } catch {}
   }
 
   async function handleAdminClockIn() {
@@ -198,9 +206,7 @@ export default function TimeClockPage() {
     setShowClockInModal(false);
     try {
       await clockIn({ clockInType: "admin", notes: adminNotes.trim(), companyId: activeCompanyId ?? undefined });
-      if (shareLocation && authUser?.id && activeCompanyId) {
-        locationStopRef.current = startLocationWatcher(authUser.id, activeCompanyId);
-      }
+      await startLocationIfEnabled();
       await load();
       toast.success("Clocked in (admin)");
     } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); }
@@ -211,9 +217,7 @@ export default function TimeClockPage() {
     setActing(true);
     try {
       await clockIn({ companyId: activeCompanyId ?? undefined });
-      if (shareLocation && authUser?.id && activeCompanyId) {
-        locationStopRef.current = startLocationWatcher(authUser.id, activeCompanyId);
-      }
+      await startLocationIfEnabled();
       await load();
       toast.success("Clocked in");
     } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); }
@@ -693,21 +697,6 @@ export default function TimeClockPage() {
                       {acting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <LogIn className="h-3.5 w-3.5" />}
                       Clock In (Admin)
                     </Button>
-                  </div>
-
-                  {/* Location sharing opt-in */}
-                  <div className="flex items-center gap-2 px-1 py-1.5 rounded-lg bg-muted/30">
-                    <input
-                      type="checkbox"
-                      id="share-location"
-                      checked={shareLocation}
-                      onChange={(e) => setShareLocation(e.target.checked)}
-                      className="h-4 w-4 rounded border-border accent-primary"
-                    />
-                    <label htmlFor="share-location" className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                      <LocateFixed className="h-3.5 w-3.5" />
-                      Share my location while on shift
-                    </label>
                   </div>
 
                   {/* Quick clock-in fallback */}
