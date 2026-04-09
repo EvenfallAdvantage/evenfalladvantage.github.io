@@ -6,6 +6,7 @@ import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-layers-panel";
 import { MapToolsBar, type ActiveTool, haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "./map-tools";
 import { SiteMapAligner } from "./site-map-aligner";
+import { getSiteMapBounds, saveSiteMapBounds, type SiteMapBounds } from "@/lib/supabase/db-operations";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -47,12 +48,13 @@ interface TacticalMapProps {
   staff: StaffPin[];
   incidents: IncidentPin[];
   companyId: string;
+  isAdmin?: boolean;
   onSelectOperation?: (id: string) => void;
 }
 
 const CONUS_CENTER = { lat: 39.8283, lng: -98.5795 };
 
-export function TacticalMap({ operations, staff, incidents, companyId, onSelectOperation }: TacticalMapProps) {
+export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, onSelectOperation }: TacticalMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
@@ -66,7 +68,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   const [measurePoint1, setMeasurePoint1] = useState<{ lat: number; lng: number } | null>(null);
   const [rangeCenter, setRangeCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [aligningOp, setAligningOp] = useState<OperationPin | null>(null);
-  const [savedBounds, setSavedBounds] = useState<Record<string, { west: number; south: number; east: number; north: number }>>({});
+  const [savedBounds, setSavedBounds] = useState<Record<string, SiteMapBounds>>({});
+  const [boundsLoaded, setBoundsLoaded] = useState<Set<string>>(new Set());
   const [selectedEntity, setSelectedEntity] = useState<{ id: string; name: string; description: string; screenX: number; screenY: number } | null>(null);
   const popupAnimFrame = useRef<number>(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,6 +106,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
 
         if (destroyed) { viewer.destroy(); return; }
         viewerRef.current = viewer;
+        // Expose viewer for site-map-aligner globe markers
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).__tacticalMapViewer = viewer;
 
         // Add 3D buildings
         const buildingsTileset = await Cesium.createOsmBuildingsAsync();
@@ -333,6 +339,20 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
     if (buildings?.[0]) buildings[0].show = layers.buildings;
   }, [layers.buildings]);
 
+  // ─── Load saved bounds from DB when site maps are toggled ────
+  useEffect(() => {
+    operations.forEach((op) => {
+      if (layers.siteOverlays[op.id] && !savedBounds[op.id] && !boundsLoaded.has(op.id)) {
+        setBoundsLoaded(prev => new Set(prev).add(op.id));
+        getSiteMapBounds(op.id).then(bounds => {
+          if (bounds) {
+            setSavedBounds(prev => ({ ...prev, [op.id]: bounds }));
+          }
+        });
+      }
+    });
+  }, [operations, layers.siteOverlays, savedBounds, boundsLoaded]);
+
   // ─── Site Map Overlays (rubber-sheet aligned) ────────
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -349,7 +369,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
     operations.forEach((op) => {
       if (!layers.siteOverlays[op.id] || !op.siteMapUrl || !op.lat || !op.lng) return;
 
-      // If we have saved bounds from a previous alignment, drape immediately
+      // If we have saved bounds (local or from DB), drape immediately
       const bounds = savedBounds[op.id];
       if (bounds) {
         try {
@@ -358,7 +378,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
             rectangle: Cesium.Rectangle.fromDegrees(bounds.west, bounds.south, bounds.east, bounds.north),
           });
           const layer = viewer.imageryLayers.addImageryProvider(provider);
-          layer.alpha = 0.75;
+          layer.alpha = layers.siteOverlayOpacity;
           entityGroupsRef.current.siteOverlays.push({ layerRef: layer, eventId: op.id });
         } catch (err) {
           console.warn("[TacticalMap] Failed to load aligned site overlay for", op.name, err);
@@ -366,12 +386,12 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
         return;
       }
 
-      // No saved bounds — open the 3-point alignment tool
-      if (!aligningOp) {
+      // No saved bounds — if admin, open 3-point alignment tool; otherwise skip
+      if (!aligningOp && isAdmin) {
         setAligningOp(op);
       }
     });
-  }, [operations, layers.siteOverlays, loading, savedBounds, aligningOp]);
+  }, [operations, layers.siteOverlays, layers.siteOverlayOpacity, loading, savedBounds, aligningOp, isAdmin]);
 
   // ─── Night Vision Mode ───────────────────────────────
   // Swaps to a dark basemap (CartoDB Dark Matter) and styles 3D buildings
@@ -772,7 +792,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
         </div>
       )}
 
-      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} onRealignSiteMap={(op) => {
+      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} onRealignSiteMap={(op) => {
         // Clear saved bounds to force re-alignment
         setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
         setAligningOp(op);
@@ -790,11 +810,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           imageUrl={aligningOp.siteMapUrl}
           operationName={aligningOp.name}
           onAlign={(bounds) => {
-            // Save the alignment bounds so it persists during this session
+            // Save locally for immediate use
             setSavedBounds((prev) => ({ ...prev, [aligningOp.id]: bounds }));
+            // Persist to DB (company-wide)
+            saveSiteMapBounds(aligningOp.id, bounds);
             setAligningOp(null);
-            // The useEffect for site overlays will pick up the saved bounds
-            // and drape the image automatically
           }}
           onCancel={() => {
             // Turn off the site map layer since user cancelled alignment

@@ -18,6 +18,7 @@ export interface LayerVisibility {
   nightVision: boolean;
   satellite: boolean;
   siteOverlays: Record<string, boolean>; // eventId -> visible
+  siteOverlayOpacity: number; // 0-1
 }
 
 export const DEFAULT_LAYERS: LayerVisibility = {
@@ -31,6 +32,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   nightVision: false,
   satellite: true,
   siteOverlays: {},
+  siteOverlayOpacity: 0.75,
 };
 
 interface LayerToggle {
@@ -58,9 +60,10 @@ interface MapLayersPanelProps {
   onFlyToAll: () => void;
   operations: OperationPin[];
   onRealignSiteMap?: (op: OperationPin) => void;
+  isAdmin?: boolean;
 }
 
-export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap }: MapLayersPanelProps) {
+export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, isAdmin }: MapLayersPanelProps) {
   const [open, setOpen] = useState(true);
 
   function toggle(key: keyof Omit<LayerVisibility, "siteOverlays">) {
@@ -131,31 +134,48 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
                 {opsWithSiteMaps.map((op) => {
                   const active = layers.siteOverlays[op.id] ?? false;
                   return (
-                    <div key={op.id} className="flex items-center gap-1">
-                      <button
-                        onClick={() => toggleSiteOverlay(op.id)}
-                        className={`flex-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
-                          active
-                            ? "bg-white/10 text-white"
-                            : "text-white/40 hover:text-white/60 hover:bg-white/5"
-                        }`}
-                      >
-                        <Layers className="h-3 w-3" />
-                        <span className="flex-1 text-left truncate">{op.name}</span>
-                        {active ? <Eye className="h-3 w-3 text-green-400" /> : <EyeOff className="h-3 w-3" />}
-                      </button>
-                      {active && onRealignSiteMap && (
+                    <div key={op.id}>
+                      <div className="flex items-center gap-1">
                         <button
-                          onClick={() => onRealignSiteMap(op)}
-                          className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded"
-                          title="Re-align site map"
+                          onClick={() => { if (!isAdmin && !active) return; toggleSiteOverlay(op.id); }}
+                          className={`flex-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
+                            active
+                              ? "bg-white/10 text-white"
+                              : "text-white/40 hover:text-white/60 hover:bg-white/5"
+                          }`}
+                          title={!isAdmin && !active ? "Admin access required to align site maps" : ""}
                         >
-                          ↻
+                          <Layers className="h-3 w-3" />
+                          <span className="flex-1 text-left truncate">{op.name}</span>
+                          {active ? <Eye className="h-3 w-3 text-green-400" /> : <EyeOff className="h-3 w-3" />}
                         </button>
-                      )}
+                        {active && isAdmin && onRealignSiteMap && (
+                          <button
+                            onClick={() => onRealignSiteMap(op)}
+                            className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded"
+                            title="Re-align site map"
+                          >
+                            ↻
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
+                {/* Opacity slider for all site map overlays */}
+                {Object.values(layers.siteOverlays).some(Boolean) && (
+                  <div className="flex items-center gap-2 px-2 pt-1">
+                    <span className="text-[8px] text-white/30 font-mono">Opacity</span>
+                    <input
+                      type="range"
+                      min={0} max={100} step={5}
+                      value={Math.round(layers.siteOverlayOpacity * 100)}
+                      onChange={(e) => onChange({ ...layers, siteOverlayOpacity: Number(e.target.value) / 100 })}
+                      className="flex-1 h-1 accent-white/50 cursor-pointer"
+                    />
+                    <span className="text-[8px] text-white/40 font-mono w-6 text-right">{Math.round(layers.siteOverlayOpacity * 100)}%</span>
+                  </div>
+                )}
               </div>
             </div>
           )}

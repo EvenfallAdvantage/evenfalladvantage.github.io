@@ -929,6 +929,7 @@ export default function SchedulePage() {
           staff={mapStaff}
           incidents={mapIncidents}
           companyId={activeCompanyId ?? ""}
+          isAdmin={isAdmin}
           onSelectOperation={(id) => {
             // Could navigate to operation detail or expand it
             toast.info(`Operation selected: ${mapOps.find(o => o.id === id)?.name ?? id}`);

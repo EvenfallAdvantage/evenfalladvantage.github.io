@@ -114,9 +114,49 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
     const handler = (lat: number, lng: number) => {
       if (stepRef.current !== "pick-globe" || globePointsRef.current.length >= 3) return;
       setGlobePoints(prev => [...prev, { lat, lng }]);
+
+      // Place a temporary cyan marker on the globe via Cesium
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const w = window as any;
+      if (w.Cesium && w.__tacticalMapViewer) {
+        const viewer = w.__tacticalMapViewer;
+        const Cesium = w.Cesium;
+        const idx = globePointsRef.current.length; // 0-based index of the point just added
+        viewer.entities.add({
+          id: `align-globe-${idx}`,
+          position: Cesium.Cartesian3.fromDegrees(lng, lat),
+          point: {
+            pixelSize: 10,
+            color: Cesium.Color.CYAN,
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 2,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: {
+            text: String(idx + 1),
+            font: "bold 12px monospace",
+            fillColor: Cesium.Color.WHITE,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(0, -16),
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        });
+      }
     };
     (window as unknown as Record<string, unknown>).__siteMapAlignerAddPoint = handler;
-    return () => { delete (window as unknown as Record<string, unknown>).__siteMapAlignerAddPoint; };
+    return () => {
+      delete (window as unknown as Record<string, unknown>).__siteMapAlignerAddPoint;
+      // Clean up globe markers
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const w = window as any;
+      if (w.__tacticalMapViewer) {
+        [0, 1, 2].forEach(i => { try { w.__tacticalMapViewer.entities.removeById(`align-globe-${i}`); } catch {} });
+      }
+    };
   }, []);
 
   return (
