@@ -20,6 +20,9 @@ export type WhisperProgress = {
 
 type ProgressCallback = (p: WhisperProgress) => void;
 
+// Use the ONNX-optimized Whisper tiny.en model from HuggingFace
+// fp32 is used because q8 quantization requires DequantizeLinear ops
+// that the WASM ONNX runtime doesn't support for all model architectures.
 const MODEL_ID = "onnx-community/whisper-tiny.en";
 
 /**
@@ -39,10 +42,10 @@ export async function loadModel(onProgress?: ProgressCallback): Promise<void> {
     // Use remote models from HuggingFace Hub (cached by the browser)
     env.allowLocalModels = false;
 
-    onProgress?.({ status: "downloading", message: "Downloading speech model (~75 MB, one-time)...", progress: 0 });
+    onProgress?.({ status: "downloading", message: "Downloading speech model (~150 MB, one-time)...", progress: 0 });
 
     pipelineInstance = await pipeline("automatic-speech-recognition", MODEL_ID, {
-      dtype: "q8",            // quantized for faster WASM inference
+      dtype: "fp32",          // fp32 — q8 quantization not supported by WASM ONNX runtime
       device: "wasm",         // explicit WASM — WebGPU is flaky in some browsers
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       progress_callback: (p: any) => {
