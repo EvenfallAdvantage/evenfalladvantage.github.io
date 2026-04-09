@@ -124,3 +124,62 @@ The `/admin/health` page now monitors:
 - **Auth mismatch:** Legacy students may not have Overwatch auth accounts — handled by invite flow
 - **Foreign key conflicts:** Migration script uses UUID generation for new rows, preserves legacy IDs in link table
 - **Downtime:** Zero downtime — migration runs alongside live system, cutover is a config change
+
+---
+
+## Legacy Portal Sunset Plan (Added April 8, 2026)
+
+### Portals to Sunset
+
+| Directory | Status | Overwatch Equivalent |
+|-----------|--------|---------------------|
+| `admin/` (14 files) | Active legacy | Overwatch `/admin/*` pages |
+| `student-portal/` (~35 files) | Active, has redirect.html | Overwatch `/academy`, `/feed`, `/profile` |
+| `instructor-portal/` (~6 files) | Deprecated, has migration banner | Overwatch `/admin/instructor` |
+| `dashboard.html` + related JS | Dead mockup | Overwatch `/feed` |
+
+### Pre-Sunset Checklist
+
+Before removing any legacy portal, verify Overwatch covers these features:
+
+#### Admin Portal
+- [ ] Student CRUD (create, edit, delete, view profile)
+- [ ] Client management
+- [ ] Course/module management with slide editor
+- [ ] Assessment question editor
+- [ ] Certificate management
+- [ ] Attendance tracking
+- [ ] State laws editor
+- [ ] AI question generator
+- [ ] Welcome email sending
+
+#### Student Portal
+- [ ] Training module viewer with slides + audio
+- [ ] Assessment/quiz taking
+- [ ] De-escalation scenario training
+- [ ] Site security assessment tool
+- [ ] Invoice generator
+- [ ] Messaging system
+- [ ] Profile management
+- [ ] Certificate viewing
+
+#### Instructor Portal
+- [ ] Student list and progress tracking
+- [ ] Class/enrollment management
+- [ ] Certificate issuance
+- [ ] Attendance recording
+
+### Sunset Execution Steps
+
+1. **Verify feature parity** using the checklists above
+2. **Update all entry points** to redirect to Overwatch:
+   - `student-portal/login.html` -> `/overwatch/login`
+   - `instructor-portal/login.html` -> `/overwatch/login`
+   - `admin/login.html` -> `/overwatch/login`
+   - `login.html` (client) -> `/overwatch/` or remove
+3. **Archive legacy directories** to a `legacy-archive` branch
+4. **Remove from main branch**: `admin/`, `student-portal/`, `instructor-portal/`, `dashboard.html`
+5. **Remove legacy JS/CSS**: `js/auth.js`, `js/register.js`, `js/dashboard.js`, `js/dashboard-filters.js`, `js/profile-manager.js`, `css/dashboard-charts.css`, `css/message-styles.css`, `css/messaging.css`
+6. **Update deploy.yml**: remove legacy directories from `_deploy` copy step
+7. **Monitor for 2 weeks** for any traffic to old URLs (check server logs / analytics)
+8. **Remove `legacy-bridge.ts`** after DB merge is complete (Phase 4 of DB plan)

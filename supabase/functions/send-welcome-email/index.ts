@@ -2,8 +2,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { getCorsHeaders } from '../_shared/cors.ts'
 
-console.log("Welcome Email Function Started")
-
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -11,9 +9,42 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Verify the caller is an administrator
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+      )
+    }
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.0')
+    const verifyClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+    const { data: { user: caller } } = await verifyClient.auth.getUser()
+    if (!caller) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+      )
+    }
+    // Check if caller is admin
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+    const { data: adminRow } = await adminClient.from('administrators').select('id').eq('user_id', caller.id).single()
+    if (!adminRow) {
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: admin access required' }),
+        { status: 403, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { email, password, firstName, lastName } = await req.json()
-    
-    console.log(`Sending welcome email to: ${email}`)
     
     // Check if API key exists
     const apiKey = Deno.env.get('RESEND_API_KEY')
@@ -21,7 +52,6 @@ Deno.serve(async (req) => {
       console.error('RESEND_API_KEY not found in environment')
       throw new Error('RESEND_API_KEY not configured')
     }
-    console.log('API key found:', apiKey.substring(0, 10) + '...')
     
     // Send email via Resend
     const response = await fetch('https://api.resend.com/emails', {

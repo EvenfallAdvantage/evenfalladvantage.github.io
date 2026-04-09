@@ -39,9 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const hashtags = document.querySelectorAll('.hashtags span');
     hashtags.forEach(tag => {
         tag.addEventListener('click', function() {
-            // Could open a search page or filter results
-            console.log('Hashtag clicked:', this.textContent);
-            
             // Visual feedback
             this.classList.add('hashtag-active');
             

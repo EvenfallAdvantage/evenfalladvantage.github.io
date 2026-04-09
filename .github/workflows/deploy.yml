@@ -34,7 +34,7 @@ jobs:
 
       - name: Security audit (npm)
         working-directory: overwatch-src
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=critical
 
       - name: Run tests
         working-directory: overwatch-src
@@ -59,10 +59,32 @@ jobs:
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload site artifact (exclude source dirs)
+      - name: Prepare deployment directory (public files only)
+        run: |
+          mkdir -p _deploy
+          # Copy only public-facing content
+          cp -r overwatch/ _deploy/overwatch/
+          cp -r css/ _deploy/css/
+          cp -r js/ _deploy/js/
+          cp -r images/ _deploy/images/
+          cp -r audio/ _deploy/audio/
+          cp -r forms/ _deploy/forms/
+          cp -r case-studies/ _deploy/case-studies/
+          cp -r includes/ _deploy/includes/
+          cp -r student-portal/ _deploy/student-portal/
+          cp -r instructor-portal/ _deploy/instructor-portal/
+          cp -r admin/ _deploy/admin/
+          cp -r student-resources/ _deploy/student-resources/
+          # Copy top-level HTML and config files
+          cp index.html about.html blog.html login.html register.html dashboard.html _deploy/
+          cp privacy-policy.html terms-of-service.html _deploy/
+          cp google3c85dd61b89bb3b1.html _deploy/ 2>/dev/null || true
+          cp CNAME .nojekyll _deploy/
+
+      - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: '_deploy'
 
   deploy:
     runs-on: ubuntu-latest

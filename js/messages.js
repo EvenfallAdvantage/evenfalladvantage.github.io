@@ -15,11 +15,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function loadMessages() {
     const currentUser = await Auth.getCurrentUser();
     if (!currentUser) {
-        console.log('No current user');
         return;
     }
-    
-    console.log('Loading messages for student:', currentUser.id);
     
     // Get all message threads for current user
     const { data: threads, error } = await supabase
@@ -28,16 +25,12 @@ async function loadMessages() {
         .or(`participant_1.eq.${currentUser.id},participant_2.eq.${currentUser.id}`)
         .order('last_message_at', { ascending: false });
     
-    console.log('Threads query result:', { threads, error });
-    
     if (error) {
-        console.error('Error loading threads:', error);
         document.getElementById('conversationsList').innerHTML = '<p class="empty-state">Error loading messages</p>';
         return;
     }
     
     if (!threads || threads.length === 0) {
-        console.log('No threads found');
         document.getElementById('conversationsList').innerHTML = '<p class="empty-state">No messages yet</p>';
         return;
     }
@@ -51,16 +44,12 @@ async function loadMessages() {
     participantIds.delete(currentUser.id); // Remove current user
     
     // Get client info for participants
-    console.log('Fetching client info for:', Array.from(participantIds));
     let { data: clients, error: clientsError } = await supabase
         .from('clients')
         .select('id, company_name, contact_name, email')
         .in('id', Array.from(participantIds));
     
-    console.log('Clients query result:', { clients, clientsError });
-    
     if (clientsError) {
-        console.error('Error loading clients:', clientsError);
         document.getElementById('conversationsList').innerHTML = '<p class="empty-state">Error loading client information</p>';
         return;
     }
@@ -68,13 +57,10 @@ async function loadMessages() {
     // If no clients found, check if they're students (for testing/debugging)
     let participants = clients || [];
     if (!clients || clients.length === 0) {
-        console.log('No clients found - checking if participants are students');
         const { data: students } = await supabase
             .from('students')
             .select('id, first_name, last_name, email')
             .in('id', Array.from(participantIds));
-        
-        console.log('Students found:', students);
         
         // Convert students to client-like format
         participants = students?.map(s => ({
@@ -86,12 +72,9 @@ async function loadMessages() {
     }
     
     if (participants.length === 0) {
-        console.log('No participants found at all');
         document.getElementById('conversationsList').innerHTML = '<p class="empty-state">No messages yet</p>';
         return;
     }
-    
-    console.log('Final participants:', participants);
     
     // Get last message for each thread
     const threadMessages = await Promise.all(threads.map(async (thread) => {
@@ -121,21 +104,24 @@ async function loadMessages() {
         const participant = participants?.find(p => p.id === otherUserId);
         
         if (!participant) {
-            console.log('No participant found for user:', otherUserId);
             return '';
         }
         
-        const preview = lastMessage ? lastMessage.message.substring(0, 60) + '...' : 'No messages yet';
+        const rawPreview = lastMessage ? lastMessage.message.substring(0, 60) + '...' : 'No messages yet';
+        const preview = window.escapeHTML ? window.escapeHTML(rawPreview) : rawPreview.replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
+        const safeCompanyName = window.escapeHTML ? window.escapeHTML(participant.company_name) : participant.company_name.replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
+        const safeAttrCompanyName = window.escapeAttr ? window.escapeAttr(participant.company_name) : participant.company_name.replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
+        const safeAttrUserId = window.escapeAttr ? window.escapeAttr(otherUserId) : otherUserId.replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
         const timeAgo = lastMessage ? getTimeAgo(new Date(lastMessage.created_at)) : '';
         
         return `
-            <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''}" onclick="viewConversation('${otherUserId}', '${participant.company_name}')">
+            <div class="conversation-item ${unreadCount > 0 ? 'unread' : ''}" onclick="viewConversation('${safeAttrUserId}', '${safeAttrCompanyName}')">
                 <div class="conversation-avatar">
                     <i class="fas fa-building"></i>
                 </div>
                 <div class="conversation-info">
                     <div class="conversation-header">
-                        <h4>${participant.company_name}</h4>
+                        <h4>${safeCompanyName}</h4>
                         ${unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : ''}
                     </div>
                     <p class="conversation-preview">${preview}</p>
@@ -176,7 +162,8 @@ async function viewConversation(userId, companyName) {
     currentConversationUserId = userId;
     currentConversationUserName = companyName;
     
-    // Build messages HTML
+    // Build messages HTML (sanitize user content to prevent XSS)
+    const _esc = (str) => window.escapeHTML ? window.escapeHTML(str) : String(str).replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','&':'&amp;'}[c]));
     const messagesHTML = messages.map(msg => {
         const isFromMe = msg.from_user_id === currentUser.id;
         const time = new Date(msg.created_at);
@@ -185,7 +172,7 @@ async function viewConversation(userId, companyName) {
         return `
             <div class="message-bubble ${isFromMe ? 'sent' : 'received'}">
                 <div class="bubble-content">
-                    ${msg.message}
+                    ${_esc(msg.message)}
                 </div>
                 <div class="bubble-time">${timeStr}</div>
             </div>
@@ -200,7 +187,7 @@ async function viewConversation(userId, companyName) {
                 <div class="conversation-avatar">
                     <i class="fas fa-building"></i>
                 </div>
-                <h3>${companyName}</h3>
+                <h3>${_esc(companyName)}</h3>
             </div>
         </div>
         <div class="messages-list" id="messagesList">

@@ -2,28 +2,9 @@
 // Sends enrollment notifications via Resend API
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
-
-console.log("Email sending function initialized")
-
-// Allowed origins for CORS
-const allowedOrigins = [
-  'https://www.evenfalladvantage.com',
-  'https://evenfalladvantage.github.io',
-  'http://localhost:3000', // for local development
-];
-
-// Helper to get CORS headers based on request origin
-function getCorsHeaders(origin) {
-  const headers = {
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  };
-  if (allowedOrigins.includes(origin)) {
-    headers['Access-Control-Allow-Origin'] = origin;
-  }
-  return headers;
-}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests

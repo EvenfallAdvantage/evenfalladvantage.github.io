@@ -1149,7 +1149,7 @@ async function viewStudent(id) {
                             <div><strong>Location:</strong><br>${profile.location || 'N/A'}</div>
                             <div><strong>Enrolled:</strong><br>${new Date(student.created_at).toLocaleDateString()}</div>
                         </div>
-                        ${profile.bio ? `<div style="margin-bottom: 1.5rem;"><strong>Bio:</strong><p style="margin-top: 0.5rem;">${profile.bio}</p></div>` : ''}
+                        ${profile.bio ? `<div style="margin-bottom: 1.5rem;"><strong>Bio:</strong><p style="margin-top: 0.5rem;">${escapeHTML(profile.bio)}</p></div>` : ''}
                         ${certs.length > 0 ? `
                             <div><strong>Certifications (${certs.length}):</strong>
                                 <ul style="margin-top: 0.5rem; list-style: none; padding: 0;">

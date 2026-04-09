@@ -1,4 +1,42 @@
-# Overwatch Codebase Deep Audit - March 2026
+# Overwatch Codebase Deep Audit - Updated April 8, 2026
+
+> **Previous audit:** March 2026 | **Latest audit:** April 8, 2026
+
+## 0. APRIL 8 AUDIT — COMPLETED FIXES
+
+### Critical Security (all fixed this session)
+- [x] Backup workflow: no longer commits DB dumps to public repo (now uses artifacts)
+- [x] Deploy workflow: scoped to public files only (sql/, supabase/, sop/, docs/ excluded)
+- [x] Wildcard CORS export removed from `_shared/cors.ts`
+- [x] `send-welcome-email` Edge Function: admin role check added, API key logging removed
+- [x] `admin/test.html` deleted (unauthenticated DB query page)
+- [x] XSS in `js/messages.js` fixed: all innerHTML now uses escapeHTML()
+- [x] XSS in `admin/js/admin-dashboard.js` fixed: profile.bio now sanitized
+- [x] `send-email` Edge Function: now imports shared CORS module
+- [x] `.gitignore` updated: backups/, *.dump, *.exe, audit-clone/
+
+### Dead Code Removed (this session)
+- [x] 23 files deleted: 2 abandoned google-meet projects, 5 orphaned JS/CSS, broken pages, dev tools
+- [x] 6 orphaned images removed
+- [x] 4 dead API routes removed (2 had Edge Function equivalents, 2 converted to new Edge Functions)
+
+### Infrastructure (this session)
+- [x] Supabase browser client refactored to singleton (258 call sites, 1 line change)
+- [x] 2 new Edge Functions created: `webhook-checkr`, `webhook-fillout`
+- [x] All 8 Edge Functions now declared in config.toml
+- [x] `npm audit` in CI changed from soft-fail to fail-on-critical
+- [x] Legal pages restructured: shared CSS, header/footer, Google Fonts, skip-nav, favicon
+
+### Remaining from April 8 Audit (see COMPONENT_DECOMPOSITION_PLAN.md)
+- [ ] Decompose 15 monolithic components (>700 lines each)
+- [ ] Formal Prisma migration system (replace 102 ad-hoc SQL files)
+- [ ] Legacy portal sunset (admin/, student-portal/, instructor-portal/)
+- [ ] Expand test coverage (currently 51 tests for 49 pages)
+- [ ] Missing Resend DPA in DPAs/ directory
+
+---
+
+# Original March 2026 Audit
 
 ## 1. HALLUCINATED / FAKE DATA
 

@@ -111,7 +111,7 @@ This document assesses the security posture of third-party vendors that process,
 | Supabase | Yes | Yes | April 6, 2026 |
 | Stripe | Yes | Yes | April 6, 2026 |
 | GitHub | Yes | Yes | April 6, 2026 |
-| Resend | Yes | Yes | April 6, 2026 |
+| Resend | Yes | Yes | April 6, 2026 | **ACTION: PDF not in DPAs/ — obtain and file** |
 | Cloudflare | No (minimal data) | N/A | — |
 | Nominatim | No (public data) | N/A | — |
 
