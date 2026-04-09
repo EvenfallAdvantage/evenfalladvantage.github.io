@@ -23,9 +23,11 @@ declare namespace Cesium {
   class WebMapServiceImageryProvider { constructor(opts: any); }
   class SingleTileImageryProvider { constructor(opts: any); }
   class OpenStreetMapImageryProvider { constructor(opts: any); }
+  class UrlTemplateImageryProvider { constructor(opts: any); }
   const Rectangle: { fromDegrees: (west: number, south: number, east: number, north: number) => any };
   const Cartographic: { fromCartesian: (cartesian: any) => { latitude: number; longitude: number; height: number } };
   const Math: { toDegrees: (radians: number) => number; toRadians: (degrees: number) => number };
+  class PostProcessStage { constructor(opts: { fragmentShader: string }); }
   function createOsmBuildingsAsync(): Promise<any>;
   function defined(value: any): boolean;
 }

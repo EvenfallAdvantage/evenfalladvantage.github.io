@@ -67,7 +67,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   const [rangeCenter, setRangeCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [aligningOp, setAligningOp] = useState<OperationPin | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const entityGroupsRef = useRef<Record<string, any[]>>({});
+  const entityGroupsRef = useRef<Record<string, any>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const weatherLayerRef = useRef<any>(null);
 
@@ -298,15 +298,30 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
     }
     if (!layers.weather) return;
 
-    const weatherProvider = new Cesium.WebMapServiceImageryProvider({
-      url: "https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/MapServer/WMSServer",
-      layers: "0",
-      parameters: { transparent: true, format: "image/png" },
-      credit: "NOAA/NWS",
-    });
-    const layer = viewer.imageryLayers.addImageryProvider(weatherProvider);
-    layer.alpha = 0.5;
-    weatherLayerRef.current = layer;
+    // Use Iowa State Mesonet NEXRAD radar tiles (reliable, free, no API key)
+    // Falls back to NWS WMS if Mesonet is unavailable
+    try {
+      const radarProvider = new Cesium.UrlTemplateImageryProvider({
+        url: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png",
+        credit: "Iowa State Mesonet / NOAA NEXRAD",
+        minimumLevel: 0,
+        maximumLevel: 12,
+      });
+      const layer = viewer.imageryLayers.addImageryProvider(radarProvider);
+      layer.alpha = 0.6;
+      weatherLayerRef.current = layer;
+    } catch {
+      // Fallback to NWS WMS
+      const weatherProvider = new Cesium.WebMapServiceImageryProvider({
+        url: "https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/MapServer/WMSServer",
+        layers: "0",
+        parameters: { transparent: true, format: "image/png" },
+        credit: "NOAA/NWS",
+      });
+      const layer = viewer.imageryLayers.addImageryProvider(weatherProvider);
+      layer.alpha = 0.5;
+      weatherLayerRef.current = layer;
+    }
   }, [layers.weather, loading]);
 
   // ─── 3D Buildings Toggle ─────────────────────────────
@@ -350,6 +365,72 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
       }
     });
   }, [operations, layers.siteOverlays, loading]);
+
+  // ─── Night Vision Mode ───────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    // Remove existing NV stage if present
+    const existingNv = entityGroupsRef.current.nvStage;
+    if (existingNv) {
+      try { viewer.scene.postProcessStages.remove(existingNv); } catch {}
+      entityGroupsRef.current.nvStage = null;
+    }
+
+    if (!layers.nightVision) return;
+
+    // GLSL fragment shader: convert to luminance, tint green, add grain
+    const nvStage = new Cesium.PostProcessStage({
+      fragmentShader: `
+        uniform sampler2D colorTexture;
+        in vec2 v_textureCoordinates;
+        void main() {
+          vec4 color = texture(colorTexture, v_textureCoordinates);
+          float luminance = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+          // Boost contrast
+          luminance = clamp(luminance * 1.6, 0.0, 1.0);
+          // Green phosphor tint
+          vec3 nv = vec3(luminance * 0.1, luminance * 0.95, luminance * 0.15);
+          // Subtle vignette
+          vec2 uv = v_textureCoordinates;
+          float vignette = smoothstep(0.8, 0.3, length(uv - 0.5));
+          nv *= mix(0.6, 1.0, vignette);
+          out_FragColor = vec4(nv, 1.0);
+        }
+      `,
+    });
+    viewer.scene.postProcessStages.add(nvStage);
+    entityGroupsRef.current.nvStage = nvStage;
+  }, [layers.nightVision, loading]);
+
+  // ─── Weather Radar Auto-Refresh (every 5 min) ──────
+  useEffect(() => {
+    if (!layers.weather) return;
+    const interval = setInterval(() => {
+      const viewer = viewerRef.current;
+      const Cesium = cesiumRef.current;
+      if (!viewer || !Cesium) return;
+
+      // Remove and re-add to force tile refresh with cache buster
+      if (weatherLayerRef.current) {
+        viewer.imageryLayers.remove(weatherLayerRef.current, false);
+      }
+      try {
+        const radarProvider = new Cesium.UrlTemplateImageryProvider({
+          url: `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png?_t=${Date.now()}`,
+          credit: "Iowa State Mesonet / NOAA NEXRAD",
+          minimumLevel: 0,
+          maximumLevel: 12,
+        });
+        const layer = viewer.imageryLayers.addImageryProvider(radarProvider);
+        layer.alpha = 0.6;
+        weatherLayerRef.current = layer;
+      } catch {}
+    }, 300000); // 5 minutes
+    return () => clearInterval(interval);
+  }, [layers.weather]);
 
   // ─── Satellite Imagery Toggle ───────────────────────
   useEffect(() => {
