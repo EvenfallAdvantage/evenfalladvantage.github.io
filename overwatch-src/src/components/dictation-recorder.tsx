@@ -66,23 +66,25 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       return;
     }
 
-    // Pre-check: can we reach Google's speech service?
-    // Chrome's Web Speech API streams audio to Google servers for processing.
-    // If DNS-level blocking (Pi-hole, corporate firewall, VPN) prevents
-    // reaching www.google.com, recognition.start() will silently fail with
-    // a "network" error and nothing appears in DevTools.
-    try {
-      const probe = await fetch("https://www.google.com/generate_204", {
-        method: "HEAD",
-        mode: "no-cors",
-        cache: "no-store",
-        signal: AbortSignal.timeout(5000),
-      });
-      // mode: "no-cors" means we get an opaque response — that's fine,
-      // we only care that the request didn't throw (i.e. DNS resolved + TCP connected)
-      void probe;
-    } catch {
-      setError("Cannot reach Google's speech servers (www.google.com). Chrome requires an internet connection to Google for speech-to-text. If you use a Pi-hole or network-level ad blocker, whitelist www.google.com and speech.google.com. You can still type your transcript directly in the text box below.");
+    // Pre-check: can we reach the specific Google speech endpoints?
+    // Chrome's Web Speech API streams audio to Google servers. If any of
+    // these endpoints are DNS-blocked (Pi-hole, VPN, firewall), recognition
+    // silently fails with a "network" error and nothing in DevTools.
+    const speechEndpoints = [
+      "https://www.google.com/generate_204",
+      "https://speech.google.com",
+      "https://csp.withgoogle.com",
+    ];
+    const blocked: string[] = [];
+    await Promise.all(speechEndpoints.map(async (url) => {
+      try {
+        await fetch(url, { method: "HEAD", mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(4000) });
+      } catch {
+        blocked.push(new URL(url).hostname);
+      }
+    }));
+    if (blocked.length > 0) {
+      setError(`Cannot reach Google speech servers: ${blocked.join(", ")}. Chrome requires these domains for speech-to-text. If you use a Pi-hole or network-level blocker, whitelist them. You can still type your transcript in the text box below.`);
       setErrorType("network");
       return;
     }
@@ -115,6 +117,9 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (event: any) => {
+      // Log full error for debugging (visible in DevTools console)
+      console.warn("[Dictation] SpeechRecognition error:", event.error, "message:", event.message, "full event:", event);
+
       if (event.error === "no-speech") return;
       if (event.error === "aborted") return;
 
