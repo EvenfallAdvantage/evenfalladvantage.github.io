@@ -958,6 +958,12 @@ export default function IncidentsPage() {
                 pins={incidentLocationPin ? [...incidentExistingPins, incidentLocationPin] : incidentExistingPins}
                 singlePinMode={false}
                 readOnly={false}
+                defaultPinValues={{
+                  label: newTitle || "Incident Location",
+                  description: newDesc || undefined,
+                  icon: "incident",
+                  color: "#ef4444",
+                }}
                 onPinsChange={(newPins) => {
                   // The last pin added (beyond existing pins) is the incident pin
                   if (newPins.length > incidentExistingPins.length) {

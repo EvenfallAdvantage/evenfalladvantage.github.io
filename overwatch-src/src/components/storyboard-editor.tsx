@@ -48,6 +48,8 @@ export type StoryboardEditorProps = {
   onPinsChange?: (pins: StoryboardPin[]) => void;
   readOnly?: boolean;
   singlePinMode?: boolean;
+  /** Pre-fill label, description, icon, and color for new pins */
+  defaultPinValues?: { label?: string; description?: string; icon?: string; color?: string };
   className?: string;
 };
 
@@ -457,6 +459,7 @@ export default function StoryboardEditor({
   onPinsChange,
   readOnly = false,
   singlePinMode = false,
+  defaultPinValues,
   className,
 }: StoryboardEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -881,7 +884,7 @@ export default function StoryboardEditor({
           return (
             <div className="fixed z-[200]" style={{ left, top }} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
               <PinForm
-                initial={{ label: "", description: "", icon: "pin", color: "#d59b3c" }}
+                initial={{ label: defaultPinValues?.label ?? "", description: defaultPinValues?.description ?? "", icon: defaultPinValues?.icon ?? "pin", color: defaultPinValues?.color ?? "#d59b3c" }}
                 onSubmit={handleNewPinSubmit}
                 onCancel={() => { setNewPinPos(null); setAddMode(false); }}
                 submitLabel="Place Pin"
