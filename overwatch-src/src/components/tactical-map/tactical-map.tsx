@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Loader2 } from "lucide-react";
-import { configureCesium } from "./cesium-config";
+import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-layers-panel";
-import type { EventRow } from "@/types";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -49,14 +48,16 @@ interface TacticalMapProps {
   onSelectOperation?: (id: string) => void;
 }
 
-// CONUS center (roughly Kansas)
 const CONUS_CENTER = { lat: 39.8283, lng: -98.5795 };
 
 export function TacticalMap({ operations, staff, incidents, companyId, onSelectOperation }: TacticalMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const viewerRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cesiumRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerVisibility>(DEFAULT_LAYERS);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const entityGroupsRef = useRef<Record<string, any[]>>({});
@@ -66,18 +67,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   // ─── Initialize Cesium Viewer ────────────────────────
   useEffect(() => {
     if (!containerRef.current) return;
-
-    configureCesium();
-
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Cesium = require("cesium");
-    require("cesium/Build/Cesium/Widgets/widgets.css");
-
-    let viewer: InstanceType<typeof Cesium.Viewer>;
+    let destroyed = false;
 
     (async () => {
       try {
-        viewer = new Cesium.Viewer(containerRef.current, {
+        const Cesium = await loadCesium();
+        if (destroyed) return;
+        cesiumRef.current = Cesium;
+
+        const viewer = new Cesium.Viewer(containerRef.current!, {
           terrain: Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true, requestWaterMask: true }),
           baseLayerPicker: false,
           geocoder: false,
@@ -90,13 +88,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           vrButton: false,
           navigationHelpButton: false,
           infoBox: true,
-          creditContainer: document.createElement("div"), // hide credits
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any);
+          creditContainer: document.createElement("div"),
+        });
 
+        if (destroyed) { viewer.destroy(); return; }
         viewerRef.current = viewer;
 
-        // Add Cesium OSM Buildings (3D)
+        // Add 3D buildings
         const buildingsTileset = await Cesium.createOsmBuildingsAsync();
         viewer.scene.primitives.add(buildingsTileset);
         entityGroupsRef.current.buildings = [buildingsTileset];
@@ -107,36 +105,34 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           duration: 0,
         });
 
-        // Enable depth testing against terrain
         viewer.scene.globe.depthTestAgainstTerrain = true;
-
-        // Set the scene to be a bit darker for tactical feel
         viewer.scene.fog.enabled = true;
         viewer.scene.fog.density = 0.0002;
 
         setLoading(false);
       } catch (err) {
-        console.error("[TacticalMap] Failed to initialize Cesium:", err);
+        console.error("[TacticalMap] Init failed:", err);
+        setError(err instanceof Error ? err.message : "Failed to initialize map");
         setLoading(false);
       }
     })();
 
     return () => {
-      if (viewer && !viewer.isDestroyed()) {
-        viewer.destroy();
+      destroyed = true;
+      if (viewerRef.current && !viewerRef.current.isDestroyed()) {
+        viewerRef.current.destroy();
       }
       viewerRef.current = null;
+      cesiumRef.current = null;
     };
   }, []);
 
   // ─── Plot Operations ─────────────────────────────────
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || loading) return;
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Cesium = require("cesium");
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
 
-    // Clear old operation entities
     (entityGroupsRef.current.operations ?? []).forEach((e: { id: string }) => {
       try { viewer.entities.removeById(e.id); } catch {}
     });
@@ -179,10 +175,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           ${op.shiftCount ? `<br/>Shifts: ${op.shiftCount}` : ""}
         </div>`,
       });
-
       entityGroupsRef.current.operations.push(entity);
 
-      // Geofence ring
       if (op.geofenceRadius && op.geofenceRadius > 0 && layers.geofences) {
         const gfEntity = viewer.entities.add({
           id: `gf-${op.id}`,
@@ -205,15 +199,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   // ─── Plot Staff Pins ──────────────────────────────────
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || loading) return;
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Cesium = require("cesium");
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
 
     (entityGroupsRef.current.staff ?? []).forEach((e: { id: string }) => {
       try { viewer.entities.removeById(e.id); } catch {}
     });
     entityGroupsRef.current.staff = [];
-
     if (!layers.staff) return;
 
     staff.forEach((s) => {
@@ -240,10 +232,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         description: `<div style="font-family:monospace;font-size:12px;padding:8px">
-          <strong>${s.name}</strong><br/>
-          Role: ${s.role}<br/>
-          Updated: ${new Date(s.updatedAt).toLocaleTimeString()}<br/>
-          ${s.speed ? `Speed: ${(s.speed * 2.237).toFixed(1)} mph` : ""}
+          <strong>${s.name}</strong><br/>Role: ${s.role}<br/>
+          Updated: ${new Date(s.updatedAt).toLocaleTimeString()}
+          ${s.speed ? `<br/>Speed: ${(s.speed * 2.237).toFixed(1)} mph` : ""}
           ${s.heading ? `<br/>Heading: ${s.heading.toFixed(0)}&deg;` : ""}
         </div>`,
       });
@@ -254,22 +245,19 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   // ─── Plot Incidents ──────────────────────────────────
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || loading) return;
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Cesium = require("cesium");
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
 
     (entityGroupsRef.current.incidents ?? []).forEach((e: { id: string }) => {
       try { viewer.entities.removeById(e.id); } catch {}
     });
     entityGroupsRef.current.incidents = [];
-
     if (!layers.incidents) return;
 
     incidents.forEach((inc) => {
       const color = inc.severity === "critical" ? "#ef4444"
         : inc.severity === "high" ? "#f97316"
-        : inc.severity === "medium" ? "#eab308"
-        : "#6b7280";
+        : inc.severity === "medium" ? "#eab308" : "#6b7280";
 
       const entity = viewer.entities.add({
         id: `inc-${inc.id}`,
@@ -284,8 +272,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
         description: `<div style="font-family:monospace;font-size:12px;padding:8px">
           <strong>${inc.title}</strong><br/>
           Severity: <span style="color:${color}">${inc.severity.toUpperCase()}</span><br/>
-          Status: ${inc.status}<br/>
-          Reported: ${new Date(inc.createdAt).toLocaleString()}
+          Status: ${inc.status}<br/>Reported: ${new Date(inc.createdAt).toLocaleString()}
         </div>`,
       });
       entityGroupsRef.current.incidents.push(entity);
@@ -295,26 +282,21 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   // ─── Weather Radar Layer ─────────────────────────────
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || loading) return;
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Cesium = require("cesium");
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
 
-    // Remove existing weather layer
     if (weatherLayerRef.current) {
       viewer.imageryLayers.remove(weatherLayerRef.current, false);
       weatherLayerRef.current = null;
     }
-
     if (!layers.weather) return;
 
-    // NWS radar base reflectivity (free, no API key)
     const weatherProvider = new Cesium.WebMapServiceImageryProvider({
       url: "https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/MapServer/WMSServer",
       layers: "0",
       parameters: { transparent: true, format: "image/png" },
       credit: "NOAA/NWS",
     });
-
     const layer = viewer.imageryLayers.addImageryProvider(weatherProvider);
     layer.alpha = 0.5;
     weatherLayerRef.current = layer;
@@ -323,31 +305,14 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   // ─── 3D Buildings Toggle ─────────────────────────────
   useEffect(() => {
     const buildings = entityGroupsRef.current.buildings;
-    if (buildings?.[0]) {
-      buildings[0].show = layers.buildings;
-    }
+    if (buildings?.[0]) buildings[0].show = layers.buildings;
   }, [layers.buildings]);
 
-  // ─── Night Vision Mode ───────────────────────────────
+  // ─── Click handler ───────────────────────────────────
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || loading) return;
-
-    if (layers.nightVision) {
-      // Green tint post-process
-      viewer.scene.postProcessStages.ambientOcclusion.enabled = false;
-      viewer.scene.globe.baseColor = { red: 0.0, green: 0.15, blue: 0.0, alpha: 1.0 };
-    } else {
-      viewer.scene.globe.baseColor = undefined;
-    }
-  }, [layers.nightVision, loading]);
-
-  // ─── Fly to operation on click ───────────────────────
-  useEffect(() => {
-    const viewer = viewerRef.current;
-    if (!viewer || loading) return;
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Cesium = require("cesium");
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
 
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
     handler.setInputAction((click: { position: { x: number; y: number } }) => {
@@ -365,9 +330,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
 
   const handleFlyToAll = useCallback(() => {
     const viewer = viewerRef.current;
-    if (!viewer) return;
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Cesium = require("cesium");
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium) return;
 
     if (operations.length > 0) {
       viewer.flyTo(viewer.entities, { duration: 1.5 });
@@ -387,25 +351,26 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           <span className="text-xs text-muted-foreground font-mono">Initializing tactical map...</span>
         </div>
       )}
+      {error && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0b1422]">
+          <span className="text-xs text-red-500 font-mono mb-2">Map failed to load: {error}</span>
+          <button onClick={() => window.location.reload()} className="text-xs text-amber-500 underline">Retry</button>
+        </div>
+      )}
       <div ref={containerRef} className="w-full h-full" />
-      <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} />
+      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} />}
     </div>
   );
 }
 
-// ─── Pin canvas generator ────────────────────────────
 function createPinCanvas(color: string, type: "flag" | "person" | "alert"): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = 48;
   canvas.height = 48;
   const ctx = canvas.getContext("2d")!;
-
-  // Drop shadow
   ctx.shadowColor = "rgba(0,0,0,0.5)";
   ctx.shadowBlur = 4;
   ctx.shadowOffsetY = 2;
-
-  // Outer circle
   ctx.beginPath();
   ctx.arc(24, 20, 14, 0, Math.PI * 2);
   ctx.fillStyle = color;
@@ -413,8 +378,6 @@ function createPinCanvas(color: string, type: "flag" | "person" | "alert"): HTML
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 2;
   ctx.stroke();
-
-  // Pin point
   ctx.shadowColor = "transparent";
   ctx.beginPath();
   ctx.moveTo(16, 30);
@@ -422,14 +385,10 @@ function createPinCanvas(color: string, type: "flag" | "person" | "alert"): HTML
   ctx.lineTo(32, 30);
   ctx.fillStyle = color;
   ctx.fill();
-
-  // Icon inside
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 14px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  const icon = type === "flag" ? "\u2691" : type === "person" ? "\u2022" : "\u26A0";
-  ctx.fillText(icon, 24, 20);
-
+  ctx.fillText(type === "flag" ? "\u2691" : type === "person" ? "\u2022" : "\u26A0", 24, 20);
   return canvas;
 }

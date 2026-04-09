@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  serverExternalPackages: ["cesium"],
+  // CesiumJS is loaded from CDN (not bundled) — see cesium-config.ts
 };
 
 export default nextConfig;
