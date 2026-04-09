@@ -7,6 +7,10 @@ import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-laye
 import { MapToolsBar, type ActiveTool, haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "./map-tools";
 import { SiteMapAligner } from "./site-map-aligner";
 import { getSiteMapBounds, saveSiteMapBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
+import { getLocationHistory } from "@/lib/supabase/db-location";
+import { getAnnotations, createAnnotation, deleteAnnotation, subscribeAnnotations, type MapAnnotation } from "@/lib/supabase/db-annotations";
+import { getNearbyPOIs, getSunPosition, getRecentGeofenceAlerts, type NearbyPOI, type GeofenceAlert } from "./env-intel";
+import { DrawToolsBar, type DrawMode } from "./draw-tools";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -89,6 +93,16 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [boundsLoaded, setBoundsLoaded] = useState<Set<string>>(new Set());
   const [selectedEntity, setSelectedEntity] = useState<{ id: string; name: string; description: string; screenX: number; screenY: number } | null>(null);
   const popupAnimFrame = useRef<number>(0);
+
+  // Drawing state
+  const [drawMode, setDrawMode] = useState<DrawMode>("none");
+  const [drawColor, setDrawColor] = useState("#ef4444");
+  const [drawPoints, setDrawPoints] = useState<[number, number][]>([]); // [lng, lat]
+  const [annotations, setAnnotations] = useState<MapAnnotation[]>([]);
+
+  // Environmental intel state
+  const [nearbyPOIs, setNearbyPOIs] = useState<NearbyPOI[]>([]);
+  const [geofenceAlerts, setGeofenceAlerts] = useState<GeofenceAlert[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const entityGroupsRef = useRef<Record<string, any>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -640,6 +654,203 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     }
   }, [layers.satellite, loading]);
 
+  // ─── Breadcrumb Trails (patrol history) ──────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    // Clear old breadcrumb entities
+    (entityGroupsRef.current.breadcrumbs ?? []).forEach((e: { id: string }) => {
+      try { viewer.entities.removeById(e.id); } catch {}
+    });
+    entityGroupsRef.current.breadcrumbs = [];
+
+    if (!layers.breadcrumbs || staff.length === 0) return;
+
+    // Load trail for each active staff member
+    staff.forEach(s => {
+      getLocationHistory(s.userId, companyId, 4).then(trail => {
+        if (trail.length < 2) return;
+        const positions = trail.flatMap(p => [p.lng, p.lat]);
+        const entity = viewer.entities.add({
+          id: `trail-${s.userId}`,
+          polyline: {
+            positions: Cesium.Cartesian3.fromDegreesArray(positions),
+            width: 2,
+            material: new Cesium.PolylineGlowMaterialProperty({
+              glowPower: 0.2,
+              color: Cesium.Color.CYAN.withAlpha(0.6),
+            }),
+            clampToGround: true,
+          },
+        });
+        entityGroupsRef.current.breadcrumbs.push(entity);
+      }).catch(() => {});
+    });
+  }, [staff, layers.breadcrumbs, loading, companyId]);
+
+  // ─── Tactical Annotations (drawings) ───────────────
+  useEffect(() => {
+    if (!companyId || loading) return;
+    if (!layers.annotations) { setAnnotations([]); return; }
+
+    getAnnotations(companyId).then(setAnnotations).catch(() => {});
+    const unsub = subscribeAnnotations(companyId, () => {
+      getAnnotations(companyId).then(setAnnotations).catch(() => {});
+    });
+    return unsub;
+  }, [companyId, layers.annotations, loading]);
+
+  // Render annotations on the globe
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    (entityGroupsRef.current.annotations ?? []).forEach((e: { id: string }) => {
+      try { viewer.entities.removeById(e.id); } catch {}
+    });
+    entityGroupsRef.current.annotations = [];
+
+    if (!layers.annotations) return;
+
+    annotations.forEach(ann => {
+      const color = Cesium.Color.fromCssColorString(ann.color).withAlpha(0.8);
+      if ((ann.type === "line" || ann.type === "arrow" || ann.type === "freehand") && ann.geometry.positions.length >= 2) {
+        const positions = ann.geometry.positions.flatMap(([lng, lat]: [number, number]) => [lng, lat]);
+        const entity = viewer.entities.add({
+          id: `ann-${ann.id}`,
+          polyline: {
+            positions: Cesium.Cartesian3.fromDegreesArray(positions),
+            width: 3,
+            material: color,
+            clampToGround: true,
+          },
+        });
+        entityGroupsRef.current.annotations.push(entity);
+      } else if (ann.type === "polygon" && ann.geometry.positions.length >= 3) {
+        const hierarchy = Cesium.Cartesian3.fromDegreesArray(
+          ann.geometry.positions.flatMap(([lng, lat]: [number, number]) => [lng, lat])
+        );
+        const entity = viewer.entities.add({
+          id: `ann-${ann.id}`,
+          polygon: {
+            hierarchy,
+            material: color.withAlpha(0.2),
+            outline: true,
+            outlineColor: color,
+            outlineWidth: 2,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          },
+        });
+        entityGroupsRef.current.annotations.push(entity);
+      } else if (ann.type === "circle" && ann.geometry.positions.length >= 1 && ann.geometry.radius) {
+        const [lng, lat] = ann.geometry.positions[0];
+        const entity = viewer.entities.add({
+          id: `ann-${ann.id}`,
+          position: Cesium.Cartesian3.fromDegrees(lng, lat),
+          ellipse: {
+            semiMajorAxis: ann.geometry.radius,
+            semiMinorAxis: ann.geometry.radius,
+            material: color.withAlpha(0.15),
+            outline: true,
+            outlineColor: color,
+            outlineWidth: 2,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          },
+        });
+        entityGroupsRef.current.annotations.push(entity);
+      } else if (ann.type === "text" && ann.geometry.positions.length >= 1 && ann.label) {
+        const [lng, lat] = ann.geometry.positions[0];
+        const entity = viewer.entities.add({
+          id: `ann-${ann.id}`,
+          position: Cesium.Cartesian3.fromDegrees(lng, lat),
+          label: {
+            text: ann.label,
+            font: "bold 14px monospace",
+            fillColor: color,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 3,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        });
+        entityGroupsRef.current.annotations.push(entity);
+      }
+    });
+  }, [annotations, layers.annotations, loading]);
+
+  // ─── Nearby POIs (hospitals, police, fire stations) ─
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    (entityGroupsRef.current.pois ?? []).forEach((e: { id: string }) => {
+      try { viewer.entities.removeById(e.id); } catch {}
+    });
+    entityGroupsRef.current.pois = [];
+
+    if (!layers.nearbyPOIs || operations.length === 0) return;
+
+    // Fetch POIs near the first operation with coordinates
+    const op = operations.find(o => o.lat && o.lng);
+    if (!op) return;
+
+    getNearbyPOIs(op.lat, op.lng, 5000).then(pois => {
+      setNearbyPOIs(pois);
+      const poiColors: Record<string, string> = {
+        hospital: "#ef4444",
+        police: "#3b82f6",
+        fire_station: "#f97316",
+        pharmacy: "#22c55e",
+      };
+      const poiIcons: Record<string, string> = {
+        hospital: "\u2695",
+        police: "\u2605",
+        fire_station: "\u2622",
+        pharmacy: "\u271A",
+      };
+      pois.forEach((poi, i) => {
+        const color = poiColors[poi.type] || "#6b7280";
+        const entity = viewer.entities.add({
+          id: `poi-${poi.id || i}`,
+          name: poi.name,
+          position: Cesium.Cartesian3.fromDegrees(poi.lng, poi.lat),
+          billboard: {
+            image: createPinCanvas(color, "alert"),
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            scale: 0.45,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          },
+          label: {
+            text: poi.name,
+            font: "9px monospace",
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            outlineWidth: 2,
+            outlineColor: Cesium.Color.BLACK,
+            fillColor: Cesium.Color.fromCssColorString(color),
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new Cesium.Cartesian2(0, -28),
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scale: 0.8,
+          },
+          description: `<b>${poi.name}</b><br/>Type: ${poi.type.replace("_", " ")}`,
+        });
+        entityGroupsRef.current.pois.push(entity);
+      });
+    }).catch(() => {});
+  }, [operations, layers.nearbyPOIs, loading]);
+
+  // ─── Geofence Alert Feed ────────────────────────────
+  useEffect(() => {
+    if (!companyId || loading) return;
+    getRecentGeofenceAlerts(companyId, 10).then(setGeofenceAlerts).catch(() => {});
+  }, [companyId, loading]);
+
   // ─── Click handler (tools + entity selection) ────────
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -663,6 +874,40 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       const alignerFn = (window as any).__siteMapAlignerAddPoint;
       if (alignerFn && aligningOp) {
         alignerFn(lat, lng);
+        return;
+      }
+
+      // Drawing mode — collect points
+      if (drawMode !== "none") {
+        if (drawMode === "text") {
+          const label = prompt("Enter label text:");
+          if (label) {
+            createAnnotation(companyId, {
+              eventId: null,
+              type: "text",
+              geometry: { positions: [[lng, lat]] },
+              label,
+              color: drawColor,
+              style: "solid",
+            });
+          }
+          return;
+        }
+        setDrawPoints(prev => [...prev, [lng, lat]]);
+
+        // Place temporary point marker
+        viewer.entities.add({
+          id: `draw-pt-${drawPoints.length}`,
+          position: Cesium.Cartesian3.fromDegrees(lng, lat),
+          point: {
+            pixelSize: 6,
+            color: Cesium.Color.fromCssColorString(drawColor),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 1,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+        });
         return;
       }
 
@@ -815,7 +1060,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
     return () => handler.destroy();
-  }, [loading, onSelectOperation, activeTool, measurePoint1, aligningOp]);
+  }, [loading, onSelectOperation, activeTool, measurePoint1, aligningOp, drawMode, drawColor, drawPoints, companyId]);
 
   // Track selected entity screen position as camera moves
   useEffect(() => {
@@ -864,6 +1109,56 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       setRangeCenter(null);
     }
   }, [activeTool, loading]);
+
+  // Draw finish handler — save annotation to DB
+  const handleDrawFinish = useCallback(() => {
+    if (drawPoints.length < 2 && drawMode !== "text") return;
+    const type = drawMode === "none" ? "line" : drawMode;
+
+    // For circles, compute radius from first to last point
+    let geometry: MapAnnotation["geometry"];
+    if (type === "circle" && drawPoints.length >= 2) {
+      const [cLng, cLat] = drawPoints[0];
+      const [eLng, eLat] = drawPoints[drawPoints.length - 1];
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      const R = 6371000;
+      const dLat = toRad(eLat - cLat);
+      const dLng = toRad(eLng - cLng);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(cLat)) * Math.cos(toRad(eLat)) * Math.sin(dLng / 2) ** 2;
+      const radius = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      geometry = { positions: [drawPoints[0]], radius };
+    } else {
+      geometry = { positions: drawPoints };
+    }
+
+    createAnnotation(companyId, {
+      eventId: null,
+      type: type as MapAnnotation["type"],
+      geometry,
+      label: null,
+      color: drawColor,
+      style: "solid",
+    });
+
+    // Clean up temp markers
+    const viewer = viewerRef.current;
+    drawPoints.forEach((_, i) => { try { viewer?.entities.removeById(`draw-pt-${i}`); } catch {} });
+    setDrawPoints([]);
+    setDrawMode("none");
+  }, [drawPoints, drawMode, drawColor, companyId]);
+
+  const handleDrawCancel = useCallback(() => {
+    const viewer = viewerRef.current;
+    drawPoints.forEach((_, i) => { try { viewer?.entities.removeById(`draw-pt-${i}`); } catch {} });
+    setDrawPoints([]);
+    setDrawMode("none");
+  }, [drawPoints]);
+
+  const handleClearAnnotations = useCallback(async () => {
+    for (const ann of annotations) {
+      await deleteAnnotation(ann.id);
+    }
+  }, [annotations]);
 
   const handleFlyToAll = useCallback(() => {
     const viewer = viewerRef.current;
@@ -927,12 +1222,39 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         setAligningOp(op);
       }} />}
       {!error && !loading && (
-        <MapToolsBar
-          activeTool={activeTool}
-          onToolChange={setActiveTool}
-          measureResult={measureResult}
-          rangeCenter={rangeCenter}
-        />
+        <>
+          <MapToolsBar
+            activeTool={activeTool}
+            onToolChange={setActiveTool}
+            measureResult={measureResult}
+            rangeCenter={rangeCenter}
+          />
+          <DrawToolsBar
+            mode={drawMode}
+            onModeChange={setDrawMode}
+            onClear={handleClearAnnotations}
+            drawColor={drawColor}
+            onColorChange={setDrawColor}
+            pointCount={drawPoints.length}
+            onFinish={handleDrawFinish}
+            onCancel={handleDrawCancel}
+            isAdmin={isAdmin ?? false}
+          />
+        </>
+      )}
+      {/* Geofence Alert Ticker */}
+      {geofenceAlerts.length > 0 && (
+        <div className="absolute bottom-14 left-3 right-64 z-10 rounded-lg backdrop-blur-sm border border-red-500/20 px-3 py-1.5 overflow-hidden"
+          style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)" }}>
+          <div className="flex items-center gap-2 text-[10px] font-mono animate-marquee">
+            <span className="text-red-500 font-bold shrink-0">GEOFENCE</span>
+            {geofenceAlerts.slice(0, 5).map(a => (
+              <span key={a.id} className="text-white/60 shrink-0">
+                {a.alertType === "breach" ? "⚠" : "✓"} {a.userName} — {a.eventName} ({Math.round(a.distanceM)}m) {new Date(a.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
       {aligningOp && aligningOp.siteMapUrl && (
         <SiteMapAligner

@@ -21,10 +21,12 @@ interface LocationUpdate {
 }
 
 /**
- * Push a GPS position for the current user (upserts).
+ * Push a GPS position for the current user (upserts current + appends to history).
  */
 export async function pushStaffLocation(update: LocationUpdate) {
   const supabase = createClient();
+
+  // Upsert current position (latest only)
   const { error } = await supabase.from("staff_locations").upsert(
     {
       user_id: update.userId,
@@ -39,6 +41,99 @@ export async function pushStaffLocation(update: LocationUpdate) {
     { onConflict: "user_id,company_id" }
   );
   if (error) console.error("[Location] Push failed:", error);
+
+  // Append to history (breadcrumb trail)
+  supabase.from("staff_location_history").insert({
+    user_id: update.userId,
+    company_id: update.companyId,
+    lat: update.lat,
+    lng: update.lng,
+    accuracy: update.accuracy ?? null,
+    heading: update.heading ?? null,
+    speed: update.speed ?? null,
+  }).then(({ error: histErr }: { error: { message: string } | null }) => {
+    if (histErr) console.warn("[Location] History append failed:", histErr.message);
+  });
+}
+
+/**
+ * Get location history (breadcrumb trail) for a specific user.
+ * Returns positions from the last N hours, oldest first.
+ */
+export async function getLocationHistory(userId: string, companyId: string, hoursBack = 8): Promise<Array<{ lat: number; lng: number; speed: number | null; heading: number | null; recordedAt: string }>> {
+  const supabase = createClient();
+  const since = new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("staff_location_history")
+    .select("lat, lng, speed, heading, recorded_at")
+    .eq("user_id", userId)
+    .eq("company_id", companyId)
+    .gte("recorded_at", since)
+    .order("recorded_at", { ascending: true });
+
+  if (error) { console.error("[Location] History fetch failed:", error); return []; }
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    lat: r.lat as number,
+    lng: r.lng as number,
+    speed: r.speed as number | null,
+    heading: r.heading as number | null,
+    recordedAt: r.recorded_at as string,
+  }));
+}
+
+/**
+ * Check if a position is outside any active operation's geofence.
+ * Returns the first breached event, or null if within all geofences.
+ */
+export async function checkGeofenceBreach(
+  companyId: string,
+  lat: number,
+  lng: number,
+): Promise<{ eventId: string; eventName: string; distanceM: number; radiusM: number } | null> {
+  const supabase = createClient();
+  const { data: events } = await supabase
+    .from("events")
+    .select("id, name, location_lat, location_lng, geofence_radius_meters, status")
+    .eq("company_id", companyId)
+    .not("geofence_radius_meters", "is", null)
+    .gt("geofence_radius_meters", 0)
+    .in("status", ["active", "upcoming"]);
+
+  if (!events || events.length === 0) return null;
+
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const R = 6371000; // Earth radius in meters
+
+  for (const ev of events) {
+    if (!ev.location_lat || !ev.location_lng) continue;
+    const dLat = toRad(lat - ev.location_lat);
+    const dLng = toRad(lng - ev.location_lng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(ev.location_lat)) * Math.cos(toRad(lat)) * Math.sin(dLng / 2) ** 2;
+    const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    if (distance > (ev.geofence_radius_meters ?? 0)) {
+      return { eventId: ev.id, eventName: ev.name, distanceM: distance, radiusM: ev.geofence_radius_meters ?? 0 };
+    }
+  }
+  return null;
+}
+
+/**
+ * Log a geofence breach alert.
+ */
+export async function logGeofenceBreach(
+  companyId: string, eventId: string, userId: string,
+  lat: number, lng: number, distanceM: number, alertType: "breach" | "return" = "breach"
+) {
+  const supabase = createClient();
+  await supabase.from("geofence_alerts").insert({
+    company_id: companyId,
+    event_id: eventId,
+    user_id: userId,
+    alert_type: alertType,
+    lat, lng,
+    distance_m: distanceM,
+  });
 }
 
 /**
@@ -133,18 +228,33 @@ export function startLocationWatcher(
     { enableHighAccuracy: true, maximumAge: 10000 }
   );
 
-  // Push to DB every 30 seconds
-  intervalId = setInterval(() => {
+  // Push to DB every 30 seconds + check geofences
+  let lastBreachEventId: string | null = null;
+  intervalId = setInterval(async () => {
     if (lastPosition) {
+      const lat = lastPosition.coords.latitude;
+      const lng = lastPosition.coords.longitude;
+
       pushStaffLocation({
-        userId,
-        companyId,
-        lat: lastPosition.coords.latitude,
-        lng: lastPosition.coords.longitude,
+        userId, companyId, lat, lng,
         accuracy: lastPosition.coords.accuracy ?? undefined,
         heading: lastPosition.coords.heading ?? undefined,
         speed: lastPosition.coords.speed ?? undefined,
       });
+
+      // Check geofence breaches
+      try {
+        const breach = await checkGeofenceBreach(companyId, lat, lng);
+        if (breach && breach.eventId !== lastBreachEventId) {
+          // New breach — log it
+          lastBreachEventId = breach.eventId;
+          logGeofenceBreach(companyId, breach.eventId, userId, lat, lng, breach.distanceM, "breach");
+          console.warn(`[Geofence] BREACH: ${breach.eventName} — ${Math.round(breach.distanceM)}m outside ${breach.radiusM}m radius`);
+        } else if (!breach && lastBreachEventId) {
+          // Returned inside geofence
+          lastBreachEventId = null;
+        }
+      } catch {}
     }
   }, 30000);
 

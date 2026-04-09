@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Layers, Users, Flag, CloudRain, Building2, Mountain,
   Eye, EyeOff, ChevronRight, Target, AlertTriangle, Moon, Satellite,
+  Hospital, Shield, Sun,
 } from "lucide-react";
 import type { OperationPin } from "./tactical-map";
 
@@ -17,8 +18,12 @@ export interface LayerVisibility {
   geofences: boolean;
   nightVision: boolean;
   satellite: boolean;
-  siteOverlays: Record<string, boolean>; // eventId -> visible
-  siteOverlayOpacity: number; // 0-1
+  breadcrumbs: boolean;
+  nearbyPOIs: boolean;
+  annotations: boolean;
+  sunPosition: boolean;
+  siteOverlays: Record<string, boolean>;
+  siteOverlayOpacity: number;
 }
 
 export const DEFAULT_LAYERS: LayerVisibility = {
@@ -31,6 +36,10 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   geofences: true,
   nightVision: false,
   satellite: true,
+  breadcrumbs: true,
+  nearbyPOIs: false,
+  annotations: true,
+  sunPosition: false,
   siteOverlays: {},
   siteOverlayOpacity: 0.75,
 };
@@ -47,8 +56,12 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "staff", label: "Staff Locations", icon: <Users className="h-3.5 w-3.5" />, group: "PINS" },
   { key: "incidents", label: "Incidents", icon: <AlertTriangle className="h-3.5 w-3.5" />, group: "PINS" },
   { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "PINS" },
+  { key: "breadcrumbs", label: "Patrol Trails", icon: <Flag className="h-3.5 w-3.5" />, group: "PINS" },
   { key: "weather", label: "Weather Radar", icon: <CloudRain className="h-3.5 w-3.5" />, group: "OVERLAYS" },
   { key: "nightVision", label: "Night Vision", icon: <Moon className="h-3.5 w-3.5" />, group: "OVERLAYS" },
+  { key: "annotations", label: "Tactical Drawings", icon: <Flag className="h-3.5 w-3.5" />, group: "OVERLAYS" },
+  { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "INTEL" },
+  { key: "sunPosition", label: "Sun Position", icon: <Sun className="h-3.5 w-3.5" />, group: "INTEL" },
   { key: "satellite", label: "Satellite Imagery", icon: <Satellite className="h-3.5 w-3.5" />, group: "TERRAIN" },
   { key: "buildings", label: "3D Buildings", icon: <Building2 className="h-3.5 w-3.5" />, group: "TERRAIN" },
   { key: "terrain", label: "3D Terrain", icon: <Mountain className="h-3.5 w-3.5" />, group: "TERRAIN" },

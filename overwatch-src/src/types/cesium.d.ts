@@ -29,6 +29,7 @@ declare namespace Cesium {
   const Math: { toDegrees: (radians: number) => number; toRadians: (degrees: number) => number };
   class PostProcessStage { constructor(opts: { fragmentShader: string }); }
   class Cesium3DTileStyle { constructor(opts: any); }
+  class PolylineGlowMaterialProperty { constructor(opts: any); }
   const SceneTransforms: { worldToWindowCoordinates: (scene: any, position: any) => { x: number; y: number } | undefined };
   function createOsmBuildingsAsync(): Promise<any>;
   function defined(value: any): boolean;
