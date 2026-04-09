@@ -57,9 +57,10 @@ interface MapLayersPanelProps {
   onChange: (layers: LayerVisibility) => void;
   onFlyToAll: () => void;
   operations: OperationPin[];
+  onRealignSiteMap?: (op: OperationPin) => void;
 }
 
-export function MapLayersPanel({ layers, onChange, onFlyToAll, operations }: MapLayersPanelProps) {
+export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap }: MapLayersPanelProps) {
   const [open, setOpen] = useState(true);
 
   function toggle(key: keyof Omit<LayerVisibility, "siteOverlays">) {
@@ -130,19 +131,29 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations }: Map
                 {opsWithSiteMaps.map((op) => {
                   const active = layers.siteOverlays[op.id] ?? false;
                   return (
-                    <button
-                      key={op.id}
-                      onClick={() => toggleSiteOverlay(op.id)}
-                      className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
-                        active
-                          ? "bg-white/10 text-white"
-                          : "text-white/40 hover:text-white/60 hover:bg-white/5"
-                      }`}
-                    >
-                      <Layers className="h-3 w-3" />
-                      <span className="flex-1 text-left truncate">{op.name}</span>
-                      {active ? <Eye className="h-3 w-3 text-green-400" /> : <EyeOff className="h-3 w-3" />}
-                    </button>
+                    <div key={op.id} className="flex items-center gap-1">
+                      <button
+                        onClick={() => toggleSiteOverlay(op.id)}
+                        className={`flex-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
+                          active
+                            ? "bg-white/10 text-white"
+                            : "text-white/40 hover:text-white/60 hover:bg-white/5"
+                        }`}
+                      >
+                        <Layers className="h-3 w-3" />
+                        <span className="flex-1 text-left truncate">{op.name}</span>
+                        {active ? <Eye className="h-3 w-3 text-green-400" /> : <EyeOff className="h-3 w-3" />}
+                      </button>
+                      {active && onRealignSiteMap && (
+                        <button
+                          onClick={() => onRealignSiteMap(op)}
+                          className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded"
+                          title="Re-align site map"
+                        >
+                          ↻
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>

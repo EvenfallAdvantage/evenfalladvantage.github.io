@@ -66,6 +66,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
   const [measurePoint1, setMeasurePoint1] = useState<{ lat: number; lng: number } | null>(null);
   const [rangeCenter, setRangeCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [aligningOp, setAligningOp] = useState<OperationPin | null>(null);
+  const [savedBounds, setSavedBounds] = useState<Record<string, { west: number; south: number; east: number; north: number }>>({});
   const [selectedEntity, setSelectedEntity] = useState<{ id: string; name: string; description: string; screenX: number; screenY: number } | null>(null);
   const popupAnimFrame = useRef<number>(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -332,7 +333,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
     if (buildings?.[0]) buildings[0].show = layers.buildings;
   }, [layers.buildings]);
 
-  // ─── Site Map Overlays ──────────────────────────────
+  // ─── Site Map Overlays (rubber-sheet aligned) ────────
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
@@ -344,29 +345,33 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
     });
     entityGroupsRef.current.siteOverlays = [];
 
-    // Add active site overlays
+    // Check each toggled-on site map
     operations.forEach((op) => {
       if (!layers.siteOverlays[op.id] || !op.siteMapUrl || !op.lat || !op.lng) return;
 
-      try {
-        // Drape the site map image as a ground overlay centered on the operation
-        // Default extent: ~200m in each direction (adjustable per operation)
-        const extent = 0.002; // ~200m in degrees
-        const provider = new Cesium.SingleTileImageryProvider({
-          url: op.siteMapUrl,
-          rectangle: Cesium.Rectangle.fromDegrees(
-            op.lng - extent, op.lat - extent,
-            op.lng + extent, op.lat + extent
-          ),
-        });
-        const layer = viewer.imageryLayers.addImageryProvider(provider);
-        layer.alpha = 0.7;
-        entityGroupsRef.current.siteOverlays.push({ layerRef: layer, eventId: op.id });
-      } catch (err) {
-        console.warn("[TacticalMap] Failed to load site overlay for", op.name, err);
+      // If we have saved bounds from a previous alignment, drape immediately
+      const bounds = savedBounds[op.id];
+      if (bounds) {
+        try {
+          const provider = new Cesium.SingleTileImageryProvider({
+            url: op.siteMapUrl,
+            rectangle: Cesium.Rectangle.fromDegrees(bounds.west, bounds.south, bounds.east, bounds.north),
+          });
+          const layer = viewer.imageryLayers.addImageryProvider(provider);
+          layer.alpha = 0.75;
+          entityGroupsRef.current.siteOverlays.push({ layerRef: layer, eventId: op.id });
+        } catch (err) {
+          console.warn("[TacticalMap] Failed to load aligned site overlay for", op.name, err);
+        }
+        return;
+      }
+
+      // No saved bounds — open the 3-point alignment tool
+      if (!aligningOp) {
+        setAligningOp(op);
       }
     });
-  }, [operations, layers.siteOverlays, loading]);
+  }, [operations, layers.siteOverlays, loading, savedBounds, aligningOp]);
 
   // ─── Night Vision Mode ───────────────────────────────
   // Swaps to a dark basemap (CartoDB Dark Matter) and styles 3D buildings
@@ -767,7 +772,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
         </div>
       )}
 
-      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} />}
+      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} onRealignSiteMap={(op) => {
+        // Clear saved bounds to force re-alignment
+        setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
+        setAligningOp(op);
+      }} />}
       {!error && !loading && (
         <MapToolsBar
           activeTool={activeTool}
@@ -781,24 +790,20 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           imageUrl={aligningOp.siteMapUrl}
           operationName={aligningOp.name}
           onAlign={(bounds) => {
-            // Apply the aligned overlay
-            const viewer = viewerRef.current;
-            const Cesium = cesiumRef.current;
-            if (viewer && Cesium && aligningOp.siteMapUrl) {
-              try {
-                const provider = new Cesium.SingleTileImageryProvider({
-                  url: aligningOp.siteMapUrl,
-                  rectangle: Cesium.Rectangle.fromDegrees(bounds.west, bounds.south, bounds.east, bounds.north),
-                });
-                const layer = viewer.imageryLayers.addImageryProvider(provider);
-                layer.alpha = 0.75;
-              } catch (err) {
-                console.error("[TacticalMap] Failed to apply aligned overlay:", err);
-              }
-            }
+            // Save the alignment bounds so it persists during this session
+            setSavedBounds((prev) => ({ ...prev, [aligningOp.id]: bounds }));
+            setAligningOp(null);
+            // The useEffect for site overlays will pick up the saved bounds
+            // and drape the image automatically
+          }}
+          onCancel={() => {
+            // Turn off the site map layer since user cancelled alignment
+            setLayers((prev) => ({
+              ...prev,
+              siteOverlays: { ...prev.siteOverlays, [aligningOp.id]: false },
+            }));
             setAligningOp(null);
           }}
-          onCancel={() => setAligningOp(null)}
         />
       )}
     </div>
