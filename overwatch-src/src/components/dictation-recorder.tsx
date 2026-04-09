@@ -17,7 +17,7 @@ function getSpeechRecognitionCtor(): (new () => SpeechRecognitionInstance) | nul
 
 const ERROR_MESSAGES: Record<string, string> = {
   "not-allowed": "Microphone access was denied. Please allow microphone permission in your browser settings and try again.",
-  "network": "Could not connect to Google's speech recognition service. Chrome sends audio to Google servers for transcription. If you use a Pi-hole, DNS-level ad blocker, or VPN, it may be blocking www.google.com or speech.google.com. Whitelist those domains, or type your transcript directly in the text box below.",
+  "network": "Speech recognition failed. This can be caused by Cloudflare Rocket Loader interfering with browser APIs. If your domain uses Cloudflare, disable Rocket Loader in Speed > Optimization > Content Optimization. You can still type your transcript directly in the text box below.",
   "audio-capture": "No microphone was found. Please connect a microphone and try again.",
   "service-not-allowed": "Speech recognition service is not allowed. This may be due to browser settings or extensions blocking the service.",
 };
@@ -66,36 +66,17 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       return;
     }
 
-    // Pre-check: can we reach the specific Google speech endpoints?
-    // Chrome's Web Speech API streams audio to Google servers. If any of
-    // these endpoints are DNS-blocked (Pi-hole, VPN, firewall), recognition
-    // silently fails with a "network" error and nothing in DevTools.
-    const speechEndpoints = [
-      "https://www.google.com/generate_204",
-      "https://speech.google.com",
-      "https://csp.withgoogle.com",
-    ];
-    const blocked: string[] = [];
-    await Promise.all(speechEndpoints.map(async (url) => {
-      try {
-        await fetch(url, { method: "HEAD", mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(4000) });
-      } catch {
-        blocked.push(new URL(url).hostname);
-      }
-    }));
-    if (blocked.length > 0) {
-      setError(`Cannot reach Google speech servers: ${blocked.join(", ")}. Chrome requires these domains for speech-to-text. If you use a Pi-hole or network-level blocker, whitelist them. You can still type your transcript in the text box below.`);
-      setErrorType("network");
-      return;
-    }
-
     const recognition = new Ctor();
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
+    // Use addEventListener instead of onresult/onerror/onend properties.
+    // Cloudflare Rocket Loader rewrites inline event handlers and can break
+    // Chrome's internal SpeechRecognition event dispatch. addEventListener
+    // bypasses Rocket Loader's interception.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onresult = (event: any) => {
+    recognition.addEventListener("result", (event: any) => {
       let interimTranscript = "";
       let finalTranscript = "";
 
@@ -113,10 +94,10 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       } else if (interimTranscript) {
         onTranscript(interimTranscript, false);
       }
-    };
+    });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.onerror = (event: any) => {
+    recognition.addEventListener("error", (event: any) => {
       // Log full error for debugging (visible in DevTools console)
       console.warn("[Dictation] SpeechRecognition error:", event.error, "message:", event.message, "full event:", event);
 
@@ -134,13 +115,13 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       setIsRecording(false);
       recordingRef.current = false;
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    };
+    });
 
-    recognition.onend = () => {
+    recognition.addEventListener("end", () => {
       if (recordingRef.current && recognitionRef.current) {
         try { recognition.start(); } catch {}
       }
-    };
+    });
 
     recognitionRef.current = recognition;
     recordingRef.current = true;
