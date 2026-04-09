@@ -16,6 +16,7 @@ overwatch-src/.next/
 overwatch-src/out/
 overwatch-src/.env
 overwatch-src/.env.local
+overwatch-src/public/cesium/
 
 # Overwatch built output (now built in CI via GitHub Actions)
 overwatch/

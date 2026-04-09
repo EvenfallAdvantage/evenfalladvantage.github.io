@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
-  CalendarDays, MapPin, Clock, Loader2, QrCode,
+  CalendarDays, MapPin, Clock, Loader2, QrCode, Globe,
   Plus, ArrowUpFromLine, ArrowDownToLine, Trash2, Bell,
   FileText, Camera, ScanLine, CheckCircle2, AlertCircle, AlertTriangle,
   ClipboardList, Flag, ChevronDown, List,
@@ -25,8 +25,12 @@ import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import { parseUTC } from "@/lib/parse-utc";
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
+import { getStaffLocations, subscribeStaffLocations } from "@/lib/supabase/db-location";
+import { getIncidents } from "@/lib/supabase/db";
+import type { OperationPin, StaffPin, IncidentPin } from "@/components/tactical-map/tactical-map";
 
 const QrScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
+const TacticalMap = dynamic(() => import("@/components/tactical-map").then(m => ({ default: m.TacticalMap })), { ssr: false, loading: () => <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Ev = any;
@@ -206,7 +210,7 @@ export default function SchedulePage() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
-  const [tab, setTab] = useState<"schedule" | "armory">("schedule");
+  const [tab, setTab] = useState<"schedule" | "armory" | "map">("schedule");
 
   // Armory "show create" state (declared before useEffect)
   const [showCreate, setShowCreate] = useState(false);
@@ -240,9 +244,14 @@ export default function SchedulePage() {
   const [scanMode, setScanMode] = useState<null | "serial" | "checkinout">(null);
   const [scanResult, setScanResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  // Map tab state
+  const [mapOps, setMapOps] = useState<OperationPin[]>([]);
+  const [mapStaff, setMapStaff] = useState<StaffPin[]>([]);
+  const [mapIncidents, setMapIncidents] = useState<IncidentPin[]>([]);
+
   useEffect(() => {
     setHeader("OPERATIONS", "Your assigned shifts, operations, and equipment",
-      tab === "armory" ? <QrCode className="h-5 w-5" /> : <CalendarDays className="h-5 w-5" />,
+      tab === "armory" ? <QrCode className="h-5 w-5" /> : tab === "map" ? <Globe className="h-5 w-5" /> : <CalendarDays className="h-5 w-5" />,
       tab === "armory" && isAdmin ? (
         <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
           <Plus className="h-4 w-4" /> Add Gear
@@ -270,6 +279,80 @@ export default function SchedulePage() {
   }, [activeCompanyId]);
 
   useEffect(() => { loadSchedule(); loadAssets(); }, [loadSchedule, loadAssets]);
+
+  // ─── Map Tab: load operation pins, staff locations, incidents ────
+  const loadMapData = useCallback(async () => {
+    if (!activeCompanyId || activeCompanyId === "pending" || tab !== "map") return;
+    try {
+      // Build operation pins from already-loaded events (only those with coordinates)
+      const ops: OperationPin[] = events
+        .filter((ev: Ev) => ev.location_lat && ev.location_lng)
+        .map((ev: Ev) => ({
+          id: ev.id,
+          name: ev.name,
+          location: ev.location ?? "",
+          lat: ev.location_lat,
+          lng: ev.location_lng,
+          status: ev.status ?? "draft",
+          startDate: ev.start_date ?? "",
+          geofenceRadius: ev.geofence_radius_meters ?? undefined,
+          siteMapUrl: ev.site_map_url ?? null,
+        }));
+      setMapOps(ops);
+
+      // Fetch staff locations and incidents in parallel
+      const [staffLocs, incidentsRaw] = await Promise.all([
+        getStaffLocations(activeCompanyId),
+        getIncidents(activeCompanyId, "all"),
+      ]);
+
+      setMapStaff(staffLocs.map((s: { userId: string; name: string; lat: number; lng: number; heading: number | null; speed: number | null; updatedAt: string }) => ({
+        userId: s.userId,
+        name: s.name,
+        role: "staff",
+        lat: s.lat,
+        lng: s.lng,
+        heading: s.heading ?? undefined,
+        speed: s.speed ?? undefined,
+        updatedAt: s.updatedAt,
+      })));
+
+      setMapIncidents(
+        (incidentsRaw ?? [])
+          .filter((inc: Ev) => inc.location_lat && inc.location_lng)
+          .map((inc: Ev) => ({
+            id: inc.id,
+            title: inc.title ?? "Incident",
+            lat: inc.location_lat,
+            lng: inc.location_lng,
+            severity: inc.severity ?? "low",
+            status: inc.status ?? "open",
+            createdAt: inc.created_at ?? "",
+          }))
+      );
+    } catch (err) {
+      console.error("[Map] Failed to load map data:", err);
+    }
+  }, [activeCompanyId, tab, events]);
+
+  useEffect(() => { loadMapData(); }, [loadMapData]);
+
+  // Subscribe to real-time staff location updates when map tab is active
+  useEffect(() => {
+    if (tab !== "map" || !activeCompanyId || activeCompanyId === "pending") return;
+    const unsub = subscribeStaffLocations(activeCompanyId, () => {
+      // Re-fetch staff locations on any change
+      getStaffLocations(activeCompanyId).then((locs) => {
+        setMapStaff(locs.map((s: { userId: string; name: string; lat: number; lng: number; heading: number | null; speed: number | null; updatedAt: string }) => ({
+          userId: s.userId, name: s.name, role: "staff",
+          lat: s.lat, lng: s.lng,
+          heading: s.heading ?? undefined, speed: s.speed ?? undefined,
+          updatedAt: s.updatedAt,
+        })));
+      });
+    });
+    return unsub;
+  }, [tab, activeCompanyId]);
 
   // Load issued documents & my availability for each event
   useEffect(() => {
@@ -444,6 +527,10 @@ export default function SchedulePage() {
             <button onClick={() => setTab("armory")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "armory" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               {tab === "armory" && <QrCode className="h-3.5 w-3.5 text-primary" />}Armory
+            </button>
+            <button onClick={() => setTab("map")}
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "map" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+              {tab === "map" && <Globe className="h-3.5 w-3.5 text-primary" />}Map
             </button>
           </div>
         </div>
@@ -834,6 +921,20 @@ export default function SchedulePage() {
           </>
         )}
       </div>
+
+      {/* ── Map Tab ── */}
+      {tab === "map" && (
+        <TacticalMap
+          operations={mapOps}
+          staff={mapStaff}
+          incidents={mapIncidents}
+          companyId={activeCompanyId ?? ""}
+          onSelectOperation={(id) => {
+            // Could navigate to operation detail or expand it
+            toast.info(`Operation selected: ${mapOps.find(o => o.id === id)?.name ?? id}`);
+          }}
+        />
+      )}
 
       {/* ── Doc Viewer Modal ── */}
       {viewingDoc && (
