@@ -90,10 +90,10 @@ export async function transcribe(
 
   onProgress?.({ status: "transcribing", message: "Transcribing audio..." });
 
+  // Note: whisper-tiny.en is English-only — do NOT pass language or task
+  // (those params are only for multilingual models like whisper-tiny)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any = await pipelineInstance(audioData, {
-    language: "en",
-    task: "transcribe",
     chunk_length_s: 30,
     stride_length_s: 5,
     return_timestamps: false,
