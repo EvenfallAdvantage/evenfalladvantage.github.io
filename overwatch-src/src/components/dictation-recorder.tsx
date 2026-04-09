@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Mic, MicOff, Square, AlertTriangle } from "lucide-react";
+import { Mic, MicOff, Square, AlertTriangle, Cpu, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { detectSpeechTier, describeTier, type SpeechTier } from "@/lib/speech";
+import type { WhisperProgress } from "@/lib/speech/whisper-engine";
 
 /* ── Web Speech API type stubs ── */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -15,22 +18,11 @@ function getSpeechRecognitionCtor(): (new () => SpeechRecognitionInstance) | nul
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-function isBraveBrowser(): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return !!(navigator as any).brave;
-}
-
-function getNetworkErrorMessage(): string {
-  if (isBraveBrowser()) {
-    return "Brave Browser does not support speech recognition. Brave cannot access Google's transcription service (this is a browser limitation, not a setting). Please use Chrome or Edge for voice dictation, or type your transcript directly in the text box below.";
-  }
-  return "Could not connect to the speech recognition service. This can be caused by a browser extension or network-level ad blocker. Try Chrome or Edge, or type your transcript directly in the text box below.";
-}
-
-const ERROR_MESSAGES: Record<string, string> = {
+const NATIVE_ERROR_MESSAGES: Record<string, string> = {
   "not-allowed": "Microphone access was denied. Please allow microphone permission in your browser settings and try again.",
   "audio-capture": "No microphone was found. Please connect a microphone and try again.",
   "service-not-allowed": "Speech recognition service is not allowed. This may be due to browser settings or extensions blocking the service.",
+  "network": "Could not connect to the speech recognition service. Falling back to local Whisper AI...",
 };
 
 interface DictationRecorderProps {
@@ -39,41 +31,50 @@ interface DictationRecorderProps {
 }
 
 export function DictationRecorder({ onTranscript, disabled }: DictationRecorderProps) {
+  const [tier, setTier] = useState<SpeechTier>("native");
   const [isRecording, setIsRecording] = useState(false);
-  const [isSupported, setIsSupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [errorType, setErrorType] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
-  const [micPermission, setMicPermission] = useState<"unknown" | "granted" | "denied" | "prompt">("unknown");
+  const [whisperStatus, setWhisperStatus] = useState<WhisperProgress | null>(null);
+  const [processingWhisper, setProcessingWhisper] = useState(false);
+
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingRef = useRef(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
+  // Detect best tier on mount
   useEffect(() => {
-    if (!getSpeechRecognitionCtor()) setIsSupported(false);
-
-    // Check microphone permission state
-    if (navigator.permissions) {
-      navigator.permissions.query({ name: "microphone" as PermissionName }).then(result => {
-        setMicPermission(result.state as "granted" | "denied" | "prompt");
-        result.onchange = () => setMicPermission(result.state as "granted" | "denied" | "prompt");
-      }).catch(() => { /* permissions API not available for microphone in some browsers */ });
-    }
-
+    setTier(detectSpeechTier());
     return () => {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch {}
-      }
+      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
+      if (mediaRecorderRef.current?.state === "recording") { try { mediaRecorderRef.current.stop(); } catch {} }
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
-  const startRecording = useCallback(async () => {
+  // ─── Timer helpers ──────────────────────────────────
+  function startTimer() {
+    setElapsed(0);
+    timerRef.current = setInterval(() => setElapsed((p) => p + 1), 1000);
+  }
+  function stopTimer() {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }
+  function formatTime(s: number) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  }
+
+  // ─── Tier 1: Native Web Speech API ──────────────────
+  const startNative = useCallback(() => {
     setError(null);
-    setErrorType(null);
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) {
-      setError("Speech recognition is not supported in this browser. Use Chrome, Edge, or Safari.");
+      // Fallback to whisper if native isn't available at runtime
+      setTier("whisper");
       return;
     }
 
@@ -82,52 +83,38 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    // Use addEventListener instead of onresult/onerror/onend properties.
-    // Cloudflare Rocket Loader rewrites inline event handlers and can break
-    // Chrome's internal SpeechRecognition event dispatch. addEventListener
-    // bypasses Rocket Loader's interception.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.addEventListener("result", (event: any) => {
       let interimTranscript = "";
       let finalTranscript = "";
-
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
+        if (event.results[i].isFinal) finalTranscript += transcript;
+        else interimTranscript += transcript;
       }
-
-      if (finalTranscript) {
-        onTranscript(finalTranscript, true);
-      } else if (interimTranscript) {
-        onTranscript(interimTranscript, false);
-      }
+      if (finalTranscript) onTranscript(finalTranscript, true);
+      else if (interimTranscript) onTranscript(interimTranscript, false);
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.addEventListener("error", (event: any) => {
-      // Log full error for debugging (visible in DevTools console)
-      console.warn("[Dictation] SpeechRecognition error:", event.error, "message:", event.message, "full event:", event);
+      console.warn("[Dictation] Native error:", event.error);
+      if (event.error === "no-speech" || event.error === "aborted") return;
 
-      if (event.error === "no-speech") return;
-      if (event.error === "aborted") return;
-
-      // "not-allowed" means user denied mic — update permission state
-      if (event.error === "not-allowed") {
-        setMicPermission("denied");
+      // On network error, auto-fallback to Whisper
+      if (event.error === "network") {
+        console.info("[Dictation] Native speech failed, falling back to Whisper WASM");
+        stopNative();
+        setTier("whisper");
+        setError("Browser speech recognition unavailable. Switched to local Whisper AI — click Start Recording to try again.");
+        return;
       }
 
-      const msg = event.error === "network"
-        ? getNetworkErrorMessage()
-        : ERROR_MESSAGES[event.error] ?? `Speech recognition error: ${event.error}. Try disabling browser extensions or using a different browser.`;
+      const msg = NATIVE_ERROR_MESSAGES[event.error] ?? `Speech recognition error: ${event.error}`;
       setError(msg);
-      setErrorType(event.error);
       setIsRecording(false);
       recordingRef.current = false;
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      stopTimer();
     });
 
     recognition.addEventListener("end", () => {
@@ -141,15 +128,13 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     try {
       recognition.start();
       setIsRecording(true);
-      setMicPermission("granted");
-      setElapsed(0);
-      timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
-    } catch (err) {
+      startTimer();
+    } catch {
       setError("Failed to start speech recognition. Please try again.");
     }
   }, [onTranscript]);
 
-  const stopRecording = useCallback(() => {
+  function stopNative() {
     recordingRef.current = false;
     if (recognitionRef.current) {
       const ref = recognitionRef.current;
@@ -157,42 +142,162 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       try { ref.stop(); } catch {}
     }
     setIsRecording(false);
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    stopTimer();
+  }
+
+  // ─── Tier 2: Whisper WASM via MediaRecorder ─────────
+  const startWhisper = useCallback(async () => {
+    setError(null);
+
+    // Get mic stream
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setError("Microphone access was denied. Please allow microphone permission in your browser settings.");
+      return;
+    }
+
+    // Start recording
+    audioChunksRef.current = [];
+    const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "audio/mp4";
+
+    const recorder = new MediaRecorder(stream, { mimeType });
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunksRef.current.push(e.data);
+    };
+    recorder.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+    };
+
+    mediaRecorderRef.current = recorder;
+    recorder.start(1000); // Collect in 1-second chunks
+    setIsRecording(true);
+    startTimer();
   }, []);
 
-  function formatTime(s: number) {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  }
+  const stopWhisper = useCallback(async () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state !== "recording") return;
 
-  if (!isSupported) {
-    return (
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-600">
-        <MicOff className="inline h-3.5 w-3.5 mr-1.5" />
-        Speech recognition is not available in this browser. Use Chrome, Edge, or Safari for dictation.
-      </div>
-    );
-  }
+    setIsRecording(false);
+    stopTimer();
 
-  const brave = isBraveBrowser();
+    // Stop recording and wait for final data
+    await new Promise<void>((resolve) => {
+      recorder.addEventListener("stop", () => resolve(), { once: true });
+      recorder.stop();
+    });
 
+    const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType });
+    audioChunksRef.current = [];
+    mediaRecorderRef.current = null;
+
+    if (blob.size === 0) {
+      setError("No audio recorded. Please try again.");
+      return;
+    }
+
+    // Transcribe
+    setProcessingWhisper(true);
+    try {
+      // Lazy-load the Whisper engine (not in main bundle)
+      const { transcribe, audioBufferToFloat32 } = await import("@/lib/speech/whisper-engine");
+
+      // Decode the audio blob to an AudioBuffer
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioCtx = new AudioContext({ sampleRate: 16000 });
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      await audioCtx.close();
+
+      // Convert to 16kHz mono Float32Array
+      const float32 = audioBufferToFloat32(audioBuffer);
+
+      // Run Whisper
+      const text = await transcribe(float32, (p) => setWhisperStatus(p));
+
+      if (text) {
+        onTranscript(text, true);
+      } else {
+        setError("Could not detect any speech in the recording. Please try again.");
+      }
+    } catch (err) {
+      console.error("[Dictation] Whisper transcription error:", err);
+      setError(`Transcription failed: ${err instanceof Error ? err.message : "Unknown error"}. You can type your transcript manually.`);
+    } finally {
+      setProcessingWhisper(false);
+      setWhisperStatus(null);
+    }
+  }, [onTranscript]);
+
+  // ─── Unified start/stop ─────────────────────────────
+  const handleStart = useCallback(() => {
+    if (tier === "native") startNative();
+    else startWhisper();
+  }, [tier, startNative, startWhisper]);
+
+  const handleStop = useCallback(() => {
+    if (tier === "native") stopNative();
+    else stopWhisper();
+  }, [tier, stopWhisper]);
+
+  // ─── Render ─────────────────────────────────────────
   return (
     <div className="space-y-2">
-      {brave && !isRecording && !error && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-600 flex items-start gap-2">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-          <span>Brave Browser does not support voice dictation. Brave cannot access the Google speech service required for transcription — this is a browser limitation, not a setting. Use <strong>Chrome</strong> or <strong>Edge</strong> for voice input, or type directly in the transcript box below.</span>
+      {/* Engine badge */}
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-[10px] gap-1 font-mono text-muted-foreground">
+          {tier === "whisper" && <Cpu className="h-2.5 w-2.5" />}
+          {tier === "native" && <Mic className="h-2.5 w-2.5" />}
+          {describeTier(tier)}
+        </Badge>
+        {tier === "native" && (
+          <button
+            onClick={() => setTier("whisper")}
+            className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground underline"
+          >
+            use local AI instead
+          </button>
+        )}
+        {tier === "whisper" && getSpeechRecognitionCtor() && (
+          <button
+            onClick={() => { setTier("native"); setError(null); }}
+            className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground underline"
+          >
+            try browser native
+          </button>
+        )}
+      </div>
+
+      {/* Whisper status */}
+      {(whisperStatus?.status === "downloading" || whisperStatus?.status === "loading") && (
+        <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-xs text-blue-400 flex items-center gap-2">
+          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+          <div className="flex-1">
+            <span>{whisperStatus.message}</span>
+            {whisperStatus.progress != null && whisperStatus.progress > 0 && (
+              <div className="mt-1 h-1 rounded-full bg-blue-500/20 overflow-hidden">
+                <div className="h-full rounded-full bg-blue-500 transition-all duration-300" style={{ width: `${whisperStatus.progress}%` }} />
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Controls */}
       <div className="flex items-center gap-3">
         {isRecording ? (
-          <Button size="sm" variant="destructive" className="gap-2" onClick={stopRecording} disabled={disabled} aria-label="Stop recording">
-            <Square className="h-3.5 w-3.5" /> Stop Recording
+          <Button size="sm" variant="destructive" className="gap-2" onClick={handleStop} disabled={disabled || processingWhisper} aria-label="Stop recording">
+            <Square className="h-3.5 w-3.5" /> Stop{tier === "whisper" ? " & Transcribe" : " Recording"}
           </Button>
         ) : (
-          <Button size="sm" className="gap-2" onClick={startRecording} disabled={disabled} aria-label="Start recording">
-            <Mic className="h-3.5 w-3.5" /> Start Recording
+          <Button size="sm" className="gap-2" onClick={handleStart} disabled={disabled || processingWhisper} aria-label="Start recording">
+            {processingWhisper ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mic className="h-3.5 w-3.5" />}
+            {processingWhisper ? "Transcribing..." : "Start Recording"}
           </Button>
         )}
         {isRecording && (
@@ -205,29 +310,22 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
           </div>
         )}
       </div>
-      {micPermission === "denied" && !error && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-600 flex items-start gap-2">
-          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-          <span>Microphone permission is blocked. Click the lock icon in your browser address bar to allow microphone access.</span>
+
+      {/* Whisper processing indicator */}
+      {processingWhisper && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-500 flex items-center gap-2">
+          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+          <span>{whisperStatus?.message ?? "Processing audio with local Whisper AI..."}</span>
         </div>
       )}
-      {error && (
+
+      {/* Error */}
+      {error && !processingWhisper && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-500">
           <div className="flex items-start gap-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-            <div>
-              <span>{error}</span>
-              {errorType && <span className="block mt-1 text-[10px] text-red-400/40 font-mono">error code: {errorType}</span>}
-            </div>
+            <span>{error}</span>
           </div>
-          {(errorType === "network" || errorType === "service-not-allowed") && (
-            <div className="mt-2 flex items-center gap-2 pl-5">
-              <button onClick={() => { setError(null); setErrorType(null); startRecording(); }} className="text-[10px] font-medium text-amber-500 hover:text-amber-400 underline">
-                Try again
-              </button>
-              <span className="text-[10px] text-red-400/60">or type your transcript directly below</span>
-            </div>
-          )}
         </div>
       )}
     </div>
