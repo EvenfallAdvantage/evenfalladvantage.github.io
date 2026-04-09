@@ -103,23 +103,26 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
     }
   }, [globePoints, imagePoints, onAlign]);
 
-  // Expose a method for the parent to feed globe clicks
-  // The parent tactical map will call this via a ref or callback
-  const addGlobePoint = useCallback((lat: number, lng: number) => {
-    if (step !== "pick-globe" || globePoints.length >= 3) return;
-    setGlobePoints(prev => [...prev, { lat, lng }]);
-  }, [step, globePoints]);
+  // Expose a method for the parent to feed globe clicks.
+  // Uses a ref-backed approach so the window function is always current.
+  const stepRef = useRef(step);
+  const globePointsRef = useRef(globePoints);
+  stepRef.current = step;
+  globePointsRef.current = globePoints;
 
-  // Expose addGlobePoint via a global for the parent to call
   useEffect(() => {
-    (window as unknown as Record<string, unknown>).__siteMapAlignerAddPoint = addGlobePoint;
+    const handler = (lat: number, lng: number) => {
+      if (stepRef.current !== "pick-globe" || globePointsRef.current.length >= 3) return;
+      setGlobePoints(prev => [...prev, { lat, lng }]);
+    };
+    (window as unknown as Record<string, unknown>).__siteMapAlignerAddPoint = handler;
     return () => { delete (window as unknown as Record<string, unknown>).__siteMapAlignerAddPoint; };
-  }, [addGlobePoint]);
+  }, []);
 
   return (
-    <div className="absolute inset-0 z-20">
+    <div className={`absolute inset-0 z-20 ${step === "pick-globe" ? "pointer-events-none" : ""}`}>
       {/* Step indicator */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-xl bg-[#0f1a2e]/95 backdrop-blur-sm border border-white/10 px-4 py-2">
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-xl bg-[#0f1a2e]/95 backdrop-blur-sm border border-white/10 px-4 py-2 pointer-events-auto">
         <div className={`flex items-center gap-1.5 text-xs font-mono ${step === "pick-image" ? "text-amber-400" : "text-white/30"}`}>
           <MapPin className="h-3.5 w-3.5" />
           <span>1. Pick 3 image points</span>
