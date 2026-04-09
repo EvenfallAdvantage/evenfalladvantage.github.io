@@ -164,16 +164,17 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
                 })}
                 {/* Opacity slider for all site map overlays */}
                 {Object.values(layers.siteOverlays).some(Boolean) && (
-                  <div className="flex items-center gap-2 px-2 pt-1">
-                    <span className="text-[8px] text-white/30 font-mono">Opacity</span>
+                  <div className="flex items-center gap-1.5 px-1 pt-1 min-w-0 overflow-hidden">
+                    <span className="text-[7px] text-white/30 font-mono shrink-0">Opacity</span>
                     <input
                       type="range"
                       min={0} max={100} step={5}
                       value={Math.round(layers.siteOverlayOpacity * 100)}
                       onChange={(e) => onChange({ ...layers, siteOverlayOpacity: Number(e.target.value) / 100 })}
-                      className="flex-1 h-1 accent-white/50 cursor-pointer"
+                      className="h-1 cursor-pointer min-w-0 flex-1"
+                      style={{ accentColor: "var(--brand-accent, #d59b3c)", maxWidth: "80px" }}
                     />
-                    <span className="text-[8px] text-white/40 font-mono w-6 text-right">{Math.round(layers.siteOverlayOpacity * 100)}%</span>
+                    <span className="text-[7px] text-white/40 font-mono shrink-0">{Math.round(layers.siteOverlayOpacity * 100)}%</span>
                   </div>
                 )}
               </div>

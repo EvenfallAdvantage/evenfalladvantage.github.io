@@ -678,44 +678,68 @@ export interface SiteMapBounds {
 }
 
 export async function getSiteMapBounds(eventId: string): Promise<SiteMapBounds | null> {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("events")
-    .select("settings")
-    .eq("id", eventId)
-    .maybeSingle();
-  return (data?.settings as Record<string, unknown>)?.site_map_bounds as SiteMapBounds | null ?? null;
+  // Try DB first
+  try {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("events")
+      .select("settings")
+      .eq("id", eventId)
+      .maybeSingle();
+    const dbBounds = (data?.settings as Record<string, unknown>)?.site_map_bounds as SiteMapBounds | undefined;
+    if (dbBounds) return dbBounds;
+  } catch {}
+
+  // Fallback to localStorage
+  try {
+    const key = `site-map-bounds-${eventId}`;
+    const saved = localStorage.getItem(key);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+
+  return null;
 }
 
 export async function saveSiteMapBounds(eventId: string, bounds: SiteMapBounds): Promise<void> {
-  const supabase = createClient();
-  // Merge into existing settings
-  const { data: existing } = await supabase
-    .from("events")
-    .select("settings")
-    .eq("id", eventId)
-    .maybeSingle();
+  // Always save to localStorage (instant, reliable)
+  try {
+    localStorage.setItem(`site-map-bounds-${eventId}`, JSON.stringify(bounds));
+  } catch {}
 
-  const settings = { ...(existing?.settings as Record<string, unknown> ?? {}), site_map_bounds: bounds };
+  // Also try to save to DB (company-wide persistence)
+  try {
+    const supabase = createClient();
+    const { data: existing } = await supabase
+      .from("events")
+      .select("settings")
+      .eq("id", eventId)
+      .maybeSingle();
 
-  const { error } = await supabase
-    .from("events")
-    .update({ settings })
-    .eq("id", eventId);
+    const settings = { ...(existing?.settings as Record<string, unknown> ?? {}), site_map_bounds: bounds };
+    const { error } = await supabase
+      .from("events")
+      .update({ settings })
+      .eq("id", eventId);
 
-  if (error) console.error("[SiteMap] Failed to save bounds:", error);
+    if (error) console.warn("[SiteMap] DB save failed (using localStorage):", error.message);
+  } catch (err) {
+    console.warn("[SiteMap] DB save failed (using localStorage):", err);
+  }
 }
 
 export async function clearSiteMapBounds(eventId: string): Promise<void> {
-  const supabase = createClient();
-  const { data: existing } = await supabase
-    .from("events")
-    .select("settings")
-    .eq("id", eventId)
-    .maybeSingle();
+  try { localStorage.removeItem(`site-map-bounds-${eventId}`); } catch {}
 
-  const settings = { ...(existing?.settings as Record<string, unknown> ?? {}) };
-  delete settings.site_map_bounds;
+  try {
+    const supabase = createClient();
+    const { data: existing } = await supabase
+      .from("events")
+      .select("settings")
+      .eq("id", eventId)
+      .maybeSingle();
 
-  await supabase.from("events").update({ settings }).eq("id", eventId);
+    const settings = { ...(existing?.settings as Record<string, unknown> ?? {}) };
+    delete settings.site_map_bounds;
+    await supabase.from("events").update({ settings }).eq("id", eventId);
+  } catch {}
 }

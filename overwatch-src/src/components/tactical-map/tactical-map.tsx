@@ -62,7 +62,24 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const cesiumRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [layers, setLayers] = useState<LayerVisibility>(DEFAULT_LAYERS);
+
+  // Persist layer visibility to localStorage per company
+  const storageKey = `tactical-map-${companyId}`;
+  const [layers, setLayersRaw] = useState<LayerVisibility>(() => {
+    if (typeof window === "undefined") return DEFAULT_LAYERS;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return { ...DEFAULT_LAYERS, ...JSON.parse(saved) };
+    } catch {}
+    return DEFAULT_LAYERS;
+  });
+  const setLayers = useCallback((update: LayerVisibility | ((prev: LayerVisibility) => LayerVisibility)) => {
+    setLayersRaw(prev => {
+      const next = typeof update === "function" ? update(prev) : update;
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [storageKey]);
   const [activeTool, setActiveTool] = useState<ActiveTool>("none");
   const [measureResult, setMeasureResult] = useState<{ distanceM: number; distanceMi: number; bearing: number } | null>(null);
   const [measurePoint1, setMeasurePoint1] = useState<{ lat: number; lng: number } | null>(null);
@@ -115,10 +132,44 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         viewer.scene.primitives.add(buildingsTileset);
         entityGroupsRef.current.buildings = [buildingsTileset];
 
-        // Fly to CONUS
-        viewer.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(CONUS_CENTER.lng, CONUS_CENTER.lat, 5000000),
-          duration: 0,
+        // Restore saved camera position or fly to CONUS
+        const cameraKey = `tactical-cam-${companyId}`;
+        let cameraRestored = false;
+        try {
+          const savedCam = localStorage.getItem(cameraKey);
+          if (savedCam) {
+            const cam = JSON.parse(savedCam);
+            viewer.camera.setView({
+              destination: Cesium.Cartesian3.fromDegrees(cam.lng, cam.lat, cam.height),
+              orientation: { heading: cam.heading ?? 0, pitch: cam.pitch ?? -0.5, roll: 0 },
+            });
+            cameraRestored = true;
+          }
+        } catch {}
+        if (!cameraRestored) {
+          viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(CONUS_CENTER.lng, CONUS_CENTER.lat, 5000000),
+            duration: 0,
+          });
+        }
+
+        // Save camera position on move end (debounced)
+        let camSaveTimer: ReturnType<typeof setTimeout>;
+        viewer.camera.moveEnd.addEventListener(() => {
+          clearTimeout(camSaveTimer);
+          camSaveTimer = setTimeout(() => {
+            try {
+              const carto = Cesium.Cartographic.fromCartesian(viewer.camera.position);
+              const cam = {
+                lat: Cesium.Math.toDegrees(carto.latitude),
+                lng: Cesium.Math.toDegrees(carto.longitude),
+                height: carto.height,
+                heading: viewer.camera.heading,
+                pitch: viewer.camera.pitch,
+              };
+              localStorage.setItem(cameraKey, JSON.stringify(cam));
+            } catch {}
+          }, 500);
         });
 
         viewer.scene.globe.depthTestAgainstTerrain = true;
