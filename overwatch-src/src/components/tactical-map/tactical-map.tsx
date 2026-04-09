@@ -753,15 +753,16 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
           }}
         >
           {/* Connector line */}
-          <div className="absolute left-1/2 bottom-0 w-px h-2 bg-[#dd8c33]" style={{ transform: "translateX(-50%) translateY(100%)" }} />
+          <div className="absolute left-1/2 bottom-0 w-px h-2" style={{ backgroundColor: "var(--brand-accent, #d59b3c)", transform: "translateX(-50%) translateY(100%)" }} />
           {/* Popup card */}
-          <div className="w-72 rounded-xl bg-[#0f1a2e]/95 backdrop-blur-md border border-[#dd8c33]/30 shadow-xl shadow-black/40 overflow-hidden">
+          <div className="w-72 rounded-xl backdrop-blur-md shadow-xl shadow-black/40 overflow-hidden" style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 95%, transparent)", borderWidth: 1, borderStyle: "solid", borderColor: "color-mix(in srgb, var(--brand-accent, #d59b3c) 30%, transparent)" }}>
             {/* Close button */}
             <button onClick={() => setSelectedEntity(null)} className="absolute top-1.5 right-2 text-white/30 hover:text-white text-xs z-10">✕</button>
             {/* Body */}
             <div
-              className="px-3 py-2.5 text-[11px] text-white/80 font-mono leading-relaxed max-h-48 overflow-y-auto [&_strong]:text-[#dd8c33] [&_span]:text-[#dd8c33]"
-              dangerouslySetInnerHTML={{ __html: selectedEntity.description || `<strong>${selectedEntity.name}</strong>` }}
+              className="px-3 py-2.5 text-[11px] text-white/80 font-mono leading-relaxed max-h-48 overflow-y-auto"
+              style={{ ["--popup-accent" as string]: "var(--brand-accent, #d59b3c)" }}
+              dangerouslySetInnerHTML={{ __html: `<style>strong{color:var(--brand-accent,#d59b3c)}span{color:var(--brand-accent,#d59b3c)}</style>${selectedEntity.description || `<strong>${selectedEntity.name}</strong>`}` }}
             />
           </div>
         </div>

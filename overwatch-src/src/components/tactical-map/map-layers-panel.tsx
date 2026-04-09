@@ -81,7 +81,8 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations }: Map
       {/* Toggle button */}
       <button
         onClick={() => setOpen(!open)}
-        className="absolute top-0 left-0 z-20 flex h-9 w-9 items-center justify-center rounded-lg bg-[#0f1a2e]/90 border border-white/10 text-white/70 hover:text-white hover:bg-[#0f1a2e] transition-colors"
+        className="absolute top-0 left-0 z-20 flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 text-white/70 hover:text-white transition-colors"
+        style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)" }}
         title={open ? "Collapse layers" : "Expand layers"}
       >
         {open ? <ChevronRight className="h-4 w-4" /> : <Layers className="h-4 w-4" />}
@@ -89,10 +90,10 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations }: Map
 
       {/* Panel */}
       {open && (
-        <div className="ml-11 rounded-xl bg-[#0f1a2e]/90 backdrop-blur-sm border border-white/10 p-3 space-y-3 max-h-[calc(100vh-240px)] overflow-y-auto">
+        <div className="ml-11 rounded-xl backdrop-blur-sm border border-white/10 p-3 space-y-3 max-h-[calc(100vh-240px)] overflow-y-auto" style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)" }}>
           <div className="flex items-center justify-between">
             <h3 className="text-[10px] font-bold font-mono text-white/50 uppercase tracking-wider">Layers</h3>
-            <button onClick={onFlyToAll} className="text-[9px] text-amber-500 hover:text-amber-400 font-mono">FLY TO ALL</button>
+            <button onClick={onFlyToAll} className="text-[9px] hover:opacity-80 font-mono font-bold" style={{ color: "var(--brand-accent, #d59b3c)" }}>FLY TO ALL</button>
           </div>
 
           {groups.map((group) => (

@@ -23,7 +23,7 @@ export function MapToolsBar({ activeTool, onToolChange, measureResult, rangeCent
   return (
     <div className="absolute bottom-3 left-3 z-10 flex items-end gap-2">
       {/* Tool buttons */}
-      <div className="flex gap-1 rounded-xl bg-[#0f1a2e]/90 backdrop-blur-sm border border-white/10 p-1.5">
+      <div className="flex gap-1 rounded-xl backdrop-blur-sm border border-white/10 p-1.5" style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)" }}>
         <ToolButton
           icon={<Ruler className="h-3.5 w-3.5" />}
           label="Measure"
@@ -40,12 +40,12 @@ export function MapToolsBar({ activeTool, onToolChange, measureResult, rangeCent
 
       {/* Measurement result */}
       {activeTool === "measure" && (
-        <div className="rounded-xl bg-[#0f1a2e]/90 backdrop-blur-sm border border-white/10 px-3 py-2 text-xs font-mono">
+        <div className="rounded-xl backdrop-blur-sm border border-white/10 px-3 py-2 text-xs font-mono" style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)" }}>
           {measureResult ? (
             <div className="text-white space-y-0.5">
               <div className="flex items-center gap-3">
                 <span className="text-white/50">Dist:</span>
-                <span className="text-amber-400 font-bold">
+                <span className="font-bold" style={{ color: "var(--brand-accent, #d59b3c)" }}>
                   {measureResult.distanceMi < 0.5
                     ? `${Math.round(measureResult.distanceM)} m (${Math.round(measureResult.distanceM * 3.281)} ft)`
                     : `${measureResult.distanceMi.toFixed(2)} mi (${(measureResult.distanceM / 1000).toFixed(2)} km)`}
@@ -64,7 +64,7 @@ export function MapToolsBar({ activeTool, onToolChange, measureResult, rangeCent
 
       {/* Range rings info */}
       {activeTool === "range-rings" && (
-        <div className="rounded-xl bg-[#0f1a2e]/90 backdrop-blur-sm border border-white/10 px-3 py-2 text-xs font-mono">
+        <div className="rounded-xl backdrop-blur-sm border border-white/10 px-3 py-2 text-xs font-mono" style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)" }}>
           {rangeCenter ? (
             <div className="text-white/60">
               Rings at: {rangeCenter.lat.toFixed(5)}, {rangeCenter.lng.toFixed(5)}
@@ -87,9 +87,10 @@ function ToolButton({ icon, label, active, onClick }: { icon: React.ReactNode; l
       title={label}
       className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-medium transition-colors ${
         active
-          ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+          ? "border"
           : "text-white/50 hover:text-white/80 hover:bg-white/5"
       }`}
+      style={active ? { backgroundColor: "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, transparent)", color: "var(--brand-accent, #d59b3c)", borderColor: "color-mix(in srgb, var(--brand-accent, #d59b3c) 30%, transparent)" } : undefined}
     >
       {icon}
       <span>{label}</span>
