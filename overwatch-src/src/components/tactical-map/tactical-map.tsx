@@ -6,7 +6,7 @@ import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-layers-panel";
 import { MapToolsBar, type ActiveTool, haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "./map-tools";
 import { SiteMapAligner } from "./site-map-aligner";
-import { getSiteMapBounds, saveSiteMapBounds, type SiteMapBounds } from "@/lib/supabase/db-operations";
+import { getSiteMapBounds, saveSiteMapBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -443,6 +443,84 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       }
     });
   }, [operations, layers.siteOverlays, layers.siteOverlayOpacity, loading, savedBounds, aligningOp, isAdmin]);
+
+  // ─── Storyboard Pins on Site Map Overlays ────────────
+  // When a site map is active with saved bounds, load its storyboard pins
+  // and convert image-relative x/y (0-1) to lat/lng using the bounds.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    // Clear old storyboard pin entities
+    (entityGroupsRef.current.storyboardPins ?? []).forEach((e: { id: string }) => {
+      try { viewer.entities.removeById(e.id); } catch {}
+    });
+    entityGroupsRef.current.storyboardPins = [];
+
+    // For each active overlay with saved bounds, load pins
+    const activeOps = operations.filter(op =>
+      layers.siteOverlays[op.id] && savedBounds[op.id] && op.siteMapUrl
+    );
+
+    if (activeOps.length === 0) return;
+
+    activeOps.forEach(op => {
+      const bounds = savedBounds[op.id];
+      if (!bounds) return;
+
+      loadStoryboard(op.id).then(storyboard => {
+        if (!storyboard?.pins || !Array.isArray(storyboard.pins)) return;
+
+        const lngSpan = bounds.east - bounds.west;
+        const latSpan = bounds.north - bounds.south;
+
+        storyboard.pins.forEach((pin: { id: string; x: number; y: number; label: string; description?: string; icon?: string; color?: string }, idx: number) => {
+          // Convert image x/y (0-1) to geo coordinates
+          // x=0 is west edge, x=1 is east edge
+          // y=0 is north edge (top of image), y=1 is south edge (bottom)
+          const lng = bounds.west + pin.x * lngSpan;
+          const lat = bounds.north - pin.y * latSpan; // y is inverted
+
+          const pinColor = pin.color || "#22c55e";
+
+          const entity = viewer.entities.add({
+            id: `sboard-${op.id}-${pin.id || idx}`,
+            name: pin.label || `Pin ${idx + 1}`,
+            position: Cesium.Cartesian3.fromDegrees(lng, lat),
+            billboard: {
+              image: createPinCanvas(pinColor, "flag"),
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              scale: 0.5,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            label: {
+              text: pin.label || "",
+              font: "10px monospace",
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              outlineWidth: 2,
+              outlineColor: Cesium.Color.BLACK,
+              fillColor: Cesium.Color.fromCssColorString(pinColor),
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              pixelOffset: new Cesium.Cartesian2(0, -32),
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            description: `<b>${pin.label || "Pin"}</b>${pin.description ? `<br/>${pin.description}` : ""}<br/><span style="opacity:0.4">${pin.icon || ""}</span>`,
+          });
+          entityGroupsRef.current.storyboardPins.push(entity);
+        });
+      }).catch(() => {});
+
+      // Also load incidents linked to this operation
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const opIncidents = incidents.filter((inc: any) => inc.eventId === op.id || inc.operationId === op.id);
+      // Note: incidents with their own lat/lng are already plotted by the incidents layer.
+      // Here we could plot incidents that only have site-map-relative positions.
+      // For now, the incident layer handles this.
+    });
+  }, [operations, layers.siteOverlays, savedBounds, loading, incidents]);
 
   // ─── Night Vision Mode ───────────────────────────────
   // Swaps to a dark basemap (CartoDB Dark Matter) and styles 3D buildings
