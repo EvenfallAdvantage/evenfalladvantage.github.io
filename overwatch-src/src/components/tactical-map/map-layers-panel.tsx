@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import {
-  Layers, Users, Flag, CloudRain, Zap, Building2, Mountain,
-  Eye, EyeOff, ChevronRight, ChevronLeft, Target, AlertTriangle, Moon,
+  Layers, Users, Flag, CloudRain, Building2, Mountain,
+  Eye, EyeOff, ChevronRight, Target, AlertTriangle, Moon, Satellite,
 } from "lucide-react";
 import type { OperationPin } from "./tactical-map";
 
@@ -16,6 +16,7 @@ export interface LayerVisibility {
   terrain: boolean;
   geofences: boolean;
   nightVision: boolean;
+  satellite: boolean;
   siteOverlays: Record<string, boolean>; // eventId -> visible
 }
 
@@ -28,6 +29,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   terrain: true,
   geofences: true,
   nightVision: false,
+  satellite: true,
   siteOverlays: {},
 };
 
@@ -45,6 +47,7 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "PINS" },
   { key: "weather", label: "Weather Radar", icon: <CloudRain className="h-3.5 w-3.5" />, group: "OVERLAYS" },
   { key: "nightVision", label: "Night Vision", icon: <Moon className="h-3.5 w-3.5" />, group: "OVERLAYS" },
+  { key: "satellite", label: "Satellite Imagery", icon: <Satellite className="h-3.5 w-3.5" />, group: "TERRAIN" },
   { key: "buildings", label: "3D Buildings", icon: <Building2 className="h-3.5 w-3.5" />, group: "TERRAIN" },
   { key: "terrain", label: "3D Terrain", icon: <Mountain className="h-3.5 w-3.5" />, group: "TERRAIN" },
 ];

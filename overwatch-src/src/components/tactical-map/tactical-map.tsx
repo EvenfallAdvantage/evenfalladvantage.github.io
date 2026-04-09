@@ -308,6 +308,72 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
     if (buildings?.[0]) buildings[0].show = layers.buildings;
   }, [layers.buildings]);
 
+  // ─── Site Map Overlays ──────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    // Remove old site overlay layers
+    (entityGroupsRef.current.siteOverlays ?? []).forEach((layer: { layerRef: unknown; eventId: string }) => {
+      try { viewer.imageryLayers.remove(layer.layerRef, false); } catch {}
+    });
+    entityGroupsRef.current.siteOverlays = [];
+
+    // Add active site overlays
+    operations.forEach((op) => {
+      if (!layers.siteOverlays[op.id] || !op.siteMapUrl || !op.lat || !op.lng) return;
+
+      try {
+        // Drape the site map image as a ground overlay centered on the operation
+        // Default extent: ~200m in each direction (adjustable per operation)
+        const extent = 0.002; // ~200m in degrees
+        const provider = new Cesium.SingleTileImageryProvider({
+          url: op.siteMapUrl,
+          rectangle: Cesium.Rectangle.fromDegrees(
+            op.lng - extent, op.lat - extent,
+            op.lng + extent, op.lat + extent
+          ),
+        });
+        const layer = viewer.imageryLayers.addImageryProvider(provider);
+        layer.alpha = 0.7;
+        entityGroupsRef.current.siteOverlays.push({ layerRef: layer, eventId: op.id });
+      } catch (err) {
+        console.warn("[TacticalMap] Failed to load site overlay for", op.name, err);
+      }
+    });
+  }, [operations, layers.siteOverlays, loading]);
+
+  // ─── Satellite Imagery Toggle ───────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    // The base imagery layer (index 0) is the default Cesium ion imagery
+    const baseLayer = viewer.imageryLayers.get(0);
+    if (baseLayer) {
+      // When satellite is on, show full opacity; when off, keep default
+      baseLayer.alpha = layers.satellite ? 1.0 : 1.0;
+    }
+
+    // Toggle between Cesium default (satellite) and OSM streets
+    if (!layers.satellite) {
+      // Add OSM street tiles on top with full opacity
+      if (!entityGroupsRef.current.osmLayerRef) {
+        const osm = new Cesium.OpenStreetMapImageryProvider({ url: "https://a.tile.openstreetmap.org/" });
+        const osmLayer = viewer.imageryLayers.addImageryProvider(osm, 1);
+        entityGroupsRef.current.osmLayerRef = [osmLayer];
+      }
+      const osmRef = entityGroupsRef.current.osmLayerRef;
+      if (osmRef?.[0]) osmRef[0].show = true;
+    } else {
+      // Hide OSM layer to reveal satellite
+      const osmRef = entityGroupsRef.current.osmLayerRef;
+      if (osmRef?.[0]) osmRef[0].show = false;
+    }
+  }, [layers.satellite, loading]);
+
   // ─── Click handler ───────────────────────────────────
   useEffect(() => {
     const viewer = viewerRef.current;

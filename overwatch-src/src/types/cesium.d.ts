@@ -21,6 +21,9 @@ declare namespace Cesium {
   class Viewer { constructor(container: HTMLElement, opts?: any); [key: string]: any; }
   class ScreenSpaceEventHandler { constructor(canvas: HTMLCanvasElement); [key: string]: any; }
   class WebMapServiceImageryProvider { constructor(opts: any); }
+  class SingleTileImageryProvider { constructor(opts: any); }
+  class OpenStreetMapImageryProvider { constructor(opts: any); }
+  const Rectangle: { fromDegrees: (west: number, south: number, east: number, north: number) => any };
   function createOsmBuildingsAsync(): Promise<any>;
   function defined(value: any): boolean;
 }
