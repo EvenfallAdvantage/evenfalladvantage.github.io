@@ -130,18 +130,22 @@ export async function getEventFormSubmissions(eventId: string) {
   return data ?? [];
 }
 
-// ─── Form submissions by user (for Profile tab) ─────
+// ─── Form submissions by user (scoped to active company) ─────
 
-export async function getUserFormSubmissions() {
+export async function getUserFormSubmissions(companyId?: string) {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("form_submissions")
-    .select("*, forms(name)")
+    .select("*, forms!inner(name, company_id)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(20);
+  if (companyId) {
+    query = query.eq("forms.company_id", companyId);
+  }
+  const { data } = await query;
   return data ?? [];
 }
 

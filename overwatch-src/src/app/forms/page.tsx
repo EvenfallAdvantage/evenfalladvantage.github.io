@@ -90,8 +90,8 @@ export default function FormsPage() {
       const [f, ts] = await Promise.all([getForms(activeCompanyId), getActiveTimesheet()]);
       setForms(f);
       setActiveTimesheet(ts);
-      // Load user's own submissions across all forms
-      try { setMySubmissions(await getUserFormSubmissions()); } catch {}
+      // Load user's own submissions scoped to active company
+      try { setMySubmissions(await getUserFormSubmissions(activeCompanyId)); } catch {}
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 

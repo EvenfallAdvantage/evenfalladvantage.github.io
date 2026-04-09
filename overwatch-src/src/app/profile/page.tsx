@@ -313,9 +313,9 @@ export default function ProfilePage() {
 
   const loadSubmissions = useCallback(async () => {
     if (tabLoaded.submissions) return;
-    try { setSubmissions(await getUserFormSubmissions()); } catch {}
+    try { setSubmissions(await getUserFormSubmissions(activeCompanyId ?? undefined)); } catch {}
     setTabLoaded((p) => ({ ...p, submissions: true }));
-  }, [tabLoaded.submissions]);
+  }, [tabLoaded.submissions, activeCompanyId]);
 
   const loadActivity = useCallback(async () => {
     if (tabLoaded.activity) return;
