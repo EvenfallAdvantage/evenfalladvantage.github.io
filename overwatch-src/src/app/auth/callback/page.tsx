@@ -19,7 +19,7 @@ export default function AuthCallbackPage() {
     // Supabase processes the URL hash tokens from email confirmation.
     // A one-shot getSession() can race against the hash processing.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: string, session: { user: { id: string; email?: string; user_metadata?: Record<string, string> } } | null) => {
         // Only act on events that give us a real session
         if (!session) return;
 

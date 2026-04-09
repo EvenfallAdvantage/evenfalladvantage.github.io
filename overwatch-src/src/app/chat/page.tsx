@@ -154,7 +154,7 @@ export default function ChatPage() {
         async () => {
           try { setMessages(await getChatMessages(selected.id)); } catch {}
         })
-      .on("broadcast", { event: "typing" }, (payload) => {
+      .on("broadcast", { event: "typing" }, (payload: { payload?: { name?: string } }) => {
         const name = payload?.payload?.name;
         if (name && name !== `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim()) {
           setTypingUsers(prev => prev.includes(name) ? prev : [...prev, name]);

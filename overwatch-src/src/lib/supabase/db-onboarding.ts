@@ -250,7 +250,7 @@ export async function convertApplicantToUser(applicantId: string, companyId: str
     .eq("company_id", companyId);
   if (tasks?.length) {
     await supabase.from("onboarding_progress").insert(
-      tasks.map(t => ({
+      tasks.map((t: { id: string }) => ({
         id: crypto.randomUUID(),
         user_id: userId,
         task_id: t.id,

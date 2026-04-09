@@ -51,7 +51,7 @@ describe("Error Tracker — Payload Validation", () => {
   });
 
   it("handles null stack gracefully", () => {
-    const stack: string | undefined = undefined;
+    const stack = undefined as string | undefined;
     expect(stack?.slice(0, 5000) ?? null).toBeNull();
   });
 });

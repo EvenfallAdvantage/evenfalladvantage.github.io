@@ -35,7 +35,7 @@ export default function UpdatePasswordPage() {
   // Wait for Supabase to process the recovery token from the URL hash
   useEffect(() => {
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
         setSessionReady(true);
         subscription.unsubscribe();
@@ -43,7 +43,7 @@ export default function UpdatePasswordPage() {
     });
 
     // Also check if already authenticated
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }: { data: { session: { user: { id: string } } | null } }) => {
       if (data.session) setSessionReady(true);
     });
 

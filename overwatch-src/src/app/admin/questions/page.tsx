@@ -75,7 +75,7 @@ export default function QuestionBankPage() {
       ]);
       setQuestions(qs as AssessmentQuestion[]);
       setModules(mods as TrainingModule[]);
-      setCategories(cats);
+      setCategories(cats as string[]);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, [activeCompanyId, filterModule, filterCategory, filterDifficulty]);

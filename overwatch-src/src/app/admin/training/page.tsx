@@ -290,7 +290,7 @@ export default function AdminTrainingPage() {
         getQuestionCategories(activeCompanyId),
       ]);
       setQuestions(qs as AssessmentQuestion[]);
-      setCategories(cats);
+      setCategories(cats as string[]);
     } catch (err) { console.error(err); }
     finally { setQLoading(false); }
   }, [activeCompanyId, filterModule, filterCategory, filterDifficulty]);

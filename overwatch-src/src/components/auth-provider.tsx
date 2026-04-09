@@ -120,7 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // lock and cause contention / 5-second timeout warnings.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: string, session: { user: { id: string; email?: string; user_metadata?: Record<string, string> } } | null) => {
       if (session?.user) {
         loadProfile(session.user);
       } else {

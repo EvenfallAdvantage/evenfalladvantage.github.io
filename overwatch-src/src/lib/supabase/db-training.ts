@@ -156,7 +156,7 @@ export async function importQuestionsToQuiz(quizId: string, questionIds: string[
 
   // Convert assessment_questions to quiz JSONB format and append
   const existing = (quiz?.questions ?? []) as { id: string; text: string; options: string[]; correctIndex: number }[];
-  const newQs = questions.map((q) => ({
+  const newQs = questions.map((q: { id: string; question_text: string; options: string[] | null; correct_answer: string }) => ({
     id: q.id,
     text: q.question_text,
     options: q.options ?? [],
@@ -224,7 +224,7 @@ export async function getTrainingModules(companyId: string) {
     .eq("is_active", true)
     .order("display_order", { ascending: true });
   if (error) throw error;
-  return (data ?? []).map((m) => ({
+  return (data ?? []).map((m: Record<string, unknown> & { module_slides?: { id: string }[] }) => ({
     ...m,
     slide_count: m.module_slides?.length ?? 0,
     module_slides: undefined,
@@ -356,8 +356,8 @@ export async function getMyModuleProgress(companyId: string) {
     .select("*, training_modules!inner(company_id)")
     .eq("user_id", userId)
     .eq("training_modules.company_id", companyId);
-  if (error) throw error;
-  return (data ?? []).map((d) => ({ ...d, training_modules: undefined }));
+     if (error) throw error;
+  return (data ?? []).map((d: Record<string, unknown>) => ({ ...d, training_modules: undefined }));
 }
 
 export async function getAllModuleProgress(companyId: string) {
@@ -367,7 +367,7 @@ export async function getAllModuleProgress(companyId: string) {
     .select("*, training_modules!inner(company_id)")
     .eq("training_modules.company_id", companyId);
   if (error) throw error;
-  return (data ?? []).map((d) => ({ ...d, training_modules: undefined }));
+  return (data ?? []).map((d: Record<string, unknown>) => ({ ...d, training_modules: undefined }));
 }
 
 export async function upsertModuleProgress(moduleId: string, params: {

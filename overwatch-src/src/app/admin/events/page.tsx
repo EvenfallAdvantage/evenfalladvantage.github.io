@@ -454,7 +454,7 @@ export default function AdminEventsPage() {
         const ev = events.find((e: Event) => e.id === eventId);
         if (ev?.ops_guide && activeCompanyId) {
           const evShifts = await getEventShifts(eventId);
-          const assignedIds = [...new Set(evShifts.filter((s: Shift) => s.assigned_user_id).map((s: Shift) => s.assigned_user_id as string))];
+          const assignedIds = [...new Set<string>(evShifts.filter((s: Shift) => s.assigned_user_id).map((s: Shift) => s.assigned_user_id as string))];
           if (assignedIds.length > 0) {
             import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
               for (const uid of assignedIds) {

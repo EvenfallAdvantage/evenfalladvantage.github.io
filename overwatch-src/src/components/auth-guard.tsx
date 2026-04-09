@@ -18,7 +18,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   // Listen for sign-out events directly from Supabase
   useEffect(() => {
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string) => {
       if (event === "SIGNED_OUT" && !redirected.current) {
         redirected.current = true;
         goToLanding();

@@ -211,12 +211,12 @@ export async function getOwnerIntel(companyId: string) {
     .limit(200);
   const appList = applicants ?? [];
   const pipeline = {
-    new: appList.filter(a => a.status === "new" || a.status === "pending").length,
-    interview: appList.filter(a => a.status === "interview").length,
-    hired: appList.filter(a => a.status === "hired").length,
-    rejected: appList.filter(a => a.status === "rejected").length,
+    new: appList.filter((a: { status: string }) => a.status === "new" || a.status === "pending").length,
+    interview: appList.filter((a: { status: string }) => a.status === "interview").length,
+    hired: appList.filter((a: { status: string }) => a.status === "hired").length,
+    rejected: appList.filter((a: { status: string }) => a.status === "rejected").length,
     total: appList.length,
-    recentApplicants: appList.slice(0, 5).map(a => ({
+    recentApplicants: appList.slice(0, 5).map((a: { id: string; status: string; created_at: string }) => ({
       id: a.id,
       status: a.status,
       createdAt: a.created_at,
@@ -258,9 +258,9 @@ export async function getOwnerIntel(companyId: string) {
     .eq("company_id", companyId);
   const intList = integrations ?? [];
   const integrationHealth = {
-    active: intList.filter(i => i.is_active).length,
+    active: intList.filter((i: { is_active: boolean }) => i.is_active).length,
     configured: intList.length,
-    providers: intList.map(i => ({ provider: i.provider as string, active: i.is_active as boolean })),
+    providers: intList.map((i: { provider: string; is_active: boolean }) => ({ provider: i.provider as string, active: i.is_active as boolean })),
   };
 
   // --- Onboarding Status ---
