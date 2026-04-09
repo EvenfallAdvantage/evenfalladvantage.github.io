@@ -67,24 +67,25 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/*
-          NIST 800-171 §3.13 — Content Security Policy (Report-Only)
+          NIST 800-171 §3.13 — Content Security Policy
 
-          Delivered as report-only so it does not block browser-internal APIs
-          (Chrome's Web Speech API uses unpredictable Google endpoints that a
-          strict connect-src breaks). GitHub Pages does not support HTTP
-          response headers, so a meta tag is the only option. Report-only
-          mode lets us monitor violations without breaking functionality.
+          CSP is NOT delivered via meta tag because:
+          1. Report-Only CSP via <meta> is disallowed by the spec (browsers ignore it)
+          2. Enforcing CSP via <meta> blocks Chrome's Web Speech API (dictation)
+             because the speech service uses unpredictable internal Google endpoints
+          3. GitHub Pages does not support HTTP response headers
 
-          Security is enforced at the application layer:
+          Security is enforced at the application layer instead:
           - Supabase RLS policies on every table
           - JWT verification on all Edge Functions
           - CORS origin allowlist in _shared/cors.ts
           - Auth guards on every protected page
+          - HTTPS enforced by GitHub Pages
+
+          If the hosting moves to a platform that supports response headers
+          (Vercel, Cloudflare Pages, etc.), CSP should be delivered as an HTTP
+          header with the allowlist from docs/csp-reference.txt.
         */}
-        <meta
-          httpEquiv="Content-Security-Policy-Report-Only"
-          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com; media-src 'self' https://*.supabase.co blob: mediastream:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.daily.co https://api.stripe.com https://cloudflareinsights.com https://nominatim.openstreetmap.org https://api.wheretheiss.at https://*.google.com wss://*.google.com https://*.googleapis.com https://*.gstatic.com https://api.us.socrata.com https://*.data.socrata.com https://data.cityofchicago.org https://data.cityofnewyork.us https://data.lacity.org https://data.seattle.gov https://data.austintexas.gov https://data.denvergov.org https://data.sfgov.org https://data.nashville.gov https://www.dallasopendata.com https://data.kcmo.org https://data.cincinnati-oh.gov https://data.baltimorecity.gov https://data.detroitmi.gov https://data.memphistn.gov https://opendata.dc.gov https://services.familywatchdog.us https://public.opendatasoft.com https://*.arcgis.com https://api.crimeometer.com https://data.police.uk https://ce-portal-service.commandcentral.com https://overpass-api.de; frame-src 'self' https://*.daily.co https://*.stripe.com https://*.supabase.co https://*.youtube.com blob:; object-src 'none'; base-uri 'self'; form-action 'self';"
-        />
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
       </head>

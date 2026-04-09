@@ -59,23 +59,18 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
 
   const startRecording = useCallback(async () => {
     setError(null);
+    setErrorType(null);
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) {
       setError("Speech recognition is not supported in this browser. Use Chrome, Edge, or Safari.");
       return;
     }
 
-    // Request microphone permission explicitly first
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Stop the stream immediately — we just needed permission
-      stream.getTracks().forEach(t => t.stop());
-      setMicPermission("granted");
-    } catch (err) {
-      setMicPermission("denied");
-      setError("Microphone access was denied. Please allow microphone permission in your browser settings and try again.");
-      return;
-    }
+    // Don't pre-request mic via getUserMedia — Chrome's SpeechRecognition
+    // manages its own audio pipeline and will prompt for permission itself.
+    // Calling getUserMedia + immediately stopping the stream can cause a
+    // race condition where the OS releases the mic before SpeechRecognition
+    // can acquire it, resulting in a spurious "network" error.
 
     const recognition = new Ctor();
     recognition.continuous = true;
@@ -107,6 +102,12 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     recognition.onerror = (event: any) => {
       if (event.error === "no-speech") return;
       if (event.error === "aborted") return;
+
+      // "not-allowed" means user denied mic — update permission state
+      if (event.error === "not-allowed") {
+        setMicPermission("denied");
+      }
+
       const msg = ERROR_MESSAGES[event.error] ?? `Speech recognition error: ${event.error}. Try disabling browser extensions or using a different browser.`;
       setError(msg);
       setErrorType(event.error);
@@ -126,6 +127,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     try {
       recognition.start();
       setIsRecording(true);
+      setMicPermission("granted");
       setElapsed(0);
       timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 1000);
     } catch (err) {
