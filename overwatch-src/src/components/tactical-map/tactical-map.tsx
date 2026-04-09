@@ -760,9 +760,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, onSelectO
             <button onClick={() => setSelectedEntity(null)} className="absolute top-1.5 right-2 text-white/30 hover:text-white text-xs z-10">✕</button>
             {/* Body */}
             <div
-              className="px-3 py-2.5 text-[11px] text-white/80 font-mono leading-relaxed max-h-48 overflow-y-auto"
-              style={{ ["--popup-accent" as string]: "var(--brand-accent, #d59b3c)" }}
-              dangerouslySetInnerHTML={{ __html: `<style>strong{color:var(--brand-accent,#d59b3c)}span{color:var(--brand-accent,#d59b3c)}</style>${selectedEntity.description || `<strong>${selectedEntity.name}</strong>`}` }}
+              className="px-3 py-2.5 text-[11px] text-white/80 font-mono leading-relaxed max-h-48 overflow-y-auto [&_strong]:text-accent [&_b]:text-accent"
+              dangerouslySetInnerHTML={{ __html: selectedEntity.description || `<b>${selectedEntity.name}</b>` }}
             />
           </div>
         </div>
