@@ -45,7 +45,8 @@ export default function AdminTrainingPage() {
   const [showNewQ, setShowNewQ] = useState(false);
 
   useEffect(() => {
-    setHeader("TRAINING ADMIN", "Manage training modules, slides, and assessment questions", <GraduationCap className="h-5 w-5" />,
+    setHeader("TRAINING ADMIN", "Manage training modules, slides, and assessment questions",
+      tab === "questions" ? <HelpCircle className="h-5 w-5" /> : tab === "progress" ? <BarChart3 className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />,
       tab === "modules" ? (
         <Button onClick={() => setShowNewModule(true)} className="gap-1.5" disabled={showNewModule}>
           <Plus className="h-4 w-4" /> New Module

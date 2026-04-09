@@ -50,7 +50,7 @@ function CoursesContent() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("COURSES", "Professional security training courses", <BookOpen className="h-5 w-5" />);
+    setHeader("COURSES", "Professional security training courses", <Video className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 

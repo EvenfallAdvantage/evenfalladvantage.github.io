@@ -83,7 +83,7 @@ export default function AcademyPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("ACADEMY HUB", "Training, SOPs, assessments & certifications", <GraduationCap className="h-5 w-5" />);
+    setHeader("ACADEMY HUB", "Training, SOPs, assessments & certifications", <Compass className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 

@@ -138,7 +138,7 @@ export default function UpdatesPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("COMMS", "Team channels, external groups, and messaging", <Radio className="h-5 w-5" />);
+    setHeader("COMMS", "Team channels, external groups, and messaging", <Radar className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 

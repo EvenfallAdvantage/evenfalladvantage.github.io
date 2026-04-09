@@ -51,7 +51,7 @@ export default function PatrolsPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("WATCH LOG", "Clock in/out and track your duty hours", <Clock className="h-5 w-5" />);
+    setHeader("WATCH LOG", "Clock in/out and track your duty hours", <Footprints className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 

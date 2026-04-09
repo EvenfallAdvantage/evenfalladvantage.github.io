@@ -241,7 +241,8 @@ export default function SchedulePage() {
   const [scanResult, setScanResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
-    setHeader("OPERATIONS", "Your assigned shifts, operations, and equipment", <CalendarDays className="h-5 w-5" />,
+    setHeader("OPERATIONS", "Your assigned shifts, operations, and equipment",
+      tab === "armory" ? <QrCode className="h-5 w-5" /> : <CalendarDays className="h-5 w-5" />,
       tab === "armory" && isAdmin ? (
         <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
           <Plus className="h-4 w-4" /> Add Gear

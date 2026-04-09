@@ -48,7 +48,8 @@ export default function InstructorHQPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("INSTRUCTOR HQ", "Legacy course management for Evenfall Advantage", <GraduationCap className="h-5 w-5" />,
+    setHeader("INSTRUCTOR HQ", "Legacy course management for Evenfall Advantage",
+      tab === "classes" ? <Calendar className="h-5 w-5" /> : tab === "assessments" ? <ClipboardCheck className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />,
       tab === "courses" ? (
         <Button size="sm" className="gap-1.5" onClick={() => setTriggerNew((n) => n + 1)}>
           <Plus className="h-3.5 w-3.5" /> New Course
