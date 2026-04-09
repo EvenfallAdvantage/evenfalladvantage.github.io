@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Maximize2, Minimize2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-layers-panel";
 import { MapToolsBar, type ActiveTool, type DrawMode, haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "./map-tools";
@@ -92,6 +92,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [boundsLoaded, setBoundsLoaded] = useState<Set<string>>(new Set());
   const [selectedEntity, setSelectedEntity] = useState<{ id: string; name: string; description: string; screenX: number; screenY: number } | null>(null);
   const popupAnimFrame = useRef<number>(0);
+  const [cameraHeading, setCameraHeading] = useState(0); // radians
+  const [cameraPitch, setCameraPitch] = useState(-0.5);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Drawing state
   const [drawMode, setDrawMode] = useState<DrawMode>("none");
@@ -196,6 +199,12 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         viewer.scene.globe.depthTestAgainstTerrain = true;
         viewer.scene.fog.enabled = true;
         viewer.scene.fog.density = 0.0002;
+
+        // Track camera heading/pitch for the compass
+        viewer.camera.changed.addEventListener(() => {
+          setCameraHeading(viewer.camera.heading);
+          setCameraPitch(viewer.camera.pitch);
+        });
 
         setLoading(false);
       } catch (err) {
@@ -1176,6 +1185,42 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     }
   }, [annotations]);
 
+  // Reset to north-up top-down view
+  const handleResetNorth = useCallback(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium) return;
+
+    const carto = Cesium.Cartographic.fromCartesian(viewer.camera.position);
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(
+        Cesium.Math.toDegrees(carto.longitude),
+        Cesium.Math.toDegrees(carto.latitude),
+        carto.height
+      ),
+      orientation: { heading: 0, pitch: -Math.PI / 2, roll: 0 },
+      duration: 0.8,
+    });
+  }, []);
+
+  // Fullscreen toggle
+  const handleFullscreen = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  }, []);
+
+  // Listen for fullscreen changes (e.g. user presses Escape)
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
+
   const handleFlyToAll = useCallback(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
@@ -1206,6 +1251,43 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         </div>
       )}
       <div ref={containerRef} className="w-full h-full" />
+
+      {/* Compass + Fullscreen — top left */}
+      {!loading && !error && (
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
+          {/* Compass */}
+          <button
+            onClick={handleResetNorth}
+            title="Reset to north (top-down view)"
+            className="w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center hover:border-white/30 transition-colors"
+            style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent)" }}
+          >
+            <svg
+              width="28" height="28" viewBox="0 0 28 28"
+              style={{ transform: `rotate(${-cameraHeading}rad)`, transition: "transform 0.15s ease-out" }}
+            >
+              {/* North pointer (red) */}
+              <polygon points="14,2 17,14 14,12 11,14" fill="#ef4444" />
+              {/* South pointer (white) */}
+              <polygon points="14,26 11,14 14,16 17,14" fill="rgba(255,255,255,0.5)" />
+              {/* Center dot */}
+              <circle cx="14" cy="14" r="2" fill="rgba(255,255,255,0.7)" />
+              {/* N label */}
+              <text x="14" y="9" textAnchor="middle" fontSize="6" fontWeight="bold" fontFamily="monospace" fill="#ef4444">N</text>
+            </svg>
+          </button>
+
+          {/* Fullscreen */}
+          <button
+            onClick={handleFullscreen}
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            className="w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:border-white/30 transition-colors"
+            style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent)" }}
+          >
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+        </div>
+      )}
 
       {/* Custom entity popup — floating near selected point */}
       {selectedEntity && (
