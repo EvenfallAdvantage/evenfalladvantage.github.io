@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { UserPlus, Loader2, X, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -10,11 +9,11 @@ import { joinCompanyByCode } from "@/lib/supabase/db";
 interface JoinCompanyModalProps {
   open: boolean;
   onClose: () => void;
-  onSwitchToRegister: () => void;
+  onSwitchToRegister: (code?: string) => void;
+  onSwitchToLogin?: () => void;
 }
 
-export function JoinCompanyModal({ open, onClose, onSwitchToRegister }: JoinCompanyModalProps) {
-  const router = useRouter();
+export function JoinCompanyModal({ open, onClose, onSwitchToRegister, onSwitchToLogin }: JoinCompanyModalProps) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -32,9 +31,9 @@ export function JoinCompanyModal({ open, onClose, onSwitchToRegister }: JoinComp
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        // Not logged in — redirect to register with code preserved
-        router.push(`/register?code=${encodeURIComponent(code.trim().toUpperCase())}`);
+        // Not logged in — open register modal with code preserved
         onClose();
+        onSwitchToRegister(code.trim().toUpperCase());
         return;
       }
 
@@ -94,7 +93,7 @@ export function JoinCompanyModal({ open, onClose, onSwitchToRegister }: JoinComp
           </button>
         </form>
 
-        <div className="mt-4 text-center">
+        <div className="mt-4 text-center space-y-1">
           <p className="text-xs text-white/40">
             Don&apos;t have a code?{" "}
             <button
@@ -107,6 +106,13 @@ export function JoinCompanyModal({ open, onClose, onSwitchToRegister }: JoinComp
               Create a new company
             </button>
           </p>
+          {onSwitchToLogin && (
+            <p className="text-xs text-white/30">
+              <button onClick={() => { onClose(); onSwitchToLogin(); }} className="hover:text-white/50">
+                &larr; Back to sign in
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

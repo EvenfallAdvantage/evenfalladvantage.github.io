@@ -54,7 +54,7 @@ const STATS = [
   { value: "24/7", label: "Operational Uptime" },
 ];
 
-function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onClose: () => void; onSwitchToRegister: () => void }) {
+function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { open: boolean; onClose: () => void; onSwitchToRegister: () => void; onSwitchToJoin: () => void }) {
   const router = useRouter();
   const [tab, setTab] = useState<"phone" | "email">("phone");
   const [phone, setPhone] = useState("");
@@ -179,7 +179,7 @@ function LoginModal({ open, onClose, onSwitchToRegister }: { open: boolean; onCl
 
         <div className="mt-4 text-center space-y-2">
           <p className="text-xs text-white/40">Don&apos;t have an account? <button onClick={() => { onClose(); onSwitchToRegister(); }} className="text-[#dd8c33] hover:underline font-medium">Create one</button></p>
-          <p className="text-xs text-white/30"><Link href="/join" className="hover:text-white/50">Have a company code? Join here</Link></p>
+          <p className="text-xs text-white/30"><button onClick={() => { onClose(); onSwitchToJoin(); }} className="hover:text-white/50">Have a company code? Join here</button></p>
         </div>
       </div>
     </div>
@@ -487,6 +487,7 @@ function HomePageInner() {
   const [tosOpen, setTosOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [pendingJoinCode, setPendingJoinCode] = useState(codeParam);
   const [partners, setPartners] = useState<{ name: string; logo_url: string | null; website_url: string | null }[]>([]);
 
   useEffect(() => {
@@ -756,11 +757,11 @@ function HomePageInner() {
       </footer>
 
       {/* Modals */}
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} onSwitchToRegister={() => { setLoginOpen(false); setRegisterOpen(true); }} />
-      <RegisterModal open={registerOpen} onClose={() => setRegisterOpen(false)} onSwitchToLogin={() => { setRegisterOpen(false); setLoginOpen(true); }} joinCode={codeParam} />
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} onSwitchToRegister={() => { setLoginOpen(false); setRegisterOpen(true); }} onSwitchToJoin={() => { setLoginOpen(false); setJoinOpen(true); }} />
+      <RegisterModal open={registerOpen} onClose={() => setRegisterOpen(false)} onSwitchToLogin={() => { setRegisterOpen(false); setLoginOpen(true); }} joinCode={pendingJoinCode} />
       <TOSModal open={tosOpen} onClose={() => setTosOpen(false)} />
       <PrivacyPolicyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
-      <JoinCompanyModal open={joinOpen} onClose={() => setJoinOpen(false)} onSwitchToRegister={() => { setJoinOpen(false); setRegisterOpen(true); }} />
+      <JoinCompanyModal open={joinOpen} onClose={() => setJoinOpen(false)} onSwitchToRegister={(code?: string) => { setJoinOpen(false); if (code) setPendingJoinCode(code); setRegisterOpen(true); }} onSwitchToLogin={() => { setJoinOpen(false); setLoginOpen(true); }} />
     </div>
   );
 }
