@@ -1150,36 +1150,14 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     return () => handler.destroy();
   }, [loading, onSelectOperation, activeTool, measurePoint1, aligningOp, drawMode, drawColor, drawPoints, companyId]);
 
-  // Track selected entity screen position as camera moves
+  // Dismiss popup when camera moves (user is navigating away)
   useEffect(() => {
     const viewer = viewerRef.current;
-    const Cesium = cesiumRef.current;
-    if (!viewer || !Cesium || !selectedEntity) {
-      cancelAnimationFrame(popupAnimFrame.current);
-      return;
-    }
-
-    const entity = viewer.entities.getById(selectedEntity.id);
-    if (!entity?.position) return;
-
-    function updatePosition() {
-      if (!viewer || !Cesium || !entity?.position) return;
-      try {
-        const pos = entity.position.getValue(viewer.clock.currentTime);
-        if (pos) {
-          const screenPos = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, pos);
-          if (screenPos) {
-            setSelectedEntity((prev) =>
-              prev ? { ...prev, screenX: screenPos.x, screenY: screenPos.y } : null
-            );
-          }
-        }
-      } catch {}
-      popupAnimFrame.current = requestAnimationFrame(updatePosition);
-    }
-    popupAnimFrame.current = requestAnimationFrame(updatePosition);
-    return () => cancelAnimationFrame(popupAnimFrame.current);
-  }, [selectedEntity?.id, loading]);
+    if (!viewer || !selectedEntity) return;
+    const handler = () => setSelectedEntity(null);
+    viewer.camera.moveStart.addEventListener(handler);
+    return () => { try { viewer.camera.moveStart.removeEventListener(handler); } catch {} };
+  }, [selectedEntity?.id]);
 
   // Clean up tool entities when tool changes
   useEffect(() => {
