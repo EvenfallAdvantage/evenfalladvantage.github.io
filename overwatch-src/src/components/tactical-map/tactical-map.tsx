@@ -910,19 +910,20 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         });
         entityGroupsRef.current.orbits.push(entity);
 
-        // Ground track polyline
-        const track = computeGroundTrack(sat.tle1, sat.tle2, 90, 1);
-        if (track.length > 2) {
-          const trackEntity = viewer.entities.add({
-            id: `sat-track-${i}`,
-            polyline: {
-              positions: Cesium.Cartesian3.fromDegreesArray(track.flatMap(([lng, lat]) => [lng, lat])),
-              width: 1,
-              material: Cesium.Color.fromCssColorString(satColor).withAlpha(0.3),
-            },
-          });
-          entityGroupsRef.current.orbits.push(trackEntity);
-        }
+        // Ground track polyline (async)
+        computeGroundTrack(sat.tle1, sat.tle2, 90, 1).then(track => {
+          if (track.length > 2) {
+            const trackEntity = viewer.entities.add({
+              id: `sat-track-${i}`,
+              polyline: {
+                positions: Cesium.Cartesian3.fromDegreesArray(track.flatMap(([lng, lat]: [number, number]) => [lng, lat])),
+                width: 1,
+                material: Cesium.Color.fromCssColorString(satColor).withAlpha(0.3),
+              },
+            });
+            entityGroupsRef.current.orbits.push(trackEntity);
+          }
+        }).catch(() => {});
       });
     }).catch(() => {});
 
