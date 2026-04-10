@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Loader2, Check, X, Pencil, Save, Upload, MapPin, Trash2, Image } from "lucide-react";
+import { FileText, Loader2, Check, X, Pencil, Save, Upload, MapPin, Trash2, Image, Navigation } from "lucide-react";
+import AddressAutocomplete, { type AddressSelection } from "@/components/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,6 +118,46 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editOverride, setEditOverride] = useState(false);
+
+  // Location editing state
+  const [locationText, setLocationText] = useState(eventLocation ?? "");
+  const [locationDirty, setLocationDirty] = useState(false);
+  const [savingLocation, setSavingLocation] = useState(false);
+
+  useEffect(() => { setLocationText(eventLocation ?? ""); }, [eventLocation]);
+
+  async function handleLocationSelect(selection: AddressSelection) {
+    setLocationText(selection.displayName);
+    setLocationDirty(true);
+    setSavingLocation(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("events").update({
+        location: selection.displayName,
+        location_lat: selection.lat,
+        location_lng: selection.lon,
+      }).eq("id", eventId);
+      if (error) throw error;
+      setLocationDirty(false);
+    } catch (err) { console.error("Failed to update location:", err); }
+    finally { setSavingLocation(false); }
+  }
+
+  async function handleLocationClear() {
+    setLocationText("");
+    setLocationDirty(true);
+    setSavingLocation(true);
+    try {
+      const supabase = createClient();
+      await supabase.from("events").update({
+        location: null,
+        location_lat: null,
+        location_lng: null,
+      }).eq("id", eventId);
+      setLocationDirty(false);
+    } catch (err) { console.error("Failed to clear location:", err); }
+    finally { setSavingLocation(false); }
+  }
 
   // Site map state
   const [siteMapUrl, setSiteMapUrl] = useState<string | null>(null);
@@ -260,6 +301,25 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       {/* Location & Environment */}
       <SectionHeader title="Location & Environment" />
       <div className="space-y-2">
+        <div>
+          <Label className="text-xs flex items-center gap-1"><Navigation className="h-3 w-3" /> Operation Address</Label>
+          <div className="mt-1 relative">
+            {isLocked ? (
+              <div className="mt-1 text-sm text-muted-foreground px-3 py-1.5 rounded-lg border border-border bg-muted/30">{locationText || "No address set"}</div>
+            ) : (
+              <AddressAutocomplete
+                value={locationText}
+                onChange={setLocationText}
+                onSelect={handleLocationSelect}
+                onClear={handleLocationClear}
+                placeholder="Search for an address..."
+              />
+            )}
+            {savingLocation && <Loader2 className="absolute right-2 top-2 h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            {!savingLocation && locationText && !locationDirty && <Check className="absolute right-2 top-2 h-3.5 w-3.5 text-green-500" />}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-0.5">This sets the operation&apos;s pin location on the tactical map.</p>
+        </div>
         <div><Label className="text-xs">Venue Type</Label><Chips field="venueType" options={VENUE_TYPES} /></div>
         <div className="grid gap-2 sm:grid-cols-3">
           <div><Label className="text-xs">Est. Attendance</Label><Input value={data.estimatedAttendance} onChange={(e) => upd("estimatedAttendance", e.target.value)} placeholder="e.g. 500" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
