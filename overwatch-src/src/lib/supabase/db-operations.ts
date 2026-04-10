@@ -410,6 +410,34 @@ export async function addIncidentUpdate(incidentId: string, content: string, typ
 
 export async function deleteIncident(incidentId: string) {
   const supabase = createClient();
+
+  // First, check if the incident has a storyboard pin and remove it
+  const { data: incident } = await supabase
+    .from("incidents")
+    .select("storyboard_id, storyboard_pin_id")
+    .eq("id", incidentId)
+    .maybeSingle();
+
+  if (incident?.storyboard_id && incident?.storyboard_pin_id) {
+    // Load the storyboard, remove the pin, and save
+    const { data: storyboard } = await supabase
+      .from("storyboards")
+      .select("id, pins")
+      .eq("id", incident.storyboard_id)
+      .maybeSingle();
+
+    if (storyboard?.pins && Array.isArray(storyboard.pins)) {
+      const updatedPins = (storyboard.pins as Array<{ id: string }>).filter(
+        (p) => p.id !== incident.storyboard_pin_id
+      );
+      await supabase
+        .from("storyboards")
+        .update({ pins: updatedPins, updated_at: new Date().toISOString() })
+        .eq("id", storyboard.id);
+    }
+  }
+
+  // Then delete the incident
   const { error } = await supabase.from("incidents").delete().eq("id", incidentId);
   if (error) throw error;
 }
