@@ -21,22 +21,17 @@ jobs:
 
       - name: Export OverwatchDB
         env:
+          # IMPORTANT: Use the Supabase SESSION MODE (port 5432) pooler URL, NOT the
+          # direct db.* URL. The direct URL resolves to IPv6 only, which GitHub Actions
+          # runners cannot reach. The pooler URL resolves to IPv4.
+          #
+          # Format: postgresql://postgres.PROJECTREF:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres
+          # Set this as SUPABASE_DB_URL in GitHub Actions secrets.
           DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           DATE=$(date +%Y-%m-%d)
           mkdir -p backups
-          # Force IPv4 — GitHub Actions resolves Supabase to IPv6 which is unreachable
-          # Extract hostname from DATABASE_URL, resolve to IPv4, replace in URL
-          DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:/]*\).*|\1|p')
-          DB_IPV4=$(getent ahostsv4 "$DB_HOST" | head -1 | awk '{print $1}')
-          if [ -n "$DB_IPV4" ]; then
-            BACKUP_URL=$(echo "$DATABASE_URL" | sed "s|$DB_HOST|$DB_IPV4|")
-            echo "Resolved $DB_HOST -> $DB_IPV4 (forcing IPv4)"
-          else
-            BACKUP_URL="$DATABASE_URL"
-            echo "Warning: Could not resolve IPv4, using original URL"
-          fi
-          pg_dump "$BACKUP_URL" \
+          pg_dump "$DATABASE_URL" \
             --no-owner \
             --no-privileges \
             --clean \
