@@ -110,10 +110,65 @@ export default function AddressAutocomplete({
     [countryCode]
   );
 
+  // Detect lat/lng coordinate input (e.g. "39.744885, -78.368760")
+  const COORD_REGEX = /^\s*(-?\d{1,3}\.?\d*)\s*[,\s]\s*(-?\d{1,3}\.?\d*)\s*$/;
+
   function handleInputChange(q: string) {
     onChange(q);
     setResolved(false);
+
+    // Check if input looks like coordinates
+    const coordMatch = q.match(COORD_REGEX);
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lng = parseFloat(coordMatch[2]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        // Reverse geocode the coordinates
+        reverseGeocode(lat, lng);
+        return;
+      }
+    }
+
     search(q);
+  }
+
+  async function reverseGeocode(lat: number, lng: number) {
+    setSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+        { headers: { "User-Agent": "EvenfallAdvantage-Overwatch/1.0" } }
+      );
+      const result: NominatimResult = await res.json();
+      if (result?.display_name) {
+        // Show as a single suggestion
+        setSuggestions([result]);
+        setShowSuggestions(true);
+      } else {
+        // No reverse geocode result — use raw coordinates
+        const display = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+        onChange(display);
+        setResolved(true);
+        setShowSuggestions(false);
+        onSelect?.({
+          displayName: display,
+          street: "",
+          city: "",
+          state: "",
+          county: "",
+          postcode: "",
+          lat,
+          lon: lng,
+        });
+      }
+    } catch {
+      // Fallback: use raw coordinates
+      const display = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      onChange(display);
+      setResolved(true);
+      onSelect?.({ displayName: display, street: "", city: "", state: "", county: "", postcode: "", lat, lon: lng });
+    }
+    setSearching(false);
   }
 
   function selectSuggestion(s: NominatimResult) {
