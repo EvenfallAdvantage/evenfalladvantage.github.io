@@ -210,7 +210,7 @@ export default function SchedulePage() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
-  const [tab, setTab] = useState<"schedule" | "armory" | "map">("schedule");
+  const [tab, setTab] = useState<"schedule" | "armory" | "map">("map");
 
   // Armory "show create" state (declared before useEffect)
   const [showCreate, setShowCreate] = useState(false);
@@ -528,6 +528,10 @@ export default function SchedulePage() {
       <div className="space-y-4">
         <div>
           <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
+            <button onClick={() => setTab("map")}
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "map" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+              {tab === "map" && <Globe className="h-3.5 w-3.5 text-primary" />}Map
+            </button>
             <button onClick={() => setTab("schedule")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "schedule" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               {tab === "schedule" && <CalendarDays className="h-3.5 w-3.5 text-primary" />}Schedule
@@ -535,10 +539,6 @@ export default function SchedulePage() {
             <button onClick={() => setTab("armory")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "armory" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               {tab === "armory" && <QrCode className="h-3.5 w-3.5 text-primary" />}Armory
-            </button>
-            <button onClick={() => setTab("map")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "map" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {tab === "map" && <Globe className="h-3.5 w-3.5 text-primary" />}Map
             </button>
           </div>
         </div>
