@@ -25,7 +25,18 @@ jobs:
         run: |
           DATE=$(date +%Y-%m-%d)
           mkdir -p backups
-          pg_dump "$DATABASE_URL" \
+          # Force IPv4 — GitHub Actions resolves Supabase to IPv6 which is unreachable
+          # Extract hostname from DATABASE_URL, resolve to IPv4, replace in URL
+          DB_HOST=$(echo "$DATABASE_URL" | sed -n 's|.*@\([^:/]*\).*|\1|p')
+          DB_IPV4=$(getent ahostsv4 "$DB_HOST" | head -1 | awk '{print $1}')
+          if [ -n "$DB_IPV4" ]; then
+            BACKUP_URL=$(echo "$DATABASE_URL" | sed "s|$DB_HOST|$DB_IPV4|")
+            echo "Resolved $DB_HOST -> $DB_IPV4 (forcing IPv4)"
+          else
+            BACKUP_URL="$DATABASE_URL"
+            echo "Warning: Could not resolve IPv4, using original URL"
+          fi
+          pg_dump "$BACKUP_URL" \
             --no-owner \
             --no-privileges \
             --clean \
