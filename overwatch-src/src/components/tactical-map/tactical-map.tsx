@@ -518,29 +518,61 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       const bounds = savedBounds[op.id];
       if (!bounds) return;
 
-      loadStoryboard(op.id).then(storyboard => {
+      // Load storyboard AND incidents for this operation in parallel
+      Promise.all([
+        loadStoryboard(op.id),
+        import("@/lib/supabase/db-operations").then(m => m.getIncidents(companyId, "all")),
+      ]).then(([storyboard, allIncidents]) => {
         if (!storyboard?.pins || !Array.isArray(storyboard.pins)) return;
+
+        // Build a lookup of incidents by storyboard_pin_id for enrichment
+        const incidentByPinId: Record<string, typeof allIncidents[0]> = {};
+        (allIncidents ?? []).forEach((inc: Record<string, unknown>) => {
+          if (inc.storyboard_pin_id && inc.storyboard_id === storyboard.id) {
+            incidentByPinId[inc.storyboard_pin_id as string] = inc;
+          }
+        });
 
         const lngSpan = bounds.east - bounds.west;
         const latSpan = bounds.north - bounds.south;
 
         storyboard.pins.forEach((pin: { id: string; x: number; y: number; label: string; description?: string; icon?: string; color?: string }, idx: number) => {
-          // Convert image x/y (0-1) to geo coordinates
-          // x=0 is west edge, x=1 is east edge
-          // y=0 is north edge (top of image), y=1 is south edge (bottom)
           const lng = bounds.west + pin.x * lngSpan;
-          const lat = bounds.north - pin.y * latSpan; // y is inverted
+          const lat = bounds.north - pin.y * latSpan;
 
           const pinColor = pin.color || "#22c55e";
+
+          // Check if this pin is linked to an incident for enriched data
+          const linkedIncident = incidentByPinId[pin.id];
+          let desc: string;
+          if (linkedIncident) {
+            const sevColor = linkedIncident.severity === "critical" ? "#ef4444"
+              : linkedIncident.severity === "high" ? "#f97316"
+              : linkedIncident.severity === "medium" ? "#eab308" : "#6b7280";
+            const reporter = linkedIncident.reported_user as { first_name?: string; last_name?: string } | undefined;
+            const assignee = linkedIncident.assigned_user as { first_name?: string; last_name?: string } | undefined;
+            desc = `<div style="font-family:monospace;font-size:11px;line-height:1.6">
+              <b>${linkedIncident.title || pin.label}</b><br/>
+              <span style="color:${sevColor};font-weight:bold">${String(linkedIncident.severity ?? "").toUpperCase()}</span> &middot; ${String(linkedIncident.status ?? "").toUpperCase()}${linkedIncident.priority ? ` &middot; ${linkedIncident.priority} priority` : ""}<br/>
+              ${linkedIncident.type ? `Type: ${linkedIncident.type}<br/>` : ""}
+              ${linkedIncident.description ? `<span style="opacity:0.8">${String(linkedIncident.description).slice(0, 150)}${String(linkedIncident.description).length > 150 ? "..." : ""}</span><br/>` : ""}
+              ${linkedIncident.location ? `Location: ${linkedIncident.location}<br/>` : ""}
+              ${reporter ? `Reported by: ${reporter.first_name ?? ""} ${reporter.last_name ?? ""}<br/>` : ""}
+              ${assignee ? `Assigned to: ${assignee.first_name ?? ""} ${assignee.last_name ?? ""}<br/>` : ""}
+              <span style="opacity:0.4">${linkedIncident.created_at ? new Date(linkedIncident.created_at as string).toLocaleString() : ""}</span>
+            </div>`;
+          } else {
+            desc = `<b>${pin.label || "Pin"}</b>${pin.description ? `<br/>${pin.description}` : ""}`;
+          }
 
           const entity = viewer.entities.add({
             id: `sboard-${op.id}-${pin.id || idx}`,
             name: pin.label || `Pin ${idx + 1}`,
             position: Cesium.Cartesian3.fromDegrees(lng, lat),
             billboard: {
-              image: createPinCanvas(pinColor, "flag"),
+              image: createPinCanvas(pinColor, linkedIncident ? "alert" : "flag"),
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-              scale: 0.5,
+              scale: linkedIncident ? 0.55 : 0.5,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
@@ -556,7 +588,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
-            description: `<b>${pin.label || "Pin"}</b>${pin.description ? `<br/>${pin.description}` : ""}<br/><span style="opacity:0.4">${pin.icon || ""}</span>`,
+            description: desc,
           });
           entityGroupsRef.current.storyboardPins.push(entity);
         });
