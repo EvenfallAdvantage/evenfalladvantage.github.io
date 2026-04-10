@@ -323,10 +323,16 @@ export default function SchedulePage() {
           .map((inc: Ev) => ({
             id: inc.id,
             title: inc.title ?? "Incident",
+            description: inc.description ?? undefined,
+            type: inc.type ?? undefined,
+            priority: inc.priority ?? undefined,
             lat: inc.location_lat,
             lng: inc.location_lng,
             severity: inc.severity ?? "low",
             status: inc.status ?? "open",
+            reportedBy: inc.reported_user ? `${inc.reported_user.first_name ?? ""} ${inc.reported_user.last_name ?? ""}`.trim() : undefined,
+            assignedTo: inc.assigned_user ? `${inc.assigned_user.first_name ?? ""} ${inc.assigned_user.last_name ?? ""}`.trim() : undefined,
+            location: inc.location ?? undefined,
             createdAt: inc.created_at ?? "",
           }))
       );

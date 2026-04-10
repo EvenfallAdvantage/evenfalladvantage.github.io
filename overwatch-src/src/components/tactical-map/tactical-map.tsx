@@ -39,10 +39,16 @@ export interface OperationPin {
 export interface IncidentPin {
   id: string;
   title: string;
+  description?: string;
+  type?: string;
+  priority?: string;
   lat: number;
   lng: number;
   severity: string;
   status: string;
+  reportedBy?: string;
+  assignedTo?: string;
+  location?: string;
   createdAt: string;
 }
 
@@ -367,10 +373,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           scale: 0.55,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         },
-        description: `<div style="font-family:monospace;font-size:12px;padding:8px">
-          <strong>${inc.title}</strong><br/>
-          Severity: <span style="color:${color}">${inc.severity.toUpperCase()}</span><br/>
-          Status: ${inc.status}<br/>Reported: ${new Date(inc.createdAt).toLocaleString()}
+        description: `<div style="font-family:monospace;font-size:11px;line-height:1.6">
+          <b>${inc.title}</b><br/>
+          <span style="color:${color};font-weight:bold">${inc.severity.toUpperCase()}</span> &middot; ${inc.status.toUpperCase()}${inc.priority ? ` &middot; ${inc.priority} priority` : ""}<br/>
+          ${inc.type ? `Type: ${inc.type}<br/>` : ""}
+          ${inc.description ? `<span style="opacity:0.8">${inc.description.length > 120 ? inc.description.slice(0, 120) + "..." : inc.description}</span><br/>` : ""}
+          ${inc.location ? `Location: ${inc.location}<br/>` : ""}
+          ${inc.reportedBy ? `Reported by: ${inc.reportedBy}<br/>` : ""}
+          ${inc.assignedTo ? `Assigned to: ${inc.assignedTo}<br/>` : ""}
+          <span style="opacity:0.4">${new Date(inc.createdAt).toLocaleString()}</span>
         </div>`,
       });
       entityGroupsRef.current.incidents.push(entity);
