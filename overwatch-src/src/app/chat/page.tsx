@@ -86,11 +86,6 @@ export default function ChatPage() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
-  useEffect(() => {
-    setHeader("COMMS", "Team channels, external groups, and messaging", <Radio className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
-
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selected, setSelected] = useState<Channel | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -98,6 +93,12 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [tab, setTab] = useState<Tab>((searchParams.get("tab") === "external" ? "external" : "channels") as Tab);
+
+  useEffect(() => {
+    setHeader("COMMS", "Team channels, external groups, and messaging",
+      tab === "external" ? <ExternalLink className="h-5 w-5" /> : <Hash className="h-5 w-5" />);
+    return () => clearHeader();
+  }, [setHeader, clearHeader, tab]);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [searchQ, setSearchQ] = useState("");
   const [showSearch, setShowSearch] = useState(false);
