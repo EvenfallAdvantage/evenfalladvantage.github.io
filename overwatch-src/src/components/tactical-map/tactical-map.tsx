@@ -272,12 +272,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
-        description: `<div style="font-family:monospace;font-size:12px;padding:8px">
-          <strong>${op.name}</strong><br/>
-          <span style="color:${color.toCssColorString()}">${op.status.toUpperCase()}</span><br/>
-          ${op.location}<br/>
-          ${op.startDate ? `Starts: ${new Date(op.startDate).toLocaleDateString()}` : ""}
-          ${op.shiftCount ? `<br/>Shifts: ${op.shiftCount}` : ""}
+        description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">
+          <b>${op.name}</b>
+          <div style="margin:4px 0"><span style="color:${color.toCssColorString()};font-weight:bold;padding:1px 6px;border-radius:3px;background:${color.toCssColorString()}22">${op.status.toUpperCase()}</span></div>
+          ${op.location ? `<div style="opacity:0.7;font-size:10px">📍 ${op.location}</div>` : ""}
+          ${op.startDate ? `<div style="opacity:0.6;font-size:10px">📅 ${new Date(op.startDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</div>` : ""}
+          ${op.shiftCount ? `<div style="opacity:0.6;font-size:10px">👥 ${op.shiftCount} shift${op.shiftCount !== 1 ? "s" : ""}</div>` : ""}
+          ${op.geofenceRadius ? `<div style="opacity:0.5;font-size:10px">⊙ ${op.geofenceRadius}m geofence</div>` : ""}
+          ${op.siteMapUrl ? `<div style="opacity:0.5;font-size:10px">🗺 Site map available</div>` : ""}
+          <div style="opacity:0.3;font-size:9px;margin-top:4px">Double-click to view details</div>
         </div>`,
       });
       entityGroupsRef.current.operations.push(entity);
@@ -374,16 +377,17 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           scale: 0.55,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         },
-        description: `<div style="font-family:monospace;font-size:11px;line-height:1.6">
-          <b>${inc.title}</b><br/>
-          <span style="color:${color};font-weight:bold">${inc.severity.toUpperCase()}</span> &middot; ${inc.status.toUpperCase()}${inc.priority ? ` &middot; ${inc.priority} priority` : ""}<br/>
-          ${inc.type ? `Type: ${inc.type}<br/>` : ""}
-          ${inc.description ? `<span style="opacity:0.8">${inc.description.length > 120 ? inc.description.slice(0, 120) + "..." : inc.description}</span><br/>` : ""}
-          ${inc.location ? `Location: ${inc.location}<br/>` : ""}
-          ${inc.reportedBy ? `Reported by: ${inc.reportedBy}<br/>` : ""}
-          ${inc.assignedTo ? `Assigned to: ${inc.assignedTo}<br/>` : ""}
-          <span style="opacity:0.4">${new Date(inc.createdAt).toLocaleString()}</span>
-        </div>`,
+        description: (() => {
+          const narrative = parseIncidentNarrative(inc.description ?? "");
+          return `<div style="font-family:monospace;font-size:11px;line-height:1.7">
+            <b>${inc.title}</b>
+            <div style="margin:4px 0"><span style="color:${color};font-weight:bold;padding:1px 6px;border-radius:3px;background:${color}22">${inc.severity.toUpperCase()}</span> <span style="opacity:0.6">${inc.status.toUpperCase()}</span></div>
+            ${narrative ? `<div style="opacity:0.85;margin:4px 0">${narrative}</div>` : ""}
+            ${inc.location ? `<div style="opacity:0.5;font-size:10px">📍 ${inc.location}</div>` : ""}
+            ${inc.reportedBy ? `<div style="opacity:0.5;font-size:10px">👤 ${inc.reportedBy}${inc.assignedTo ? ` → ${inc.assignedTo}` : ""}</div>` : ""}
+            <div style="opacity:0.3;font-size:9px;margin-top:4px">${new Date(inc.createdAt).toLocaleString()}</div>
+          </div>`;
+        })(),
       });
       entityGroupsRef.current.incidents.push(entity);
     });
@@ -551,15 +555,17 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
               : linkedIncident.severity === "medium" ? "#eab308" : "#6b7280";
             const reporter = linkedIncident.reported_user as { first_name?: string; last_name?: string } | undefined;
             const assignee = linkedIncident.assigned_user as { first_name?: string; last_name?: string } | undefined;
-            desc = `<div style="font-family:monospace;font-size:11px;line-height:1.6">
-              <b>${linkedIncident.title || pin.label}</b><br/>
-              <span style="color:${sevColor};font-weight:bold">${String(linkedIncident.severity ?? "").toUpperCase()}</span> &middot; ${String(linkedIncident.status ?? "").toUpperCase()}${linkedIncident.priority ? ` &middot; ${linkedIncident.priority} priority` : ""}<br/>
-              ${linkedIncident.type ? `Type: ${linkedIncident.type}<br/>` : ""}
-              ${linkedIncident.description ? `<span style="opacity:0.8">${String(linkedIncident.description).slice(0, 150)}${String(linkedIncident.description).length > 150 ? "..." : ""}</span><br/>` : ""}
-              ${linkedIncident.location ? `Location: ${linkedIncident.location}<br/>` : ""}
-              ${reporter ? `Reported by: ${reporter.first_name ?? ""} ${reporter.last_name ?? ""}<br/>` : ""}
-              ${assignee ? `Assigned to: ${assignee.first_name ?? ""} ${assignee.last_name ?? ""}<br/>` : ""}
-              <span style="opacity:0.4">${linkedIncident.created_at ? new Date(linkedIncident.created_at as string).toLocaleString() : ""}</span>
+            const narrative = parseIncidentNarrative(String(linkedIncident.description ?? ""));
+            const reporterName = reporter ? `${reporter.first_name ?? ""} ${reporter.last_name ?? ""}`.trim() : "";
+            const assigneeName = assignee ? `${assignee.first_name ?? ""} ${assignee.last_name ?? ""}`.trim() : "";
+            const ts = linkedIncident.created_at ? new Date(linkedIncident.created_at as string).toLocaleString() : "";
+            desc = `<div style="font-family:monospace;font-size:11px;line-height:1.7">
+              <b>${linkedIncident.title || pin.label}</b>
+              <div style="margin:4px 0"><span style="color:${sevColor};font-weight:bold;padding:1px 6px;border-radius:3px;background:${sevColor}22">${String(linkedIncident.severity ?? "").toUpperCase()}</span> <span style="opacity:0.6">${String(linkedIncident.status ?? "").toUpperCase()}</span></div>
+              ${narrative ? `<div style="opacity:0.85;margin:4px 0">${narrative}</div>` : ""}
+              ${linkedIncident.location ? `<div style="opacity:0.5;font-size:10px">📍 ${linkedIncident.location}</div>` : ""}
+              ${reporterName ? `<div style="opacity:0.5;font-size:10px">👤 ${reporterName}${assigneeName ? ` → ${assigneeName}` : ""}</div>` : ""}
+              <div style="opacity:0.3;font-size:9px;margin-top:4px">${ts}</div>
             </div>`;
           } else {
             desc = `<b>${pin.label || "Pin"}</b>${pin.description ? `<br/>${pin.description}` : ""}`;
@@ -1416,32 +1422,54 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   );
 }
 
+// Pin icon cache to avoid creating new canvases on every render
+const pinCache = new Map<string, HTMLCanvasElement>();
+
 function createPinCanvas(color: string, type: "flag" | "person" | "alert"): HTMLCanvasElement {
+  const key = `${color}-${type}`;
+  if (pinCache.has(key)) return pinCache.get(key)!;
+
+  const size = 28;
   const canvas = document.createElement("canvas");
-  canvas.width = 48;
-  canvas.height = 48;
+  canvas.width = size;
+  canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = 4;
-  ctx.shadowOffsetY = 2;
+  const r = size / 2;
+
+  // Drop shadow
+  ctx.shadowColor = "rgba(0,0,0,0.4)";
+  ctx.shadowBlur = 3;
+  ctx.shadowOffsetY = 1;
+
+  // Filled circle
   ctx.beginPath();
-  ctx.arc(24, 20, 14, 0, Math.PI * 2);
+  ctx.arc(r, r, r - 3, 0, Math.PI * 2);
   ctx.fillStyle = color;
   ctx.fill();
+
+  // White border
+  ctx.shadowColor = "transparent";
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = 2;
   ctx.stroke();
-  ctx.shadowColor = "transparent";
-  ctx.beginPath();
-  ctx.moveTo(16, 30);
-  ctx.lineTo(24, 44);
-  ctx.lineTo(32, 30);
-  ctx.fillStyle = color;
-  ctx.fill();
+
+  // Icon
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 14px sans-serif";
+  ctx.font = `bold ${size * 0.4}px sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(type === "flag" ? "\u2691" : type === "person" ? "\u2022" : "\u26A0", 24, 20);
+  const icon = type === "flag" ? "\u2691" : type === "person" ? "\u2022" : "\u26A0";
+  ctx.fillText(icon, r, r);
+
+  pinCache.set(key, canvas);
   return canvas;
+}
+
+/** Parse incident description — extract narrative from structured form dump */
+function parseIncidentNarrative(desc: string): string {
+  if (!desc) return "";
+  // The description often contains "Narrative --- When --- details..." format
+  const parts = desc.split(/\s*---\s*/);
+  // First part is usually the narrative
+  return parts[0]?.trim() || desc.slice(0, 120);
 }
