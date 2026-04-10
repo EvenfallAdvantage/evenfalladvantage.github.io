@@ -97,6 +97,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [aligningOp, setAligningOp] = useState<OperationPin | null>(null);
   const [savedBounds, setSavedBounds] = useState<Record<string, SiteMapBounds>>({});
   const [boundsLoaded, setBoundsLoaded] = useState<Set<string>>(new Set());
+  const [boundsLoading, setBoundsLoading] = useState<Set<string>>(new Set());
   const [selectedEntity, setSelectedEntity] = useState<{ id: string; name: string; description: string; screenX: number; screenY: number } | null>(null);
   const popupAnimFrame = useRef<number>(0);
   const [cameraHeading, setCameraHeading] = useState(0); // radians
@@ -435,16 +436,21 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // ─── Load saved bounds from DB when site maps are toggled ────
   useEffect(() => {
     operations.forEach((op) => {
-      if (layers.siteOverlays[op.id] && !savedBounds[op.id] && !boundsLoaded.has(op.id)) {
-        setBoundsLoaded(prev => new Set(prev).add(op.id));
+      if (layers.siteOverlays[op.id] && !savedBounds[op.id] && !boundsLoaded.has(op.id) && !boundsLoading.has(op.id)) {
+        setBoundsLoading(prev => new Set(prev).add(op.id));
         getSiteMapBounds(op.id).then(bounds => {
           if (bounds) {
             setSavedBounds(prev => ({ ...prev, [op.id]: bounds }));
           }
+          setBoundsLoaded(prev => new Set(prev).add(op.id));
+          setBoundsLoading(prev => { const next = new Set(prev); next.delete(op.id); return next; });
+        }).catch(() => {
+          setBoundsLoaded(prev => new Set(prev).add(op.id));
+          setBoundsLoading(prev => { const next = new Set(prev); next.delete(op.id); return next; });
         });
       }
     });
-  }, [operations, layers.siteOverlays, savedBounds, boundsLoaded]);
+  }, [operations, layers.siteOverlays, savedBounds, boundsLoaded, boundsLoading]);
 
   // ─── Site Map Overlays (rubber-sheet aligned) ────────
   useEffect(() => {
@@ -479,12 +485,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         return;
       }
 
-      // No saved bounds — if admin, open 3-point alignment tool; otherwise skip
-      if (!aligningOp && isAdmin) {
+      // No saved bounds — but only open aligner if we've finished loading
+      // (prevents the aligner from opening while the async bounds fetch is in progress)
+      if (!aligningOp && isAdmin && boundsLoaded.has(op.id) && !boundsLoading.has(op.id)) {
         setAligningOp(op);
       }
     });
-  }, [operations, layers.siteOverlays, layers.siteOverlayOpacity, loading, savedBounds, aligningOp, isAdmin]);
+  }, [operations, layers.siteOverlays, layers.siteOverlayOpacity, loading, savedBounds, aligningOp, isAdmin, boundsLoaded, boundsLoading]);
 
   // ─── Storyboard Pins on Site Map Overlays ────────────
   // When a site map is active with saved bounds, load its storyboard pins
