@@ -338,10 +338,11 @@ export default function SchedulePage() {
   useEffect(() => { loadMapData(); }, [loadMapData]);
 
   // Subscribe to real-time staff location updates when map tab is active
+  // Also poll every 30s as a fallback (Realtime may miss events)
   useEffect(() => {
     if (tab !== "map" || !activeCompanyId || activeCompanyId === "pending") return;
-    const unsub = subscribeStaffLocations(activeCompanyId, () => {
-      // Re-fetch staff locations on any change
+
+    const refreshStaff = () => {
       getStaffLocations(activeCompanyId).then((locs) => {
         setMapStaff(locs.map((s: { userId: string; name: string; lat: number; lng: number; heading: number | null; speed: number | null; updatedAt: string }) => ({
           userId: s.userId, name: s.name, role: "staff",
@@ -350,8 +351,15 @@ export default function SchedulePage() {
           updatedAt: s.updatedAt,
         })));
       });
-    });
-    return unsub;
+    };
+
+    // Realtime subscription
+    const unsub = subscribeStaffLocations(activeCompanyId, refreshStaff);
+
+    // Polling fallback every 30s for reliability
+    const pollInterval = setInterval(refreshStaff, 30000);
+
+    return () => { unsub(); clearInterval(pollInterval); };
   }, [tab, activeCompanyId]);
 
   // Load issued documents & my availability for each event

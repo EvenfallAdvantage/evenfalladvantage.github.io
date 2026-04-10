@@ -672,39 +672,51 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   }, [layers.satellite, loading]);
 
   // ─── Breadcrumb Trails (patrol history) ──────────────
+  // Renders + refreshes every 60s while enabled
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
-    // Clear old breadcrumb entities
-    (entityGroupsRef.current.breadcrumbs ?? []).forEach((e: { id: string }) => {
-      try { viewer.entities.removeById(e.id); } catch {}
-    });
-    entityGroupsRef.current.breadcrumbs = [];
+    function renderTrails() {
+      if (!viewer || !Cesium) return;
+      // Clear old breadcrumb entities
+      (entityGroupsRef.current.breadcrumbs ?? []).forEach((e: { id: string }) => {
+        try { viewer.entities.removeById(e.id); } catch {}
+      });
+      entityGroupsRef.current.breadcrumbs = [];
 
-    if (!layers.breadcrumbs || staff.length === 0) return;
+      if (!layers.breadcrumbs || staff.length === 0) return;
 
-    // Load trail for each active staff member
-    staff.forEach(s => {
-      getLocationHistory(s.userId, companyId, 4).then(trail => {
-        if (trail.length < 2) return;
-        const positions = trail.flatMap(p => [p.lng, p.lat]);
-        const entity = viewer.entities.add({
-          id: `trail-${s.userId}`,
-          polyline: {
-            positions: Cesium.Cartesian3.fromDegreesArray(positions),
-            width: 2,
-            material: new Cesium.PolylineGlowMaterialProperty({
-              glowPower: 0.2,
-              color: Cesium.Color.CYAN.withAlpha(0.6),
-            }),
-            clampToGround: true,
-          },
-        });
-        entityGroupsRef.current.breadcrumbs.push(entity);
-      }).catch(() => {});
-    });
+      staff.forEach(s => {
+        getLocationHistory(s.userId, companyId, 4).then(trail => {
+          if (trail.length < 2) return;
+          // Remove existing trail for this user first
+          try { viewer.entities.removeById(`trail-${s.userId}`); } catch {}
+          const positions = trail.flatMap(p => [p.lng, p.lat]);
+          const entity = viewer.entities.add({
+            id: `trail-${s.userId}`,
+            polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArray(positions),
+              width: 2,
+              material: new Cesium.PolylineGlowMaterialProperty({
+                glowPower: 0.2,
+                color: Cesium.Color.CYAN.withAlpha(0.6),
+              }),
+              clampToGround: true,
+            },
+          });
+          entityGroupsRef.current.breadcrumbs.push(entity);
+        }).catch(() => {});
+      });
+    }
+
+    // Render immediately
+    renderTrails();
+
+    // Refresh trails every 60s
+    const interval = setInterval(renderTrails, 60000);
+    return () => clearInterval(interval);
   }, [staff, layers.breadcrumbs, loading, companyId]);
 
   // ─── Tactical Annotations (drawings) ───────────────
