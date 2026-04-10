@@ -10,6 +10,10 @@ import { getSiteMapBounds, saveSiteMapBounds, loadStoryboard, type SiteMapBounds
 import { getLocationHistory } from "@/lib/supabase/db-location";
 import { getAnnotations, createAnnotation, deleteAnnotation, subscribeAnnotations, type MapAnnotation } from "@/lib/supabase/db-annotations";
 import { getNearbyPOIs, getSunPosition, getRecentGeofenceAlerts, type NearbyPOI, type GeofenceAlert } from "./env-intel";
+import { addSentinel1Layer, addSentinel2Layer } from "./sentinel-layer";
+import { FLIR_SHADER, CRT_SHADER, applyShader, removeShader } from "./shaders";
+import { getAircraft, getBoundingBox, formatAltitude, formatSpeed } from "./flight-tracker";
+import { getSatellitePositions, computeGroundTrack } from "./orbit-tracker";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -726,6 +730,208 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       if (osmRef?.[0]) osmRef[0].show = false;
     }
   }, [layers.satellite, loading]);
+
+  // ─── Sentinel-1 SAR Layer ────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    if (entityGroupsRef.current.sentinel1Layer) {
+      try { viewer.imageryLayers.remove(entityGroupsRef.current.sentinel1Layer, false); } catch {}
+      entityGroupsRef.current.sentinel1Layer = null;
+    }
+    if (layers.sentinel1) {
+      entityGroupsRef.current.sentinel1Layer = addSentinel1Layer(viewer, Cesium);
+    }
+  }, [layers.sentinel1, loading]);
+
+  // ─── Sentinel-2 Optical Layer ──────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    if (entityGroupsRef.current.sentinel2Layer) {
+      try { viewer.imageryLayers.remove(entityGroupsRef.current.sentinel2Layer, false); } catch {}
+      entityGroupsRef.current.sentinel2Layer = null;
+    }
+    if (layers.sentinel2) {
+      entityGroupsRef.current.sentinel2Layer = addSentinel2Layer(viewer, Cesium);
+    }
+  }, [layers.sentinel2, loading]);
+
+  // ─── FLIR Thermal Shader ───────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    if (entityGroupsRef.current.flirStage) {
+      removeShader(viewer, entityGroupsRef.current.flirStage);
+      entityGroupsRef.current.flirStage = null;
+    }
+    if (layers.flirThermal) {
+      entityGroupsRef.current.flirStage = applyShader(viewer, Cesium, FLIR_SHADER);
+    }
+  }, [layers.flirThermal, loading]);
+
+  // ─── CRT Mode Shader ──────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    if (entityGroupsRef.current.crtStage) {
+      removeShader(viewer, entityGroupsRef.current.crtStage);
+      entityGroupsRef.current.crtStage = null;
+    }
+    if (layers.crtMode) {
+      entityGroupsRef.current.crtStage = applyShader(viewer, Cesium, CRT_SHADER);
+    }
+  }, [layers.crtMode, loading]);
+
+  // ─── Live Aircraft (OpenSky Network) ───────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    // Clear old aircraft entities
+    (entityGroupsRef.current.aircraft ?? []).forEach((e: { id: string }) => {
+      try { viewer.entities.removeById(e.id); } catch {}
+    });
+    entityGroupsRef.current.aircraft = [];
+
+    if (!layers.aircraft) return;
+
+    // Get bounding box from operations or use CONUS
+    const op = operations.find(o => o.lat && o.lng);
+    const center = op ? { lat: op.lat, lng: op.lng } : { lat: 39.83, lng: -98.58 };
+    const bbox = getBoundingBox(center.lat, center.lng, 200); // 200km radius
+
+    function fetchAndRender() {
+      getAircraft(bbox.south, bbox.north, bbox.west, bbox.east).then(planes => {
+        // Clear old
+        (entityGroupsRef.current.aircraft ?? []).forEach((e: { id: string }) => {
+          try { viewer.entities.removeById(e.id); } catch {}
+        });
+        entityGroupsRef.current.aircraft = [];
+
+        planes.slice(0, 100).forEach(plane => {
+          if (plane.onGround) return;
+          const entity = viewer.entities.add({
+            id: `plane-${plane.icao24}`,
+            name: plane.callsign || plane.icao24,
+            position: Cesium.Cartesian3.fromDegrees(plane.lng, plane.lat, plane.altitude),
+            billboard: {
+              image: createPinCanvas("#38bdf8", "flag"),
+              scale: 0.4,
+              rotation: -plane.heading * (Math.PI / 180),
+            },
+            label: {
+              text: `${plane.callsign || plane.icao24}\n${formatAltitude(plane.altitude)}`,
+              font: "9px monospace",
+              fillColor: Cesium.Color.fromCssColorString("#38bdf8"),
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 2,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              pixelOffset: new Cesium.Cartesian2(0, -18),
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              scale: 0.8,
+            },
+            description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">
+              <b>${plane.callsign || plane.icao24}</b>
+              <div>ICAO: ${plane.icao24}</div>
+              <div>Alt: ${formatAltitude(plane.altitude)}</div>
+              <div>Speed: ${formatSpeed(plane.velocity)}</div>
+              <div>Heading: ${plane.heading.toFixed(0)}&deg;</div>
+              <div>V/S: ${plane.verticalRate > 0 ? "+" : ""}${(plane.verticalRate * 196.85).toFixed(0)} fpm</div>
+            </div>`,
+          });
+          entityGroupsRef.current.aircraft.push(entity);
+        });
+      }).catch(() => {});
+    }
+
+    fetchAndRender();
+    const interval = setInterval(fetchAndRender, 15000); // Refresh every 15s
+    return () => clearInterval(interval);
+  }, [layers.aircraft, loading, operations]);
+
+  // ─── Satellite Orbits (CelesTrak) ──────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    (entityGroupsRef.current.orbits ?? []).forEach((e: { id: string }) => {
+      try { viewer.entities.removeById(e.id); } catch {}
+    });
+    entityGroupsRef.current.orbits = [];
+
+    if (!layers.satelliteOrbits) return;
+
+    getSatellitePositions(30).then(sats => {
+      sats.forEach((sat, i) => {
+        const satColor = sat.name.includes("SENTINEL-1") ? "#ef4444"
+          : sat.name.includes("SENTINEL-2") ? "#22c55e"
+          : sat.name.includes("WORLDVIEW") || sat.name.includes("GEOEYE") ? "#f97316"
+          : "#6b7280";
+
+        // Current position marker
+        const entity = viewer.entities.add({
+          id: `sat-${i}`,
+          name: sat.name,
+          position: Cesium.Cartesian3.fromDegrees(sat.lng, sat.lat, sat.altitude * 1000),
+          point: {
+            pixelSize: 6,
+            color: Cesium.Color.fromCssColorString(satColor),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 1,
+          },
+          label: {
+            text: sat.name,
+            font: "8px monospace",
+            fillColor: Cesium.Color.fromCssColorString(satColor),
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(8, 0),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            scale: 0.8,
+          },
+          description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">
+            <b>${sat.name}</b>
+            <div>Alt: ${sat.altitude.toFixed(0)} km</div>
+            <div>Speed: ${sat.velocity.toFixed(1)} km/s</div>
+            <div>Lat: ${sat.lat.toFixed(3)}&deg; Lng: ${sat.lng.toFixed(3)}&deg;</div>
+          </div>`,
+        });
+        entityGroupsRef.current.orbits.push(entity);
+
+        // Ground track polyline
+        const track = computeGroundTrack(sat.tle1, sat.tle2, 90, 1);
+        if (track.length > 2) {
+          const trackEntity = viewer.entities.add({
+            id: `sat-track-${i}`,
+            polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArray(track.flatMap(([lng, lat]) => [lng, lat])),
+              width: 1,
+              material: Cesium.Color.fromCssColorString(satColor).withAlpha(0.3),
+            },
+          });
+          entityGroupsRef.current.orbits.push(trackEntity);
+        }
+      });
+    }).catch(() => {});
+
+    // Refresh satellite positions every 60s
+    const interval = setInterval(() => {
+      // Just re-trigger the effect by toggling a counter
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [layers.satelliteOrbits, loading]);
 
   // ─── Breadcrumb Trails (patrol history) ──────────────
   // Renders + refreshes every 60s while enabled

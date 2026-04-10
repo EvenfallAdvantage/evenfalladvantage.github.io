@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   Layers, Users, Flag, CloudRain, Building2, Mountain,
   Eye, EyeOff, ChevronRight, Target, AlertTriangle, Moon, Satellite,
-  Hospital, Shield, Sun,
+  Hospital, Sun, Plane, Radio, Scan, Monitor, Orbit, Radar,
 } from "lucide-react";
 import type { OperationPin } from "./tactical-map";
 
@@ -22,6 +22,15 @@ export interface LayerVisibility {
   nearbyPOIs: boolean;
   annotations: boolean;
   sunPosition: boolean;
+  // Satellite intel
+  sentinel1: boolean;
+  sentinel2: boolean;
+  flirThermal: boolean;
+  crtMode: boolean;
+  // Live feeds
+  aircraft: boolean;
+  satelliteOrbits: boolean;
+  // Site maps
   siteOverlays: Record<string, boolean>;
   siteOverlayOpacity: number;
 }
@@ -40,6 +49,12 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   nearbyPOIs: false,
   annotations: true,
   sunPosition: false,
+  sentinel1: false,
+  sentinel2: false,
+  flirThermal: false,
+  crtMode: false,
+  aircraft: false,
+  satelliteOrbits: false,
   siteOverlays: {},
   siteOverlayOpacity: 0.75,
 };
@@ -60,6 +75,12 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "weather", label: "Weather Radar", icon: <CloudRain className="h-3.5 w-3.5" />, group: "OVERLAYS" },
   { key: "nightVision", label: "Night Vision", icon: <Moon className="h-3.5 w-3.5" />, group: "OVERLAYS" },
   { key: "annotations", label: "Tactical Drawings", icon: <Flag className="h-3.5 w-3.5" />, group: "OVERLAYS" },
+  { key: "sentinel1", label: "SAR Radar (S-1)", icon: <Radar className="h-3.5 w-3.5" />, group: "SATELLITE INTEL" },
+  { key: "sentinel2", label: "Optical (S-2)", icon: <Satellite className="h-3.5 w-3.5" />, group: "SATELLITE INTEL" },
+  { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "SATELLITE INTEL" },
+  { key: "crtMode", label: "CRT Mode", icon: <Monitor className="h-3.5 w-3.5" />, group: "SATELLITE INTEL" },
+  { key: "aircraft", label: "Aircraft (Live)", icon: <Plane className="h-3.5 w-3.5" />, group: "LIVE FEEDS" },
+  { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "LIVE FEEDS" },
   { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "INTEL" },
   { key: "sunPosition", label: "Sun Position", icon: <Sun className="h-3.5 w-3.5" />, group: "INTEL" },
   { key: "satellite", label: "Satellite Imagery", icon: <Satellite className="h-3.5 w-3.5" />, group: "TERRAIN" },
