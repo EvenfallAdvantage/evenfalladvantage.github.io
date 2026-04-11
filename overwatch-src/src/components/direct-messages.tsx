@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Send, Search, Loader2, Check, CheckCheck } from "lucide-react";
+import { Send, Search, Loader2, Check, CheckCheck, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -14,12 +14,14 @@ import { getCompanyMembers } from "@/lib/supabase/db";
 
 interface DirectMessagesProps {
   companyId: string;
+  /** Auto-select a conversation with this user (e.g. from map staff pin popup) */
+  initialUserId?: string | null;
 }
 
-export function DirectMessages({ companyId }: DirectMessagesProps) {
+export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps) {
   const user = useAuthStore((s) => s.user);
   const [conversations, setConversations] = useState<DMConversation[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(initialUserId ?? null);
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
@@ -64,6 +66,22 @@ export function DirectMessages({ companyId }: DirectMessagesProps) {
     setMsgText("");
     await loadMessages(selectedUserId);
     setSending(false);
+  }
+
+  async function handleSendLocation() {
+    if (!selectedUserId) return;
+    if (!navigator.geolocation) return;
+    setSending(true);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+      );
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      await sendDM(companyId, selectedUserId, `📍 My location: ${lat}, ${lng}\nhttps://www.google.com/maps?q=${lat},${lng}`);
+      await loadMessages(selectedUserId);
+    } catch { /* geolocation denied or failed */ }
+    finally { setSending(false); }
   }
 
   async function handleSelectConversation(userId: string) {
@@ -239,6 +257,9 @@ export function DirectMessages({ companyId }: DirectMessagesProps) {
                   className="h-9 text-sm"
                   disabled={sending}
                 />
+                <Button type="button" size="sm" variant="ghost" className="h-9 px-2" disabled={sending} onClick={handleSendLocation} title="Send my location">
+                  <MapPin className="h-3.5 w-3.5" />
+                </Button>
                 <Button type="submit" size="sm" className="h-9 px-3" disabled={sending || !msgText.trim()}>
                   {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 </Button>

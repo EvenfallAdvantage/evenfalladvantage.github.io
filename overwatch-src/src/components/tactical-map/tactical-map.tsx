@@ -67,11 +67,12 @@ interface TacticalMapProps {
   companyId: string;
   isAdmin?: boolean;
   onSelectOperation?: (id: string) => void;
+  onMessageStaff?: (userId: string) => void;
 }
 
 const CONUS_CENTER = { lat: 39.8283, lng: -98.5795 };
 
-export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, onSelectOperation }: TacticalMapProps) {
+export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, onSelectOperation, onMessageStaff }: TacticalMapProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -215,6 +216,12 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           });
         };
 
+        // Expose DM handler for staff pin popups
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).__openStaffDM = (userId: string) => {
+          if (onMessageStaff) onMessageStaff(userId);
+        };
+
         // Add 3D buildings
         const buildingsTileset = await Cesium.createOsmBuildingsAsync();
         viewer.scene.primitives.add(buildingsTileset);
@@ -292,6 +299,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       delete (window as any).__deleteAnnotation;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (window as any).__siteMapAlignerAddPoint;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).__openStaffDM;
     };
   }, []);
 
@@ -407,6 +416,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           Updated: ${new Date(s.updatedAt).toLocaleTimeString()}
           ${s.speed ? `<br/>Speed: ${(s.speed * 2.237).toFixed(1)} mph` : ""}
           ${s.heading ? `<br/>Heading: ${s.heading.toFixed(0)}&deg;` : ""}
+          <br/><span style="cursor:pointer;color:#22d3ee;text-decoration:underline" onclick="window.__openStaffDM&&window.__openStaffDM('${s.userId}')">Message ${escapeHtml(s.name.split(" ")[0])}</span>
         </div>`,
       });
       entityGroupsRef.current.staff.push(entity);

@@ -64,3 +64,9 @@ verify_jwt = false
 # Fillout calls server-to-server; webhook secret verified in-function
 import_map = "./functions/webhook-fillout/deno.json"
 entrypoint = "./functions/webhook-fillout/index.ts"
+
+[functions.opensky-proxy]
+enabled = true
+verify_jwt = false
+# Public proxy — no JWT needed; CORS origin check + bounding box limits prevent abuse
+entrypoint = "./functions/opensky-proxy/index.ts"

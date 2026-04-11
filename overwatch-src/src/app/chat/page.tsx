@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Radio, Radar, Plus, Send, Loader2, Trash2, Search, ExternalLink,
-  Reply, X, Hash, MessageSquare, Mail,
+  Reply, X, Hash, MessageSquare, Mail, MapPin,
   Smile, Paperclip, Upload, Pencil, Settings2,
 } from "lucide-react";
 import { DirectMessages } from "@/components/direct-messages";
@@ -93,7 +93,8 @@ export default function ChatPage() {
   const [msgText, setMsgText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [tab, setTab] = useState<Tab>((searchParams.get("tab") === "external" ? "external" : "channels") as Tab);
+  const dmUserId = searchParams.get("dm");
+  const [tab, setTab] = useState<Tab>(dmUserId ? "messages" : (searchParams.get("tab") === "external" ? "external" : "channels") as Tab);
 
   useEffect(() => {
     setHeader("COMMS", "Team channels, direct messages, and external groups",
@@ -195,6 +196,27 @@ export default function ChatPage() {
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
       updateLastRead(selected.id).catch(() => {});
     } catch (err) { console.error(err); } finally { setSending(false); }
+  }
+
+  async function handleSendLocation() {
+    if (!selected) return;
+    if (!navigator.geolocation) { toast.error("Geolocation not supported"); return; }
+    setSending(true);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+      );
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      const content = `📍 My location: ${lat}, ${lng}\nhttps://www.google.com/maps?q=${lat},${lng}`;
+      await sendChatMessage({ channelId: selected.id, content });
+      setMessages(await getChatMessages(selected.id));
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      updateLastRead(selected.id).catch(() => {});
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to get location");
+    } finally { setSending(false); }
   }
 
   async function handleReaction(messageId: string, emoji: string) {
@@ -331,7 +353,7 @@ export default function ChatPage() {
         handleDeleteCh={handleDeleteCh} isAdmin={isAdmin} showSearch={showSearch} setShowSearch={setShowSearch}
         searchQ={searchQ} setSearchQ={setSearchQ} filteredMsgs={filteredMsgs} user={user}
         replyTo={replyTo} setReplyTo={setReplyTo} msgText={msgText} setMsgText={setMsgText}
-        sending={sending} handleSend={handleSend} bottomRef={bottomRef}
+        sending={sending} handleSend={handleSend} handleSendLocation={handleSendLocation} bottomRef={bottomRef}
         unread={unread} emojiPicker={emojiPicker} setEmojiPicker={setEmojiPicker}
         handleReaction={handleReaction} typingUsers={typingUsers} broadcastTyping={broadcastTyping}
         editingAvatar={editingAvatar} setEditingAvatar={setEditingAvatar}
@@ -347,7 +369,7 @@ export default function ChatPage() {
 
       {/* ────────── MESSAGES (DM) TAB ────────── */}
       {tab === "messages" && activeCompanyId && activeCompanyId !== "pending" && (
-        <DirectMessages companyId={activeCompanyId} />
+        <DirectMessages companyId={activeCompanyId} initialUserId={dmUserId} />
       )}
 
       {/* ────────── EXTERNAL GROUPS TAB ────────── */}
@@ -369,7 +391,7 @@ export default function ChatPage() {
 function ChannelsTab({ loading, internal, external, selected, showCreate, setShowCreate, newName, setNewName,
   newAvatarUrl, setNewAvatarUrl, newAvatarFile, setNewAvatarFile,
   creating, handleCreate, selectCh, deletingCh, handleDeleteCh, isAdmin, showSearch, setShowSearch,
-  searchQ, setSearchQ, filteredMsgs, user, replyTo, setReplyTo, msgText, setMsgText, sending, handleSend, bottomRef,
+  searchQ, setSearchQ, filteredMsgs, user, replyTo, setReplyTo, msgText, setMsgText, sending, handleSend, handleSendLocation, bottomRef,
   unread, emojiPicker, setEmojiPicker, handleReaction, typingUsers, broadcastTyping,
   editingAvatar, setEditingAvatar, editAvatarUrl, setEditAvatarUrl, editAvatarFile, setEditAvatarFile,
   savingAvatar, handleSaveAvatar,
@@ -689,6 +711,9 @@ function ChannelsTab({ loading, internal, external, selected, showCreate, setSho
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setMsgText(e.target.value); broadcastTyping(); }}
                       onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                       className="flex-1" />
+                    <Button size="sm" variant="ghost" onClick={handleSendLocation} disabled={sending} title="Send my location" aria-label="Send location">
+                      <MapPin className="h-4 w-4" />
+                    </Button>
                     <Button size="sm" onClick={handleSend} disabled={!msgText.trim() || sending} aria-label="Send message">
                       {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     </Button>

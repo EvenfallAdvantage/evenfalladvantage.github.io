@@ -24,47 +24,63 @@ export interface Aircraft {
  * Fetch live aircraft positions within a bounding box.
  * Box is defined by [south, north, west, east] in degrees.
  */
-let corsBlocked = false;
+let useProxy = false;
+
+// Build the proxy URL from the Supabase project URL
+function getProxyUrl(south: number, north: number, west: number, east: number): string {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  return `${supabaseUrl}/functions/v1/opensky-proxy?lamin=${south}&lamax=${north}&lomin=${west}&lomax=${east}`;
+}
+
+function parseStates(data: { states?: (string | number | boolean | null)[][] }): Aircraft[] {
+  if (!data.states) return [];
+  return data.states
+    .filter((s) => s[5] != null && s[6] != null)
+    .map((s) => ({
+      icao24: String(s[0] ?? ""),
+      callsign: String(s[1] ?? "").trim(),
+      lat: Number(s[6]),
+      lng: Number(s[5]),
+      altitude: Number(s[13] ?? s[7] ?? 0),
+      velocity: Number(s[9] ?? 0),
+      heading: Number(s[10] ?? 0),
+      verticalRate: Number(s[11] ?? 0),
+      onGround: Boolean(s[8]),
+      lastContact: Number(s[4] ?? 0),
+    }));
+}
 
 export async function getAircraft(
   south: number, north: number, west: number, east: number
 ): Promise<Aircraft[]> {
-  // Don't retry after CORS failure — OpenSky doesn't support cross-origin requests
-  if (corsBlocked) return [];
+  const params = `lamin=${south}&lamax=${north}&lomin=${west}&lomax=${east}`;
 
-  try {
-    const params = `lamin=${south}&lamax=${north}&lomin=${west}&lomax=${east}`;
-    const url = `https://opensky-network.org/api/states/all?${params}`;
-
-    let res: Response;
+  // Try direct first; fall back to Edge Function proxy on CORS failure
+  if (!useProxy) {
     try {
-      res = await fetch(url, { signal: AbortSignal.timeout(6000), mode: "cors" });
+      const res = await fetch(
+        `https://opensky-network.org/api/states/all?${params}`,
+        { signal: AbortSignal.timeout(6000), mode: "cors" }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        return parseStates(data);
+      }
     } catch {
-      corsBlocked = true;
-      console.warn("[FlightTracker] CORS blocked by OpenSky. Flight tracking disabled until a proxy Edge Function is configured.");
-      return [];
+      useProxy = true;
+      console.info("[FlightTracker] CORS blocked — switching to Edge Function proxy");
     }
+  }
+
+  // Use Edge Function proxy
+  try {
+    const proxyUrl = getProxyUrl(south, north, west, east);
+    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
     if (!res.ok) return [];
     const data = await res.json();
-
-    if (!data.states) return [];
-
-    return data.states
-      .filter((s: (string | number | boolean | null)[]) => s[5] != null && s[6] != null)
-      .map((s: (string | number | boolean | null)[]) => ({
-        icao24: String(s[0] ?? ""),
-        callsign: String(s[1] ?? "").trim(),
-        lat: Number(s[6]),
-        lng: Number(s[5]),
-        altitude: Number(s[13] ?? s[7] ?? 0), // geometric alt, fallback to barometric
-        velocity: Number(s[9] ?? 0),
-        heading: Number(s[10] ?? 0),
-        verticalRate: Number(s[11] ?? 0),
-        onGround: Boolean(s[8]),
-        lastContact: Number(s[4] ?? 0),
-      }));
+    return parseStates(data);
   } catch (err) {
-    console.warn("[FlightTracker] Fetch failed:", err);
+    console.warn("[FlightTracker] Proxy fetch failed:", err);
     return [];
   }
 }

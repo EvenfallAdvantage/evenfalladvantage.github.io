@@ -948,6 +948,10 @@ export default function SchedulePage() {
             // Navigate to the Planning page for this operation
             window.location.href = `/overwatch/admin/events?expand=${id}`;
           }}
+          onMessageStaff={(userId) => {
+            // Navigate to Comms page with DM pre-selected
+            window.location.href = `/overwatch/chat?dm=${userId}`;
+          }}
         />
       )}
 
