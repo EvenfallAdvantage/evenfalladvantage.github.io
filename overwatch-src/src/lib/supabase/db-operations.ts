@@ -706,23 +706,25 @@ export interface SiteMapBounds {
 }
 
 export async function getSiteMapBounds(eventId: string): Promise<SiteMapBounds | null> {
-  // Try DB first
-  try {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("events")
-      .select("settings")
-      .eq("id", eventId)
-      .maybeSingle();
-    const dbBounds = (data?.settings as Record<string, unknown>)?.site_map_bounds as SiteMapBounds | undefined;
-    if (dbBounds) return dbBounds;
-  } catch {}
-
-  // Fallback to localStorage
+  // Try localStorage first (instant, no network)
   try {
     const key = `site-map-bounds-${eventId}`;
     const saved = localStorage.getItem(key);
     if (saved) return JSON.parse(saved);
+  } catch {}
+
+  // Fallback to DB (the 'settings' JSONB column may not exist yet — handle gracefully)
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("events")
+      .select("settings")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (!error && data) {
+      const dbBounds = (data.settings as Record<string, unknown>)?.site_map_bounds as SiteMapBounds | undefined;
+      if (dbBounds) return dbBounds;
+    }
   } catch {}
 
   return null;
@@ -735,24 +737,20 @@ export async function saveSiteMapBounds(eventId: string, bounds: SiteMapBounds):
   } catch {}
 
   // Also try to save to DB (company-wide persistence)
+  // The 'settings' JSONB column may not exist yet — fail silently
   try {
     const supabase = createClient();
-    const { data: existing } = await supabase
+    const { data: existing, error: readErr } = await supabase
       .from("events")
       .select("settings")
       .eq("id", eventId)
       .maybeSingle();
 
-    const settings = { ...(existing?.settings as Record<string, unknown> ?? {}), site_map_bounds: bounds };
-    const { error } = await supabase
-      .from("events")
-      .update({ settings })
-      .eq("id", eventId);
+    if (readErr) return; // Column likely doesn't exist — skip DB save
 
-    if (error) console.warn("[SiteMap] DB save failed (using localStorage):", error.message);
-  } catch (err) {
-    console.warn("[SiteMap] DB save failed (using localStorage):", err);
-  }
+    const settings = { ...(existing?.settings as Record<string, unknown> ?? {}), site_map_bounds: bounds };
+    await supabase.from("events").update({ settings }).eq("id", eventId);
+  } catch {}
 }
 
 export async function clearSiteMapBounds(eventId: string): Promise<void> {
@@ -760,11 +758,13 @@ export async function clearSiteMapBounds(eventId: string): Promise<void> {
 
   try {
     const supabase = createClient();
-    const { data: existing } = await supabase
+    const { data: existing, error: readErr } = await supabase
       .from("events")
       .select("settings")
       .eq("id", eventId)
       .maybeSingle();
+
+    if (readErr) return; // Column likely doesn't exist
 
     const settings = { ...(existing?.settings as Record<string, unknown> ?? {}) };
     delete settings.site_map_bounds;
