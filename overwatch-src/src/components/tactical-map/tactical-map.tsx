@@ -18,6 +18,7 @@ import { TimeMachine } from "./time-machine";
 import { DronePlanner, type Waypoint } from "./drone-planner";
 import { checkLineOfSight, renderLineOfSight, clearLineOfSight, getElevationProfile } from "./terrain-tools";
 import { escapeHtml } from "@/lib/security";
+import { sendDM } from "@/lib/supabase/db-messages";
 import { createPinCanvas, parseIncidentNarrative } from "./pin-canvas";
 import { EntityPopup } from "./entity-popup";
 import { MapControlButtons } from "./map-control-buttons";
@@ -174,6 +175,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [dronePlannerOpen, setDronePlannerOpen] = useState(false);
   const [droneWaypoints, setDroneWaypoints] = useState<Waypoint[]>([]);
 
+  // Quick DM modal (opens on map instead of navigating away)
+  const [dmTarget, setDmTarget] = useState<{ userId: string; name: string } | null>(null);
+  const [dmText, setDmText] = useState("");
+  const [dmSending, setDmSending] = useState(false);
+
   // Line of Sight / Elevation Profile
   const losEntityIdsRef = useRef<string[]>([]);
   const [losPoint1, setLosPoint1] = useState<{ lat: number; lng: number } | null>(null);
@@ -226,10 +232,12 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           });
         };
 
-        // Expose DM handler for staff pin popups
+        // Expose DM handler for staff pin popups — opens inline modal
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).__openStaffDM = (userId: string) => {
-          if (onMessageStaff) onMessageStaff(userId);
+        (window as any).__openStaffDM = (userId: string, name: string) => {
+          setDmTarget({ userId, name: name || "Staff" });
+          setDmText("");
+          setSelectedEntity(null);
         };
 
         // Add 3D buildings
@@ -426,7 +434,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           Updated: ${new Date(s.updatedAt).toLocaleTimeString()}
           ${s.speed ? `<br/>Speed: ${(s.speed * 2.237).toFixed(1)} mph` : ""}
           ${s.heading ? `<br/>Heading: ${s.heading.toFixed(0)}&deg;` : ""}
-          <br/><span style="cursor:pointer;color:#22d3ee;text-decoration:underline" onclick="window.__openStaffDM&&window.__openStaffDM('${s.userId}')">Message ${escapeHtml(s.name.split(" ")[0])}</span>
+          <br/><span style="cursor:pointer;display:inline-block;margin-top:6px;padding:3px 10px;background:#22d3ee22;border:1px solid #22d3ee44;border-radius:6px;color:#22d3ee;font-size:10px;font-weight:600" onclick="window.__openStaffDM&&window.__openStaffDM('${s.userId}','${escapeHtml(s.name)}')">💬 Message ${escapeHtml(s.name.split(" ")[0])}</span>
         </div>`,
       });
       entityGroupsRef.current.staff.push(entity);
@@ -1735,6 +1743,76 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           containerWidth={containerRef.current?.clientWidth ?? 800}
           onClose={() => setSelectedEntity(null)}
         />
+      )}
+
+      {/* Quick DM Modal */}
+      {dmTarget && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center" onClick={() => setDmTarget(null)}>
+          <div
+            className="w-80 rounded-xl shadow-2xl overflow-hidden"
+            style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 97%, transparent)", border: "1px solid color-mix(in srgb, var(--brand-accent, #d59b3c) 30%, transparent)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <span className="text-sm font-semibold text-white">💬 Message {dmTarget.name}</span>
+              <button onClick={() => setDmTarget(null)} className="text-white/30 hover:text-white text-xs">✕</button>
+            </div>
+            <div className="p-4">
+              <textarea
+                className="w-full h-20 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-white/30 font-mono resize-none focus:outline-none focus:border-white/30"
+                placeholder={`Type a message to ${dmTarget.name.split(" ")[0]}...`}
+                value={dmText}
+                onChange={(e) => setDmText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && dmText.trim()) {
+                    e.preventDefault();
+                    setDmSending(true);
+                    sendDM(companyId, dmTarget.userId, dmText.trim())
+                      .then(() => { setDmTarget(null); setDmText(""); })
+                      .catch(() => {})
+                      .finally(() => setDmSending(false));
+                  }
+                }}
+                autoFocus
+              />
+              <div className="flex justify-between items-center mt-2">
+                <button
+                  onClick={() => {
+                    if (!navigator.geolocation) return;
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                      const lat = pos.coords.latitude.toFixed(6);
+                      const lng = pos.coords.longitude.toFixed(6);
+                      setDmText((prev) => prev + `\n📍 ${lat}, ${lng}`);
+                    }, () => {}, { enableHighAccuracy: true, timeout: 5000 });
+                  }}
+                  className="text-[10px] text-white/30 hover:text-white/60"
+                  title="Attach my location"
+                >
+                  📍 Location
+                </button>
+                <button
+                  onClick={() => {
+                    if (!dmText.trim() || dmSending) return;
+                    setDmSending(true);
+                    sendDM(companyId, dmTarget.userId, dmText.trim())
+                      .then(() => { setDmTarget(null); setDmText(""); })
+                      .catch(() => {})
+                      .finally(() => setDmSending(false));
+                  }}
+                  disabled={!dmText.trim() || dmSending}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors"
+                  style={{
+                    backgroundColor: dmText.trim() ? "var(--brand-accent, #d59b3c)" : "transparent",
+                    color: dmText.trim() ? "#000" : "rgba(255,255,255,0.2)",
+                    border: dmText.trim() ? "none" : "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  {dmSending ? "Sending..." : "Send"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} onRealignSiteMap={(op) => {
