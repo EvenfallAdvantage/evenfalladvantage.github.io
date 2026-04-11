@@ -1246,7 +1246,56 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
     // Single click — tools
     handler.setInputAction((click: { position: { x: number; y: number } }) => {
-      // Get globe position from click
+      // FIRST: check for entity/building pick (popups) — this must happen before
+      // the globe.pick() call because clicking on a billboard floating above the
+      // globe may not produce a globe intersection, causing an early return.
+      if (activeTool === "none" && drawMode === "none" && !dronePlannerOpen && !aligningOp) {
+        const picked = viewer.scene.pick(click.position);
+        if (Cesium.defined(picked)) {
+          // Entity pick (our operations/staff/incident pins + annotations)
+          if (picked.id?.id && picked.id?.name) {
+            const entity = picked.id;
+            const entityId = entity.id as string;
+            const isAnnotation = entityId.startsWith("ann-");
+            const annId = isAnnotation ? entityId.replace("ann-", "") : null;
+            const deleteBtn = isAnnotation && isAdmin
+              ? `<br/><br/><span style="cursor:pointer;color:#ef4444" onclick="window.__deleteAnnotation&&window.__deleteAnnotation('${annId}')">🗑 Delete this drawing</span>`
+              : "";
+            setSelectedEntity({
+              id: entityId,
+              name: entity.name ?? "",
+              description: (entity.description?.getValue?.() ?? entity.description ?? "") + deleteBtn,
+              screenX: click.position.x,
+              screenY: click.position.y,
+            });
+            return;
+          }
+          // 3D Tile feature pick (OSM buildings)
+          if (picked.getProperty) {
+            const name = picked.getProperty("name") || picked.getProperty("building") || "Building";
+            const height = picked.getProperty("cesium#estimatedHeight") || picked.getProperty("height");
+            const type = picked.getProperty("building") || picked.getProperty("type") || "";
+            const addr = picked.getProperty("addr:street") || "";
+            const houseNum = picked.getProperty("addr:housenumber") || "";
+            let desc = `<strong>${escapeHtml(String(name))}</strong>`;
+            if (addr) desc += `<br/>${houseNum ? escapeHtml(String(houseNum)) + " " : ""}${escapeHtml(String(addr))}`;
+            if (type && type !== name) desc += `<br/>Type: ${escapeHtml(String(type))}`;
+            if (height) desc += `<br/>Height: ~${Math.round(Number(height))}m`;
+            setSelectedEntity({
+              id: `bldg-${click.position.x}-${click.position.y}`,
+              name: String(name),
+              description: desc,
+              screenX: click.position.x,
+              screenY: click.position.y,
+            });
+            return;
+          }
+        }
+        // Click on empty space — dismiss popup
+        setSelectedEntity(null);
+      }
+
+      // Get globe position from click (for tools)
       const ray = viewer.camera.getPickRay(click.position);
       const cartesian = ray ? viewer.scene.globe.pick(ray, viewer.scene) : null;
       if (!cartesian) return;
@@ -1489,59 +1538,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         return;
       }
 
-      // No tool active — check for entity or 3D tile pick to show popup
-      if (activeTool === "none" && drawMode === "none") {
-        const picked = viewer.scene.pick(click.position);
-        if (Cesium.defined(picked)) {
-          // Entity pick (our operations/staff/incident pins + annotations)
-          if (picked.id?.id && picked.id?.name) {
-            const entity = picked.id;
-            const entityId = entity.id as string;
-
-            // Check if it's an annotation — add delete button to description
-            const isAnnotation = entityId.startsWith("ann-");
-            const annId = isAnnotation ? entityId.replace("ann-", "") : null;
-            const deleteBtn = isAnnotation && isAdmin
-              ? `<br/><br/><span style="cursor:pointer;color:#ef4444" onclick="window.__deleteAnnotation&&window.__deleteAnnotation('${annId}')">🗑 Delete this drawing</span>`
-              : "";
-
-            setSelectedEntity({
-              id: entityId,
-              name: entity.name ?? "",
-              description: (entity.description?.getValue?.() ?? entity.description ?? "") + deleteBtn,
-              screenX: click.position.x,
-              screenY: click.position.y,
-            });
-          }
-          // 3D Tile feature pick (OSM buildings)
-          else if (picked.getProperty) {
-            const name = picked.getProperty("name") || picked.getProperty("building") || "Building";
-            const height = picked.getProperty("cesium#estimatedHeight") || picked.getProperty("height");
-            const type = picked.getProperty("building") || picked.getProperty("type") || "";
-            const addr = picked.getProperty("addr:street") || "";
-            const houseNum = picked.getProperty("addr:housenumber") || "";
-
-            let desc = `<strong>${name}</strong>`;
-            if (addr) desc += `<br/>${houseNum ? houseNum + " " : ""}${addr}`;
-            if (type && type !== name) desc += `<br/>Type: ${type}`;
-            if (height) desc += `<br/>Height: ~${Math.round(Number(height))}m`;
-            desc += `<br/><span style="opacity:0.4">Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</span>`;
-
-            setSelectedEntity({
-              id: `bldg-${click.position.x}-${click.position.y}`,
-              name: String(name),
-              description: desc,
-              screenX: click.position.x,
-              screenY: click.position.y,
-            });
-          }
-          else {
-            setSelectedEntity(null);
-          }
-        } else {
-          setSelectedEntity(null);
-        }
-      }
+      // Entity/building picking is handled at the top of this handler (before globe.pick)
+      // to ensure billboard clicks work even when they don't intersect the globe.
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
     // Double click — fly to entity / operation callback

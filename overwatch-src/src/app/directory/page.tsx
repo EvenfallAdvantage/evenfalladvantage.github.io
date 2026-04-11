@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyMembers } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
 
 type MemberUser = { id: string; first_name: string; last_name: string; email: string | null; phone: string | null; avatar_url: string | null };
 type Member = { id: string; role: string; nickname: string | null; status: string; title: string | null; hide_contact_roster: boolean; users: MemberUser | null };
@@ -37,9 +38,23 @@ export default function DirectoryPage() {
     }
   }, [activeCompanyId]);
 
+  useEffect(() => { load(); }, [load]);
+
+  // Realtime — roster updates when members join/leave/change roles
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`directory-${activeCompanyId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "company_members",
+        filter: `company_id=eq.${activeCompanyId}`,
+      }, () => { load(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeCompanyId, load]);
 
   const filtered = members.filter((m) => {
     const name = `${m.users?.first_name ?? ""} ${m.users?.last_name ?? ""}`.toLowerCase();

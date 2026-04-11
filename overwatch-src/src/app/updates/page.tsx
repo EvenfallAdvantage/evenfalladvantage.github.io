@@ -16,6 +16,7 @@ import Link from "next/link";
 import { Radio } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { getPosts, createPost, togglePinPost, deletePost, getPostComments, addPostComment, deletePostComment, getPostReactions, togglePostReaction, getChatChannels } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
 import { usePageHeader } from "@/stores/page-header-store";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -202,6 +203,22 @@ export default function UpdatesPage() {
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Realtime — new posts from teammates appear automatically
+  useEffect(() => {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`posts-${activeCompanyId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "posts",
+        filter: `company_id=eq.${activeCompanyId}`,
+      }, () => { load(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeCompanyId, load]);
 
   async function handlePost() {
     if (!content.trim() || !activeCompanyId || activeCompanyId === "pending") return;

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePageHeader } from "@/stores/page-header-store";
 
@@ -49,6 +50,22 @@ export default function NotificationsPage() {
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Realtime subscription — new notifications appear automatically
+  useEffect(() => {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`notifications-${activeCompanyId}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `company_id=eq.${activeCompanyId}`,
+      }, () => { load(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeCompanyId, load]);
 
   async function handleMarkRead(id: string) {
     try {
