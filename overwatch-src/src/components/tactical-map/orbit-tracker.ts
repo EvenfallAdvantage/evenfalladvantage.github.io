@@ -48,8 +48,21 @@ const HIGHLIGHT_SATS = new Set([
 let cachedTLEs: { name: string; tle1: string; tle2: string; type: SatelliteInfo["type"] }[] = [];
 let lastFetch = 0;
 
+// Restore from localStorage on module load
+try {
+  const stored = typeof localStorage !== "undefined" ? localStorage.getItem("tle-cache") : null;
+  if (stored) {
+    const parsed = JSON.parse(stored);
+    if (parsed.ts && Date.now() - parsed.ts < 43200000) {
+      cachedTLEs = parsed.data;
+      lastFetch = parsed.ts;
+    }
+  }
+} catch {}
+
 async function fetchTLEs() {
-  if (cachedTLEs.length > 0 && Date.now() - lastFetch < 3600000) return cachedTLEs;
+  // TLE data updates ~daily. Cache for 12 hours.
+  if (cachedTLEs.length > 0 && Date.now() - lastFetch < 43200000) return cachedTLEs;
 
   const results: typeof cachedTLEs = [];
   try {
@@ -73,6 +86,12 @@ async function fetchTLEs() {
 
   cachedTLEs = results;
   lastFetch = Date.now();
+
+  // Persist to localStorage for cross-reload caching
+  try {
+    localStorage.setItem("tle-cache", JSON.stringify({ data: results, ts: lastFetch }));
+  } catch {}
+
   return results;
 }
 

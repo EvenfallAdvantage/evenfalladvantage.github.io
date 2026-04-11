@@ -17,6 +17,10 @@ const SENTINEL_HUB_INSTANCE = process.env.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID |
  * Add Sentinel-2 cloudless mosaic layer (EOX — free, no auth).
  */
 export function addSentinel2Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumRef {
+  // EOX Sentinel-2 cloudless is a 2021 annual mosaic — it NEVER changes.
+  // The browser HTTP cache handles this naturally since the URLs are
+  // completely static (no time parameter, no cache busters).
+  // EOX also sets Cache-Control headers with long TTLs.
   const provider = new Cesium.UrlTemplateImageryProvider({
     url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2021_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg",
     credit: "Sentinel-2 cloudless by EOX / Copernicus / ESA",

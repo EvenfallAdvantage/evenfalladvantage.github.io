@@ -21,7 +21,31 @@ const POI_QUERIES: Record<NearbyPOI["type"], string> = {
   pharmacy: '[amenity=pharmacy]',
 };
 
+// POI cache — hospitals and fire stations don't move. Cache 7 days.
+const POI_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+let poiCache: { key: string; data: NearbyPOI[]; ts: number } | null = null;
+
 export async function getNearbyPOIs(lat: number, lng: number, radiusM = 5000): Promise<NearbyPOI[]> {
+  // Round coordinates to 2 decimal places for cache key stability
+  const cacheKey = `${lat.toFixed(2)},${lng.toFixed(2)},${radiusM}`;
+
+  // Check memory cache
+  if (poiCache?.key === cacheKey && Date.now() - poiCache.ts < POI_CACHE_TTL) {
+    return poiCache.data;
+  }
+
+  // Check localStorage cache
+  try {
+    const stored = localStorage.getItem(`poi-cache-${cacheKey}`);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.ts && Date.now() - parsed.ts < POI_CACHE_TTL) {
+        poiCache = { key: cacheKey, data: parsed.data, ts: parsed.ts };
+        return parsed.data;
+      }
+    }
+  } catch {}
+
   const bbox = getBBox(lat, lng, radiusM);
   const filters = Object.entries(POI_QUERIES)
     .map(([type, query]) => `node${query}(${bbox});way${query}(${bbox});`)
@@ -38,7 +62,7 @@ export async function getNearbyPOIs(lat: number, lng: number, radiusM = 5000): P
     });
     const data = await res.json();
 
-    return (data.elements ?? []).map((el: Record<string, unknown>) => {
+    const result = (data.elements ?? []).map((el: Record<string, unknown>) => {
       const elLat = (el.lat ?? (el.center as Record<string, number>)?.lat) as number;
       const elLng = (el.lon ?? (el.center as Record<string, number>)?.lon) as number;
       const tags = el.tags as Record<string, string> ?? {};
@@ -51,6 +75,12 @@ export async function getNearbyPOIs(lat: number, lng: number, radiusM = 5000): P
         lng: elLng,
       };
     }).filter((p: NearbyPOI) => p.lat && p.lng);
+
+    // Cache the results
+    poiCache = { key: cacheKey, data: result, ts: Date.now() };
+    try { localStorage.setItem(`poi-cache-${cacheKey}`, JSON.stringify({ data: result, ts: Date.now() })); } catch {}
+
+    return result;
   } catch (err) {
     console.warn("[EnvIntel] POI fetch failed:", err);
     return [];
