@@ -131,21 +131,27 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [timeMachineOpen, setTimeMachineOpen] = useState(false);
   const [replayTime, setReplayTime] = useState(Date.now());
   const [timeMachineStaff, setTimeMachineStaff] = useState<StaffPin[]>([]);
+  // Debounced replay time — only updates every 2 seconds to avoid flooding Supabase
+  const [debouncedReplayTime, setDebouncedReplayTime] = useState(Date.now());
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedReplayTime(replayTime), 2000);
+    return () => clearTimeout(timer);
+  }, [replayTime]);
 
-  // When Time Machine is active, fetch historical staff positions
+  // When Time Machine is active, fetch historical staff positions (debounced)
   useEffect(() => {
     if (!timeMachineOpen || !companyId) {
       setTimeMachineStaff([]);
       return;
     }
     // Only fetch if we're replaying past (>5s ago)
-    const isReplaying = replayTime < Date.now() - 5000;
+    const isReplaying = debouncedReplayTime < Date.now() - 5000;
     if (!isReplaying) {
       setTimeMachineStaff([]);
       return;
     }
     let cancelled = false;
-    getStaffLocationsAt(companyId, replayTime).then((locs) => {
+    getStaffLocationsAt(companyId, debouncedReplayTime).then((locs) => {
       if (cancelled) return;
       setTimeMachineStaff(locs.map((l) => ({
         userId: l.userId,
@@ -159,10 +165,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       })));
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [timeMachineOpen, replayTime, companyId]);
+  }, [timeMachineOpen, debouncedReplayTime, companyId]);
 
   // Use time machine staff when replaying, otherwise live staff
-  const effectiveStaff = timeMachineOpen && replayTime < Date.now() - 5000 ? timeMachineStaff : staff;
+  const effectiveStaff = timeMachineOpen && debouncedReplayTime < Date.now() - 5000 ? timeMachineStaff : staff;
 
   // Drone Planner
   const [dronePlannerOpen, setDronePlannerOpen] = useState(false);
@@ -1024,10 +1030,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
       if (!layers.breadcrumbs || effectiveStaff.length === 0) return;
 
-      const isTimeMachine = timeMachineOpen && replayTime < Date.now() - 5000;
+      const isTimeMachine = timeMachineOpen && debouncedReplayTime < Date.now() - 5000;
       effectiveStaff.forEach(s => {
         const trailPromise = isTimeMachine
-          ? getLocationHistoryAt(s.userId, companyId, 4, replayTime)
+          ? getLocationHistoryAt(s.userId, companyId, 4, debouncedReplayTime)
           : getLocationHistory(s.userId, companyId, 4);
         trailPromise.then(trail => {
           if (trail.length < 2) return;
@@ -1057,7 +1063,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     // Refresh trails every 60s
     const interval = setInterval(renderTrails, 60000);
     return () => clearInterval(interval);
-  }, [staff, layers.breadcrumbs, loading, companyId, timeMachineOpen, replayTime]);
+  }, [effectiveStaff, layers.breadcrumbs, loading, companyId, timeMachineOpen, debouncedReplayTime]);
 
   // ─── Tactical Annotations (drawings) ───────────────
   useEffect(() => {

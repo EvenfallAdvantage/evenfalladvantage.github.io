@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       }
       return new Response(
         JSON.stringify({ error: `OpenSky returned ${status}`, states: [] }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Upstream-Status': String(status) } }
       );
     }
 
@@ -96,9 +96,10 @@ Deno.serve(async (req) => {
 
   } catch (err) {
     console.error('[opensky-proxy] Error:', err);
+    // Return 200 with empty states so the client gracefully shows no aircraft
     return new Response(
-      JSON.stringify({ error: 'Proxy request failed', states: [] }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'OpenSky unreachable', states: [] }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'ERROR' } }
     );
   }
 });
