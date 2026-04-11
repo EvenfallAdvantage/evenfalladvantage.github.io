@@ -214,6 +214,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           targetFrameRate: 30,
         });
 
+        // Suppress Cesium's built-in error panel overlay — it has z-index: 99999
+        // which can block clicks on the sidebar navigation even with isolation: isolate
+        // We handle errors via our own error state instead
+        viewer.cesiumWidget.showErrorPanel = function() {};
+
         if (destroyed) { viewer.destroy(); return; }
         viewerRef.current = viewer;
         // Expose viewer for site-map-aligner globe markers
@@ -1696,7 +1701,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   }, [operations]);
 
   return (
-    <div ref={wrapperRef} className="relative w-full rounded-xl overflow-hidden border border-border/50 bg-[#0b1422]" style={{ height: isFullscreen ? "100vh" : "calc(100vh - 180px)", minHeight: 500 }}>
+    <div ref={wrapperRef} className="relative w-full rounded-xl overflow-hidden border border-border/50 bg-[#0b1422]" style={{ height: isFullscreen ? "100vh" : "calc(100vh - 180px)", minHeight: 500, isolation: "isolate", zIndex: 0 }}>
       {loading && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0b1422]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
