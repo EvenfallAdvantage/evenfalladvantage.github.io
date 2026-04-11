@@ -71,7 +71,6 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "satellite", label: "Satellite View", icon: <Satellite className="h-3.5 w-3.5" />, group: "MAP" },
   { key: "buildings", label: "3D Buildings", icon: <Building2 className="h-3.5 w-3.5" />, group: "MAP" },
   { key: "terrain", label: "3D Terrain", icon: <Mountain className="h-3.5 w-3.5" />, group: "MAP" },
-  { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "MAP" },
   // Operations data
   { key: "operations", label: "Operations", icon: <Flag className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "staff", label: "Staff", icon: <Users className="h-3.5 w-3.5" />, group: "OPERATIONS" },
@@ -87,6 +86,7 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   // Visual effects
+  { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "crtMode", label: "CRT Mode", icon: <Monitor className="h-3.5 w-3.5" />, group: "EFFECTS" },
 ];
