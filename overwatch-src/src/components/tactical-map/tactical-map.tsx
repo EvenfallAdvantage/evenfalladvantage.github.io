@@ -19,6 +19,9 @@ import { DronePlanner, type Waypoint } from "./drone-planner";
 import { checkLineOfSight, renderLineOfSight, clearLineOfSight, getElevationProfile } from "./terrain-tools";
 import { escapeHtml } from "@/lib/security";
 import { sendDM } from "@/lib/supabase/db-messages";
+import { getEventDocuments } from "@/lib/supabase/db-documents";
+import { DocViewerModal } from "@/components/ops/staff-doc-viewer";
+import type { OperationDocument } from "@/types/operations";
 import { createPinCanvas, parseIncidentNarrative } from "./pin-canvas";
 import { EntityPopup } from "./entity-popup";
 import { MapControlButtons } from "./map-control-buttons";
@@ -175,6 +178,33 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [dronePlannerOpen, setDronePlannerOpen] = useState(false);
   const [droneWaypoints, setDroneWaypoints] = useState<Waypoint[]>([]);
 
+  // Operation documents for pin popups
+  const [eventDocs, setEventDocs] = useState<Record<string, OperationDocument[]>>({});
+  const [viewingDoc, setViewingDoc] = useState<OperationDocument | null>(null);
+
+  // Load docs for all operations
+  useEffect(() => {
+    if (!operations.length) return;
+    const loadDocs = async () => {
+      const docs: Record<string, OperationDocument[]> = {};
+      await Promise.all(operations.map(async (op) => {
+        try {
+          const d = await getEventDocuments(op.id);
+          // Only keep the latest issued or draft of each type
+          const byType: Record<string, OperationDocument> = {};
+          for (const doc of d) {
+            if (!byType[doc.doc_type] || doc.status === "issued" || doc.version > (byType[doc.doc_type]?.version ?? 0)) {
+              byType[doc.doc_type] = doc;
+            }
+          }
+          docs[op.id] = Object.values(byType);
+        } catch {}
+      }));
+      setEventDocs(docs);
+    };
+    loadDocs();
+  }, [operations]);
+
   // Quick DM modal (opens on map instead of navigating away)
   const [dmTarget, setDmTarget] = useState<{ userId: string; name: string } | null>(null);
   const [dmText, setDmText] = useState("");
@@ -230,6 +260,17 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           deleteAnnotation(annId).then(() => {
             setSelectedEntity(null);
           });
+        };
+
+        // Expose doc viewer handler for operation pin popups
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).__openOpDoc = (eventId: string, docType: string) => {
+          const docs = eventDocs[eventId] ?? [];
+          const doc = docs.find(d => d.doc_type === docType);
+          if (doc) {
+            setViewingDoc(doc);
+            setSelectedEntity(null);
+          }
         };
 
         // Expose DM handler for staff pin popups — opens inline modal
@@ -319,6 +360,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       delete (window as any).__siteMapAlignerAddPoint;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (window as any).__openStaffDM;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).__openOpDoc;
     };
   }, []);
 
@@ -370,7 +413,14 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           ${op.shiftCount ? `<div style="opacity:0.6;font-size:10px">👥 ${op.shiftCount} shift${op.shiftCount !== 1 ? "s" : ""}</div>` : ""}
           ${op.geofenceRadius ? `<div style="opacity:0.5;font-size:10px">⊙ ${op.geofenceRadius}m geofence</div>` : ""}
           ${op.siteMapUrl ? `<div style="opacity:0.5;font-size:10px">🗺 Site map available</div>` : ""}
-          <div style="opacity:0.3;font-size:9px;margin-top:4px">Double-click to view details</div>
+          ${(() => {
+            const docs = eventDocs[op.id] ?? [];
+            if (docs.length === 0) return `<div style="opacity:0.3;font-size:9px;margin-top:6px">No documents yet</div>`;
+            const docLabels: Record<string, string> = { intake: "📋 Intake", warno: "⚠️ WARNO", opord: "📑 OPORD", frago: "🔄 FRAGO", gotwa: "🎯 GOTWA" };
+            return `<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">${docs.map(d =>
+              `<span style="cursor:pointer;display:inline-block;padding:2px 8px;background:${d.status === "issued" ? "#22c55e22" : "#f59e0b22"};border:1px solid ${d.status === "issued" ? "#22c55e44" : "#f59e0b44"};border-radius:5px;color:${d.status === "issued" ? "#4ade80" : "#fbbf24"};font-size:9px;font-weight:600" onclick="window.__openOpDoc&&window.__openOpDoc('${op.id}','${d.doc_type}')">${docLabels[d.doc_type] || d.doc_type.toUpperCase()}</span>`
+            ).join("")}</div>`;
+          })()}
         </div>`,
       });
       entityGroupsRef.current.operations.push(entity);
@@ -1813,6 +1863,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Document Viewer Modal */}
+      {viewingDoc && (
+        <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
 
       {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} onRealignSiteMap={(op) => {
