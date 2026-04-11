@@ -175,7 +175,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [droneWaypoints, setDroneWaypoints] = useState<Waypoint[]>([]);
 
   // Line of Sight / Elevation Profile
-  const [losEntityIds, setLosEntityIds] = useState<string[]>([]);
+  const losEntityIdsRef = useRef<string[]>([]);
   const [losPoint1, setLosPoint1] = useState<{ lat: number; lng: number } | null>(null);
   const [losResult, setLosResult] = useState<{ visible: boolean; distance?: number } | null>(null);
   const [elevPoint1, setElevPoint1] = useState<{ lat: number; lng: number } | null>(null);
@@ -1238,16 +1238,12 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
-    console.log("[MapHandler] Creating ScreenSpaceEventHandler, loading:", loading, "viewer destroyed:", viewer.isDestroyed());
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
     // Single click — tools + entity picking
     handler.setInputAction((click: { position: { x: number; y: number } }) => {
-      console.log("[MapClick] LEFT_CLICK fired", { x: click.position.x, y: click.position.y, activeTool, drawMode });
-
       // Always try entity pick first (before globe.pick which may fail for billboards)
       const picked = viewer.scene.pick(click.position);
-      console.log("[MapClick] scene.pick result:", picked ? (picked.id?.id ?? "3d-tile") : "nothing");
 
       // If we picked an entity and no tool is active, show popup
       if (activeTool === "none" && drawMode === "none" && !dronePlannerOpen && !aligningOp) {
@@ -1255,7 +1251,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           if (picked.id?.id && picked.id?.name) {
             const entity = picked.id;
             const entityId = entity.id as string;
-            console.log("[MapClick] Entity picked:", entityId, entity.name);
+
             const isAnnotation = entityId.startsWith("ann-");
             const annId = isAnnotation ? entityId.replace("ann-", "") : null;
             const deleteBtn = isAnnotation && isAdmin
@@ -1272,7 +1268,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           }
           if (picked.getProperty) {
             const name = picked.getProperty("name") || picked.getProperty("building") || "Building";
-            console.log("[MapClick] Building picked:", name);
+
             const height = picked.getProperty("cesium#estimatedHeight") || picked.getProperty("height");
             const type = picked.getProperty("building") || picked.getProperty("type") || "";
             const addr = picked.getProperty("addr:street") || "";
@@ -1292,7 +1288,6 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           }
         }
         // Clicked empty space — dismiss popup
-        console.log("[MapClick] Empty space, dismissing popup");
         setSelectedEntity(null);
         return;
       }
@@ -1300,7 +1295,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       // Get globe position from click (needed for tools)
       const ray = viewer.camera.getPickRay(click.position);
       const cartesian = ray ? viewer.scene.globe.pick(ray, viewer.scene) : null;
-      if (!cartesian) { console.log("[MapClick] No globe intersection for tool"); return; }
+      if (!cartesian) return;
       const lat = Cesium.Math.toDegrees(Cesium.Cartographic.fromCartesian(cartesian).latitude);
       const lng = Cesium.Math.toDegrees(Cesium.Cartographic.fromCartesian(cartesian).longitude);
 
@@ -1469,8 +1464,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           setLosPoint1({ lat, lng });
           setLosResult(null);
           // Clean up old LOS entities
-          clearLineOfSight(viewer, losEntityIds);
-          setLosEntityIds([]);
+          clearLineOfSight(viewer, losEntityIdsRef.current);
+          losEntityIdsRef.current = [];
           viewer.entities.removeById("los-click-1");
           viewer.entities.add({
             id: "los-click-1",
@@ -1483,9 +1478,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           // Compute LOS
           const dist = haversineDistance(losPoint1.lat, losPoint1.lng, lat, lng);
           checkLineOfSight(Cesium, viewer, losPoint1.lat, losPoint1.lng, 2, lat, lng, 2).then(result => {
-            clearLineOfSight(viewer, losEntityIds);
+            clearLineOfSight(viewer, losEntityIdsRef.current);
             const ids = renderLineOfSight(Cesium, viewer, losPoint1.lat, losPoint1.lng, 2, lat, lng, 2, result.visible, result.obstructionIndex, result.profile);
-            setLosEntityIds(ids);
+            losEntityIdsRef.current = ids;
             setLosResult({ visible: result.visible, distance: dist });
           }).catch(() => {
             setLosResult({ visible: false });
@@ -1553,8 +1548,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       }
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
-    return () => { console.log("[MapHandler] Destroying handler"); handler.destroy(); };
-  }, [loading, onSelectOperation, activeTool, measurePoint1, losPoint1, elevPoint1, losEntityIds, aligningOp, drawMode, drawColor, drawPoints, companyId, dronePlannerOpen, droneWaypoints]);
+    return () => handler.destroy();
+  }, [loading, onSelectOperation, activeTool, measurePoint1, losPoint1, elevPoint1, aligningOp, drawMode, drawColor, drawPoints, companyId, dronePlannerOpen, droneWaypoints]);
 
   // Dismiss popup when camera moves (user is navigating away)
   // Use a short delay to avoid dismissing immediately on click (which can
@@ -1588,9 +1583,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       setRangeCenter(null);
     }
     if (activeTool !== "los") {
-      clearLineOfSight(viewer, losEntityIds);
+      clearLineOfSight(viewer, losEntityIdsRef.current);
       try { viewer.entities.removeById("los-click-1"); } catch {}
-      setLosEntityIds([]);
+      losEntityIdsRef.current = [];
       setLosPoint1(null);
       setLosResult(null);
     }
@@ -1599,7 +1594,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       setElevPoint1(null);
       setElevationStatus(null);
     }
-  }, [activeTool, loading, losEntityIds]);
+  }, [activeTool, loading]);
 
   // Draw finish handler — save annotation to DB
   const handleDrawFinish = useCallback(() => {
