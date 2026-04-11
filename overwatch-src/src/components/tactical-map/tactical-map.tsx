@@ -1242,20 +1242,19 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
     // Single click — tools + entity picking
     handler.setInputAction((click: { position: { x: number; y: number } }) => {
-      // Get globe position from click
-      const ray = viewer.camera.getPickRay(click.position);
-      const cartesian = ray ? viewer.scene.globe.pick(ray, viewer.scene) : null;
-      const lat = cartesian ? Cesium.Math.toDegrees(Cesium.Cartographic.fromCartesian(cartesian).latitude) : 0;
-      const lng = cartesian ? Cesium.Math.toDegrees(Cesium.Cartographic.fromCartesian(cartesian).longitude) : 0;
+      console.log("[MapClick] LEFT_CLICK fired", { x: click.position.x, y: click.position.y, activeTool, drawMode });
 
-      // Tools require a valid globe intersection — skip if click didn't hit the globe
-      if (!cartesian) {
-        // Still check for entity picks even without globe intersection
-        if (activeTool === "none" && drawMode === "none") {
-          const picked = viewer.scene.pick(click.position);
-          if (Cesium.defined(picked) && picked.id?.id && picked.id?.name) {
+      // Always try entity pick first (before globe.pick which may fail for billboards)
+      const picked = viewer.scene.pick(click.position);
+      console.log("[MapClick] scene.pick result:", picked ? (picked.id?.id ?? "3d-tile") : "nothing");
+
+      // If we picked an entity and no tool is active, show popup
+      if (activeTool === "none" && drawMode === "none" && !dronePlannerOpen && !aligningOp) {
+        if (Cesium.defined(picked)) {
+          if (picked.id?.id && picked.id?.name) {
             const entity = picked.id;
             const entityId = entity.id as string;
+            console.log("[MapClick] Entity picked:", entityId, entity.name);
             const isAnnotation = entityId.startsWith("ann-");
             const annId = isAnnotation ? entityId.replace("ann-", "") : null;
             const deleteBtn = isAnnotation && isAdmin
@@ -1268,10 +1267,41 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
               screenX: click.position.x,
               screenY: click.position.y,
             });
+            return;
+          }
+          if (picked.getProperty) {
+            const name = picked.getProperty("name") || picked.getProperty("building") || "Building";
+            console.log("[MapClick] Building picked:", name);
+            const height = picked.getProperty("cesium#estimatedHeight") || picked.getProperty("height");
+            const type = picked.getProperty("building") || picked.getProperty("type") || "";
+            const addr = picked.getProperty("addr:street") || "";
+            const houseNum = picked.getProperty("addr:housenumber") || "";
+            let desc = `<strong>${escapeHtml(String(name))}</strong>`;
+            if (addr) desc += `<br/>${houseNum ? escapeHtml(String(houseNum)) + " " : ""}${escapeHtml(String(addr))}`;
+            if (type && type !== name) desc += `<br/>Type: ${escapeHtml(String(type))}`;
+            if (height) desc += `<br/>Height: ~${Math.round(Number(height))}m`;
+            setSelectedEntity({
+              id: `bldg-${click.position.x}-${click.position.y}`,
+              name: String(name),
+              description: desc,
+              screenX: click.position.x,
+              screenY: click.position.y,
+            });
+            return;
           }
         }
+        // Clicked empty space — dismiss popup
+        console.log("[MapClick] Empty space, dismissing popup");
+        setSelectedEntity(null);
         return;
       }
+
+      // Get globe position from click (needed for tools)
+      const ray = viewer.camera.getPickRay(click.position);
+      const cartesian = ray ? viewer.scene.globe.pick(ray, viewer.scene) : null;
+      if (!cartesian) { console.log("[MapClick] No globe intersection for tool"); return; }
+      const lat = Cesium.Math.toDegrees(Cesium.Cartographic.fromCartesian(cartesian).latitude);
+      const lng = Cesium.Math.toDegrees(Cesium.Cartographic.fromCartesian(cartesian).longitude);
 
       // Site map aligner — feed globe points
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1508,54 +1538,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         return;
       }
 
-      // No tool active — check for entity or 3D tile pick to show popup
-      if (activeTool === "none" && drawMode === "none") {
-        const picked = viewer.scene.pick(click.position);
-        if (Cesium.defined(picked)) {
-          // Entity pick (our operations/staff/incident pins + annotations)
-          if (picked.id?.id && picked.id?.name) {
-            const entity = picked.id;
-            const entityId = entity.id as string;
-            const isAnnotation = entityId.startsWith("ann-");
-            const annId = isAnnotation ? entityId.replace("ann-", "") : null;
-            const deleteBtn = isAnnotation && isAdmin
-              ? `<br/><br/><span style="cursor:pointer;color:#ef4444" onclick="window.__deleteAnnotation&&window.__deleteAnnotation('${annId}')">🗑 Delete this drawing</span>`
-              : "";
-            setSelectedEntity({
-              id: entityId,
-              name: entity.name ?? "",
-              description: (entity.description?.getValue?.() ?? entity.description ?? "") + deleteBtn,
-              screenX: click.position.x,
-              screenY: click.position.y,
-            });
-          }
-          // 3D Tile feature pick (OSM buildings)
-          else if (picked.getProperty) {
-            const name = picked.getProperty("name") || picked.getProperty("building") || "Building";
-            const height = picked.getProperty("cesium#estimatedHeight") || picked.getProperty("height");
-            const type = picked.getProperty("building") || picked.getProperty("type") || "";
-            const addr = picked.getProperty("addr:street") || "";
-            const houseNum = picked.getProperty("addr:housenumber") || "";
-            let desc = `<strong>${escapeHtml(String(name))}</strong>`;
-            if (addr) desc += `<br/>${houseNum ? escapeHtml(String(houseNum)) + " " : ""}${escapeHtml(String(addr))}`;
-            if (type && type !== name) desc += `<br/>Type: ${escapeHtml(String(type))}`;
-            if (height) desc += `<br/>Height: ~${Math.round(Number(height))}m`;
-            if (cartesian) desc += `<br/><span style="opacity:0.4">Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}</span>`;
-            setSelectedEntity({
-              id: `bldg-${click.position.x}-${click.position.y}`,
-              name: String(name),
-              description: desc,
-              screenX: click.position.x,
-              screenY: click.position.y,
-            });
-          }
-          else {
-            setSelectedEntity(null);
-          }
-        } else {
-          setSelectedEntity(null);
-        }
-      }
+      // Entity picking is handled at the top of this handler (before tools).
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
     // Double click — fly to entity / operation callback
