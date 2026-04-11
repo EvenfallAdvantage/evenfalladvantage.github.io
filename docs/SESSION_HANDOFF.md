@@ -7,14 +7,18 @@
 **Commits this session:** ~86 (original ~80 + 6 audit/feature commits)
 **CI/CD:** Build & Deploy passing. Backup workflow needs Supabase pooler URL fix.
 
-### Latest Session (Audit + Feature Sprint)
-6 commits pushed:
+### Latest Session (Audit + Feature + Bug Fix Sprint)
+~20 commits pushed:
 1. `55ff356` — Comprehensive security audit (27 fixes: XSS, credentials, N+1 queries, bugs)
 2. `3416534` — Wire Time Machine to staff history + Line of Sight / Elevation Profile tools
 3. `17b0058` — OpenSky proxy Edge Function + DM from map pins + send location in chat
 4. `d5f4377` — Decompose tactical-map.tsx Phase 1 (1915→1629 lines)
 5. `6ed1e33` — Private applicant docs (signed URLs) + Checkr webhook HMAC verification
 6. `ccf4a60` — Extract admin/staff modals (2105→1854 lines)
+7. `1dbf4dc` — Debounce Time Machine replay (prevent Supabase auth lock flood)
+8. `97c0864` — OSM tile CORS fix + Messages tab on Briefing page
+9. `9803c76` — Switch sidebar to native `<a>` tags (fix map navigation freeze)
+10. `5ee6e52` — Fix events settings 400 errors + add settings column migration
 
 ---
 
@@ -131,7 +135,8 @@ These need to be run in Supabase SQL Editor if not already done:
 
 ### High
 - **OpenSky Aircraft CORS** — FIXED. Edge Function proxy created at `supabase/functions/opensky-proxy/`. Flight tracker auto-falls back to proxy on CORS failure. **Deploy with:** `supabase functions deploy opensky-proxy`
-- **Stale chunk 404s** — Users see 404 errors for old JS chunks after deploys. This is a browser caching issue — hard refresh fixes it. Could be improved with a service worker or cache-busting strategy.
+- **Stale chunk 404s** — Users see 404 errors for old JS chunks after deploys. Hard refresh (Ctrl+Shift+R) fixes it. A global error handler approach was tried but interfered with Cesium — removed. Consider a service worker instead.
+- **Sidebar uses hard navigation** — Sidebar links use native `<a>` tags instead of Next.js `<Link>` because CesiumJS blocks the React router when mounted. This causes full page reloads on every nav click (~200ms slower). Root cause needs deeper investigation.
 
 ### Medium
 - **Sentinel-1 SAR rate limiting** — CDSE free tier has request limits. Currently mitigated with zoom level cap (10) and 6-day cache alignment, but heavy use could still trigger 429s.
@@ -180,10 +185,12 @@ These need to be run in Supabase SQL Editor if not already done:
 6. ~~Component decomposition sprint~~ Phase 1 DONE — Phase 2 (custom hooks) remaining
 
 ### New Next Steps
-1. **Set applicant-documents bucket to private** in Supabase Dashboard → Storage → applicant-documents → Settings. Code already generates signed URLs.
-2. **Deploy opensky-proxy Edge Function** — `supabase functions deploy opensky-proxy`
-3. **Add CHECKR_WEBHOOK_SECRET** to Supabase Edge Function secrets (get from Checkr Dashboard)
-4. **Add NEXT_PUBLIC_LEGACY_SUPABASE_URL and _ANON_KEY** to GitHub Secrets (values in .env.local)
-5. **Continue component decomposition** — Extract useEffect hooks from tactical-map.tsx into custom hooks; extract tab views from admin/staff
-6. **Decompose admin/events/page.tsx** (1766 lines) — Extract CreateOperationWizard, ShiftRow components
-7. **Add realtime subscriptions** to stale pages (notifications, directory, updates feed)
+1. ~~Set applicant-documents bucket to private~~ DONE
+2. ~~Deploy opensky-proxy Edge Function~~ DONE
+3. ~~Add CHECKR_WEBHOOK_SECRET~~ DONE
+4. ~~Add NEXT_PUBLIC_LEGACY_SUPABASE_URL and _ANON_KEY~~ DONE
+5. **Run `sql/add_events_settings_column.sql`** in Supabase SQL Editor (adds JSONB settings column to events table for site map bounds)
+6. **Continue component decomposition** — Extract useEffect hooks from tactical-map.tsx into custom hooks; extract tab views from admin/staff
+7. **Decompose admin/events/page.tsx** (1766 lines) — Extract CreateOperationWizard, ShiftRow components
+8. **Add realtime subscriptions** to stale pages (notifications, directory, updates feed)
+9. **Investigate sidebar navigation** — Currently using native `<a>` tags instead of Next.js `<Link>` because CesiumJS blocks React router. Root cause is Cesium's rAF loop starving the main thread. Consider Web Worker for Cesium or lazy-loading the map on interaction.
