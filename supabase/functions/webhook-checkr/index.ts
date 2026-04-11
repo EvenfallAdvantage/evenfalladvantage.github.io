@@ -9,10 +9,36 @@
  *   - invitation.completed — candidate completed the invitation flow
  *
  * No JWT required — Checkr calls server-to-server.
+ * Authentication: HMAC-SHA256 signature verification via X-Checkr-Signature header.
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { getCorsHeaders } from '../_shared/cors.ts'
+
+/**
+ * Verify Checkr webhook signature (HMAC-SHA256).
+ * The signature is hex-encoded HMAC of the compact JSON body using the client secret.
+ */
+async function verifyCheckrSignature(rawBody: string, signature: string | null, secret: string): Promise<boolean> {
+  if (!signature || !secret) return false
+  try {
+    const encoder = new TextEncoder()
+    const key = await crypto.subtle.importKey(
+      'raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    )
+    const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(rawBody))
+    const expected = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('')
+    // Constant-time comparison
+    if (expected.length !== signature.length) return false
+    let result = 0
+    for (let i = 0; i < expected.length; i++) {
+      result |= expected.charCodeAt(i) ^ signature.charCodeAt(i)
+    }
+    return result === 0
+  } catch {
+    return false
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -20,7 +46,26 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json()
+    // Read raw body for signature verification
+    const rawBody = await req.text()
+    const checkrSignature = req.headers.get('x-checkr-signature')
+    const checkrSecret = Deno.env.get('CHECKR_WEBHOOK_SECRET') ?? ''
+
+    // Verify signature if secret is configured
+    if (checkrSecret) {
+      const valid = await verifyCheckrSignature(rawBody, checkrSignature, checkrSecret)
+      if (!valid) {
+        console.warn('[Checkr Webhook] Invalid signature — rejecting request')
+        return new Response(
+          JSON.stringify({ error: 'Invalid signature' }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+    } else {
+      console.warn('[Checkr Webhook] CHECKR_WEBHOOK_SECRET not set — skipping signature verification')
+    }
+
+    const body = JSON.parse(rawBody)
     const type = body.type as string | undefined
 
     if (!type) {

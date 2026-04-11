@@ -35,6 +35,7 @@ import { Download, Upload, FileText } from "lucide-react";
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
 import { bulkCreateApplicants } from "@/lib/supabase/db-onboarding";
 import { usePageHeader } from "@/stores/page-header-store";
+import { getSignedFileUrl } from "@/lib/supabase/db-helpers";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -357,8 +358,8 @@ export default function AdminStaffPage() {
             .from("applicant-documents")
             .upload(filePath, pf.file, { cacheControl: "3600", upsert: false });
           if (upErr) { toast.error(`Upload failed: ${pf.name}`); continue; }
-          const { data: urlData } = supabase.storage.from("applicant-documents").getPublicUrl(filePath);
-          uploadedDocs.push({ name: pf.name, type: pf.type, fileUrl: urlData.publicUrl });
+          // Store path, not public URL — signed URLs generated at view time for security
+          uploadedDocs.push({ name: pf.name, type: pf.type, fileUrl: `applicant-documents/${filePath}` });
         }
       }
       await createApplicant(activeCompanyId, {
@@ -1821,9 +1822,13 @@ export default function AdminStaffPage() {
                             <span className="text-xs font-medium truncate flex-1">{doc.name}</span>
                             <Badge variant="outline" className="text-[9px] shrink-0">{doc.type}</Badge>
                             {doc.fileUrl && (
-                              <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer"
+                              <button
                                 className="text-[10px] text-primary hover:underline shrink-0"
-                                onClick={(e) => e.stopPropagation()}>View</a>
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const url = await getSignedFileUrl(doc.fileUrl);
+                                  window.open(url, "_blank", "noopener,noreferrer");
+                                }}>View</button>
                             )}
                           </div>
                         ))}

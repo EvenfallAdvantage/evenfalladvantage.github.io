@@ -118,3 +118,36 @@ async function _ensureInternalUserCore(): Promise<string | null> {
   _cachedInternalId = created.id;
   return created.id;
 }
+
+/**
+ * Generate a signed URL for a private storage object.
+ * Path format: "bucket-name/path/to/file" — splits on first "/" to get bucket + path.
+ * Returns a time-limited URL (default 1 hour).
+ * Falls back to the raw path for public URLs or legacy public paths.
+ */
+export async function getSignedFileUrl(storagePath: string, expiresIn = 3600): Promise<string> {
+  // Legacy public URLs — just return as-is
+  if (storagePath.startsWith("http://") || storagePath.startsWith("https://")) {
+    return storagePath;
+  }
+
+  const slashIdx = storagePath.indexOf("/");
+  if (slashIdx === -1) return storagePath;
+
+  const bucket = storagePath.slice(0, slashIdx);
+  const path = storagePath.slice(slashIdx + 1);
+
+  const supabase = createClient();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(path, expiresIn);
+
+  if (error || !data?.signedUrl) {
+    console.warn("[Storage] Failed to sign URL:", error?.message);
+    // Fallback: try public URL for backward compatibility
+    const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+    return pub.publicUrl;
+  }
+
+  return data.signedUrl;
+}

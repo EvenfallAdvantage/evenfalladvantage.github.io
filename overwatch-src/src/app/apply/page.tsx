@@ -42,11 +42,8 @@ async function uploadFile(
 
   if (error) throw new Error(`Upload failed for ${file.name}: ${error.message}`);
 
-  const { data: urlData } = supabase.storage
-    .from("applicant-documents")
-    .getPublicUrl(filePath);
-
-  return urlData.publicUrl;
+  // Return the storage path — signed URLs are generated at view time for security
+  return `applicant-documents/${filePath}`;
 }
 
 function ApplyForm() {
