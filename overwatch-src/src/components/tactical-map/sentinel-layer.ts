@@ -1,57 +1,25 @@
 /**
  * Sentinel Satellite Imagery Layers
  *
- * Provides Sentinel-1 (SAR radar) and Sentinel-2 (optical) imagery
- * as Cesium imagery layers via free Copernicus WMS endpoints.
- *
- * - Sentinel-1: C-band SAR — sees through clouds, works at night
- * - Sentinel-2: True-color optical — 10m resolution, updated every 5 days
- *
- * Data source: Copernicus Open Access Hub / Sentinel Hub WMS (free tier)
+ * Uses free WMS endpoints from Copernicus Data Space Ecosystem (CDSE)
+ * and EOX for Sentinel-1 and Sentinel-2 imagery.
+ * No API key or account required.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CesiumRef = any;
 
 /**
- * Add Sentinel-1 SAR imagery layer to the Cesium viewer.
- * Uses the Copernicus Sentinel Hub WMS (free, no account needed).
- */
-export function addSentinel1Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumRef {
-  // Sentinel-1 IW GRD (Ground Range Detected) — VV polarization
-  // Using the free WMS endpoint from Sentinel Hub's public instances
-  const provider = new Cesium.WebMapServiceImageryProvider({
-    url: "https://services.sentinel-hub.com/ogc/wms/cd280189-7c51-45a6-ab05-f96a76067710",
-    layers: "SENTINEL-1-IW-DV-VV",
-    parameters: {
-      transparent: true,
-      format: "image/png",
-      time: getRecentDateRange(12), // Last 12 days
-      maxcc: 100,
-    },
-    credit: "Copernicus Sentinel-1 / ESA",
-  });
-
-  const layer = viewer.imageryLayers.addImageryProvider(provider);
-  layer.alpha = 0.7;
-  return layer;
-}
-
-/**
- * Add Sentinel-2 optical imagery layer to the Cesium viewer.
- * True-color composite (B4/B3/B2) at 10m resolution.
+ * Add Sentinel-2 cloudless mosaic layer (EOX — free, no auth).
+ * High-quality true-color satellite imagery mosaic.
  */
 export function addSentinel2Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumRef {
-  const provider = new Cesium.WebMapServiceImageryProvider({
-    url: "https://services.sentinel-hub.com/ogc/wms/cd280189-7c51-45a6-ab05-f96a76067710",
-    layers: "TRUE-COLOR-S2L2A",
-    parameters: {
-      transparent: false,
-      format: "image/png",
-      time: getRecentDateRange(30), // Last 30 days
-      maxcc: 20, // Max 20% cloud cover
-    },
-    credit: "Copernicus Sentinel-2 / ESA",
+  // EOX Sentinel-2 cloudless mosaic — free, CORS-enabled, no auth
+  const provider = new Cesium.UrlTemplateImageryProvider({
+    url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2021_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg",
+    credit: "Sentinel-2 cloudless by EOX / Copernicus / ESA",
+    minimumLevel: 0,
+    maximumLevel: 14,
   });
 
   const layer = viewer.imageryLayers.addImageryProvider(provider);
@@ -60,11 +28,22 @@ export function addSentinel2Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumR
 }
 
 /**
- * Generate a date range string for Sentinel Hub WMS (ISO format).
- * Returns "YYYY-MM-DD/YYYY-MM-DD" for the last N days.
+ * Add Sentinel-1 SAR imagery layer (EOX — free, no auth).
+ * Grayscale SAR backscatter mosaic.
  */
-function getRecentDateRange(daysBack: number): string {
-  const end = new Date();
-  const start = new Date(end.getTime() - daysBack * 24 * 60 * 60 * 1000);
-  return `${start.toISOString().split("T")[0]}/${end.toISOString().split("T")[0]}`;
+export function addSentinel1Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumRef {
+  // EOX Sentinel-1 GRD IW mosaic — free, CORS-enabled, no auth
+  const provider = new Cesium.WebMapServiceImageryProvider({
+    url: "https://tiles.maps.eox.at/wms",
+    layers: "s1grdiw",
+    parameters: {
+      transparent: true,
+      format: "image/png",
+    },
+    credit: "Sentinel-1 SAR by EOX / Copernicus / ESA",
+  });
+
+  const layer = viewer.imageryLayers.addImageryProvider(provider);
+  layer.alpha = 0.7;
+  return layer;
 }

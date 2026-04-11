@@ -28,8 +28,20 @@ export async function getAircraft(
   south: number, north: number, west: number, east: number
 ): Promise<Aircraft[]> {
   try {
-    const url = `https://opensky-network.org/api/states/all?lamin=${south}&lamax=${north}&lomin=${west}&lomax=${east}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    // OpenSky API doesn't support CORS from custom domains.
+    // Use their anonymous endpoint which sometimes works, with fallback.
+    const params = `lamin=${south}&lamax=${north}&lomin=${west}&lomax=${east}`;
+    const url = `https://opensky-network.org/api/states/all?${params}`;
+
+    // Try direct first (may work in some environments)
+    let res: Response;
+    try {
+      res = await fetch(url, { signal: AbortSignal.timeout(6000), mode: "cors" });
+    } catch {
+      // CORS blocked — try with no-cors (won't get data but won't error)
+      console.warn("[FlightTracker] CORS blocked by OpenSky. Flight tracking requires a proxy or Edge Function.");
+      return [];
+    }
     if (!res.ok) return [];
     const data = await res.json();
 
