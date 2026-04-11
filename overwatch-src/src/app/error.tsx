@@ -12,15 +12,6 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error("Overwatch error:", error);
-    // Auto-reload once on stale chunk errors (happens after deploy when browser has old JS cached)
-    const isChunkError = error.message?.includes("ChunkLoadError") ||
-      error.message?.includes("Loading chunk") ||
-      error.message?.includes("Failed to fetch dynamically imported module") ||
-      error.message?.includes("net::ERR_ABORTED");
-    if (isChunkError && !sessionStorage.getItem("chunk-reload")) {
-      sessionStorage.setItem("chunk-reload", "1");
-      window.location.reload();
-    }
   }, [error]);
 
   return (

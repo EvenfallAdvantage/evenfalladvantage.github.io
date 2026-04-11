@@ -88,21 +88,6 @@ export default function RootLayout({
         */}
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
         <meta name="referrer" content="strict-origin-when-cross-origin" />
-        {/* Auto-reload on stale chunk 404s after deploy (GitHub Pages cache issue) */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          (function() {
-            var reloaded = sessionStorage.getItem('chunk-reload');
-            window.addEventListener('error', function(e) {
-              if (e.message && (e.message.indexOf('ChunkLoadError') !== -1 || e.message.indexOf('Loading chunk') !== -1 || e.message.indexOf('Failed to fetch') !== -1)) {
-                if (!reloaded) {
-                  sessionStorage.setItem('chunk-reload', '1');
-                  window.location.reload();
-                }
-              }
-            });
-            if (reloaded) sessionStorage.removeItem('chunk-reload');
-          })();
-        `}} />
       </head>
       <body
         className={`${oswald.variable} ${barlow.variable} antialiased`}
