@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Loader2, Maximize2, Minimize2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-layers-panel";
 import { MapToolsBar, type ActiveTool, type DrawMode, haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "./map-tools";
@@ -18,6 +18,10 @@ import { TimeMachine } from "./time-machine";
 import { DronePlanner, type Waypoint } from "./drone-planner";
 import { checkLineOfSight, renderLineOfSight, clearLineOfSight, getElevationProfile } from "./terrain-tools";
 import { escapeHtml } from "@/lib/security";
+import { createPinCanvas, parseIncidentNarrative } from "./pin-canvas";
+import { EntityPopup } from "./entity-popup";
+import { MapControlButtons } from "./map-control-buttons";
+import { GeofenceAlertTicker } from "./geofence-alert-ticker";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -1693,94 +1697,28 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       )}
       <div ref={containerRef} className="w-full h-full" />
 
-      {/* Compass + Fullscreen — top left */}
+      {/* Compass + Fullscreen + Time Machine + Drone — top left */}
       {!loading && !error && (
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
-          {/* Compass */}
-          <button
-            onClick={handleResetNorth}
-            title="Reset to north (top-down view)"
-            className="w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center hover:border-white/30 transition-colors"
-            style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent)" }}
-          >
-            <svg
-              width="28" height="28" viewBox="0 0 28 28"
-              style={{ transform: `rotate(${-cameraHeading}rad)`, transition: "transform 0.15s ease-out" }}
-            >
-              {/* North pointer (red) */}
-              <polygon points="14,2 17,14 14,12 11,14" fill="#ef4444" />
-              {/* South pointer (white) */}
-              <polygon points="14,26 11,14 14,16 17,14" fill="rgba(255,255,255,0.5)" />
-              {/* Center dot */}
-              <circle cx="14" cy="14" r="2" fill="rgba(255,255,255,0.7)" />
-              {/* N label */}
-              <text x="14" y="9" textAnchor="middle" fontSize="6" fontWeight="bold" fontFamily="monospace" fill="#ef4444">N</text>
-            </svg>
-          </button>
-
-          {/* Fullscreen */}
-          <button
-            onClick={handleFullscreen}
-            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-            className="w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:border-white/30 transition-colors"
-            style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent)" }}
-          >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </button>
-
-          {/* Time Machine */}
-          <button
-            onClick={() => setTimeMachineOpen(!timeMachineOpen)}
-            title="Time Machine — replay past events"
-            className={`w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center transition-colors ${
-              timeMachineOpen ? "text-white border-white/30" : "text-white/60 hover:text-white hover:border-white/30"
-            }`}
-            style={{ backgroundColor: timeMachineOpen ? "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent))" : "color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent)" }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="8" cy="8" r="6" /><path d="M8 4v4l3 2" />
-            </svg>
-          </button>
-
-          {/* Drone Planner (admin only) */}
-          {isAdmin && (
-            <button
-              onClick={() => setDronePlannerOpen(!dronePlannerOpen)}
-              title="Drone Flight Planner"
-              className={`w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center transition-colors ${
-                dronePlannerOpen ? "text-white border-white/30" : "text-white/60 hover:text-white hover:border-white/30"
-              }`}
-              style={{ backgroundColor: dronePlannerOpen ? "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent))" : "color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent)" }}
-            >
-              <Loader2 className="h-4 w-4" style={{ animation: "none", transform: "rotate(45deg)" }} />
-            </button>
-          )}
-        </div>
+        <MapControlButtons
+          cameraHeading={cameraHeading}
+          isFullscreen={isFullscreen}
+          timeMachineOpen={timeMachineOpen}
+          dronePlannerOpen={dronePlannerOpen}
+          isAdmin={isAdmin}
+          onResetNorth={handleResetNorth}
+          onToggleFullscreen={handleFullscreen}
+          onToggleTimeMachine={() => setTimeMachineOpen(!timeMachineOpen)}
+          onToggleDronePlanner={() => setDronePlannerOpen(!dronePlannerOpen)}
+        />
       )}
 
       {/* Custom entity popup — floating near selected point */}
       {selectedEntity && (
-        <div
-          className="absolute z-20 pointer-events-auto"
-          style={{
-            left: Math.min(Math.max(selectedEntity.screenX - 140, 8), (containerRef.current?.clientWidth ?? 800) - 296),
-            top: Math.max(selectedEntity.screenY - 10, 8),
-            transform: "translateY(-100%)",
-          }}
-        >
-          {/* Connector line */}
-          <div className="absolute left-1/2 bottom-0 w-px h-2" style={{ backgroundColor: "var(--brand-accent, #d59b3c)", transform: "translateX(-50%) translateY(100%)" }} />
-          {/* Popup card */}
-          <div className="w-72 rounded-xl backdrop-blur-md shadow-xl shadow-black/40 overflow-hidden" style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 95%, transparent)", borderWidth: 1, borderStyle: "solid", borderColor: "color-mix(in srgb, var(--brand-accent, #d59b3c) 30%, transparent)" }}>
-            {/* Close button */}
-            <button onClick={() => setSelectedEntity(null)} className="absolute top-1.5 right-2 text-white/30 hover:text-white text-xs z-10">✕</button>
-            {/* Body */}
-            <div
-              className="px-3 py-2.5 text-[11px] text-white/80 font-mono leading-relaxed max-h-48 overflow-y-auto [&_strong]:text-accent [&_b]:text-accent"
-              dangerouslySetInnerHTML={{ __html: selectedEntity.description || `<b>${selectedEntity.name}</b>` }}
-            />
-          </div>
-        </div>
+        <EntityPopup
+          entity={selectedEntity}
+          containerWidth={containerRef.current?.clientWidth ?? 800}
+          onClose={() => setSelectedEntity(null)}
+        />
       )}
 
       {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} onRealignSiteMap={(op) => {
@@ -1824,19 +1762,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       />
 
       {/* Geofence Alert Ticker */}
-      {geofenceAlerts.length > 0 && (
-        <div className="absolute bottom-14 left-3 right-64 z-10 rounded-lg backdrop-blur-sm border border-red-500/20 px-3 py-1.5 overflow-hidden"
-          style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)" }}>
-          <div className="flex items-center gap-2 text-[10px] font-mono animate-marquee">
-            <span className="text-red-500 font-bold shrink-0">GEOFENCE</span>
-            {geofenceAlerts.slice(0, 5).map(a => (
-              <span key={a.id} className="text-white/60 shrink-0">
-                {a.alertType === "breach" ? "⚠" : "✓"} {a.userName} — {a.eventName} ({Math.round(a.distanceM)}m) {new Date(a.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <GeofenceAlertTicker alerts={geofenceAlerts} />
       {aligningOp && aligningOp.siteMapUrl && (
         <SiteMapAligner
           imageUrl={aligningOp.siteMapUrl}
@@ -1862,54 +1788,4 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   );
 }
 
-// Pin icon cache to avoid creating new canvases on every render
-const pinCache = new Map<string, HTMLCanvasElement>();
 
-function createPinCanvas(color: string, type: "flag" | "person" | "alert"): HTMLCanvasElement {
-  const key = `${color}-${type}`;
-  if (pinCache.has(key)) return pinCache.get(key)!;
-
-  const size = 28;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  const r = size / 2;
-
-  // Drop shadow
-  ctx.shadowColor = "rgba(0,0,0,0.4)";
-  ctx.shadowBlur = 3;
-  ctx.shadowOffsetY = 1;
-
-  // Filled circle
-  ctx.beginPath();
-  ctx.arc(r, r, r - 3, 0, Math.PI * 2);
-  ctx.fillStyle = color;
-  ctx.fill();
-
-  // White border
-  ctx.shadowColor = "transparent";
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Icon
-  ctx.fillStyle = "#ffffff";
-  ctx.font = `bold ${size * 0.4}px sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const icon = type === "flag" ? "\u2691" : type === "person" ? "\u2022" : "\u26A0";
-  ctx.fillText(icon, r, r);
-
-  pinCache.set(key, canvas);
-  return canvas;
-}
-
-/** Parse incident description — extract narrative from structured form dump */
-function parseIncidentNarrative(desc: string): string {
-  if (!desc) return "";
-  // The description often contains "Narrative --- When --- details..." format
-  const parts = desc.split(/\s*---\s*/);
-  // First part is usually the narrative
-  return parts[0]?.trim() || desc.slice(0, 120);
-}
