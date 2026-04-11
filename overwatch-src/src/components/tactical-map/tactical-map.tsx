@@ -1238,6 +1238,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
+    console.log("[MapHandler] Creating ScreenSpaceEventHandler, loading:", loading, "viewer destroyed:", viewer.isDestroyed());
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
 
     // Single click — tools + entity picking
@@ -1552,7 +1553,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       }
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
-    return () => handler.destroy();
+    return () => { console.log("[MapHandler] Destroying handler"); handler.destroy(); };
   }, [loading, onSelectOperation, activeTool, measurePoint1, losPoint1, elevPoint1, losEntityIds, aligningOp, drawMode, drawColor, drawPoints, companyId, dronePlannerOpen, droneWaypoints]);
 
   // Dismiss popup when camera moves (user is navigating away)
