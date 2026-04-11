@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Send, Search, Loader2, Check, CheckCheck, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getDMConversations, getDMMessages, sendDM, markDMsAsRead,
@@ -118,7 +118,7 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
   const selectedConv = conversations.find(c => c.userId === selectedUserId);
   const selectedName = selectedConv ? `${selectedConv.firstName} ${selectedConv.lastName}`.trim() : "";
 
-  const filteredMembers = members.filter((m: { first_name?: string; last_name?: string }) => {
+  const filteredMembers = members.filter((m: { first_name?: string; last_name?: string; avatar_url?: string | null }) => {
     if (!searchQ) return true;
     const name = `${m.first_name ?? ""} ${m.last_name ?? ""}`.toLowerCase();
     return name.includes(searchQ.toLowerCase());
@@ -150,6 +150,7 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
                 }`}
               >
                 <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarImage src={conv.avatarUrl ?? undefined} />
                   <AvatarFallback className="text-[10px]">
                     {conv.firstName[0]}{conv.lastName[0]}
                   </AvatarFallback>
@@ -193,6 +194,7 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-muted/50 transition-colors"
                 >
                   <Avatar className="h-7 w-7">
+                    <AvatarImage src={(m as { avatar_url?: string | null }).avatar_url ?? undefined} />
                     <AvatarFallback className="text-[9px]">
                       {(m.first_name ?? "?")[0]}{(m.last_name ?? "?")[0]}
                     </AvatarFallback>
@@ -211,6 +213,7 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
             {/* Header */}
             <div className="px-4 py-2.5 border-b border-border/30 flex items-center gap-2">
               <Avatar className="h-7 w-7">
+                <AvatarImage src={selectedConv?.avatarUrl ?? undefined} />
                 <AvatarFallback className="text-[9px]">
                   {selectedConv?.firstName[0]}{selectedConv?.lastName[0]}
                 </AvatarFallback>
