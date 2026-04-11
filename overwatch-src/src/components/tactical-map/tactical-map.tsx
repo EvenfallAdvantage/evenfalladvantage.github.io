@@ -180,6 +180,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
   // Operation documents for pin popups
   const [eventDocs, setEventDocs] = useState<Record<string, OperationDocument[]>>({});
+  const eventDocsRef = useRef<Record<string, OperationDocument[]>>({});
   const [viewingDoc, setViewingDoc] = useState<OperationDocument | null>(null);
 
   // Load docs for all operations
@@ -201,6 +202,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         } catch {}
       }));
       setEventDocs(docs);
+      eventDocsRef.current = docs;
     };
     loadDocs();
   }, [operations]);
@@ -263,10 +265,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         };
 
         // Expose doc viewer handler for operation pin popups
+        // Uses ref to always access latest docs (closure would capture stale state)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).__openOpDoc = (eventId: string, docType: string) => {
-          const docs = eventDocs[eventId] ?? [];
-          const doc = docs.find(d => d.doc_type === docType);
+          const docs = eventDocsRef.current[eventId] ?? [];
+          const doc = docs.find((d: OperationDocument) => d.doc_type === docType);
           if (doc) {
             setViewingDoc(doc);
             setSelectedEntity(null);
