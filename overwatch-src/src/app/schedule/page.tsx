@@ -945,8 +945,8 @@ export default function SchedulePage() {
           companyId={activeCompanyId ?? ""}
           isAdmin={isAdmin}
           onSelectOperation={(id) => {
-            // Could navigate to operation detail or expand it
-            toast.info(`Operation selected: ${mapOps.find(o => o.id === id)?.name ?? id}`);
+            // Navigate to the Planning page for this operation
+            window.location.href = `/overwatch/admin/events?expand=${id}`;
           }}
         />
       )}

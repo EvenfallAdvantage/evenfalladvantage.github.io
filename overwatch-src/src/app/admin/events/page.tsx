@@ -226,8 +226,9 @@ export default function AdminEventsPage() {
   const [intakeSuccessCriteria, setIntakeSuccessCriteria] = useState<string[]>([]);
   const [intakeSuccessNotes, setIntakeSuccessNotes] = useState("");
 
-  // Expanded op
-  const [expanded, setExpanded] = useState<string | null>(null);
+  // Expanded op — auto-expand from URL param (e.g., ?expand=uuid)
+  const expandParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("expand") : null;
+  const [expanded, setExpanded] = useState<string | null>(expandParam);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [deletingEvent, setDeletingEvent] = useState<string | null>(null);
@@ -295,6 +296,16 @@ export default function AdminEventsPage() {
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Auto-expand operation from URL param (e.g., navigating from tactical map)
+  const autoExpandedRef = useRef(false);
+  useEffect(() => {
+    if (expandParam && events.length > 0 && !autoExpandedRef.current) {
+      autoExpandedRef.current = true;
+      const ev = events.find((e: Event) => e.id === expandParam);
+      if (ev) toggleExpand(expandParam);
+    }
+  }, [expandParam, events]);
 
   function resetCreate() {
     setName(""); setLocation(""); setLocationLat(null); setLocationLng(null); setStartDate(""); setEndDate("");
