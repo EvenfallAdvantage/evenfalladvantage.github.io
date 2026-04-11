@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -325,7 +324,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                               const ChildIcon = ICON_MAP[child.icon];
                               const childIsActive = isNavMatch(child.href, pathname, item.children);
                               return (
-                                <Link
+                                <a
                                   key={child.href}
                                   href={child.href}
                                   className={cn(
@@ -346,7 +345,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                                     />
                                   )}
                                   <span className="truncate">{child.title}</span>
-                                </Link>
+                                </a>
                               );
                             })}
                           </div>
@@ -363,7 +362,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                               const ChildIcon = ICON_MAP[child.icon];
                               const childIsActive = isNavMatch(child.href, pathname, item.children);
                               return (
-                                <Link
+                                <a
                                   key={child.href}
                                   href={child.href}
                                   onClick={() => { setExpanded({}); setFlyoutPos(null); }}
@@ -376,7 +375,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                                 >
                                   {ChildIcon && <ChildIcon className={cn("h-3.5 w-3.5 shrink-0", childIsActive ? "text-primary" : "text-muted-foreground/70")} />}
                                   <span>{child.title}</span>
-                                </Link>
+                                </a>
                               );
                             })}
                           </div>
@@ -385,8 +384,8 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                     );
                   }
 
-                  return (
-                    <Link
+                   return (
+                    <a
                       key={item.href}
                       href={item.href}
                       className={cn(
@@ -418,7 +417,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                           {item.badge}
                         </Badge>
                       )}
-                    </Link>
+                    </a>
                   );
                 })}
               </div>
