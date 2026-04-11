@@ -210,6 +210,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           navigationHelpButton: false,
           infoBox: false,
           creditContainer: document.createElement("div"),
+          // Use request render mode but allow renders on user input and scene changes
+          requestRenderMode: true,
+          maximumRenderTimeChange: 0.0,
         });
 
         if (destroyed) { viewer.destroy(); return; }
@@ -384,6 +387,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         entityGroupsRef.current.operations.push(gfEntity);
       }
     });
+    viewer.scene.requestRender();
   }, [operations, layers.operations, layers.geofences, loading]);
 
   // ─── Plot Staff Pins ──────────────────────────────────
@@ -431,6 +435,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       });
       entityGroupsRef.current.staff.push(entity);
     });
+    viewer.scene.requestRender();
   }, [effectiveStaff, layers.staff, loading]);
 
   // ─── Plot Incidents ──────────────────────────────────
@@ -474,6 +479,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       });
       entityGroupsRef.current.incidents.push(entity);
     });
+    viewer.scene.requestRender();
   }, [incidents, layers.incidents, loading]);
 
   // ─── Weather Radar Layer ─────────────────────────────
@@ -1236,6 +1242,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
     // Single click — tools
     handler.setInputAction((click: { position: { x: number; y: number } }) => {
+      // Ensure scene is rendered for accurate picking in requestRenderMode
+      viewer.scene.requestRender();
       // Get globe position from click
       const ray = viewer.camera.getPickRay(click.position);
       const cartesian = ray ? viewer.scene.globe.pick(ray, viewer.scene) : null;
