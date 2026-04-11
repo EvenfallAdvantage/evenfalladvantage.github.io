@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+
+const BASE_PATH = "/overwatch";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
@@ -326,7 +328,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                               return (
                                 <a
                                   key={child.href}
-                                  href={child.href}
+                                  href={`${BASE_PATH}${child.href}`}
                                   className={cn(
                                     "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all duration-200",
                                     childIsActive
@@ -364,7 +366,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                               return (
                                 <a
                                   key={child.href}
-                                  href={child.href}
+                                  href={`${BASE_PATH}${child.href}`}
                                   onClick={() => { setExpanded({}); setFlyoutPos(null); }}
                                   className={cn(
                                     "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
@@ -387,7 +389,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                    return (
                     <a
                       key={item.href}
-                      href={item.href}
+                      href={`${BASE_PATH}${item.href}`}
                       className={cn(
                         "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                         isActive
