@@ -45,6 +45,11 @@ export function addSentinel1Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumR
         time: getRecentDateRange(12),
       },
       credit: "Sentinel-1 SAR / Copernicus / ESA",
+      // Limit tile requests to avoid 429 rate limiting on free tier
+      // Level 10 ≈ city-level detail, sufficient for SAR imagery
+      maximumLevel: 10,
+      tileWidth: 512,
+      tileHeight: 512,
     });
     const layer = viewer.imageryLayers.addImageryProvider(provider);
     layer.alpha = 0.7;
