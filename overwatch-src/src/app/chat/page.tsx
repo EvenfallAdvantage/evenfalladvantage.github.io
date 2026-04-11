@@ -4,9 +4,10 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Radio, Radar, Plus, Send, Loader2, Trash2, Search, ExternalLink,
-  Reply, X, Hash, MessageSquare,
+  Reply, X, Hash, MessageSquare, Mail,
   Smile, Paperclip, Upload, Pencil, Settings2,
 } from "lucide-react";
+import { DirectMessages } from "@/components/direct-messages";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,7 @@ import { usePageHeader } from "@/stores/page-header-store";
 type Channel = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Message = any;
-type Tab = "channels" | "external";
+type Tab = "channels" | "external" | "messages";
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "🔥", "👀", "✅"];
 
@@ -95,8 +96,8 @@ export default function ChatPage() {
   const [tab, setTab] = useState<Tab>((searchParams.get("tab") === "external" ? "external" : "channels") as Tab);
 
   useEffect(() => {
-    setHeader("COMMS", "Team channels, external groups, and messaging",
-      tab === "external" ? <ExternalLink className="h-5 w-5" /> : <Hash className="h-5 w-5" />);
+    setHeader("COMMS", "Team channels, direct messages, and external groups",
+      tab === "external" ? <ExternalLink className="h-5 w-5" /> : tab === "messages" ? <Mail className="h-5 w-5" /> : <Hash className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader, tab]);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
@@ -307,6 +308,11 @@ export default function ChatPage() {
           Channels
           {internal.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{internal.length}</Badge>}
         </button>
+        <button onClick={() => setTab("messages")}
+          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "messages" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+          {tab === "messages" && <Mail className="h-3.5 w-3.5 text-primary" />}
+          Messages
+        </button>
         <button onClick={() => setTab("external")}
           className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "external" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
           {tab === "external" && <ExternalLink className="h-3.5 w-3.5 text-primary" />}
@@ -338,6 +344,11 @@ export default function ChatPage() {
         savingPerms={savingPerms} handleSavePerms={handleSavePerms}
         openPermEditor={openPermEditor}
       />)}
+
+      {/* ────────── MESSAGES (DM) TAB ────────── */}
+      {tab === "messages" && activeCompanyId && activeCompanyId !== "pending" && (
+        <DirectMessages companyId={activeCompanyId} />
+      )}
 
       {/* ────────── EXTERNAL GROUPS TAB ────────── */}
       {tab === "external" && (<ExternalTab
