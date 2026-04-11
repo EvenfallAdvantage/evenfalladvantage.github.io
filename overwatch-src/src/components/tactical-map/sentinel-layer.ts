@@ -28,22 +28,24 @@ export function addSentinel2Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumR
 }
 
 /**
- * Add Sentinel-1 SAR imagery layer (EOX — free, no auth).
- * Grayscale SAR backscatter mosaic.
+ * Add Sentinel-1 SAR-like imagery layer.
+ * Uses EOX's Sentinel-2 in grayscale mode as a SAR-visual proxy.
+ * True SAR WMS from EOX is not publicly available as a free layer.
  */
 export function addSentinel1Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumRef {
-  // EOX Sentinel-1 GRD IW mosaic — free, CORS-enabled, no auth
-  const provider = new Cesium.WebMapServiceImageryProvider({
-    url: "https://tiles.maps.eox.at/wms",
-    layers: "s1grdiw",
-    parameters: {
-      transparent: true,
-      format: "image/png",
-    },
-    credit: "Sentinel-1 SAR by EOX / Copernicus / ESA",
+  // Use Sentinel-2 cloudless in a darker rendering as SAR proxy
+  const provider = new Cesium.UrlTemplateImageryProvider({
+    url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2021_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg",
+    credit: "Sentinel-2 (SAR-proxy view) by EOX / Copernicus / ESA",
+    minimumLevel: 0,
+    maximumLevel: 14,
   });
 
   const layer = viewer.imageryLayers.addImageryProvider(provider);
   layer.alpha = 0.7;
+  // Apply grayscale + contrast boost via brightness/contrast to simulate SAR look
+  layer.brightness = 0.6;
+  layer.contrast = 1.8;
+  layer.saturation = 0.0; // Full desaturation = grayscale
   return layer;
 }

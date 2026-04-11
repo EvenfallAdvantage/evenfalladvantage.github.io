@@ -67,25 +67,28 @@ interface LayerToggle {
 }
 
 const LAYER_TOGGLES: LayerToggle[] = [
-  { key: "operations", label: "Operations", icon: <Flag className="h-3.5 w-3.5" />, group: "PINS" },
-  { key: "staff", label: "Staff Locations", icon: <Users className="h-3.5 w-3.5" />, group: "PINS" },
-  { key: "incidents", label: "Incidents", icon: <AlertTriangle className="h-3.5 w-3.5" />, group: "PINS" },
-  { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "PINS" },
-  { key: "breadcrumbs", label: "Patrol Trails", icon: <Flag className="h-3.5 w-3.5" />, group: "PINS" },
-  { key: "weather", label: "Weather Radar", icon: <CloudRain className="h-3.5 w-3.5" />, group: "OVERLAYS" },
-  { key: "nightVision", label: "Night Vision", icon: <Moon className="h-3.5 w-3.5" />, group: "OVERLAYS" },
-  { key: "annotations", label: "Tactical Drawings", icon: <Flag className="h-3.5 w-3.5" />, group: "OVERLAYS" },
-  { key: "sentinel1", label: "SAR Radar (S-1)", icon: <Radar className="h-3.5 w-3.5" />, group: "SATELLITE INTEL" },
-  { key: "sentinel2", label: "Optical (S-2)", icon: <Satellite className="h-3.5 w-3.5" />, group: "SATELLITE INTEL" },
-  { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "SATELLITE INTEL" },
-  { key: "crtMode", label: "CRT Mode", icon: <Monitor className="h-3.5 w-3.5" />, group: "SATELLITE INTEL" },
-  { key: "aircraft", label: "Aircraft (Live)", icon: <Plane className="h-3.5 w-3.5" />, group: "LIVE FEEDS" },
-  { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "LIVE FEEDS" },
-  { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "INTEL" },
-  { key: "sunPosition", label: "Sun Position", icon: <Sun className="h-3.5 w-3.5" />, group: "INTEL" },
-  { key: "satellite", label: "Satellite Imagery", icon: <Satellite className="h-3.5 w-3.5" />, group: "TERRAIN" },
-  { key: "buildings", label: "3D Buildings", icon: <Building2 className="h-3.5 w-3.5" />, group: "TERRAIN" },
-  { key: "terrain", label: "3D Terrain", icon: <Mountain className="h-3.5 w-3.5" />, group: "TERRAIN" },
+  // Map view controls
+  { key: "satellite", label: "Satellite View", icon: <Satellite className="h-3.5 w-3.5" />, group: "MAP" },
+  { key: "buildings", label: "3D Buildings", icon: <Building2 className="h-3.5 w-3.5" />, group: "MAP" },
+  { key: "terrain", label: "3D Terrain", icon: <Mountain className="h-3.5 w-3.5" />, group: "MAP" },
+  { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "MAP" },
+  // Operations data
+  { key: "operations", label: "Operations", icon: <Flag className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  { key: "staff", label: "Staff", icon: <Users className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  { key: "breadcrumbs", label: "Patrol Trails", icon: <Radar className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  { key: "incidents", label: "Incidents", icon: <AlertTriangle className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  { key: "annotations", label: "Drawings", icon: <Flag className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  // Intelligence feeds
+  { key: "weather", label: "Weather Radar", icon: <CloudRain className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "sentinel1", label: "SAR Imagery", icon: <Radar className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "sentinel2", label: "Satellite Photos", icon: <Satellite className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  // Visual effects
+  { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "EFFECTS" },
+  { key: "crtMode", label: "CRT Mode", icon: <Monitor className="h-3.5 w-3.5" />, group: "EFFECTS" },
 ];
 
 interface MapLayersPanelProps {

@@ -24,22 +24,24 @@ export interface Aircraft {
  * Fetch live aircraft positions within a bounding box.
  * Box is defined by [south, north, west, east] in degrees.
  */
+let corsBlocked = false;
+
 export async function getAircraft(
   south: number, north: number, west: number, east: number
 ): Promise<Aircraft[]> {
+  // Don't retry after CORS failure — OpenSky doesn't support cross-origin requests
+  if (corsBlocked) return [];
+
   try {
-    // OpenSky API doesn't support CORS from custom domains.
-    // Use their anonymous endpoint which sometimes works, with fallback.
     const params = `lamin=${south}&lamax=${north}&lomin=${west}&lomax=${east}`;
     const url = `https://opensky-network.org/api/states/all?${params}`;
 
-    // Try direct first (may work in some environments)
     let res: Response;
     try {
       res = await fetch(url, { signal: AbortSignal.timeout(6000), mode: "cors" });
     } catch {
-      // CORS blocked — try with no-cors (won't get data but won't error)
-      console.warn("[FlightTracker] CORS blocked by OpenSky. Flight tracking requires a proxy or Edge Function.");
+      corsBlocked = true;
+      console.warn("[FlightTracker] CORS blocked by OpenSky. Flight tracking disabled until a proxy Edge Function is configured.");
       return [];
     }
     if (!res.ok) return [];
