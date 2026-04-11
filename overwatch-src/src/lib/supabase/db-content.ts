@@ -246,13 +246,11 @@ export async function updateKBDocumentRequired(docId: string, required: boolean)
 
 export async function updateKBFolderOrder(folders: { id: string; sort_order: number }[]) {
   const supabase = createClient();
-  for (const f of folders) {
-    const { error } = await supabase
-      .from("kb_folders")
-      .update({ sort_order: f.sort_order })
-      .eq("id", f.id);
-    if (error) throw error;
-  }
+  const { error } = await supabase.from("kb_folders").upsert(
+    folders.map((f) => ({ id: f.id, sort_order: f.sort_order })),
+    { onConflict: "id" }
+  );
+  if (error) throw error;
 }
 
 export async function deleteKBFolder(folderId: string) {
@@ -511,23 +509,30 @@ export async function getUnreadCounts(companyId: string) {
   const userId = await ensureInternalUser();
   if (!userId) return {};
   const supabase = createClient();
-  // Get all channels for the company
+  // Get all channels + user's membership in a single query
   const { data: channels } = await supabase
     .from("chat_channels")
     .select("id")
     .eq("company_id", companyId)
     .eq("is_archived", false);
   if (!channels?.length) return {};
+
+  // Batch-fetch all memberships for this user across all channels
+  const channelIds = channels.map((ch: { id: string }) => ch.id);
+  const { data: memberships } = await supabase
+    .from("chat_members")
+    .select("channel_id, last_read_at")
+    .eq("user_id", userId)
+    .in("channel_id", channelIds);
+  const memberMap: Record<string, string | null> = {};
+  for (const m of memberships ?? []) {
+    memberMap[m.channel_id] = m.last_read_at;
+  }
+
+  // Count unread messages per channel in parallel
   const counts: Record<string, number> = {};
-  for (const ch of channels) {
-    // Get member's last_read_at
-    const { data: member } = await supabase
-      .from("chat_members")
-      .select("last_read_at")
-      .eq("channel_id", ch.id)
-      .eq("user_id", userId)
-      .maybeSingle();
-    const lastRead = member?.last_read_at;
+  const promises = channels.map(async (ch: { id: string }) => {
+    const lastRead = memberMap[ch.id] ?? null;
     let query = supabase
       .from("chat_messages")
       .select("id", { count: "exact", head: true })
@@ -536,7 +541,8 @@ export async function getUnreadCounts(companyId: string) {
     if (lastRead) query = query.gt("created_at", lastRead);
     const { count } = await query;
     if (count && count > 0) counts[ch.id] = count;
-  }
+  });
+  await Promise.all(promises);
   return counts;
 }
 

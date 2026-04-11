@@ -62,7 +62,7 @@ export default function UpdatePasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (password !== confirm) { setError("Passwords do not match"); return; }
-    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (password.length < 12) { setError("Password must be at least 12 characters"); return; }
     setError("");
     setLoading(true);
     try {
@@ -115,7 +115,7 @@ export default function UpdatePasswordPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={8}
+                  minLength={12}
                   autoComplete="new-password"
                   autoFocus
                   className="w-full h-9 rounded-lg border border-white/10 bg-white/5 pl-10 pr-10 text-sm text-white outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/30"

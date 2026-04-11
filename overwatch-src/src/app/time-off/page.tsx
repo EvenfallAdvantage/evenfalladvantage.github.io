@@ -100,7 +100,12 @@ export default function TimeOffPage() {
   }
 
   async function handleCancelRequest(id: string) {
-    if (!confirm("Cancel this leave request?")) return;
+    const req = allRequests.find((r: Request) => r.id === id);
+    const wasApproved = req?.status === "approved";
+    const msg = wasApproved
+      ? "Cancel this approved leave request? Note: shifts that were removed during approval will need to be manually re-created."
+      : "Cancel this leave request?";
+    if (!confirm(msg)) return;
     setDeletingReq(id);
     try { await deleteTimeOffRequest(id); await load(); toast.success("Request cancelled"); }
     catch (err) { console.error(err); toast.error("Failed to cancel request"); }

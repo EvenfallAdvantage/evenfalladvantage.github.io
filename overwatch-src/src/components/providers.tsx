@@ -21,12 +21,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     installGlobalErrorHandlers();
   }, []);
 
-  // Expose auth store for error tracker context (non-reactive, just a reference)
+  // Expose minimal auth context for error tracker (scoped — no PII)
   useEffect(() => {
     const unsub = useAuthStore.subscribe((state) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).__OVERWATCH_AUTH_STORE__ = {
-        user: state.user,
-        activeCompanyId: state.activeCompanyId,
+        userId: state.user?.id ?? null,
+        activeCompanyId: state.activeCompanyId ?? null,
       };
     });
     return unsub;

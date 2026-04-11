@@ -138,13 +138,14 @@ export async function removeConflictingShifts(userId: string, startDate: string,
   if (qErr) console.error("removeConflictingShifts query error:", qErr);
   if (!conflicting?.length) return [];
 
-  // Unassign the user from each conflicting shift (set to open)
-  for (const shift of conflicting) {
+  // Unassign the user from all conflicting shifts in a single bulk update
+  const shiftIds = conflicting.map((s: { id: string }) => s.id);
+  if (shiftIds.length > 0) {
     const { error: uErr } = await supabase
       .from("shifts")
       .update({ assigned_user_id: null, status: "open" })
-      .eq("id", shift.id);
-    if (uErr) console.error("Failed to unassign shift", shift.id, uErr);
+      .in("id", shiftIds);
+    if (uErr) console.error("Failed to unassign shifts:", uErr);
   }
 
   return conflicting;

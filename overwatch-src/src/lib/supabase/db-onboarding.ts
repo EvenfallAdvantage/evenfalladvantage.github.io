@@ -336,13 +336,11 @@ export async function deleteOnboardingTask(taskId: string) {
 
 export async function reorderOnboardingTasks(tasks: { id: string; sort_order: number }[]) {
   const supabase = createClient();
-  for (const t of tasks) {
-    const { error } = await supabase
-      .from("onboarding_tasks")
-      .update({ sort_order: t.sort_order })
-      .eq("id", t.id);
-    if (error) throw error;
-  }
+  const { error } = await supabase.from("onboarding_tasks").upsert(
+    tasks.map((t) => ({ id: t.id, sort_order: t.sort_order })),
+    { onConflict: "id" }
+  );
+  if (error) throw error;
 }
 
 // ─── Onboarding Progress (per-user) ─────────────────────

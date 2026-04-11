@@ -9,9 +9,7 @@
 const CESIUM_VERSION = "1.128";
 const CESIUM_CDN = `https://cesium.com/downloads/cesiumjs/releases/${CESIUM_VERSION}/Build/Cesium`;
 
-const CESIUM_TOKEN =
-  process.env.NEXT_PUBLIC_CESIUM_TOKEN ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIxNDNmNTU5YS00ZjdmLTQzMzYtOWVhZS1hOGI5NzNhMmY2YzEiLCJpZCI6NDE1OTU4LCJpYXQiOjE3NzU3NDI4MDl9.T-wJKrOTvF7bn9A8Js7b19dAB4Q2GaCrF50nN0egTQ0";
+const CESIUM_TOKEN = process.env.NEXT_PUBLIC_CESIUM_TOKEN ?? "";
 
 let loadPromise: Promise<typeof globalThis.Cesium> | null = null;
 

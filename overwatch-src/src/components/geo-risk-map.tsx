@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { CrimeIncident, SexOffender } from "@/lib/crime-incidents";
+import { escapeHtml } from "@/lib/security";
 
 type Props = {
   lat: number;
@@ -54,7 +55,9 @@ export default function GeoRiskMap({
 }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.LayerGroup | null>(null);
 
+  // Initialize or recreate map only when core props change
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -62,6 +65,7 @@ export default function GeoRiskMap({
       mapInstance.current.remove();
       mapInstance.current = null;
     }
+    markersRef.current = null;
 
     const map = L.map(mapRef.current, {
       center: [lat, lon],
@@ -95,9 +99,9 @@ export default function GeoRiskMap({
         .addTo(map)
         .bindPopup(
           `<div style="font-family:system-ui;font-size:11px;max-width:200px">
-            <strong style="color:${ic}">${inc.category}</strong><br/>
-            <span style="color:#999">${inc.date}</span><br/>
-            <span>${inc.description}</span>
+            <strong style="color:${ic}">${escapeHtml(inc.category)}</strong><br/>
+            <span style="color:#999">${escapeHtml(inc.date)}</span><br/>
+            <span>${escapeHtml(inc.description)}</span>
           </div>`,
           { closeButton: false, maxWidth: 220 }
         );
@@ -109,10 +113,10 @@ export default function GeoRiskMap({
         .addTo(map)
         .bindPopup(
           `<div style="font-family:system-ui;font-size:11px;max-width:220px">
-            <strong style="color:#a855f7">${off.name}</strong><br/>
-            <span style="color:#999">${off.address}</span><br/>
-            <span>${off.offenses}</span><br/>
-            <span style="font-size:10px;color:#888">Source: ${off.source}</span>
+            <strong style="color:#a855f7">${escapeHtml(off.name)}</strong><br/>
+            <span style="color:#999">${escapeHtml(off.address)}</span><br/>
+            <span>${escapeHtml(off.offenses)}</span><br/>
+            <span style="font-size:10px;color:#888">Source: ${escapeHtml(off.source)}</span>
           </div>`,
           { closeButton: false, maxWidth: 240 }
         );
@@ -135,8 +139,8 @@ export default function GeoRiskMap({
       .addTo(map)
       .bindPopup(
         `<div style="font-family:system-ui;font-size:12px;min-width:160px">
-          <strong style="font-size:13px">${address || "Location"}</strong><br/>
-          <span style="color:${color};font-weight:700">${riskLevel} Risk</span><br/>
+          <strong style="font-size:13px">${escapeHtml(address || "Location")}</strong><br/>
+          <span style="color:${color};font-weight:700">${escapeHtml(riskLevel)} Risk</span><br/>
           <span style="color:#888;font-size:11px">1-mile analysis radius</span>
         </div>`,
         { closeButton: false }

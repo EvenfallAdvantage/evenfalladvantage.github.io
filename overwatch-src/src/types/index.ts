@@ -14,6 +14,8 @@ export type CompanySettings = {
   hiddenTabs?: string[];
 };
 
+export type CompanyRole = "owner" | "admin" | "instructor" | "manager" | "lead" | "breaker" | "staff";
+
 export type CompanyContext = {
   companyId: string;
   companyName: string;
@@ -21,7 +23,7 @@ export type CompanyContext = {
   companyLogo: string | null;
   brandColor: string;
   accentColor: string;
-  role: string;
+  role: CompanyRole;
   isTrainingProvider: boolean;
   settings: CompanySettings;
   membership: {
@@ -168,7 +170,7 @@ export type CompanyMembershipRow = {
   id: string;
   user_id: string;
   company_id: string;
-  role: string;
+  role: CompanyRole;
   title: string | null;
   nickname: string | null;
   pronouns: string | null;

@@ -11,6 +11,7 @@ export default function MobileHeroRadar() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
   const visibleRef = useRef(true);
+  const accentRef = useRef<string>("");
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -29,8 +30,11 @@ export default function MobileHeroRadar() {
       ctx.scale(dpr, dpr);
     }
 
-    // Get brand accent color from CSS variable
-    const accent = getComputedStyle(document.documentElement).getPropertyValue("--brand-accent").trim() || "#dd8c33";
+    // Get brand accent color from CSS variable (cached — avoid getComputedStyle per frame)
+    if (!accentRef.current) {
+      accentRef.current = getComputedStyle(document.documentElement).getPropertyValue("--brand-accent").trim() || "#dd8c33";
+    }
+    const accent = accentRef.current;
 
     // Center of the radar
     const cx = w / 2;

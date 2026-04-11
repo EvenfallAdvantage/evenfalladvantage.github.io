@@ -23,12 +23,13 @@ export async function getCompanyStats(companyId: string) {
 
   let totalHours = 0;
   if (memberUserIds.length > 0) {
+    // Fetch only clock_in/clock_out columns (not select *) and use company_id filter
     const { data: sheets } = await supabase
       .from("timesheets")
       .select("clock_in, clock_out")
-      .in("user_id", memberUserIds)
+      .eq("company_id", companyId)
       .not("clock_out", "is", null)
-      .limit(500);
+      .limit(2000);
     for (const t of sheets ?? []) {
       if (t.clock_in && t.clock_out) {
         totalHours += (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000;

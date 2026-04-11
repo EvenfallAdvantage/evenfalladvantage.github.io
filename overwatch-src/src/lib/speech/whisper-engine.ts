@@ -42,7 +42,7 @@ export async function loadModel(onProgress?: ProgressCallback): Promise<void> {
     // Use remote models from HuggingFace Hub (cached by the browser)
     env.allowLocalModels = false;
 
-    onProgress?.({ status: "downloading", message: "Downloading speech model (~150 MB, one-time)...", progress: 0 });
+    onProgress?.({ status: "downloading", message: "Downloading speech model (~75 MB, one-time)...", progress: 0 });
 
     pipelineInstance = await pipeline("automatic-speech-recognition", MODEL_ID, {
       dtype: "fp32",          // fp32 — q8 quantization not supported by WASM ONNX runtime

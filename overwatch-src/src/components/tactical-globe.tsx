@@ -643,17 +643,26 @@ function SatelliteOverlay({
 
   useEffect(() => {
     let rafId: number;
+    let lastUpdate = 0;
+    const THROTTLE_MS = 100; // Throttle React updates to ~10fps instead of ~60fps
 
     function update() {
       const el = overlayRef.current;
       if (!el) { rafId = requestAnimationFrame(update); return; }
+      const now = Date.now();
+      // Skip React state update if less than THROTTLE_MS since last one
+      if (now - lastUpdate < THROTTLE_MS) {
+        rafId = requestAnimationFrame(update);
+        return;
+      }
+      lastUpdate = now;
+
       const w = el.offsetWidth;
       const cx = w / 2;
       const cy = w / 2;
       const satRadius = w * 0.47;
       const arcRadius = w * 0.47;
       const currentPhi = phi.current ?? 0;
-      const now = Date.now();
 
       // Compute fresh NOAA positions every frame from orbital mechanics
       const noaa = computeNOAA(now);

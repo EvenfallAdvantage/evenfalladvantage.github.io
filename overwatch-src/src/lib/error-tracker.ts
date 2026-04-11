@@ -30,10 +30,11 @@ export async function trackError(payload: ErrorPayload) {
     let userId: string | null = null;
     let companyId: string | null = null;
     try {
-      // Read from auth store if available in window
+      // Read from auth store if available in window (scoped — no PII)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const store = (window as any).__OVERWATCH_AUTH_STORE__;
       if (store) {
-        userId = store.user?.id ?? null;
+        userId = store.userId ?? null;
         companyId = store.activeCompanyId ?? null;
       }
     } catch { /* ignore */ }

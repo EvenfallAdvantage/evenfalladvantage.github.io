@@ -17,6 +17,7 @@ import { getSatellitePositions, computeGroundTrack } from "./orbit-tracker";
 import { TimeMachine } from "./time-machine";
 import { DronePlanner, type Waypoint } from "./drone-planner";
 import { checkLineOfSight, renderLineOfSight, clearLineOfSight, getElevationProfile } from "./terrain-tools";
+import { escapeHtml } from "@/lib/security";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -247,6 +248,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       }
       viewerRef.current = null;
       cesiumRef.current = null;
+      // Clean up global references on unmount
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).__tacticalMapViewer;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).__deleteAnnotation;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (window as any).__siteMapAlignerAddPoint;
     };
   }, []);
 
@@ -291,9 +299,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">
-          <b>${op.name}</b>
-          <div style="margin:4px 0"><span style="color:${color.toCssColorString()};font-weight:bold;padding:1px 6px;border-radius:3px;background:${color.toCssColorString()}22">${op.status.toUpperCase()}</span></div>
-          ${op.location ? `<div style="opacity:0.7;font-size:10px">📍 ${op.location}</div>` : ""}
+          <b>${escapeHtml(op.name)}</b>
+          <div style="margin:4px 0"><span style="color:${color.toCssColorString()};font-weight:bold;padding:1px 6px;border-radius:3px;background:${color.toCssColorString()}22">${escapeHtml(op.status.toUpperCase())}</span></div>
+          ${op.location ? `<div style="opacity:0.7;font-size:10px">📍 ${escapeHtml(op.location)}</div>` : ""}
           ${op.startDate ? `<div style="opacity:0.6;font-size:10px">📅 ${new Date(op.startDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</div>` : ""}
           ${op.shiftCount ? `<div style="opacity:0.6;font-size:10px">👥 ${op.shiftCount} shift${op.shiftCount !== 1 ? "s" : ""}</div>` : ""}
           ${op.geofenceRadius ? `<div style="opacity:0.5;font-size:10px">⊙ ${op.geofenceRadius}m geofence</div>` : ""}
@@ -358,7 +366,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         description: `<div style="font-family:monospace;font-size:12px;padding:8px">
-          <strong>${s.name}</strong><br/>Role: ${s.role}<br/>
+          <strong>${escapeHtml(s.name)}</strong><br/>Role: ${escapeHtml(s.role)}<br/>
           Updated: ${new Date(s.updatedAt).toLocaleTimeString()}
           ${s.speed ? `<br/>Speed: ${(s.speed * 2.237).toFixed(1)} mph` : ""}
           ${s.heading ? `<br/>Heading: ${s.heading.toFixed(0)}&deg;` : ""}
@@ -398,11 +406,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         description: (() => {
           const narrative = parseIncidentNarrative(inc.description ?? "");
           return `<div style="font-family:monospace;font-size:11px;line-height:1.7">
-            <b>${inc.title}</b>
-            <div style="margin:4px 0"><span style="color:${color};font-weight:bold;padding:1px 6px;border-radius:3px;background:${color}22">${inc.severity.toUpperCase()}</span> <span style="opacity:0.6">${inc.status.toUpperCase()}</span></div>
-            ${narrative ? `<div style="opacity:0.85;margin:4px 0">${narrative}</div>` : ""}
-            ${inc.location ? `<div style="opacity:0.5;font-size:10px">📍 ${inc.location}</div>` : ""}
-            ${inc.reportedBy ? `<div style="opacity:0.5;font-size:10px">👤 ${inc.reportedBy}${inc.assignedTo ? ` → ${inc.assignedTo}` : ""}</div>` : ""}
+            <b>${escapeHtml(inc.title)}</b>
+            <div style="margin:4px 0"><span style="color:${color};font-weight:bold;padding:1px 6px;border-radius:3px;background:${color}22">${escapeHtml(inc.severity.toUpperCase())}</span> <span style="opacity:0.6">${escapeHtml(inc.status.toUpperCase())}</span></div>
+            ${narrative ? `<div style="opacity:0.85;margin:4px 0">${escapeHtml(narrative)}</div>` : ""}
+            ${inc.location ? `<div style="opacity:0.5;font-size:10px">📍 ${escapeHtml(inc.location)}</div>` : ""}
+            ${inc.reportedBy ? `<div style="opacity:0.5;font-size:10px">👤 ${escapeHtml(inc.reportedBy)}${inc.assignedTo ? ` → ${escapeHtml(inc.assignedTo)}` : ""}</div>` : ""}
             <div style="opacity:0.3;font-size:9px;margin-top:4px">${new Date(inc.createdAt).toLocaleString()}</div>
           </div>`;
         })(),
@@ -578,15 +586,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
             const assigneeName = assignee ? `${assignee.first_name ?? ""} ${assignee.last_name ?? ""}`.trim() : "";
             const ts = linkedIncident.created_at ? new Date(linkedIncident.created_at as string).toLocaleString() : "";
             desc = `<div style="font-family:monospace;font-size:11px;line-height:1.7">
-              <b>${linkedIncident.title || pin.label}</b>
-              <div style="margin:4px 0"><span style="color:${sevColor};font-weight:bold;padding:1px 6px;border-radius:3px;background:${sevColor}22">${String(linkedIncident.severity ?? "").toUpperCase()}</span> <span style="opacity:0.6">${String(linkedIncident.status ?? "").toUpperCase()}</span></div>
-              ${narrative ? `<div style="opacity:0.85;margin:4px 0">${narrative}</div>` : ""}
-              ${linkedIncident.location ? `<div style="opacity:0.5;font-size:10px">📍 ${linkedIncident.location}</div>` : ""}
-              ${reporterName ? `<div style="opacity:0.5;font-size:10px">👤 ${reporterName}${assigneeName ? ` → ${assigneeName}` : ""}</div>` : ""}
+              <b>${escapeHtml(String(linkedIncident.title || pin.label))}</b>
+              <div style="margin:4px 0"><span style="color:${sevColor};font-weight:bold;padding:1px 6px;border-radius:3px;background:${sevColor}22">${escapeHtml(String(linkedIncident.severity ?? "").toUpperCase())}</span> <span style="opacity:0.6">${escapeHtml(String(linkedIncident.status ?? "").toUpperCase())}</span></div>
+              ${narrative ? `<div style="opacity:0.85;margin:4px 0">${escapeHtml(narrative)}</div>` : ""}
+              ${linkedIncident.location ? `<div style="opacity:0.5;font-size:10px">📍 ${escapeHtml(String(linkedIncident.location))}</div>` : ""}
+              ${reporterName ? `<div style="opacity:0.5;font-size:10px">👤 ${escapeHtml(reporterName)}${assigneeName ? ` → ${escapeHtml(assigneeName)}` : ""}</div>` : ""}
               <div style="opacity:0.3;font-size:9px;margin-top:4px">${ts}</div>
             </div>`;
           } else {
-            desc = `<b>${pin.label || "Pin"}</b>${pin.description ? `<br/>${pin.description}` : ""}`;
+            desc = `<b>${escapeHtml(pin.label || "Pin")}</b>${pin.description ? `<br/>${escapeHtml(pin.description)}` : ""}`;
           }
 
           const entity = viewer.entities.add({

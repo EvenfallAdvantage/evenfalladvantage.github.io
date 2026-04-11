@@ -76,7 +76,7 @@ export type StaffImportRow = {
   guard_card_number?: string;
 };
 
-const VALID_ROLES = ["staff", "manager", "admin"];
+const VALID_ROLES = ["staff", "lead", "manager", "admin", "owner", "instructor", "breaker"];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validateStaffRows(

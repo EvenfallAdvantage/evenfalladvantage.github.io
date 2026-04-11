@@ -161,8 +161,8 @@ Evidence paths reference files in the Overwatch codebase.
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
 | 7.1.1 | Defined SLA / uptime target | `[x]` | `docs/compliance/SLA_DEFINITION.md` | 99.5% monthly uptime, P1-P4 response times, RPO/RTO, maintenance windows |
-| 7.1.2 | Uptime monitoring with alerting | `[ ]` | — | Need UptimeRobot, Pingdom, or similar |
-| 7.1.3 | Incident response plan | `[ ]` | — | Need formal IRP with roles, escalation, communication |
+| 7.1.2 | Uptime monitoring with alerting | `[x]` | UptimeRobot (monitor #802774563) | Configured and alerting |
+| 7.1.3 | Incident response plan | `[x]` | `docs/compliance/INCIDENT_RESPONSE_PLAN.md` | Formal IRP with roles, escalation, communication |
 | 7.1.4 | Service worker for offline fallback | `[x]` | `public/sw.js` | PWA with offline page, network-first for JS bundles |
 
 ### CC7.2 — Backup and Recovery
@@ -274,18 +274,18 @@ Evidence paths reference files in the Overwatch codebase.
 | 1 | Vendor SOC 2 reports reviewed | CC3 | Emails drafted — send and file reports when received | Process |
 | 2 | Penetration testing (annual) | CC4 | Hire third-party firm ($5-15K) | External |
 
-### Priority Remediation (Top 10)
+### Priority Remediation (Remaining)
 
-1. Write Information Security Policy
-2. Enable GitHub Dependabot + CodeQL
-3. Set up uptime monitoring (UptimeRobot)
-4. Write Incident Response Plan
-5. Enforce branch protection (require PR reviews)
-6. Set up error tracking (Sentry)
-7. Write formal data retention policy
-8. Document vendor risk assessments
-9. Define RPO/RTO for disaster recovery
-10. Schedule annual penetration test
+1. ~~Write Information Security Policy~~ DONE
+2. ~~Enable GitHub Dependabot + CodeQL~~ DONE
+3. ~~Set up uptime monitoring (UptimeRobot)~~ DONE
+4. ~~Write Incident Response Plan~~ DONE
+5. ~~Enforce branch protection (require PR reviews)~~ DONE
+6. ~~Set up error tracking~~ DONE (custom error_logs table)
+7. ~~Write formal data retention policy~~ DONE
+8. Document vendor risk assessments (in progress)
+9. ~~Define RPO/RTO for disaster recovery~~ DONE
+10. Schedule annual penetration test (not yet started)
 
 ---
 

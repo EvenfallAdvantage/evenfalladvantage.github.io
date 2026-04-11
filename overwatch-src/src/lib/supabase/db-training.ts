@@ -336,13 +336,10 @@ export async function deleteModuleSlide(slideId: string) {
 
 export async function reorderModuleSlides(slides: { id: string; sortOrder: number }[]) {
   const supabase = createClient();
-  for (const s of slides) {
-    const { error } = await supabase
-      .from("module_slides")
-      .update({ sort_order: s.sortOrder, updated_at: new Date().toISOString() })
-      .eq("id", s.id);
-    if (error) throw error;
-  }
+  const now = new Date().toISOString();
+  const updates = slides.map((s) => ({ id: s.id, sort_order: s.sortOrder, updated_at: now }));
+  const { error } = await supabase.from("module_slides").upsert(updates, { onConflict: "id" });
+  if (error) throw error;
 }
 
 // ─── Student Module Progress ─────────────────────────

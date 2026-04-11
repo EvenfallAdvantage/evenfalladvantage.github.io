@@ -357,53 +357,6 @@ async function fetchOpenDataSoft(
   // Disabled until a working endpoint/version is identified.
   void lat; void lon; void city; void radiusMeters;
   return [];
-  try {
-    const dist = Math.max(radiusMeters, 1609);
-    const url =
-      `https://public.opendatasoft.com/api/records/1.0/search/?` +
-      `q=crime+OR+incident+OR+offense+OR+police` +
-      `&geofilter.distance=${lat},${lon},${dist}` +
-      `&rows=50`;
-
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    const records: Record<string, unknown>[] = data?.records || [];
-
-    return records
-      .map((rec) => {
-        const fields = (rec as { fields?: Record<string, unknown> }).fields || {};
-        const geo = (rec as { geometry?: { coordinates?: number[] } }).geometry;
-        const rLat = geo?.coordinates?.[1];
-        const rLon = geo?.coordinates?.[0];
-        if (!rLat || !rLon) return null;
-
-        const typeStr = String(
-          fields.offense || fields.crime_type || fields.incident_category ||
-          fields.primary_type || fields.offense_description || fields.type || "Unknown"
-        );
-        const desc = String(
-          fields.description || fields.offense_description || fields.incident_description || typeStr
-        );
-        const date = String(
-          fields.date || fields.report_date || fields.datetime || fields.incident_date || ""
-        );
-
-        return {
-          lat: rLat, lon: rLon,
-          type: classifyIncident(typeStr),
-          category: truncate(typeStr, 40),
-          description: truncate(desc, 60),
-          date: date ? new Date(date).toLocaleDateString() : "Unknown",
-          source: "OpenDataSoft",
-        } as CrimeIncident;
-      })
-      .filter(Boolean) as CrimeIncident[];
-  } catch (e) {
-    console.warn("OpenDataSoft fetch error:", e);
-    return [];
-  }
 }
 
 // ────────────────────────────── Source 3: ArcGIS Open Data Hubs ──────────────────────────────
@@ -625,48 +578,6 @@ async function fetchCityProtect(
   // Disabled until a server-side proxy is available.
   void lat; void lon; void radiusMeters;
   return [];
-  try {
-    const b = bbox(lat, lon, radiusMeters);
-    const endDt = new Date().toISOString().split("T")[0];
-    const startDt = new Date(Date.now() - 90 * 86400000).toISOString().split("T")[0]; // 90 days
-
-    const url =
-      `https://ce-portal-service.commandcentral.com/api/v2.0/public/incidents?` +
-      `bbox=${b.minLon},${b.minLat},${b.maxLon},${b.maxLat}` +
-      `&startDate=${startDt}&endDate=${endDt}&pageSize=50`;
-
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!res.ok) return [];
-
-    const data = await res.json();
-    const incidents: Record<string, unknown>[] = data?.incidents || data?.features || [];
-    if (!Array.isArray(incidents)) return [];
-
-    return incidents.slice(0, 50).map((inc) => {
-      const geo = inc.geometry as { coordinates?: number[] } | undefined;
-      const props = (inc.properties || inc) as Record<string, unknown>;
-      const rLat = Number(props.latitude || props.lat || geo?.coordinates?.[1] || 0);
-      const rLon = Number(props.longitude || props.lon || geo?.coordinates?.[0] || 0);
-      if (!rLat || !rLon) return null;
-
-      const typeStr = String(props.offense || props.type || props.offense_type ||
-        props.incident_type || props.description || "Unknown");
-      const desc = String(props.description || props.address || typeStr);
-      const date = String(props.date || props.incident_date || props.reported_date || "");
-
-      return {
-        lat: rLat, lon: rLon,
-        type: classifyIncident(typeStr),
-        category: truncate(typeStr, 40),
-        description: truncate(desc, 60),
-        date: date ? new Date(date).toLocaleDateString() : "Unknown",
-        source: "CityProtect",
-      } as CrimeIncident;
-    }).filter(Boolean) as CrimeIncident[];
-  } catch (e) {
-    console.warn("CityProtect fetch error:", e);
-    return [];
-  }
 }
 
 // ────────────────────────────── Source 7: Overpass API (Environmental Risk POIs) ──────────────────────────────

@@ -127,7 +127,7 @@ export default function TimeClockPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeCompanyId]);
 
   // Load upcoming shift
   useEffect(() => {

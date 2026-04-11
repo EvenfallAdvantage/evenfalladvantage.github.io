@@ -49,7 +49,7 @@ const FEATURES = [
 
 const STATS = [
   { value: "20+", label: "Operations Modules" },
-  { value: "50", label: "States Updated 2025" },
+  { value: "50", label: "States Updated 2026" },
   { value: "11", label: "Integrations" },
   { value: "24/7", label: "Operational Uptime" },
 ];

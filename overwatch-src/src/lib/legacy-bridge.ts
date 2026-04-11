@@ -11,8 +11,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Legacy Supabase credentials (read-scoped via RLS)
-const LEGACY_URL = "https://vaagvairvwmgyzsmymhs.supabase.co";
-const LEGACY_ANON_KEY = "sb_publishable_IPcFlKw8LEGnk2NYg5qrsw_Rq8yIhR1";
+const LEGACY_URL = process.env.NEXT_PUBLIC_LEGACY_SUPABASE_URL ?? "";
+const LEGACY_ANON_KEY = process.env.NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY ?? "";
 
 let _legacyClient: SupabaseClient | null = null;
 

@@ -27,7 +27,7 @@ export type AccountLink = {
   metadata: Record<string, unknown>;
 };
 
-const LEGACY_URL = "https://vaagvairvwmgyzsmymhs.supabase.co";
+const LEGACY_URL = process.env.NEXT_PUBLIC_LEGACY_SUPABASE_URL ?? "";
 
 // ─── Read Links ──────────────────────────────────────
 

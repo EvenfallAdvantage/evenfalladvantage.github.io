@@ -440,7 +440,18 @@ export default function PatrolsPage() {
                           {cp.description && <p className="text-xs text-muted-foreground mt-0.5">{cp.description}</p>}
                         </div>
                         {isAdmin && (
-                          <Button variant="ghost" size="sm" className="text-red-500" onClick={() => { deleteCheckpoint(cp.id); load(); }}>
+                          <Button variant="ghost" size="sm" className="text-red-500" onClick={async () => {
+                            const referencingRoutes = routes.filter((rt: PatrolRoute) =>
+                              (rt.checkpoint_ids ?? []).includes(cp.id)
+                            );
+                            if (referencingRoutes.length > 0) {
+                              const routeNames = referencingRoutes.map((rt: PatrolRoute) => rt.name).join(", ");
+                              if (!confirm(`This checkpoint is used by route(s): ${routeNames}. It will be removed from those routes. Continue?`)) return;
+                            } else {
+                              if (!confirm("Delete this checkpoint?")) return;
+                            }
+                            await deleteCheckpoint(cp.id); await load();
+                          }}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
@@ -526,7 +537,7 @@ export default function PatrolsPage() {
                             </div>
                           </div>
                           {isAdmin && (
-                            <Button variant="ghost" size="sm" className="text-red-500" onClick={() => { deletePatrolRoute(rt.id); load(); }}>
+                            <Button variant="ghost" size="sm" className="text-red-500" onClick={async () => { if (!confirm("Delete this patrol route?")) return; await deletePatrolRoute(rt.id); await load(); }}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
