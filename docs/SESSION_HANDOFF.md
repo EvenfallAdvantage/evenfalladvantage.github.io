@@ -1,221 +1,169 @@
-# Session Handoff — April 8, 2026
+# Session Handoff — April 11, 2026
 
 **Project:** Evenfall Advantage — Overwatch Platform
 **Repo:** https://github.com/EvenfallAdvantage/evenfalladvantage.github.io
-**Working Clone:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io\audit-clone`
-**CRITICAL:** Always use the `audit-clone` directory. The root repo is a stale copy — do NOT edit files there.
-**Latest commit:** `c20f1f9ae` on `main`
-**Commits this session:** 7
-**CI/CD:** All green (Build, Deploy, CodeQL all passing)
-**SOC 2 Readiness:** 92% (70/76 controls — unchanged)
-**WCAG:** 2.2 AA (17/18 criteria met — unchanged)
+**Working Directory:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io`
+**Latest commit:** `15dee4620` on `main` (double-click operation navigation)
+**Commits this session:** ~80+
+**CI/CD:** Build & Deploy passing. Backup workflow needs Supabase pooler URL fix.
 
 ---
 
-## What Was Completed This Session
+## What Was Done This Session
 
-### Beta Feedback Items (6 of 7 implemented)
+### 1. COMPREHENSIVE SECURITY AUDIT & CLEANUP
+- Fixed 6 critical security vulnerabilities (backup to artifacts, scoped deployment, XSS fixes, CORS hardening, admin auth on Edge Functions)
+- Removed 30+ dead/orphaned files (abandoned projects, unused JS/CSS, dev tools)
+- Fixed 23 TypeScript strict-mode errors blocking CI
+- Resolved npm audit vulnerabilities (jspdf critical, lodash, hono, etc.)
 
-1. **Edit External Group Cards (Item 1)** — Already done in prior session. This session fixed a missing `loadChannels` prop that caused save to fail, and migrated `handleSaveExtEdit` from raw Supabase call to `updateChatChannel()`.
+### 2. BUG FIXES
+- **Field reports company isolation** — `getUserFormSubmissions()` was missing company_id filter, causing cross-company data bleedover
+- **Join company modal** — converted from /join page navigation to inline modal flow
+- **Dictation/Speech-to-text** — identified Brave Browser blocks Web Speech API; built Whisper WASM fallback for all unsupported browsers (loads ~150MB model client-side)
+- **Dynamic header icons** — all tabbed pages now change their title icon based on active sub-tab
+- **Incident pin cleanup** — deleting an incident now removes its storyboard pin automatically
+- **Various popup/UI fixes** — positioning, formatting, redundant headers
 
-2. **Dictate / Speech-to-Text (Item 2)** — New page + component:
-   - `src/components/dictation-recorder.tsx` — Web Speech API recorder with mic permission check, auto-restart on timeout, elapsed timer, browser support detection, actionable error messages
-   - `src/app/dictate/page.tsx` — Full dictation page with metadata fields (person type, person name, linked incident), transcript editing, save to DB via form_submissions, expandable saved transcript cards
-   - Uses a "Dictation (System)" form auto-created per company
+### 3. 3D TACTICAL MAP (Major Feature — Operations Page)
+Built a full CesiumJS 3D tactical map at `/overwatch/schedule/` (Map tab, now default):
 
-3. **Reorder Reports Subtabs (Item 3)** — Tab order across all 3 report pages: Dictate → Field Reports → Incidents
+**Core:**
+- CesiumJS loaded from CDN (not bundled — Turbopack can't handle it)
+- Cesium Ion token: stored as `NEXT_PUBLIC_CESIUM_TOKEN` GitHub secret
+- 3D terrain with water effects, OSM 3D buildings
+- Compass rose (click to reset north), fullscreen button
+- Camera position + layer state persisted to localStorage per company
 
-4. **Move Join Code to HQ Config (Item 4)** — Removed join code card from `profile/page.tsx`, removed join code banner + topbar button from `admin/staff/page.tsx`. Join code already exists in `admin/settings/page.tsx`. Note: `joinCode` state is kept in staff page because the hiring orchestrator still uses it.
+**Layers (organized into groups):**
+- **MAP:** Satellite View, 3D Buildings, 3D Terrain
+- **OPERATIONS:** Operations pins, Staff locations (real-time), Patrol Trails (breadcrumbs), Incidents, Geofences, Tactical Drawings
+- **INTELLIGENCE:** Weather Radar (Iowa Mesonet NEXRAD), SAR Imagery (Sentinel-1 via CDSE), Satellite Photos (Sentinel-2 EOX cloudless), Nearby Services (Overpass API), Satellite Orbits (CelesTrak TLE), Aircraft (OpenSky — CORS blocked, needs proxy)
+- **EFFECTS:** Night Mode (dark basemap + green buildings), FLIR Thermal (GLSL shader), CRT Mode (GLSL shader)
+- **SITE MAPS:** Per-operation site map overlays with 3-point rubber-sheet alignment
 
-5. **Real-time Chat (Item 5)** — Was already implemented (Supabase Realtime at `chat/page.tsx:128-148`).
+**Tools (bottom toolbar):**
+- Measure (distance + bearing between two points)
+- Range Rings (¼, ½, 1, 2, 5 mile concentric circles)
+- Draw tools: Line, Area, Circle, Arrow, Freehand, Text Label (admin+ only, saved to DB, real-time synced)
 
-6. **Channel Role Permissions (Item 6)** — Added `permissions` JSONB support:
-   - `ChannelPermissions` type: `{ can_post, can_react, can_pin }` with role arrays
-   - Settings2 gear icon in channel header opens permission editor
-   - Role toggle chips for all 7 roles (owner, admin, instructor, manager, lead, breaker, staff)
-   - Message input disabled with notice when user's role not in `can_post`
-   - `updateChatChannel` and `createChatChannel` accept `permissions` param
+**Time Machine:** Timeline slider (0-48h back), play/pause with 1-16x speed
+**Drone Flight Planner:** Click waypoints, set altitude, export KML
+**Terrain Analysis:** Line-of-sight checker, elevation profiling (code ready, UI partially wired)
 
-7. **Client Intake Portal (Item 7)** — New public form:
-   - `src/app/client-intake/page.tsx` — Token-based public form at `/overwatch/client-intake/?token=xxx`
-   - `src/lib/supabase/db-client-intake.ts` — CRUD for `client_intake_tokens` table
-   - Company branded (logo + colors), 4-section tabbed form, revisitable, validates required fields
-   - Sections: Site Information, Coverage Requirements, Access & Infrastructure, Security Concerns
+**Staff Location Tracking:**
+- GPS watcher starts automatically on clock-in (based on profile preference)
+- 30s push interval to `staff_locations` table
+- History logged to `staff_location_history` for breadcrumb trails
+- Geofence breach detection on each GPS push
+- Location sharing toggle in Profile page (defaults ON)
 
-### Bug Fixes
-- Service worker cache bumped v9 → v10 (fixes stale chunk 404s after deploys)
-- CSP `connect-src` updated with `https://*.google.com https://*.googleapis.com` for Web Speech API
-- Dictation recorder requests mic permission explicitly via `getUserMedia()` before starting recognition
-- External group edit now uses `updateChatChannel()` instead of raw Supabase call
-- `loadChannels` prop passed to `ExternalTab` component
+**Site Map Alignment:**
+- 3-point rubber-sheet alignment tool
+- Bounds saved to localStorage + events.settings DB
+- Storyboard pins from planning mode appear on globe at correct geo positions
+- Incident pins cross-referenced with incidents table for enriched popups
+- Opacity slider for overlays
 
-### Subtab Icon Consistency
-- All report subtabs (Dictate, Field Reports, Incidents) now follow convention: icon only on active tab
-- Fixed `forms/page.tsx` header icon: was `AlertTriangle`, now `ClipboardList` (matches its active subtab)
-- Fixed `academy/page.tsx` subtab icons: were showing on all tabs, now conditional with `text-primary`
-- Audited all 16 subtab navigations across 15 pages — all now consistent
+### 4. GOD'S EYE SATELLITE INTELLIGENCE
+- **Sentinel-1 SAR:** Real data via Copernicus CDSE Sentinel Hub WMS. Instance ID: `8f6b57a4-a080-447a-b28f-53ec694894a8` (stored as `NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID`). Layer name: `SAR-VV-20-TO-0-DB`. Caching aligned to 6-day revisit cycle.
+- **Sentinel-2 Optical:** EOX cloudless mosaic (static 2021 tiles, cached indefinitely)
+- **FLIR Thermal shader:** Iron bow palette with targeting reticle
+- **CRT Mode shader:** Green phosphor, scan lines, film grain, vignette
+- **Satellite Orbits:** CelesTrak TLE + satellite.js (CDN loaded) for SGP4 propagation. 12h cache.
+- **Aircraft:** OpenSky Network — CORS blocked from custom domains. Needs a Supabase Edge Function proxy for production.
+- **Nearby POIs:** Overpass API with 7-day localStorage cache
 
----
+### 5. DIRECT MESSAGING
+- New `direct_messages` table (SQL migration: `sql/add_direct_messages.sql`)
+- Messages tab in Comms page (between Channels and External Groups)
+- Conversation list, staff picker, real-time delivery, read receipts
+- Member names fixed (flatten nested users object from getCompanyMembers)
 
-## Known Issues — NOT YET RESOLVED
-
-### Dictation "network" Error
-The Web Speech API still fails with "Could not connect to the speech recognition service" for the beta tester. Root cause is likely:
-- **Ad blocker** blocking Google speech endpoints (the console shows `ERR_BLOCKED_BY_CLIENT`)
-- **Corporate network/firewall** blocking `*.google.com` speech API traffic
-- Chrome's speech recognition sends audio to Google servers — this is a hard dependency
-
-**Recommended next steps:**
-1. Test with ad blocker disabled for `evenfalladvantage.com`
-2. Test in Chrome Incognito (no extensions)
-3. If still failing, implement **Whisper.js fallback** (offline, 40MB model cached in IndexedDB) — this was the original design decision from the handoff
-4. The Whisper.js fallback should be a toggle in the UI: "Use offline recognition (slower but works everywhere)"
-
-### External Group Edit — May Still Need Testing
-The `handleSaveExtEdit` was rewritten to use `updateChatChannel()`. The `description` param was added to the function signature. Needs verification that it actually saves now.
-
-### Git Push Slowness
-`git push origin main` consistently times out from this machine. Workaround: use explicit URL:
-```
-git push https://EvenfallAdvantage@github.com/EvenfallAdvantage/evenfalladvantage.github.io.git main
-```
-
----
-
-## Remaining SOC 2 Gaps (3 items — unchanged)
-
-| # | Control | What's Needed |
-|---|---------|--------------|
-| 1 | Vendor SOC 2 reports reviewed | Emails sent — waiting for responses. Templates at `docs/compliance/vendor-soc2-request-emails.md` |
-| 2 | Annual penetration test | $5-15K hire. Recommended firms: Cobalt, Synack, HackerOne |
-| 3 | Leaked password protection | Supabase paid feature — can ignore for now |
-
----
-
-## SQL Migrations Run This Session
-
-```sql
--- Channel permissions column (run by user)
-ALTER TABLE chat_channels ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT NULL;
-
--- Client intake tokens table (run by user)
-CREATE TABLE IF NOT EXISTS client_intake_tokens (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
-  event_id UUID REFERENCES events(id) ON DELETE SET NULL,
-  token TEXT NOT NULL UNIQUE,
-  client_name TEXT,
-  client_email TEXT,
-  data JSONB DEFAULT '{}',
-  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','submitted','expired','revoked')),
-  created_by UUID NOT NULL REFERENCES users(id),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  expires_at TIMESTAMPTZ
-);
-
-ALTER TABLE client_intake_tokens ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public read by token" ON client_intake_tokens FOR SELECT USING (true);
-CREATE POLICY "Public update by token" ON client_intake_tokens FOR UPDATE USING (status IN ('active','submitted'));
-CREATE POLICY "Authenticated insert" ON client_intake_tokens FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "Authenticated delete" ON client_intake_tokens FOR DELETE USING (auth.uid() IS NOT NULL);
-```
+### 6. OTHER IMPROVEMENTS
+- Editable operation address in intake document with geocoding
+- AddressAutocomplete accepts lat/lng coordinates (e.g., `39.744885, -78.368760`)
+- Double-click operation pin navigates to Planning page with auto-expand
+- Copyright 2025→2026, dead social links fixed, favicon on all pages
+- Legal pages restructured with shared CSS
 
 ---
 
-## Dependabot PRs (New)
+## SQL Migrations To Run
 
-Dependabot created 14 PRs during this session. They should be reviewed and merged:
-- GitHub Actions version bumps (checkout, configure-pages, deploy-pages, setup-node, codeql-action)
-- npm dependency updates (eslint, framer-motion, lucide-react, react-hook-form, recharts, stripe-js, supabase/ssr, tailwindcss/postcss, types/node, types/qrcode.react)
+These need to be run in Supabase SQL Editor if not already done:
 
----
-
-## Key Architecture Notes (Updated)
-
-- **CRITICAL: Working directory is `audit-clone/`** — The root `evenfalladvantage.github.io/` has a stale `overwatch-src/` from before the audit. Always `cd audit-clone` first.
-- **Static export:** `output: "export"` in next.config.ts — no API routes in production
-- **Two Supabase instances:** Legacy (`vaagvairvwmgyzsmymhs`) + Overwatch (`nneueuvyeohwnspbwfub`)
-- **Auth pattern:** `users.id` (internal UUID) ≠ `auth.uid()` (Supabase Auth UUID). Bridge via `users.supabase_id = auth.uid()::text`
-- **RLS helper:** `is_company_member(company_id)` — use this for all new RLS policies
-- **Brand theming:** `BrandThemeProvider` injects CSS vars from company's `brand_color` + `accent_color`
-- **Page headers:** Use `usePageHeader` store — `setHeader(title, subtitle, icon, actions)` in useEffect
-- **Subtab convention:** Icons only on active tab, `overflow-x-auto` on all tab bars, `text-primary` on active icon
-- **Edge Functions:** All require JWT except webhooks; CORS restricted to evenfalladvantage.com
-- **Storyboard:** `created_by` must be internal user ID (not auth UUID); use `storyboardIdRef` for debounced saves
-- **Cross-company isolation:** ALL timesheet/analytics queries must filter by `company_id`
-- **Service worker:** Currently at v10 — bump on each deploy if chunk 404s appear
-- **CSP:** Meta tag in `layout.tsx:72` — includes Google speech endpoints, Supabase, Cloudflare, many open data APIs
-- **Dictation:** Stores transcripts as form_submissions under a "Dictation (System)" auto-created form per company
-- **Client intake:** Token-based public form, no auth needed. Uses query param `?token=xxx` (not dynamic route, since static export)
-- **Git push workaround:** If `git push origin main` hangs, use: `git push https://EvenfallAdvantage@github.com/EvenfallAdvantage/evenfalladvantage.github.io.git main`
+| File | Status | Purpose |
+|------|--------|---------|
+| `sql/add_staff_locations_table.sql` | Run if not done | Staff GPS tracking |
+| `sql/add_tactical_map_tables.sql` | Run if not done | Location history, annotations, geofence alerts, checkpoint lat/lng |
+| `sql/add_direct_messages.sql` | **NEEDS TO BE RUN** | Direct messaging between staff |
+| `sql/add_location_sharing_column.sql` | Run if not done | Profile location preference |
 
 ---
 
-## Files Changed This Session
+## GitHub Secrets Required
 
-| File | What Changed |
-|------|-------------|
-| `src/app/chat/page.tsx` | Channel role permissions (gear icon, permission editor panel, can_post check on input), `loadChannels` prop to ExternalTab, `Settings2` import |
-| `src/app/dictate/page.tsx` | **NEW** — Full dictation page with recording, metadata, saved transcripts |
-| `src/app/client-intake/page.tsx` | **NEW** — Public tokenized client intake form |
-| `src/app/incidents/page.tsx` | Tab reorder (Dictate → Field Reports → Incidents), Mic import, removed icon from inactive Dictate tab |
-| `src/app/forms/page.tsx` | Tab reorder, Mic import, removed icon from inactive Dictate tab, header icon → ClipboardList |
-| `src/app/profile/page.tsx` | Removed join code card, removed joinCode/copied/copyCode state, removed Copy/KeyRound/getCompanyDetails imports |
-| `src/app/admin/staff/page.tsx` | Removed join code banner + topbar button, removed copied state + copyCode function |
-| `src/app/academy/page.tsx` | Fixed subtab icons: conditional render with text-primary |
-| `src/app/layout.tsx` | Added `https://*.google.com https://*.googleapis.com` to CSP connect-src |
-| `src/components/dictation-recorder.tsx` | **NEW** — Web Speech API recorder with explicit mic permission, error messages |
-| `src/lib/supabase/db-content.ts` | Extended `createChatChannel` + `updateChatChannel` with `permissions` and `description` params |
-| `src/lib/supabase/db-client-intake.ts` | **NEW** — CRUD for client_intake_tokens table |
-| `src/lib/supabase/db.ts` | Added barrel export for db-client-intake |
-| `public/sw.js` | Cache version v9 → v10 |
+| Secret | Value | Purpose |
+|--------|-------|---------|
+| `NEXT_PUBLIC_CESIUM_TOKEN` | `eyJhbGci...T-wJKrOTvF7bn9A8Js7b19dAB4Q2GaCrF50nN0egTQ0` | Cesium Ion 3D globe |
+| `NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID` | `8f6b57a4-a080-447a-b28f-53ec694894a8` | Sentinel-1 SAR imagery |
+| `NEXT_PUBLIC_SUPABASE_URL` | (existing) | Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (existing) | Supabase |
 
 ---
 
-## Files to Know (Updated)
+## Known Issues / Technical Debt
 
-| File | Purpose |
-|------|---------|
-| `src/stores/page-header-store.ts` | Zustand store for topbar title/subtitle/icon/actions |
-| `src/stores/auth-store.ts` | Auth + active company state |
-| `src/components/brand-theme-provider.tsx` | CSS variable injection from company colors |
-| `src/components/dictation-recorder.tsx` | Web Speech API recorder with mic permission + error handling |
-| `src/components/storyboard-editor.tsx` | Pin-based map annotation (~1100 lines) |
-| `src/components/address-autocomplete.tsx` | Nominatim geocoding typeahead |
-| `src/components/mobile-page-action.tsx` | Renders page actions on mobile |
-| `src/components/error-boundary.tsx` | React error boundary + error_logs |
-| `src/lib/error-tracker.ts` | Global error handler + Supabase logging |
-| `src/lib/error-alerter.ts` | Auto-posts Briefing alert for new errors |
-| `src/lib/supabase/db-client-intake.ts` | Client intake token CRUD |
-| `src/components/layout/topbar.tsx` | Top header bar with page title + actions |
-| `src/components/layout/dashboard-shell.tsx` | Main layout wrapper with skip-nav |
-| `src/components/ops/intake-panel.tsx` | Editable intake with cascade logic |
-| `docs/compliance/` | 20 SOC 2 compliance documents |
-| `.github/workflows/deploy.yml` | CI/CD: test → audit → build → deploy |
-| `.github/workflows/backup.yml` | Daily pg_dump backup |
-| `.github/workflows/codeql.yml` | Weekly SAST analysis |
+### Critical
+- **Backup workflow failing** — `SUPABASE_DB_URL` needs to be changed to the Session Mode pooler URL (not the direct `db.*` URL which is IPv6-only). Get it from Supabase Dashboard → Connect → Session mode.
+
+### High
+- **OpenSky Aircraft CORS** — The flight tracking layer is blocked by CORS. Need a Supabase Edge Function proxy to relay requests.
+- **Stale chunk 404s** — Users see 404 errors for old JS chunks after deploys. This is a browser caching issue — hard refresh fixes it. Could be improved with a service worker or cache-busting strategy.
+
+### Medium
+- **Sentinel-1 SAR rate limiting** — CDSE free tier has request limits. Currently mitigated with zoom level cap (10) and 6-day cache alignment, but heavy use could still trigger 429s.
+- **Component decomposition** — 15 files over 700 lines (see `docs/COMPONENT_DECOMPOSITION_PLAN.md`). `tactical-map.tsx` is now ~1700 lines and should be split.
+- **Legacy portal sunset** — admin/, student-portal/, instructor-portal/ still exist but are being replaced by Overwatch. See `docs/LEGACY_MERGE_PLAN.md`.
+
+### Low
+- **Whisper WASM dictation** — Works but the 150MB model download on first use is heavy. Consider server-side Whisper via Edge Function for better UX.
+- **Time Machine** — Timeline slider built but staff position filtering by timestamp not yet wired up (the `onTimeChange` callback needs to filter `staff_location_history` queries by the replay timestamp).
+- **Terrain Analysis** — Line-of-sight and elevation profile code is complete but not wired into a UI tool button yet. The functions are in `terrain-tools.ts` and can be called from the click handler.
+- **Drone Planner** — Waypoints and KML export work. Camera footprint cones and no-fly zone overlay not yet implemented.
 
 ---
 
-## Pre-existing TypeScript Error (Not from this session)
+## Architecture Notes
 
-```
-src/__tests__/error-tracker.test.ts:55:19 - error TS2339: Property 'slice' does not exist on type 'never'.
-```
-This exists in the test file and is not a blocker for build (tests pass via Vitest, `tsc` just flags the type).
+### Cesium Integration
+- CesiumJS loaded from CDN (`cesium.com/downloads/cesiumjs/releases/1.128/`) via script tag injection in `cesium-config.ts`
+- NOT bundled via npm (Turbopack can't handle it — causes "expression is too dynamic" errors)
+- `satellite.js` also loaded from CDN (`cdn.jsdelivr.net`) for the same reason
+- All Cesium types declared in `src/types/cesium.d.ts` (minimal stubs)
+
+### Map State Management
+- Layer visibility: `localStorage` per company (`tactical-map-{companyId}`)
+- Camera position: `localStorage` per company (`tactical-cam-{companyId}`)
+- Site map bounds: `localStorage` per event (`site-map-bounds-{eventId}`) + DB fallback
+- Annotations: `map_annotations` table with Supabase Realtime
+
+### Push Authentication
+- `git push origin main` may prompt for auth
+- Alternative: `$token = gh auth token; git push "https://x-access-token:${token}@github.com/EvenfallAdvantage/evenfalladvantage.github.io.git" main`
+
+### Git Identity
+- Name: `denalifox`
+- Email: `denalifox@users.noreply.github.com`
 
 ---
 
 ## Recommended Next Steps
 
-1. **Fix dictation for ad-blocker users** — Implement Whisper.js offline fallback as originally planned
-2. **Verify external group edit works** — The save function was rewritten; needs manual testing
-3. **Merge Dependabot PRs** — 14 pending version bumps
-4. **Admin UI for client intake tokens** — Need a way for admins to create/manage/revoke intake tokens from the admin panel (currently only DB functions exist, no UI)
-5. **Continue SOC 2 gaps** — Follow up on vendor SOC 2 report requests
-6. **Consider removing stale root repo overwatch-src** — Or add a README warning. It's caused confusion twice now.
-
----
-
-**End of handoff. Always work in `audit-clone/` directory.**
+1. **Wire Time Machine to staff history** — Filter `getLocationHistory()` calls by `replayTime` instead of `Date.now()` when Time Machine is active
+2. **Wire Terrain Analysis UI** — Add "Line of Sight" and "Elevation Profile" buttons to the tools bar, connect to the click handler
+3. **Build OpenSky Edge Function proxy** — Simple Supabase Edge Function that relays requests to OpenSky API (avoids CORS)
+4. **Build Comms → Map integration** — "Send location" button in chat, message toasts on staff pins
+5. **Add DM button to staff pin popups** on the tactical map — "Message this person" link
+6. **Component decomposition sprint** — Split `tactical-map.tsx` (1700 lines) into sub-components per the decomposition plan
