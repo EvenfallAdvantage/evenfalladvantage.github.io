@@ -78,8 +78,16 @@ export function DirectMessages({ companyId }: DirectMessagesProps) {
     setMessages([]);
     // Load company members for the picker
     try {
-      const m = await getCompanyMembers(companyId);
-      setMembers((m ?? []).filter((m: { user_id: string }) => m.user_id !== user?.id));
+      const rawMembers = await getCompanyMembers(companyId);
+      // Flatten nested users object for rendering
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setMembers((rawMembers ?? []).map((member: any) => ({
+        user_id: member.users?.id ?? "",
+        first_name: member.users?.first_name ?? "",
+        last_name: member.users?.last_name ?? "",
+        avatar_url: member.users?.avatar_url ?? null,
+        role: member.role,
+      })).filter((m: { user_id: string }) => m.user_id && m.user_id !== user?.id));
     } catch {}
   }
 
