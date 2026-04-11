@@ -38,7 +38,7 @@ export function addSentinel1Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumR
     // Real Sentinel-1 SAR via Copernicus Data Space Ecosystem
     const provider = new Cesium.WebMapServiceImageryProvider({
       url: `https://sh.dataspace.copernicus.eu/ogc/wms/${SENTINEL_HUB_INSTANCE}`,
-      layers: "SENTINEL-1-IW-VV",
+      layers: "SAR-VV-20-TO-0-DB",
       parameters: {
         transparent: true,
         format: "image/png",
