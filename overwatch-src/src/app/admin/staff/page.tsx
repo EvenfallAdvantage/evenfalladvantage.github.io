@@ -36,6 +36,8 @@ import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchest
 import { bulkCreateApplicants } from "@/lib/supabase/db-onboarding";
 import { usePageHeader } from "@/stores/page-header-store";
 import { getSignedFileUrl } from "@/lib/supabase/db-helpers";
+import { MemberProfileModal } from "./components/member-profile-modal";
+import { ReadinessModal } from "./components/readiness-modal";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -1914,191 +1916,12 @@ export default function AdminStaffPage() {
 
       {/* ── Member Profile Modal ── */}
       {viewProfile && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewProfile(null)}>
-          <div className="relative w-full max-w-sm max-h-[85vh] rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center gap-3 border-b border-border/40 px-5 py-4 shrink-0">
-              <Avatar className="h-11 w-11 shrink-0">
-                <AvatarImage src={viewProfile.users?.avatar_url ?? undefined} />
-                <AvatarFallback className="bg-primary/15 text-sm font-bold text-primary">
-                  {(viewProfile.users?.first_name?.[0] ?? "")}{(viewProfile.users?.last_name?.[0] ?? "")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{viewProfile.users?.first_name} {viewProfile.users?.last_name}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{viewProfile.users?.email}</p>
-                {viewProfile.users?.phone && <p className="text-[11px] text-muted-foreground">{viewProfile.users.phone}</p>}
-              </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <Badge variant="outline" className="text-[9px] capitalize">{viewProfile.role}</Badge>
-                <Badge variant={viewProfile.status === "active" ? "default" : "outline"} className="text-[9px] capitalize">{viewProfile.status}</Badge>
-              </div>
-            </div>
-
-            {/* Profile content */}
-            <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
-              <h3 className="text-sm font-semibold">Company Profile</h3>
-
-              {viewProfile.bio && (
-                <div>
-                  <span className="text-muted-foreground text-xs">Bio</span>
-                  <p className="font-medium text-sm">{viewProfile.bio}</p>
-                </div>
-              )}
-
-              {viewProfile.title && (
-                <div>
-                  <span className="text-muted-foreground text-xs">Title</span>
-                  <p className="font-medium text-sm">{viewProfile.title}</p>
-                </div>
-              )}
-
-              <div>
-                <span className="text-muted-foreground text-xs flex items-center gap-1"><Shield className="h-2.5 w-2.5" /> Guard Card <Lock className="h-2.5 w-2.5 text-amber-500" /></span>
-                <p className="font-medium text-sm">{viewProfile.guard_card_number ?? "—"}</p>
-                {viewProfile.guard_card_expiry && (
-                  <p className="text-[10px] text-muted-foreground">
-                    Expires {new Date(viewProfile.guard_card_expiry).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-
-              <hr className="border-border/30" />
-
-              <div>
-                <span className="text-muted-foreground text-xs flex items-center gap-1">Address <Lock className="h-2.5 w-2.5 text-amber-500" /></span>
-                <p className="font-medium text-sm">{viewProfile.address ?? "—"}</p>
-              </div>
-
-              <div>
-                <span className="text-muted-foreground text-xs">Emergency Contact</span>
-                <p className="font-medium text-sm">
-                  {viewProfile.emergency_contact_name ?? "—"}
-                  {viewProfile.emergency_contact_phone ? ` · ${viewProfile.emergency_contact_phone}` : ""}
-                </p>
-              </div>
-
-              {(viewProfile.work_preferences?.length ?? 0) > 0 && (
-                <div>
-                  <span className="text-muted-foreground text-xs">Work Preferences</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {viewProfile.work_preferences.map((w: string) => (
-                      <Badge key={w} variant="outline" className="text-[9px]">{w}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <span className="text-muted-foreground text-xs">Shirt</span>
-                  <p className="font-medium text-sm">{viewProfile.shirt_size || "—"}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground text-xs">Jacket</span>
-                  <p className="font-medium text-sm">{viewProfile.jacket_size || "—"}</p>
-                </div>
-              </div>
-
-              {viewProfile.hire_date && (
-                <div>
-                  <span className="text-muted-foreground text-xs">Hire Date</span>
-                  <p className="font-medium text-sm">{new Date(viewProfile.hire_date).toLocaleDateString()}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Close */}
-            <div className="border-t border-border/40 px-5 py-3 shrink-0">
-              <Button size="sm" variant="outline" className="w-full" onClick={() => setViewProfile(null)}>Close</Button>
-            </div>
-          </div>
-        </div>
+        <MemberProfileModal profile={viewProfile} onClose={() => setViewProfile(null)} />
       )}
 
       {/* ── Readiness Modal ── */}
       {viewReadiness && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewReadiness(null)}>
-          <div className="relative w-full max-w-sm max-h-[85vh] rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center gap-3 border-b border-border/40 px-5 py-4 shrink-0">
-              <Avatar className="h-10 w-10 shrink-0">
-                <AvatarImage src={viewReadiness.member.users?.avatar_url ?? undefined} />
-                <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
-                  {(viewReadiness.member.users?.first_name?.[0] ?? "")}{(viewReadiness.member.users?.last_name?.[0] ?? "")}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{viewReadiness.member.users?.first_name} {viewReadiness.member.users?.last_name}</p>
-                <p className="text-[11px] text-muted-foreground">Readiness Status</p>
-              </div>
-              {(() => {
-                const hasReq = viewReadiness.data.readingMissing.length > 0;
-                const hasProf = viewReadiness.data.profileMissing.length > 0;
-                const ok = !hasReq && !hasProf;
-                return (
-                  <Badge className={`text-[9px] ${ok ? "bg-green-500/15 text-green-600" : hasReq ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}>
-                    {ok ? "All Clear" : hasReq ? "Action Required" : "Incomplete"}
-                  </Badge>
-                );
-              })()}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-auto px-5 py-4 space-y-5">
-              {/* Required Reading */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <BookOpen className="h-4 w-4 text-red-500" />
-                  <h3 className="text-sm font-semibold">Required Reading</h3>
-                </div>
-                {viewReadiness.data.readingMissing.length === 0 ? (
-                  <div className="flex items-center gap-2 rounded-lg bg-green-500/5 border border-green-500/20 px-3 py-2">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                    <span className="text-xs text-green-600">All required documents read</span>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {viewReadiness.data.readingMissing.map((doc) => (
-                      <div key={doc.id} className="flex items-center gap-2 rounded-lg bg-red-500/5 border border-red-500/20 px-3 py-2">
-                        <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                        <span className="text-xs truncate">{doc.title}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Profile Completeness */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-4 w-4 text-amber-500" />
-                  <h3 className="text-sm font-semibold">Profile Completeness</h3>
-                </div>
-                {viewReadiness.data.profileMissing.length === 0 ? (
-                  <div className="flex items-center gap-2 rounded-lg bg-green-500/5 border border-green-500/20 px-3 py-2">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                    <span className="text-xs text-green-600">Profile complete</span>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {viewReadiness.data.profileMissing.map((field) => (
-                      <div key={field} className="flex items-center gap-2 rounded-lg bg-amber-500/5 border border-amber-500/20 px-3 py-2">
-                        <AlertOctagon className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                        <span className="text-xs">{field}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Close */}
-            <div className="border-t border-border/40 px-5 py-3 shrink-0">
-              <Button size="sm" variant="outline" className="w-full" onClick={() => setViewReadiness(null)}>Close</Button>
-            </div>
-          </div>
-        </div>
+        <ReadinessModal data={viewReadiness} onClose={() => setViewReadiness(null)} />
       )}
     </>
   );
