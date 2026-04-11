@@ -315,6 +315,10 @@ export default function UpdatesPage() {
             Channels
             {channelCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{channelCount}</Badge>}
           </Link>
+          <Link href="/chat?tab=messages"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+            Messages
+          </Link>
           <Link href="/chat?tab=external"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
             External Groups

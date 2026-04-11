@@ -94,7 +94,13 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const dmUserId = searchParams.get("dm");
-  const [tab, setTab] = useState<Tab>(dmUserId ? "messages" : (searchParams.get("tab") === "external" ? "external" : "channels") as Tab);
+  const tabParam = searchParams.get("tab");
+  const [tab, setTab] = useState<Tab>(
+    dmUserId ? "messages" :
+    tabParam === "messages" ? "messages" :
+    tabParam === "external" ? "external" :
+    "channels"
+  );
 
   useEffect(() => {
     setHeader("COMMS", "Team channels, direct messages, and external groups",
