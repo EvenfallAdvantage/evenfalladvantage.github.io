@@ -106,10 +106,12 @@ These need to be run in Supabase SQL Editor if not already done:
 
 | Secret | Value | Purpose |
 |--------|-------|---------|
-| `NEXT_PUBLIC_CESIUM_TOKEN` | `eyJhbGci...T-wJKrOTvF7bn9A8Js7b19dAB4Q2GaCrF50nN0egTQ0` | Cesium Ion 3D globe |
-| `NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID` | `8f6b57a4-a080-447a-b28f-53ec694894a8` | Sentinel-1 SAR imagery |
+| `NEXT_PUBLIC_CESIUM_TOKEN` | (see .env.local) | Cesium Ion 3D globe |
+| `NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID` | (see .env.local) | Sentinel-1 SAR imagery |
 | `NEXT_PUBLIC_SUPABASE_URL` | (existing) | Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (existing) | Supabase |
+| `NEXT_PUBLIC_LEGACY_SUPABASE_URL` | (see .env.local) | Legacy training content bridge |
+| `NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY` | (see .env.local) | Legacy training content bridge |
 
 ---
 
@@ -128,7 +130,7 @@ These need to be run in Supabase SQL Editor if not already done:
 - **Legacy portal sunset** — admin/, student-portal/, instructor-portal/ still exist but are being replaced by Overwatch. See `docs/LEGACY_MERGE_PLAN.md`.
 
 ### Low
-- **Whisper WASM dictation** — Works but the 150MB model download on first use is heavy. Consider server-side Whisper via Edge Function for better UX.
+- **Whisper WASM dictation** — Works but the ~75MB model download on first use is heavy. Consider server-side Whisper via Edge Function for better UX.
 - **Time Machine** — Timeline slider built but staff position filtering by timestamp not yet wired up (the `onTimeChange` callback needs to filter `staff_location_history` queries by the replay timestamp).
 - **Terrain Analysis** — Line-of-sight and elevation profile code is complete but not wired into a UI tool button yet. The functions are in `terrain-tools.ts` and can be called from the click handler.
 - **Drone Planner** — Waypoints and KML export work. Camera footprint cones and no-fly zone overlay not yet implemented.

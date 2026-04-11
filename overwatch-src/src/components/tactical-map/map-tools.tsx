@@ -1,8 +1,8 @@
 "use client";
 
-import { Ruler, Crosshair, Pencil, Pentagon, Circle, ArrowRight, Type, Minus, Trash2, Check, X } from "lucide-react";
+import { Ruler, Crosshair, Pencil, Pentagon, Circle, ArrowRight, Type, Minus, Trash2, Check, X, Eye, Mountain } from "lucide-react";
 
-export type ActiveTool = "none" | "measure" | "range-rings";
+export type ActiveTool = "none" | "measure" | "range-rings" | "los" | "elevation";
 export type DrawMode = "none" | "line" | "polygon" | "circle" | "arrow" | "text" | "freehand";
 
 interface MeasureResult {
@@ -16,6 +16,8 @@ interface MapToolsProps {
   onToolChange: (tool: ActiveTool) => void;
   measureResult: MeasureResult | null;
   rangeCenter: { lat: number; lng: number } | null;
+  losResult: { visible: boolean; distance?: number } | null;
+  elevationStatus: string | null;
   // Draw props
   drawMode: DrawMode;
   onDrawModeChange: (mode: DrawMode) => void;
@@ -31,7 +33,7 @@ interface MapToolsProps {
 const DRAW_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ffffff"];
 
 export function MapToolsBar({
-  activeTool, onToolChange, measureResult, rangeCenter,
+  activeTool, onToolChange, measureResult, rangeCenter, losResult, elevationStatus,
   drawMode, onDrawModeChange, drawColor, onDrawColorChange,
   drawPointCount, onDrawFinish, onDrawCancel, onDrawClearAll, isAdmin,
 }: MapToolsProps) {
@@ -46,6 +48,10 @@ export function MapToolsBar({
           onClick={() => { onDrawModeChange("none"); onToolChange(activeTool === "measure" ? "none" : "measure"); }} />
         <ToolBtn icon={<Crosshair className="h-3.5 w-3.5" />} label="Range Rings" active={activeTool === "range-rings"}
           onClick={() => { onDrawModeChange("none"); onToolChange(activeTool === "range-rings" ? "none" : "range-rings"); }} />
+        <ToolBtn icon={<Eye className="h-3.5 w-3.5" />} label="Line of Sight" active={activeTool === "los"}
+          onClick={() => { onDrawModeChange("none"); onToolChange(activeTool === "los" ? "none" : "los"); }} />
+        <ToolBtn icon={<Mountain className="h-3.5 w-3.5" />} label="Elevation" active={activeTool === "elevation"}
+          onClick={() => { onDrawModeChange("none"); onToolChange(activeTool === "elevation" ? "none" : "elevation"); }} />
 
         {/* Divider */}
         {isAdmin && <div className="w-px h-5 bg-white/10 mx-1" />}
@@ -120,6 +126,39 @@ export function MapToolsBar({
             </div>
           ) : (
             <span className="text-white/40">Click to place range rings</span>
+          )}
+        </div>
+      )}
+
+      {activeTool === "los" && (
+        <div className="rounded-xl backdrop-blur-sm border border-white/10 px-3 py-2 text-xs font-mono" style={{ backgroundColor: panelBg }}>
+          {losResult ? (
+            <div className="text-white space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className={losResult.visible ? "text-green-400" : "text-red-400"}>
+                  {losResult.visible ? "CLEAR LINE OF SIGHT" : "OBSTRUCTED"}
+                </span>
+              </div>
+              {losResult.distance != null && (
+                <div className="text-white/40">
+                  {losResult.distance < 1000
+                    ? `${Math.round(losResult.distance)} m`
+                    : `${(losResult.distance / 1000).toFixed(2)} km`}
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className="text-white/40">Click two points to check LOS</span>
+          )}
+        </div>
+      )}
+
+      {activeTool === "elevation" && (
+        <div className="rounded-xl backdrop-blur-sm border border-white/10 px-3 py-2 text-xs font-mono" style={{ backgroundColor: panelBg }}>
+          {elevationStatus ? (
+            <span className="text-white/70">{elevationStatus}</span>
+          ) : (
+            <span className="text-white/40">Click two points for elevation profile</span>
           )}
         </div>
       )}

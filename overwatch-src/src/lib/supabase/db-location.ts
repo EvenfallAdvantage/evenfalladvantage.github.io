@@ -155,6 +155,85 @@ export async function logGeofenceBreach(
 }
 
 /**
+ * Get the last known position for each staff member at a specific point in time.
+ * Used by Time Machine to replay historical staff positions.
+ */
+export async function getStaffLocationsAt(companyId: string, timestamp: number): Promise<Array<{
+  userId: string;
+  name: string;
+  lat: number;
+  lng: number;
+  heading: number | null;
+  speed: number | null;
+  updatedAt: string;
+}>> {
+  const supabase = createClient();
+  const atTime = new Date(timestamp).toISOString();
+  // Get all distinct user_ids who had history entries before the timestamp
+  const { data: history, error } = await supabase
+    .from("staff_location_history")
+    .select("user_id, lat, lng, heading, speed, recorded_at, users(first_name, last_name)")
+    .eq("company_id", companyId)
+    .lte("recorded_at", atTime)
+    .gte("recorded_at", new Date(timestamp - 8 * 60 * 60 * 1000).toISOString()) // Only look back 8h
+    .order("recorded_at", { ascending: false })
+    .limit(500);
+
+  if (error) { console.error("[Location] History-at fetch failed:", error); return []; }
+  if (!history?.length) return [];
+
+  // Group by user_id and take the most recent entry (first due to desc order)
+  const seen = new Set<string>();
+  const results: Array<{
+    userId: string; name: string; lat: number; lng: number;
+    heading: number | null; speed: number | null; updatedAt: string;
+  }> = [];
+  for (const row of history as Array<Record<string, unknown> & { users?: { first_name?: string; last_name?: string } }>) {
+    const uid = row.user_id as string;
+    if (seen.has(uid)) continue;
+    seen.add(uid);
+    results.push({
+      userId: uid,
+      name: `${row.users?.first_name ?? ""} ${row.users?.last_name ?? ""}`.trim() || "Unknown",
+      lat: row.lat as number,
+      lng: row.lng as number,
+      heading: row.heading as number | null,
+      speed: row.speed as number | null,
+      updatedAt: row.recorded_at as string,
+    });
+  }
+  return results;
+}
+
+/**
+ * Get location history for a user up to a specific timestamp (for Time Machine breadcrumbs).
+ */
+export async function getLocationHistoryAt(
+  userId: string, companyId: string, hoursBack: number, upToTimestamp: number
+): Promise<Array<{ lat: number; lng: number; speed: number | null; heading: number | null; recordedAt: string }>> {
+  const supabase = createClient();
+  const atTime = new Date(upToTimestamp).toISOString();
+  const since = new Date(upToTimestamp - hoursBack * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("staff_location_history")
+    .select("lat, lng, speed, heading, recorded_at")
+    .eq("user_id", userId)
+    .eq("company_id", companyId)
+    .gte("recorded_at", since)
+    .lte("recorded_at", atTime)
+    .order("recorded_at", { ascending: true });
+
+  if (error) { console.error("[Location] History-at fetch failed:", error); return []; }
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    lat: r.lat as number,
+    lng: r.lng as number,
+    speed: r.speed as number | null,
+    heading: r.heading as number | null,
+    recordedAt: r.recorded_at as string,
+  }));
+}
+
+/**
  * Remove the current user's location (called on clock-out).
  */
 export async function clearStaffLocation(userId: string, companyId: string) {

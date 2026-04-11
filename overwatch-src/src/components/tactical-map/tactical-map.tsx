@@ -7,7 +7,7 @@ import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-laye
 import { MapToolsBar, type ActiveTool, type DrawMode, haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "./map-tools";
 import { SiteMapAligner } from "./site-map-aligner";
 import { getSiteMapBounds, saveSiteMapBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
-import { getLocationHistory } from "@/lib/supabase/db-location";
+import { getLocationHistory, getLocationHistoryAt, getStaffLocationsAt } from "@/lib/supabase/db-location";
 import { getAnnotations, createAnnotation, deleteAnnotation, subscribeAnnotations, type MapAnnotation } from "@/lib/supabase/db-annotations";
 import { getNearbyPOIs, getSunPosition, getRecentGeofenceAlerts, type NearbyPOI, type GeofenceAlert } from "./env-intel";
 import { addSentinel1Layer, addSentinel2Layer } from "./sentinel-layer";
@@ -125,13 +125,50 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Time Machine
   const [timeMachineOpen, setTimeMachineOpen] = useState(false);
   const [replayTime, setReplayTime] = useState(Date.now());
+  const [timeMachineStaff, setTimeMachineStaff] = useState<StaffPin[]>([]);
+
+  // When Time Machine is active, fetch historical staff positions
+  useEffect(() => {
+    if (!timeMachineOpen || !companyId) {
+      setTimeMachineStaff([]);
+      return;
+    }
+    // Only fetch if we're replaying past (>5s ago)
+    const isReplaying = replayTime < Date.now() - 5000;
+    if (!isReplaying) {
+      setTimeMachineStaff([]);
+      return;
+    }
+    let cancelled = false;
+    getStaffLocationsAt(companyId, replayTime).then((locs) => {
+      if (cancelled) return;
+      setTimeMachineStaff(locs.map((l) => ({
+        userId: l.userId,
+        name: l.name,
+        role: "staff",
+        lat: l.lat,
+        lng: l.lng,
+        heading: l.heading ?? undefined,
+        speed: l.speed ?? undefined,
+        updatedAt: l.updatedAt,
+      })));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [timeMachineOpen, replayTime, companyId]);
+
+  // Use time machine staff when replaying, otherwise live staff
+  const effectiveStaff = timeMachineOpen && replayTime < Date.now() - 5000 ? timeMachineStaff : staff;
 
   // Drone Planner
   const [dronePlannerOpen, setDronePlannerOpen] = useState(false);
   const [droneWaypoints, setDroneWaypoints] = useState<Waypoint[]>([]);
 
-  // Line of Sight
+  // Line of Sight / Elevation Profile
   const [losEntityIds, setLosEntityIds] = useState<string[]>([]);
+  const [losPoint1, setLosPoint1] = useState<{ lat: number; lng: number } | null>(null);
+  const [losResult, setLosResult] = useState<{ visible: boolean; distance?: number } | null>(null);
+  const [elevPoint1, setElevPoint1] = useState<{ lat: number; lng: number } | null>(null);
+  const [elevationStatus, setElevationStatus] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const entityGroupsRef = useRef<Record<string, any>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -342,7 +379,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     entityGroupsRef.current.staff = [];
     if (!layers.staff) return;
 
-    staff.forEach((s) => {
+    effectiveStaff.forEach((s) => {
       const entity = viewer.entities.add({
         id: `staff-${s.userId}`,
         name: s.name,
@@ -374,7 +411,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       });
       entityGroupsRef.current.staff.push(entity);
     });
-  }, [staff, layers.staff, loading]);
+  }, [effectiveStaff, layers.staff, loading]);
 
   // ─── Plot Incidents ──────────────────────────────────
   useEffect(() => {
@@ -971,10 +1008,14 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       });
       entityGroupsRef.current.breadcrumbs = [];
 
-      if (!layers.breadcrumbs || staff.length === 0) return;
+      if (!layers.breadcrumbs || effectiveStaff.length === 0) return;
 
-      staff.forEach(s => {
-        getLocationHistory(s.userId, companyId, 4).then(trail => {
+      const isTimeMachine = timeMachineOpen && replayTime < Date.now() - 5000;
+      effectiveStaff.forEach(s => {
+        const trailPromise = isTimeMachine
+          ? getLocationHistoryAt(s.userId, companyId, 4, replayTime)
+          : getLocationHistory(s.userId, companyId, 4);
+        trailPromise.then(trail => {
           if (trail.length < 2) return;
           // Remove existing trail for this user first
           try { viewer.entities.removeById(`trail-${s.userId}`); } catch {}
@@ -1002,7 +1043,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     // Refresh trails every 60s
     const interval = setInterval(renderTrails, 60000);
     return () => clearInterval(interval);
-  }, [staff, layers.breadcrumbs, loading, companyId]);
+  }, [staff, layers.breadcrumbs, loading, companyId, timeMachineOpen, replayTime]);
 
   // ─── Tactical Annotations (drawings) ───────────────
   useEffect(() => {
@@ -1342,6 +1383,82 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         return;
       }
 
+      // Line of Sight tool
+      if (activeTool === "los") {
+        if (!losPoint1) {
+          setLosPoint1({ lat, lng });
+          setLosResult(null);
+          // Clean up old LOS entities
+          clearLineOfSight(viewer, losEntityIds);
+          setLosEntityIds([]);
+          viewer.entities.removeById("los-click-1");
+          viewer.entities.add({
+            id: "los-click-1",
+            position: Cesium.Cartesian3.fromDegrees(lng, lat),
+            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            label: { text: "A", font: "bold 10px monospace", fillColor: Cesium.Color.LIME, pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+          });
+        } else {
+          viewer.entities.removeById("los-click-1");
+          // Compute LOS
+          const dist = haversineDistance(losPoint1.lat, losPoint1.lng, lat, lng);
+          checkLineOfSight(Cesium, viewer, losPoint1.lat, losPoint1.lng, 2, lat, lng, 2).then(result => {
+            clearLineOfSight(viewer, losEntityIds);
+            const ids = renderLineOfSight(Cesium, viewer, losPoint1.lat, losPoint1.lng, 2, lat, lng, 2, result.visible, result.obstructionIndex, result.profile);
+            setLosEntityIds(ids);
+            setLosResult({ visible: result.visible, distance: dist });
+          }).catch(() => {
+            setLosResult({ visible: false });
+          });
+          setLosPoint1(null);
+        }
+        return;
+      }
+
+      // Elevation Profile tool
+      if (activeTool === "elevation") {
+        if (!elevPoint1) {
+          setElevPoint1({ lat, lng });
+          setElevationStatus(null);
+          viewer.entities.removeById("elev-click-1");
+          viewer.entities.add({
+            id: "elev-click-1",
+            position: Cesium.Cartesian3.fromDegrees(lng, lat),
+            point: { pixelSize: 8, color: Cesium.Color.YELLOW, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            label: { text: "START", font: "bold 9px monospace", fillColor: Cesium.Color.YELLOW, pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+          });
+        } else {
+          viewer.entities.removeById("elev-click-1");
+          setElevationStatus("Sampling terrain...");
+          const dist = haversineDistance(elevPoint1.lat, elevPoint1.lng, lat, lng);
+          getElevationProfile(Cesium, viewer, elevPoint1.lat, elevPoint1.lng, lat, lng, 80).then(profile => {
+            if (profile.length < 2) { setElevationStatus("Not enough data"); return; }
+            const maxElev = Math.max(...profile.map(p => p.elevation));
+            const minElev = Math.min(...profile.map(p => p.elevation));
+            const gain = profile[profile.length - 1].elevation - profile[0].elevation;
+            setElevationStatus(
+              `${(dist / 1000).toFixed(2)} km | Min: ${Math.round(minElev)}m | Max: ${Math.round(maxElev)}m | Gain: ${gain > 0 ? "+" : ""}${Math.round(gain)}m`
+            );
+            // Draw the profile as a polyline on the map
+            viewer.entities.removeById("elev-line");
+            const positions = profile.flatMap(p => [p.lng, p.lat]);
+            viewer.entities.add({
+              id: "elev-line",
+              polyline: {
+                positions: Cesium.Cartesian3.fromDegreesArray(positions),
+                width: 3,
+                material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.2, color: Cesium.Color.YELLOW.withAlpha(0.8) }),
+                clampToGround: true,
+              },
+            });
+          }).catch(() => {
+            setElevationStatus("Terrain sampling failed");
+          });
+          setElevPoint1(null);
+        }
+        return;
+      }
+
       // No tool active — check for entity or 3D tile pick to show popup
       if (activeTool === "none" && drawMode === "none") {
         const picked = viewer.scene.pick(click.position);
@@ -1409,7 +1526,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
     return () => handler.destroy();
-  }, [loading, onSelectOperation, activeTool, measurePoint1, aligningOp, drawMode, drawColor, drawPoints, companyId, dronePlannerOpen, droneWaypoints]);
+  }, [loading, onSelectOperation, activeTool, measurePoint1, losPoint1, elevPoint1, losEntityIds, aligningOp, drawMode, drawColor, drawPoints, companyId, dronePlannerOpen, droneWaypoints]);
 
   // Dismiss popup when camera moves (user is navigating away)
   useEffect(() => {
@@ -1435,7 +1552,19 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       try { viewer.entities.removeById("ring-center"); } catch {}
       setRangeCenter(null);
     }
-  }, [activeTool, loading]);
+    if (activeTool !== "los") {
+      clearLineOfSight(viewer, losEntityIds);
+      try { viewer.entities.removeById("los-click-1"); } catch {}
+      setLosEntityIds([]);
+      setLosPoint1(null);
+      setLosResult(null);
+    }
+    if (activeTool !== "elevation") {
+      try { viewer.entities.removeById("elev-click-1"); viewer.entities.removeById("elev-line"); } catch {}
+      setElevPoint1(null);
+      setElevationStatus(null);
+    }
+  }, [activeTool, loading, losEntityIds]);
 
   // Draw finish handler — save annotation to DB
   const handleDrawFinish = useCallback(() => {
@@ -1655,6 +1784,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           onToolChange={setActiveTool}
           measureResult={measureResult}
           rangeCenter={rangeCenter}
+          losResult={losResult}
+          elevationStatus={elevationStatus}
           drawMode={drawMode}
           onDrawModeChange={setDrawMode}
           drawColor={drawColor}
