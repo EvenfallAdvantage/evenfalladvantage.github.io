@@ -14,6 +14,9 @@ import { addSentinel1Layer, addSentinel2Layer } from "./sentinel-layer";
 import { FLIR_SHADER, CRT_SHADER, applyShader, removeShader } from "./shaders";
 import { getAircraft, getBoundingBox, formatAltitude, formatSpeed } from "./flight-tracker";
 import { getSatellitePositions, computeGroundTrack } from "./orbit-tracker";
+import { TimeMachine } from "./time-machine";
+import { DronePlanner, type Waypoint } from "./drone-planner";
+import { checkLineOfSight, renderLineOfSight, clearLineOfSight, getElevationProfile } from "./terrain-tools";
 
 // Types for entities we plot on the map
 export interface StaffPin {
@@ -117,6 +120,17 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Environmental intel state
   const [nearbyPOIs, setNearbyPOIs] = useState<NearbyPOI[]>([]);
   const [geofenceAlerts, setGeofenceAlerts] = useState<GeofenceAlert[]>([]);
+
+  // Time Machine
+  const [timeMachineOpen, setTimeMachineOpen] = useState(false);
+  const [replayTime, setReplayTime] = useState(Date.now());
+
+  // Drone Planner
+  const [dronePlannerOpen, setDronePlannerOpen] = useState(false);
+  const [droneWaypoints, setDroneWaypoints] = useState<Waypoint[]>([]);
+
+  // Line of Sight
+  const [losEntityIds, setLosEntityIds] = useState<string[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const entityGroupsRef = useRef<Record<string, any>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1169,6 +1183,32 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         return;
       }
 
+      // Drone planner — add waypoints
+      if (dronePlannerOpen) {
+        setDroneWaypoints(prev => [...prev, { lat, lng, altitude: 120, speed: 10 }]);
+        // Place waypoint marker
+        const wpIdx = droneWaypoints.length;
+        viewer.entities.add({
+          id: `drone-wp-${wpIdx}`,
+          position: Cesium.Cartesian3.fromDegrees(lng, lat, 120),
+          point: { pixelSize: 8, color: Cesium.Color.fromCssColorString("#8b5cf6"), outlineColor: Cesium.Color.WHITE, outlineWidth: 2 },
+          label: { text: `WP${wpIdx + 1}`, font: "bold 9px monospace", fillColor: Cesium.Color.fromCssColorString("#8b5cf6"), pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        });
+        // Draw path line
+        if (wpIdx > 0) {
+          const prev = droneWaypoints[wpIdx - 1];
+          viewer.entities.add({
+            id: `drone-path-${wpIdx}`,
+            polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArrayHeights([prev.lng, prev.lat, prev.altitude, lng, lat, 120]),
+              width: 2,
+              material: Cesium.Color.fromCssColorString("#8b5cf6").withAlpha(0.6),
+            },
+          });
+        }
+        return;
+      }
+
       // Drawing mode — collect points
       if (drawMode !== "none") {
         if (drawMode === "text") {
@@ -1361,7 +1401,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
     return () => handler.destroy();
-  }, [loading, onSelectOperation, activeTool, measurePoint1, aligningOp, drawMode, drawColor, drawPoints, companyId]);
+  }, [loading, onSelectOperation, activeTool, measurePoint1, aligningOp, drawMode, drawColor, drawPoints, companyId, dronePlannerOpen, droneWaypoints]);
 
   // Dismiss popup when camera moves (user is navigating away)
   useEffect(() => {
@@ -1540,6 +1580,34 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           >
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
+
+          {/* Time Machine */}
+          <button
+            onClick={() => setTimeMachineOpen(!timeMachineOpen)}
+            title="Time Machine — replay past events"
+            className={`w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center transition-colors ${
+              timeMachineOpen ? "text-white border-white/30" : "text-white/60 hover:text-white hover:border-white/30"
+            }`}
+            style={{ backgroundColor: timeMachineOpen ? "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent))" : "color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent)" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="8" cy="8" r="6" /><path d="M8 4v4l3 2" />
+            </svg>
+          </button>
+
+          {/* Drone Planner (admin only) */}
+          {isAdmin && (
+            <button
+              onClick={() => setDronePlannerOpen(!dronePlannerOpen)}
+              title="Drone Flight Planner"
+              className={`w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center transition-colors ${
+                dronePlannerOpen ? "text-white border-white/30" : "text-white/60 hover:text-white hover:border-white/30"
+              }`}
+              style={{ backgroundColor: dronePlannerOpen ? "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent))" : "color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent)" }}
+            >
+              <Loader2 className="h-4 w-4" style={{ animation: "none", transform: "rotate(45deg)" }} />
+            </button>
+          )}
         </div>
       )}
 
@@ -1590,6 +1658,22 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           isAdmin={isAdmin ?? false}
         />
       )}
+      {/* Time Machine */}
+      <TimeMachine
+        open={timeMachineOpen}
+        onClose={() => { setTimeMachineOpen(false); setReplayTime(Date.now()); }}
+        onTimeChange={setReplayTime}
+      />
+
+      {/* Drone Flight Planner */}
+      <DronePlanner
+        open={dronePlannerOpen}
+        onClose={() => { setDronePlannerOpen(false); setDroneWaypoints([]); }}
+        waypoints={droneWaypoints}
+        onWaypointsChange={setDroneWaypoints}
+        isAdmin={isAdmin ?? false}
+      />
+
       {/* Geofence Alert Ticker */}
       {geofenceAlerts.length > 0 && (
         <div className="absolute bottom-14 left-3 right-64 z-10 rounded-lg backdrop-blur-sm border border-red-500/20 px-3 py-1.5 overflow-hidden"
