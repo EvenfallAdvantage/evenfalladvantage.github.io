@@ -86,20 +86,6 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper: schedule a render in requestRenderMode
-  const scheduleRender = useCallback(() => {
-    const viewer = viewerRef.current;
-    if (viewer && !viewer.isDestroyed()) {
-      viewer.scene.requestRender();
-    }
-  }, []);
-
-  // With requestRenderMode, trigger renders whenever React state that affects
-  // the map changes (layers, entities, etc.) using a single watcher effect
-  useEffect(() => {
-    scheduleRender();
-  });
-
   // Persist layer visibility to localStorage per company
   const storageKey = `tactical-map-${companyId}`;
   const [layers, setLayersRaw] = useState<LayerVisibility>(() => {
@@ -224,33 +210,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           navigationHelpButton: false,
           infoBox: false,
           creditContainer: document.createElement("div"),
-          // CRITICAL: requestRenderMode stops the continuous rAF loop that blocks
-          // the main thread and freezes Next.js router navigation.
-          // Without this, Cesium's 30-50ms render frames consume the thread entirely.
-          requestRenderMode: true,
-          maximumRenderTimeChange: Infinity,
         });
 
         // Suppress Cesium's built-in error panel overlay — it has z-index: 99999
-        // which can block clicks on the sidebar navigation even with isolation: isolate
-        // We handle errors via our own error state instead
+        // and can cover the entire viewport, blocking sidebar navigation
         viewer.cesiumWidget.showErrorPanel = function() {};
-
-        // With requestRenderMode, we must explicitly trigger renders.
-        // Set up automatic render on camera movement + mouse interaction.
-        viewer.scene.postRender.addEventListener(() => {
-          // After each render, schedule the next one if camera is moving
-          if (viewer.clock.canAnimate && viewer.clock.shouldAnimate) {
-            viewer.scene.requestRender();
-          }
-        });
-        // Render on any mouse/touch interaction with the canvas
-        const canvas = viewer.scene.canvas;
-        const requestRender = () => viewer.scene.requestRender();
-        canvas.addEventListener("pointerdown", requestRender);
-        canvas.addEventListener("pointermove", requestRender);
-        canvas.addEventListener("pointerup", requestRender);
-        canvas.addEventListener("wheel", requestRender);
 
         if (destroyed) { viewer.destroy(); return; }
         viewerRef.current = viewer;
@@ -1282,9 +1246,6 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
     // Single click — tools
     handler.setInputAction((click: { position: { x: number; y: number } }) => {
-      // Force a render frame so scene.pick() has fresh data
-      viewer.scene.requestRender();
-      viewer.scene.render();
       // Get globe position from click
       const ray = viewer.camera.getPickRay(click.position);
       const cartesian = ray ? viewer.scene.globe.pick(ray, viewer.scene) : null;
