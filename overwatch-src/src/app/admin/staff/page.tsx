@@ -564,14 +564,14 @@ export default function AdminStaffPage() {
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-1">
           {([
             { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0, icon: Users },
-            { key: "applicants" as Tab, label: "Applicants", badge: applicants.filter((a: Applicant) => a.status === "applied").length, icon: UserPlus },
-            { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
             { key: "timesheets" as Tab, label: "Timesheets", badge: pendingSheets.length, icon: CalendarClock },
             { key: "corrections" as Tab, label: "Corrections", badge: pendingTCR.length, icon: FileEdit },
             { key: "leave" as Tab, label: "Leave", badge: pendingLeave.length, icon: CalendarOff },
             { key: "forms" as Tab, label: "Reports", badge: pendingForms.length + openIncidents.length, icon: FileText },
-            { key: "badges" as Tab, label: "Badges", badge: 0, icon: QrCode },
             { key: "postings" as Tab, label: "Postings", badge: postings.filter(p => p.status === "active").length, icon: Megaphone },
+            { key: "applicants" as Tab, label: "Applicants", badge: applicants.filter((a: Applicant) => a.status === "applied").length, icon: UserPlus },
+            { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
+            { key: "badges" as Tab, label: "Badges", badge: 0, icon: QrCode },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
@@ -1577,6 +1577,47 @@ export default function AdminStaffPage() {
                 ))}
               </div>
             )}
+
+            {/* Public application form link */}
+            <div className="rounded-xl border border-border/50 bg-card p-4 space-y-2 mt-4">
+              <p className="font-medium text-sm">Public Application Form</p>
+              <p className="text-xs text-muted-foreground">
+                Share this link with potential applicants. Submissions appear here.
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-lg bg-muted/50 px-3 py-2 text-xs font-mono text-muted-foreground truncate">
+                  {typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname.replace(/\/admin\/staff.*/, "")}/apply?c=${activeCompanyId ?? ""}` : `/apply?c=${activeCompanyId ?? ""}`}
+                </code>
+                <Button size="sm" variant="outline" className="shrink-0 text-xs gap-1"
+                  onClick={() => {
+                    const url = `${window.location.origin}${window.location.pathname.replace(/\/admin\/staff.*/, "")}/apply?c=${activeCompanyId ?? ""}`;
+                    navigator.clipboard.writeText(url);
+                  }}>
+                  <Copy className="h-3 w-3" /> Copy
+                </Button>
+              </div>
+            </div>
+
+            {/* Integrations config preview */}
+            <div className="rounded-xl border border-border/50 bg-card p-4 space-y-2 mt-3">
+              <p className="font-medium text-sm">External Integrations</p>
+              <p className="text-xs text-muted-foreground">
+                Connect Fillout, Airtable, or other tools to auto-import applicants via webhooks.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {[
+                  { name: "Fillout", desc: "Receive form submissions via webhook", status: "planned" },
+                  { name: "Airtable", desc: "Sync applicant records bidirectionally", status: "planned" },
+                  { name: "Email (Postmark)", desc: "Auto-send onboarding emails on hire", status: "planned" },
+                ].map(int => (
+                  <div key={int.name} className="rounded-lg border border-border/40 p-3">
+                    <p className="text-xs font-medium">{int.name}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{int.desc}</p>
+                    <Badge variant="outline" className="text-[9px] mt-1.5">{int.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
           </>
         )}
 
@@ -1671,46 +1712,6 @@ export default function AdminStaffPage() {
               )}
             </div>
 
-            {/* Public application form link */}
-            <div className="rounded-xl border border-border/50 bg-card p-4 space-y-2">
-              <p className="font-medium text-sm">Public Application Form</p>
-              <p className="text-xs text-muted-foreground">
-                Share this link with potential applicants. Submissions appear in the Applicants tab.
-              </p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-lg bg-muted/50 px-3 py-2 text-xs font-mono text-muted-foreground truncate">
-                  {typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname.replace(/\/admin\/staff.*/, "")}/apply?c=${activeCompanyId ?? ""}` : `/apply?c=${activeCompanyId ?? ""}`}
-                </code>
-                <Button size="sm" variant="outline" className="shrink-0 text-xs gap-1"
-                  onClick={() => {
-                    const url = `${window.location.origin}${window.location.pathname.replace(/\/admin\/staff.*/, "")}/apply?c=${activeCompanyId ?? ""}`;
-                    navigator.clipboard.writeText(url);
-                  }}>
-                  <Copy className="h-3 w-3" /> Copy
-                </Button>
-              </div>
-            </div>
-
-            {/* Integrations config preview */}
-            <div className="rounded-xl border border-border/50 bg-card p-4 space-y-2">
-              <p className="font-medium text-sm">External Integrations</p>
-              <p className="text-xs text-muted-foreground">
-                Connect Fillout, Airtable, or other tools to auto-import applicants via webhooks.
-              </p>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {[
-                  { name: "Fillout", desc: "Receive form submissions via webhook", status: "planned" },
-                  { name: "Airtable", desc: "Sync applicant records bidirectionally", status: "planned" },
-                  { name: "Email (Postmark)", desc: "Auto-send onboarding emails on hire", status: "planned" },
-                ].map(int => (
-                  <div key={int.name} className="rounded-lg border border-border/40 p-3">
-                    <p className="text-xs font-medium">{int.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{int.desc}</p>
-                    <Badge variant="outline" className="text-[9px] mt-1.5">{int.status}</Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
           </>
         )}
       </div>
