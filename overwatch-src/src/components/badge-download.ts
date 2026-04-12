@@ -2,7 +2,6 @@ import type { StaffBadge } from "@/lib/supabase/db-badges";
 
 /**
  * Download a professional badge card as PNG.
- * Extracted so both the badge-generator component and roster inline buttons can use it.
  */
 export async function downloadBadgeCard(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,160 +23,145 @@ export async function downloadBadgeCard(
   const firstName = member.users?.first_name ?? "";
   const lastName = member.users?.last_name ?? "";
   const avatarUrl = member.users?.avatar_url;
-  const role = (member.role ?? "staff").toUpperCase();
 
   function roundRect(x: number, y: number, w: number, h: number, r: number) {
     ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
   }
 
-  // White background
+  // ── White background ──
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, H);
 
-  // Top band
+  // ── Top brand band ──
   ctx.fillStyle = bc;
-  ctx.fillRect(0, 0, W, 110);
+  ctx.fillRect(0, 0, W, 100);
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 26px sans-serif";
+  ctx.font = "bold 28px sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(companyName, W / 2, 55);
-  ctx.font = "600 13px sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  ctx.letterSpacing = "3px";
-  ctx.fillText("SECURITY  \u00B7  ACCESS BADGE", W / 2, 82);
+  ctx.fillText(companyName, W / 2, 48);
+  ctx.font = "600 11px sans-serif";
+  ctx.fillStyle = "rgba(255,255,255,0.65)";
+  ctx.letterSpacing = "4px";
+  ctx.fillText("SECURITY  \u00B7  ACCESS BADGE", W / 2, 75);
   ctx.letterSpacing = "0px";
 
-  // Photo area
-  const photoSize = 200;
+  // ── Profile photo ──
+  const photoSize = 180;
   const photoCX = W / 2;
-  const photoCY = 250;
+  const photoCY = 230;
 
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(photoCX, photoCY, photoSize / 2 + 8, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#e8ecf0";
+  // Light gray placeholder circle
+  ctx.fillStyle = "#edf0f4";
   ctx.beginPath();
   ctx.arc(photoCX, photoCY, photoSize / 2, 0, Math.PI * 2);
   ctx.fill();
+
+  // Initials fallback
   ctx.fillStyle = "#a0aab8";
-  ctx.font = "bold 72px sans-serif";
+  ctx.font = "bold 64px sans-serif";
   ctx.textBaseline = "middle";
   ctx.fillText(`${firstName[0] || ""}${lastName[0] || ""}`, photoCX, photoCY);
   ctx.textBaseline = "alphabetic";
 
-  // Name
+  // ── Name ──
   ctx.fillStyle = "#1a1a2e";
-  ctx.font = "bold 36px sans-serif";
-  ctx.fillText(`${firstName} ${lastName}`, W / 2, photoCY + photoSize / 2 + 50);
+  ctx.font = "bold 34px sans-serif";
+  ctx.fillText(`${firstName} ${lastName}`, W / 2, photoCY + photoSize / 2 + 42);
 
-  // Role pill
-  const roleY = photoCY + photoSize / 2 + 72;
-  ctx.font = "bold 15px sans-serif";
-  const roleW = ctx.measureText(role).width + 36;
-  ctx.fillStyle = bc + "20";
-  roundRect((W - roleW) / 2, roleY, roleW, 30, 15);
-  ctx.strokeStyle = bc;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.roundRect((W - roleW) / 2, roleY, roleW, 30, 15);
-  ctx.stroke();
-  ctx.fillStyle = bc;
-  ctx.font = "bold 13px sans-serif";
-  ctx.fillText(role, W / 2, roleY + 20);
+  // ── "AGENT" label ──
+  const agentY = photoCY + photoSize / 2 + 64;
+  ctx.fillStyle = "#8a94a6";
+  ctx.font = "600 14px sans-serif";
+  ctx.letterSpacing = "3px";
+  ctx.fillText("AGENT", W / 2, agentY);
+  ctx.letterSpacing = "0px";
 
-  // Divider
-  const divY = roleY + 52;
+  // ── Thin divider ──
+  const divY = agentY + 20;
   ctx.strokeStyle = "#e0e4ea";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(80, divY);
-  ctx.lineTo(W - 80, divY);
+  ctx.moveTo(60, divY);
+  ctx.lineTo(W - 60, divY);
   ctx.stroke();
 
+  // ── QR Code (large, fills remaining space) ──
   return new Promise<void>((resolve) => {
     const qrImg = new Image();
     qrImg.crossOrigin = "anonymous";
     qrImg.onload = () => {
-      const qrSize = 180;
+      const qrSize = 280;
       const qrX = (W - qrSize) / 2;
-      const qrY = divY + 20;
+      const qrY = divY + 28;
 
-      ctx.strokeStyle = "#e0e4ea";
+      // Subtle border
+      ctx.strokeStyle = "#e8ecf0";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(qrX - 12, qrY - 12, qrSize + 24, qrSize + 24, 8);
+      ctx.roundRect(qrX - 14, qrY - 14, qrSize + 28, qrSize + 28, 10);
       ctx.stroke();
+
       ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
+      // Badge number
       ctx.fillStyle = "#9aa5b4";
-      ctx.font = "11px monospace";
+      ctx.font = "12px monospace";
       ctx.textAlign = "center";
-      ctx.fillText(badge.badge_number ?? "", W / 2, qrY + qrSize + 28);
-      ctx.fillStyle = "#b0b8c4";
-      ctx.font = "10px sans-serif";
-      ctx.fillText("SCAN TO CLOCK IN / OUT", W / 2, qrY + qrSize + 48);
+      ctx.fillText(badge.badge_number ?? "", W / 2, qrY + qrSize + 30);
 
-      // Footer
+      // Scan label
+      ctx.fillStyle = "#b0b8c4";
+      ctx.font = "11px sans-serif";
+      ctx.fillText("SCAN TO CLOCK IN / OUT", W / 2, qrY + qrSize + 52);
+
+      // ── Footer ──
       ctx.fillStyle = "#f5f6f8";
-      roundRect(0, H - 48, W, 48, 0);
+      roundRect(0, H - 44, W, 44, 0);
       ctx.fillStyle = bc;
-      ctx.fillRect(0, H - 4, W, 4);
+      ctx.fillRect(0, H - 3, W, 3);
       ctx.fillStyle = "#9aa5b4";
       ctx.font = "9px sans-serif";
-      ctx.fillText("OVERWATCH  \u00B7  " + companyName.toUpperCase(), W / 2, H - 20);
+      ctx.fillText("OVERWATCH  \u00B7  " + companyName.toUpperCase(), W / 2, H - 18);
 
-      // Avatar overlay
-      const overlayAvatar = () => {
-        if (avatarUrl) {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.onload = () => {
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(photoCX, photoCY, photoSize / 2, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.drawImage(img, photoCX - photoSize / 2, photoCY - photoSize / 2, photoSize, photoSize);
-            ctx.restore();
-            ctx.strokeStyle = bc;
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(photoCX, photoCY, photoSize / 2 + 4, 0, Math.PI * 2);
-            ctx.stroke();
-            overlayLogo();
-          };
-          img.onerror = () => { drawAccentRing(); overlayLogo(); };
-          img.src = avatarUrl;
-        } else {
-          drawAccentRing();
-          overlayLogo();
-        }
-      };
-
-      const drawAccentRing = () => {
+      // ── Overlay avatar photo ──
+      const finish = () => {
+        // Accent ring around photo
         ctx.strokeStyle = bc;
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(photoCX, photoCY, photoSize / 2 + 4, 0, Math.PI * 2);
         ctx.stroke();
+        overlayLogo();
       };
 
-      const overlayLogo = () => {
+      if (avatarUrl) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(photoCX, photoCY, photoSize / 2, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(img, photoCX - photoSize / 2, photoCY - photoSize / 2, photoSize, photoSize);
+          ctx.restore();
+          finish();
+        };
+        img.onerror = () => finish();
+        img.src = avatarUrl;
+      } else {
+        finish();
+      }
+
+      function overlayLogo() {
         if (companyLogo) {
           const li = new Image();
           li.crossOrigin = "anonymous";
           li.onload = () => {
-            const s = 40;
-            ctx.fillStyle = "#ffffff";
-            ctx.beginPath();
-            ctx.arc(44, 55, s / 2 + 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(44, 55, s / 2, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.drawImage(li, 44 - s / 2, 55 - s / 2, s, s);
-            ctx.restore();
+            // Draw logo directly on the band — no white circle
+            const s = 44;
+            const lx = 28;
+            const ly = 28;
+            ctx.drawImage(li, lx, ly, s, s);
             doDownload();
           };
           li.onerror = () => doDownload();
@@ -185,17 +169,15 @@ export async function downloadBadgeCard(
         } else {
           doDownload();
         }
-      };
+      }
 
-      const doDownload = () => {
+      function doDownload() {
         const link = document.createElement("a");
         link.download = `badge-${firstName}-${lastName}.png`.toLowerCase().replace(/\s+/g, "-");
         link.href = canvas.toDataURL("image/png");
         link.click();
         resolve();
-      };
-
-      overlayAvatar();
+      }
     };
     qrImg.onerror = () => resolve();
     qrImg.src = qrDataUrl;
