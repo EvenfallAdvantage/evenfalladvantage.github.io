@@ -56,7 +56,7 @@ type OTask = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TCR = any;
 
-type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "badges" | "postings";
+type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "postings";
 
 export default function AdminStaffPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -115,6 +115,7 @@ export default function AdminStaffPage() {
   const [editingPosting, setEditingPosting] = useState<JobPosting | null>(null);
   const [postingForm, setPostingForm] = useState({ title: "", department: "", location: "", employment_type: "full-time" as string, description_html: "", requirements: "", compensation_range: "", show_compensation: false });
   const [savingPosting, setSavingPosting] = useState(false);
+  const [showBadges, setShowBadges] = useState(false);
   // Time change requests
   const [timeChangeReqs, setTimeChangeReqs] = useState<TCR[]>([]);
   const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
@@ -571,7 +572,6 @@ export default function AdminStaffPage() {
             { key: "postings" as Tab, label: "Postings", badge: postings.filter(p => p.status === "active").length, icon: Megaphone },
             { key: "applicants" as Tab, label: "Applicants", badge: applicants.filter((a: Applicant) => a.status === "applied").length, icon: UserPlus },
             { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
-            { key: "badges" as Tab, label: "Badges", badge: 0, icon: QrCode },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
@@ -754,6 +754,33 @@ export default function AdminStaffPage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Badges section (collapsible) */}
+            {activeCompanyId && (
+              <div className="mt-6 rounded-xl border border-border/50 bg-card overflow-hidden">
+                <button
+                  onClick={() => setShowBadges(!showBadges)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <QrCode className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold">Staff Badges</span>
+                    <span className="text-[10px] text-muted-foreground">QR codes for clock-in scanning</span>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showBadges ? "rotate-180" : ""}`} />
+                </button>
+                {showBadges && (
+                  <div className="px-4 pb-4 border-t border-border/30">
+                    <BadgeGenerator
+                      companyId={activeCompanyId}
+                      companyName={companyName || "Company"}
+                      companyLogo={user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.companyLogo ?? null}
+                      brandColor={user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.brandColor ?? "#d59b3c"}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -1883,16 +1910,6 @@ export default function AdminStaffPage() {
               </div>
             )}
           </div>
-        )}
-
-        {/* ── Badges Tab ── */}
-        {tab === "badges" && activeCompanyId && (
-          <BadgeGenerator
-            companyId={activeCompanyId}
-            companyName={companyName || "Company"}
-            companyLogo={user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.companyLogo ?? null}
-            brandColor={user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.brandColor ?? "#d59b3c"}
-          />
         )}
 
       {/* ── Applicant Detail Modal ── */}
