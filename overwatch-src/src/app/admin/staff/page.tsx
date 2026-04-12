@@ -1794,10 +1794,10 @@ export default function AdminStaffPage() {
                 <p className="text-xs font-semibold mb-1 flex items-center gap-1.5"><Globe className="h-3 w-3" /> Public Careers Page</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 text-[10px] font-mono text-muted-foreground bg-background rounded px-2 py-1 truncate">
-                    {typeof window !== "undefined" ? `${window.location.origin}/overwatch/careers/${joinCode || activeCompanyId}` : ""}
+                    {typeof window !== "undefined" ? `${window.location.origin}/overwatch/careers?company=${joinCode || activeCompanyId}` : ""}
                   </code>
                   <Button size="sm" variant="outline" className="text-xs h-7 gap-1 shrink-0" onClick={() => {
-                    const url = `${window.location.origin}/overwatch/careers/${joinCode || activeCompanyId}`;
+                    const url = `${window.location.origin}/overwatch/careers?company=${joinCode || activeCompanyId}`;
                     navigator.clipboard.writeText(url);
                   }}><Copy className="h-3 w-3" /> Copy</Button>
                 </div>
