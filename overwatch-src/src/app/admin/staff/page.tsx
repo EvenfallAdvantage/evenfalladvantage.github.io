@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, CalendarOff, ClipboardList, CheckCircle2, XCircle,
   UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock, ShieldCheck, AlertOctagon, BookOpen,
   AlertTriangle, MapPin, Flag,
-  BookOpenCheck, CalendarClock, FileEdit, Pencil, Save, QrCode,
+  BookOpenCheck, CalendarClock, FileEdit, Pencil, Save, QrCode, Megaphone, Globe, Briefcase,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import { getSignedFileUrl } from "@/lib/supabase/db-helpers";
 import { MemberProfileModal } from "./components/member-profile-modal";
 import { ReadinessModal } from "./components/readiness-modal";
 import { BadgeGenerator } from "@/components/badge-generator";
+import { getCompanyPostings, createJobPosting, updateJobPosting, publishPosting, closePosting, deletePosting, getPostingApplicantCounts, type JobPosting, type PostingStatus } from "@/lib/supabase/db-postings";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -55,7 +56,7 @@ type OTask = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TCR = any;
 
-type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "badges";
+type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "badges" | "postings";
 
 export default function AdminStaffPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -107,6 +108,13 @@ export default function AdminStaffPage() {
   const [showAddTask, setShowAddTask] = useState(false);
   const [taskForm, setTaskForm] = useState({ title: "", description: "", category: "general", isRequired: true });
   const [savingTask, setSavingTask] = useState(false);
+  // Job postings
+  const [postings, setPostings] = useState<JobPosting[]>([]);
+  const [postingCounts, setPostingCounts] = useState<Record<string, number>>({});
+  const [showNewPosting, setShowNewPosting] = useState(false);
+  const [editingPosting, setEditingPosting] = useState<JobPosting | null>(null);
+  const [postingForm, setPostingForm] = useState({ title: "", department: "", location: "", employment_type: "full-time" as string, description_html: "", requirements: "", compensation_range: "", show_compensation: false });
+  const [savingPosting, setSavingPosting] = useState(false);
   // Time change requests
   const [timeChangeReqs, setTimeChangeReqs] = useState<TCR[]>([]);
   const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
@@ -214,6 +222,7 @@ export default function AdminStaffPage() {
       try { setTimeChangeReqs(await getCompanyTimeChangeRequests(activeCompanyId)); } catch {}
       try { setReadiness(await getCompanyReadiness(activeCompanyId)); } catch {}
       try { setIncidents(await getIncidents(activeCompanyId)); } catch {}
+      try { setPostings(await getCompanyPostings(activeCompanyId)); setPostingCounts(await getPostingApplicantCounts(activeCompanyId)); } catch {}
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -562,6 +571,7 @@ export default function AdminStaffPage() {
             { key: "leave" as Tab, label: "Leave", badge: pendingLeave.length, icon: CalendarOff },
             { key: "forms" as Tab, label: "Reports", badge: pendingForms.length + openIncidents.length, icon: FileText },
             { key: "badges" as Tab, label: "Badges", badge: 0, icon: QrCode },
+            { key: "postings" as Tab, label: "Postings", badge: postings.filter(p => p.status === "active").length, icon: Megaphone },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
@@ -1704,6 +1714,175 @@ export default function AdminStaffPage() {
           </>
         )}
       </div>
+
+        {/* ── Job Postings Tab ── */}
+        {tab === "postings" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold">Job Postings</p>
+                <p className="text-xs text-muted-foreground">Create and manage job listings for your careers page</p>
+              </div>
+              <Button size="sm" onClick={() => { setShowNewPosting(true); setEditingPosting(null); setPostingForm({ title: "", department: "", location: "", employment_type: "full-time", description_html: "", requirements: "", compensation_range: "", show_compensation: false }); }}>
+                <Plus className="h-3.5 w-3.5 mr-1.5" /> New Posting
+              </Button>
+            </div>
+
+            {/* Posting list */}
+            {postings.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No job postings yet</p>
+                <p className="text-xs mt-1">Create your first posting to start attracting talent</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {postings.map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/30 bg-card/50">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{p.title}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {p.department && `${p.department} · `}{p.location && `${p.location} · `}{p.employment_type}
+                      </p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      p.status === "active" ? "bg-green-500/15 text-green-600" :
+                      p.status === "paused" ? "bg-amber-500/15 text-amber-600" :
+                      p.status === "closed" ? "bg-red-500/15 text-red-500" :
+                      "bg-muted text-muted-foreground"
+                    }`}>{p.status.toUpperCase()}</span>
+                    {(postingCounts[p.id] ?? 0) > 0 && (
+                      <span className="text-[10px] text-muted-foreground">{postingCounts[p.id]} applicant{postingCounts[p.id] !== 1 ? "s" : ""}</span>
+                    )}
+                    <div className="flex gap-1 shrink-0">
+                      {p.status === "draft" && (
+                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={async () => {
+                          await publishPosting(p.id);
+                          if (activeCompanyId) setPostings(await getCompanyPostings(activeCompanyId));
+                        }}>Publish</Button>
+                      )}
+                      {p.status === "active" && (
+                        <Button size="sm" variant="outline" className="text-xs h-7" onClick={async () => {
+                          await closePosting(p.id);
+                          if (activeCompanyId) setPostings(await getCompanyPostings(activeCompanyId));
+                        }}>Close</Button>
+                      )}
+                      <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => {
+                        setEditingPosting(p);
+                        setPostingForm({
+                          title: p.title, department: p.department ?? "", location: p.location ?? "",
+                          employment_type: p.employment_type ?? "full-time", description_html: p.description_html,
+                          requirements: p.requirements ?? "", compensation_range: p.compensation_range ?? "",
+                          show_compensation: p.show_compensation,
+                        });
+                        setShowNewPosting(true);
+                      }}><Pencil className="h-3 w-3" /></Button>
+                      <Button size="sm" variant="ghost" className="text-xs h-7 text-red-500" onClick={async () => {
+                        if (!confirm("Delete this posting?")) return;
+                        await deletePosting(p.id);
+                        if (activeCompanyId) setPostings(await getCompanyPostings(activeCompanyId));
+                      }}><Trash2 className="h-3 w-3" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Careers page link */}
+            {activeCompanyId && (
+              <div className="rounded-lg border border-border/30 p-3 bg-muted/30">
+                <p className="text-xs font-semibold mb-1 flex items-center gap-1.5"><Globe className="h-3 w-3" /> Public Careers Page</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-[10px] font-mono text-muted-foreground bg-background rounded px-2 py-1 truncate">
+                    {typeof window !== "undefined" ? `${window.location.origin}/overwatch/careers/${joinCode || activeCompanyId}` : ""}
+                  </code>
+                  <Button size="sm" variant="outline" className="text-xs h-7 gap-1 shrink-0" onClick={() => {
+                    const url = `${window.location.origin}/overwatch/careers/${joinCode || activeCompanyId}`;
+                    navigator.clipboard.writeText(url);
+                  }}><Copy className="h-3 w-3" /> Copy</Button>
+                </div>
+              </div>
+            )}
+
+            {/* New/Edit Posting Modal */}
+            {showNewPosting && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowNewPosting(false)}>
+                <div className="w-full max-w-lg max-h-[85vh] rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-border/40 shrink-0">
+                    <span className="text-sm font-semibold">{editingPosting ? "Edit Posting" : "New Job Posting"}</span>
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowNewPosting(false)}><X className="h-3.5 w-3.5" /></Button>
+                  </div>
+                  <div className="flex-1 overflow-auto px-5 py-4 space-y-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Title *</label>
+                      <Input placeholder="e.g., Security Officer" value={postingForm.title} onChange={(e) => setPostingForm((f) => ({ ...f, title: e.target.value }))} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground">Department</label>
+                        <Input placeholder="e.g., Operations" value={postingForm.department} onChange={(e) => setPostingForm((f) => ({ ...f, department: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Location</label>
+                        <Input placeholder="e.g., Chicago, IL" value={postingForm.location} onChange={(e) => setPostingForm((f) => ({ ...f, location: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Employment Type</label>
+                      <select value={postingForm.employment_type} onChange={(e) => setPostingForm((f) => ({ ...f, employment_type: e.target.value }))} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm">
+                        <option value="full-time">Full-Time</option>
+                        <option value="part-time">Part-Time</option>
+                        <option value="contract">Contract</option>
+                        <option value="temporary">Temporary</option>
+                        <option value="internship">Internship</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Job Description *</label>
+                      <textarea className="mt-1 w-full min-h-[120px] rounded-lg border border-border bg-background px-3 py-2 text-sm resize-y" placeholder="Describe the role, responsibilities, and qualifications..." value={postingForm.description_html} onChange={(e) => setPostingForm((f) => ({ ...f, description_html: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Requirements</label>
+                      <textarea className="mt-1 w-full min-h-[60px] rounded-lg border border-border bg-background px-3 py-2 text-sm resize-y" placeholder="Required qualifications, certifications, experience..." value={postingForm.requirements} onChange={(e) => setPostingForm((f) => ({ ...f, requirements: e.target.value }))} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground">Compensation Range</label>
+                        <Input placeholder="e.g., $18-22/hr" value={postingForm.compensation_range} onChange={(e) => setPostingForm((f) => ({ ...f, compensation_range: e.target.value }))} />
+                      </div>
+                      <div className="flex items-end pb-1">
+                        <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                          <input type="checkbox" checked={postingForm.show_compensation} onChange={(e) => setPostingForm((f) => ({ ...f, show_compensation: e.target.checked }))} className="rounded" />
+                          Show on careers page
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="border-t border-border/40 px-5 py-3 flex justify-end gap-2 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => setShowNewPosting(false)}>Cancel</Button>
+                    <Button size="sm" disabled={!postingForm.title.trim() || !postingForm.description_html.trim() || savingPosting} onClick={async () => {
+                      if (!activeCompanyId) return;
+                      setSavingPosting(true);
+                      try {
+                        if (editingPosting) {
+                          await updateJobPosting(editingPosting.id, postingForm as Partial<JobPosting>);
+                        } else {
+                          await createJobPosting(activeCompanyId, postingForm as Parameters<typeof createJobPosting>[1]);
+                        }
+                        setPostings(await getCompanyPostings(activeCompanyId));
+                        setShowNewPosting(false);
+                      } catch {}
+                      setSavingPosting(false);
+                    }}>
+                      {savingPosting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                      {editingPosting ? "Save Changes" : "Create Posting"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Badges Tab ── */}
         {tab === "badges" && activeCompanyId && (
