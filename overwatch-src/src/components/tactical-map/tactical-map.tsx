@@ -445,7 +445,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         entityGroupsRef.current.operations.push(gfEntity);
       }
     });
-  }, [operations, layers.operations, layers.geofences, loading]);
+  }, [operations, layers.operations, layers.geofences, loading, eventDocs]);
 
   // ─── Plot Staff Pins ──────────────────────────────────
   useEffect(() => {
