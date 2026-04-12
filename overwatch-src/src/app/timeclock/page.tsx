@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { Clock, LogIn, LogOut, History, Loader2, CalendarDays, MapPin, X, Send, ChevronLeft, ChevronRight, AlertCircle, Timer, Flag, Briefcase } from "lucide-react";
+import { Clock, LogIn, LogOut, History, Loader2, CalendarDays, MapPin, X, Send, ChevronLeft, ChevronRight, AlertCircle, Timer, Flag, Briefcase, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,9 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { startLocationWatcher, clearStaffLocation, isLocationSharingEnabled } from "@/lib/supabase/db-location";
 import { usePageHeader } from "@/stores/page-header-store";
+import dynamic from "next/dynamic";
+
+const ScanPage = dynamic(() => import("@/app/scan/page"), { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
 function formatDuration(ms: number) {
   const totalSec = Math.floor(Math.max(0, ms) / 1000);
@@ -82,13 +85,28 @@ export default function TimeClockPage() {
   const authUser = useAuthStore((s) => s.user);
   const companyId = activeCompany?.companyId ?? "";
 
+  const [watchTab, setWatchTab] = useState<"clock" | "mass-clock">("clock");
+  const isManager = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("WATCH LOG", "Clock in/out and track your duty hours", <Clock className="h-5 w-5" />);
+    const icons: Record<string, React.ReactNode> = {
+      "clock": <Clock className="h-5 w-5" />,
+      "mass-clock": <ScanLine className="h-5 w-5" />,
+    };
+    const titles: Record<string, string> = {
+      "clock": "WATCH LOG",
+      "mass-clock": "MASS CLOCK",
+    };
+    const subtitles: Record<string, string> = {
+      "clock": "Clock in/out and track your duty hours",
+      "mass-clock": "Scan staff badges to clock in/out",
+    };
+    setHeader(titles[watchTab] ?? "WATCH LOG", subtitles[watchTab] ?? "", icons[watchTab] ?? null);
     return () => clearHeader();
-  }, [setHeader, clearHeader]);
+  }, [setHeader, clearHeader, watchTab]);
 
   const [active, setActive] = useState<Timesheet | null>(null);
   const [recent, setRecent] = useState<Timesheet[]>([]);
@@ -319,16 +337,26 @@ export default function TimeClockPage() {
       <div className="space-y-4">
         {/* Tabs */}
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
-          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
-            <Clock className="h-3.5 w-3.5 text-primary" />
+          <button onClick={() => setWatchTab("clock")}
+            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${watchTab === "clock" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+            {watchTab === "clock" && <Clock className="h-3.5 w-3.5 text-primary" />}
             Clock
-          </div>
+          </button>
+          {isManager && (
+            <button onClick={() => setWatchTab("mass-clock")}
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${watchTab === "mass-clock" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+              {watchTab === "mass-clock" && <ScanLine className="h-3.5 w-3.5 text-primary" />}
+              Mass Clock
+            </button>
+          )}
           <Link href="/patrols"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
             Patrols
           </Link>
         </div>
 
+        {/* ── Clock Tab Content ── */}
+        {watchTab === "clock" && <>
         {/* Upcoming Shift */}
         {nextShift && (
           <Card className="border-blue-500/30 bg-gradient-to-r from-blue-500/5 to-transparent">
@@ -489,6 +517,12 @@ export default function TimeClockPage() {
             </div>
           )}
         </div>
+        </>}
+
+        {/* ── Mass Clock Tab Content ── */}
+        {watchTab === "mass-clock" && isManager && (
+          <ScanPage />
+        )}
       </div>
 
       {/* Entry Detail Modal */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Users, UserCog, Search, Copy, Check, Loader2, Clock, Trash2,
@@ -193,13 +193,23 @@ export default function AdminStaffPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
+    const tabIcons: Record<string, React.ReactNode> = {
+      roster: <Users className="h-5 w-5" />,
+      timesheets: <CalendarClock className="h-5 w-5" />,
+      corrections: <FileEdit className="h-5 w-5" />,
+      leave: <CalendarOff className="h-5 w-5" />,
+      forms: <FileText className="h-5 w-5" />,
+      postings: <Megaphone className="h-5 w-5" />,
+      applicants: <UserPlus className="h-5 w-5" />,
+      onboarding: <BookOpenCheck className="h-5 w-5" />,
+    };
     setHeader(
       "PERSONNEL",
       "Manage team members, timesheets, leave, and submissions",
-      <Users className="h-5 w-5" />,
+      tabIcons[tab] ?? <Users className="h-5 w-5" />,
     );
     return () => clearHeader();
-  }, [setHeader, clearHeader]);
+  }, [setHeader, clearHeader, tab]);
 
   const myRole = user?.companies.find((c) => c.companyId === activeCompanyId)?.role ?? "staff";
   const canManageRoles = myRole === "owner" || myRole === "admin";
