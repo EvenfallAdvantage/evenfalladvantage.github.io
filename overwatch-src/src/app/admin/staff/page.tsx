@@ -38,7 +38,8 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { getSignedFileUrl } from "@/lib/supabase/db-helpers";
 import { MemberProfileModal } from "./components/member-profile-modal";
 import { ReadinessModal } from "./components/readiness-modal";
-import { BadgeGenerator } from "@/components/badge-generator";
+import { getOrCreateBadge, getCompanyBadges, type StaffBadge } from "@/lib/supabase/db-badges";
+import QRCode from "qrcode";
 import { getCompanyPostings, createJobPosting, updateJobPosting, publishPosting, closePosting, deletePosting, getPostingApplicantCounts, type JobPosting, type PostingStatus } from "@/lib/supabase/db-postings";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,7 +116,10 @@ export default function AdminStaffPage() {
   const [editingPosting, setEditingPosting] = useState<JobPosting | null>(null);
   const [postingForm, setPostingForm] = useState({ title: "", department: "", location: "", employment_type: "full-time" as string, description_html: "", requirements: "", compensation_range: "", show_compensation: false });
   const [savingPosting, setSavingPosting] = useState(false);
-  const [showBadges, setShowBadges] = useState(false);
+  // Badges (inline in roster)
+  const [rosterBadges, setRosterBadges] = useState<Record<string, StaffBadge>>({});
+  const [rosterQR, setRosterQR] = useState<Record<string, string>>({});
+  const [generatingBadge, setGeneratingBadge] = useState<string | null>(null);
   // Time change requests
   const [timeChangeReqs, setTimeChangeReqs] = useState<TCR[]>([]);
   const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
@@ -224,6 +228,12 @@ export default function AdminStaffPage() {
       try { setReadiness(await getCompanyReadiness(activeCompanyId)); } catch {}
       try { setIncidents(await getIncidents(activeCompanyId)); } catch {}
       try { setPostings(await getCompanyPostings(activeCompanyId)); setPostingCounts(await getPostingApplicantCounts(activeCompanyId)); } catch {}
+      try {
+        const bList = await getCompanyBadges(activeCompanyId);
+        const bMap: Record<string, StaffBadge> = {};
+        for (const b of bList) bMap[b.user_id] = b;
+        setRosterBadges(bMap);
+      } catch {}
     } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -743,6 +753,47 @@ export default function AdminStaffPage() {
                               </button>
                             );
                           })()}
+                          {canManage && (() => {
+                            const uid = m.user_id || u?.id;
+                            const hasBadge = !!rosterBadges[uid];
+                            return (
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!uid || !activeCompanyId) return;
+                                  if (hasBadge) {
+                                    // Download badge
+                                    setGeneratingBadge(uid);
+                                    try {
+                                      const b = rosterBadges[uid];
+                                      let qr = rosterQR[uid];
+                                      if (!qr) {
+                                        qr = await QRCode.toDataURL(b.qr_data, { width: 200, margin: 1, errorCorrectionLevel: "H" });
+                                        setRosterQR((p) => ({ ...p, [uid]: qr }));
+                                      }
+                                      // Trigger download via the badge-generator download logic
+                                      const { downloadBadgeCard } = await import("@/components/badge-download");
+                                      await downloadBadgeCard(m, b, qr, companyName, user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.companyLogo ?? null, user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.brandColor ?? "#d59b3c");
+                                    } catch (err) { console.error("Badge download failed:", err); }
+                                    setGeneratingBadge(null);
+                                  } else {
+                                    // Generate badge
+                                    setGeneratingBadge(uid);
+                                    try {
+                                      const b = await getOrCreateBadge(activeCompanyId, uid);
+                                      setRosterBadges((p) => ({ ...p, [uid]: b }));
+                                    } catch (err) { console.error("Badge gen failed:", err); }
+                                    setGeneratingBadge(null);
+                                  }
+                                }}
+                                disabled={generatingBadge === uid}
+                                className={`rounded p-1.5 transition-colors ${hasBadge ? "text-primary hover:bg-primary/10" : "text-muted-foreground/40 hover:text-primary hover:bg-primary/10"}`}
+                                title={hasBadge ? "Download badge" : "Generate badge"}
+                              >
+                                {generatingBadge === uid ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <QrCode className="h-3.5 w-3.5" />}
+                              </button>
+                            );
+                          })()}
                           {canManageRoles && m.role !== "owner" && (
                             <button onClick={() => handleRemoveMember(m.id, `${u?.first_name} ${u?.last_name}`)} disabled={removingMember === m.id}
                               className="rounded p-1.5 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Remove member">
@@ -757,32 +808,7 @@ export default function AdminStaffPage() {
               </div>
             )}
 
-            {/* Badges section (collapsible) */}
-            {activeCompanyId && (
-              <div className="mt-6 rounded-xl border border-border/50 bg-card overflow-hidden">
-                <button
-                  onClick={() => setShowBadges(!showBadges)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <QrCode className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-semibold">Staff Badges</span>
-                    <span className="text-[10px] text-muted-foreground">QR codes for clock-in scanning</span>
-                  </div>
-                  <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showBadges ? "rotate-180" : ""}`} />
-                </button>
-                {showBadges && (
-                  <div className="px-4 pb-4 border-t border-border/30">
-                    <BadgeGenerator
-                      companyId={activeCompanyId}
-                      companyName={companyName || "Company"}
-                      companyLogo={user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.companyLogo ?? null}
-                      brandColor={user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.brandColor ?? "#d59b3c"}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+
           </>
         )}
 
