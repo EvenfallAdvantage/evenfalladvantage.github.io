@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyMembers } from "@/lib/supabase/db";
-import { getOrCreateBadge, type StaffBadge } from "@/lib/supabase/db-badges";
+import { getOrCreateBadge, getCompanyBadges, type StaffBadge } from "@/lib/supabase/db-badges";
 import QRCode from "qrcode";
 
 interface BadgeGeneratorProps {
@@ -30,8 +30,27 @@ export function BadgeGenerator({ companyId, companyName, companyLogo, brandColor
 
   const load = useCallback(async () => {
     try {
-      const data = await getCompanyMembers(companyId);
-      setMembers(data as Member[]);
+      const [memberData, badgeData] = await Promise.all([
+        getCompanyMembers(companyId),
+        getCompanyBadges(companyId),
+      ]);
+      setMembers(memberData as Member[]);
+
+      // Hydrate existing badges + generate QR images for them
+      const badgeMap: Record<string, StaffBadge> = {};
+      const qrMap: Record<string, string> = {};
+      for (const b of badgeData) {
+        badgeMap[b.user_id] = b;
+        try {
+          qrMap[b.user_id] = await QRCode.toDataURL(b.qr_data, {
+            width: 200, margin: 1,
+            color: { dark: "#000000", light: "#ffffff" },
+            errorCorrectionLevel: "H",
+          });
+        } catch {}
+      }
+      setBadges(badgeMap);
+      setQrImages(qrMap);
     } catch {}
     setLoading(false);
   }, [companyId]);
