@@ -1,5 +1,8 @@
 "use client";
 
+// Required for static export — slugs are dynamic, resolved client-side
+export function generateStaticParams() { return []; }
+
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Loader2, Briefcase, MapPin, Clock, DollarSign, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";

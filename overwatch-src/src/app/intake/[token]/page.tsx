@@ -1,5 +1,8 @@
 "use client";
 
+// Required for static export — tokens are dynamic, resolved client-side
+export function generateStaticParams() { return []; }
+
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Loader2, CheckCircle2, Shield, MapPin, AlertTriangle, Target } from "lucide-react";

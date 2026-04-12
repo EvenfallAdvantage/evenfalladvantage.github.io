@@ -30,7 +30,7 @@ ALTER TABLE site_assessments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "site_assessments_company_access" ON site_assessments
   FOR ALL USING (
-    company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid())
+    company_id IN (SELECT company_id FROM company_memberships WHERE user_id = auth.uid())
   );
 
 -- ── 2. Client Intake Share Tokens ──
@@ -55,7 +55,7 @@ ALTER TABLE intake_shares ENABLE ROW LEVEL SECURITY;
 -- Company members can manage shares
 CREATE POLICY "intake_shares_company_access" ON intake_shares
   FOR ALL USING (
-    company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid())
+    company_id IN (SELECT company_id FROM company_memberships WHERE user_id = auth.uid())
   );
 
 -- Public read access via token (for the client filling it out)
@@ -92,7 +92,7 @@ ALTER TABLE job_postings ENABLE ROW LEVEL SECURITY;
 -- Company members can manage postings
 CREATE POLICY "job_postings_company_access" ON job_postings
   FOR ALL USING (
-    company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid())
+    company_id IN (SELECT company_id FROM company_memberships WHERE user_id = auth.uid())
   );
 
 -- Public read for active postings (careers page)
@@ -134,5 +134,5 @@ ALTER TABLE staff_badges ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "staff_badges_company_access" ON staff_badges
   FOR ALL USING (
-    company_id IN (SELECT company_id FROM company_members WHERE user_id = auth.uid())
+    company_id IN (SELECT company_id FROM company_memberships WHERE user_id = auth.uid())
   );
