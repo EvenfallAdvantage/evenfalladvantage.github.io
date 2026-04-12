@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, CalendarOff, ClipboardList, CheckCircle2, XCircle,
   UserPlus, ListChecks, Plus, ArrowRight, X, Eye, Shield, Lock, ShieldCheck, AlertOctagon, BookOpen,
   AlertTriangle, MapPin, Flag,
-  BookOpenCheck, CalendarClock, FileEdit, Pencil, Save,
+  BookOpenCheck, CalendarClock, FileEdit, Pencil, Save, QrCode,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { getSignedFileUrl } from "@/lib/supabase/db-helpers";
 import { MemberProfileModal } from "./components/member-profile-modal";
 import { ReadinessModal } from "./components/readiness-modal";
+import { BadgeGenerator } from "@/components/badge-generator";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -54,7 +55,7 @@ type OTask = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TCR = any;
 
-type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections";
+type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "badges";
 
 export default function AdminStaffPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -560,6 +561,7 @@ export default function AdminStaffPage() {
             { key: "corrections" as Tab, label: "Corrections", badge: pendingTCR.length, icon: FileEdit },
             { key: "leave" as Tab, label: "Leave", badge: pendingLeave.length, icon: CalendarOff },
             { key: "forms" as Tab, label: "Reports", badge: pendingForms.length + openIncidents.length, icon: FileText },
+            { key: "badges" as Tab, label: "Badges", badge: 0, icon: QrCode },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
@@ -1702,6 +1704,16 @@ export default function AdminStaffPage() {
           </>
         )}
       </div>
+
+        {/* ── Badges Tab ── */}
+        {tab === "badges" && activeCompanyId && (
+          <BadgeGenerator
+            companyId={activeCompanyId}
+            companyName={companyName || "Company"}
+            companyLogo={user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.companyLogo ?? null}
+            brandColor={user?.companies?.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.brandColor ?? "#d59b3c"}
+          />
+        )}
 
       {/* ── Applicant Detail Modal ── */}
       {viewingApplicant && (() => {
