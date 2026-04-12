@@ -45,6 +45,7 @@ export const NAV_SECTIONS: NavSection[] = [
         children: [
           { title: "Geo-Risk", href: "/geo-risk", icon: "MapPin" },
           { title: "Site Assessment", href: "/site-assessment", icon: "ClipboardCheck" },
+          { title: "QR Scanner", href: "/scan", icon: "Camera" },
           { title: "Invoices", href: "/invoices", icon: "FileText" },
         ],
       },
