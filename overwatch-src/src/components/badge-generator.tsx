@@ -76,76 +76,181 @@ export function BadgeGenerator({ companyId, companyName, companyLogo, brandColor
     if (!badge || !qr) return;
 
     const canvas = document.createElement("canvas");
-    // Standard ID card: 3.375" × 2.125" at 300 DPI
-    const W = 1013;
-    const H = 638;
+    // Portrait badge: 2.125" × 3.375" at 300 DPI
+    const W = 638;
+    const H = 1013;
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext("2d")!;
 
-    // Background
-    ctx.fillStyle = "#0f1a2e";
-    ctx.fillRect(0, 0, W, H);
-
-    // Brand accent stripe
-    ctx.fillStyle = brandColor || "#d59b3c";
-    ctx.fillRect(0, 0, W, 8);
-    ctx.fillRect(0, H - 8, W, 8);
-
-    // Company name
-    ctx.fillStyle = brandColor || "#d59b3c";
-    ctx.font = "bold 36px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(companyName, W / 2, 60);
-
-    // Staff name
+    const bc = brandColor || "#d59b3c";
     const firstName = member.users?.first_name ?? "";
     const lastName = member.users?.last_name ?? "";
+    const avatarUrl = member.users?.avatar_url;
+    const role = (member.role ?? "staff").toUpperCase();
+
+    // Helper: draw rounded rect
+    function roundRect(x: number, y: number, w: number, h: number, r: number) {
+      ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
+    }
+
+    // ── Background ──
+    ctx.fillStyle = "#0c1524";
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Top accent bar ──
+    ctx.fillStyle = bc;
+    ctx.fillRect(0, 0, W, 12);
+
+    // ── Header: "ACCESS BADGE" label ──
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    roundRect(0, 12, W, 60, 0);
+    ctx.fillStyle = bc;
+    ctx.font = "bold 14px sans-serif";
+    ctx.textAlign = "center";
+    ctx.letterSpacing = "4px";
+    ctx.fillText("ACCESS BADGE", W / 2, 50);
+    ctx.letterSpacing = "0px";
+
+    // ── Company name ──
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 42px sans-serif";
-    ctx.fillText(`${firstName} ${lastName}`, W / 2, 130);
+    ctx.font = "bold 28px sans-serif";
+    ctx.fillText(companyName, W / 2, 115);
 
-    // Role
-    ctx.fillStyle = "#8899aa";
-    ctx.font = "24px sans-serif";
-    ctx.fillText((member.role ?? "staff").toUpperCase(), W / 2, 170);
+    // ── Horizontal divider ──
+    ctx.strokeStyle = bc;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(60, 135);
+    ctx.lineTo(W - 60, 135);
+    ctx.stroke();
 
-    // Badge number
-    ctx.fillStyle = "#556677";
-    ctx.font = "16px monospace";
-    ctx.fillText(`Badge: ${badge.badge_number}`, W / 2, 210);
+    // ── Profile photo area ──
+    const photoSize = 180;
+    const photoX = (W - photoSize) / 2;
+    const photoY = 160;
 
-    // QR code
+    // Photo border ring
+    ctx.strokeStyle = bc;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2 + 6, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Photo placeholder circle (dark)
+    ctx.fillStyle = "#1a2640";
+    ctx.beginPath();
+    ctx.arc(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Initials as fallback
+    ctx.fillStyle = "#4a5a7a";
+    ctx.font = "bold 72px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${firstName[0] || ""}${lastName[0] || ""}`, photoX + photoSize / 2, photoY + photoSize / 2);
+    ctx.textBaseline = "alphabetic";
+
+    // ── Staff name ──
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 38px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`${firstName} ${lastName}`, W / 2, photoY + photoSize + 50);
+
+    // ── Role badge ──
+    const roleY = photoY + photoSize + 70;
+    ctx.font = "bold 16px sans-serif";
+    const roleWidth = ctx.measureText(role).width + 32;
+    ctx.fillStyle = bc + "33";
+    roundRect((W - roleWidth) / 2, roleY, roleWidth, 28, 14);
+    ctx.fillStyle = bc;
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText(role, W / 2, roleY + 19);
+
+    // ── Badge number ──
+    ctx.fillStyle = "#4a5a7a";
+    ctx.font = "13px monospace";
+    ctx.fillText(badge.badge_number ?? "", W / 2, roleY + 58);
+
+    // ── QR Code ──
     const qrImg = new Image();
+    qrImg.crossOrigin = "anonymous";
     qrImg.onload = () => {
-      const qrSize = 280;
+      const qrSize = 200;
       const qrX = (W - qrSize) / 2;
-      const qrY = 240;
+      const qrY = roleY + 80;
 
-      // White background for QR
+      // QR white background
       ctx.fillStyle = "#ffffff";
-      const pad = 12;
-      ctx.beginPath();
-      ctx.roundRect(qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, 8);
-      ctx.fill();
-
+      const pad = 10;
+      roundRect(qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, 8);
       ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
 
-      // Scan instruction
-      ctx.fillStyle = "#556677";
-      ctx.font = "14px sans-serif";
-      ctx.fillText("Scan to Clock In / Out", W / 2, qrY + qrSize + 35);
-
-      // Footer
-      ctx.fillStyle = "#334455";
+      // Scan text
+      ctx.fillStyle = "#4a5a7a";
       ctx.font = "12px sans-serif";
-      ctx.fillText("OVERWATCH PLATFORM", W / 2, H - 25);
+      ctx.fillText("SCAN TO CLOCK IN / OUT", W / 2, qrY + qrSize + 30);
 
-      // Download
-      const link = document.createElement("a");
-      link.download = `badge-${firstName}-${lastName}.png`.toLowerCase().replace(/\s+/g, "-");
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      // ── Bottom bar ──
+      ctx.fillStyle = "rgba(255,255,255,0.04)";
+      roundRect(0, H - 50, W, 50, 0);
+      ctx.fillStyle = bc;
+      ctx.fillRect(0, H - 4, W, 4);
+      ctx.fillStyle = "#3a4a6a";
+      ctx.font = "10px sans-serif";
+      ctx.fillText("OVERWATCH PLATFORM  ·  " + companyName.toUpperCase(), W / 2, H - 20);
+
+      // ── Now overlay the actual avatar photo if available ──
+      if (avatarUrl) {
+        const avatarImg = new Image();
+        avatarImg.crossOrigin = "anonymous";
+        avatarImg.onload = () => {
+          // Clip to circle and draw avatar
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(avatarImg, photoX, photoY, photoSize, photoSize);
+          ctx.restore();
+
+          // Re-draw the border ring on top
+          ctx.strokeStyle = bc;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(photoX + photoSize / 2, photoY + photoSize / 2, photoSize / 2 + 2, 0, Math.PI * 2);
+          ctx.stroke();
+
+          triggerDownload();
+        };
+        avatarImg.onerror = () => triggerDownload(); // Fallback to initials
+        avatarImg.src = avatarUrl;
+      } else {
+        triggerDownload();
+      }
+
+      function triggerDownload() {
+        // Overlay company logo if available
+        if (companyLogo) {
+          const logoImg = new Image();
+          logoImg.crossOrigin = "anonymous";
+          logoImg.onload = () => {
+            const logoSize = 36;
+            ctx.drawImage(logoImg, 20, 20, logoSize, logoSize);
+            doDownload();
+          };
+          logoImg.onerror = () => doDownload();
+          logoImg.src = companyLogo;
+        } else {
+          doDownload();
+        }
+      }
+
+      function doDownload() {
+        const link = document.createElement("a");
+        link.download = `badge-${firstName}-${lastName}.png`.toLowerCase().replace(/\s+/g, "-");
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      }
     };
     qrImg.src = qr;
   }
