@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Shield, Building2, DoorOpen, Video, AlertTriangle, Users, ClipboardCheck,
   BarChart3, Save, FileDown, RotateCcw, ChevronRight, ChevronDown,
   CheckCircle2, XCircle, AlertCircle, Info, MapPin, Search, X, Loader2, Navigation,
+  Plus, Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,8 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { geocodeAddress } from "@/lib/geo-risk-data";
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
+import { saveSiteAssessment, getCompanyAssessments, getAssessment, deleteAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
+import { toast } from "sonner";
 
 const GeoRiskMap = dynamic(() => import("@/components/geo-risk-map"), { ssr: false });
 
@@ -246,21 +250,31 @@ const STORAGE_KEY = "overwatch_site_assessment";
 
 /* ── Component ──────────────────────────────────────────── */
 
+function getDefaultData(): Record<string, string> {
+  const defaults: Record<string, string> = {};
+  SECTIONS.forEach((s) => s.fields.forEach((f) => {
+    defaults[f.name] = f.type === "date" ? new Date().toISOString().split("T")[0] : "";
+  }));
+  return defaults;
+}
+
 export default function SiteAssessmentPage() {
-  const [data, setData] = useState<Record<string, string>>(() => {
-    const defaults: Record<string, string> = {};
-    SECTIONS.forEach((s) => s.fields.forEach((f) => {
-      defaults[f.name] = f.type === "date" ? new Date().toISOString().split("T")[0] : "";
-    }));
-    return defaults;
-  });
+  const searchParams = useSearchParams();
+  const [data, setData] = useState<Record<string, string>>(getDefaultData);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["clientInfo"]));
   const [result, setResult] = useState<RiskResult | null>(null);
   const [generating, setGenerating] = useState(false);
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const { resolvedTheme } = useTheme();
+
+  // DB-backed state
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
+  const [savedAssessments, setSavedAssessments] = useState<SiteAssessment[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [loadingList, setLoadingList] = useState(true);
 
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
@@ -337,18 +351,44 @@ export default function SiteAssessmentPage() {
     setResult(null);
   }
 
-  // Load from localStorage
+  // Load saved assessments list on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setData((prev) => ({ ...prev, ...parsed }));
-        if (parsed.facilityType) {
-          setExpandedSections(new Set(SECTIONS.map((s) => s.id)));
+    if (!activeCompanyId) { setLoadingList(false); return; }
+    getCompanyAssessments(activeCompanyId)
+      .then((list) => setSavedAssessments(list))
+      .catch(() => {})
+      .finally(() => setLoadingList(false));
+  }, [activeCompanyId]);
+
+  // Load from DB (URL param) or localStorage (draft buffer)
+  useEffect(() => {
+    const idParam = searchParams.get("id");
+    if (idParam) {
+      getAssessment(idParam)
+        .then((assessment) => {
+          if (assessment) {
+            const assessmentData = (assessment.data || {}) as Record<string, string>;
+            setData({ ...getDefaultData(), ...assessmentData });
+            setAssessmentId(assessment.id);
+            if (assessment.lat) setLat(assessment.lat);
+            if (assessment.lng) setLon(assessment.lng);
+            setExpandedSections(new Set(SECTIONS.map((s) => s.id)));
+          }
+        })
+        .catch(() => toast.error("Failed to load assessment"));
+    } else {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setData((prev) => ({ ...prev, ...parsed }));
+          if (parsed.facilityType) {
+            setExpandedSections(new Set(SECTIONS.map((s) => s.id)));
+          }
         }
-      }
-    } catch {}
+      } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Save on change
@@ -396,13 +436,8 @@ export default function SiteAssessmentPage() {
     setTimeout(() => document.getElementById("risk-results")?.scrollIntoView({ behavior: "smooth" }), 100);
   }
 
-  function clearForm() {
-    if (!confirm("Clear this assessment? All data will be lost.")) return;
-    const defaults: Record<string, string> = {};
-    SECTIONS.forEach((s) => s.fields.forEach((f) => {
-      defaults[f.name] = f.type === "date" ? new Date().toISOString().split("T")[0] : "";
-    }));
-    setData(defaults);
+  function resetForm() {
+    setData(getDefaultData());
     setResult(null);
     setLat(null);
     setLon(null);
@@ -410,6 +445,86 @@ export default function SiteAssessmentPage() {
     setExpandedSections(new Set(["clientInfo"]));
     localStorage.removeItem(STORAGE_KEY);
   }
+
+  function clearForm() {
+    if (!confirm("Clear this assessment? All data will be lost.")) return;
+    setAssessmentId(null);
+    resetForm();
+  }
+
+  // ── DB handlers ──
+
+  const handleSave = async () => {
+    if (!activeCompanyId) {
+      toast.error("No active company selected");
+      return;
+    }
+    setSaving(true);
+    try {
+      const fullAddress = [data.address, data.city, data.state].filter(Boolean).join(", ");
+      const currentResult = calculateRisk(data);
+      const saved = await saveSiteAssessment(activeCompanyId, {
+        id: assessmentId || undefined,
+        client_name: data.clientName || undefined,
+        address: fullAddress || undefined,
+        lat: lat ?? undefined,
+        lng: lon ?? undefined,
+        data: data,
+        risk_score: currentResult?.score ?? undefined,
+        risk_level: currentResult?.level ?? undefined,
+      });
+      setAssessmentId(saved.id);
+      const list = await getCompanyAssessments(activeCompanyId);
+      setSavedAssessments(list);
+      toast.success(assessmentId ? "Assessment updated" : "Assessment saved");
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      toast.error("Failed to save assessment");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!assessmentId) return;
+    if (!confirm("Delete this saved assessment?")) return;
+    try {
+      await deleteAssessment(assessmentId);
+      setAssessmentId(null);
+      resetForm();
+      if (activeCompanyId) {
+        const list = await getCompanyAssessments(activeCompanyId);
+        setSavedAssessments(list);
+      }
+      toast.success("Assessment deleted");
+    } catch {
+      toast.error("Failed to delete assessment");
+    }
+  };
+
+  const handleLoadAssessment = (assessment: SiteAssessment) => {
+    const hasUnsavedData = Object.entries(data).some(
+      ([key, val]) => val && key !== "assessmentDate" && val !== getDefaultData()[key]
+    );
+    if (hasUnsavedData && !assessmentId) {
+      if (!confirm("Load this assessment? Unsaved changes will be lost.")) return;
+    }
+    setAssessmentId(assessment.id);
+    const assessmentData = (assessment.data || {}) as Record<string, string>;
+    setData({ ...getDefaultData(), ...assessmentData });
+    if (assessment.lat) setLat(assessment.lat);
+    if (assessment.lng) setLon(assessment.lng);
+    setResult(null);
+    setAddrQuery(""); setAddrResolved(null);
+    const hasFields = Object.entries(assessmentData).some(([, v]) => v);
+    if (hasFields) setExpandedSections(new Set(SECTIONS.map((s) => s.id)));
+    toast.success(`Loaded: ${assessment.client_name || "Unnamed assessment"}`);
+  };
+
+  const handleNewAssessment = () => {
+    setAssessmentId(null);
+    resetForm();
+  };
 
   async function downloadPDF() {
     if (!result) return;
@@ -829,10 +944,60 @@ export default function SiteAssessmentPage() {
   return (
     <>
       <div className="space-y-6">
+        {/* Saved assessments panel */}
+        {savedAssessments.length > 0 && (
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-zinc-300">Saved Assessments</h3>
+              <Button size="sm" variant="outline" onClick={handleNewAssessment}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> New
+              </Button>
+            </div>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {savedAssessments.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => handleLoadAssessment(a)}
+                  className={`w-full text-left px-3 py-2 rounded-md text-xs transition-colors ${
+                    assessmentId === a.id
+                      ? "bg-emerald-500/20 border border-emerald-500/30"
+                      : "bg-zinc-800/50 hover:bg-zinc-800 border border-transparent"
+                  }`}
+                >
+                  <div className="font-medium text-zinc-200">{a.client_name || "Unnamed"}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {a.risk_level && (
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                        a.risk_level === "Critical" ? "bg-red-500/20 text-red-400"
+                        : a.risk_level === "High" ? "bg-orange-500/20 text-orange-400"
+                        : a.risk_level === "Moderate" ? "bg-yellow-500/20 text-yellow-400"
+                        : "bg-green-500/20 text-green-400"
+                      }`}>
+                        {a.risk_level.toUpperCase()}
+                      </span>
+                    )}
+                    <span className="text-zinc-500">{new Date(a.created_at).toLocaleDateString()}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action bar */}
         <div className="flex items-center justify-end gap-2">
           <Badge variant="outline" className="text-[10px] font-mono">{completionPct}% complete</Badge>
+          {assessmentId && (
+            <Button variant="outline" size="sm" className="gap-1.5 text-red-400 hover:text-red-300 border-red-500/30 hover:border-red-500/50" onClick={handleDelete}>
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </Button>
+          )}
           <Button variant="outline" size="sm" className="gap-1.5" onClick={clearForm}>
             <RotateCcw className="h-3.5 w-3.5" /> Clear
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSave} disabled={saving || !activeCompanyId}>
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {assessmentId ? "Update" : "Save"}
           </Button>
         </div>
 
