@@ -24,12 +24,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: overwatch-src/package-lock.json
 
       - name: Cache Next.js build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: overwatch-src/.next/cache
           key: nextjs-${{ hashFiles('overwatch-src/package-lock.json') }}-${{ hashFiles('overwatch-src/src/**') }}
@@ -99,7 +99,7 @@ jobs:
           cp CNAME .nojekyll _deploy/
 
       - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: '_deploy'
 
