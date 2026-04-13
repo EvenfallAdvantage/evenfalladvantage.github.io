@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
 import { getStaffLocations, subscribeStaffLocations } from "@/lib/supabase/db-location";
 import { getIncidents } from "@/lib/supabase/db";
-import type { OperationPin, StaffPin, IncidentPin } from "@/components/tactical-map/tactical-map";
+import type { OperationPin, StaffPin, IncidentPin } from "@/components/tactical-map/types";
 
 const QrScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
 const TacticalMap = dynamic(() => import("@/components/tactical-map").then(m => ({ default: m.TacticalMap })), { ssr: false, loading: () => <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });

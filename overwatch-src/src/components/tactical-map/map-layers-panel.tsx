@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, ChevronRight, Target, AlertTriangle, Moon, Satellite,
   Hospital, Sun, Plane, Radio, Scan, Monitor, Orbit, Radar,
 } from "lucide-react";
-import type { OperationPin } from "./tactical-map";
+import type { OperationPin } from "./types";
 
 export interface LayerVisibility {
   staff: boolean;
