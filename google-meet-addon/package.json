@@ -9,12 +9,12 @@
     "test": "node test/test.js"
   },
   "dependencies": {
-    "@google-cloud/functions-framework": "^3.3.0",
+    "@google-cloud/functions-framework": "^5.0.2",
     "axios": "^1.6.0",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
-    "@google-cloud/functions-framework": "^3.3.0"
+    "@google-cloud/functions-framework": "^5.0.2"
   }
 }
