@@ -31,6 +31,16 @@ import {
 import { ensureInstructorLinked } from "@/lib/account-linker";
 import { usePageHeader } from "@/stores/page-header-store";
 
+/** Strip dangerous HTML constructs while preserving safe formatting */
+function sanitizeSlideHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, "")
+    .replace(/\bon\w+\s*=\s*[^\s>]*/gi, "")
+    .replace(/javascript\s*:/gi, "blocked:")
+    .replace(/data\s*:(?!image\/(png|jpeg|gif|svg\+xml|webp))/gi, "blocked:");
+}
+
 type Tab = "courses" | "classes" | "students" | "assessments";
 
 export default function InstructorHQPage() {
@@ -167,7 +177,7 @@ function SlidesPanel({ slides, slidesLoading, editSlide, previewSlide, SLIDE_TYP
           </div>
           {previewSlide.image_url && <img src={previewSlide.image_url} alt="Slide preview" className="rounded max-h-40 object-contain" />}
           {previewSlide.content ? (
-            <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed" dangerouslySetInnerHTML={{ __html: previewSlide.content }} />
+            <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeSlideHtml(previewSlide.content) }} />
           ) : <p className="text-[10px] text-muted-foreground italic">No content</p>}
         </div>
       )}

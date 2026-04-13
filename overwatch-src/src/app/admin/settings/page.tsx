@@ -13,6 +13,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, updateCompany, updateCompanySettings, getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy, getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
 import { uploadCompanyLogo } from "@/lib/supabase/db-users";
 import { TOGGLEABLE_TABS } from "@/lib/feature-flags";
+import { getLuminance, adjustBrightness } from "@/lib/brand-utils";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Policy = any;
@@ -102,20 +103,6 @@ const ALL_TIMEZONES: string[] = typeof Intl !== "undefined" && Intl.supportedVal
     ];
 
 const DEVICE_TZ = typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "";
-
-function getLuminance(hex: string): number {
-  const h = hex.replace("#", "");
-  const [r, g, b] = [parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255]
-    .map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function adjustBrightness(hex: string, factor: number): string {
-  const h = hex.replace("#", "");
-  const clamp = (v: number) => Math.min(255, Math.max(0, Math.round(v)));
-  const [r, g, b] = [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-  return `#${[clamp(r * factor), clamp(g * factor), clamp(b * factor)].map(v => v.toString(16).padStart(2, "0")).join("")}`;
-}
 
 export default function AdminSettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);

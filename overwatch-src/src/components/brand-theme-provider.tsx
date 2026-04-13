@@ -2,19 +2,7 @@
 
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
-
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace("#", "");
-  if (h.length !== 6) return [29, 52, 81]; // fallback navy
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-}
-
-function adjustBrightness(hex: string, factor: number): string {
-  const [r, g, b] = hexToRgb(hex);
-  const clamp = (v: number) => Math.min(255, Math.max(0, Math.round(v)));
-  return `#${[clamp(r * factor), clamp(g * factor), clamp(b * factor)]
-    .map(v => v.toString(16).padStart(2, "0")).join("")}`;
-}
+import { hexToRgb, adjustBrightness } from "@/lib/brand-utils";
 
 function applyBrandTheme(brandColor: string, accentColor: string) {
   const root = document.documentElement;

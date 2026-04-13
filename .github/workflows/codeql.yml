@@ -8,6 +8,8 @@ on:
       - "student-portal/js/**"
       - "instructor-portal/js/**"
       - "admin/js/**"
+      - "js/**"
+      - "supabase/functions/**"
   pull_request:
     branches: [main]
   schedule:

@@ -28,6 +28,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: overwatch-src/package-lock.json
 
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: overwatch-src/.next/cache
+          key: nextjs-${{ hashFiles('overwatch-src/package-lock.json') }}-${{ hashFiles('overwatch-src/src/**') }}
+          restore-keys: |
+            nextjs-${{ hashFiles('overwatch-src/package-lock.json') }}-
+            nextjs-
+
       - name: Install Overwatch dependencies
         working-directory: overwatch-src
         run: npm ci
@@ -46,12 +55,10 @@ jobs:
           # Supabase public keys are safe to expose in CI (they are scoped/RLS-protected)
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_CESIUM_TOKEN: ${{ secrets.NEXT_PUBLIC_CESIUM_TOKEN }}
           NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID: ${{ secrets.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID }}
           NEXT_PUBLIC_LEGACY_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_LEGACY_SUPABASE_URL }}
           NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_APP_URL: https://www.evenfalladvantage.com
         run: npm run build
 
       - name: Copy Overwatch build output to /overwatch

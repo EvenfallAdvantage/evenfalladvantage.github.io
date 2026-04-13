@@ -1,4 +1,9 @@
 // ─── Integration Services Barrel Export ───────────────────
+// NOTE: These services are stubs/scaffolding for future server-side integration.
+// They orchestrate calls to external APIs (Twilio, SendGrid, DocuSign, etc.)
+// which require server-side execution. Since the app uses `output: "export"`
+// (static site), these cannot run in the browser. They are designed to be used
+// from Supabase Edge Functions or a future server-side API layer.
 export { sendEmail, buildWelcomeEmail, buildShiftReminderEmail, buildTimeChangeNotificationEmail } from "./email-service";
 export { sendWhatsAppMessage, sendWhatsAppWelcome, sendWhatsAppShiftReminder, getWhatsAppCommunityLink } from "./whatsapp-service";
 export { sendSMS, sendShiftReminderSMS, sendAlertSMS } from "./sms-service";

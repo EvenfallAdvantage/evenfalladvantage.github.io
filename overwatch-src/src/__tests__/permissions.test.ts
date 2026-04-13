@@ -1,18 +1,9 @@
 import { describe, it, expect } from "vitest";
-
-// Import the permission logic directly
-// We test the role hierarchy: staff < manager < admin < owner
-
-const ROLE_HIERARCHY: Record<string, number> = {
-  staff: 0,
-  manager: 1,
-  admin: 2,
-  owner: 3,
-};
-
-function hasMinRole(userRole: string, requiredRole: string): boolean {
-  return (ROLE_HIERARCHY[userRole] ?? -1) >= (ROLE_HIERARCHY[requiredRole] ?? Infinity);
-}
+import {
+  hasMinRole, canManageStaff, canManageEvents, canClockOthers,
+  canApproveTimesheets, canManageSettings, canManageLegacyCourses,
+  ROLE_LABELS, type CompanyRole,
+} from "@/lib/permissions";
 
 describe("Role-Based Access Control", () => {
   describe("hasMinRole", () => {
@@ -58,25 +49,74 @@ describe("Role-Based Access Control", () => {
       expect(hasMinRole("owner", "owner")).toBe(true);
     });
 
-    it("unknown role cannot access any features", () => {
-      expect(hasMinRole("guest", "staff")).toBe(false);
-      expect(hasMinRole("", "staff")).toBe(false);
+    it("intermediate roles are ordered correctly", () => {
+      // breaker > staff, breaker < manager
+      expect(hasMinRole("breaker", "staff")).toBe(true);
+      expect(hasMinRole("breaker", "manager")).toBe(false);
+      // lead > breaker, lead < manager
+      expect(hasMinRole("lead", "breaker")).toBe(true);
+      expect(hasMinRole("lead", "manager")).toBe(false);
+      // instructor > manager, instructor < admin
+      expect(hasMinRole("instructor", "manager")).toBe(true);
+      expect(hasMinRole("instructor", "admin")).toBe(false);
+    });
+  });
+
+  describe("Permission helper functions", () => {
+    it("canManageStaff requires admin+", () => {
+      expect(canManageStaff("staff")).toBe(false);
+      expect(canManageStaff("manager")).toBe(false);
+      expect(canManageStaff("admin")).toBe(true);
+      expect(canManageStaff("owner")).toBe(true);
+    });
+
+    it("canManageEvents requires manager+", () => {
+      expect(canManageEvents("staff")).toBe(false);
+      expect(canManageEvents("manager")).toBe(true);
+      expect(canManageEvents("admin")).toBe(true);
+    });
+
+    it("canClockOthers includes breaker and lead roles", () => {
+      expect(canClockOthers("staff")).toBe(false);
+      expect(canClockOthers("breaker")).toBe(true);
+      expect(canClockOthers("lead")).toBe(true);
+      expect(canClockOthers("manager")).toBe(true);
+    });
+
+    it("canApproveTimesheets requires manager+", () => {
+      expect(canApproveTimesheets("staff")).toBe(false);
+      expect(canApproveTimesheets("manager")).toBe(true);
+    });
+
+    it("canManageSettings requires admin+", () => {
+      expect(canManageSettings("manager")).toBe(false);
+      expect(canManageSettings("admin")).toBe(true);
+    });
+
+    it("canManageLegacyCourses allows instructor or admin+", () => {
+      expect(canManageLegacyCourses("staff")).toBe(false);
+      expect(canManageLegacyCourses("manager")).toBe(false);
+      expect(canManageLegacyCourses("instructor")).toBe(true);
+      expect(canManageLegacyCourses("admin")).toBe(true);
     });
   });
 });
 
 describe("Role Hierarchy Integrity", () => {
-  it("all 4 roles are defined", () => {
-    expect(Object.keys(ROLE_HIERARCHY)).toHaveLength(4);
-    expect(ROLE_HIERARCHY).toHaveProperty("staff");
-    expect(ROLE_HIERARCHY).toHaveProperty("manager");
-    expect(ROLE_HIERARCHY).toHaveProperty("admin");
-    expect(ROLE_HIERARCHY).toHaveProperty("owner");
+  it("all 7 roles have labels defined", () => {
+    const roles: CompanyRole[] = ["owner", "admin", "instructor", "manager", "lead", "breaker", "staff"];
+    for (const role of roles) {
+      expect(ROLE_LABELS[role]).toBeDefined();
+      expect(typeof ROLE_LABELS[role]).toBe("string");
+    }
   });
 
-  it("roles are in ascending order", () => {
-    expect(ROLE_HIERARCHY.staff).toBeLessThan(ROLE_HIERARCHY.manager);
-    expect(ROLE_HIERARCHY.manager).toBeLessThan(ROLE_HIERARCHY.admin);
-    expect(ROLE_HIERARCHY.admin).toBeLessThan(ROLE_HIERARCHY.owner);
+  it("roles are in ascending order of privilege", () => {
+    expect(hasMinRole("breaker", "staff")).toBe(true);
+    expect(hasMinRole("lead", "breaker")).toBe(true);
+    expect(hasMinRole("manager", "lead")).toBe(true);
+    expect(hasMinRole("instructor", "manager")).toBe(true);
+    expect(hasMinRole("admin", "instructor")).toBe(true);
+    expect(hasMinRole("owner", "admin")).toBe(true);
   });
 });

@@ -358,14 +358,8 @@ export default function FeedPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Error alerting for admins — check for new errors on dashboard load
-  useEffect(() => {
-    if (isLeadership && activeCompanyId && activeCompanyId !== "pending" && user?.id) {
-      import("@/lib/error-alerter").then(({ checkErrorsAndAlert }) => {
-        checkErrorsAndAlert(activeCompanyId, user.id).catch(() => {});
-      });
-    }
-  }, [isLeadership, activeCompanyId, user?.id]);
+  // Error alerting for admins — removed: error-alerter module was dead code
+  // TODO: Re-implement via Supabase Edge Function or server-side alert system
 
   useEffect(() => {
     if (!active) { setElapsed(0); return; }

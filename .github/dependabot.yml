@@ -13,6 +13,19 @@ updates:
     reviewers:
       - "denalifox"
 
+  # Google Meet Addon dependencies
+  - package-ecosystem: "npm"
+    directory: "/google-meet-addon"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "security"
+    reviewers:
+      - "denalifox"
+
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
