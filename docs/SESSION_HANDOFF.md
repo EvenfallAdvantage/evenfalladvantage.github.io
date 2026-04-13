@@ -1,196 +1,213 @@
-# Session Handoff — April 11, 2026 (Updated)
+# Session Handoff — April 12, 2026
 
 **Project:** Evenfall Advantage — Overwatch Platform
 **Repo:** https://github.com/EvenfallAdvantage/evenfalladvantage.github.io
 **Working Directory:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io`
-**Latest commit:** `ccf4a608a` on `main` (admin/staff modal extraction)
-**Commits this session:** ~86 (original ~80 + 6 audit/feature commits)
-**CI/CD:** Build & Deploy passing. Backup workflow needs Supabase pooler URL fix.
-
-### Latest Session (Audit + Feature + Bug Fix Sprint)
-~20 commits pushed:
-1. `55ff356` — Comprehensive security audit (27 fixes: XSS, credentials, N+1 queries, bugs)
-2. `3416534` — Wire Time Machine to staff history + Line of Sight / Elevation Profile tools
-3. `17b0058` — OpenSky proxy Edge Function + DM from map pins + send location in chat
-4. `d5f4377` — Decompose tactical-map.tsx Phase 1 (1915→1629 lines)
-5. `6ed1e33` — Private applicant docs (signed URLs) + Checkr webhook HMAC verification
-6. `ccf4a60` — Extract admin/staff modals (2105→1854 lines)
-7. `1dbf4dc` — Debounce Time Machine replay (prevent Supabase auth lock flood)
-8. `97c0864` — OSM tile CORS fix + Messages tab on Briefing page
-9. `9803c76` — Switch sidebar to native `<a>` tags (fix map navigation freeze)
-10. `5ee6e52` — Fix events settings 400 errors + add settings column migration
+**Latest commit:** `9372c5886` on `main`
+**CI/CD:** Build & Deploy passing on GitHub Pages.
+**Tests:** 51/51 passing, 0 TypeScript errors.
 
 ---
 
-## What Was Done This Session
+## What Was Done This Session (April 12, 2026)
 
-### 1. COMPREHENSIVE SECURITY AUDIT & CLEANUP
-- Fixed 6 critical security vulnerabilities (backup to artifacts, scoped deployment, XSS fixes, CORS hardening, admin auth on Edge Functions)
-- Removed 30+ dead/orphaned files (abandoned projects, unused JS/CSS, dev tools)
-- Fixed 23 TypeScript strict-mode errors blocking CI
-- Resolved npm audit vulnerabilities (jspdf critical, lodash, hono, etc.)
+### COMPREHENSIVE AUDIT & FIX SPRINT (~30 commits)
 
-### 2. BUG FIXES
-- **Field reports company isolation** — `getUserFormSubmissions()` was missing company_id filter, causing cross-company data bleedover
-- **Join company modal** — converted from /join page navigation to inline modal flow
-- **Dictation/Speech-to-text** — identified Brave Browser blocks Web Speech API; built Whisper WASM fallback for all unsupported browsers (loads ~150MB model client-side)
-- **Dynamic header icons** — all tabbed pages now change their title icon based on active sub-tab
-- **Incident pin cleanup** — deleting an incident now removes its storyboard pin automatically
-- **Various popup/UI fixes** — positioning, formatting, redundant headers
+#### Security Fixes (9)
+- XSS sanitization on all Cesium + Leaflet HTML descriptions (escapeHtml)
+- Removed hardcoded Cesium Ion token + legacy Supabase anon key from source
+- Password reset minimum 8→12 chars to match registration
+- HTML sanitizer for training slide viewer (dangerouslySetInnerHTML)
+- Scoped window auth store to userId only (no PII)
+- Global window function cleanup on unmount
+- Deleted dangerous SQL files (DISABLE_ALL_RLS, ADMIN_RLS_FIX)
+- Private applicant documents with signed URLs
+- Checkr webhook HMAC-SHA256 signature verification
 
-### 3. 3D TACTICAL MAP (Major Feature — Operations Page)
-Built a full CesiumJS 3D tactical map at `/overwatch/schedule/` (Map tab, now default):
+#### Bug Fixes (6)
+- Timeclock company switch (missing useCallback dep)
+- Patrols delete race conditions (await before reload)
+- Checkpoint delete → patrol route validation with warning
+- Leave cancel warning for approved requests
+- Landing page year 2025→2026
+- Training viewer keyboard listener stale closure
 
-**Core:**
-- CesiumJS loaded from CDN (not bundled — Turbopack can't handle it)
-- Cesium Ion token: stored as `NEXT_PUBLIC_CESIUM_TOKEN` GitHub secret
-- 3D terrain with water effects, OSM 3D buildings
-- Compass rose (click to reset north), fullscreen button
-- Camera position + layer state persisted to localStorage per company
+#### Performance (7)
+- N+1 → batch for chat unread counts
+- N+1 → upsert for reorder operations (slides, folders, tasks)
+- N+1 → bulk for time-off shift cleanup
+- Analytics company_id filter
+- Satellite overlay throttled to ~10fps
+- CSS variable caching in mobile-hero-radar
+- Dead code removal (~120 lines) in crime-incidents.ts
 
-**Layers (organized into groups):**
-- **MAP:** Satellite View, 3D Buildings, 3D Terrain
-- **OPERATIONS:** Operations pins, Staff locations (real-time), Patrol Trails (breadcrumbs), Incidents, Geofences, Tactical Drawings
-- **INTELLIGENCE:** Weather Radar (Iowa Mesonet NEXRAD), SAR Imagery (Sentinel-1 via CDSE), Satellite Photos (Sentinel-2 EOX cloudless), Nearby Services (Overpass API), Satellite Orbits (CelesTrak TLE), Aircraft (OpenSky — CORS blocked, needs proxy)
-- **EFFECTS:** Night Mode (dark basemap + green buildings), FLIR Thermal (GLSL shader), CRT Mode (GLSL shader)
-- **SITE MAPS:** Per-operation site map overlays with 3-point rubber-sheet alignment
+### TACTICAL MAP FIXES (~15 commits)
+- **Root cause found: infinite ScreenSpaceEventHandler destroy/create loop** caused by `losEntityIds` useState in useEffect deps. Fixed by converting to useRef.
+- **Sidebar navigation fix**: Changed sidebar from Next.js `<Link>` to native `<a>` tags with `/overwatch` basePath (CesiumJS blocks React router)
+- **OSM tile CORS fix**: Switched from OpenStreetMapImageryProvider to UrlTemplateImageryProvider
+- **Time Machine debounce**: 2-second debounce on replayTime prevents Supabase auth lock flood
+- **Entity popup dismiss**: 300ms arming delay on camera moveStart listener
+- **Operation pin doc buttons**: Clickable doc badges (Intake, WARNO, OPORD, etc.) open DocViewerModal
+- **Inline DM modal**: Staff pin "Message" button opens DM modal on map instead of navigating
+- **Component decomposition**: Extracted EntityPopup, MapControlButtons, GeofenceAlertTicker, pin-canvas.ts
 
-**Tools (bottom toolbar):**
-- Measure (distance + bearing between two points)
-- Range Rings (¼, ½, 1, 2, 5 mile concentric circles)
-- Draw tools: Line, Area, Circle, Arrow, Freehand, Text Label (admin+ only, saved to DB, real-time synced)
+### NEW FEATURES — V2 UPGRADE CYCLE
 
-**Time Machine:** Timeline slider (0-48h back), play/pause with 1-16x speed
-**Drone Flight Planner:** Click waypoints, set altitude, export KML
-**Terrain Analysis:** Line-of-sight checker, elevation profiling (code ready, UI partially wired)
+#### 1. Staff Badge Generator + QR Scanner
+- **Badge Generator** (components/badge-generator.tsx + badge-download.ts)
+  - Generates QR-coded ID badges per staff member
+  - White professional access card design with profile photo, company logo, "AGENT" label
+  - Badge records persisted in `staff_badges` DB table
+  - Integrated directly into Roster tab (QR icon per member card)
+- **QR Scanner / Mass Clock** (app/scan/page.tsx)
+  - Camera-based QR badge scanner using jsQR library
+  - Auto clock-in/out based on current status
+  - Lives as "Mass Clock" sub-tab in Watch Log (manager+ only)
+  - Visual feedback: green for clock-in, amber for clock-out, red for errors
+  - `clock_method: "qr_scan"` recorded for audit trail
 
-**Staff Location Tracking:**
-- GPS watcher starts automatically on clock-in (based on profile preference)
-- 30s push interval to `staff_locations` table
-- History logged to `staff_location_history` for breadcrumb trails
-- Geofence breach detection on each GPS push
-- Location sharing toggle in Profile page (defaults ON)
+#### 2. Client Intake Share Link
+- **Share button** in intake panel header opens modal
+- Generate unique token-based links for clients
+- **Public intake page** (`/intake?t={token}`) — no auth required
+- Company-branded form with client-relevant fields only
+- Submits to `operation_documents` as draft with `source: "client"`
+- Manager gets notification, can review and augment
+- Links tracked in `intake_shares` DB table
 
-**Site Map Alignment:**
-- 3-point rubber-sheet alignment tool
-- Bounds saved to localStorage + events.settings DB
-- Storyboard pins from planning mode appear on globe at correct geo positions
-- Incident pins cross-referenced with incidents table for enriched popups
-- Opacity slider for overlays
+#### 3. Job Postings & Careers Page
+- **Postings tab** in Personnel page — full CRUD with modal editor
+- Status workflow: Draft → Publish → Close
+- **Public careers page** (`/careers?company={slug}`)
+- Company-branded with expandable job listings
+- JSON-LD structured data for automatic Google Jobs indexing
+- "Apply Now" links to existing `/apply` page with `posting_id`
+- Applicant counts per posting
+- XML job feed generator ready (db-postings.ts)
 
-### 4. GOD'S EYE SATELLITE INTELLIGENCE
-- **Sentinel-1 SAR:** Real data via Copernicus CDSE Sentinel Hub WMS. Instance ID: `8f6b57a4-a080-447a-b28f-53ec694894a8` (stored as `NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID`). Layer name: `SAR-VV-20-TO-0-DB`. Caching aligned to 6-day revisit cycle.
-- **Sentinel-2 Optical:** EOX cloudless mosaic (static 2021 tiles, cached indefinitely)
-- **FLIR Thermal shader:** Iron bow palette with targeting reticle
-- **CRT Mode shader:** Green phosphor, scan lines, film grain, vignette
-- **Satellite Orbits:** CelesTrak TLE + satellite.js (CDN loaded) for SGP4 propagation. 12h cache.
-- **Aircraft:** OpenSky Network — CORS blocked from custom domains. Needs a Supabase Edge Function proxy for production.
-- **Nearby POIs:** Overpass API with 7-day localStorage cache
+#### 4. Site Assessment DB Module (ready, UI not yet updated)
+- `db-assessments.ts` with full CRUD
+- `site_assessments` DB table created
+- Ready for integration with intake panel
 
-### 5. DIRECT MESSAGING
-- New `direct_messages` table (SQL migration: `sql/add_direct_messages.sql`)
-- Messages tab in Comms page (between Channels and External Groups)
-- Conversation list, staff picker, real-time delivery, read receipts
-- Member names fixed (flatten nested users object from getCompanyMembers)
-
-### 6. OTHER IMPROVEMENTS
-- Editable operation address in intake document with geocoding
-- AddressAutocomplete accepts lat/lng coordinates (e.g., `39.744885, -78.368760`)
-- Double-click operation pin navigates to Planning page with auto-expand
-- Copyright 2025→2026, dead social links fixed, favicon on all pages
-- Legal pages restructured with shared CSS
+### OTHER IMPROVEMENTS
+- Realtime subscriptions added to notifications, updates, and directory pages
+- Messages tab added to Briefing page
+- Chat page handles `?tab=messages` and `?dm=` URL params
+- Avatar images added to DM component (was showing initials only)
+- Events settings 400 errors silenced (localStorage-first approach)
+- Personnel tabs reordered: Roster, Timesheets, Corrections, Leave, Reports, Postings, Applicants, Onboarding
+- Public Application Form + External Integrations cards moved to Applicants tab
+- Personnel page header icon updates with selected sub-tab
+- Watch Log header stays "WATCH LOG" with dynamic icon per sub-tab
+- Stale chunk auto-reload handler (added then removed — caused issues with Cesium)
 
 ---
 
 ## SQL Migrations To Run
 
-These need to be run in Supabase SQL Editor if not already done:
-
 | File | Status | Purpose |
 |------|--------|---------|
-| `sql/add_staff_locations_table.sql` | Run if not done | Staff GPS tracking |
-| `sql/add_tactical_map_tables.sql` | Run if not done | Location history, annotations, geofence alerts, checkpoint lat/lng |
-| `sql/add_direct_messages.sql` | **NEEDS TO BE RUN** | Direct messaging between staff |
-| `sql/add_location_sharing_column.sql` | Run if not done | Profile location preference |
+| `sql/v2_upgrade_tables.sql` | **RUN** | All v2 tables (site_assessments, intake_shares, job_postings, staff_badges) |
+| `sql/add_events_settings_column.sql` | Run if not done | JSONB settings column for site map bounds |
+
+### RLS Fixes (run manually if not done)
+The v2 tables need `WITH CHECK` clauses for INSERT. Run this:
+```sql
+-- Fix all v2 table RLS policies
+DROP POLICY IF EXISTS "staff_badges_access" ON staff_badges;
+CREATE POLICY "staff_badges_auth" ON staff_badges FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "intake_shares_access" ON intake_shares;
+CREATE POLICY "intake_shares_manage" ON intake_shares FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "intake_shares_public_read" ON intake_shares FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "job_postings_access" ON job_postings;
+CREATE POLICY "job_postings_manage" ON job_postings FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "job_postings_public_read" ON job_postings FOR SELECT USING (status = 'active');
+
+DROP POLICY IF EXISTS "site_assessments_access" ON site_assessments;
+CREATE POLICY "site_assessments_manage" ON site_assessments FOR ALL USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+```
+
+### FK Fix for staff_badges
+```sql
+ALTER TABLE staff_badges DROP CONSTRAINT staff_badges_user_id_fkey;
+ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE staff_badges DROP CONSTRAINT IF EXISTS staff_badges_generated_by_fkey;
+ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_generated_by_fkey FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL;
+```
 
 ---
 
 ## GitHub Secrets Required
 
-| Secret | Value | Purpose |
-|--------|-------|---------|
-| `NEXT_PUBLIC_CESIUM_TOKEN` | (see .env.local) | Cesium Ion 3D globe |
-| `NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID` | (see .env.local) | Sentinel-1 SAR imagery |
-| `NEXT_PUBLIC_SUPABASE_URL` | (existing) | Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | (existing) | Supabase |
-| `NEXT_PUBLIC_LEGACY_SUPABASE_URL` | (see .env.local) | Legacy training content bridge |
-| `NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY` | (see .env.local) | Legacy training content bridge |
+| Secret | Purpose |
+|--------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase |
+| `NEXT_PUBLIC_CESIUM_TOKEN` | Cesium Ion 3D globe |
+| `NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID` | Sentinel-1 SAR imagery |
+| `NEXT_PUBLIC_LEGACY_SUPABASE_URL` | Legacy training content bridge |
+| `NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY` | Legacy training content bridge |
 
 ---
 
 ## Known Issues / Technical Debt
 
-### Critical
-- **Backup workflow failing** — `SUPABASE_DB_URL` needs to be changed to the Session Mode pooler URL (not the direct `db.*` URL which is IPv6-only). Get it from Supabase Dashboard → Connect → Session mode.
-
 ### High
-- **OpenSky Aircraft CORS** — FIXED. Edge Function proxy created at `supabase/functions/opensky-proxy/`. Flight tracker auto-falls back to proxy on CORS failure. **Deploy with:** `supabase functions deploy opensky-proxy`
-- **Stale chunk 404s** — Users see 404 errors for old JS chunks after deploys. Hard refresh (Ctrl+Shift+R) fixes it. A global error handler approach was tried but interfered with Cesium — removed. Consider a service worker instead.
-- **Sidebar uses hard navigation** — Sidebar links use native `<a>` tags instead of Next.js `<Link>` because CesiumJS blocks the React router when mounted. This causes full page reloads on every nav click (~200ms slower). Root cause needs deeper investigation.
+- **Sidebar uses hard navigation** — Native `<a>` tags instead of Next.js `<Link>` because CesiumJS blocks React router. Causes full page reloads on nav (~200ms slower). Root cause needs investigation.
+- **Stale chunk 404s after deploy** — Users need Ctrl+Shift+R after deploys. A service worker would fix this permanently.
+- **Backup workflow failing** — `SUPABASE_DB_URL` needs Session Mode pooler URL.
 
 ### Medium
-- **Sentinel-1 SAR rate limiting** — CDSE free tier has request limits. Currently mitigated with zoom level cap (10) and 6-day cache alignment, but heavy use could still trigger 429s.
-- **Component decomposition** — In progress. `tactical-map.tsx` reduced from 1915→1629 lines (Phase 1). `admin/staff/page.tsx` reduced from 2105→1854 lines. See `docs/COMPONENT_DECOMPOSITION_PLAN.md` for full plan.
-- **Legacy portal sunset** — admin/, student-portal/, instructor-portal/ still exist but are being replaced by Overwatch. See `docs/LEGACY_MERGE_PLAN.md`.
+- **Site assessment still localStorage** — DB module (`db-assessments.ts`) is ready but the page UI hasn't been updated to use it yet. Need to add save/load from DB + "Create Operation" flow.
+- **Assessment ↔ Intake integration** — Both directions (assessment-first and operation-first) planned but not built.
+- **Component decomposition** — tactical-map.tsx still ~1600 lines. Phase 2 (custom hooks extraction) remaining.
+- **Sentinel-1 SAR rate limiting** — Free tier has request limits.
 
 ### Low
-- **Whisper WASM dictation** — Works but the ~75MB model download on first use is heavy. Consider server-side Whisper via Edge Function for better UX.
-- **Time Machine** — FIXED. Staff positions now replay from `staff_location_history` via `getStaffLocationsAt()`. Breadcrumb trails filter to replay timestamp.
-- **Terrain Analysis** — FIXED. Line of Sight and Elevation Profile tool buttons added to map toolbar. Click two points to analyze.
-- **Drone Planner** — Waypoints and KML export work. Camera footprint cones and no-fly zone overlay not yet implemented.
+- **XML job feed endpoint** — Generator function exists in `db-postings.ts` but no API route to serve it.
+- **LinkedIn/ZipRecruiter API** — Integration scaffolding not yet built. Requires partner approvals.
+- **Whisper WASM dictation** — 75MB model download on first use.
+- **Drone Planner** — Camera footprint cones and no-fly zones not implemented.
 
 ---
 
 ## Architecture Notes
 
-### Cesium Integration
-- CesiumJS loaded from CDN (`cesium.com/downloads/cesiumjs/releases/1.128/`) via script tag injection in `cesium-config.ts`
-- NOT bundled via npm (Turbopack can't handle it — causes "expression is too dynamic" errors)
-- `satellite.js` also loaded from CDN (`cdn.jsdelivr.net`) for the same reason
-- All Cesium types declared in `src/types/cesium.d.ts` (minimal stubs)
+### New DB Tables (v2)
+- `site_assessments` — Persisted security assessments
+- `intake_shares` — Token-based client intake share links
+- `job_postings` — Job listing management with status workflow
+- `staff_badges` — QR badge records with badge numbers
 
-### Map State Management
-- Layer visibility: `localStorage` per company (`tactical-map-{companyId}`)
-- Camera position: `localStorage` per company (`tactical-cam-{companyId}`)
-- Site map bounds: `localStorage` per event (`site-map-bounds-{eventId}`) + DB fallback
-- Annotations: `map_annotations` table with Supabase Realtime
+### New Dependencies Added
+- `qrcode` + `@types/qrcode` — QR code generation for badges
+- `jsqr` — QR code scanning from camera feed
 
-### Push Authentication
-- `git push origin main` may prompt for auth
-- Alternative: `$token = gh auth token; git push "https://x-access-token:${token}@github.com/EvenfallAdvantage/evenfalladvantage.github.io.git" main`
+### Key Patterns
+- **Badge download**: Shared `badge-download.ts` used by both roster inline buttons and standalone badge-generator
+- **Public pages**: `/intake?t={token}`, `/careers?company={slug}`, `/apply?c={id}` — all use query params (not path segments) due to `output: "export"` static hosting
+- **Sidebar navigation**: All links use native `<a>` tags with `/overwatch` basePath prefix
+- **Tactical map click handler**: Entity picking runs FIRST (before globe.pick) to ensure billboard clicks work. `losEntityIds` is a ref, not state, to prevent infinite handler recreation.
 
 ### Git Identity
 - Name: `denalifox`
 - Email: `denalifox@users.noreply.github.com`
 
+### Push Authentication
+- `$token = gh auth token; git push "https://x-access-token:${token}@github.com/EvenfallAdvantage/evenfalladvantage.github.io.git" main`
+
 ---
 
 ## Recommended Next Steps
 
-1. ~~Wire Time Machine to staff history~~ DONE
-2. ~~Wire Terrain Analysis UI~~ DONE
-3. ~~Build OpenSky Edge Function proxy~~ DONE — needs `supabase functions deploy opensky-proxy`
-4. ~~Build Comms → Map integration~~ DONE (send location button in channels + DMs)
-5. ~~Add DM button to staff pin popups~~ DONE
-6. ~~Component decomposition sprint~~ Phase 1 DONE — Phase 2 (custom hooks) remaining
-
-### New Next Steps
-1. ~~Set applicant-documents bucket to private~~ DONE
-2. ~~Deploy opensky-proxy Edge Function~~ DONE
-3. ~~Add CHECKR_WEBHOOK_SECRET~~ DONE
-4. ~~Add NEXT_PUBLIC_LEGACY_SUPABASE_URL and _ANON_KEY~~ DONE
-5. **Run `sql/add_events_settings_column.sql`** in Supabase SQL Editor (adds JSONB settings column to events table for site map bounds)
-6. **Continue component decomposition** — Extract useEffect hooks from tactical-map.tsx into custom hooks; extract tab views from admin/staff
-7. **Decompose admin/events/page.tsx** (1766 lines) — Extract CreateOperationWizard, ShiftRow components
-8. **Add realtime subscriptions** to stale pages (notifications, directory, updates feed)
-9. **Investigate sidebar navigation** — Currently using native `<a>` tags instead of Next.js `<Link>` because CesiumJS blocks React router. Root cause is Cesium's rAF loop starving the main thread. Consider Web Worker for Cesium or lazy-loading the map on interaction.
+1. **Update site assessment page to use DB** — Replace localStorage with `db-assessments.ts`, add "Create Operation from Assessment" button
+2. **Assessment ↔ Intake bidirectional linking** — Import assessment data into intake, link assessment to operation
+3. **XML job feed route** — Supabase Edge Function or Next.js API route serving XML for Indeed auto-indexing
+4. **LinkedIn/ZipRecruiter API scaffolding** — OAuth connection UI in settings, posting logic
+5. **Component decomposition Phase 2** — Extract tactical-map.tsx useEffect hooks into custom hooks
+6. **Tighten v2 RLS policies** — Current policies allow any authenticated user; should be scoped to company membership
+7. **Service worker for cache busting** — Eliminate stale chunk 404s after deploys
+8. **Investigate React router + CesiumJS** — Find root cause of why `<Link>` navigation stalls when map is mounted
