@@ -30,7 +30,7 @@
     "cmdk": "^1.1.1",
     "cobe": "^2.0.0",
     "date-fns": "^4.1.0",
-    "framer-motion": "^12.36.0",
+    "framer-motion": "^12.38.0",
     "html2canvas": "^1.4.1",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.0",
