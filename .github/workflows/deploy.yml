@@ -61,6 +61,12 @@ jobs:
           NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY }}
         run: npm run build
 
+      - name: Inject build hash into service worker
+        run: |
+          BUILD_HASH="${GITHUB_SHA::8}"
+          sed -i "s/__BUILD_HASH__/${BUILD_HASH}/g" overwatch-src/out/sw.js
+          echo "Service worker CACHE_NAME set to overwatch-${BUILD_HASH}"
+
       - name: Copy Overwatch build output to /overwatch
         run: |
           rm -rf overwatch
