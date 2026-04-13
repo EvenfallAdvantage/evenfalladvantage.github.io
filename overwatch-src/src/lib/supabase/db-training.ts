@@ -1,17 +1,19 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 import type { QuizPayload, UserName, CertificationRow } from "@/types";
 
 // ─── Quizzes (Drills) ──────────────────────────────────
 
 export async function getQuizzes(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("quizzes")
     .select("*")
     .eq("company_id", companyId)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
+  if (error) { logDbReadError("quizzes", error); return []; }
   return data ?? [];
 }
 
@@ -126,12 +128,13 @@ export async function deleteAssessmentQuestion(questionId: string) {
 
 export async function getQuestionCategories(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("assessment_questions")
     .select("category")
     .eq("company_id", companyId)
     .eq("is_active", true)
     .not("category", "is", null);
+  if (error) { logDbReadError("question categories", error); return []; }
   const cats = new Set((data ?? []).map((d: { category: string }) => d.category));
   return [...cats].sort();
 }
@@ -209,7 +212,8 @@ export async function getUserQuizAttempts(quizId?: string) {
     .eq("user_id", userId)
     .order("started_at", { ascending: false });
   if (quizId) query = query.eq("quiz_id", quizId);
-  const { data } = await query.limit(20);
+  const { data, error } = await query.limit(20);
+  if (error) { logDbReadError("quiz attempts", error); return []; }
   return data ?? [];
 }
 
@@ -484,29 +488,32 @@ export async function getUserCertifications() {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("certifications")
     .select("*")
     .eq("user_id", userId)
     .order("expiry_date", { ascending: true });
+  if (error) { logDbReadError("certifications", error); return []; }
   return data ?? [];
 }
 
 export async function getCompanyCertifications(companyId: string) {
   const supabase = createClient();
   // Get all member user IDs
-  const { data: members } = await supabase
+  const { data: members, error: memErr } = await supabase
     .from("company_memberships")
     .select("user_id, users(first_name, last_name)")
     .eq("company_id", companyId)
     .eq("status", "active");
+  if (memErr) { logDbReadError("company certifications (members)", memErr); return []; }
   if (!members || members.length === 0) return [];
   const userIds = members.map((m: { user_id: string }) => m.user_id);
-  const { data: certs } = await supabase
+  const { data: certs, error: certErr } = await supabase
     .from("certifications")
     .select("*")
     .in("user_id", userIds)
     .order("expiry_date", { ascending: true });
+  if (certErr) { logDbReadError("company certifications", certErr); return []; }
   // Attach user names
   const userMap: Record<string, UserName | null> = {};
   for (const m of members) {
@@ -604,11 +611,12 @@ export async function getUserPayments() {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("payment_transactions")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+  if (error) { logDbReadError("payment transactions", error); return []; }
   return data ?? [];
 }
 
@@ -676,6 +684,7 @@ export async function getCatalogCourses() {
     .from("courses")
     .select("*")
     .order("created_at", { ascending: false });
+  if (fallback.error) { logDbReadError("catalog courses", fallback.error); return []; }
   return fallback.data ?? [];
 }
 

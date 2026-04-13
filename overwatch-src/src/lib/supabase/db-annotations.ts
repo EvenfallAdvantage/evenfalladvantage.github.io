@@ -5,6 +5,7 @@
  */
 
 import { createClient } from "./client";
+import { logDbReadError } from "./db-error";
 
 export interface MapAnnotation {
   id: string;
@@ -32,7 +33,7 @@ export async function getAnnotations(companyId: string, eventId?: string): Promi
   }
 
   const { data, error } = await query;
-  if (error) { console.error("[Annotations] Fetch failed:", error); return []; }
+  if (error) { logDbReadError("map annotations", error); return []; }
 
   return (data ?? []).map((r: Record<string, unknown>) => ({
     id: r.id as string,

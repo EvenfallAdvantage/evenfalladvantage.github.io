@@ -10,6 +10,7 @@
 
 import { createClient } from "./client";
 import { ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 
 /**
  * Check if the current user has location sharing enabled for this company.
@@ -89,7 +90,7 @@ export async function getLocationHistory(userId: string, companyId: string, hour
     .gte("recorded_at", since)
     .order("recorded_at", { ascending: true });
 
-  if (error) { console.error("[Location] History fetch failed:", error); return []; }
+  if (error) { logDbReadError("location history", error); return []; }
   return (data ?? []).map((r: Record<string, unknown>) => ({
     lat: r.lat as number,
     lng: r.lng as number,
@@ -179,7 +180,7 @@ export async function getStaffLocationsAt(companyId: string, timestamp: number):
     .order("recorded_at", { ascending: false })
     .limit(500);
 
-  if (error) { console.error("[Location] History-at fetch failed:", error); return []; }
+  if (error) { logDbReadError("staff locations at time", error); return []; }
   if (!history?.length) return [];
 
   // Group by user_id and take the most recent entry (first due to desc order)
@@ -223,7 +224,7 @@ export async function getLocationHistoryAt(
     .lte("recorded_at", atTime)
     .order("recorded_at", { ascending: true });
 
-  if (error) { console.error("[Location] History-at fetch failed:", error); return []; }
+  if (error) { logDbReadError("location history at time", error); return []; }
   return (data ?? []).map((r: Record<string, unknown>) => ({
     lat: r.lat as number,
     lng: r.lng as number,
@@ -257,7 +258,7 @@ export async function getStaffLocations(companyId: string) {
     .order("updated_at", { ascending: false });
 
   if (error) {
-    console.error("[Location] Fetch failed:", error);
+    logDbReadError("staff locations", error);
     return [];
   }
 

@@ -1,11 +1,12 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 
 // ─── Posts (Briefing) ───────────────────────────────────
 
 export async function getPosts(companyId: string, limit = 20) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("posts")
     .select(
       `
@@ -18,6 +19,7 @@ export async function getPosts(companyId: string, limit = 20) {
     .order("created_at", { ascending: false })
     .limit(limit);
 
+  if (error) { logDbReadError("posts", error); return []; }
   return data ?? [];
 }
 
@@ -81,11 +83,12 @@ export async function deletePost(postId: string) {
 
 export async function getPostComments(postId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("post_comments")
     .select("*, users(id, first_name, last_name, avatar_url)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
+  if (error) { logDbReadError("post comments", error); return []; }
   return data ?? [];
 }
 
@@ -118,10 +121,11 @@ export async function deletePostComment(commentId: string) {
 
 export async function getPostReactions(postId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("post_reactions")
     .select("*, users(id, first_name, last_name)")
     .eq("post_id", postId);
+  if (error) { logDbReadError("post reactions", error); return []; }
   return data ?? [];
 }
 
@@ -160,21 +164,23 @@ export async function togglePostReaction(postId: string, emoji: string = "like")
 
 export async function getKBFolders(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("kb_folders")
     .select("*")
     .eq("company_id", companyId)
     .order("sort_order", { ascending: true });
+  if (error) { logDbReadError("knowledge base folders", error); return []; }
   return data ?? [];
 }
 
 export async function getKBDocuments(folderId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("kb_documents")
     .select("*, users(first_name, last_name)")
     .eq("folder_id", folderId)
     .order("sort_order", { ascending: true });
+  if (error) { logDbReadError("knowledge base documents", error); return []; }
   return data ?? [];
 }
 
@@ -319,20 +325,22 @@ export async function getUserDocumentReads(folderId: string): Promise<string[]> 
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("kb_document_reads")
     .select("document_id, kb_documents!inner(folder_id)")
     .eq("user_id", userId)
     .eq("kb_documents.folder_id", folderId);
+  if (error) { logDbReadError("document read status", error); return []; }
   return (data ?? []).map((r: { document_id: string }) => r.document_id);
 }
 
 export async function getDocumentReadStatus(documentId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("kb_document_reads")
     .select("user_id, read_at, users(id, first_name, last_name, avatar_url)")
     .eq("document_id", documentId);
+  if (error) { logDbReadError("document read status", error); return []; }
   return data ?? [];
 }
 
@@ -340,12 +348,13 @@ export async function getDocumentReadStatus(documentId: string) {
 
 export async function getChatChannels(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("chat_channels")
     .select("*")
     .eq("company_id", companyId)
     .eq("is_archived", false)
     .order("created_at", { ascending: true });
+  if (error) { logDbReadError("chat channels", error); return []; }
   return data ?? [];
 }
 
@@ -406,12 +415,13 @@ export async function uploadChannelAvatar(channelId: string, file: File): Promis
 
 export async function getChatMessages(channelId: string, limit = 50) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("chat_messages")
     .select("*, users(id, first_name, last_name, avatar_url), reply:chat_messages!reply_to_id(id, content, users(first_name, last_name)), chat_reactions(id, emoji, user_id, users(first_name, last_name))")
     .eq("channel_id", channelId)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (error) { logDbReadError("chat messages", error); return []; }
   return (data ?? []).reverse();
 }
 
@@ -557,13 +567,14 @@ export async function getNotifications(companyId: string) {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("notifications")
     .select("*")
     .eq("user_id", userId)
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
     .limit(50);
+  if (error) { logDbReadError("notifications", error); return []; }
   return data ?? [];
 }
 
@@ -571,12 +582,13 @@ export async function getUnreadNotificationCount(companyId: string) {
   const userId = await ensureInternalUser();
   if (!userId) return 0;
   const supabase = createClient();
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("notifications")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("company_id", companyId)
     .eq("read", false);
+  if (error) { logDbReadError("unread notification count", error); return 0; }
   return count ?? 0;
 }
 

@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { parseUTC } from "@/lib/parse-utc";
+import { logDbReadError } from "./db-error";
 
 // ─── Company stats (for Intel page) ─────────────────
 
@@ -7,11 +8,12 @@ export async function getCompanyStats(companyId: string) {
   const supabase = createClient();
 
   // Get member user IDs for this company to scope timesheets
-  const { data: memberRows } = await supabase
+  const { data: memberRows, error: memberErr } = await supabase
     .from("company_memberships")
     .select("user_id")
     .eq("company_id", companyId)
     .eq("status", "active");
+  if (memberErr) logDbReadError("company stats (members)", memberErr);
   const memberUserIds = (memberRows ?? []).map((m: { user_id: string }) => m.user_id);
 
   const [members, events, assets, forms] = await Promise.all([
@@ -24,12 +26,13 @@ export async function getCompanyStats(companyId: string) {
   let totalHours = 0;
   if (memberUserIds.length > 0) {
     // Fetch only clock_in/clock_out columns (not select *) and use company_id filter
-    const { data: sheets } = await supabase
+    const { data: sheets, error: sheetsErr } = await supabase
       .from("timesheets")
       .select("clock_in, clock_out")
       .eq("company_id", companyId)
       .not("clock_out", "is", null)
       .limit(2000);
+    if (sheetsErr) logDbReadError("company stats (timesheets)", sheetsErr);
     for (const t of sheets ?? []) {
       if (t.clock_in && t.clock_out) {
         totalHours += (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000;
@@ -92,11 +95,12 @@ export async function getIntelData(companyId: string) {
   const supabase = createClient();
 
   // Get member user IDs for this company
-  const { data: memberRows } = await supabase
+  const { data: memberRows, error: memberErr } = await supabase
     .from("company_memberships")
     .select("user_id")
     .eq("company_id", companyId)
     .eq("status", "active");
+  if (memberErr) logDbReadError("analytics (members)", memberErr);
   const memberUserIds = (memberRows ?? []).map((m: { user_id: string }) => m.user_id);
 
   // --- Weekly hours by day (last 7 days) ---
@@ -105,13 +109,14 @@ export async function getIntelData(companyId: string) {
   weekStart.setHours(0, 0, 0, 0);
   const weeklyHours = [0, 0, 0, 0, 0, 0, 0]; // Mon..Sun mapped to last 7 days
   if (memberUserIds.length > 0) {
-    const { data: sheets } = await supabase
+    const { data: sheets, error: sheetsErr } = await supabase
       .from("timesheets")
       .select("clock_in, clock_out")
       .in("user_id", memberUserIds)
       .not("clock_out", "is", null)
       .gte("clock_in", weekStart.toISOString())
       .limit(500);
+    if (sheetsErr) logDbReadError("analytics (weekly hours)", sheetsErr);
     for (const t of sheets ?? []) {
       if (t.clock_in && t.clock_out) {
         const dayIdx = Math.min(6, Math.floor(
@@ -127,12 +132,13 @@ export async function getIntelData(companyId: string) {
 
   // --- Weekly incidents by day (last 7 days) ---
   const weeklyIncidents = [0, 0, 0, 0, 0, 0, 0];
-  const { data: incRows } = await supabase
+  const { data: incRows, error: incErr } = await supabase
     .from("incidents")
     .select("created_at")
     .eq("company_id", companyId)
     .gte("created_at", weekStart.toISOString())
     .limit(500);
+  if (incErr) logDbReadError("analytics (weekly incidents)", incErr);
   for (const inc of incRows ?? []) {
     if (inc.created_at) {
       const dayIdx = Math.min(6, Math.floor(
@@ -204,12 +210,13 @@ export async function getOwnerIntel(companyId: string) {
   const supabase = createClient();
 
   // --- Hiring Pipeline ---
-  const { data: applicants } = await supabase
+  const { data: applicants, error: appErr } = await supabase
     .from("applicants")
     .select("id, status, created_at")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
     .limit(200);
+  if (appErr) logDbReadError("owner intel (hiring pipeline)", appErr);
   const appList = applicants ?? [];
   const pipeline = {
     new: appList.filter((a: { status: string }) => a.status === "new" || a.status === "pending").length,
@@ -253,10 +260,11 @@ export async function getOwnerIntel(companyId: string) {
   };
 
   // --- Integration Health ---
-  const { data: integrations } = await supabase
+  const { data: integrations, error: intErr } = await supabase
     .from("integrations_config")
     .select("provider, is_active")
     .eq("company_id", companyId);
+  if (intErr) logDbReadError("owner intel (integrations)", intErr);
   const intList = integrations ?? [];
   const integrationHealth = {
     active: intList.filter((i: { is_active: boolean }) => i.is_active).length,
@@ -265,13 +273,14 @@ export async function getOwnerIntel(companyId: string) {
   };
 
   // --- Onboarding Status ---
-  const { data: onboarding } = await supabase
+  const { data: onboarding, error: onbErr } = await supabase
     .from("company_memberships")
     .select("id, user_id, onboarding_complete, hire_date, users:user_id(first_name, last_name)")
     .eq("company_id", companyId)
     .eq("status", "onboarding")
     .order("hire_date", { ascending: false })
     .limit(10);
+  if (onbErr) logDbReadError("owner intel (onboarding)", onbErr);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onboardingList = (onboarding ?? []).map((m: any) => {
     const u = Array.isArray(m.users) ? m.users[0] : m.users;

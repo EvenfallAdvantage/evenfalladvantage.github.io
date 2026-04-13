@@ -4,6 +4,7 @@
 
 import { createClient } from "./client";
 import { ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 
 export interface DirectMessage {
   id: string;
@@ -45,7 +46,7 @@ export async function getDMConversations(companyId: string): Promise<DMConversat
     .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
     .order("created_at", { ascending: false });
 
-  if (error) { console.error("[DM] Fetch conversations failed:", error); return []; }
+  if (error) { logDbReadError("direct message conversations", error); return []; }
 
   // Group by conversation partner
   const convMap = new Map<string, DMConversation>();
@@ -98,7 +99,7 @@ export async function getDMMessages(
     .order("created_at", { ascending: true })
     .limit(limit);
 
-  if (error) { console.error("[DM] Fetch messages failed:", error); return []; }
+  if (error) { logDbReadError("direct messages", error); return []; }
 
   return (data ?? []).map((m: Record<string, unknown> & { from_user?: Record<string, string>; to_user?: Record<string, string> }) => ({
     id: m.id as string,
@@ -185,7 +186,7 @@ export async function getUnreadDMCount(companyId: string): Promise<number> {
     .eq("to_user_id", userId)
     .is("read_at", null);
 
-  if (error) return 0;
+  if (error) { logDbReadError("unread DM count", error); return 0; }
   return count ?? 0;
 }
 

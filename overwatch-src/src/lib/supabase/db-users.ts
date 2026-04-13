@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { ts, getAuthUserId, ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 import type { UserProfilePayload, CompanyPayload } from "@/types";
 
 // ─── Users ──────────────────────────────────────────────
@@ -359,7 +360,7 @@ export async function registerUserInDB(params: {
 
 export async function getCompanyMembers(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("company_memberships")
     .select(
       `
@@ -373,6 +374,7 @@ export async function getCompanyMembers(companyId: string) {
     .eq("status", "active")
     .order("role", { ascending: true });
 
+  if (error) { logDbReadError("company members", error); return []; }
   return data ?? [];
 }
 
@@ -469,11 +471,12 @@ export async function updateUserProfile(updates: {
 
 export async function getCompanyDetails(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("companies")
     .select("*")
     .eq("id", companyId)
     .maybeSingle();
+  if (error) { logDbReadError("company details", error); return null; }
   return data;
 }
 

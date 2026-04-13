@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 
 export type EmploymentType = "full-time" | "part-time" | "contract" | "temporary" | "internship";
 export type PostingStatus = "draft" | "active" | "paused" | "closed";
@@ -204,7 +205,7 @@ export async function getPostingApplicantCounts(companyId: string): Promise<Reco
     .eq("company_id", companyId)
     .not("posting_id", "is", null);
 
-  if (error) return {};
+  if (error) { logDbReadError("posting applicant counts", error); return {}; }
 
   const counts: Record<string, number> = {};
   for (const row of data ?? []) {

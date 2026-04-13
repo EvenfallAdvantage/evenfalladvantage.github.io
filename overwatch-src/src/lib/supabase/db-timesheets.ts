@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 
 // ─── Timesheets (Watch Log) ──────────────────────────────
 
@@ -20,7 +21,8 @@ export async function getActiveTimesheet(companyId?: string) {
     query = query.eq("company_id", companyId);
   }
 
-  const { data } = await query.maybeSingle();
+  const { data, error } = await query.maybeSingle();
+  if (error) { logDbReadError("active timesheet", error); return null; }
   return data;
 }
 
@@ -82,7 +84,7 @@ export async function getActiveShiftsForClockIn(companyId: string) {
   const windowEnd = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
 
   // Shifts where: start_time is within ±30min of now, OR shift is currently active (started but not ended)
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("shifts")
     .select("*, events!inner(id, name, location, company_id)")
     .eq("assigned_user_id", userId)
@@ -90,6 +92,7 @@ export async function getActiveShiftsForClockIn(companyId: string) {
     .or(`and(start_time.gte.${windowStart},start_time.lte.${windowEnd}),and(start_time.lte.${now.toISOString()},end_time.gte.${now.toISOString()})`)
     .order("start_time", { ascending: true });
 
+  if (error) { logDbReadError("active shifts for clock-in", error); return []; }
   return data ?? [];
 }
 
@@ -124,7 +127,8 @@ export async function getRecentTimesheets(limit = 10, companyId?: string) {
     query = query.eq("company_id", companyId);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) { logDbReadError("recent timesheets", error); return []; }
   let results = data ?? [];
 
   // Fallback: for legacy timesheets without company_id, filter by event.company_id
@@ -153,13 +157,14 @@ export async function getCompanyTimesheets(companyId: string) {
   const supabase = createClient();
 
   // Primary: filter by company_id (set on newer timesheets)
-  const { data: directData } = await supabase
+  const { data: directData, error: directErr } = await supabase
     .from("timesheets")
     .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location), shifts(id, role, events(id, name, location))")
     .eq("company_id", companyId)
     .order("clock_in", { ascending: false })
     .limit(50);
 
+  if (directErr) { logDbReadError("company timesheets", directErr); return []; }
   if (directData && directData.length > 0) return directData;
 
   // Fallback for legacy timesheets without company_id:
@@ -223,7 +228,9 @@ export async function getTimesheetsForDateRange(startISO: string, endISO: string
     query = query.eq("company_id", companyId);
   }
 
-  return (await query).data ?? [];
+  const result = await query;
+  if (result.error) { logDbReadError("timesheets for date range", result.error); return []; }
+  return result.data ?? [];
 }
 
 // ─── Time Change Requests ────────────────────────────
@@ -268,9 +275,9 @@ export async function getMyTimeChangeRequests() {
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(20);
-    if (error) return [];
+    if (error) { logDbReadError("time change requests", error); return []; }
     return data ?? [];
-  } catch { return []; }
+  } catch (err) { logDbReadError("time change requests", err); return []; }
 }
 
 export async function getCompanyTimeChangeRequests(companyId: string) {
@@ -282,9 +289,9 @@ export async function getCompanyTimeChangeRequests(companyId: string) {
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .limit(50);
-    if (error) return [];
+    if (error) { logDbReadError("company time change requests", error); return []; }
     return data ?? [];
-  } catch { return []; }
+  } catch (err) { logDbReadError("company time change requests", err); return []; }
 }
 
 export async function reviewTimeChangeRequest(requestId: string, status: "approved" | "denied") {

@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 
 // ─── Helpers ────────────────────────────────────────────
 
@@ -531,7 +532,7 @@ export async function getCompanyReadiness(companyId: string) {
     .select("id, title, folder_id, kb_folders!inner(company_id)")
     .eq("required", true)
     .eq("kb_folders.company_id", companyId);
-  if (reqDocsErr) console.error("[Readiness] kb_documents query failed:", reqDocsErr);
+  if (reqDocsErr) logDbReadError("readiness (required documents)", reqDocsErr);
 
   // 3. All read records for those required docs
   const reqDocIds = (requiredDocs ?? []).map((d: { id: string }) => d.id);
@@ -541,7 +542,7 @@ export async function getCompanyReadiness(companyId: string) {
       .from("kb_document_reads")
       .select("document_id, user_id")
       .in("document_id", reqDocIds);
-    if (readsErr) console.error("[Readiness] kb_document_reads query failed:", readsErr);
+    if (readsErr) logDbReadError("readiness (document reads)", readsErr);
     readRecords = reads ?? [];
   }
 

@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 
 // ─── Time Off ─────────────────────────────────────────
 
@@ -7,11 +8,12 @@ export async function getTimeOffRequests() {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("time_off_requests")
     .select("*, time_off_policies(name, type)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+  if (error) { logDbReadError("time off requests", error); return []; }
   return data ?? [];
 }
 
@@ -19,11 +21,12 @@ export async function getTimeOffRequests() {
 
 export async function getTimeOffPolicies(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("time_off_policies")
     .select("*")
     .eq("company_id", companyId)
     .order("name", { ascending: true });
+  if (error) { logDbReadError("time off policies", error); return []; }
   return data ?? [];
 }
 
@@ -108,7 +111,7 @@ export async function getAllTimeOffRequests(companyId: string) {
     .select("*, time_off_policies!inner(name, type, company_id), users:user_id(first_name, last_name, avatar_url)")
     .eq("time_off_policies.company_id", companyId)
     .order("created_at", { ascending: false });
-  if (error) console.error("getAllTimeOffRequests error:", error);
+  if (error) { logDbReadError("all time off requests", error); return []; }
   return data ?? [];
 }
 

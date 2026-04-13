@@ -1,17 +1,19 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 import type { FormPayload } from "@/types";
 
 // ─── Forms (Field Reports) ─────────────────────────────
 
 export async function getForms(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("forms")
     .select("*")
     .eq("company_id", companyId)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
+  if (error) { logDbReadError("forms", error); return []; }
   return data ?? [];
 }
 
@@ -59,11 +61,12 @@ export async function getFormSubmissions(formId: string) {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("form_submissions")
     .select("*, users(first_name, last_name)")
     .eq("form_id", formId)
     .order("created_at", { ascending: false });
+  if (error) { logDbReadError("form submissions", error); return []; }
   return data ?? [];
 }
 
@@ -116,17 +119,18 @@ export async function getAllFormSubmissions(companyId: string) {
     .in("form_id", formIds)
     .order("created_at", { ascending: false });
 
-  if (subsError) console.error("[getAllFormSubmissions] error:", subsError);
+  if (subsError) { logDbReadError("all form submissions", subsError); return []; }
   return data ?? [];
 }
 
 export async function getEventFormSubmissions(eventId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("form_submissions")
     .select("*, users(first_name, last_name, avatar_url), forms(name)")
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
+  if (error) { logDbReadError("event form submissions", error); return []; }
   return data ?? [];
 }
 
@@ -145,7 +149,8 @@ export async function getUserFormSubmissions(companyId?: string) {
   if (companyId) {
     query = query.eq("forms.company_id", companyId);
   }
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) { logDbReadError("user form submissions", error); return []; }
   return data ?? [];
 }
 

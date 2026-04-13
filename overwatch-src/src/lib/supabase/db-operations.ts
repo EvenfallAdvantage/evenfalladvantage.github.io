@@ -1,15 +1,17 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 
 // ─── Events (Operations) ──────────────────────────────
 
 export async function getEvents(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .select("*, clients(name)")
     .eq("company_id", companyId)
     .order("start_date", { ascending: true });
+  if (error) { logDbReadError("events", error); return []; }
   return data ?? [];
 }
 
@@ -116,25 +118,27 @@ export async function getUserShifts(companyId: string) {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("shifts")
     .select("*, events!inner(id, name, location, company_id, ops_guide)")
     .eq("assigned_user_id", userId)
     .eq("events.company_id", companyId)
     .order("start_time", { ascending: true });
+  if (error) { logDbReadError("shifts", error); return []; }
   return data ?? [];
 }
 
 export async function getUpcomingEvents(companyId: string) {
   const supabase = createClient();
   const now = new Date().toISOString();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .select("*")
     .eq("company_id", companyId)
     .gte("end_date", now)
     .order("start_date", { ascending: true })
     .limit(20);
+  if (error) { logDbReadError("upcoming events", error); return []; }
   return data ?? [];
 }
 
@@ -142,11 +146,12 @@ export async function getUpcomingEvents(companyId: string) {
 
 export async function getEventShifts(eventId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("shifts")
     .select("*, users(first_name, last_name)")
     .eq("event_id", eventId)
     .order("start_time", { ascending: true });
+  if (error) { logDbReadError("event shifts", error); return []; }
   return data ?? [];
 }
 
@@ -204,7 +209,8 @@ export async function getConflictingShifts(
     .lt("start_time", endTime)
     .gt("end_time", startTime);
   if (excludeShiftId) q = q.neq("id", excludeShiftId);
-  const { data } = await q;
+  const { data, error } = await q;
+  if (error) { logDbReadError("conflicting shifts", error); return []; }
   return data ?? [];
 }
 
@@ -218,11 +224,12 @@ export async function deleteShift(shiftId: string) {
 
 export async function getAssets(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("assets")
     .select("*, users(first_name, last_name)")
     .eq("company_id", companyId)
     .order("name", { ascending: true });
+  if (error) { logDbReadError("assets", error); return []; }
   return data ?? [];
 }
 
@@ -331,17 +338,19 @@ export async function getIncidents(companyId: string, status?: string) {
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
   if (status && status !== "all") q = q.eq("status", status);
-  const { data } = await q;
+  const { data, error } = await q;
+  if (error) { logDbReadError("incidents", error); return []; }
   return data ?? [];
 }
 
 export async function getIncident(incidentId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("incidents")
     .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name)")
     .eq("id", incidentId)
     .maybeSingle();
+  if (error) { logDbReadError("incident details", error); return null; }
   return data;
 }
 
@@ -384,11 +393,12 @@ export async function updateIncident(incidentId: string, updates: Record<string,
 
 export async function getIncidentUpdates(incidentId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("incident_updates")
     .select("*, users(first_name, last_name)")
     .eq("incident_id", incidentId)
     .order("created_at", { ascending: true });
+  if (error) { logDbReadError("incident updates", error); return []; }
   return data ?? [];
 }
 
@@ -446,12 +456,13 @@ export async function deleteIncident(incidentId: string) {
 
 export async function getCheckpoints(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("checkpoints")
     .select("*")
     .eq("company_id", companyId)
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
+  if (error) { logDbReadError("checkpoints", error); return []; }
   return data ?? [];
 }
 
@@ -482,12 +493,13 @@ export async function deleteCheckpoint(checkpointId: string) {
 
 export async function getPatrolRoutes(companyId: string) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("patrol_routes")
     .select("*")
     .eq("company_id", companyId)
     .eq("is_active", true)
     .order("name");
+  if (error) { logDbReadError("patrol routes", error); return []; }
   return data ?? [];
 }
 
@@ -538,12 +550,13 @@ export async function logPatrolScan(companyId: string, checkpointId: string, par
 
 export async function getPatrolLogs(companyId: string, limit = 50) {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("patrol_logs")
     .select("*, checkpoints(name, location), users(first_name, last_name)")
     .eq("company_id", companyId)
     .order("scanned_at", { ascending: false })
     .limit(limit);
+  if (error) { logDbReadError("patrol logs", error); return []; }
   return data ?? [];
 }
 
@@ -687,11 +700,12 @@ export async function saveStoryboard(
 
 export async function getEventSiteMapUrl(eventId: string): Promise<string | null> {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .select("site_map_url")
     .eq("id", eventId)
     .maybeSingle();
+  if (error) { logDbReadError("site map URL", error); return null; }
   return data?.site_map_url ?? null;
 }
 
