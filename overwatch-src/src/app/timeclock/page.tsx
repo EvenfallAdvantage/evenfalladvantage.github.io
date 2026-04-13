@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Clock, LogIn, LogOut, History, Loader2, CalendarDays, MapPin, X, Send, ChevronLeft, ChevronRight, AlertCircle, Timer, Flag, Briefcase, ScanLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -79,13 +81,15 @@ type Timesheet = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Shift = any;
 
-export default function TimeClockPage() {
+function TimeClockInner() {
+  const searchParams = useSearchParams();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const authUser = useAuthStore((s) => s.user);
   const companyId = activeCompany?.companyId ?? "";
 
-  const [watchTab, setWatchTab] = useState<"clock" | "mass-clock">("clock");
+  const initialTab = searchParams.get("tab") === "mass-clock" ? "mass-clock" : "clock";
+  const [watchTab, setWatchTab] = useState<"clock" | "mass-clock">(initialTab as "clock" | "mass-clock");
   const isManager = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
 
   const setHeader = usePageHeader((s) => s.setHeader);
@@ -96,15 +100,7 @@ export default function TimeClockPage() {
       "clock": <Clock className="h-5 w-5" />,
       "mass-clock": <ScanLine className="h-5 w-5" />,
     };
-    const titles: Record<string, string> = {
-      "clock": "WATCH LOG",
-      "mass-clock": "MASS CLOCK",
-    };
-    const subtitles: Record<string, string> = {
-      "clock": "Clock in/out and track your duty hours",
-      "mass-clock": "Scan staff badges to clock in/out",
-    };
-    setHeader(titles[watchTab] ?? "WATCH LOG", subtitles[watchTab] ?? "", icons[watchTab] ?? null);
+    setHeader("WATCH LOG", "Clock in/out and track your duty hours", icons[watchTab] ?? <Clock className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader, watchTab]);
 
@@ -746,4 +742,8 @@ export default function TimeClockPage() {
       )}
     </>
   );
+}
+
+export default function TimeClockPage() {
+  return <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}><TimeClockInner /></Suspense>;
 }

@@ -180,6 +180,12 @@ export default function PatrolsPage() {
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
             Clock
           </Link>
+          {isAdmin && (
+            <Link href="/timeclock?tab=mass-clock"
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+              Mass Clock
+            </Link>
+          )}
           <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
             <Footprints className="h-3.5 w-3.5 text-primary" />
             Patrols
