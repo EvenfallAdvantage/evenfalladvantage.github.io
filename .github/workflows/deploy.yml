@@ -45,6 +45,10 @@ jobs:
         working-directory: overwatch-src
         run: npm audit --audit-level=critical
 
+      - name: Lint (non-blocking)
+        working-directory: overwatch-src
+        run: npm run lint 2>&1 | tail -5 || true
+
       - name: Run tests
         working-directory: overwatch-src
         run: npm test
