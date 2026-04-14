@@ -17,6 +17,7 @@ import { NotificationPreferencesCard } from "./components/notification-preferenc
 import { EducationCard } from "./components/education-card";
 import { WorkHistoryCard } from "./components/work-history-card";
 import { ProfileActivityTabs } from "./components/profile-activity-tabs";
+import { ProfileBadgeCard } from "./components/profile-badge-card";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -97,6 +98,19 @@ export default function ProfilePage() {
                 mp={mp}
                 onMpChange={setMp}
                 activeCompanyId={activeCompanyId}
+              />
+            )}
+
+            {user && activeCompanyId && activeCompany && (
+              <ProfileBadgeCard
+                activeCompanyId={activeCompanyId}
+                userId={user.id}
+                firstName={user.firstName}
+                lastName={user.lastName}
+                avatarUrl={user.avatarUrl}
+                companyName={activeCompany.companyName}
+                companyLogo={activeCompany.companyLogo}
+                brandColor={activeCompany.brandColor}
               />
             )}
 

@@ -57,6 +57,25 @@ export async function getOrCreateBadge(
 }
 
 /**
+ * Get the current user's active badge for a company (read-only, does NOT create).
+ * Used on the Profile page so staff can view/print their own badge.
+ */
+export async function getMyBadge(
+  companyId: string,
+  userId: string
+): Promise<StaffBadge | null> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("staff_badges")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("user_id", userId)
+    .is("revoked_at", null)
+    .maybeSingle();
+  return (data as StaffBadge) ?? null;
+}
+
+/**
  * Get all active badges for a company.
  */
 export async function getCompanyBadges(companyId: string): Promise<StaffBadge[]> {
