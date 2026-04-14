@@ -16,9 +16,10 @@ import {
   updateMemberRole, removeMember, getMemberProfileById, getCompanyReadiness,
 } from "@/lib/supabase/db";
 import { exportCSV, MEMBER_COLUMNS } from "@/lib/csv-export";
-import { parseCSV, validateStaffRows, type StaffImportRow } from "@/lib/csv-import";
+import { parseCSVRaw, applyMapping, validateStaffRows, type StaffImportRow } from "@/lib/csv-import";
 import { bulkCreateApplicants } from "@/lib/supabase/db-onboarding";
 import { getOrCreateBadge, getCompanyBadges, type StaffBadge } from "@/lib/supabase/db-badges";
+import { CSVColumnMapper } from "./csv-column-mapper";
 import { MemberProfileModal } from "./member-profile-modal";
 import { ReadinessModal } from "./readiness-modal";
 import { BadgePreviewModal } from "./badge-preview-modal";
@@ -68,6 +69,12 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
+
+  // Column mapping step
+  const [showColumnMapper, setShowColumnMapper] = useState(false);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [csvRawRows, setCsvRawRows] = useState<string[][]>([]);
+  const [csvParseErrors, setCsvParseErrors] = useState<{ line: number; message: string }[]>([]);
 
   // Bulk badge generation & download
   const [bulkGenerating, setBulkGenerating] = useState(false);
@@ -130,15 +137,33 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
     const reader = new FileReader();
     reader.onload = () => {
       const text = reader.result as string;
-      const parsed = parseCSV(text);
-      const { valid, errors } = validateStaffRows(parsed.rows);
-      setImportPreview(valid);
-      setImportErrors([...parsed.errors, ...errors]);
+      const { headers, rows, errors } = parseCSVRaw(text);
+      if (headers.length === 0) {
+        setImportErrors(errors.length > 0 ? errors : [{ line: 0, message: "No columns found in CSV" }]);
+        setImportPreview([]);
+        setImportResult(null);
+        setShowImport(true);
+        return;
+      }
+      setCsvHeaders(headers);
+      setCsvRawRows(rows);
+      setCsvParseErrors(errors);
+      setShowColumnMapper(true);
+      setShowImport(false);
       setImportResult(null);
-      setShowImport(true);
     };
     reader.readAsText(file);
     if (csvInputRef.current) csvInputRef.current.value = "";
+  }
+
+  function handleMappingConfirmed(mapping: Record<string, string | null>) {
+    setShowColumnMapper(false);
+    const mapped = applyMapping(csvRawRows, csvHeaders, mapping);
+    const { valid, errors } = validateStaffRows(mapped);
+    setImportPreview(valid);
+    setImportErrors([...csvParseErrors, ...errors]);
+    setImportResult(null);
+    setShowImport(true);
   }
 
   async function handleImport() {
@@ -266,6 +291,16 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
           )}
         </div>
       </div>
+
+      {/* CSV Column Mapping Step */}
+      {showColumnMapper && (
+        <CSVColumnMapper
+          csvHeaders={csvHeaders}
+          csvPreviewRows={csvRawRows.slice(0, 3)}
+          onConfirm={handleMappingConfirmed}
+          onCancel={() => setShowColumnMapper(false)}
+        />
+      )}
 
       {/* CSV Import Preview Modal */}
       {showImport && (

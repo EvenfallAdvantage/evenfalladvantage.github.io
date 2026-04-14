@@ -64,6 +64,86 @@ export function parseCSV(text: string): CSVParseResult<Record<string, string>> {
   return { rows, errors, headers };
 }
 
+// ─── Raw CSV parsing (for column mapping flow) ──────
+
+export type CSVRawResult = {
+  headers: string[];
+  rows: string[][];
+  errors: { line: number; message: string }[];
+};
+
+/** Parse CSV text into raw headers + row arrays (no field mapping). */
+export function parseCSVRaw(text: string): CSVRawResult {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return { headers: [], rows: [], errors: [{ line: 0, message: "Empty file" }] };
+
+  const headers = parseCSVLine(lines[0]);
+  const rows: string[][] = [];
+  const errors: { line: number; message: string }[] = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const fields = parseCSVLine(lines[i]);
+    if (fields.length !== headers.length) {
+      errors.push({ line: i + 1, message: `Expected ${headers.length} fields, got ${fields.length}` });
+      continue;
+    }
+    rows.push(fields);
+  }
+
+  return { headers, rows, errors };
+}
+
+// ─── Column mapping helpers ─────────────────────────
+
+export const STAFF_FIELDS = [
+  { key: "first_name", label: "First Name", required: true },
+  { key: "last_name", label: "Last Name", required: true },
+  { key: "email", label: "Email", required: true },
+  { key: "phone", label: "Phone", required: false },
+  { key: "role", label: "Role", required: false },
+  { key: "title", label: "Title", required: false },
+  { key: "guard_card_number", label: "Guard Card Number", required: false },
+] as const;
+
+/** Suggest auto-mappings from CSV headers to our staff fields via fuzzy matching. */
+export function suggestMapping(csvHeaders: string[]): Record<string, string | null> {
+  const mapping: Record<string, string | null> = {};
+  for (const field of STAFF_FIELDS) {
+    const normalized = field.key.toLowerCase().replace(/_/g, "");
+    const match = csvHeaders.find((h) => {
+      const hn = h.toLowerCase().replace(/[_\s\-]/g, "");
+      return hn === normalized || hn.includes(normalized) || normalized.includes(hn);
+    });
+    mapping[field.key] = match ?? null;
+  }
+  return mapping;
+}
+
+/** Transform raw CSV rows into StaffImportRow[] using a user-confirmed column mapping. */
+export function applyMapping(
+  rows: string[][],
+  headers: string[],
+  mapping: Record<string, string | null>,
+): StaffImportRow[] {
+  return rows.map((row) => {
+    const get = (field: string): string => {
+      const header = mapping[field];
+      if (!header) return "";
+      const idx = headers.indexOf(header);
+      return idx >= 0 ? (row[idx] ?? "").trim() : "";
+    };
+    return {
+      first_name: get("first_name"),
+      last_name: get("last_name"),
+      email: get("email"),
+      phone: get("phone") || undefined,
+      role: get("role") || "staff",
+      title: get("title") || undefined,
+      guard_card_number: get("guard_card_number") || undefined,
+    };
+  });
+}
+
 // ─── Staff import validation ─────────────────────────
 
 export type StaffImportRow = {
