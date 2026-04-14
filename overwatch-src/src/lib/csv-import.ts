@@ -110,9 +110,12 @@ export const STAFF_FIELDS = [
   { key: "region", label: "Region", required: false },
 ] as const;
 
+// Headers that should NEVER match any individual name field
+const SKIP_HEADERS = new Set(["full name", "fullname", "name", "full_name"]);
+
 const FIELD_ALIASES: Record<string, string[]> = {
-  first_name: ["first", "legal name", "fname", "given"],
-  last_name: ["last", "legal last", "lname", "surname", "family"],
+  first_name: ["first name", "first", "legal name", "fname", "given name", "given"],
+  last_name: ["last name", "last", "legal last name", "legal last", "lname", "surname", "family name", "family"],
   email: ["email", "e-mail", "mail"],
   phone: ["phone", "tel", "mobile", "cell", "phone #", "phone#"],
   nickname: ["handle", "moniker", "nickname", "callsign", "alias", "handle/moniker"],
@@ -135,14 +138,14 @@ export function suggestMapping(csvHeaders: string[]): Record<string, string | nu
     const match = csvHeaders.find((h) => {
       const hn = h.toLowerCase().replace(/[_\s\-]/g, "");
       const hLower = h.toLowerCase().trim();
+      // Skip ambiguous headers for name fields
+      if ((field.key === "first_name" || field.key === "last_name") && SKIP_HEADERS.has(hLower)) return false;
       // Exact key match (stripped)
       if (hn === normalized) return true;
-      // Substring match
-      if (hn.includes(normalized) || normalized.includes(hn)) return true;
-      // Alias match (compare against lowercased header with original spacing)
+      // Alias match first (more specific, prefer these)
       for (const alias of aliases) {
         const an = alias.replace(/[_\s\-]/g, "");
-        if (hn === an || hn.includes(an) || hLower === alias) return true;
+        if (hn === an || hLower === alias) return true;
       }
       return false;
     });
