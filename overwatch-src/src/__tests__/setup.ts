@@ -1,4 +1,5 @@
 // Test setup for Vitest (node environment)
+import "@testing-library/jest-dom";
 
 // Mock crypto.randomUUID if not available
 if (!globalThis.crypto?.randomUUID) {
