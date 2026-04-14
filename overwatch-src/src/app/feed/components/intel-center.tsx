@@ -45,7 +45,21 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
     } catch {}
   }, [activeCompanyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    let cancelled = false;
+    Promise.all([getCompanyStats(activeCompanyId), getIntelData(activeCompanyId)])
+      .then(async ([cs, id]) => {
+        if (cancelled) return;
+        setCompanyStats(cs);
+        setIntel(id);
+        try {
+          const oi = await getOwnerIntel(activeCompanyId);
+          if (!cancelled) setOwnerIntel(oi);
+        } catch {}
+      }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeCompanyId]);
 
   if (!companyStats || !intel) return null;
 

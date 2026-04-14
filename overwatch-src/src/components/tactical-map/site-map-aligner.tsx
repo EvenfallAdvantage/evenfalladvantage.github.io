@@ -54,61 +54,58 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
     setImagePoints([]);
     setGlobePoints([]);
     setStep("pick-image");
+    alignedRef.current = false;
   };
 
-  // When globe points are complete, compute bounds
+  // Derive "done" status from point counts (avoid setState in effect)
+  const isDone = globePoints.length === 3 && imagePoints.length === 3;
+  const effectiveStep: Step = isDone ? "done" : step;
+
+  // When globe points are complete, compute bounds and notify parent
+  const alignedRef = useRef(false);
   useEffect(() => {
-    if (globePoints.length === 3 && imagePoints.length === 3) {
-      // Compute the bounding rectangle from the 3 geo points
-      // For a simple overlay, we use the min/max lat/lng as the drape rectangle
-      // A full affine warp would require Cesium custom shaders — this is the practical approach
-      const lats = globePoints.map(p => p.lat);
-      const lngs = globePoints.map(p => p.lng);
+    if (!isDone || alignedRef.current) return;
+    alignedRef.current = true;
 
-      // Compute extent: use the spread of the 3 points to estimate the full image bounds
-      const latSpread = Math.max(...lats) - Math.min(...lats);
-      const lngSpread = Math.max(...lngs) - Math.min(...lngs);
+    // Compute the bounding rectangle from the 3 geo points
+    const lats = globePoints.map(p => p.lat);
+    const lngs = globePoints.map(p => p.lng);
 
-      // Estimate full bounds by scaling from the point spread to the full image
-      // Image points are 0-1 normalized — use them to compute the full extent
-      const imgXs = imagePoints.map(p => p.x);
-      const imgYs = imagePoints.map(p => p.y);
-      const imgXSpread = Math.max(...imgXs) - Math.min(...imgXs);
-      const imgYSpread = Math.max(...imgYs) - Math.min(...imgYs);
+    const latSpread = Math.max(...lats) - Math.min(...lats);
+    const lngSpread = Math.max(...lngs) - Math.min(...lngs);
 
-      // Scale geo spread to full image (0-1)
-      const fullLngSpread = imgXSpread > 0.01 ? lngSpread / imgXSpread : lngSpread * 3;
-      const fullLatSpread = imgYSpread > 0.01 ? latSpread / imgYSpread : latSpread * 3;
+    const imgXs = imagePoints.map(p => p.x);
+    const imgYs = imagePoints.map(p => p.y);
+    const imgXSpread = Math.max(...imgXs) - Math.min(...imgXs);
+    const imgYSpread = Math.max(...imgYs) - Math.min(...imgYs);
 
-      // Estimate center and full bounds
-      const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-      const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+    const fullLngSpread = imgXSpread > 0.01 ? lngSpread / imgXSpread : lngSpread * 3;
+    const fullLatSpread = imgYSpread > 0.01 ? latSpread / imgYSpread : latSpread * 3;
 
-      // Offset to compute full image bounds
-      // Image Y is inverted (top=0, bottom=1) vs lat (south=low, north=high)
-      const avgImgX = (Math.min(...imgXs) + Math.max(...imgXs)) / 2;
-      const avgImgY = (Math.min(...imgYs) + Math.max(...imgYs)) / 2;
-      const offsetLng = centerLng - (avgImgX - 0.5) * fullLngSpread;
-      const offsetLat = centerLat + (avgImgY - 0.5) * fullLatSpread; // inverted Y
+    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
 
-      const bounds = {
-        west: offsetLng - fullLngSpread / 2,
-        east: offsetLng + fullLngSpread / 2,
-        south: offsetLat - fullLatSpread / 2,
-        north: offsetLat + fullLatSpread / 2,
-      };
+    const avgImgX = (Math.min(...imgXs) + Math.max(...imgXs)) / 2;
+    const avgImgY = (Math.min(...imgYs) + Math.max(...imgYs)) / 2;
+    const offsetLng = centerLng - (avgImgX - 0.5) * fullLngSpread;
+    const offsetLat = centerLat + (avgImgY - 0.5) * fullLatSpread;
 
-      setStep("done");
-      onAlign(bounds);
-    }
-  }, [globePoints, imagePoints, onAlign]);
+    const bounds = {
+      west: offsetLng - fullLngSpread / 2,
+      east: offsetLng + fullLngSpread / 2,
+      south: offsetLat - fullLatSpread / 2,
+      north: offsetLat + fullLatSpread / 2,
+    };
+
+    onAlign(bounds);
+  }, [isDone, globePoints, imagePoints, onAlign]);
 
   // Expose a method for the parent to feed globe clicks.
   // Uses a ref-backed approach so the window function is always current.
-  const stepRef = useRef(step);
+  const stepRef = useRef(effectiveStep);
   const globePointsRef = useRef(globePoints);
-  stepRef.current = step;
-  globePointsRef.current = globePoints;
+  useEffect(() => { stepRef.current = effectiveStep; });
+  useEffect(() => { globePointsRef.current = globePoints; });
 
   useEffect(() => {
     const handler = (lat: number, lng: number) => {
@@ -160,20 +157,20 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
   }, []);
 
   return (
-    <div className={`absolute inset-0 z-20 ${step === "pick-globe" ? "pointer-events-none" : ""}`}>
+    <div className={`absolute inset-0 z-20 ${effectiveStep === "pick-globe" ? "pointer-events-none" : ""}`}>
       {/* Step indicator */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-xl bg-[#0f1a2e]/95 backdrop-blur-sm border border-white/10 px-4 py-2 pointer-events-auto">
-        <div className={`flex items-center gap-1.5 text-xs font-mono ${step === "pick-image" ? "text-amber-400" : "text-white/30"}`}>
+        <div className={`flex items-center gap-1.5 text-xs font-mono ${effectiveStep === "pick-image" ? "text-amber-400" : "text-white/30"}`}>
           <MapPin className="h-3.5 w-3.5" />
           <span>1. Pick 3 image points</span>
         </div>
         <span className="text-white/20">→</span>
-        <div className={`flex items-center gap-1.5 text-xs font-mono ${step === "pick-globe" ? "text-cyan-400" : "text-white/30"}`}>
+        <div className={`flex items-center gap-1.5 text-xs font-mono ${effectiveStep === "pick-globe" ? "text-cyan-400" : "text-white/30"}`}>
           <Crosshair className="h-3.5 w-3.5" />
           <span>2. Pick 3 globe points</span>
         </div>
         <span className="text-white/20">→</span>
-        <div className={`flex items-center gap-1.5 text-xs font-mono ${step === "done" ? "text-green-400" : "text-white/30"}`}>
+        <div className={`flex items-center gap-1.5 text-xs font-mono ${effectiveStep === "done" ? "text-green-400" : "text-white/30"}`}>
           <Check className="h-3.5 w-3.5" />
           <span>3. Aligned</span>
         </div>
@@ -189,7 +186,7 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
       </div>
 
       {/* Image picking overlay */}
-      {step === "pick-image" && (
+      {effectiveStep === "pick-image" && (
         <div className="absolute inset-0 z-20 bg-black/80 flex items-center justify-center">
           <div className="relative max-w-[80vw] max-h-[80vh]">
             <p className="text-center text-xs text-amber-400 font-mono mb-2">
@@ -218,7 +215,7 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
       )}
 
       {/* Globe picking overlay (just the instruction banner — globe is visible underneath) */}
-      {step === "pick-globe" && (
+      {effectiveStep === "pick-globe" && (
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 rounded-xl bg-cyan-500/10 border border-cyan-500/30 px-4 py-2">
           <p className="text-xs text-cyan-400 font-mono">
             Now click the same 3 points on the globe ({globePoints.length}/3)

@@ -49,7 +49,35 @@ export function BadgeGenerator({ companyId, companyName, companyLogo, brandColor
     setLoading(false);
   }, [companyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [memberData, badgeData] = await Promise.all([
+          getCompanyMembers(companyId),
+          getCompanyBadges(companyId),
+        ]);
+        if (cancelled) return;
+        setMembers(memberData as Member[]);
+        const badgeMap: Record<string, StaffBadge> = {};
+        const qrMap: Record<string, string> = {};
+        for (const b of badgeData) {
+          badgeMap[b.user_id] = b;
+          try {
+            qrMap[b.user_id] = await QRCode.toDataURL(b.qr_data, {
+              width: 200, margin: 1, color: { dark: "#000000", light: "#ffffff" }, errorCorrectionLevel: "H",
+            });
+          } catch {}
+        }
+        if (!cancelled) {
+          setBadges(badgeMap);
+          setQrImages(qrMap);
+        }
+      } catch {}
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [companyId]);
 
   async function generateBadge(member: Member) {
     const userId = member.user_id || member.users?.id;

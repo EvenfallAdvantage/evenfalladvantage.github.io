@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { ActiveTool } from "../map-tools";
 import { RANGE_RING_RADII_M } from "../map-tools";
 import { clearLineOfSight } from "../terrain-tools";
@@ -20,37 +20,43 @@ export function useMapTools(
   const [elevationStatus, setElevationStatus] = useState<string | null>(null);
   const losEntityIdsRef = useRef<string[]>([]);
 
-  // Clean up tool entities when tool changes
-  useEffect(() => {
+  // Clean up tool entities when switching tools — done eagerly in the callback
+  // rather than in an effect, to avoid synchronous setState in effects.
+  const activeToolRef = useRef(activeTool);
+  useEffect(() => { activeToolRef.current = activeTool; });
+  const switchTool = useCallback((nextTool: ActiveTool) => {
+    const prevTool = activeToolRef.current;
+    if (prevTool === nextTool) return;
     const viewer = viewerRef.current;
-    if (!viewer) return;
-
-    if (activeTool !== "measure") {
-      ["measure-p1", "measure-p2", "measure-line"].forEach(id => { try { viewer.entities.removeById(id); } catch {} });
-      setMeasurePoint1(null);
-      setMeasureResult(null);
+    if (viewer) {
+      if (prevTool === "measure") {
+        ["measure-p1", "measure-p2", "measure-line"].forEach(id => { try { viewer.entities.removeById(id); } catch {} });
+      }
+      if (prevTool === "range-rings") {
+        RANGE_RING_RADII_M.forEach((_: number, i: number) => { try { viewer.entities.removeById(`ring-${i}`); viewer.entities.removeById(`ring-label-${i}`); } catch {} });
+        try { viewer.entities.removeById("ring-center"); } catch {}
+      }
+      if (prevTool === "los") {
+        clearLineOfSight(viewer, losEntityIdsRef.current);
+        try { viewer.entities.removeById("los-click-1"); } catch {}
+        losEntityIdsRef.current = [];
+      }
+      if (prevTool === "elevation") {
+        try { viewer.entities.removeById("elev-click-1"); viewer.entities.removeById("elev-line"); } catch {}
+      }
     }
-    if (activeTool !== "range-rings") {
-      RANGE_RING_RADII_M.forEach((_: number, i: number) => { try { viewer.entities.removeById(`ring-${i}`); viewer.entities.removeById(`ring-label-${i}`); } catch {} });
-      try { viewer.entities.removeById("ring-center"); } catch {}
-      setRangeCenter(null);
-    }
-    if (activeTool !== "los") {
-      clearLineOfSight(viewer, losEntityIdsRef.current);
-      try { viewer.entities.removeById("los-click-1"); } catch {}
-      losEntityIdsRef.current = [];
-      setLosPoint1(null);
-      setLosResult(null);
-    }
-    if (activeTool !== "elevation") {
-      try { viewer.entities.removeById("elev-click-1"); viewer.entities.removeById("elev-line"); } catch {}
-      setElevPoint1(null);
-      setElevationStatus(null);
-    }
-  }, [activeTool, viewerRef]);
+    setActiveTool(nextTool);
+    setMeasurePoint1(null);
+    setMeasureResult(null);
+    setRangeCenter(null);
+    setLosPoint1(null);
+    setLosResult(null);
+    setElevPoint1(null);
+    setElevationStatus(null);
+  }, [viewerRef]);
 
   return {
-    activeTool, setActiveTool,
+    activeTool, setActiveTool: switchTool,
     measureResult, setMeasureResult,
     measurePoint1, setMeasurePoint1,
     rangeCenter, setRangeCenter,

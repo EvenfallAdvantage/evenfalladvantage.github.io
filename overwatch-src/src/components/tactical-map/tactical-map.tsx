@@ -71,6 +71,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   } = useMapTools(viewerRef, cesiumRef);
   const [cameraHeading, setCameraHeading] = useState(0); // radians
   const [cameraPitch, setCameraPitch] = useState(-0.5);
+  const [containerWidth, setContainerWidth] = useState(800);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,6 +117,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     timeMachineOpen,
   });
 
+  // Ref to hold setSelectedEntity — declared before the init effect but
+  // assigned after useCesiumClickHandler, so the init effect can reference it
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const setSelectedEntityRef = useRef<any>(null);
+
   // ─── Initialize Cesium Viewer ────────────────────────
   useEffect(() => {
     if (!containerRef.current) return;
@@ -153,7 +159,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).__deleteAnnotation = (annId: string) => {
           deleteAnnotation(annId).then(() => {
-            setSelectedEntity(null);
+            setSelectedEntityRef.current?.(null);
           });
         };
 
@@ -165,7 +171,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           const doc = docs.find((d: OperationDocument) => d.doc_type === docType);
           if (doc) {
             setViewingDoc(doc);
-            setSelectedEntity(null);
+            setSelectedEntityRef.current?.(null);
           }
         };
 
@@ -174,7 +180,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         (window as any).__openStaffDM = (userId: string, name: string) => {
           setDmTarget({ userId, name: name || "Staff" });
           setDmText("");
-          setSelectedEntity(null);
+          setSelectedEntityRef.current?.(null);
         };
 
         // Add 3D buildings
@@ -273,6 +279,17 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     aligningOp,
     companyId, isAdmin, onSelectOperation,
   });
+  useEffect(() => { setSelectedEntityRef.current = setSelectedEntity; });
+
+  // Track container width for popup positioning (avoids ref access during render)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setContainerWidth(el.clientWidth);
+    const ro = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Reset to north-up top-down view
   const handleResetNorth = useCallback(() => {
@@ -360,7 +377,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       {selectedEntity && (
         <EntityPopup
           entity={selectedEntity}
-          containerWidth={containerRef.current?.clientWidth ?? 800}
+          containerWidth={containerWidth}
           onClose={() => setSelectedEntity(null)}
         />
       )}

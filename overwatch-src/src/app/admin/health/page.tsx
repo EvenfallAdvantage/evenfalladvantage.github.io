@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getLegacyClient } from "@/lib/legacy-bridge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,8 +45,7 @@ export default function HealthPage() {
   const [services, setServices] = useState<ServiceStatus[]>(INITIAL_SERVICES);
   const [running, setRunning] = useState(false);
 
-  async function runChecks() {
-    setRunning(true);
+  async function runChecksAsync() {
     const now = new Date().toISOString();
     const updated = [...INITIAL_SERVICES];
 
@@ -110,17 +109,27 @@ export default function HealthPage() {
       detail: cdnResult.ok ? `CDN OK (${cdnResult.ms}ms)` : "Asset fetch failed",
     };
 
-    setServices(updated);
+    return { services: updated };
+  }
+
+  async function runChecks() {
+    setRunning(true);
+    const result = await runChecksAsync();
+    setServices(result.services);
     setRunning(false);
   }
 
-  const didRun = useRef(false);
   useEffect(() => {
-    if (!didRun.current) {
-      didRun.current = true;
-      runChecks();
-    }
-  });
+    let cancelled = false;
+    (async () => {
+      const result = await runChecksAsync();
+      if (!cancelled) {
+        setServices(result.services);
+        setRunning(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const overallStatus = services.every((s) => s.status === "healthy")
     ? "ALL SYSTEMS OPERATIONAL"

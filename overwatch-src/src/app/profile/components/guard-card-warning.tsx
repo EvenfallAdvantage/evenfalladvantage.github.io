@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import type { MemberProfile } from "./types";
 
@@ -8,8 +9,9 @@ interface Props {
 }
 
 export function GuardCardWarning({ mp }: Props) {
+  const [now] = useState(() => Date.now());
   const gcExpiry = mp?.guard_card_expiry ? new Date(mp.guard_card_expiry) : null;
-  const gcDaysLeft = gcExpiry ? Math.ceil((gcExpiry.getTime() - Date.now()) / 86400000) : null;
+  const gcDaysLeft = gcExpiry ? Math.ceil((gcExpiry.getTime() - now) / 86400000) : null;
   const gcExpired = gcDaysLeft !== null && gcDaysLeft < 0;
   const gcExpiringSoon = gcDaysLeft !== null && gcDaysLeft >= 0 && gcDaysLeft <= 30;
 

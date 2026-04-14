@@ -13,7 +13,7 @@ export default function MobileHeroRadar() {
   const visibleRef = useRef(true);
   const accentRef = useRef<string>("");
 
-  const draw = useCallback(() => {
+  const draw = useCallback(function drawFrame() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -150,7 +150,7 @@ export default function MobileHeroRadar() {
     ctx.globalAlpha = 1;
 
     if (visibleRef.current) {
-      animRef.current = requestAnimationFrame(draw);
+      animRef.current = requestAnimationFrame(drawFrame);
     }
   }, []);
 

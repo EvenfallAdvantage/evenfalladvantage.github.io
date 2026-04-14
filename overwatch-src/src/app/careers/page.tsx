@@ -12,17 +12,20 @@ function CareersInner() {
   const searchParams = useSearchParams();
   const slug = searchParams.get("company") ?? "";
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!slug);
   const [company, setCompany] = useState<{ id: string; name: string; logo_url: string | null; brand_color: string; slug: string } | null>(null);
   const [postings, setPostings] = useState<JobPosting[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!slug) { setLoading(false); return; }
+    if (!slug) return;
+    let cancelled = false;
     getActivePostingsBySlug(slug).then((r) => {
+      if (cancelled) return;
       if (r) { setCompany(r.company); setPostings(r.postings); }
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [slug]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;

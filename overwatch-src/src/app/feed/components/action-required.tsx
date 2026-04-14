@@ -23,7 +23,14 @@ export function ActionRequired({ activeCompanyId }: ActionRequiredProps) {
     } catch {}
   }, [activeCompanyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    let cancelled = false;
+    getOwnerIntel(activeCompanyId).then((oi) => {
+      if (!cancelled) setOwnerIntel(oi);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeCompanyId]);
 
   if (!ownerIntel?.approvals || ownerIntel.approvals.total === 0) return null;
 

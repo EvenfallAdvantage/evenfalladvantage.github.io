@@ -25,7 +25,14 @@ export function KpiCards({ activeCompanyId }: KpiCardsProps) {
     } catch {}
   }, [activeCompanyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    let cancelled = false;
+    getDashboardMetrics(activeCompanyId).then((m) => {
+      if (!cancelled) setMetrics(m);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeCompanyId]);
 
   if (!metrics) return null;
 

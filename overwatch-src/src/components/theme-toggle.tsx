@@ -8,6 +8,7 @@ export function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard SSR hydration pattern for next-themes
   useEffect(() => { setMounted(true); }, []);
   if (!mounted) return null;
 

@@ -18,8 +18,10 @@ export function TimeMachine({ open, onClose, onTimeChange, maxHours = 48 }: Time
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const maxOffsetMs = maxHours * 60 * 60 * 1000;
 
+  // Capture mount time once, use it as the "now" baseline for replay calculations
+  const [mountTime] = useState(() => Date.now());
   // Current replay timestamp
-  const replayTime = Date.now() + offsetMs;
+  const replayTime = mountTime + offsetMs;
 
   // Playback loop
   useEffect(() => {
@@ -47,12 +49,13 @@ export function TimeMachine({ open, onClose, onTimeChange, maxHours = 48 }: Time
     onTimeChange(replayTime);
   }, [replayTime, onTimeChange]);
 
-  // Reset when closed
+  // Reset when closed — uses cleanup to reset on close, avoiding synchronous setState in effect
   useEffect(() => {
-    if (!open) {
+    if (!open) return;
+    return () => {
       setPlaying(false);
       setOffsetMs(0);
-    }
+    };
   }, [open]);
 
   if (!open) return null;

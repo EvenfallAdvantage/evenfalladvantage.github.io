@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { CalendarDays, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,18 +14,29 @@ interface UpcomingShiftProps {
 export function UpcomingShift({ activeCompanyId }: UpcomingShiftProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [nextShift, setNextShift] = useState<any>(null);
+  const [now] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") return;
     try {
       const allShifts = await getUserShifts(activeCompanyId);
-      const now = new Date();
-      const upcoming = allShifts.filter((s: { start_time: string }) => parseUTC(s.start_time) > now);
+      const current = new Date();
+      const upcoming = allShifts.filter((s: { start_time: string }) => parseUTC(s.start_time) > current);
       setNextShift(upcoming[0] ?? null);
     } catch {}
   }, [activeCompanyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    let cancelled = false;
+    getUserShifts(activeCompanyId).then((allShifts) => {
+      if (cancelled) return;
+      const current = new Date();
+      const upcoming = allShifts.filter((s: { start_time: string }) => parseUTC(s.start_time) > current);
+      setNextShift(upcoming[0] ?? null);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeCompanyId]);
 
   if (!nextShift) return null;
 
@@ -41,7 +52,7 @@ export function UpcomingShift({ activeCompanyId }: UpcomingShiftProps) {
               <h3 className="text-sm font-semibold">Upcoming Shift</h3>
               <Badge className="text-[9px] bg-blue-500/15 text-blue-400 border-0">{
                 (() => {
-                  const ms = parseUTC(nextShift.start_time).getTime() - Date.now();
+                  const ms = parseUTC(nextShift.start_time).getTime() - now;
                   const hrs = Math.floor(ms / 3600000);
                   if (hrs < 1) return "Starting soon";
                   if (hrs < 24) return `In ${hrs}h`;

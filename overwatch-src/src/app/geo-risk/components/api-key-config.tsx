@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Key, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,19 +12,12 @@ import {
 } from "@/lib/crime-incidents";
 
 export function ApiKeyConfig() {
-  const [fwKeyInput, setFwKeyInput] = useState("");
+  const [fwKeyInput, setFwKeyInput] = useState(() => getFamilyWatchdogKey());
   const [showFwKey, setShowFwKey] = useState(false);
-  const [fwKeyConfigured, setFwKeyConfigured] = useState(false);
-  const [cmKeyInput, setCmKeyInput] = useState("");
+  const [fwKeyConfigured, setFwKeyConfigured] = useState(() => hasFamilyWatchdogKey());
+  const [cmKeyInput, setCmKeyInput] = useState(() => getCrimeometerKey());
   const [showCmKey, setShowCmKey] = useState(false);
-  const [cmKeyConfigured, setCmKeyConfigured] = useState(false);
-
-  useEffect(() => {
-    setFwKeyConfigured(hasFamilyWatchdogKey());
-    setFwKeyInput(getFamilyWatchdogKey());
-    setCmKeyConfigured(hasCrimeometerKey());
-    setCmKeyInput(getCrimeometerKey());
-  }, []);
+  const [cmKeyConfigured, setCmKeyConfigured] = useState(() => hasCrimeometerKey());
 
   return (
     <>

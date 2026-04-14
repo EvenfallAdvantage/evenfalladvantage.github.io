@@ -864,6 +864,7 @@ export default function StoryboardEditor({
         )}
 
         {/* ── New pin form popover (rendered as fixed overlay to avoid clipping) ── */}
+        {/* eslint-disable-next-line react-hooks/refs -- Popover position requires synchronous DOM measurement */}
         {newPinPos && imageLoaded && (() => {
           const container = containerRef.current;
           const cRect = container?.getBoundingClientRect();
@@ -894,6 +895,7 @@ export default function StoryboardEditor({
         })()}
 
         {/* ── Selected pin detail popover (fixed to avoid clipping) ── */}
+        {/* eslint-disable-next-line react-hooks/refs -- Popover position requires synchronous DOM measurement */}
         {selectedPin && !editingPinId && imageLoaded && (() => {
           const img = imageRef.current;
           const iRect = img?.getBoundingClientRect();
@@ -984,6 +986,7 @@ export default function StoryboardEditor({
         })()}
 
         {/* ── Editing pin form popover (fixed to avoid clipping) ── */}
+        {/* eslint-disable-next-line react-hooks/refs -- Popover position requires synchronous DOM measurement */}
         {editingPin && imageLoaded && (() => {
           const img = imageRef.current;
           const iRect = img?.getBoundingClientRect();

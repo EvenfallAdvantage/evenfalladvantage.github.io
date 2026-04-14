@@ -38,7 +38,14 @@ export default function DirectoryPage() {
     }
   }, [activeCompanyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    getCompanyMembers(activeCompanyId).then((data) => {
+      if (!cancelled) setMembers(data as unknown as Member[]);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeCompanyId]);
 
   // Realtime — roster updates when members join/leave/change roles
   useEffect(() => {
