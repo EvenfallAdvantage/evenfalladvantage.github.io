@@ -60,6 +60,8 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
   const [updatingApp, setUpdatingApp] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkConverting, setBulkConverting] = useState(false);
+  const [convertProgress, setConvertProgress] = useState("");
 
   const loadData = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -174,6 +176,34 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
     setBulkDeleting(false);
   }
 
+  async function handleConvertAllHired() {
+    if (!activeCompanyId || activeCompanyId === "pending") return;
+    const hired = applicants.filter((a: Applicant) => a.status === "hired" && !a.converted_user_id);
+    if (hired.length === 0) { toast.info("No unconverted hired applicants"); return; }
+    if (!confirm(`Convert ${hired.length} hired applicant${hired.length > 1 ? "s" : ""} to roster members?\n\nThis will create user accounts and add them to your team.`)) return;
+    setBulkConverting(true);
+    let converted = 0;
+    let errors = 0;
+    for (const a of hired) {
+      setConvertProgress(`Converting ${converted + errors + 1}/${hired.length}...`);
+      try {
+        await convertApplicantToUser(a.id, activeCompanyId);
+        converted++;
+      } catch (err) {
+        console.error(`Failed to convert ${a.email}:`, err);
+        errors++;
+      }
+    }
+    setConvertProgress("");
+    setBulkConverting(false);
+    setApplicants(await getApplicants(activeCompanyId));
+    if (errors > 0) {
+      toast.warning(`Converted ${converted}, failed ${errors} (likely duplicate emails)`);
+    } else {
+      toast.success(`Converted ${converted} applicant${converted > 1 ? "s" : ""} to roster`);
+    }
+  }
+
   function toggleSelectAll() {
     if (selected.size === filteredApplicants.length) {
       setSelected(new Set());
@@ -194,10 +224,17 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
           </button>
         ))}
         {canManage && (
-          <Button size="sm" className="ml-auto gap-1.5" onClick={() => setShowAddApp(!showAddApp)}>
-            {showAddApp ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-            {showAddApp ? "Cancel" : "Add Applicant"}
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            {applicants.filter((a: Applicant) => a.status === "hired" && !a.converted_user_id).length > 0 && (
+              <Button size="sm" variant="outline" className="gap-1.5 text-green-500 border-green-500/30 hover:bg-green-500/10" onClick={handleConvertAllHired} disabled={bulkConverting}>
+                {bulkConverting ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {convertProgress}</> : <><ArrowRight className="h-3.5 w-3.5" /> Convert Hired to Roster ({applicants.filter((a: Applicant) => a.status === "hired" && !a.converted_user_id).length})</>}
+              </Button>
+            )}
+            <Button size="sm" className="gap-1.5" onClick={() => setShowAddApp(!showAddApp)}>
+              {showAddApp ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {showAddApp ? "Cancel" : "Add Applicant"}
+            </Button>
+          </div>
         )}
       </div>
 
