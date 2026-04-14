@@ -4,7 +4,7 @@
 **Repo:** https://github.com/EvenfallAdvantage/evenfalladvantage.github.io
 **Working Directory:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io`
 **CI/CD:** Build & Deploy passing on GitHub Pages.
-**Tests:** 210/210 passing, 0 TypeScript errors.
+**Tests:** 410/410 passing, 0 TypeScript errors.
 
 ---
 
@@ -58,9 +58,33 @@ Extracted 8 tab components and 2 modals into `app/admin/staff/components/`:
 - `posting-form-modal.tsx` (104 lines) — new/edit posting form
 - Each tab self-loads its data on mount; parent is thin orchestrator with tab bar + badge counts
 
-### TEST COVERAGE: 58 → 210 Tests
+#### admin/events/page.tsx: 1,674 → 217 lines (−87%)
+Extracted into `app/admin/events/components/`:
+- `create-wizard.tsx` (441 lines) — 5-step operation creation wizard
+- `operation-detail.tsx` (940 lines) — expanded op view with shifts, docs, storyboard, calendar, activity
+- `conflict-warning-modal.tsx` (51 lines) — shift conflict dialog
+- `shared.tsx` (99 lines) — types, constants, helper functions
 
-#### New Test Files (7)
+#### feed/page.tsx: 1,121 → 69 lines (−94%)
+Extracted 10 components into `app/feed/components/`:
+- `intel-center.tsx` (332 lines) — leadership dashboard with charts
+- `duty-status.tsx` (279 lines) — clock in/out widget + modal
+- `pinned-briefing.tsx` (146 lines) — pinned posts with reactions
+- `onboarding-banner.tsx` (131 lines) — no-company banner + create modal
+- `shared.tsx` (135 lines) — types, utilities, chart components
+- Plus 5 smaller components (upcoming shift, KPI cards, actions, tools)
+
+#### incidents/page.tsx: 981 → 131 lines (−87%)
+Extracted 5 components into `app/incidents/components/`:
+- `incident-list.tsx` (431 lines) — cards, expand/detail, edit, timeline
+- `incident-create-form.tsx` (437 lines) — full creation form + site map pin
+- `incident-filters.tsx` (59 lines) — search + status filter + stats
+- `site-map-mark-modal.tsx` (83 lines) / `site-map-view-modal.tsx` (64 lines)
+- `constants.ts` (46 lines) — shared types and enums
+
+### TEST COVERAGE: 58 → 410 Tests
+
+#### New Test Files (14)
 - `helpers/mock-supabase.ts` — reusable Supabase client mock factory with chainable query builder
 - `security-full.test.ts` (43 tests) — password strength, sanitizeObject, encrypt/decrypt round-trip, CSRF tokens, security constants
 - `db-helpers.test.ts` (22 tests) — ts(), getAuthUserId, ensureInternalUser caching/dedup, getSignedFileUrl URL parsing + fallback
@@ -68,6 +92,13 @@ Extracted 8 tab components and 2 modals into `app/admin/staff/components/`:
 - `db-badges.test.ts` (25 tests) — getOrCreateBadge, QR data format, clock-in/out, lookupBadge JSON parsing, revoke
 - `db-intake-shares.test.ts` (16 tests) — token-based share lookup, create/submit/delete lifecycle
 - `db-assessments.test.ts` (18 tests) — upsert (update vs insert), unlinked filter, event linking
+- `db-operations-events.test.ts` (18 tests) — CRUD, updateEvent conditional field mapping
+- `db-operations-shifts.test.ts` (19 tests) — createShift/assignShift status branching, getConflictingShifts conditional .neq
+- `db-operations-assets.test.ts` (16 tests) — checkout/checkin multi-step + auth, getAssetByQrCode two-phase lookup
+- `db-operations-incidents.test.ts` (24 tests) — deleteIncident storyboard pin removal, getIncidents conditional status filter
+- `db-operations-patrols.test.ts` (21 tests) — logPatrolScan auth, checkpoint QR format
+- `db-operations-storyboards.test.ts` (20 tests) — saveStoryboard 3-path upsert, getOperationActivity 3-source aggregation
+- `db-users.test.ts` (82 tests) — upsertUser phone-key retry, fetchUserProfile auto-create + race condition retry, createCompany slug generation, uploadAvatar validation
 
 ### SITE ASSESSMENT → DATABASE
 
@@ -126,10 +157,10 @@ ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_generated_by_fkey FOREIGN K
 
 ### Medium
 - **Assessment ↔ Intake integration** — Both directions (assessment-first and operation-first) planned but not built. DB module has `linkAssessmentToEvent` + `getUnlinkedAssessments` ready. Need "Create Operation from Assessment" button and import picker on operations side.
-- **db-operations.ts / db-users.ts untested** — Core CRUD operations (~2,000 lines combined) have no unit tests yet. Mock infrastructure is ready.
 - **No component tests** — No `.test.tsx` files exist. `@testing-library/react` + jsdom are installed but unused.
 - **Sentinel-1 SAR rate limiting** — Free tier has request limits.
-- **8 files still exceed 800 lines** — After decomposing the two worst offenders, several other large files remain.
+- **Remaining large files** — 9 pages still >700 lines: site-assessment (1,184), geo-risk (1,023), profile (944), admin/instructor (907), admin/training (899), schedule (898), chat (819), academy (765), admin/settings (744). Plus operation-detail.tsx (940) extracted from events but still large.
+- **98 ESLint errors** — Mostly `@typescript-eslint/no-explicit-any`. Lint step added to CI as non-blocking.
 
 ### Low
 - **XML job feed endpoint** — Generator function exists in `db-postings.ts` but no API route to serve it.
@@ -197,9 +228,9 @@ All v2 tables use a two-tier RLS model:
 ## Recommended Next Steps
 
 1. **Assessment ↔ Intake bidirectional linking** — "Create Operation from Assessment" button, import picker on operations side, `getAssessmentsByEventId` query
-2. **Add tests for db-operations.ts and db-users.ts** — Core CRUD (~2,000 lines) with complex branching (race condition retries, phone-key conflicts, upsert logic)
-3. **Component tests** — `@testing-library/react` is installed; start with auth flow, timeclock modal, admin role guards
-4. **XML job feed route** — Supabase Edge Function serving `generateJobFeedXML()` output for Indeed auto-indexing
-5. **Decompose remaining 800+ line files** — Audit codebase for the next largest files after staff/tactical-map
+2. **Component tests** — `@testing-library/react` is installed; start with auth flow, timeclock modal, admin role guards
+3. **Decompose remaining large pages** — 9 pages still >700 lines (geo-risk, profile, instructor, training, schedule, chat, academy, settings, site-assessment)
+4. **Fix ESLint errors** — 98 errors (mostly `no-explicit-any`), make lint blocking in CI
+5. **XML job feed route** — Supabase Edge Function serving `generateJobFeedXML()` output for Indeed auto-indexing
 6. **Investigate React router + CesiumJS** — Find root cause of why `<Link>` navigation stalls when map is mounted
 7. **Backup workflow fix** — Update `SUPABASE_DB_URL` to Session Mode pooler URL (IPv4)
