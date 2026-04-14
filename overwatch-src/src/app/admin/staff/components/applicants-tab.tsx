@@ -58,6 +58,8 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
   const [viewingApplicant, setViewingApplicant] = useState<Applicant | null>(null);
   const appFileInputRef = useRef<HTMLInputElement>(null);
   const [updatingApp, setUpdatingApp] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -158,6 +160,28 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
     } catch (err) { console.error(err); toast.error("Failed to delete applicant"); }
   }
 
+  async function handleBulkDelete() {
+    if (selected.size === 0) return;
+    if (!confirm(`Delete ${selected.size} selected applicant${selected.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
+    setBulkDeleting(true);
+    let deleted = 0;
+    for (const id of selected) {
+      try { await deleteApplicant(id); deleted++; } catch { /* continue */ }
+    }
+    setSelected(new Set());
+    if (activeCompanyId && activeCompanyId !== "pending") setApplicants(await getApplicants(activeCompanyId));
+    toast.success(`Deleted ${deleted} applicant${deleted > 1 ? "s" : ""}`);
+    setBulkDeleting(false);
+  }
+
+  function toggleSelectAll() {
+    if (selected.size === filteredApplicants.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(filteredApplicants.map((a: Applicant) => a.id)));
+    }
+  }
+
   const filteredApplicants = appFilter === "all" ? applicants : applicants.filter((a: Applicant) => a.status === appFilter);
 
   return (
@@ -176,6 +200,33 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
           </Button>
         )}
       </div>
+
+      {/* Selection toolbar */}
+      {canManage && filteredApplicants.length > 0 && (
+        <div className="flex items-center gap-3 px-1">
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selected.size > 0 && selected.size === filteredApplicants.length}
+              onChange={toggleSelectAll}
+              className="rounded border-border"
+            />
+            {selected.size > 0 ? `${selected.size} selected` : "Select all"}
+          </label>
+          {selected.size > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-6 text-[10px] px-2 gap-1"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+              Delete {selected.size}
+            </Button>
+          )}
+        </div>
+      )}
 
       {showAddApp && (
         <div className="rounded-xl border border-primary/30 bg-card p-4 space-y-4 max-h-[70vh] overflow-auto">
@@ -329,9 +380,22 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
       ) : (
         <div className="space-y-2">
           {filteredApplicants.map((a: Applicant) => (
-            <div key={a.id} className={`rounded-xl border bg-card px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${a.status === "applied" ? "border-blue-500/30" : "border-border/50"}`}
+            <div key={a.id} className={`rounded-xl border bg-card px-4 py-3 cursor-pointer hover:bg-muted/30 transition-colors ${selected.has(a.id) ? "border-primary/50 bg-primary/5" : a.status === "applied" ? "border-blue-500/30" : "border-border/50"}`}
               onClick={() => setViewingApplicant(a)}>
               <div className="flex items-center gap-4">
+                {canManage && (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(a.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => setSelected((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(a.id)) next.delete(a.id); else next.add(a.id);
+                      return next;
+                    })}
+                    className="rounded border-border shrink-0"
+                  />
+                )}
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10 text-xs font-bold text-blue-500">
                   {(a.first_name?.[0] ?? "")}{(a.last_name?.[0] ?? "")}
                 </div>
