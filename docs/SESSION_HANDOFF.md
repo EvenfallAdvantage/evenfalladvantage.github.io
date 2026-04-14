@@ -5,7 +5,7 @@
 **Working Directory:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io`
 **CI/CD:** Build & Deploy passing on GitHub Pages.
 **Tests:** 519/519 passing (28 test files), 0 TypeScript errors.
-**ESLint:** 0 errors, 140 warnings. Lint is blocking in CI (--max-warnings 150). Was 94 errors / 2,461 warnings.
+**ESLint:** 0 errors, 0 warnings. Lint is blocking in CI (--max-warnings 0). Was 94 errors / 2,461 warnings.
 **Navigation:** Client-side via Next.js `<Link>` (resolved CesiumJS conflict — was not a conflict).
 
 ---
@@ -182,12 +182,11 @@ ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_generated_by_fkey FOREIGN K
 
 ### Medium
 - **Sentinel-1 SAR rate limiting** — Free tier has request limits.
-- **operation-detail.tsx** (940 lines) — largest remaining extracted component, could benefit from further decomposition
 - **landing page (720 lines)** — not decomposed yet (low churn, mostly static marketing)
-- **6 suppressed ESLint directives** — storyboard-editor popover positioning (3), theme-toggle hydration (1), settings data-load (1), address-autocomplete prop sync (1)
+- **6 suppressed ESLint directives** — storyboard-editor popover positioning (3), theme-toggle hydration (1), settings data-load (1), address-autocomplete prop sync (1), mount-only viewer init (1), scan loop (1)
 
 ### Low
-- **XML job feed endpoint** — Generator function exists in `db-postings.ts` but no API route to serve it.
+- **XML job feed deployment** — Edge Function scaffolded at `supabase/functions/job-feed/`. Needs `supabase functions deploy job-feed --no-verify-jwt` to go live.
 - **LinkedIn/ZipRecruiter API** — Integration scaffolding not yet built. Requires partner approvals.
 - **Whisper WASM dictation** — 75MB model download on first use.
 - **Drone Planner** — Camera footprint cones and no-fly zones not implemented.
@@ -251,9 +250,8 @@ All v2 tables use a two-tier RLS model:
 
 ## Recommended Next Steps
 
-1. **XML job feed route** — Supabase Edge Function serving `generateJobFeedXML()` output for Indeed auto-indexing
-2. **More component tests** — Expand `.test.tsx` coverage to roster tab, incident create form, clock-in modal
-3. **Backup workflow fix** — Update `SUPABASE_DB_URL` to Session Mode pooler URL (IPv4)
-4. **Decompose operation-detail.tsx** (940 lines) — further split shift management, doc panels, activity feed
-5. **Reduce ESLint warnings** — 140 remaining (mostly unused vars, hook deps); lower --max-warnings threshold
-6. **Test CesiumJS soft navigation** — Sidebar now uses `<Link>`; verify WebGL context handles soft nav on schedule/map page
+1. **Deploy XML job feed** — `supabase functions deploy job-feed --no-verify-jwt` (function scaffolded, needs Supabase CLI)
+2. **Backup workflow fix** — Set `SUPABASE_DB_URL` secret to Session Mode pooler URL (IPv4) in GitHub Actions settings
+3. **More component tests** — Expand `.test.tsx` coverage to roster tab, incident create form, clock-in modal
+4. **Test CesiumJS soft navigation** — Sidebar now uses `<Link>`; verify WebGL context handles soft nav on schedule/map page
+5. **Bug fixes** — Ready for bug-crushing sprint
