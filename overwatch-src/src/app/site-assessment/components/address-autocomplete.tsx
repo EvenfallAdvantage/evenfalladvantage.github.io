@@ -22,7 +22,7 @@ export default function AddressAutocomplete({ onSelect, onClear, addrResolved, e
 
   // Sync external query changes (e.g. after selecting a suggestion in the parent)
   useEffect(() => {
-    if (externalQuery !== undefined) setAddrQuery(externalQuery);
+    if (externalQuery !== undefined) setAddrQuery(externalQuery); // eslint-disable-line -- controlled prop sync
   }, [externalQuery]);
 
   // Close suggestions on outside click

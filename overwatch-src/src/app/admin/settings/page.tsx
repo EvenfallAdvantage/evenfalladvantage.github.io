@@ -73,7 +73,7 @@ export default function AdminSettingsPage() {
     } catch {}
   }, [activeCompanyId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); }, [load]); // eslint-disable-line -- async data-loading pattern
 
   if (activeCompany && !isAdminPlus) {
     return (
