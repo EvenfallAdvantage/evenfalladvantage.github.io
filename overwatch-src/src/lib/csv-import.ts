@@ -155,10 +155,12 @@ export function suggestMapping(csvHeaders: string[]): Record<string, string | nu
 export function normalizeStatus(raw: string): string {
   const lower = raw.toLowerCase().trim();
   if (lower === "active" || lower === "hired") return "hired";
-  if (lower === "approved for hire" || lower === "offer") return "offer";
+  if (lower === "approved for hire" || lower === "offered" || lower === "offer") return "offered";
   if (lower === "inactive" || lower === "rejected" || lower === "terminated") return "rejected";
-  if (lower === "reviewing" || lower === "interview") return lower;
-  return "new";
+  if (lower === "withdrawn") return "withdrawn";
+  if (lower === "reviewing") return "reviewing";
+  if (lower === "interviewing" || lower === "interview") return "interviewing";
+  return "applied";
 }
 
 /** Transform raw CSV rows into StaffImportRow[] using a user-confirmed column mapping. */

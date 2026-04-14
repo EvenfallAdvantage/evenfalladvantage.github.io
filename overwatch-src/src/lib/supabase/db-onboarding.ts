@@ -98,7 +98,7 @@ export async function createApplicant(companyId: string, applicant: {
   return data;
 }
 
-const VALID_APPLICANT_STATUSES = ["new", "reviewing", "interview", "offer", "hired", "rejected"];
+const VALID_APPLICANT_STATUSES = ["applied", "reviewing", "interviewing", "offered", "hired", "rejected", "withdrawn"];
 
 export async function bulkCreateApplicants(companyId: string, rows: {
   first_name: string;
@@ -129,7 +129,7 @@ export async function bulkCreateApplicants(companyId: string, rows: {
       if (r.shirt_size) metaParts.push(`Shirt: ${r.shirt_size}`);
 
       // Validate status against the DB constraint; default to "new"
-      const status = r.status && VALID_APPLICANT_STATUSES.includes(r.status) ? r.status : "new";
+      const status = r.status && VALID_APPLICANT_STATUSES.includes(r.status) ? r.status : "applied";
 
       return {
         id: crypto.randomUUID(),
