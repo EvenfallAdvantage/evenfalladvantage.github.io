@@ -142,7 +142,6 @@ export async function bulkCreateApplicants(companyId: string, rows: {
         work_preferences: [],
         source: "csv_import",
         status,
-        notes: metaParts.length > 0 ? metaParts.join(" | ") : null,
         custom_fields: {
           imported_role: r.role ?? "staff",
           imported_title: r.title ?? null,
@@ -150,6 +149,7 @@ export async function bulkCreateApplicants(companyId: string, rows: {
           city: r.city ?? null,
           shirt_size: r.shirt_size ?? null,
           region: r.region ?? null,
+          notes: metaParts.length > 0 ? metaParts.join(" | ") : null,
         },
       };
     });
