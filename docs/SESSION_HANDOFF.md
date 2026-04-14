@@ -1,10 +1,11 @@
-# Session Handoff — April 13, 2026
+# Session Handoff — April 14, 2026
 
 **Project:** Evenfall Advantage — Overwatch Platform
 **Repo:** https://github.com/EvenfallAdvantage/evenfalladvantage.github.io
 **Working Directory:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io`
 **CI/CD:** Build & Deploy passing on GitHub Pages.
 **Tests:** 410/410 passing, 0 TypeScript errors.
+**ESLint:** 30 errors remaining (all react-compiler), 133 warnings. Was 94 errors / 2,461 warnings.
 
 ---
 
@@ -82,6 +83,30 @@ Extracted 5 components into `app/incidents/components/`:
 - `site-map-mark-modal.tsx` (83 lines) / `site-map-view-modal.tsx` (64 lines)
 - `constants.ts` (46 lines) — shared types and enums
 
+#### geo-risk/page.tsx: 1,023 → 164 lines (−84%)
+Extracted 8 components: address-search, risk-results, export-pdf (pure 457-line util), api-key-config, shared types, etc.
+
+#### profile/page.tsx: 944 → 118 lines (−88%)
+Extracted 10 components: personal-profile-card, education-card, work-history-card, notification-prefs, avatar, completeness bar, etc.
+
+#### admin/instructor/page.tsx: 907 → 112 lines (−88%)
+Extracted 5 tab components: courses, classes, students, assessments, slides-panel.
+
+#### admin/training/page.tsx: 899 → 97 lines (−89%)
+Extracted 3 tab components: modules-tab, question-bank-tab, staff-progress-tab.
+
+#### schedule/page.tsx: 898 → 320 lines (−64%)
+Extracted 3 components: schedule-tab, armory-tab, shift-accordion.
+
+#### chat/page.tsx: 819 → 102 lines (−88%)
+Extracted 3 components + 1 hook: channels-tab, external-tab, use-chat-channels.
+
+### ESLINT CLEANUP: 94 → 30 errors, 2,461 → 133 warnings
+- Added proper types for 20+ `any` usages across 12 files
+- Excluded vendored `public/cesium/**` from linting (25 no-this-alias + 2,328 warnings)
+- Fixed 3 unescaped entities, 6 require-imports, 1 array constructor
+- Remaining 30 errors are all `react-compiler` rules requiring behavioral analysis
+
 ### TEST COVERAGE: 58 → 410 Tests
 
 #### New Test Files (14)
@@ -157,10 +182,10 @@ ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_generated_by_fkey FOREIGN K
 
 ### Medium
 - **Assessment ↔ Intake integration** — Both directions (assessment-first and operation-first) planned but not built. DB module has `linkAssessmentToEvent` + `getUnlinkedAssessments` ready. Need "Create Operation from Assessment" button and import picker on operations side.
+- **30 react-compiler ESLint errors** — setState in effects (11), impure render (6), component creation during render (6), refs during render (5), variable before declaration (2). Require behavioral analysis. Lint step is non-blocking in CI.
 - **No component tests** — No `.test.tsx` files exist. `@testing-library/react` + jsdom are installed but unused.
 - **Sentinel-1 SAR rate limiting** — Free tier has request limits.
-- **Remaining large files** — 9 pages still >700 lines: site-assessment (1,184), geo-risk (1,023), profile (944), admin/instructor (907), admin/training (899), schedule (898), chat (819), academy (765), admin/settings (744). Plus operation-detail.tsx (940) extracted from events but still large.
-- **98 ESLint errors** — Mostly `@typescript-eslint/no-explicit-any`. Lint step added to CI as non-blocking.
+- **Remaining large pages** — academy (765), admin/settings (753), landing page (720), timeclock (690), apply (638), updates (626). Plus site-assessment (1,184 after DB wiring) and operation-detail.tsx (940).
 
 ### Low
 - **XML job feed endpoint** — Generator function exists in `db-postings.ts` but no API route to serve it.
@@ -228,9 +253,10 @@ All v2 tables use a two-tier RLS model:
 ## Recommended Next Steps
 
 1. **Assessment ↔ Intake bidirectional linking** — "Create Operation from Assessment" button, import picker on operations side, `getAssessmentsByEventId` query
-2. **Component tests** — `@testing-library/react` is installed; start with auth flow, timeclock modal, admin role guards
-3. **Decompose remaining large pages** — 9 pages still >700 lines (geo-risk, profile, instructor, training, schedule, chat, academy, settings, site-assessment)
-4. **Fix ESLint errors** — 98 errors (mostly `no-explicit-any`), make lint blocking in CI
-5. **XML job feed route** — Supabase Edge Function serving `generateJobFeedXML()` output for Indeed auto-indexing
-6. **Investigate React router + CesiumJS** — Find root cause of why `<Link>` navigation stalls when map is mounted
-7. **Backup workflow fix** — Update `SUPABASE_DB_URL` to Session Mode pooler URL (IPv4)
+2. **Fix 30 react-compiler ESLint errors** — setState in effects, impure render, component creation during render. Each requires careful behavioral analysis.
+3. **Component tests** — `@testing-library/react` is installed; start with auth flow, timeclock modal, admin role guards
+4. **Decompose remaining large pages** — academy (765), admin/settings (753), landing (720), timeclock (690), apply (638), updates (626)
+5. **Decompose site-assessment/page.tsx** — grew to 1,184 lines after DB wiring; should extract form sections, results panel, PDF export
+6. **XML job feed route** — Supabase Edge Function serving `generateJobFeedXML()` output for Indeed auto-indexing
+7. **Investigate React router + CesiumJS** — Find root cause of why `<Link>` navigation stalls when map is mounted
+8. **Backup workflow fix** — Update `SUPABASE_DB_URL` to Session Mode pooler URL (IPv4)
