@@ -2,9 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-
-const BASE_PATH = "/overwatch";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
@@ -326,9 +325,9 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                               const ChildIcon = ICON_MAP[child.icon];
                               const childIsActive = isNavMatch(child.href, pathname, item.children);
                               return (
-                                <a
+                                <Link
                                   key={child.href}
-                                  href={`${BASE_PATH}${child.href}`}
+                                  href={child.href}
                                   className={cn(
                                     "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-all duration-200",
                                     childIsActive
@@ -347,7 +346,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                                     />
                                   )}
                                   <span className="truncate">{child.title}</span>
-                                </a>
+                                </Link>
                               );
                             })}
                           </div>
@@ -364,9 +363,9 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                               const ChildIcon = ICON_MAP[child.icon];
                               const childIsActive = isNavMatch(child.href, pathname, item.children);
                               return (
-                                <a
+                                <Link
                                   key={child.href}
-                                  href={`${BASE_PATH}${child.href}`}
+                                  href={child.href}
                                   onClick={() => { setExpanded({}); setFlyoutPos(null); }}
                                   className={cn(
                                     "flex items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
@@ -377,7 +376,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                                 >
                                   {ChildIcon && <ChildIcon className={cn("h-3.5 w-3.5 shrink-0", childIsActive ? "text-primary" : "text-muted-foreground/70")} />}
                                   <span>{child.title}</span>
-                                </a>
+                                </Link>
                               );
                             })}
                           </div>
@@ -387,9 +386,9 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                   }
 
                    return (
-                    <a
+                    <Link
                       key={item.href}
-                      href={`${BASE_PATH}${item.href}`}
+                      href={item.href}
                       className={cn(
                         "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                         isActive
@@ -419,7 +418,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                           {item.badge}
                         </Badge>
                       )}
-                    </a>
+                    </Link>
                   );
                 })}
               </div>
