@@ -11,9 +11,9 @@ export function PrivacyPolicyModal({ open, onClose }: PrivacyPolicyModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
       <div
-        className="relative w-full max-w-3xl mx-4 max-h-[90vh] rounded-2xl border border-white/10 bg-[#0f1a2e] shadow-2xl flex flex-col"
+        className="relative w-full max-w-3xl max-h-[90vh] rounded-2xl border border-white/10 bg-[#0f1a2e] shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

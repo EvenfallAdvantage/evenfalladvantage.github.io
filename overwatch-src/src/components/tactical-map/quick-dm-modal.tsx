@@ -11,9 +11,9 @@ interface QuickDMModalProps {
 
 export function QuickDMModal({ dmTarget, dmText, dmSending, onTextChange, onSend, onClose }: QuickDMModalProps) {
   return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center" onClick={onClose}>
+    <div className="absolute inset-0 z-30 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="w-80 rounded-xl shadow-2xl overflow-hidden"
+        className="w-full max-w-80 rounded-xl shadow-2xl overflow-hidden"
         style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 97%, transparent)", border: "1px solid color-mix(in srgb, var(--brand-accent, #d59b3c) 30%, transparent)" }}
         onClick={(e) => e.stopPropagation()}
       >

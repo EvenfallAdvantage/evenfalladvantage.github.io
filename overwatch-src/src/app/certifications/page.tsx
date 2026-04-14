@@ -433,8 +433,8 @@ export default function CertificationsPage() {
       )}
       {/* Document Preview Modal */}
       {viewDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setViewDoc(null)}>
-          <div className="relative w-full max-w-3xl mx-4 max-h-[90vh] flex flex-col rounded-xl border border-border/40 bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewDoc(null)}>
+          <div className="relative w-full max-w-3xl max-h-[90vh] flex flex-col rounded-xl border border-border/40 bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
               <h3 className="text-sm font-semibold truncate">{viewDoc.name}</h3>
               <div className="flex items-center gap-2">
