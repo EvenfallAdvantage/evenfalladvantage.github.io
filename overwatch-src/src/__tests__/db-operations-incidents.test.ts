@@ -378,9 +378,7 @@ describe("deleteIncident()", () => {
 
     // 3rd call: update storyboard pins (thenable — from .update().eq())
     // 4th call: delete incident (thenable — from .delete().eq())
-    let thenCallCount = 0;
     queryBuilder.then = vi.fn((resolve: (v: unknown) => void) => {
-      thenCallCount++;
       return Promise.resolve({ data: null, error: null }).then(resolve);
     });
 

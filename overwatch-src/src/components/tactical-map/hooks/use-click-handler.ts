@@ -48,9 +48,9 @@ export function useCesiumClickHandler(params: {
   onSelectOperation?: (id: string) => void;
 }) {
   const {
-    viewerRef, cesiumRef, entityGroupsRef, loading,
+    viewerRef, cesiumRef, entityGroupsRef: _entityGroupsRef, loading,
     activeTool, measurePoint1, setMeasurePoint1, setMeasureResult,
-    rangeCenter, setRangeCenter,
+    rangeCenter: _rangeCenter, setRangeCenter,
     losPoint1, setLosPoint1, setLosResult, losEntityIdsRef,
     elevPoint1, setElevPoint1, setElevationStatus,
     drawMode, drawColor, drawPoints, setDrawPoints,
@@ -62,7 +62,7 @@ export function useCesiumClickHandler(params: {
   const [selectedEntity, setSelectedEntity] = useState<{
     id: string; name: string; description: string; screenX: number; screenY: number;
   } | null>(null);
-  const popupAnimFrame = useRef<number>(0);
+  const _popupAnimFrame = useRef<number>(0);
 
   // ─── Click handler (tools + entity selection) ────────
   useEffect(() => {

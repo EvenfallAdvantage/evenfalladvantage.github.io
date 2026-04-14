@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  Plus, Loader2, Trash2, ExternalLink, Pencil, X,
+  Plus, Loader2, Trash2, ExternalLink, Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

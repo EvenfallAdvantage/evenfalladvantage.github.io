@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
-import { hexToRgb, adjustBrightness } from "@/lib/brand-utils";
+import { adjustBrightness } from "@/lib/brand-utils";
 
 function applyBrandTheme(brandColor: string, accentColor: string) {
   const root = document.documentElement;

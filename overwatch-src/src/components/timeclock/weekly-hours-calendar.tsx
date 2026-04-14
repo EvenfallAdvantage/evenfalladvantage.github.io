@@ -19,7 +19,7 @@ export function WeeklyHoursCalendar({
   weekDates,
   weekHours,
   weekTotal,
-  weekOffset,
+  weekOffset: _weekOffset,
   isCurrentWeek,
   onPrevWeek,
   onNextWeek,

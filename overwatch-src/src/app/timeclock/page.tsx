@@ -18,7 +18,7 @@ import { parseUTC } from "@/lib/parse-utc";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
 import Link from "next/link";
-import { startLocationWatcher, clearStaffLocation, isLocationSharingEnabled } from "@/lib/supabase/db-location";
+import { startLocationWatcher, isLocationSharingEnabled } from "@/lib/supabase/db-location";
 import { usePageHeader } from "@/stores/page-header-store";
 import dynamic from "next/dynamic";
 

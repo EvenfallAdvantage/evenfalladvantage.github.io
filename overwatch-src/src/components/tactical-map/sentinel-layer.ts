@@ -105,7 +105,7 @@ function getStableTimeRange(): string {
   return `${cycleStart.toISOString().split("T")[0]}/${cycleEnd.toISOString().split("T")[0]}`;
 }
 
-function getRecentDateRange(daysBack: number): string {
+function _getRecentDateRange(daysBack: number): string {
   const end = new Date();
   const start = new Date(end.getTime() - daysBack * 24 * 60 * 60 * 1000);
   return `${start.toISOString().split("T")[0]}/${end.toISOString().split("T")[0]}`;

@@ -34,7 +34,7 @@ export function ApplicantDetailModal({
   applicant: a,
   canManage,
   updatingApp,
-  activeCompanyId,
+  activeCompanyId: _activeCompanyId,
   onClose,
   onStatusChange,
 }: ApplicantDetailModalProps) {

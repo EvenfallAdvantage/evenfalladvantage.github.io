@@ -58,7 +58,7 @@ export default function ScenariosPage() {
   const [meter, setMeter] = useState(40);
   const [stepCount, setStepCount] = useState(1);
   const [ending, setEnding] = useState<Step | null>(null);
-  const [endingStepId, setEndingStepId] = useState<string | null>(null);
+  const [_endingStepId, setEndingStepId] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, ScenarioResult>>(loadResults);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [imgError, setImgError] = useState(false);

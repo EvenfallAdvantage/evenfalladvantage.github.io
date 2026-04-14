@@ -8,7 +8,7 @@ type CesiumRef = React.MutableRefObject<any>;
 
 export function useMapTools(
   viewerRef: CesiumRef,
-  cesiumRef: CesiumRef
+  _cesiumRef: CesiumRef
 ) {
   const [activeTool, setActiveTool] = useState<ActiveTool>("none");
   const [measureResult, setMeasureResult] = useState<{ distanceM: number; distanceMi: number; bearing: number } | null>(null);

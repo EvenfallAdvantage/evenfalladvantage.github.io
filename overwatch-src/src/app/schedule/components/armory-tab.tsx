@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  QrCode, Loader2, Plus, ArrowUpFromLine, ArrowDownToLine,
+  QrCode, Loader2, ArrowUpFromLine, ArrowDownToLine,
   Trash2, Camera, ScanLine, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import dynamic from "next/dynamic";

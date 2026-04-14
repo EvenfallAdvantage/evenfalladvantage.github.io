@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plane, Download, X, Plus, Trash2 } from "lucide-react";
+import { Plane, Download, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 

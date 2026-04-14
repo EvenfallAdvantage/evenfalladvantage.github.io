@@ -104,7 +104,7 @@ export async function getAllFormSubmissions(companyId: string) {
   const supabase = createClient();
 
   // Step 1: Get all form IDs for this company
-  const { data: companyForms, error: formsError } = await supabase
+  const { data: companyForms } = await supabase
     .from("forms")
     .select("id, name")
     .eq("company_id", companyId);

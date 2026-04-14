@@ -21,7 +21,6 @@ import {
 import { updateDocument as updateDocumentById, createDocument as createDocumentById, getLatestDocument as getLatestDocById } from "@/lib/supabase/db-documents";
 import { IntakePanel } from "@/components/ops/intake-panel";
 import type { IntakeChange } from "@/components/ops/intake-panel";
-import type { OperationDocument } from "@/types/operations";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
 import type { ActivityItem } from "@/lib/supabase/db-operations";
 import { getAssessmentsByEventId, getUnlinkedAssessments, linkAssessmentToEvent, unlinkAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
@@ -113,7 +112,7 @@ export function OperationDetail({
 
   // Storyboard
   const [storyboardPins, setStoryboardPins] = useState<StoryboardPin[]>([]);
-  const [storyboardId, setStoryboardId] = useState<string | null>(null);
+  const [_storyboardId, setStoryboardId] = useState<string | null>(null);
   const storyboardIdRef = useRef<string | null>(null);
   const [storyboardLoading, setStoryboardLoading] = useState(false);
 

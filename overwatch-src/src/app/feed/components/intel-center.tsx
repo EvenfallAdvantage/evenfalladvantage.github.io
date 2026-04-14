@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Clock, Users, MapPin, Shield, ClipboardList,
   CheckCircle2, Activity, AlertTriangle,
@@ -28,22 +28,6 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
   const [companyStats, setCompanyStats] = useState<CompanyStats | null>(null);
   const [intel, setIntel] = useState<IntelData | null>(null);
   const [ownerIntel, setOwnerIntel] = useState<OwnerIntel | null>(null);
-
-  const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
-    try {
-      const [cs, id] = await Promise.all([
-        getCompanyStats(activeCompanyId),
-        getIntelData(activeCompanyId),
-      ]);
-      setCompanyStats(cs);
-      setIntel(id);
-      try {
-        const oi = await getOwnerIntel(activeCompanyId);
-        setOwnerIntel(oi);
-      } catch {}
-    } catch {}
-  }, [activeCompanyId]);
 
   useEffect(() => {
     if (!activeCompanyId || activeCompanyId === "pending") return;

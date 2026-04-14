@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { CalendarDays, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,16 +15,6 @@ export function UpcomingShift({ activeCompanyId }: UpcomingShiftProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [nextShift, setNextShift] = useState<any>(null);
   const [now] = useState(() => Date.now());
-
-  const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
-    try {
-      const allShifts = await getUserShifts(activeCompanyId);
-      const current = new Date();
-      const upcoming = allShifts.filter((s: { start_time: string }) => parseUTC(s.start_time) > current);
-      setNextShift(upcoming[0] ?? null);
-    } catch {}
-  }, [activeCompanyId]);
 
   useEffect(() => {
     if (!activeCompanyId || activeCompanyId === "pending") return;

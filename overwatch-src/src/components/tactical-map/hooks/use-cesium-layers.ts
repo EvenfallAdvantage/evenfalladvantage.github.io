@@ -437,10 +437,7 @@ export function useCesiumLayers(params: {
         });
       }).catch(() => {});
 
-      // Also load incidents linked to this operation
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const opIncidents = incidents.filter((inc: any) => inc.eventId === op.id || inc.operationId === op.id);
-      // Note: incidents with their own lat/lng are already plotted by the incidents layer.
+      // Incidents with their own lat/lng are already plotted by the incidents layer.
       // Here we could plot incidents that only have site-map-relative positions.
       // For now, the incident layer handles this.
     });
@@ -929,12 +926,6 @@ export function useCesiumLayers(params: {
         police: "#3b82f6",
         fire_station: "#f97316",
         pharmacy: "#22c55e",
-      };
-      const poiIcons: Record<string, string> = {
-        hospital: "\u2695",
-        police: "\u2605",
-        fire_station: "\u2622",
-        pharmacy: "\u271A",
       };
       pois.forEach((poi, i) => {
         const color = poiColors[poi.type] || "#6b7280";

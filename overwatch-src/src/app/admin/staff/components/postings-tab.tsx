@@ -17,7 +17,7 @@ interface PostingsTabProps {
   companyName: string;
 }
 
-export function PostingsTab({ activeCompanyId, canManage, companyName }: PostingsTabProps) {
+export function PostingsTab({ activeCompanyId, canManage: _canManage, companyName: _companyName }: PostingsTabProps) {
   const [postings, setPostings] = useState<JobPosting[]>([]);
   const [postingCounts, setPostingCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);

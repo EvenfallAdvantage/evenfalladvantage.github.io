@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Inbox, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,14 +14,6 @@ interface ActionRequiredProps {
 
 export function ActionRequired({ activeCompanyId }: ActionRequiredProps) {
   const [ownerIntel, setOwnerIntel] = useState<OwnerIntel | null>(null);
-
-  const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
-    try {
-      const oi = await getOwnerIntel(activeCompanyId);
-      setOwnerIntel(oi);
-    } catch {}
-  }, [activeCompanyId]);
 
   useEffect(() => {
     if (!activeCompanyId || activeCompanyId === "pending") return;

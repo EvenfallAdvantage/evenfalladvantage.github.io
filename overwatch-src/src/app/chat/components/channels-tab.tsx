@@ -8,12 +8,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChatSkeleton } from "@/components/loading-skeleton";
 import {
   type Channel, type Message, type ExtMeta, type ChannelPermissions,
-  QUICK_EMOJIS, ALL_ROLES, PLAT, getChannelPerms, timeAgo, parseExt,
+  QUICK_EMOJIS, ALL_ROLES, PLAT, getChannelPerms, timeAgo,
 } from "./chat-helpers";
 
 interface ChannelsTabProps {

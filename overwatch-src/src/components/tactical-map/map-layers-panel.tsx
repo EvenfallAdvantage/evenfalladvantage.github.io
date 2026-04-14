@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   Layers, Users, Flag, CloudRain, Building2, Mountain,
   Eye, EyeOff, ChevronRight, Target, AlertTriangle, Moon, Satellite,
-  Hospital, Sun, Plane, Radio, Scan, Monitor, Orbit, Radar,
+  Hospital, Plane, Scan, Monitor, Orbit, Radar,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 

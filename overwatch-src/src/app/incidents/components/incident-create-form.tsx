@@ -7,7 +7,6 @@ import {
   ChevronUp,
   Loader2,
   Flag,
-  X,
   Map,
   Check,
 } from "lucide-react";

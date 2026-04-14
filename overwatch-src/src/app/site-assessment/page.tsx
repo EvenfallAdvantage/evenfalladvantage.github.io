@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   ClipboardCheck, Save, RotateCcw, Trash2, Loader2,
 } from "lucide-react";
@@ -22,7 +22,6 @@ import { generateAssessmentPDF } from "./components/assessment-pdf";
 
 export default function SiteAssessmentPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [data, setData] = useState<Record<string, string>>(getDefaultData);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["clientInfo"]));
   const [result, setResult] = useState<RiskResult | null>(null);
@@ -36,7 +35,7 @@ export default function SiteAssessmentPage() {
   const [assessmentId, setAssessmentId] = useState<string | null>(null);
   const [savedAssessments, setSavedAssessments] = useState<SiteAssessment[]>([]);
   const [saving, setSaving] = useState(false);
-  const [loadingList, setLoadingList] = useState(true);
+  const [_loadingList, setLoadingList] = useState(true);
 
   // Address autocomplete display state
   const [addrQuery, setAddrQuery] = useState("");

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { UserPlus, Loader2, X, ArrowRight } from "lucide-react";
+import { UserPlus, Loader2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { joinCompanyByCode } from "@/lib/supabase/db";
 

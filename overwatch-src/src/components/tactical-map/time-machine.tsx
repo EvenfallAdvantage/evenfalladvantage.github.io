@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Play, Pause, SkipBack, SkipForward, Clock, X } from "lucide-react";
 
 interface TimeMachineProps {

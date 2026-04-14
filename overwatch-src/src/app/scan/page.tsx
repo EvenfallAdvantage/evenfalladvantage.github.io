@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Camera, CheckCircle2, XCircle, Loader2, LogIn, LogOut } from "lucide-react";
+import { Camera, CheckCircle2, XCircle, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePageHeader } from "@/stores/page-header-store";
@@ -59,7 +59,7 @@ export default function ScanPage() {
       setCameraActive(true);
       scanningRef.current = true;
       scanLoop();
-    } catch (err) {
+    } catch {
       setCameraError("Camera access denied. Please allow camera permissions.");
     }
   }, []);
@@ -136,7 +136,7 @@ export default function ScanPage() {
         lastScanRef.current = "";
         setResult(null);
       }, 3000);
-    } catch (err) {
+    } catch {
       setResult({ status: "error", action: "clock_in", name: "", avatarUrl: null, message: "Scan failed — try again" });
       setTimeout(() => { lastScanRef.current = ""; setResult(null); }, 3000);
     }

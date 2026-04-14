@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  Flag, MapPin, Plus, Loader2, X, FileText,
+  Flag, MapPin, Loader2, X, FileText,
   Check, Shield, Shirt, AlertTriangle, Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -85,7 +85,7 @@ export function CreateWizard({ activeCompanyId, companyName, initialAssessment, 
   const [intakeEaRole, setIntakeEaRole] = useState<string[]>([]);
   const [intakeEscalation, setIntakeEscalation] = useState("");
   const [intakeSuccessCriteria, setIntakeSuccessCriteria] = useState<string[]>([]);
-  const [intakeSuccessNotes, setIntakeSuccessNotes] = useState("");
+  const [intakeSuccessNotes, _setIntakeSuccessNotes] = useState("");
 
   function updateGuide(field: keyof OpsGuide, value: string) {
     setGuide(prev => ({ ...prev, [field]: value }));

@@ -48,7 +48,7 @@ export async function getNearbyPOIs(lat: number, lng: number, radiusM = 5000): P
 
   const bbox = getBBox(lat, lng, radiusM);
   const filters = Object.entries(POI_QUERIES)
-    .map(([type, query]) => `node${query}(${bbox});way${query}(${bbox});`)
+    .map(([_type, query]) => `node${query}(${bbox});way${query}(${bbox});`)
     .join("");
 
   const query = `[out:json][timeout:10];(${filters});out center 50;`;

@@ -41,7 +41,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 const DOCUMENT_TYPES = ["Guard Card", "CPR/First Aid", "EMT", "OSHA", "Firearms", "Security License", "Military", "LEO", "Other"] as const;
 
-export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCode, members, onHireResult }: ApplicantsTabProps) {
+export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCode, members: _members, onHireResult }: ApplicantsTabProps) {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState(true);
   const [appFilter, setAppFilter] = useState("all");

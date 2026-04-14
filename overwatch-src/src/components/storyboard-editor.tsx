@@ -8,22 +8,21 @@ import {
   // Extended icon library for searchable picker
   Building2, Warehouse, ParkingCircle, Fence, TreePine, Mountain,
   Waves, Tent, Flag, Target, Eye, EyeOff, Lock, Unlock,
-  Shield, Siren, Zap, AlertTriangle, Ban, CircleAlert,
-  Phone, Wifi, Satellite, Router, Megaphone,
+  Shield, Siren, Zap, AlertTriangle, Ban,
+  Phone, Wifi, Satellite, Megaphone,
   Ambulance, Stethoscope, Pill, Cross, HeartPulse,
-  Flashlight, Wrench, Key, Hammer, HardHat,
+  Flashlight, Key, HardHat,
   Users, UserCheck, UserX, Baby, Dog, Footprints,
   Truck, Bus, Bike, Plane, Ship, TrainFront,
-  Coffee, UtensilsCrossed, Droplets, Thermometer, Wind, CloudRain,
-  Cctv, Scan, QrCode, Fingerprint, ScanLine,
-  ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CornerDownRight,
-  Circle, Square, Triangle, Hexagon, Octagon,
-  Clock, Calendar, Timer, Hourglass,
-  Package, Box, Briefcase, FileText, ClipboardList,
-  Lightbulb, Power, Plug, Battery, BatteryWarning,
-  Volume2, VolumeX, Music, Bell, BellRing,
-  MapPinned, Navigation, Compass, Globe, Locate,
-  Skull, Bomb, Radiation, Biohazard, CircleDot,
+  Coffee, UtensilsCrossed, Droplets,
+  Cctv, Scan, QrCode, Fingerprint,
+  ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
+  Circle,
+  Package,
+  Lightbulb, Power,
+  Bell, BellRing,
+  MapPinned, Navigation, Compass,
+  Skull, Bomb, Radiation, Biohazard,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -170,14 +169,6 @@ for (const cat of ICON_CATEGORIES) {
     ICON_MAP[entry.value] = entry.icon;
     ALL_ICONS.push(entry);
   }
-}
-
-// Get brand accent at runtime for default pin color
-function getBrandAccent(): string {
-  if (typeof document !== "undefined") {
-    return getComputedStyle(document.documentElement).getPropertyValue("--brand-accent").trim() || "#d59b3c";
-  }
-  return "#d59b3c";
 }
 
 const DEFAULT_COLORS = [
@@ -469,7 +460,7 @@ export default function StoryboardEditor({
   const [selectedPinId, setSelectedPinId] = useState<string | null>(null);
   const [editingPinId, setEditingPinId] = useState<string | null>(null);
   const [newPinPos, setNewPinPos] = useState<{ x: number; y: number } | null>(null);
-  const [popoverPos, setPopoverPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
+  const [_popoverPos, setPopoverPos] = useState<{ left: number; top: number }>({ left: 0, top: 0 });
   const [draggingPinId, setDraggingPinId] = useState<string | null>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Mic, MicOff, Square, AlertTriangle, Cpu, Loader2 } from "lucide-react";
+import { Mic, Square, AlertTriangle, Cpu, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { detectSpeechTier, describeTier, type SpeechTier } from "@/lib/speech";

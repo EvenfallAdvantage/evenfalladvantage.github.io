@@ -8,7 +8,7 @@ import {
   Shield, Radio, GraduationCap, MapPin,
   BarChart3, Users, Clock, BookOpen,
   ChevronRight, Zap, Lock, Globe,
-  X, Phone, Mail, ArrowRight, Loader2, FileCheck,
+  X, Phone, Mail, ArrowRight, Loader2,
   UserPlus, QrCode, Crosshair, AlertTriangle, FileText, Award, Eye, EyeOff,
 } from "lucide-react";
 import dynamic from "next/dynamic";

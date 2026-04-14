@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Users, AlertTriangle, Footprints, FileText, CalendarDays,
   ChevronRight,
@@ -16,14 +16,6 @@ interface KpiCardsProps {
 
 export function KpiCards({ activeCompanyId }: KpiCardsProps) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
-
-  const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
-    try {
-      const m = await getDashboardMetrics(activeCompanyId);
-      setMetrics(m);
-    } catch {}
-  }, [activeCompanyId]);
 
   useEffect(() => {
     if (!activeCompanyId || activeCompanyId === "pending") return;

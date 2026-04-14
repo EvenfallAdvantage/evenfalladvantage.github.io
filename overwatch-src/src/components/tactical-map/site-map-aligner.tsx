@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { X, Check, RotateCcw, MapPin, Crosshair, Loader2 } from "lucide-react";
+import { X, Check, RotateCcw, MapPin, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**

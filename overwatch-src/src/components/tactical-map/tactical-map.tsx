@@ -15,7 +15,7 @@ import type { OperationDocument } from "@/types/operations";
 import { EntityPopup } from "./entity-popup";
 import { MapControlButtons } from "./map-control-buttons";
 import { GeofenceAlertTicker } from "./geofence-alert-ticker";
-import type { StaffPin, OperationPin, IncidentPin, TacticalMapProps } from "./types";
+import type { TacticalMapProps } from "./types";
 import { useTimeMachine } from "./hooks/use-time-machine";
 import { useDronePlanner } from "./hooks/use-drone-planner";
 import { useDirectMessage } from "./hooks/use-direct-message";
@@ -30,7 +30,7 @@ export type { StaffPin, OperationPin, IncidentPin } from "./types";
 
 const CONUS_CENTER = { lat: 39.8283, lng: -98.5795 };
 
-export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, onSelectOperation, onMessageStaff }: TacticalMapProps) {
+export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, onSelectOperation, onMessageStaff: _onMessageStaff }: TacticalMapProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,7 +70,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     losEntityIdsRef,
   } = useMapTools(viewerRef, cesiumRef);
   const [cameraHeading, setCameraHeading] = useState(0); // radians
-  const [cameraPitch, setCameraPitch] = useState(-0.5);
+  const [_cameraPitch, setCameraPitch] = useState(-0.5);
   const [containerWidth, setContainerWidth] = useState(800);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -88,7 +88,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   } = useAnnotations(companyId, viewerRef, cesiumRef, entityGroupsRef);
 
   // Time Machine
-  const { timeMachineOpen, setTimeMachineOpen, replayTime, setReplayTime, debouncedReplayTime, effectiveStaff } = useTimeMachine(staff, companyId);
+  const { timeMachineOpen, setTimeMachineOpen, replayTime: _replayTime, setReplayTime, debouncedReplayTime, effectiveStaff } = useTimeMachine(staff, companyId);
 
   // Drone Planner
   const { dronePlannerOpen, setDronePlannerOpen, droneWaypoints, setDroneWaypoints } = useDronePlanner();
@@ -100,7 +100,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const { dmTarget, setDmTarget, dmText, setDmText, dmSending, sendMessage: sendDmMessage } = useDirectMessage(companyId);
 
   // Cesium layer plotting/toggling effects
-  const { nearbyPOIs, geofenceAlerts, aligningOp, setAligningOp, savedBounds, setSavedBounds } = useCesiumLayers({
+  const { nearbyPOIs: _nearbyPOIs, geofenceAlerts, aligningOp, setAligningOp, savedBounds: _savedBounds, setSavedBounds } = useCesiumLayers({
     viewerRef,
     cesiumRef,
     entityGroupsRef,

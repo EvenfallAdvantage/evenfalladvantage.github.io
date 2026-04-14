@@ -10,8 +10,8 @@ type EntityGroupsRef = React.MutableRefObject<Record<string, any>>;
 export function useAnnotations(
   companyId: string,
   viewerRef: CesiumRef,
-  cesiumRef: CesiumRef,
-  entityGroupsRef: EntityGroupsRef
+  _cesiumRef: CesiumRef,
+  _entityGroupsRef: EntityGroupsRef
 ) {
   const [drawMode, setDrawMode] = useState<DrawMode>("none");
   const [drawColor, setDrawColor] = useState("#ef4444");

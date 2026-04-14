@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -25,29 +25,6 @@ export function BadgeGenerator({ companyId, companyName, companyLogo, brandColor
   const [qrImages, setQrImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const [memberData, badgeData] = await Promise.all([
-        getCompanyMembers(companyId),
-        getCompanyBadges(companyId),
-      ]);
-      setMembers(memberData as Member[]);
-      const badgeMap: Record<string, StaffBadge> = {};
-      const qrMap: Record<string, string> = {};
-      for (const b of badgeData) {
-        badgeMap[b.user_id] = b;
-        try {
-          qrMap[b.user_id] = await QRCode.toDataURL(b.qr_data, {
-            width: 200, margin: 1, color: { dark: "#000000", light: "#ffffff" }, errorCorrectionLevel: "H",
-          });
-        } catch {}
-      }
-      setBadges(badgeMap);
-      setQrImages(qrMap);
-    } catch {}
-    setLoading(false);
-  }, [companyId]);
 
   useEffect(() => {
     let cancelled = false;

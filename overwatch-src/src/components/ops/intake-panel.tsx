@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FileText, Loader2, Check, X, Pencil, Save, Upload, MapPin, Trash2, Image, Navigation, Share2, Copy, ExternalLink } from "lucide-react";
+import { FileText, Loader2, Check, X, Pencil, Save, Upload, MapPin, Trash2, Navigation, Share2, Copy, ExternalLink } from "lucide-react";
 import AddressAutocomplete, { type AddressSelection } from "@/components/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
