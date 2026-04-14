@@ -103,20 +103,62 @@ export const STAFF_FIELDS = [
   { key: "role", label: "Role", required: false },
   { key: "title", label: "Title", required: false },
   { key: "guard_card_number", label: "Guard Card Number", required: false },
+  { key: "status", label: "Hire Status", required: false },
+  { key: "nickname", label: "Nickname / Handle", required: false },
+  { key: "city", label: "City", required: false },
+  { key: "shirt_size", label: "Shirt Size", required: false },
+  { key: "region", label: "Region", required: false },
 ] as const;
+
+const FIELD_ALIASES: Record<string, string[]> = {
+  first_name: ["first", "legal name", "fname", "given"],
+  last_name: ["last", "legal last", "lname", "surname", "family"],
+  email: ["email", "e-mail", "mail"],
+  phone: ["phone", "tel", "mobile", "cell", "phone #", "phone#"],
+  nickname: ["handle", "moniker", "nickname", "callsign", "alias", "handle/moniker"],
+  city: ["city", "town", "location"],
+  shirt_size: ["shirt", "uniform", "size", "shirt size"],
+  region: ["region", "area", "zone"],
+  status: ["hire status", "status", "employment"],
+  guard_card_number: ["guard card", "gc", "guard card number", "gc status", "gc number"],
+  role: ["role", "position"],
+  title: ["title", "job title"],
+};
 
 /** Suggest auto-mappings from CSV headers to our staff fields via fuzzy matching. */
 export function suggestMapping(csvHeaders: string[]): Record<string, string | null> {
   const mapping: Record<string, string | null> = {};
   for (const field of STAFF_FIELDS) {
     const normalized = field.key.toLowerCase().replace(/_/g, "");
+    const aliases = FIELD_ALIASES[field.key] ?? [];
+
     const match = csvHeaders.find((h) => {
       const hn = h.toLowerCase().replace(/[_\s\-]/g, "");
-      return hn === normalized || hn.includes(normalized) || normalized.includes(hn);
+      const hLower = h.toLowerCase().trim();
+      // Exact key match (stripped)
+      if (hn === normalized) return true;
+      // Substring match
+      if (hn.includes(normalized) || normalized.includes(hn)) return true;
+      // Alias match (compare against lowercased header with original spacing)
+      for (const alias of aliases) {
+        const an = alias.replace(/[_\s\-]/g, "");
+        if (hn === an || hn.includes(an) || hLower === alias) return true;
+      }
+      return false;
     });
     mapping[field.key] = match ?? null;
   }
   return mapping;
+}
+
+/** Normalize external hire-status values to valid applicant status values. */
+export function normalizeStatus(raw: string): string {
+  const lower = raw.toLowerCase().trim();
+  if (lower === "active" || lower === "hired") return "hired";
+  if (lower === "approved for hire" || lower === "offer") return "offer";
+  if (lower === "inactive" || lower === "rejected" || lower === "terminated") return "rejected";
+  if (lower === "reviewing" || lower === "interview") return lower;
+  return "new";
 }
 
 /** Transform raw CSV rows into StaffImportRow[] using a user-confirmed column mapping. */
@@ -132,6 +174,7 @@ export function applyMapping(
       const idx = headers.indexOf(header);
       return idx >= 0 ? (row[idx] ?? "").trim() : "";
     };
+    const rawStatus = get("status");
     return {
       first_name: get("first_name"),
       last_name: get("last_name"),
@@ -140,6 +183,11 @@ export function applyMapping(
       role: get("role") || "staff",
       title: get("title") || undefined,
       guard_card_number: get("guard_card_number") || undefined,
+      status: rawStatus ? normalizeStatus(rawStatus) : undefined,
+      nickname: get("nickname") || undefined,
+      city: get("city") || undefined,
+      shirt_size: get("shirt_size") || undefined,
+      region: get("region") || undefined,
     };
   });
 }
@@ -154,6 +202,11 @@ export type StaffImportRow = {
   role?: string;
   title?: string;
   guard_card_number?: string;
+  status?: string;
+  nickname?: string;
+  city?: string;
+  shirt_size?: string;
+  region?: string;
 };
 
 const VALID_ROLES = ["staff", "lead", "manager", "admin", "owner", "instructor", "breaker"];
@@ -189,6 +242,11 @@ export function validateStaffRows(
       role,
       title: r.title?.trim() || undefined,
       guard_card_number: r.guard_card_number?.trim() || undefined,
+      status: r.status?.trim() || undefined,
+      nickname: r.nickname?.trim() || undefined,
+      city: r.city?.trim() || undefined,
+      shirt_size: r.shirt_size?.trim() || undefined,
+      region: r.region?.trim() || undefined,
     });
   }
 

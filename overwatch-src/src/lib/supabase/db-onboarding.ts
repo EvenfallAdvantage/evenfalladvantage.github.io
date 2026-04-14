@@ -98,6 +98,8 @@ export async function createApplicant(companyId: string, applicant: {
   return data;
 }
 
+const VALID_APPLICANT_STATUSES = ["new", "reviewing", "interview", "offer", "hired", "rejected"];
+
 export async function bulkCreateApplicants(companyId: string, rows: {
   first_name: string;
   last_name: string;
@@ -106,6 +108,11 @@ export async function bulkCreateApplicants(companyId: string, rows: {
   role?: string;
   title?: string;
   guard_card_number?: string;
+  status?: string;
+  nickname?: string;
+  city?: string;
+  shirt_size?: string;
+  region?: string;
 }[]): Promise<{ created: number; errors: string[] }> {
   const supabase = createClient();
   const errors: string[] = [];
@@ -113,19 +120,39 @@ export async function bulkCreateApplicants(companyId: string, rows: {
 
   // Insert in batches of 25
   for (let i = 0; i < rows.length; i += 25) {
-    const batch = rows.slice(i, i + 25).map((r) => ({
-      id: crypto.randomUUID(),
-      company_id: companyId,
-      first_name: r.first_name,
-      last_name: r.last_name,
-      email: r.email,
-      phone: r.phone ?? null,
-      guard_card_number: r.guard_card_number ?? null,
-      work_preferences: [],
-      source: "csv_import",
-      status: "new",
-      custom_fields: { imported_role: r.role ?? "staff", imported_title: r.title ?? null },
-    }));
+    const batch = rows.slice(i, i + 25).map((r) => {
+      // Build metadata notes from optional fields
+      const metaParts: string[] = [];
+      if (r.nickname) metaParts.push(`Handle: ${r.nickname}`);
+      if (r.city) metaParts.push(`City: ${r.city}`);
+      if (r.region) metaParts.push(`Region: ${r.region}`);
+      if (r.shirt_size) metaParts.push(`Shirt: ${r.shirt_size}`);
+
+      // Validate status against the DB constraint; default to "new"
+      const status = r.status && VALID_APPLICANT_STATUSES.includes(r.status) ? r.status : "new";
+
+      return {
+        id: crypto.randomUUID(),
+        company_id: companyId,
+        first_name: r.first_name,
+        last_name: r.last_name,
+        email: r.email,
+        phone: r.phone ?? null,
+        guard_card_number: r.guard_card_number ?? null,
+        work_preferences: [],
+        source: "csv_import",
+        status,
+        notes: metaParts.length > 0 ? metaParts.join(" | ") : null,
+        custom_fields: {
+          imported_role: r.role ?? "staff",
+          imported_title: r.title ?? null,
+          nickname: r.nickname ?? null,
+          city: r.city ?? null,
+          shirt_size: r.shirt_size ?? null,
+          region: r.region ?? null,
+        },
+      };
+    });
 
     const { error } = await supabase.from("applicants").insert(batch);
     if (error) {

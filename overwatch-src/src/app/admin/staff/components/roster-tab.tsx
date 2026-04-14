@@ -319,13 +319,14 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
           {importPreview.length > 0 && (
             <>
               <div className="max-h-48 overflow-auto rounded border border-border/40">
-                <table className="w-full text-xs">
+                 <table className="w-full text-xs">
                   <thead className="bg-muted/50 sticky top-0">
                     <tr>
                       <th className="px-2 py-1 text-left font-medium">Name</th>
                       <th className="px-2 py-1 text-left font-medium">Email</th>
                       <th className="px-2 py-1 text-left font-medium">Phone</th>
                       <th className="px-2 py-1 text-left font-medium">Role</th>
+                      <th className="px-2 py-1 text-left font-medium">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -335,6 +336,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                         <td className="px-2 py-1 text-muted-foreground">{r.email}</td>
                         <td className="px-2 py-1 text-muted-foreground">{r.phone ?? "—"}</td>
                         <td className="px-2 py-1"><Badge variant="outline" className="text-[9px]">{r.role ?? "staff"}</Badge></td>
+                        <td className="px-2 py-1"><Badge variant="outline" className="text-[9px] capitalize">{r.status ?? "new"}</Badge></td>
                       </tr>
                     ))}
                   </tbody>
@@ -359,7 +361,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
             </div>
           )}
           <p className="text-[10px] text-muted-foreground">
-            CSV format: <code className="bg-muted/50 px-1 rounded">first_name, last_name, email, phone, role, title, guard_card_number</code>
+            CSV format: <code className="bg-muted/50 px-1 rounded">first_name, last_name, email, phone, role, title, guard_card_number, status, nickname, city, shirt_size, region</code>
           </p>
         </div>
       )}
