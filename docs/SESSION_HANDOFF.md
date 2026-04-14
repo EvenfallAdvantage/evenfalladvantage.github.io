@@ -4,8 +4,8 @@
 **Repo:** https://github.com/EvenfallAdvantage/evenfalladvantage.github.io
 **Working Directory:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io`
 **CI/CD:** Build & Deploy passing on GitHub Pages.
-**Tests:** 410/410 passing, 0 TypeScript errors.
-**ESLint:** 30 errors remaining (all react-compiler), 133 warnings. Was 94 errors / 2,461 warnings.
+**Tests:** 425/425 passing (22 test files), 0 TypeScript errors.
+**ESLint:** 0 errors, 139 warnings. Was 94 errors / 2,461 warnings.
 
 ---
 
@@ -181,11 +181,10 @@ ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_generated_by_fkey FOREIGN K
 - **ESLint 10 blocked** — `eslint-config-next` is not yet compatible with ESLint 10. Pinned to ESLint 9.x. Revisit when Next.js ships ESLint 10 support.
 
 ### Medium
-- **Assessment ↔ Intake integration** — Both directions (assessment-first and operation-first) planned but not built. DB module has `linkAssessmentToEvent` + `getUnlinkedAssessments` ready. Need "Create Operation from Assessment" button and import picker on operations side.
-- **30 react-compiler ESLint errors** — setState in effects (11), impure render (6), component creation during render (6), refs during render (5), variable before declaration (2). Require behavioral analysis. Lint step is non-blocking in CI.
-- **No component tests** — No `.test.tsx` files exist. `@testing-library/react` + jsdom are installed but unused.
 - **Sentinel-1 SAR rate limiting** — Free tier has request limits.
-- **Remaining large pages** — academy (765), admin/settings (753), landing page (720), timeclock (690), apply (638), updates (626). Plus site-assessment (1,184 after DB wiring) and operation-detail.tsx (940).
+- **operation-detail.tsx** (940 lines) — largest remaining extracted component, could benefit from further decomposition
+- **landing page (720 lines)** — not decomposed yet (low churn, mostly static marketing)
+- **4 suppressed ESLint warnings** — storyboard-editor popover positioning (3) + theme-toggle hydration (1)
 
 ### Low
 - **XML job feed endpoint** — Generator function exists in `db-postings.ts` but no API route to serve it.
@@ -252,11 +251,9 @@ All v2 tables use a two-tier RLS model:
 
 ## Recommended Next Steps
 
-1. **Assessment ↔ Intake bidirectional linking** — "Create Operation from Assessment" button, import picker on operations side, `getAssessmentsByEventId` query
-2. **Fix 30 react-compiler ESLint errors** — setState in effects, impure render, component creation during render. Each requires careful behavioral analysis.
-3. **Component tests** — `@testing-library/react` is installed; start with auth flow, timeclock modal, admin role guards
-4. **Decompose remaining large pages** — academy (765), admin/settings (753), landing (720), timeclock (690), apply (638), updates (626)
-5. **Decompose site-assessment/page.tsx** — grew to 1,184 lines after DB wiring; should extract form sections, results panel, PDF export
-6. **XML job feed route** — Supabase Edge Function serving `generateJobFeedXML()` output for Indeed auto-indexing
-7. **Investigate React router + CesiumJS** — Find root cause of why `<Link>` navigation stalls when map is mounted
-8. **Backup workflow fix** — Update `SUPABASE_DB_URL` to Session Mode pooler URL (IPv4)
+1. **More component tests** — Expand `.test.tsx` coverage to auth guard, timeclock modal, roster tab, incident create form
+2. **XML job feed route** — Supabase Edge Function serving `generateJobFeedXML()` output for Indeed auto-indexing
+3. **Investigate React router + CesiumJS** — Find root cause of why `<Link>` navigation stalls when map is mounted
+4. **Backup workflow fix** — Update `SUPABASE_DB_URL` to Session Mode pooler URL (IPv4)
+5. **Make lint blocking in CI** — ESLint now has 0 errors; consider enabling `--max-warnings` threshold
+6. **Decompose operation-detail.tsx** (940 lines) — further split shift management, doc panels, activity feed
