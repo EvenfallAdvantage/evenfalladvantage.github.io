@@ -19,7 +19,8 @@ import { bulkCreateApplicants } from "@/lib/supabase/db-onboarding";
 import { getOrCreateBadge, getCompanyBadges, type StaffBadge } from "@/lib/supabase/db-badges";
 import { MemberProfileModal } from "./member-profile-modal";
 import { ReadinessModal } from "./readiness-modal";
-import QRCode from "qrcode";
+import { BadgePreviewModal } from "./badge-preview-modal";
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -45,8 +46,9 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
 
   // Badges
   const [rosterBadges, setRosterBadges] = useState<Record<string, StaffBadge>>({});
-  const [rosterQR, setRosterQR] = useState<Record<string, string>>({});
   const [generatingBadge, setGeneratingBadge] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [badgePreview, setBadgePreview] = useState<{ member: any; badge: StaffBadge } | null>(null);
 
   // Profile modal
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -327,33 +329,22 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                             e.stopPropagation();
                             if (!uid || !activeCompanyId) return;
                             if (hasBadge) {
-                              // Download badge
-                              setGeneratingBadge(uid);
-                              try {
-                                const b = rosterBadges[uid];
-                                let qr = rosterQR[uid];
-                                if (!qr) {
-                                  qr = await QRCode.toDataURL(b.qr_data, { width: 200, margin: 1, errorCorrectionLevel: "H" });
-                                  setRosterQR((p) => ({ ...p, [uid]: qr }));
-                                }
-                                const { downloadBadgeCard } = await import("@/components/badge-download");
-                                const company = userCompanies.find((c) => c.companyId === activeCompanyId);
-                                await downloadBadgeCard(m, b, qr, companyName, company?.companyLogo ?? null, company?.brandColor ?? "#d59b3c");
-                              } catch (err) { console.error("Badge download failed:", err); }
-                              setGeneratingBadge(null);
+                              // Open badge preview modal
+                              setBadgePreview({ member: m, badge: rosterBadges[uid] });
                             } else {
-                              // Generate badge
+                              // Generate badge, then open preview
                               setGeneratingBadge(uid);
                               try {
                                 const b = await getOrCreateBadge(activeCompanyId, uid);
                                 setRosterBadges((p) => ({ ...p, [uid]: b }));
+                                setBadgePreview({ member: m, badge: b });
                               } catch (err) { console.error("Badge gen failed:", err); }
                               setGeneratingBadge(null);
                             }
                           }}
                           disabled={generatingBadge === uid}
                           className={`rounded p-1.5 transition-colors ${hasBadge ? "text-primary hover:bg-primary/10" : "text-muted-foreground/40 hover:text-primary hover:bg-primary/10"}`}
-                          title={hasBadge ? "Download badge" : "Generate badge"}
+                          title={hasBadge ? "View badge" : "Generate badge"}
                         >
                           {generatingBadge === uid ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <QrCode className="h-3.5 w-3.5" />}
                         </button>
@@ -381,6 +372,18 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
       {/* ── Readiness Modal ── */}
       {viewReadiness && (
         <ReadinessModal data={viewReadiness} onClose={() => setViewReadiness(null)} />
+      )}
+
+      {/* ── Badge Preview Modal ── */}
+      {badgePreview && (
+        <BadgePreviewModal
+          member={badgePreview.member}
+          badge={badgePreview.badge}
+          companyName={companyName}
+          companyLogo={userCompanies.find((c) => c.companyId === activeCompanyId)?.companyLogo ?? null}
+          brandColor={userCompanies.find((c) => c.companyId === activeCompanyId)?.brandColor ?? "#d59b3c"}
+          onClose={() => setBadgePreview(null)}
+        />
       )}
     </>
   );
