@@ -198,3 +198,47 @@ export async function isUserClockedIn(userId: string, companyId: string): Promis
 
   return !!data;
 }
+
+/**
+ * Get all currently clocked-in staff for a company.
+ * Used by the mass clock-out feature.
+ */
+export async function getClockedInStaff(companyId: string): Promise<{
+  id: string;
+  user_id: string;
+  clock_in: string;
+  event_id: string | null;
+  users: { first_name: string; last_name: string };
+}[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("timesheets")
+    .select("id, user_id, clock_in, event_id, users!inner(first_name, last_name)")
+    .eq("company_id", companyId)
+    .is("clock_out", null)
+    .order("clock_in", { ascending: false });
+  if (error) {
+    console.error("[DB] clocked in staff:", error.message);
+    return [];
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase join types don't match our interface
+  return (data ?? []) as any;
+}
+
+/**
+ * Clock out ALL currently clocked-in staff for a company.
+ * Optionally filtered by event.
+ */
+export async function massClockOut(companyId: string, eventId?: string | null): Promise<number> {
+  const supabase = createClient();
+  const now = new Date().toISOString();
+  let query = supabase
+    .from("timesheets")
+    .update({ clock_out: now })
+    .eq("company_id", companyId)
+    .is("clock_out", null);
+  if (eventId) query = query.eq("event_id", eventId);
+  const { data, error } = await query.select("id");
+  if (error) throw error;
+  return data?.length ?? 0;
+}

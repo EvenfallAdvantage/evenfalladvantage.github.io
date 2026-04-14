@@ -6,6 +6,8 @@ import {
   Eye, ShieldCheck, AlertOctagon, QrCode,
   UserPlus, X, Upload, Download,
 } from "lucide-react";
+import QRCode from "qrcode";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +68,11 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
+
+  // Bulk badge generation & download
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState("");
+  const [bulkDownloading, setBulkDownloading] = useState(false);
 
   // Load badges and readiness
   const loadInternalData = useCallback(async () => {
@@ -155,6 +162,70 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
     return name.includes(search.toLowerCase());
   });
 
+  async function handleGenerateAllBadges() {
+    if (!activeCompanyId) return;
+    setBulkGenerating(true);
+    const membersToGen = filtered.filter((m: Member) => {
+      const uid = m.user_id || m.users?.id;
+      return uid && !rosterBadges[uid];
+    });
+    let count = 0;
+    for (const m of membersToGen) {
+      const uid = m.user_id || m.users?.id;
+      setBulkProgress(`Generating ${++count}/${membersToGen.length}...`);
+      try {
+        const b = await getOrCreateBadge(activeCompanyId, uid);
+        setRosterBadges((prev) => ({ ...prev, [uid]: b }));
+      } catch (err) {
+        console.error("Badge gen failed for", uid, err);
+      }
+    }
+    setBulkProgress("");
+    setBulkGenerating(false);
+    toast.success(`Generated ${count} badges`);
+  }
+
+  async function handleDownloadAllBadges() {
+    if (!activeCompanyId) return;
+    setBulkDownloading(true);
+    const { downloadBadgeCard } = await import("@/components/badge-download");
+    const company = userCompanies.find((c) => c.companyId === activeCompanyId);
+
+    const membersWithBadges = filtered.filter((m: Member) => {
+      const uid = m.user_id || m.users?.id;
+      return uid && rosterBadges[uid];
+    });
+
+    let count = 0;
+    for (const m of membersWithBadges) {
+      const uid = m.user_id || m.users?.id;
+      const badge = rosterBadges[uid];
+      setBulkProgress(`Downloading ${++count}/${membersWithBadges.length}...`);
+      try {
+        const qr = await QRCode.toDataURL(badge.qr_data, {
+          width: 280,
+          margin: 1,
+          color: { dark: "#1a1a2e", light: "#ffffff" },
+        });
+        await downloadBadgeCard(
+          m,
+          badge,
+          qr,
+          companyName,
+          company?.companyLogo ?? null,
+          company?.brandColor ?? "#d59b3c"
+        );
+        // Small delay to avoid browser blocking multiple downloads
+        await new Promise((r) => setTimeout(r, 500));
+      } catch (err) {
+        console.error("Badge download failed for", uid, err);
+      }
+    }
+    setBulkProgress("");
+    setBulkDownloading(false);
+    toast.success(`Downloaded ${count} badges`);
+  }
+
   return (
     <>
       {error && (
@@ -179,6 +250,20 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
             <Upload className="h-3.5 w-3.5" /> Import CSV
           </Button>
           <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVFile} />
+          {canManage && (
+            <>
+              <Button size="sm" variant="outline" className="gap-1.5 text-xs shrink-0" onClick={handleGenerateAllBadges} disabled={bulkGenerating || bulkDownloading}>
+                <QrCode className="h-3.5 w-3.5" />
+                {bulkGenerating ? bulkProgress : "Generate All Badges"}
+              </Button>
+              {Object.keys(rosterBadges).length > 0 && (
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs shrink-0" onClick={handleDownloadAllBadges} disabled={bulkDownloading || bulkGenerating}>
+                  <Download className="h-3.5 w-3.5" />
+                  {bulkDownloading ? bulkProgress : `Download All (${Object.keys(rosterBadges).length})`}
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
