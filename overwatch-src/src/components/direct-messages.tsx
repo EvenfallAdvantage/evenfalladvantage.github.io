@@ -38,6 +38,14 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
     setLoading(false);
   }, [companyId]);
 
+  const loadMessages = useCallback(async (otherUserId: string) => {
+    const msgs = await getDMMessages(companyId, otherUserId);
+    setMessages(msgs);
+    await markDMsAsRead(companyId, otherUserId);
+    loadConversations(); // Refresh unread counts
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  }, [companyId, loadConversations]);
+
   // Load conversations on mount
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
@@ -49,15 +57,7 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
       if (selectedUserId) loadMessages(selectedUserId);
     });
     return unsub;
-  }, [companyId, user?.id, loadConversations, selectedUserId]);
-
-  async function loadMessages(otherUserId: string) {
-    const msgs = await getDMMessages(companyId, otherUserId);
-    setMessages(msgs);
-    await markDMsAsRead(companyId, otherUserId);
-    loadConversations(); // Refresh unread counts
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-  }
+  }, [companyId, user?.id, loadConversations, selectedUserId, loadMessages]);
 
   async function handleSend() {
     if (!msgText.trim() || !selectedUserId) return;

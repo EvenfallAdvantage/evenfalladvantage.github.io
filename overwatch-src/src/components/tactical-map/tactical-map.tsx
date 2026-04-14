@@ -265,6 +265,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (window as any).__openOpDoc;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: Cesium viewer init must run once
   }, []);
 
   // Click handler + entity popup

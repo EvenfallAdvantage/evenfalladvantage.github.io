@@ -381,7 +381,7 @@ export function useCesiumClickHandler(params: {
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
     return () => handler.destroy();
-  }, [loading, onSelectOperation, activeTool, measurePoint1, losPoint1, elevPoint1, aligningOp, drawMode, drawColor, drawPoints, companyId, dronePlannerOpen, droneWaypoints]);
+  }, [loading, onSelectOperation, activeTool, measurePoint1, losPoint1, elevPoint1, aligningOp, drawMode, drawColor, drawPoints, companyId, dronePlannerOpen, droneWaypoints, viewerRef, cesiumRef, isAdmin, losEntityIdsRef, setDrawPoints, setDroneWaypoints, setElevPoint1, setElevationStatus, setLosPoint1, setLosResult, setMeasurePoint1, setMeasureResult, setRangeCenter]);
 
   // Dismiss popup when camera moves (user is navigating away)
   // Use a short delay to avoid dismissing immediately on click (which can
@@ -397,7 +397,7 @@ export function useCesiumClickHandler(params: {
       clearTimeout(armTimer);
       try { viewer.camera.moveStart.removeEventListener(handler); } catch {}
     };
-  }, [selectedEntity?.id]);
+  }, [selectedEntity?.id, selectedEntity, viewerRef]);
 
   return { selectedEntity, setSelectedEntity };
 }

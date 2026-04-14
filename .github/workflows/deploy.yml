@@ -47,7 +47,7 @@ jobs:
 
       - name: Lint
         working-directory: overwatch-src
-        run: npm run lint -- --max-warnings 150
+        run: npm run lint -- --max-warnings 0
 
       - name: Run tests
         working-directory: overwatch-src

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SCENARIOS, STATE_COLORS, getSubjectImage, type Scenario, type Step } from "@/lib/deescalation-scenarios";
 import { usePageHeader } from "@/stores/page-header-store";
+import Image from "next/image";
 
 type ScenarioResult = { steps: number; success: boolean; date: string };
 
@@ -155,10 +156,12 @@ export default function ScenariosPage() {
             {/* Subject result photo */}
             {resultImg && !imgError && (
               <div className="relative w-full aspect-[4/3] bg-black/20">
-                <img
+                <Image
                   src={resultImg}
                   alt={`Subject - ${ending.state}`}
                   className="w-full h-full object-cover"
+                  fill
+                  unoptimized
                   onError={() => setImgError(true)}
                 />
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-4">

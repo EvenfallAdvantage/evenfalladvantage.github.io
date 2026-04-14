@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import NextImage from "next/image";
 import { Loader2, Download, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -120,7 +121,7 @@ export function BadgeGenerator({ companyId, companyName, companyLogo, brandColor
                 <p className="text-[11px] text-muted-foreground capitalize">{member.role}</p>
                 {badge && <p className="text-[10px] text-muted-foreground/60 font-mono">{badge.badge_number}</p>}
               </div>
-              {qr && <img src={qr} alt="QR" className="h-12 w-12 rounded border border-border/30" />}
+              {qr && <NextImage src={qr} alt="QR" className="h-12 w-12 rounded border border-border/30" width={48} height={48} unoptimized />}
               <div className="flex gap-1.5 shrink-0">
                 {!badge ? (
                   <Button size="sm" variant="outline" onClick={() => generateBadge(member)} disabled={isGenerating}>

@@ -13,6 +13,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getUserCertifications, addCertification, deleteCertification, verifyCertificate } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { usePageHeader } from "@/stores/page-header-store";
 
 const DocumentScanner = dynamic(() => import("@/components/document-scanner"), { ssr: false });
@@ -447,7 +448,7 @@ export default function CertificationsPage() {
             </div>
             <div className="flex-1 overflow-auto p-1 min-h-[60vh]">
               {/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(viewDoc.url) ? (
-                <img src={viewDoc.url} alt={viewDoc.name} className="w-full h-auto rounded-md" />
+                <Image src={viewDoc.url} alt={viewDoc.name} className="w-full h-auto rounded-md" width={800} height={600} unoptimized />
               ) : (
                 <iframe src={viewDoc.url} className="w-full h-full min-h-[60vh] rounded-md" title={viewDoc.name} />
               )}

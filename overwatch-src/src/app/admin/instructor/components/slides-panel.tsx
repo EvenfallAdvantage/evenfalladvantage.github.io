@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useEffect } from "react";
 import {
-  Plus, Loader2, Save, X, Pencil, Trash2, FileText, Image, Type, Video,
+  Plus, Loader2, Save, X, Pencil, Trash2, FileText, Image as ImageIcon, Type, Video,
 } from "lucide-react";
+import NextImage from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,7 @@ function sanitizeSlideHtml(html: string): string {
 
 const SLIDE_TYPES = [
   { value: "text", label: "Text", icon: Type },
-  { value: "image", label: "Image", icon: Image },
+  { value: "image", label: "Image", icon: ImageIcon },
   { value: "video", label: "Video", icon: Video },
   { value: "mixed", label: "Mixed", icon: FileText },
 ];
@@ -121,7 +122,7 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
               <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setPreviewSlide(null)}><X className="h-2.5 w-2.5" /></Button>
             </div>
           </div>
-          {previewSlide.image_url && <img src={previewSlide.image_url} alt="Slide preview" className="rounded max-h-40 object-contain" />}
+          {previewSlide.image_url && <NextImage src={previewSlide.image_url} alt="Slide preview" className="rounded max-h-40 object-contain" width={400} height={160} unoptimized />}
           {previewSlide.content ? (
             <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeSlideHtml(previewSlide.content) }} />
           ) : <p className="text-[10px] text-muted-foreground italic">No content</p>}

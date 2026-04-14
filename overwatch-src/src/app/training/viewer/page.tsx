@@ -211,14 +211,14 @@ function ModuleViewerInner() {
     }
   }
 
-  function goToSlide(index: number) {
+  const goToSlide = useCallback((index: number) => {
     if (index >= 0 && index < slides.length) {
       setCurrentSlide(index);
     }
-  }
+  }, [slides.length]);
 
-  const handlePrev = useCallback(() => { goToSlide(currentSlide - 1); }, [currentSlide]);
-  const handleNext = useCallback(() => { goToSlide(currentSlide + 1); }, [currentSlide]);
+  const handlePrev = useCallback(() => { goToSlide(currentSlide - 1); }, [currentSlide, goToSlide]);
+  const handleNext = useCallback(() => { goToSlide(currentSlide + 1); }, [currentSlide, goToSlide]);
 
   async function handleComplete() {
     setCompleting(true);

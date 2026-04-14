@@ -1,6 +1,7 @@
 "use client";
 
 import { type RefObject } from "react";
+import Image from "next/image";
 import {
   Radio, Plus, Send, Loader2, Trash2, Search, ExternalLink,
   Reply, X, Hash, MessageSquare, MapPin,
@@ -322,7 +323,7 @@ export function ChannelsTab({
                           <div className="mb-1">
                             {/\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file_url) ? (
                               <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
-                                <img src={msg.file_url} alt="attachment" className="max-w-[200px] max-h-[200px] rounded-lg object-cover border border-border/50" />
+                                <Image src={msg.file_url} alt="attachment" className="max-w-[200px] max-h-[200px] rounded-lg object-cover border border-border/50" width={200} height={200} unoptimized />
                               </a>
                             ) : (
                               <a href={msg.file_url} target="_blank" rel="noopener noreferrer"

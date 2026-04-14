@@ -62,6 +62,7 @@ export default function ScanPage() {
     } catch {
       setCameraError("Camera access denied. Please allow camera permissions.");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- scanLoop uses only refs and is stable
   }, []);
 
   const stopCamera = useCallback(() => {

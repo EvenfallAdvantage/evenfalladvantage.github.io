@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { usePageHeader } from "@/stores/page-header-store";
+import Image from "next/image";
 
 type LineItem = {
   id: number;
@@ -375,7 +376,7 @@ export default function InvoicesPage() {
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
                 {logoUrl ? (
                   <div className="flex items-center gap-3">
-                    <img src={logoUrl} alt="Logo" className="h-12 max-w-[150px] object-contain rounded" />
+                    <Image src={logoUrl} alt="Logo" className="h-12 max-w-[150px] object-contain rounded" width={150} height={48} unoptimized />
                     <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => { setLogoUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}>
                       <X className="h-3 w-3" /> Remove
                     </Button>
@@ -527,7 +528,7 @@ export default function InvoicesPage() {
                     {/* Header */}
                     <div className="flex justify-between items-start mb-8">
                       <div>
-                        {logoUrl && <img src={logoUrl} alt="Logo" className="max-w-[150px] max-h-[80px] object-contain mb-3" />}
+                        {logoUrl && <Image src={logoUrl} alt="Logo" className="max-w-[150px] max-h-[80px] object-contain mb-3" width={150} height={80} unoptimized />}
                         <h1 className="text-3xl font-bold text-gray-800 tracking-tight">INVOICE</h1>
                         {form.yourBusiness && <p className="text-sm text-gray-500 mt-1">{form.yourBusiness}</p>}
                       </div>

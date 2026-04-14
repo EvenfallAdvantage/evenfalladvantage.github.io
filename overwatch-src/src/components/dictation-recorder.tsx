@@ -69,6 +69,17 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
   }
 
   // ─── Tier 1: Native Web Speech API ──────────────────
+  const stopNative = useCallback(() => {
+    recordingRef.current = false;
+    if (recognitionRef.current) {
+      const ref = recognitionRef.current;
+      recognitionRef.current = null;
+      try { ref.stop(); } catch {}
+    }
+    setIsRecording(false);
+    stopTimer();
+  }, []);
+
   const startNative = useCallback(() => {
     setError(null);
     const Ctor = getSpeechRecognitionCtor();
@@ -132,18 +143,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     } catch {
       setError("Failed to start speech recognition. Please try again.");
     }
-  }, [onTranscript]);
-
-  function stopNative() {
-    recordingRef.current = false;
-    if (recognitionRef.current) {
-      const ref = recognitionRef.current;
-      recognitionRef.current = null;
-      try { ref.stop(); } catch {}
-    }
-    setIsRecording(false);
-    stopTimer();
-  }
+  }, [onTranscript, stopNative]);
 
   // ─── Tier 2: Whisper WASM via MediaRecorder ─────────
   const startWhisper = useCallback(async () => {
@@ -243,7 +243,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
   const handleStop = useCallback(() => {
     if (tier === "native") stopNative();
     else stopWhisper();
-  }, [tier, stopWhisper]);
+  }, [tier, stopNative, stopWhisper]);
 
   // ─── Render ─────────────────────────────────────────
   return (

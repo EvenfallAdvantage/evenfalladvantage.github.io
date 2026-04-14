@@ -92,6 +92,31 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
     }
   }, []);
 
+  const handleCameraError = useCallback((e: Error) => {
+    if (e.name === "NotAllowedError" || e.name === "PermissionDeniedError") {
+      setError("Camera permission denied. Please allow camera access in your browser settings and try again.");
+    } else if (e.name === "NotFoundError" || e.name === "DevicesNotFoundError") {
+      setError("No camera found on this device.");
+    } else if (e.name === "NotReadableError" || e.name === "TrackStartError") {
+      setError("Camera is in use by another app. Close other apps using the camera and try again.");
+    } else if (e.name === "OverconstrainedError") {
+      // Retry without constraint
+      navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(async (fallback) => {
+        if (!mountedRef.current) { fallback.getTracks().forEach((t) => t.stop()); return; }
+        streamRef.current = fallback;
+        const track = fallback.getVideoTracks()[0];
+        if (track) await applyAdvancedConstraints(track);
+        if (videoRef.current) {
+          videoRef.current.srcObject = fallback;
+          await videoRef.current.play();
+          setScanning(true);
+        }
+      }).catch(() => setError("Could not access camera."));
+    } else {
+      setError(`Camera error: ${e.message || "Unknown error"}`);
+    }
+  }, [applyAdvancedConstraints]);
+
   const startCamera = useCallback(async (facing: "environment" | "user") => {
     cleanup();
     setError(null);
@@ -181,32 +206,7 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
         handleCameraError(err as Error);
       }
     }
-  }, [cleanup, handleDetected, applyAdvancedConstraints]);
-
-  function handleCameraError(e: Error) {
-    if (e.name === "NotAllowedError" || e.name === "PermissionDeniedError") {
-      setError("Camera permission denied. Please allow camera access in your browser settings and try again.");
-    } else if (e.name === "NotFoundError" || e.name === "DevicesNotFoundError") {
-      setError("No camera found on this device.");
-    } else if (e.name === "NotReadableError" || e.name === "TrackStartError") {
-      setError("Camera is in use by another app. Close other apps using the camera and try again.");
-    } else if (e.name === "OverconstrainedError") {
-      // Retry without constraint
-      navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(async (fallback) => {
-        if (!mountedRef.current) { fallback.getTracks().forEach((t) => t.stop()); return; }
-        streamRef.current = fallback;
-        const track = fallback.getVideoTracks()[0];
-        if (track) await applyAdvancedConstraints(track);
-        if (videoRef.current) {
-          videoRef.current.srcObject = fallback;
-          await videoRef.current.play();
-          setScanning(true);
-        }
-      }).catch(() => setError("Could not access camera."));
-    } else {
-      setError(`Camera error: ${e.message || "Unknown error"}`);
-    }
-  }
+  }, [cleanup, handleDetected, applyAdvancedConstraints, handleCameraError]);
 
   // Toggle torch/flashlight
   async function toggleTorch() {

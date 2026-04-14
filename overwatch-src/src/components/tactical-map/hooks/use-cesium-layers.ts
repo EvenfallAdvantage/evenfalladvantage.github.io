@@ -138,7 +138,7 @@ export function useCesiumLayers(params: {
         entityGroupsRef.current.operations.push(gfEntity);
       }
     });
-  }, [operations, layers.operations, layers.geofences, loading, eventDocs]);
+  }, [operations, layers.operations, layers.geofences, loading, eventDocs, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Plot Staff Pins ──────────────────────────────────
   useEffect(() => {
@@ -185,7 +185,7 @@ export function useCesiumLayers(params: {
       });
       entityGroupsRef.current.staff.push(entity);
     });
-  }, [staff, layers.staff, loading]);
+  }, [staff, layers.staff, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Plot Incidents ──────────────────────────────────
   useEffect(() => {
@@ -228,7 +228,7 @@ export function useCesiumLayers(params: {
       });
       entityGroupsRef.current.incidents.push(entity);
     });
-  }, [incidents, layers.incidents, loading]);
+  }, [incidents, layers.incidents, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Weather Radar Layer ─────────────────────────────
   useEffect(() => {
@@ -266,13 +266,13 @@ export function useCesiumLayers(params: {
       layer.alpha = 0.5;
       weatherLayerRef.current = layer;
     }
-  }, [layers.weather, loading]);
+  }, [layers.weather, loading, viewerRef, cesiumRef]);
 
   // ─── 3D Buildings Toggle ─────────────────────────────
   useEffect(() => {
     const buildings = entityGroupsRef.current.buildings;
     if (buildings?.[0]) buildings[0].show = layers.buildings;
-  }, [layers.buildings]);
+  }, [layers.buildings, entityGroupsRef]);
 
   // ─── Load saved bounds from DB when site maps are toggled ────
   useEffect(() => {
@@ -332,7 +332,7 @@ export function useCesiumLayers(params: {
         setAligningOp(op);
       }
     });
-  }, [operations, layers.siteOverlays, layers.siteOverlayOpacity, loading, savedBounds, aligningOp, isAdmin, boundsLoaded, boundsLoading]);
+  }, [operations, layers.siteOverlays, layers.siteOverlayOpacity, loading, savedBounds, aligningOp, isAdmin, boundsLoaded, boundsLoading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Storyboard Pins on Site Map Overlays ────────────
   // When a site map is active with saved bounds, load its storyboard pins
@@ -441,7 +441,7 @@ export function useCesiumLayers(params: {
       // Here we could plot incidents that only have site-map-relative positions.
       // For now, the incident layer handles this.
     });
-  }, [operations, layers.siteOverlays, savedBounds, loading, incidents]);
+  }, [operations, layers.siteOverlays, savedBounds, loading, incidents, viewerRef, cesiumRef, entityGroupsRef, companyId]);
 
   // ─── Night Vision Mode ───────────────────────────────
   // Swaps to a dark basemap (CartoDB Dark Matter) and styles 3D buildings
@@ -502,7 +502,7 @@ export function useCesiumLayers(params: {
 
     // Enable silhouette-like effect via scene lighting
     viewer.scene.globe.enableLighting = true;
-  }, [layers.nightVision, loading]);
+  }, [layers.nightVision, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Weather Radar Auto-Refresh (every 5 min) ──────
   useEffect(() => {
@@ -529,7 +529,7 @@ export function useCesiumLayers(params: {
       } catch {}
     }, 300000); // 5 minutes
     return () => clearInterval(interval);
-  }, [layers.weather]);
+  }, [layers.weather, viewerRef, cesiumRef]);
 
   // ─── Satellite Imagery Toggle ───────────────────────
   useEffect(() => {
@@ -565,7 +565,7 @@ export function useCesiumLayers(params: {
       const osmRef = entityGroupsRef.current.osmLayerRef;
       if (osmRef?.[0]) osmRef[0].show = false;
     }
-  }, [layers.satellite, loading]);
+  }, [layers.satellite, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Sentinel-1 SAR Layer ────────────────────────────
   useEffect(() => {
@@ -580,7 +580,7 @@ export function useCesiumLayers(params: {
     if (layers.sentinel1) {
       entityGroupsRef.current.sentinel1Layer = addSentinel1Layer(viewer, Cesium);
     }
-  }, [layers.sentinel1, loading]);
+  }, [layers.sentinel1, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Sentinel-2 Optical Layer ──────────────────────
   useEffect(() => {
@@ -595,7 +595,7 @@ export function useCesiumLayers(params: {
     if (layers.sentinel2) {
       entityGroupsRef.current.sentinel2Layer = addSentinel2Layer(viewer, Cesium);
     }
-  }, [layers.sentinel2, loading]);
+  }, [layers.sentinel2, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── FLIR Thermal Shader ───────────────────────────
   useEffect(() => {
@@ -610,7 +610,7 @@ export function useCesiumLayers(params: {
     if (layers.flirThermal) {
       entityGroupsRef.current.flirStage = applyShader(viewer, Cesium, FLIR_SHADER);
     }
-  }, [layers.flirThermal, loading]);
+  }, [layers.flirThermal, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── CRT Mode Shader ──────────────────────────────
   useEffect(() => {
@@ -625,7 +625,7 @@ export function useCesiumLayers(params: {
     if (layers.crtMode) {
       entityGroupsRef.current.crtStage = applyShader(viewer, Cesium, CRT_SHADER);
     }
-  }, [layers.crtMode, loading]);
+  }, [layers.crtMode, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Live Aircraft (OpenSky Network) ───────────────
   useEffect(() => {
@@ -693,7 +693,7 @@ export function useCesiumLayers(params: {
     fetchAndRender();
     const interval = setInterval(fetchAndRender, 15000); // Refresh every 15s
     return () => clearInterval(interval);
-  }, [layers.aircraft, loading, operations]);
+  }, [layers.aircraft, loading, operations, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Satellite Orbits (CelesTrak) ──────────────────
   useEffect(() => {
@@ -768,7 +768,7 @@ export function useCesiumLayers(params: {
       // Just re-trigger the effect by toggling a counter
     }, 60000);
     return () => clearInterval(interval);
-  }, [layers.satelliteOrbits, loading]);
+  }, [layers.satelliteOrbits, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Breadcrumb Trails (patrol history) ──────────────
   // Renders + refreshes every 60s while enabled
@@ -820,7 +820,7 @@ export function useCesiumLayers(params: {
     // Refresh trails every 60s
     const interval = setInterval(renderTrails, 60000);
     return () => clearInterval(interval);
-  }, [staff, layers.breadcrumbs, loading, companyId, timeMachineOpen, debouncedReplayTime]);
+  }, [staff, layers.breadcrumbs, loading, companyId, timeMachineOpen, debouncedReplayTime, viewerRef, cesiumRef, entityGroupsRef]);
 
   // Render annotations on the globe
   useEffect(() => {
@@ -900,7 +900,7 @@ export function useCesiumLayers(params: {
         entityGroupsRef.current.annotations.push(entity);
       }
     });
-  }, [annotations, layers.annotations, loading]);
+  }, [annotations, layers.annotations, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Nearby POIs (hospitals, police, fire stations) ─
   useEffect(() => {
@@ -957,7 +957,7 @@ export function useCesiumLayers(params: {
         entityGroupsRef.current.pois.push(entity);
       });
     }).catch(() => {});
-  }, [operations, layers.nearbyPOIs, loading]);
+  }, [operations, layers.nearbyPOIs, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Geofence Alert Feed ────────────────────────────
   useEffect(() => {

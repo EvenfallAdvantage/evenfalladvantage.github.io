@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { FileText, Loader2, Check, X, Pencil, Save, Upload, MapPin, Trash2, Navigation, Share2, Copy, ExternalLink } from "lucide-react";
 import AddressAutocomplete, { type AddressSelection } from "@/components/address-autocomplete";
 import { Button } from "@/components/ui/button";
@@ -356,7 +357,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
         {siteMapUrl ? (
           <div className="space-y-2">
             <div className="relative rounded-lg border border-border overflow-hidden">
-              <img src={siteMapUrl} alt="Site map" className="w-full h-auto max-h-48 object-contain bg-black/20" />
+              <Image src={siteMapUrl} alt="Site map" className="w-full h-auto max-h-48 object-contain bg-black/20" width={600} height={192} unoptimized />
               {!isLocked && (
                 <button type="button" onClick={handleSiteMapRemove}
                   className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-red-500/90 px-2 py-1 text-[10px] font-semibold text-white hover:bg-red-600 transition-colors">

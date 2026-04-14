@@ -60,7 +60,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
     finally { setApproving(null); }
   }
 
-  const toggleOp = (key: string) => setCollapsedOps(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next; });
+  const toggleOp = (key: string) => setCollapsedOps(prev => { const next = new Set(prev); if (next.has(key)) { next.delete(key); } else { next.add(key); } return next; });
 
   return (
     <>
