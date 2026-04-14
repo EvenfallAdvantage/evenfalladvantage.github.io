@@ -4,7 +4,7 @@ import { logDbReadError } from "./db-error";
 
 // ─── Helpers ────────────────────────────────────────────
 
-function mapDocTypeToCertCategory(type: string): string {
+function _mapDocTypeToCertCategory(type: string): string {
   switch (type) {
     case "Guard Card":
     case "Security License":
@@ -194,100 +194,16 @@ export async function deleteApplicant(id: string) {
   if (error) throw error;
 }
 
-// Convert a hired applicant into a real user + company membership
+// Convert a hired applicant into a real user + company membership.
+// Uses a SECURITY DEFINER RPC function to bypass RLS on users/memberships tables.
 export async function convertApplicantToUser(applicantId: string, companyId: string) {
   const supabase = createClient();
-  const { data: applicant } = await supabase
-    .from("applicants")
-    .select("*")
-    .eq("id", applicantId)
-    .maybeSingle();
-  if (!applicant) throw new Error("Applicant not found");
-
-  // Check if user with this email already exists
-  const { data: existingUser } = await supabase
-    .from("users")
-    .select("id")
-    .eq("email", applicant.email)
-    .maybeSingle();
-
-  let userId: string;
-  if (existingUser) {
-    userId = existingUser.id;
-  } else {
-    // Create user record (they'll need to register/set password separately)
-    const newId = crypto.randomUUID();
-    const { error: userErr } = await supabase
-      .from("users")
-      .insert({
-        id: newId,
-        email: applicant.email,
-        first_name: applicant.first_name,
-        last_name: applicant.last_name,
-        phone: applicant.phone,
-      });
-    if (userErr) throw userErr;
-    userId = newId;
-  }
-
-  // Create company membership with onboarding status
-  const { error: memberErr } = await supabase
-    .from("company_memberships")
-    .upsert({
-      id: crypto.randomUUID(),
-      user_id: userId,
-      company_id: companyId,
-      role: "staff",
-      status: "active",
-      guard_card_number: applicant.guard_card_number,
-      guard_card_expiry: applicant.guard_card_expiry,
-      address: applicant.address,
-      work_preferences: applicant.work_preferences ?? [],
-      education: applicant.education || [],
-      work_history: applicant.work_history || [],
-      hire_date: new Date().toISOString(),
-      onboarding_complete: true,
-    }, { onConflict: "user_id,company_id" });
-  if (memberErr) throw memberErr;
-
-  // Migrate applicant documents to certifications table
-  if (applicant.documents && applicant.documents.length > 0) {
-    const certRecords = applicant.documents.map((doc: { type?: string; fileUrl?: string }) => ({
-      id: crypto.randomUUID(),
-      user_id: userId,
-      cert_type: doc.type || 'general',
-      document_url: doc.fileUrl,
-      category: mapDocTypeToCertCategory(doc.type ?? 'general'),
-      status: 'active',
-      created_at: new Date().toISOString(),
-    }));
-
-    await supabase.from('certifications').insert(certRecords);
-  }
-
-  // Mark applicant as converted
-  await supabase
-    .from("applicants")
-    .update({ converted_user_id: userId, status: "hired", hired_at: new Date().toISOString() })
-    .eq("id", applicantId);
-
-  // Auto-create onboarding progress for all required tasks
-  const { data: tasks } = await supabase
-    .from("onboarding_tasks")
-    .select("id")
-    .eq("company_id", companyId);
-  if (tasks?.length) {
-    await supabase.from("onboarding_progress").insert(
-      tasks.map((t: { id: string }) => ({
-        id: crypto.randomUUID(),
-        user_id: userId,
-        task_id: t.id,
-        completed: false,
-      }))
-    );
-  }
-
-  return { userId };
+  const { data, error } = await supabase.rpc("convert_applicant_to_roster", {
+    p_applicant_id: applicantId,
+    p_company_id: companyId,
+  });
+  if (error) throw error;
+  return { userId: data?.user_id, existing: data?.existing };
 }
 
 // ─── Onboarding Tasks (admin templates) ─────────────────
