@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Flag, MapPin, Plus, Loader2, X, FileText,
   Check, Shield, Shirt, AlertTriangle, Building2,
@@ -13,6 +13,7 @@ import {
   createEvent, createDocument,
 } from "@/lib/supabase/db";
 import { issueDocument } from "@/lib/supabase/db-documents";
+import { linkAssessmentToEvent, type SiteAssessment } from "@/lib/supabase/db-assessments";
 import { createClient } from "@/lib/supabase/client";
 import type { IntakeData } from "@/types/operations";
 import AddressAutocomplete from "@/components/address-autocomplete";
@@ -27,13 +28,26 @@ import {
 interface CreateWizardProps {
   activeCompanyId: string;
   companyName: string;
+  initialAssessment?: SiteAssessment | null;
   onCreated: () => Promise<void>;
   onCancel: () => void;
 }
 
+const FACILITY_TO_SITE_TYPE: Record<string, string> = {
+  "School": "Education",
+  "Office Building": "Corporate",
+  "Venue/Event Space": "Event/Festival",
+  "Religious Facility": "Other",
+  "Healthcare": "Healthcare",
+  "Retail": "Retail",
+  "Single-family Home": "Residential",
+  "Multi-family Complex": "Residential",
+  "Other": "Other",
+};
+
 const CREATE_STEPS = ["Basics", "Client & Site", "Scope & Orders", "Uniform & Comms", "Emergency & C2"];
 
-export function CreateWizard({ activeCompanyId, companyName, onCreated, onCancel }: CreateWizardProps) {
+export function CreateWizard({ activeCompanyId, companyName, initialAssessment, onCreated, onCancel }: CreateWizardProps) {
   const [createStep, setCreateStep] = useState(0);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
@@ -80,6 +94,25 @@ export function CreateWizard({ activeCompanyId, companyName, onCreated, onCancel
   function toggleArr(arr: string[], set: (v: string[]) => void, val: string) {
     set(arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val]);
   }
+
+  // Pre-fill from linked assessment
+  useEffect(() => {
+    if (!initialAssessment) return;
+    const d = (initialAssessment.data || {}) as Record<string, string>;
+    setName(`${initialAssessment.client_name || "Site"} Security Op`);
+    setLocation(initialAssessment.address || "");
+    setLocationLat(initialAssessment.lat || null);
+    setLocationLng(initialAssessment.lng || null);
+    setGuide(prev => ({
+      ...prev,
+      clientName: initialAssessment.client_name || "",
+      siteAddress: initialAssessment.address || "",
+      siteType: FACILITY_TO_SITE_TYPE[d.facilityType || ""] || "Other",
+    }));
+    if (initialAssessment.risk_level) {
+      setIntakeRiskLevel(initialAssessment.risk_level);
+    }
+  }, [initialAssessment]);
 
   async function handleCreate() {
     if (!name.trim() || !startDate || !endDate || !activeCompanyId || activeCompanyId === "pending") return;
@@ -147,6 +180,12 @@ export function CreateWizard({ activeCompanyId, companyName, onCreated, onCancel
             await issueDocument(intakeDoc.id);
           }
         } catch (docErr) { console.error("Intake doc creation failed:", docErr); }
+      }
+      // Link assessment to the newly created event
+      if (initialAssessment?.id && ev?.id) {
+        try {
+          await linkAssessmentToEvent(initialAssessment.id, ev.id);
+        } catch (linkErr) { console.error("Assessment linking failed:", linkErr); }
       }
       await onCreated();
     } catch (err) { console.error(err); } finally { setCreating(false); }

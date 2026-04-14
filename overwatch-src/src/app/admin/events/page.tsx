@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Flag, MapPin, Plus, Loader2, ChevronDown, ChevronRight,
   Trash2, FileText,
@@ -19,6 +20,7 @@ import { type Event, fmtDateShort } from "./components/shared";
 import { CreateWizard } from "./components/create-wizard";
 import { ConflictWarningModal, type ConflictWarningData } from "./components/conflict-warning-modal";
 import { OperationDetail } from "./components/operation-detail";
+import { getAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
 
 /* ── Component ─────────────────────────────────────────── */
 
@@ -33,7 +35,9 @@ export default function AdminEventsPage() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
+  const searchParams = useSearchParams();
   const [showCreate, setShowCreate] = useState(false);
+  const [initialAssessment, setInitialAssessment] = useState<SiteAssessment | null>(null);
 
   useEffect(() => {
     setHeader(
@@ -71,6 +75,19 @@ export default function AdminEventsPage() {
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Handle fromAssessment URL param
+  useEffect(() => {
+    const assessmentId = searchParams.get("fromAssessment");
+    if (assessmentId) {
+      getAssessment(assessmentId).then(a => {
+        if (a) {
+          setInitialAssessment(a);
+          setShowCreate(true);
+        }
+      });
+    }
+  }, [searchParams]);
 
   // Auto-expand operation from URL param
   const autoExpandedRef = useRef(false);
@@ -131,8 +148,22 @@ export default function AdminEventsPage() {
           <CreateWizard
             activeCompanyId={activeCompanyId}
             companyName={companyName}
-            onCreated={async () => { setShowCreate(false); await load(); }}
-            onCancel={() => setShowCreate(false)}
+            initialAssessment={initialAssessment}
+            onCreated={async () => {
+              setShowCreate(false);
+              if (initialAssessment) {
+                setInitialAssessment(null);
+                window.history.replaceState({}, "", "/overwatch/admin/events");
+              }
+              await load();
+            }}
+            onCancel={() => {
+              setShowCreate(false);
+              if (initialAssessment) {
+                setInitialAssessment(null);
+                window.history.replaceState({}, "", "/overwatch/admin/events");
+              }
+            }}
           />
         )}
 

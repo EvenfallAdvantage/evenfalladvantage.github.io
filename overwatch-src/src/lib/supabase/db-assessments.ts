@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { ensureInternalUser } from "./db-helpers";
+import { logDbReadError } from "./db-error";
 
 export interface SiteAssessment {
   id: string;
@@ -127,6 +128,32 @@ export async function linkAssessmentToEvent(assessmentId: string, eventId: strin
   const { error } = await supabase
     .from("site_assessments")
     .update({ event_id: eventId, updated_at: new Date().toISOString() })
+    .eq("id", assessmentId);
+  if (error) throw error;
+}
+
+/**
+ * Get all assessments linked to a specific operation/event.
+ */
+export async function getAssessmentsByEventId(eventId: string): Promise<SiteAssessment[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("site_assessments")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
+  if (error) { logDbReadError("event assessments", error); return []; }
+  return data ?? [];
+}
+
+/**
+ * Remove the event link from an assessment.
+ */
+export async function unlinkAssessment(assessmentId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("site_assessments")
+    .update({ event_id: null, updated_at: new Date().toISOString() })
     .eq("id", assessmentId);
   if (error) throw error;
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Shield, Building2, DoorOpen, Video, AlertTriangle, Users, ClipboardCheck,
   BarChart3, Save, FileDown, RotateCcw, ChevronRight, ChevronDown,
   CheckCircle2, XCircle, AlertCircle, Info, MapPin, Search, X, Loader2, Navigation,
-  Plus, Trash2,
+  Plus, Trash2, Flag,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -260,6 +260,7 @@ function getDefaultData(): Record<string, string> {
 
 export default function SiteAssessmentPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [data, setData] = useState<Record<string, string>>(getDefaultData);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["clientInfo"]));
   const [result, setResult] = useState<RiskResult | null>(null);
@@ -977,6 +978,23 @@ export default function SiteAssessmentPage() {
                       </span>
                     )}
                     <span className="text-zinc-500">{new Date(a.created_at).toLocaleDateString()}</span>
+                    {!a.event_id && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/overwatch/admin/events?fromAssessment=${a.id}`);
+                        }}
+                        className="ml-auto text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                        title="Create Operation from this assessment"
+                      >
+                        <Flag className="h-3 w-3" /> Create Op
+                      </button>
+                    )}
+                    {a.event_id && (
+                      <span className="ml-auto text-[10px] text-blue-400 flex items-center gap-1">
+                        <Flag className="h-3 w-3" /> Linked
+                      </span>
+                    )}
                   </div>
                 </button>
               ))}
