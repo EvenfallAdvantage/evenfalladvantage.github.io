@@ -4,8 +4,9 @@
 **Repo:** https://github.com/EvenfallAdvantage/evenfalladvantage.github.io
 **Working Directory:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io`
 **CI/CD:** Build & Deploy passing on GitHub Pages.
-**Tests:** 425/425 passing (22 test files), 0 TypeScript errors.
-**ESLint:** 0 errors, 139 warnings. Was 94 errors / 2,461 warnings.
+**Tests:** 519/519 passing (28 test files), 0 TypeScript errors.
+**ESLint:** 0 errors, 140 warnings. Lint is blocking in CI (--max-warnings 150). Was 94 errors / 2,461 warnings.
+**Navigation:** Client-side via Next.js `<Link>` (resolved CesiumJS conflict — was not a conflict).
 
 ---
 
@@ -176,7 +177,6 @@ ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_generated_by_fkey FOREIGN K
 ## Known Issues / Technical Debt
 
 ### High
-- **Sidebar uses hard navigation** — Native `<a>` tags instead of Next.js `<Link>` because CesiumJS blocks React router. Causes full page reloads on nav (~200ms slower). Root cause needs investigation.
 - **Backup workflow failing** — `SUPABASE_DB_URL` needs Session Mode pooler URL (IPv4).
 - **ESLint 10 blocked** — `eslint-config-next` is not yet compatible with ESLint 10. Pinned to ESLint 9.x. Revisit when Next.js ships ESLint 10 support.
 
@@ -184,7 +184,7 @@ ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_generated_by_fkey FOREIGN K
 - **Sentinel-1 SAR rate limiting** — Free tier has request limits.
 - **operation-detail.tsx** (940 lines) — largest remaining extracted component, could benefit from further decomposition
 - **landing page (720 lines)** — not decomposed yet (low churn, mostly static marketing)
-- **4 suppressed ESLint warnings** — storyboard-editor popover positioning (3) + theme-toggle hydration (1)
+- **6 suppressed ESLint directives** — storyboard-editor popover positioning (3), theme-toggle hydration (1), settings data-load (1), address-autocomplete prop sync (1)
 
 ### Low
 - **XML job feed endpoint** — Generator function exists in `db-postings.ts` but no API route to serve it.
@@ -251,9 +251,9 @@ All v2 tables use a two-tier RLS model:
 
 ## Recommended Next Steps
 
-1. **More component tests** — Expand `.test.tsx` coverage to auth guard, timeclock modal, roster tab, incident create form
-2. **XML job feed route** — Supabase Edge Function serving `generateJobFeedXML()` output for Indeed auto-indexing
-3. **Investigate React router + CesiumJS** — Find root cause of why `<Link>` navigation stalls when map is mounted
-4. **Backup workflow fix** — Update `SUPABASE_DB_URL` to Session Mode pooler URL (IPv4)
-5. **Make lint blocking in CI** — ESLint now has 0 errors; consider enabling `--max-warnings` threshold
-6. **Decompose operation-detail.tsx** (940 lines) — further split shift management, doc panels, activity feed
+1. **XML job feed route** — Supabase Edge Function serving `generateJobFeedXML()` output for Indeed auto-indexing
+2. **More component tests** — Expand `.test.tsx` coverage to roster tab, incident create form, clock-in modal
+3. **Backup workflow fix** — Update `SUPABASE_DB_URL` to Session Mode pooler URL (IPv4)
+4. **Decompose operation-detail.tsx** (940 lines) — further split shift management, doc panels, activity feed
+5. **Reduce ESLint warnings** — 140 remaining (mostly unused vars, hook deps); lower --max-warnings threshold
+6. **Test CesiumJS soft navigation** — Sidebar now uses `<Link>`; verify WebGL context handles soft nav on schedule/map page
