@@ -103,7 +103,7 @@ jobs:
           cp CNAME .nojekyll _deploy/
 
       - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: '_deploy'
 
