@@ -237,8 +237,8 @@ export async function convertApplicantToUser(applicantId: string, companyId: str
       id: crypto.randomUUID(),
       user_id: userId,
       company_id: companyId,
-      role: "member",
-      status: "onboarding",
+      role: "staff",
+      status: "active",
       guard_card_number: applicant.guard_card_number,
       guard_card_expiry: applicant.guard_card_expiry,
       address: applicant.address,
@@ -246,7 +246,7 @@ export async function convertApplicantToUser(applicantId: string, companyId: str
       education: applicant.education || [],
       work_history: applicant.work_history || [],
       hire_date: new Date().toISOString(),
-      onboarding_complete: false,
+      onboarding_complete: true,
     }, { onConflict: "user_id,company_id" });
   if (memberErr) throw memberErr;
 
