@@ -741,8 +741,18 @@ export default function AdminSettingsPage() {
   );
 }
 
+interface ErrorLog {
+  id: string;
+  message: string;
+  level: string;
+  created_at: string;
+  url?: string;
+  stack?: string;
+  metadata?: Record<string, unknown>;
+}
+
 function ErrorLogViewer({ companyId }: { companyId: string }) {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<ErrorLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -758,7 +768,7 @@ function ErrorLogViewer({ companyId }: { companyId: string }) {
 
   return (
     <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
-      {logs.map((log: any) => (
+      {logs.map((log) => (
         <div key={log.id} className="rounded-lg border border-border/40 bg-muted/20 text-xs">
           <button
             className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors"

@@ -189,6 +189,10 @@ export interface OpordData {
 
   // 9. Notes
   specialInstructions: string;
+
+  // Intake sync metadata (set dynamically when intake changes propagate)
+  _intakeUpdated?: boolean;
+  _intakeUpdateDate?: string;
 }
 
 /* ── FRAGO (EA-FRAGO-01) ─────────────────────────────── */
@@ -272,4 +276,8 @@ export interface GotwaData {
   communicationMethod: string[];   // ["Radio", "Phone", "Hybrid"]
   channel: string;
   notes: string;
+
+  // Intake sync metadata (set dynamically when intake changes propagate)
+  _intakeUpdated?: boolean;
+  _intakeUpdateDate?: string;
 }

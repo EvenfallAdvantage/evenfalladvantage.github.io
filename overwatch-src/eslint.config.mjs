@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored Cesium library — do not lint third-party code
+    "public/cesium/**",
   ]),
 ]);
 

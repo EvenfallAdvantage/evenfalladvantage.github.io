@@ -2,11 +2,16 @@ import { useState, useEffect, useCallback } from "react";
 import type { DrawMode } from "../map-tools";
 import { getAnnotations, createAnnotation, deleteAnnotation, subscribeAnnotations, type MapAnnotation } from "@/lib/supabase/db-annotations";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium viewer/module refs have no published TS types
+type CesiumRef = React.MutableRefObject<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium entity collections keyed by layer name
+type EntityGroupsRef = React.MutableRefObject<Record<string, any>>;
+
 export function useAnnotations(
   companyId: string,
-  viewerRef: React.MutableRefObject<any>,
-  cesiumRef: React.MutableRefObject<any>,
-  entityGroupsRef: React.MutableRefObject<Record<string, any>>
+  viewerRef: CesiumRef,
+  cesiumRef: CesiumRef,
+  entityGroupsRef: EntityGroupsRef
 ) {
   const [drawMode, setDrawMode] = useState<DrawMode>("none");
   const [drawColor, setDrawColor] = useState("#ef4444");

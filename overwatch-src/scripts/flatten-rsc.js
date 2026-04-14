@@ -12,6 +12,7 @@
  * flat copies that the client expects.
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports -- Node CJS script */
 const fs = require("fs");
 const path = require("path");
 

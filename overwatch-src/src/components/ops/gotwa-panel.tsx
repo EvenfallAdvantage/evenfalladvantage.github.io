@@ -153,12 +153,12 @@ export default function GotwaPanel({ eventId, companyId, eventName, eventLocatio
       </div>
 
       {/* Intake Updated Banner */}
-      {(data as Record<string, any>)._intakeUpdated && (
+      {data._intakeUpdated && (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2 flex items-center gap-2 text-xs">
           <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
           <div>
             <p className="font-semibold text-amber-400">Intake Updated — Review Required</p>
-            <p className="text-muted-foreground">Fields were auto-updated from the latest Intake changes on {new Date((data as Record<string, any>)._intakeUpdateDate).toLocaleDateString()}. Please review and re-issue.</p>
+            <p className="text-muted-foreground">Fields were auto-updated from the latest Intake changes on {new Date(data._intakeUpdateDate ?? "").toLocaleDateString()}. Please review and re-issue.</p>
           </div>
           <Button size="sm" variant="ghost" className="ml-auto text-[10px]" onClick={() => {
             const updated = { ...data, _intakeUpdated: false } as GotwaData;

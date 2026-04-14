@@ -141,8 +141,8 @@ export async function getRecentTimesheets(limit = 10, companyId?: string) {
       .order("clock_in", { ascending: false })
       .limit(limit * 2);
 
-    results = (fallback ?? []).filter((t: any) => {
-      const ev = t.events as any;
+    results = (fallback ?? []).filter((t: { events?: unknown }) => {
+      const ev = t.events as { company_id?: string } | null;
       if (!ev) return false;
       return ev.company_id === companyId;
     });

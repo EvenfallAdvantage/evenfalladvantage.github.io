@@ -59,7 +59,7 @@ function applyBrandTheme(brandColor: string, accentColor: string) {
 export default function BrandThemeProvider() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const brandColor = activeCompany?.brandColor || "#1d3451";
-  const accentColor = (activeCompany as any)?.accentColor || "#d59b3c";
+  const accentColor = activeCompany?.accentColor || "#d59b3c";
 
   // Apply on mount and when colors change
   useEffect(() => {

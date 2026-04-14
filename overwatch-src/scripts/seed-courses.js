@@ -10,6 +10,7 @@
  * 2. Inserts the 3 real Evenfall Advantage courses
  */
 
+/* eslint-disable @typescript-eslint/no-require-imports -- Node CJS script */
 const { createClient } = require("@supabase/supabase-js");
 const crypto = require("crypto");
 const fs = require("fs");

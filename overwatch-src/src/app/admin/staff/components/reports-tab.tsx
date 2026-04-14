@@ -17,8 +17,33 @@ import {
 } from "@/lib/supabase/db";
 import { exportCSV, INCIDENT_COLUMNS } from "@/lib/csv-export";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FormSub = any;
+interface FormSub {
+  id: string;
+  user_id?: string;
+  status: string;
+  created_at: string;
+  data: Record<string, unknown> | null;
+  review_note?: string;
+  change_log?: { timestamp: string; action: string; changes?: { field: string; from: string; to: string }[] }[];
+  users?: { first_name?: string; last_name?: string; avatar_url?: string };
+  forms?: { name?: string };
+}
+
+interface IncidentRow {
+  [key: string]: unknown;
+  id: string;
+  title: string;
+  type: string;
+  severity: string;
+  priority: string;
+  status: string;
+  location: string;
+  description: string;
+  created_at: string;
+  reporter_id?: string;
+  reported_user?: { first_name: string; last_name: string };
+  updates?: unknown[];
+}
 
 interface ReportsTabProps {
   activeCompanyId: string;
@@ -27,15 +52,13 @@ interface ReportsTabProps {
 
 export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
   const [formSubmissions, setFormSubmissions] = useState<FormSub[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [incidents, setIncidents] = useState<any[]>([]);
+  const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewingForm, setReviewingForm] = useState<string | null>(null);
   const [expandedFormSub, setExpandedFormSub] = useState<string | null>(null);
   const [expandedIncident, setExpandedIncident] = useState<string | null>(null);
   const [editingIncident, setEditingIncident] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [editIncData, setEditIncData] = useState<Record<string, any>>({});
+  const [editIncData, setEditIncData] = useState<Record<string, string>>({});
   const [reviewNote, setReviewNote] = useState("");
   const [editingFormSub, setEditingFormSub] = useState<string | null>(null);
   const [editFormSubData, setEditFormSubData] = useState<Record<string, string>>({});
@@ -61,10 +84,11 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
       await reviewFormSubmission(id, reviewNote || "Reviewed");
       // Notify submitter their form was reviewed
       const sub = formSubmissions.find((f: FormSub) => f.id === id);
-      if (sub?.user_id && activeCompanyId) {
+      const subUserId = sub?.user_id;
+      if (subUserId && activeCompanyId) {
         import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
           dispatch({
-            userId: sub.user_id,
+            userId: subUserId,
             companyId: activeCompanyId!,
             title: "Form Submission Reviewed",
             body: `Your submission has been reviewed${reviewNote ? `: "${reviewNote}"` : "."}`,
@@ -221,9 +245,8 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                                   <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={async () => {
                                     if (!confirm("Delete this incident report?")) return;
                                     try {
-                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                      await deleteIncident(inc.id);
-                                      setIncidents((prev: any[]) => prev.filter((i: any) => i.id !== inc.id));
+                                        await deleteIncident(inc.id);
+                                      setIncidents((prev) => prev.filter((i) => i.id !== inc.id));
                                       toast.success("Incident deleted");
                                     } catch { toast.error("Failed to delete"); }
                                   }}><Trash2 className="h-3 w-3" /> Delete</Button>

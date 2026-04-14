@@ -7,10 +7,15 @@ import { checkLineOfSight, renderLineOfSight, clearLineOfSight, getElevationProf
 import { escapeHtml } from "@/lib/security";
 import { createAnnotation } from "@/lib/supabase/db-annotations";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium viewer/module refs have no published TS types
+type CesiumRef = React.MutableRefObject<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium entity collections keyed by layer name
+type EntityGroupsRef = React.MutableRefObject<Record<string, any>>;
+
 export function useCesiumClickHandler(params: {
-  viewerRef: React.MutableRefObject<any>;
-  cesiumRef: React.MutableRefObject<any>;
-  entityGroupsRef: React.MutableRefObject<Record<string, any>>;
+  viewerRef: CesiumRef;
+  cesiumRef: CesiumRef;
+  entityGroupsRef: EntityGroupsRef;
   loading: boolean;
   // Tool state from useMapTools
   activeTool: ActiveTool;

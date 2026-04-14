@@ -3,9 +3,12 @@ import type { ActiveTool } from "../map-tools";
 import { RANGE_RING_RADII_M } from "../map-tools";
 import { clearLineOfSight } from "../terrain-tools";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium viewer/module refs have no published TS types
+type CesiumRef = React.MutableRefObject<any>;
+
 export function useMapTools(
-  viewerRef: React.MutableRefObject<any>,
-  cesiumRef: React.MutableRefObject<any>
+  viewerRef: CesiumRef,
+  cesiumRef: CesiumRef
 ) {
   const [activeTool, setActiveTool] = useState<ActiveTool>("none");
   const [measureResult, setMeasureResult] = useState<{ distanceM: number; distanceMi: number; bearing: number } | null>(null);

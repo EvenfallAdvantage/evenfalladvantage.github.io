@@ -223,8 +223,8 @@ export default function ScanPage() {
       <div className="rounded-lg border border-border/30 p-4 space-y-2">
         <h3 className="text-sm font-semibold">How it works</h3>
         <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-          <li>Click "Start Scanner" to activate the camera</li>
-          <li>Hold a staff member's QR badge in front of the camera</li>
+          <li>Click &quot;Start Scanner&quot; to activate the camera</li>
+          <li>Hold a staff member&apos;s QR badge in front of the camera</li>
           <li>The system auto-detects the QR code and processes the scan</li>
           <li>If the staff member is clocked in → clocks them out</li>
           <li>If the staff member is clocked out → clocks them in</li>

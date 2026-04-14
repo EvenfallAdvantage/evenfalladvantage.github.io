@@ -5,9 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface ReadinessData {
+  member: {
+    users?: {
+      avatar_url?: string;
+      first_name?: string;
+      last_name?: string;
+    };
+  };
+  data: {
+    readingMissing: { id: string; title: string }[];
+    profileMissing: string[];
+  };
+}
+
 interface ReadinessModalProps {
-  data: any;
+  data: ReadinessData;
   onClose: () => void;
 }
 

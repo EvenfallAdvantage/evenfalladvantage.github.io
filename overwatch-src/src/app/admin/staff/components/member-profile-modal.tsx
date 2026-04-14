@@ -5,9 +5,31 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface MemberProfile {
+  users?: {
+    avatar_url?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+  };
+  role: string;
+  status: string;
+  bio?: string;
+  title?: string;
+  guard_card_number?: string;
+  guard_card_expiry?: string;
+  address?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  work_preferences?: string[];
+  shirt_size?: string;
+  jacket_size?: string;
+  hire_date?: string;
+}
+
 interface MemberProfileModalProps {
-  profile: any;
+  profile: MemberProfile;
   onClose: () => void;
 }
 
@@ -81,7 +103,7 @@ export function MemberProfileModal({ profile, onClose }: MemberProfileModalProps
             <div>
               <span className="text-muted-foreground text-xs">Work Preferences</span>
               <div className="flex flex-wrap gap-1 mt-1">
-                {profile.work_preferences.map((w: string) => (
+                {profile.work_preferences?.map((w: string) => (
                   <Badge key={w} variant="outline" className="text-[9px]">{w}</Badge>
                 ))}
               </div>

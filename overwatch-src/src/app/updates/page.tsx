@@ -19,7 +19,20 @@ import { getPosts, createPost, togglePinPost, deletePost, getPostComments, addPo
 import { createClient } from "@/lib/supabase/client";
 import { usePageHeader } from "@/stores/page-header-store";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface PostReaction {
+  id: string;
+  emoji?: string;
+  users?: { id?: string; first_name?: string; last_name?: string };
+}
+
+interface PostComment {
+  id: string;
+  content: string;
+  created_at: string;
+  users?: { id?: string; first_name?: string; last_name?: string; avatar_url?: string };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase row shape varies by query; used across many access patterns
 type Post = any;
 
 
@@ -148,10 +161,8 @@ export default function UpdatesPage() {
   const [posting, setPosting] = useState(false);
   const [togglingPin, setTogglingPin] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [comments, setComments] = useState<Record<string, any[]>>({});
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [reactions, setReactions] = useState<Record<string, any[]>>({});
+  const [comments, setComments] = useState<Record<string, PostComment[]>>({});
+  const [reactions, setReactions] = useState<Record<string, PostReaction[]>>({});
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
@@ -178,9 +189,8 @@ export default function UpdatesPage() {
         getChatChannels(activeCompanyId).catch(() => []),
       ]);
       setPosts(postsData);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const chs = channelsData as any[];
-      const ext = chs.filter((c: any) => { try { const m = JSON.parse(c.description || ""); return m?.external; } catch { return false; } });
+      const chs = channelsData as { id: string; description?: string | null }[];
+      const ext = chs.filter((c) => { try { const m = JSON.parse(c.description || ""); return m?.external; } catch { return false; } });
       setChannelCount(chs.length - ext.length);
       setExternalCount(ext.length);
 
@@ -190,8 +200,8 @@ export default function UpdatesPage() {
           Promise.all(postsData.map((p: { id: string }) => getPostReactions(p.id).catch(() => []))),
           Promise.all(postsData.map((p: { id: string }) => getPostComments(p.id).catch(() => []))),
         ]);
-        const rMap: Record<string, any[]> = {};
-        const cMap: Record<string, any[]> = {};
+        const rMap: Record<string, PostReaction[]> = {};
+        const cMap: Record<string, PostComment[]> = {};
         postsData.forEach((p: { id: string }, i: number) => {
           rMap[p.id] = allReactions[i];
           cMap[p.id] = allComments[i];

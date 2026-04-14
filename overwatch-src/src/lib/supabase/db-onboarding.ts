@@ -225,12 +225,12 @@ export async function convertApplicantToUser(applicantId: string, companyId: str
 
   // Migrate applicant documents to certifications table
   if (applicant.documents && applicant.documents.length > 0) {
-    const certRecords = applicant.documents.map((doc: any) => ({
+    const certRecords = applicant.documents.map((doc: { type?: string; fileUrl?: string }) => ({
       id: crypto.randomUUID(),
       user_id: userId,
       cert_type: doc.type || 'general',
       document_url: doc.fileUrl,
-      category: mapDocTypeToCertCategory(doc.type),
+      category: mapDocTypeToCertCategory(doc.type ?? 'general'),
       status: 'active',
       created_at: new Date().toISOString(),
     }));
