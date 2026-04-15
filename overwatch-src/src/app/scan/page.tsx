@@ -40,6 +40,7 @@ type QueuedScan = {
   cid: string;
   bn: string;
   ts: number;
+  eventId: string | null;
 };
 
 // ── Audio Feedback ──
@@ -176,7 +177,7 @@ export default function ScanPage() {
       let retried = 0;
       for (const item of queue) {
         try {
-          await qrClockIn(item.uid, item.cid, selectedEventId ?? undefined);
+          await qrClockIn(item.uid, item.cid, item.eventId ?? undefined);
           retried++;
         } catch {
           // If retry fails, put it back
@@ -303,7 +304,7 @@ export default function ScanPage() {
       try {
         const parsed = JSON.parse(qrData);
         if (parsed.uid && parsed.cid) {
-          setOfflineQueue((prev) => [...prev, { uid: parsed.uid, cid: parsed.cid, bn: parsed.bn, ts: Date.now() }]);
+          setOfflineQueue((prev) => [...prev, { uid: parsed.uid, cid: parsed.cid, bn: parsed.bn, ts: Date.now(), eventId: selectedEventId }]);
           badgeCooldownRef.current.set(qrData, Date.now());
           setResult({ status: "success", action: "clock_in", name: parsed.bn || "Unknown", avatarUrl: null, message: `Queued — will retry when online` });
           playTone("in");

@@ -357,7 +357,7 @@ describe("qrClockIn()", () => {
 
     expect(queryBuilder.insert).toHaveBeenCalledWith(
       expect.objectContaining({
-        clock_in_type: "shift",
+        clock_in_type: "event",
       })
     );
   });

@@ -288,7 +288,7 @@ export async function getCompanyTimeChangeRequests(companyId: string) {
       .select("*, timesheets(clock_in, clock_out), users!user_id(first_name, last_name, avatar_url)")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
-      .limit(50);
+    .limit(1000);
     if (error) { logDbReadError("company time change requests", error); return []; }
     return data ?? [];
   } catch (err) { logDbReadError("company time change requests", err); return []; }

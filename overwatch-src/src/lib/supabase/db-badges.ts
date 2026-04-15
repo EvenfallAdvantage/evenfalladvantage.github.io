@@ -144,14 +144,18 @@ export async function qrClockIn(
   shiftId?: string
 ): Promise<void> {
   const supabase = createClient();
+  const now = new Date().toISOString();
   const { error } = await supabase.from("timesheets").insert({
+    id: crypto.randomUUID(),
     user_id: userId,
     company_id: companyId,
-    clock_in: new Date().toISOString(),
+    clock_in: now,
     clock_method: "qr_scan",
-    clock_in_type: eventId ? "shift" : "admin",
+    clock_in_type: eventId ? "event" : "admin",
     event_id: eventId ?? null,
     shift_id: shiftId ?? null,
+    created_at: now,
+    updated_at: now,
   });
   if (error) throw error;
 }
