@@ -129,6 +129,7 @@
   }
   html {
     @apply font-sans;
+    overflow-x: hidden;
   }
   /* Tell browsers to use dark native controls in dark mode */
   .dark {

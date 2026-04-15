@@ -501,7 +501,7 @@ function HomePageInner() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0b1422] text-white">
+    <div className="min-h-screen bg-[#0b1422] text-white overflow-x-hidden">
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0b1422]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">

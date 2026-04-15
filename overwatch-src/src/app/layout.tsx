@@ -90,7 +90,7 @@ export default function RootLayout({
         <meta name="referrer" content="strict-origin-when-cross-origin" />
       </head>
       <body
-        className={`${oswald.variable} ${barlow.variable} antialiased`}
+        className={`${oswald.variable} ${barlow.variable} antialiased overflow-x-hidden`}
       >
         <Providers><AppShell>{children}</AppShell></Providers>
       </body>
