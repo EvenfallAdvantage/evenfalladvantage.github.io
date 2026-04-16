@@ -53,6 +53,21 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
     load();
   }, [load]);
 
+  // Auto-refresh clock status every 15 seconds (picks up manager badge scans)
+  useEffect(() => {
+    const id = setInterval(() => { load(); }, 15000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  // Immediately refresh when tab becomes visible again
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [load]);
+
   useEffect(() => {
     if (!active) { setElapsed(0); return; }
     const tick = () => setElapsed(Date.now() - parseUTC(active.clock_in).getTime());
