@@ -328,8 +328,10 @@ export default function ScanPage() {
           playTone("error");
         }
       } else {
-        const msg = err instanceof Error ? err.message : "Scan failed";
-        setResult({ status: "error", action: "clock_in", name: "", avatarUrl: null, message: msg.includes("row-level") ? "Permission denied — check your role" : msg });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const raw = err instanceof Error ? err.message : typeof err === "object" && err !== null ? (err as any).message ?? JSON.stringify(err) : String(err);
+        const msg = raw.includes("row-level") || raw.includes("policy") ? "Permission denied — check your role" : raw;
+        setResult({ status: "error", action: "clock_in", name: "", avatarUrl: null, message: msg });
         playTone("error");
       }
       setTimeout(() => { lastScanRef.current = ""; setResult(null); }, RESULT_DISPLAY_MS);
