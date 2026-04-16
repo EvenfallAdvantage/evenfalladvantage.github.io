@@ -118,7 +118,7 @@ export async function lookupBadge(qrData: string): Promise<{
     const supabase = createClient();
     const { data } = await supabase
       .from("staff_badges")
-      .select("*, users!inner(id, first_name, last_name, avatar_url)")
+      .select("*, users!staff_badges_user_id_fkey(id, first_name, last_name, avatar_url)")
       .eq("company_id", parsed.cid)
       .eq("user_id", parsed.uid)
       .is("revoked_at", null)
@@ -217,7 +217,7 @@ export async function getClockedInStaff(companyId: string): Promise<{
   const supabase = createClient();
   const { data, error } = await supabase
     .from("timesheets")
-    .select("id, user_id, clock_in, event_id, users!inner(first_name, last_name)")
+    .select("id, user_id, clock_in, event_id, users!timesheets_user_id_fkey(first_name, last_name)")
     .eq("company_id", companyId)
     .is("clock_out", null)
     .order("clock_in", { ascending: false });

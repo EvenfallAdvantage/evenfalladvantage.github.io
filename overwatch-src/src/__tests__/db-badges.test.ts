@@ -272,7 +272,7 @@ describe("lookupBadge()", () => {
 
     expect(mockClient.from).toHaveBeenCalledWith("staff_badges");
     expect(queryBuilder.select).toHaveBeenCalledWith(
-      "*, users!inner(id, first_name, last_name, avatar_url)"
+      "*, users!staff_badges_user_id_fkey(id, first_name, last_name, avatar_url)"
     );
     expect(queryBuilder.eq).toHaveBeenCalledWith("company_id", "comp-1");
     expect(queryBuilder.eq).toHaveBeenCalledWith("user_id", "user-1");
