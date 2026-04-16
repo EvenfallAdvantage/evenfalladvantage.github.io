@@ -309,21 +309,27 @@ export default function ScanPage() {
       refreshClockedIn();
 
       setTimeout(() => { lastScanRef.current = ""; setResult(null); }, RESULT_DISPLAY_MS);
-    } catch {
-      // Offline fallback: try to parse QR and queue clock-in
-      try {
-        const parsed = JSON.parse(qrData);
-        if (parsed.uid && parsed.cid) {
-          setOfflineQueue((prev) => [...prev, { uid: parsed.uid, cid: parsed.cid, bn: parsed.bn, ts: Date.now(), eventId: selectedEventId }]);
-          badgeCooldownRef.current.set(qrData, Date.now());
-          setResult({ status: "success", action: "clock_in", name: parsed.bn || "Unknown", avatarUrl: null, message: `Queued — will retry when online` });
-          playTone("in");
-          setScanCount((c) => c + 1);
-        } else {
-          throw new Error("invalid qr");
+    } catch (err) {
+      // Only queue offline if actually offline — otherwise show the real error
+      if (!navigator.onLine) {
+        try {
+          const parsed = JSON.parse(qrData);
+          if (parsed.uid && parsed.cid) {
+            setOfflineQueue((prev) => [...prev, { uid: parsed.uid, cid: parsed.cid, bn: parsed.bn, ts: Date.now(), eventId: selectedEventId }]);
+            badgeCooldownRef.current.set(qrData, Date.now());
+            setResult({ status: "success", action: "clock_in", name: parsed.bn || "Unknown", avatarUrl: null, message: `Queued — will retry when online` });
+            playTone("in");
+            setScanCount((c) => c + 1);
+          } else {
+            throw new Error("invalid qr");
+          }
+        } catch {
+          setResult({ status: "error", action: "clock_in", name: "", avatarUrl: null, message: "Scan failed — no connection" });
+          playTone("error");
         }
-      } catch {
-        setResult({ status: "error", action: "clock_in", name: "", avatarUrl: null, message: "Scan failed — check connection" });
+      } else {
+        const msg = err instanceof Error ? err.message : "Scan failed";
+        setResult({ status: "error", action: "clock_in", name: "", avatarUrl: null, message: msg.includes("row-level") ? "Permission denied — check your role" : msg });
         playTone("error");
       }
       setTimeout(() => { lastScanRef.current = ""; setResult(null); }, RESULT_DISPLAY_MS);
