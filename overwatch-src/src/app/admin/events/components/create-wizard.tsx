@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Flag, MapPin, Loader2, X, FileText,
-  Check, Shield, Shirt, AlertTriangle, Building2,
+  Check, Shield, Shirt, AlertTriangle, Building2, DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,9 @@ export function CreateWizard({ activeCompanyId, companyName, initialAssessment, 
   // Site map upload (wizard step 1)
   const [siteMapFile, setSiteMapFile] = useState<File | null>(null);
   const [siteMapPreview, setSiteMapPreview] = useState<string | null>(null);
+
+  // Pay rate
+  const [payRate, setPayRate] = useState("");
 
   // SOP intake fields
   const [intakeEngagement, setIntakeEngagement] = useState<string[]>([]);
@@ -153,6 +156,7 @@ export function CreateWizard({ activeCompanyId, companyName, initialAssessment, 
         riskLevel: intakeRiskLevel || undefined,
         tlpStep: "receive_mission",
         siteMapUrl,
+        payRate: payRate.trim() ? parseFloat(payRate) : null,
       });
       // Create intake document for SOP tracking
       if (ev?.id) {
@@ -226,14 +230,18 @@ export function CreateWizard({ activeCompanyId, companyName, initialAssessment, 
                 ))}
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div>
                 <Label className="text-xs">Time Sensitivity</Label>
                 <select value={intakeTimeSensitivity} onChange={(e) => setIntakeTimeSensitivity(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                   {["Low", "Medium", "High", "Immediate"].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div className="sm:col-span-1">
+              <div>
+                <Label className="text-xs flex items-center gap-1"><DollarSign className="h-3 w-3 text-green-500" /> Pay Rate ($/hr)</Label>
+                <Input type="number" step="0.01" min="0" placeholder="e.g. 25.00" value={payRate} onChange={(e) => setPayRate(e.target.value)} className="mt-1" />
+              </div>
+              <div>
                 <Label className="text-xs">Mission Statement</Label>
                 <Input placeholder={`${companyName || "Company"} will [do what] for [client] at [location] in order to [purpose]`} value={intakeMission} onChange={(e) => setIntakeMission(e.target.value)} className="mt-1" />
               </div>

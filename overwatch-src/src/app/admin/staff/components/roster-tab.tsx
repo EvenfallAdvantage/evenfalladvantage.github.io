@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Users, Search, Loader2, Trash2, ChevronDown,
   Eye, ShieldCheck, AlertOctagon, QrCode,
-  UserPlus, X, Upload, Download,
+  UserPlus, X, Upload, Download, Check,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   updateMemberRole, removeMember, getMemberProfileById, getCompanyReadiness,
 } from "@/lib/supabase/db";
+import { updateMemberPayRate } from "@/lib/supabase/db-pay";
 import { exportCSV, MEMBER_COLUMNS } from "@/lib/csv-export";
 import { parseCSVRaw, applyMapping, validateStaffRows, type StaffImportRow } from "@/lib/csv-import";
 import { bulkCreateApplicants } from "@/lib/supabase/db-onboarding";
@@ -76,6 +77,10 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
   const [csvRawRows, setCsvRawRows] = useState<string[][]>([]);
   const [csvParseErrors, setCsvParseErrors] = useState<{ line: number; message: string }[]>([]);
 
+  // Pay rate editing
+  const [editingPayRate, setEditingPayRate] = useState<string | null>(null);
+  const [payRateInput, setPayRateInput] = useState("");
+
   // Bulk badge generation & download
   const [bulkGenerating, setBulkGenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState("");
@@ -129,6 +134,17 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
     try { await removeMember(membershipId); onReload(); }
     catch (err: unknown) { setError(err instanceof Error ? err.message : "Failed to remove member"); console.error(err); }
     finally { setRemovingMember(null); }
+  }
+
+  async function savePayRate(membershipId: string) {
+    const rate = payRateInput.trim() === "" ? null : parseFloat(payRateInput);
+    if (rate !== null && (isNaN(rate) || rate < 0)) { toast.error("Invalid rate"); return; }
+    try {
+      await updateMemberPayRate(membershipId, rate);
+      toast.success("Pay rate updated");
+      setEditingPayRate(null);
+      onReload();
+    } catch { toast.error("Failed to update rate"); }
   }
 
   function handleCSVFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -418,6 +434,40 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                     })()}
                   </div>
                 </div>
+                {/* Pay Rate */}
+                {canManage && (
+                  <div className="flex items-center gap-1 ml-[52px]">
+                    {editingPayRate === m.id ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground">$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={payRateInput}
+                          onChange={(e) => setPayRateInput(e.target.value)}
+                          className="w-16 h-6 text-xs rounded border border-border bg-background px-1 text-right"
+                          autoFocus
+                          onKeyDown={(e) => { if (e.key === "Enter") savePayRate(m.id); if (e.key === "Escape") setEditingPayRate(null); }}
+                        />
+                        <span className="text-[10px] text-muted-foreground">/hr</span>
+                        <button onClick={() => savePayRate(m.id)} className="text-green-500 hover:text-green-400"><Check className="h-3 w-3" /></button>
+                        <button onClick={() => setEditingPayRate(null)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditingPayRate(m.id); setPayRateInput(m.pay_rate_override?.toString() ?? ""); }}
+                        className="text-[10px] text-muted-foreground hover:text-foreground"
+                        title="Set pay rate"
+                      >
+                        {m.pay_rate_override != null
+                          ? <span className="text-green-500">${Number(m.pay_rate_override).toFixed(2)}/hr</span>
+                          : <span className="text-muted-foreground/50">Set rate</span>
+                        }
+                      </button>
+                    )}
+                  </div>
+                )}
                 {/* Row 2: Status + Actions */}
                 <div className="flex items-center gap-2 ml-[52px]">
                   <Badge variant={m.status === "active" ? "default" : "outline"} className="text-[10px] capitalize">{m.status}</Badge>

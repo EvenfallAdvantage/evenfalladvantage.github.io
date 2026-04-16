@@ -93,6 +93,11 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
               const items = grouped[opName];
               const isCollapsed = collapsedOps.has(opName);
               const totalHrs = items.reduce((sum: number, t: Sheet) => sum + (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000, 0).toFixed(1);
+              const totalPay = items.reduce((sum: number, t: Sheet) => {
+                const h = (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000;
+                const r = t.events?.pay_rate != null ? Number(t.events.pay_rate) : null;
+                return sum + (r != null ? h * r : 0);
+              }, 0);
               const unapproved = items.filter((t: Sheet) => !t.approved).length;
               return (
                 <div key={opName} className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
@@ -103,14 +108,16 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                       <Flag className="h-4 w-4 text-green-500" />
                     )}
                     <span className="font-semibold text-sm flex-1">{opName}</span>
-                    <span className="text-xs text-muted-foreground font-mono">{items.length} entries · {totalHrs}h</span>
+                    <span className="text-xs text-muted-foreground font-mono">{items.length} entries · {totalHrs}h{totalPay > 0 ? ` · $${totalPay.toFixed(2)}` : ""}</span>
                     {unapproved > 0 && <Badge className="text-[10px] bg-amber-500/15 text-amber-500">{unapproved} pending</Badge>}
                     {isCollapsed ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronUp className="h-4 w-4 text-muted-foreground" />}
                   </button>
                   {!isCollapsed && (
                     <div className="space-y-1 px-3 pb-3">
                       {items.map((t: Sheet) => {
-                        const hrs = ((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1);
+                        const hours = (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000;
+                        const hrs = hours.toFixed(1);
+                        const eventRate = t.events?.pay_rate != null ? Number(t.events.pay_rate) : null;
                         const u = t.users;
                         return (
                           <div key={t.id} className="flex items-center gap-4 rounded-lg border border-border/30 bg-background/50 px-4 py-2.5 flex-wrap">
@@ -124,6 +131,12 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                               </p>
                             </div>
                             <span className="font-mono text-sm font-semibold">{hrs}h</span>
+                            <span className="text-xs text-muted-foreground font-mono w-16 text-right">
+                              {eventRate != null ? `$${eventRate.toFixed(2)}/hr` : "—"}
+                            </span>
+                            <span className="text-xs font-medium font-mono w-16 text-right">
+                              {eventRate != null ? `$${(hours * eventRate).toFixed(2)}` : "—"}
+                            </span>
                             {t.approved ? (
                               <Badge className="text-[10px] bg-green-500/15 text-green-600">Approved</Badge>
                             ) : (

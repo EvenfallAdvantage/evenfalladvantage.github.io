@@ -33,30 +33,36 @@ export async function createEvent(params: {
   siteMapUrl?: string;
   locationLat?: number;
   locationLng?: number;
+  payRate?: number | null;
 }) {
   const supabase = createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const row: Record<string, any> = {
+    id: params.id ?? crypto.randomUUID(),
+    company_id: params.companyId,
+    name: params.name,
+    description: params.description ?? null,
+    location: params.location ?? null,
+    location_lat: params.locationLat ?? null,
+    location_lng: params.locationLng ?? null,
+    start_date: params.startDate,
+    end_date: params.endDate,
+    ops_guide: params.opsGuide ?? null,
+    status: "draft",
+    engagement_type: params.engagementType ?? null,
+    venue_type: params.venueType ?? null,
+    estimated_attendance: params.estimatedAttendance ?? null,
+    risk_level: params.riskLevel ?? null,
+    tlp_step: params.tlpStep ?? "receive_mission",
+    site_map_url: params.siteMapUrl ?? null,
+    ...ts(),
+  };
+  if (params.payRate !== undefined && params.payRate !== null) {
+    row.pay_rate = params.payRate;
+  }
   const { data, error } = await supabase
     .from("events")
-    .insert({
-      id: params.id ?? crypto.randomUUID(),
-      company_id: params.companyId,
-      name: params.name,
-      description: params.description ?? null,
-      location: params.location ?? null,
-      location_lat: params.locationLat ?? null,
-      location_lng: params.locationLng ?? null,
-      start_date: params.startDate,
-      end_date: params.endDate,
-      ops_guide: params.opsGuide ?? null,
-      status: "draft",
-      engagement_type: params.engagementType ?? null,
-      venue_type: params.venueType ?? null,
-      estimated_attendance: params.estimatedAttendance ?? null,
-      risk_level: params.riskLevel ?? null,
-      tlp_step: params.tlpStep ?? "receive_mission",
-      site_map_url: params.siteMapUrl ?? null,
-      ...ts(),
-    })
+    .insert(row)
     .select()
     .maybeSingle();
   if (error) throw error;

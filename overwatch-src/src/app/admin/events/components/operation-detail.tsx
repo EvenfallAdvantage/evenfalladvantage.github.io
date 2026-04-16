@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { MapPin, Loader2, FileText, Activity } from "lucide-react";
+import { MapPin, Loader2, FileText, Activity, DollarSign, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -9,6 +9,7 @@ import {
   getLatestDocument, getEventAvailability,
   loadStoryboard, saveStoryboard,
 } from "@/lib/supabase/db";
+import { updateEventPayRate } from "@/lib/supabase/db-pay";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
 import { getAssessmentsByEventId, type SiteAssessment } from "@/lib/supabase/db-assessments";
 import TlpTracker from "@/components/ops/tlp-tracker";
@@ -60,6 +61,11 @@ export function OperationDetail({
 
   // Activity feed
   const [showActivity, setShowActivity] = useState(false);
+
+  // Pay rate
+  const [editingPayRate, setEditingPayRate] = useState(false);
+  const [payRateInput, setPayRateInput] = useState("");
+  const [currentPayRate, setCurrentPayRate] = useState<number | null>(ev.pay_rate != null ? Number(ev.pay_rate) : null);
 
   // Storyboard
   const [storyboardPins, setStoryboardPins] = useState<StoryboardPin[]>([]);
@@ -176,6 +182,17 @@ export function OperationDetail({
     }
   }
 
+  async function saveEventPayRate() {
+    const rate = payRateInput.trim() === "" ? null : parseFloat(payRateInput);
+    if (rate !== null && (isNaN(rate) || rate < 0)) { toast.error("Invalid rate"); return; }
+    try {
+      await updateEventPayRate(ev.id, rate);
+      setCurrentPayRate(rate);
+      toast.success("Event pay rate updated");
+      setEditingPayRate(false);
+    } catch { toast.error("Failed to update pay rate"); }
+  }
+
   return (
     <div className="border-t border-border/30 bg-muted/20">
       {/* Stats Bar */}
@@ -223,6 +240,39 @@ export function OperationDetail({
           linkedAssessment={linkedAssessment}
           onLinkedAssessmentChange={setLinkedAssessment}
         />
+        {/* Pay Rate */}
+        <div className="ml-auto flex items-center gap-1.5">
+          {editingPayRate ? (
+            <div className="flex items-center gap-1">
+              <DollarSign className="h-3 w-3 text-green-500" />
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={payRateInput}
+                onChange={(e) => setPayRateInput(e.target.value)}
+                className="w-16 h-6 text-xs rounded border border-border bg-background px-1 text-right"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") saveEventPayRate(); if (e.key === "Escape") setEditingPayRate(false); }}
+              />
+              <span className="text-[10px] text-muted-foreground">/hr</span>
+              <button onClick={saveEventPayRate} className="text-green-500 hover:text-green-400"><Check className="h-3 w-3" /></button>
+              <button onClick={() => setEditingPayRate(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setEditingPayRate(true); setPayRateInput(currentPayRate?.toString() ?? ""); }}
+              className="flex items-center gap-1 h-7 px-2 text-xs rounded-md border border-border/40 hover:border-border hover:bg-muted/50 transition-colors"
+              title="Set event pay rate"
+            >
+              <DollarSign className="h-3 w-3 text-green-500" />
+              {currentPayRate != null
+                ? <span className="text-green-500 font-medium">${currentPayRate.toFixed(2)}/hr</span>
+                : <span className="text-muted-foreground">Pay Rate</span>
+              }
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Document Panels */}

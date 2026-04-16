@@ -18,6 +18,7 @@ import { EducationCard } from "./components/education-card";
 import { WorkHistoryCard } from "./components/work-history-card";
 import { ProfileActivityTabs } from "./components/profile-activity-tabs";
 import { ProfileBadgeCard } from "./components/profile-badge-card";
+import { PayStubCard } from "./components/pay-stub-card";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -112,6 +113,10 @@ export default function ProfilePage() {
                 companyLogo={activeCompany.companyLogo}
                 brandColor={activeCompany.brandColor}
               />
+            )}
+
+            {activeCompanyId && activeCompanyId !== "pending" && (
+              <PayStubCard activeCompanyId={activeCompanyId} />
             )}
 
             {mpLoaded && mp && (

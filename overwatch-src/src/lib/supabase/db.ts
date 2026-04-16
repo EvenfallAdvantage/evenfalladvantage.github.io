@@ -13,3 +13,4 @@ export * from "./db-documents";
 export * from "./db-availability";
 export * from "./db-client-intake";
 export * from "./db-location";
+export * from "./db-pay";
