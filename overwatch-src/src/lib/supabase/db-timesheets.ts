@@ -109,6 +109,18 @@ export async function clockOut(timesheetId: string) {
   return data;
 }
 
+/**
+ * Delete a timesheet entry (admin only — for removing erroneous clock-ins).
+ */
+export async function deleteTimesheet(timesheetId: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("timesheets")
+    .delete()
+    .eq("id", timesheetId);
+  if (error) throw error;
+}
+
 export async function getRecentTimesheets(limit = 10, companyId?: string) {
   const userId = await ensureInternalUser();
   if (!userId) return [];

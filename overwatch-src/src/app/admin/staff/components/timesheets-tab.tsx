@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Clock, Loader2, ChevronDown, ChevronUp, Flag, Download,
+  Clock, Loader2, ChevronDown, ChevronUp, Flag, Download, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getCompanyTimesheets, approveTimesheet } from "@/lib/supabase/db";
+import { getCompanyTimesheets, approveTimesheet, deleteTimesheet } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
 
@@ -58,6 +58,16 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
       await loadData();
     } catch (err) { console.error(err); }
     finally { setApproving(null); }
+  }
+
+  async function handleDelete(id: string) {
+    const sheet = timesheets.find((t: Sheet) => t.id === id);
+    const name = sheet?.users ? `${sheet.users.first_name} ${sheet.users.last_name}` : "this entry";
+    if (!confirm(`Delete timesheet for ${name}? This cannot be undone.`)) return;
+    try {
+      await deleteTimesheet(id);
+      await loadData();
+    } catch (err) { console.error(err); }
   }
 
   const toggleOp = (key: string) => setCollapsedOps(prev => { const next = new Set(prev); if (next.has(key)) { next.delete(key); } else { next.add(key); } return next; });
@@ -140,10 +150,17 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                             {t.approved ? (
                               <Badge className="text-[10px] bg-green-500/15 text-green-600">Approved</Badge>
                             ) : (
-                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
-                                onClick={() => handleApprove(t.id)} disabled={approving === t.id}>
-                                {approving === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
-                              </Button>
+                              <div className="flex items-center gap-1">
+                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
+                                  onClick={() => handleApprove(t.id)} disabled={approving === t.id}>
+                                  {approving === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
+                                </Button>
+                                {canManage && (
+                                  <button onClick={() => handleDelete(t.id)} className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete timesheet">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
                         );
