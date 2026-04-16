@@ -86,7 +86,7 @@ export async function getActiveShiftsForClockIn(companyId: string) {
   // Shifts where: start_time is within ±30min of now, OR shift is currently active (started but not ended)
   const { data, error } = await supabase
     .from("shifts")
-    .select("*, events!inner(id, name, location, company_id)")
+    .select("*, events!inner(id, name, location, company_id, timezone)")
     .eq("assigned_user_id", userId)
     .eq("events.company_id", companyId)
     .or(`and(start_time.gte.${windowStart},start_time.lte.${windowEnd}),and(start_time.lte.${now.toISOString()},end_time.gte.${now.toISOString()})`)

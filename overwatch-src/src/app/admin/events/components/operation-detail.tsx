@@ -222,6 +222,7 @@ export function OperationDetail({
         availability={availability}
         onShiftsChange={setShifts}
         onConflictWarning={onConflictWarning}
+        eventTimezone={ev.timezone ?? undefined}
       />
 
       {/* Secondary action bar: Docs, Activity, Assessment */}

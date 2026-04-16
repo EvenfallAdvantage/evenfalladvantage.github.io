@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { parseUTC } from "@/lib/parse-utc";
 import { fmtDate, fmtTime, statusColor, type Shift } from "./schedule-helpers";
 
-export function ShiftAccordion({ shifts, highlight, conflictIds }: {
+export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
   shifts: Shift[];
   highlight: boolean;
   conflictIds: Set<string>;
+  timezone?: string;
 }) {
   const [open, setOpen] = useState(highlight);
   const [view, setView] = useState<"list" | "calendar">("calendar");
@@ -68,7 +69,7 @@ export function ShiftAccordion({ shifts, highlight, conflictIds }: {
                   <div className="flex items-center gap-2">
                     {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
                     <span className="text-muted-foreground">
-                      {!highlight && `${fmtDate(sh.start_time)} · `}{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
+                      {!highlight && `${fmtDate(sh.start_time, timezone)} · `}{fmtTime(sh.start_time, timezone)} — {fmtTime(sh.end_time, timezone)}
                     </span>
                     <div className="flex items-center gap-1 ml-auto">
                       {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
@@ -144,7 +145,7 @@ export function ShiftAccordion({ shifts, highlight, conflictIds }: {
                       <div key={sh.id} className={`rounded border px-2 py-1.5 ${hasConflict ? "border-amber-500/30 bg-amber-500/[0.04]" : "border-primary/15 bg-primary/[0.02]"}`}>
                         <div className="flex items-center gap-2 text-xs">
                           {hasConflict ? <AlertTriangle className="h-2.5 w-2.5 text-amber-500 shrink-0" /> : <Clock className="h-2.5 w-2.5 text-primary/60 shrink-0" />}
-                          <span className="text-muted-foreground font-mono">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
+                          <span className="text-muted-foreground font-mono">{fmtTime(sh.start_time, timezone)} — {fmtTime(sh.end_time, timezone)}</span>
                           <Badge className={`text-[8px] ml-auto ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
                             {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
                           </Badge>

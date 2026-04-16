@@ -1,4 +1,5 @@
 import { parseUTC } from "@/lib/parse-utc";
+import { formatInTimezone } from "@/lib/timezone";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Ev = any;
@@ -7,11 +8,17 @@ export type Shift = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Asset = any;
 
-export function fmtDate(iso: string) {
+export function fmtDate(iso: string, timezone?: string) {
+  if (timezone) {
+    return formatInTimezone(iso, timezone, { weekday: "short", month: "short", day: "numeric" });
+  }
   return parseUTC(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 }
 
-export function fmtTime(iso: string) {
+export function fmtTime(iso: string, timezone?: string) {
+  if (timezone) {
+    return formatInTimezone(iso, timezone, { hour: "2-digit", minute: "2-digit" });
+  }
   return parseUTC(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 

@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import {
   getEvents, deleteEvent, updateEventStatus, getEventShifts,
-  getEventDocuments,
+  getEventDocuments, getCompanyDetails,
 } from "@/lib/supabase/db";
 import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import type { OperationDocument } from "@/types/operations";
@@ -53,6 +53,7 @@ export default function AdminEventsPage() {
 
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [companyTimezone, setCompanyTimezone] = useState<string | undefined>();
 
   // Expanded op
   const expandParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("expand") : null;
@@ -71,7 +72,14 @@ export default function AdminEventsPage() {
 
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
-    try { setEvents(await getEvents(activeCompanyId)); } catch {} finally { setLoading(false); }
+    try {
+      const [evts, co] = await Promise.all([
+        getEvents(activeCompanyId),
+        getCompanyDetails(activeCompanyId),
+      ]);
+      setEvents(evts);
+      if (co?.timezone) setCompanyTimezone(co.timezone);
+    } catch {} finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
@@ -148,6 +156,7 @@ export default function AdminEventsPage() {
           <CreateWizard
             activeCompanyId={activeCompanyId}
             companyName={companyName}
+            companyTimezone={companyTimezone}
             initialAssessment={initialAssessment}
             onCreated={async () => {
               setShowCreate(false);

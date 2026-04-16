@@ -1,4 +1,5 @@
 import { parseUTC } from "@/lib/parse-utc";
+import { formatInTimezone } from "@/lib/timezone";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Timesheet = any;
@@ -13,15 +14,24 @@ export function formatDuration(ms: number) {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-export function formatTime(iso: string) {
+export function formatTime(iso: string, timezone?: string) {
+  if (timezone) {
+    return formatInTimezone(iso, timezone, { hour: "2-digit", minute: "2-digit" });
+  }
   return parseUTC(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export function formatDate(iso: string) {
+export function formatDate(iso: string, timezone?: string) {
+  if (timezone) {
+    return formatInTimezone(iso, timezone, { month: "short", day: "numeric" });
+  }
   return parseUTC(iso).toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-export function formatFullDate(iso: string) {
+export function formatFullDate(iso: string, timezone?: string) {
+  if (timezone) {
+    return formatInTimezone(iso, timezone, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  }
   return parseUTC(iso).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }
 

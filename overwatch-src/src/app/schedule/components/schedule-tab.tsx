@@ -91,7 +91,9 @@ export function ScheduleTab({
     return !eid || !allEventIds.has(eid);
   });
 
-  const renderOpCard = (ev: Ev, highlight?: boolean, myShifts?: Shift[]) => (
+  const renderOpCard = (ev: Ev, highlight?: boolean, myShifts?: Shift[]) => {
+    const tz: string | undefined = ev.timezone ?? undefined;
+    return (
     <Card key={ev.id} className={`overflow-visible ${highlight ? "border-primary/40 bg-primary/5" : "border-border/40"}`}>
       <CardContent className="py-3 px-4">
         <div className="flex items-center gap-4">
@@ -101,7 +103,7 @@ export function ScheduleTab({
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm">{ev.name}</p>
             <p className="text-xs text-muted-foreground">
-              {fmtDate(ev.start_date)} · {fmtTime(ev.start_date)} — {fmtTime(ev.end_date)}
+              {fmtDate(ev.start_date, tz)} · {fmtTime(ev.start_date, tz)} — {fmtTime(ev.end_date, tz)}
             </p>
             {ev.location && (
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
@@ -167,7 +169,7 @@ export function ScheduleTab({
         )}
         {/* Collapsible shift details */}
         {myShifts && myShifts.length > 0 && (
-          <ShiftAccordion shifts={myShifts} highlight={!!highlight} conflictIds={conflictIds} />
+          <ShiftAccordion shifts={myShifts} highlight={!!highlight} conflictIds={conflictIds} timezone={tz} />
         )}
         {/* Quick-action buttons for current operations */}
         {highlight && (
@@ -191,7 +193,8 @@ export function ScheduleTab({
         )}
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   return (
     <>
@@ -228,7 +231,9 @@ export function ScheduleTab({
           <div className="space-y-2">
             {currentEvents.map((ev: Ev) => renderOpCard(ev, true, allShiftsByEvent.get(ev.id)))}
             {/* Orphan shifts without a matching event card */}
-            {orphanShifts.map((sh: Shift) => (
+            {orphanShifts.map((sh: Shift) => {
+              const shTz: string | undefined = sh.events?.timezone ?? undefined;
+              return (
               <Card key={sh.id} className={`${conflictIds.has(sh.id) ? "border-amber-500/40 bg-amber-500/5" : "border-primary/40 bg-primary/5"}`}>
                 <CardContent className="flex items-center gap-4 py-3 px-4">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${conflictIds.has(sh.id) ? "bg-amber-500/15" : "bg-primary/15"}`}>
@@ -237,7 +242,7 @@ export function ScheduleTab({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{sh.events?.name ?? "Shift"}</p>
                     <p className="text-xs text-muted-foreground">
-                      {fmtDate(sh.start_time)} · {fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
+                      {fmtDate(sh.start_time, shTz)} · {fmtTime(sh.start_time, shTz)} — {fmtTime(sh.end_time, shTz)}
                     </p>
                     {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                   </div>
@@ -247,7 +252,8 @@ export function ScheduleTab({
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -277,7 +283,9 @@ export function ScheduleTab({
         <div>
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Unlinked Shifts</h2>
           <div className="space-y-2">
-            {orphanUpcomingShifts.map((sh: Shift) => (
+            {orphanUpcomingShifts.map((sh: Shift) => {
+              const shTz: string | undefined = sh.events?.timezone ?? undefined;
+              return (
               <Card key={sh.id} className={conflictIds.has(sh.id) ? "border-amber-500/40 bg-amber-500/5" : "border-border/40"}>
                 <CardContent className="flex items-center gap-4 py-3 px-4">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${conflictIds.has(sh.id) ? "bg-amber-500/10" : "bg-blue-500/10"}`}>
@@ -286,7 +294,7 @@ export function ScheduleTab({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{sh.events?.name ?? "Shift"}</p>
                     <p className="text-xs text-muted-foreground">
-                      {fmtDate(sh.start_time)} · {fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}
+                      {fmtDate(sh.start_time, shTz)} · {fmtTime(sh.start_time, shTz)} — {fmtTime(sh.end_time, shTz)}
                     </p>
                     {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                   </div>
@@ -296,7 +304,8 @@ export function ScheduleTab({
                   </div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

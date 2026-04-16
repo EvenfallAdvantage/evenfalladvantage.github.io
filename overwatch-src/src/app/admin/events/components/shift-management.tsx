@@ -22,6 +22,7 @@ import {
   fmtTime, fmtDateLong, getDaysInRange, groupByDay, pad2,
   PATTERNS, toISO,
 } from "./shared";
+import { localToUTC, tzAbbrev } from "@/lib/timezone";
 
 /* ── Types ── */
 
@@ -34,6 +35,8 @@ interface ShiftManagementProps {
   availability: OperationAvailability[];
   onShiftsChange: (shifts: Shift[]) => void;
   onConflictWarning: (data: ConflictWarningData) => void;
+  /** IANA timezone for the event (e.g. "America/Los_Angeles") */
+  eventTimezone?: string;
 }
 
 /* ── Component ── */
@@ -47,6 +50,7 @@ export function ShiftManagement({
   availability,
   onShiftsChange,
   onConflictWarning,
+  eventTimezone,
 }: ShiftManagementProps) {
   /* ── Quick Fill state ── */
   const [posts, setPosts] = useState<string[]>([]);
@@ -132,7 +136,7 @@ export function ShiftManagement({
             conflicts: conflicts.map((c: Shift) => ({
               role: c.role ?? "Shift",
               eventName: c.events?.name ?? "Unknown Op",
-              time: `${fmtTime(c.start_time)} — ${fmtTime(c.end_time)}`,
+              time: `${fmtTime(c.start_time, eventTimezone)} — ${fmtTime(c.end_time, eventTimezone)}`,
             })),
             pendingAction: async () => {
               await assignShift(shiftId, userId);
@@ -156,7 +160,7 @@ export function ShiftManagement({
       for (const day of Array.from(selectedDays).sort()) {
         for (const p of pat) {
           for (const post of posts) {
-            batch.push({ eventId, role: `${post} — ${p.label}`, startTime: toISO(day, p.sH, p.sM, false), endTime: toISO(day, p.eH, p.eM, p.overnight) });
+            batch.push({ eventId, role: `${post} — ${p.label}`, startTime: toISO(day, p.sH, p.sM, false, eventTimezone), endTime: toISO(day, p.eH, p.eM, p.overnight, eventTimezone) });
           }
         }
       }
@@ -168,21 +172,24 @@ export function ShiftManagement({
 
   async function handleAddCustom() {
     if (!cStart || !cEnd) return;
+    // Convert datetime-local inputs from event timezone to UTC
+    const utcStart = eventTimezone ? localToUTC(cStart, eventTimezone) : new Date(cStart).toISOString();
+    const utcEnd = eventTimezone ? localToUTC(cEnd, eventTimezone) : new Date(cEnd).toISOString();
     if (cAssign) {
       try {
-        const conflicts = await getConflictingShifts(cAssign, cStart, cEnd);
+        const conflicts = await getConflictingShifts(cAssign, utcStart, utcEnd);
         if (conflicts.length > 0) {
           onConflictWarning({
             shiftId: "new", userId: cAssign,
             conflicts: conflicts.map((c: Shift) => ({
               role: c.role ?? "Shift",
               eventName: c.events?.name ?? "Unknown Op",
-              time: `${fmtTime(c.start_time)} — ${fmtTime(c.end_time)}`,
+              time: `${fmtTime(c.start_time, eventTimezone)} — ${fmtTime(c.end_time, eventTimezone)}`,
             })),
             pendingAction: async () => {
               setAddingCustom(true);
               try {
-                await createShift({ eventId, role: cRole || undefined, startTime: cStart, endTime: cEnd, assignedUserId: cAssign || undefined });
+                await createShift({ eventId, role: cRole || undefined, startTime: utcStart, endTime: utcEnd, assignedUserId: cAssign || undefined });
                 setCRole(""); setCStart(""); setCEnd(""); setCAssign(""); setShowCustom(false);
                 onShiftsChange(await getEventShifts(eventId));
               } finally { setAddingCustom(false); }
@@ -194,7 +201,7 @@ export function ShiftManagement({
     }
     setAddingCustom(true);
     try {
-      await createShift({ eventId, role: cRole || undefined, startTime: cStart, endTime: cEnd, assignedUserId: cAssign || undefined });
+      await createShift({ eventId, role: cRole || undefined, startTime: utcStart, endTime: utcEnd, assignedUserId: cAssign || undefined });
       setCRole(""); setCStart(""); setCEnd(""); setCAssign(""); setShowCustom(false);
       onShiftsChange(await getEventShifts(eventId));
     } catch (err) { console.error(err); } finally { setAddingCustom(false); }
@@ -214,7 +221,7 @@ export function ShiftManagement({
           {hasConflict ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" /> : <Clock className={`h-3.5 w-3.5 shrink-0 ${filled ? "text-green-500" : "text-amber-500"}`} />}
           <div className="flex-1 min-w-0 text-xs truncate">
             <span className="font-medium">{sh.role ?? "Shift"}</span>
-            <span className="text-muted-foreground ml-1.5 sm:ml-2 font-mono">{fmtTime(sh.start_time)} — {fmtTime(sh.end_time)}</span>
+            <span className="text-muted-foreground ml-1.5 sm:ml-2 font-mono">{fmtTime(sh.start_time, eventTimezone)} — {fmtTime(sh.end_time, eventTimezone)}</span>
             {hasConflict && <span className="ml-1 sm:ml-2 text-red-500 font-semibold text-[10px]">CONFLICT</span>}
           </div>
           <button onClick={() => handleDeleteShift(sh.id)} disabled={deletingShift === sh.id}
@@ -485,6 +492,9 @@ export function ShiftManagement({
       {showCustom && (
         <div className="px-3 sm:px-4 py-3 space-y-2 border-b border-border/20 bg-primary/[0.02]">
           <Input placeholder="Role / Position (e.g. Supervisor)" value={cRole} onChange={(e) => setCRole(e.target.value)} className="h-8 text-sm" />
+          {eventTimezone && (
+            <p className="text-[10px] text-muted-foreground">Times are in <span className="font-semibold">{tzAbbrev(eventTimezone)}</span> ({eventTimezone})</p>
+          )}
           <div className="flex gap-2">
             <div className="flex-1"><label className="text-[10px] text-muted-foreground">Start</label><Input type="datetime-local" value={cStart} onChange={(e) => setCStart(e.target.value)} className="h-8 text-sm" /></div>
             <div className="flex-1"><label className="text-[10px] text-muted-foreground">End</label><Input type="datetime-local" value={cEnd} onChange={(e) => setCEnd(e.target.value)} className="h-8 text-sm" /></div>

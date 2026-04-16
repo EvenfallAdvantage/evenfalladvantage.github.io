@@ -24,10 +24,12 @@ import {
   CONSTRAINT_TYPES, MEDICAL_CAPABILITIES, COMMAND_MODELS, COMPANY_ROLES,
   SUCCESS_CRITERIA_OPTIONS, Textarea,
 } from "./shared";
+import { US_TIMEZONES } from "@/lib/timezone";
 
 interface CreateWizardProps {
   activeCompanyId: string;
   companyName: string;
+  companyTimezone?: string;
   initialAssessment?: SiteAssessment | null;
   onCreated: () => Promise<void>;
   onCancel: () => void;
@@ -47,9 +49,10 @@ const FACILITY_TO_SITE_TYPE: Record<string, string> = {
 
 const CREATE_STEPS = ["Basics", "Client & Site", "Scope & Orders", "Uniform & Comms", "Emergency & C2"];
 
-export function CreateWizard({ activeCompanyId, companyName, initialAssessment, onCreated, onCancel }: CreateWizardProps) {
+export function CreateWizard({ activeCompanyId, companyName, companyTimezone, initialAssessment, onCreated, onCancel }: CreateWizardProps) {
   const [createStep, setCreateStep] = useState(0);
   const [name, setName] = useState("");
+  const [eventTimezone, setEventTimezone] = useState(companyTimezone || "America/New_York");
   const [location, setLocation] = useState("");
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
@@ -157,6 +160,7 @@ export function CreateWizard({ activeCompanyId, companyName, initialAssessment, 
         tlpStep: "receive_mission",
         siteMapUrl,
         payRate: payRate.trim() ? parseFloat(payRate) : null,
+        timezone: eventTimezone,
       });
       // Create intake document for SOP tracking
       if (ev?.id) {
@@ -218,6 +222,15 @@ export function CreateWizard({ activeCompanyId, companyName, initialAssessment, 
               <div className="sm:col-span-2"><Label className="text-xs">Location</Label><AddressAutocomplete value={location} onChange={setLocation} onSelect={(s: AddressSelection) => { setLocation(s.displayName); setLocationLat(s.lat); setLocationLng(s.lon); if (s.street && !guide.siteAddress) setGuide(g => ({ ...g, siteAddress: `${s.street}, ${s.city}, ${s.state} ${s.postcode}`.trim() })); }} onClear={() => { setLocationLat(null); setLocationLng(null); }} placeholder="e.g. 123 Main St, Los Angeles, CA" className="mt-1" /></div>
               <div><Label className="text-xs">Start Date & Time *</Label><Input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1" /></div>
               <div><Label className="text-xs">End Date & Time *</Label><Input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1" /></div>
+              <div>
+                <Label className="text-xs">Timezone</Label>
+                <select value={eventTimezone} onChange={(e) => setEventTimezone(e.target.value)}
+                  className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm">
+                  {US_TIMEZONES.map(tz => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="pt-2 border-t border-border/20">
               <Label className="text-xs">Type of Engagement</Label>

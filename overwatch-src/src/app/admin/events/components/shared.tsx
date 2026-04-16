@@ -54,7 +54,12 @@ export const SUCCESS_CRITERIA_OPTIONS = ["No major incidents", "Controlled crowd
 
 /* ── Helpers ───────────────────────────────────────────── */
 
-export function fmtTime(iso: string) {
+import { formatInTimezone } from "@/lib/timezone";
+
+export function fmtTime(iso: string, timezone?: string) {
+  if (timezone) {
+    return formatInTimezone(iso, timezone, { hour: "2-digit", minute: "2-digit" });
+  }
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 export function fmtDateShort(iso: string) {
@@ -84,7 +89,21 @@ export const PATTERNS: Record<string, { label: string; sH: number; sM: number; e
   ],
 };
 
-export function toISO(dateStr: string, h: number, m: number, nextDay: boolean) {
+import { localToUTC } from "@/lib/timezone";
+
+export function toISO(dateStr: string, h: number, m: number, nextDay: boolean, timezone?: string) {
+  if (timezone) {
+    // Build a local datetime string and convert using the event timezone
+    let day = dateStr; // "YYYY-MM-DD"
+    if (nextDay) {
+      const d = new Date(dateStr + "T12:00:00");
+      d.setDate(d.getDate() + 1);
+      day = d.toISOString().slice(0, 10);
+    }
+    const local = `${day}T${pad2(h)}:${pad2(m)}`;
+    return localToUTC(local, timezone);
+  }
+  // Legacy fallback: browser-local interpretation
   const d = new Date(dateStr + "T00:00:00");
   if (nextDay) d.setDate(d.getDate() + 1);
   d.setHours(h, m, 0, 0);

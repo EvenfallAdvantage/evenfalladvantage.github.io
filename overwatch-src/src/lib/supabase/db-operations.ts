@@ -34,6 +34,7 @@ export async function createEvent(params: {
   locationLat?: number;
   locationLng?: number;
   payRate?: number | null;
+  timezone?: string;
 }) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,6 +56,7 @@ export async function createEvent(params: {
     risk_level: params.riskLevel ?? null,
     tlp_step: params.tlpStep ?? "receive_mission",
     site_map_url: params.siteMapUrl ?? null,
+    timezone: params.timezone ?? null,
     ...ts(),
   };
   if (params.payRate !== undefined && params.payRate !== null) {
@@ -78,6 +80,7 @@ export async function updateEvent(eventId: string, updates: {
   status?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   opsGuide?: Record<string, any>;
+  timezone?: string;
 }) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,6 +92,7 @@ export async function updateEvent(eventId: string, updates: {
   if (updates.endDate !== undefined) row.end_date = updates.endDate;
   if (updates.status !== undefined) row.status = updates.status;
   if (updates.opsGuide !== undefined) row.ops_guide = updates.opsGuide;
+  if (updates.timezone !== undefined) row.timezone = updates.timezone;
   const { data, error } = await supabase
     .from("events")
     .update(row)
@@ -126,7 +130,7 @@ export async function getUserShifts(companyId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("shifts")
-    .select("*, events!inner(id, name, location, company_id, ops_guide)")
+    .select("*, events!inner(id, name, location, company_id, ops_guide, timezone)")
     .eq("assigned_user_id", userId)
     .eq("events.company_id", companyId)
     .order("start_time", { ascending: true });

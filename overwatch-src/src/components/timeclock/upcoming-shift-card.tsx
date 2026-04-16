@@ -22,6 +22,7 @@ interface UpcomingShiftCardProps {
 
 export function UpcomingShiftCard({ shift }: UpcomingShiftCardProps) {
   const [now] = useState(() => Date.now());
+  const tz: string | undefined = shift.events?.timezone ?? undefined;
 
   return (
     <Card className="border-blue-500/30 bg-gradient-to-r from-blue-500/5 to-transparent">
@@ -38,7 +39,7 @@ export function UpcomingShiftCard({ shift }: UpcomingShiftCardProps) {
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {formatFullDate(shift.start_time)} &bull; {formatTime(shift.start_time)} — {formatTime(shift.end_time)}
+              {formatFullDate(shift.start_time, tz)} &bull; {formatTime(shift.start_time, tz)} — {formatTime(shift.end_time, tz)}
             </p>
             {shift.events && (
               <p className="text-[11px] text-muted-foreground/70 flex items-center gap-1 mt-0.5">
