@@ -28,12 +28,12 @@ export function ProfileActivityTabs({ activeCompanyId }: Props) {
   const loadActivity = useCallback(async () => {
     if (tabLoaded.activity) return;
     try {
-      const [ts, qa] = await Promise.all([getRecentTimesheets(10), getUserQuizAttempts()]);
+      const [ts, qa] = await Promise.all([getRecentTimesheets(10, activeCompanyId ?? undefined), getUserQuizAttempts()]);
       setTimesheets(ts.filter((t: Sheet) => t.clock_out));
       setQuizAttempts(qa);
     } catch {}
     setTabLoaded((p) => ({ ...p, activity: true }));
-  }, [tabLoaded.activity]);
+  }, [tabLoaded.activity, activeCompanyId]);
 
   function onTabChange(val: string) {
     if (val === "submissions") loadSubmissions();

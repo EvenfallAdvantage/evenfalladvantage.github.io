@@ -281,14 +281,24 @@ export default function ScanPage() {
 
       const { badge, user } = lookup;
       const name = `${user.first_name} ${user.last_name}`.trim();
-      const clockedInNow = await isUserClockedIn(badge.user_id, badge.company_id);
+
+      // Verify badge belongs to the scanner's active company
+      if (badge.company_id !== activeCompanyId) {
+        setResult({ status: "error", action: "clock_in", name, avatarUrl: user.avatar_url, message: `Wrong company badge` });
+        playTone("error");
+        setProcessing(false);
+        setTimeout(() => { lastScanRef.current = ""; setResult(null); }, RESULT_DISPLAY_MS);
+        return;
+      }
+
+      const clockedInNow = await isUserClockedIn(badge.user_id, activeCompanyId);
 
       if (clockedInNow) {
-        await qrClockOut(badge.user_id, badge.company_id);
+        await qrClockOut(badge.user_id, activeCompanyId);
         setResult({ status: "success", action: "clock_out", name, avatarUrl: user.avatar_url, message: `${name} clocked out` });
         playTone("out");
       } else {
-        await qrClockIn(badge.user_id, badge.company_id, selectedEventId ?? undefined);
+        await qrClockIn(badge.user_id, activeCompanyId, selectedEventId ?? undefined);
         setResult({ status: "success", action: "clock_in", name, avatarUrl: user.avatar_url, message: `${name} clocked in` });
         playTone("in");
       }
