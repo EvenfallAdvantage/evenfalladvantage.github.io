@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getCompanyTimesheets, approveTimesheet, deleteTimesheet } from "@/lib/supabase/db";
+import { getCompanyTimesheets, approveTimesheet, unapproveTimesheet, deleteTimesheet } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
 
@@ -60,10 +60,21 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
     finally { setApproving(null); }
   }
 
+  async function handleUnapprove(id: string) {
+    try {
+      await unapproveTimesheet(id);
+      await loadData();
+    } catch (err) { console.error(err); }
+  }
+
   async function handleDelete(id: string) {
     const sheet = timesheets.find((t: Sheet) => t.id === id);
     const name = sheet?.users ? `${sheet.users.first_name} ${sheet.users.last_name}` : "this entry";
-    if (!confirm(`Delete timesheet for ${name}? This cannot be undone.`)) return;
+    const isApproved = sheet?.approved;
+    const msg = isApproved
+      ? `Delete APPROVED timesheet for ${name}? This is permanent and cannot be undone.`
+      : `Delete timesheet for ${name}? This cannot be undone.`;
+    if (!confirm(msg)) return;
     try {
       await deleteTimesheet(id);
       await loadData();
@@ -147,21 +158,28 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                             <span className="text-xs font-medium font-mono w-16 text-right">
                               {eventRate != null ? `$${(hours * eventRate).toFixed(2)}` : "—"}
                             </span>
-                            {t.approved ? (
-                              <Badge className="text-[10px] bg-green-500/15 text-green-600">Approved</Badge>
-                            ) : (
-                              <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1">
+                              {t.approved ? (
+                                canManage ? (
+                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-amber-500 border-amber-500/30 hover:bg-amber-500/10"
+                                    onClick={() => handleUnapprove(t.id)}>
+                                    Unapprove
+                                  </Button>
+                                ) : (
+                                  <Badge className="text-[10px] bg-green-500/15 text-green-600">Approved</Badge>
+                                )
+                              ) : (
                                 <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
                                   onClick={() => handleApprove(t.id)} disabled={approving === t.id}>
                                   {approving === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
                                 </Button>
-                                {canManage && (
-                                  <button onClick={() => handleDelete(t.id)} className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete timesheet">
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                              )}
+                              {canManage && (
+                                <button onClick={() => handleDelete(t.id)} className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete timesheet">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })}

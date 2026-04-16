@@ -223,6 +223,21 @@ export async function approveTimesheet(timesheetId: string) {
   return data;
 }
 
+/**
+ * Unapprove a timesheet (revert to pending).
+ */
+export async function unapproveTimesheet(timesheetId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("timesheets")
+    .update({ approved: false, approved_by_id: null, approved_at: null })
+    .eq("id", timesheetId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function getTimesheetsForDateRange(startISO: string, endISO: string, companyId?: string) {
   const userId = await ensureInternalUser();
   if (!userId) return [];
