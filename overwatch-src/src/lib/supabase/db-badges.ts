@@ -146,7 +146,7 @@ export async function qrClockIn(
   const supabase = createClient();
   const now = new Date().toISOString();
   const { error } = await supabase.from("timesheets").insert({
-    id: crypto.randomUUID(),
+    id: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     user_id: userId,
     company_id: companyId,
     clock_in: now,
