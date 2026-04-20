@@ -17,7 +17,7 @@
     "staging:studio": "echo Open http://localhost:54323 in your browser"
   },
   "dependencies": {
-    "@base-ui/react": "^1.3.0",
+    "@base-ui/react": "^1.4.0",
     "@hookform/resolvers": "^5.2.2",
     "@huggingface/transformers": "^4.0.1",
     "@supabase/ssr": "^0.10.2",
