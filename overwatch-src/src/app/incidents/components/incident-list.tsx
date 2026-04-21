@@ -192,37 +192,37 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                 <div className="border-t px-4 py-4 space-y-4 bg-muted/10">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Title</label>
-                      <Input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} className="text-sm" />
+                      <label htmlFor="incident-edit-title" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Title</label>
+                      <Input id="incident-edit-title" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} className="text-sm" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Location / Post</label>
-                      <Input value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} className="text-sm" />
+                      <label htmlFor="incident-edit-location" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Location / Post</label>
+                      <Input id="incident-edit-location" value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} className="text-sm" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Type</label>
-                      <select value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                      <label htmlFor="incident-edit-type" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Type</label>
+                      <select id="incident-edit-type" value={editForm.type} onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
                         {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Severity</label>
-                        <select value={editForm.severity} onChange={e => setEditForm(f => ({ ...f, severity: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                        <label htmlFor="incident-edit-severity" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Severity</label>
+                        <select id="incident-edit-severity" value={editForm.severity} onChange={e => setEditForm(f => ({ ...f, severity: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
                           {["critical","high","medium","low"].map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                       <div className="flex-1">
-                        <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Priority</label>
-                        <select value={editForm.priority} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+                        <label htmlFor="incident-edit-priority" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Priority</label>
+                        <select id="incident-edit-priority" value={editForm.priority} onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
                           {["low","medium","high","urgent"].map(p => <option key={p} value={p}>{p}</option>)}
                         </select>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Narrative / Description</label>
-                    <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                    <label htmlFor="incident-edit-narrative" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1 block">Narrative / Description</label>
+                    <textarea id="incident-edit-narrative" value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
                       className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[120px] resize-y" />
                   </div>
                   <div className="flex justify-end gap-2">
@@ -328,8 +328,9 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                         {editingIncidentId === inc.id ? 'Cancel' : 'Edit'}
                       </Button>
                       <div>
-                        <label className="text-xs text-muted-foreground">Status</label>
+                        <label htmlFor={`incident-status-${inc.id}`} className="text-xs text-muted-foreground">Status</label>
                         <select
+                          id={`incident-status-${inc.id}`}
                           className="ml-2 rounded border border-input bg-background px-2 py-1 text-xs"
                           value={inc.status}
                           onChange={e => handleStatusChange(inc.id, e.target.value)}
@@ -338,8 +339,9 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs text-muted-foreground">Assign to</label>
+                        <label htmlFor={`incident-assign-${inc.id}`} className="text-xs text-muted-foreground">Assign to</label>
                         <select
+                          id={`incident-assign-${inc.id}`}
                           className="ml-2 rounded border border-input bg-background px-2 py-1 text-xs"
                           value={inc.assigned_to ?? ""}
                           onChange={e => handleAssign(inc.id, e.target.value)}

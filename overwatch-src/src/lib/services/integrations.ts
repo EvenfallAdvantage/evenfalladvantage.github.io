@@ -16,7 +16,7 @@ import { getIntegrationsConfig } from "@/lib/supabase/db";
 export type ProviderKey =
   | "whatsapp" | "signal" | "twilio" | "email" | "onesignal"
   | "fillout" | "airtable" | "checkr" | "docusign" | "gusto"
-  | "quickbooks" | "adp";
+  | "quickbooks" | "adp" | "paychex";
 
 export interface IntegrationConfig {
   provider: string;
@@ -83,6 +83,13 @@ export interface ADPConfig {
   environment: "sandbox" | "production";
 }
 
+export interface PaychexConfig {
+  client_id: string;
+  client_secret: string;
+  company_id: string;
+  environment: "sandbox" | "production";
+}
+
 // ─── Config Cache ─────────────────────────────────────────
 
 let _cache: { companyId: string; configs: IntegrationConfig[]; ts: number } | null = null;
@@ -145,6 +152,10 @@ export async function getQuickBooksConfig(companyId: string) {
 
 export async function getADPConfig(companyId: string) {
   return getActiveConfig<ADPConfig>(companyId, "adp");
+}
+
+export async function getPaychexConfig(companyId: string) {
+  return getActiveConfig<PaychexConfig>(companyId, "paychex");
 }
 
 /** Check whether a provider is active for a company (fast, cached) */

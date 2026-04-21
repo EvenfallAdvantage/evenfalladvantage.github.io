@@ -241,8 +241,9 @@ export default function PatrolsPage() {
                   <CardHeader><CardTitle className="text-base flex items-center gap-2"><ScanLine className="h-5 w-5 text-emerald-500" /> Log Checkpoint Scan</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground">Checkpoint *</label>
+                      <label htmlFor="patrol-checkpoint" className="text-xs font-medium text-muted-foreground">Checkpoint *</label>
                       <select
+                        id="patrol-checkpoint"
                         className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
                         value={selectedCheckpoint}
                         onChange={e => setSelectedCheckpoint(e.target.value)}
@@ -254,8 +255,9 @@ export default function PatrolsPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground">Patrol Route (optional)</label>
+                      <label htmlFor="patrol-route" className="text-xs font-medium text-muted-foreground">Patrol Route (optional)</label>
                       <select
+                        id="patrol-route"
                         className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
                         value={selectedRoute}
                         onChange={e => setSelectedRoute(e.target.value)}
@@ -268,8 +270,9 @@ export default function PatrolsPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Status *</label>
+                        <label htmlFor="patrol-scan-status" className="text-xs font-medium text-muted-foreground">Status *</label>
                         <select
+                          id="patrol-scan-status"
                           className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
                           value={scanStatus}
                           onChange={e => setScanStatus(e.target.value)}
@@ -280,8 +283,8 @@ export default function PatrolsPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Notes</label>
-                        <Input className="mt-1" placeholder="Quick note (optional)" value={scanNote} onChange={e => setScanNote(e.target.value)} />
+                        <label htmlFor="patrol-scan-notes" className="text-xs font-medium text-muted-foreground">Notes</label>
+                        <Input id="patrol-scan-notes" className="mt-1" placeholder="Quick note (optional)" value={scanNote} onChange={e => setScanNote(e.target.value)} />
                       </div>
                     </div>
 
@@ -298,8 +301,8 @@ export default function PatrolsPage() {
                       <div className="space-y-3 rounded-lg border border-border/50 bg-muted/20 p-3">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
-                            <label className="text-xs font-medium text-muted-foreground">Weather</label>
-                            <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={scanWeather} onChange={e => setScanWeather(e.target.value)}>
+                            <label htmlFor="patrol-scan-weather" className="text-xs font-medium text-muted-foreground">Weather</label>
+                            <select id="patrol-scan-weather" className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={scanWeather} onChange={e => setScanWeather(e.target.value)}>
                               <option value="">Select...</option>
                               <option value="Clear">Clear</option>
                               <option value="Cloudy">Cloudy</option>
@@ -312,8 +315,8 @@ export default function PatrolsPage() {
                             </select>
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-muted-foreground">Lighting</label>
-                            <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={scanLighting} onChange={e => setScanLighting(e.target.value)}>
+                            <label htmlFor="patrol-scan-lighting" className="text-xs font-medium text-muted-foreground">Lighting</label>
+                            <select id="patrol-scan-lighting" className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={scanLighting} onChange={e => setScanLighting(e.target.value)}>
                               <option value="">Select...</option>
                               <option value="Well-lit">Well-lit</option>
                               <option value="Dim">Dim / Partial</option>
@@ -323,8 +326,8 @@ export default function PatrolsPage() {
                             </select>
                           </div>
                           <div>
-                            <label className="text-xs font-medium text-muted-foreground">Doors / Gates</label>
-                            <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={doorStatus} onChange={e => setDoorStatus(e.target.value)}>
+                            <label htmlFor="patrol-scan-doors" className="text-xs font-medium text-muted-foreground">Doors / Gates</label>
+                            <select id="patrol-scan-doors" className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={doorStatus} onChange={e => setDoorStatus(e.target.value)}>
                               <option value="">Select...</option>
                               <option value="All Secured">All Secured</option>
                               <option value="Unlocked — Expected">Unlocked — Expected</option>
@@ -487,7 +490,7 @@ export default function PatrolsPage() {
                       </div>
                       <Input placeholder="Description" value={rtDesc} onChange={e => setRtDesc(e.target.value)} />
                       <div>
-                        <label className="text-xs font-medium text-muted-foreground">Select checkpoints in order:</label>
+                        <span className="text-xs font-medium text-muted-foreground">Select checkpoints in order:</span>
                         <div className="flex flex-wrap gap-2 mt-2">
                           {checkpoints.map((cp: Checkpoint) => {
                             const idx = rtCheckpoints.indexOf(cp.id);

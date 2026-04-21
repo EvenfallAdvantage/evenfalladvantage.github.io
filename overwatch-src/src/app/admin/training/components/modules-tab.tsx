@@ -219,26 +219,26 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
           <CardContent className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-xs text-muted-foreground">Module Code *</label>
-                <Input value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="e.g. radio-comms" />
+                <label htmlFor="module-code" className="text-xs text-muted-foreground">Module Code *</label>
+                <Input id="module-code" value={newCode} onChange={(e) => setNewCode(e.target.value)} placeholder="e.g. radio-comms" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Module Name *</label>
-                <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Radio Communications" />
+                <label htmlFor="module-name" className="text-xs text-muted-foreground">Module Name *</label>
+                <Input id="module-name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Radio Communications" />
               </div>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Description</label>
-              <Input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Brief description of the module" />
+              <label htmlFor="module-description" className="text-xs text-muted-foreground">Description</label>
+              <Input id="module-description" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Brief description of the module" />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
-                <label className="text-xs text-muted-foreground">Duration (min)</label>
-                <Input type="number" value={newDuration} onChange={(e) => setNewDuration(e.target.value)} />
+                <label htmlFor="module-duration" className="text-xs text-muted-foreground">Duration (min)</label>
+                <Input id="module-duration" type="number" value={newDuration} onChange={(e) => setNewDuration(e.target.value)} />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Difficulty</label>
-                <select value={newDifficulty} onChange={(e) => setNewDifficulty(e.target.value)}
+                <label htmlFor="module-difficulty" className="text-xs text-muted-foreground">Difficulty</label>
+                <select id="module-difficulty" value={newDifficulty} onChange={(e) => setNewDifficulty(e.target.value)}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                   {DIFFICULTY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>

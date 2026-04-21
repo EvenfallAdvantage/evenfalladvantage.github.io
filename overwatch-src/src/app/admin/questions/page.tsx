@@ -196,15 +196,15 @@ export default function QuestionBankPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <label className="text-xs text-muted-foreground">Question Text *</label>
-                <textarea value={newText} onChange={(e) => setNewText(e.target.value)}
+                <label htmlFor="question-text" className="text-xs text-muted-foreground">Question Text *</label>
+                <textarea id="question-text" value={newText} onChange={(e) => setNewText(e.target.value)}
                   placeholder="Enter the question..."
                   className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm min-h-[60px]" />
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Type</label>
-                  <select value={newType} onChange={(e) => {
+                  <label htmlFor="question-type" className="text-xs text-muted-foreground">Type</label>
+                  <select id="question-type" value={newType} onChange={(e) => {
                     setNewType(e.target.value);
                     if (e.target.value === "true_false") { setNewOptions(["True", "False"]); setNewCorrect("True"); }
                     else if (e.target.value === "short_answer") { setNewOptions([]); }
@@ -214,15 +214,15 @@ export default function QuestionBankPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Difficulty</label>
-                  <select value={newDifficulty} onChange={(e) => setNewDifficulty(e.target.value)}
+                  <label htmlFor="question-difficulty" className="text-xs text-muted-foreground">Difficulty</label>
+                  <select id="question-difficulty" value={newDifficulty} onChange={(e) => setNewDifficulty(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                     {DIFFICULTY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Module (optional)</label>
-                  <select value={newModuleId} onChange={(e) => setNewModuleId(e.target.value)}
+                  <label htmlFor="question-module" className="text-xs text-muted-foreground">Module (optional)</label>
+                  <select id="question-module" value={newModuleId} onChange={(e) => setNewModuleId(e.target.value)}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                     <option value="">None</option>
                     {modules.map((m) => <option key={m.id} value={m.id}>{m.module_name}</option>)}
@@ -232,7 +232,7 @@ export default function QuestionBankPage() {
 
               {newType === "multiple_choice" && (
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">Options</label>
+                  <span className="text-xs text-muted-foreground">Options</span>
                   {newOptions.map((opt, i) => (
                     <div key={i} className="flex items-center gap-2">
                       <button
@@ -267,19 +267,19 @@ export default function QuestionBankPage() {
 
               {newType === "short_answer" && (
                 <div>
-                  <label className="text-xs text-muted-foreground">Correct Answer *</label>
-                  <Input value={newCorrect} onChange={(e) => setNewCorrect(e.target.value)} placeholder="Expected answer" />
+                  <label htmlFor="question-correct-answer" className="text-xs text-muted-foreground">Correct Answer *</label>
+                  <Input id="question-correct-answer" value={newCorrect} onChange={(e) => setNewCorrect(e.target.value)} placeholder="Expected answer" />
                 </div>
               )}
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="text-xs text-muted-foreground">Category (optional)</label>
-                  <Input value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="e.g. Use of Force, Radio Comms" />
+                  <label htmlFor="question-category" className="text-xs text-muted-foreground">Category (optional)</label>
+                  <Input id="question-category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="e.g. Use of Force, Radio Comms" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Explanation (shown after answering)</label>
-                  <Input value={newExplanation} onChange={(e) => setNewExplanation(e.target.value)} placeholder="Why this is the correct answer..." />
+                  <label htmlFor="question-explanation" className="text-xs text-muted-foreground">Explanation (shown after answering)</label>
+                  <Input id="question-explanation" value={newExplanation} onChange={(e) => setNewExplanation(e.target.value)} placeholder="Why this is the correct answer..." />
                 </div>
               </div>
 

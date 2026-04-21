@@ -160,14 +160,14 @@ export function QuestionBankTab({ activeCompanyId, modules, showNewQ, setShowNew
           <CardHeader className="pb-3"><CardTitle className="text-sm">Create Question</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <label className="text-xs text-muted-foreground">Question Text *</label>
-              <textarea value={newQText} onChange={(e) => setNewQText(e.target.value)} placeholder="Enter the question..."
+              <label htmlFor="qbank-question-text" className="text-xs text-muted-foreground">Question Text *</label>
+              <textarea id="qbank-question-text" value={newQText} onChange={(e) => setNewQText(e.target.value)} placeholder="Enter the question..."
                 className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm min-h-[60px]" />
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
-                <label className="text-xs text-muted-foreground">Type</label>
-                <select value={newQType} onChange={(e) => {
+                <label htmlFor="qbank-question-type" className="text-xs text-muted-foreground">Type</label>
+                <select id="qbank-question-type" value={newQType} onChange={(e) => {
                   setNewQType(e.target.value);
                   if (e.target.value === "true_false") { setNewQOptions(["True", "False"]); setNewQCorrect("True"); }
                   else if (e.target.value === "short_answer") { setNewQOptions([]); }
@@ -177,15 +177,15 @@ export function QuestionBankTab({ activeCompanyId, modules, showNewQ, setShowNew
                 </select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Difficulty</label>
-                <select value={newQDifficulty} onChange={(e) => setNewQDifficulty(e.target.value)}
+                <label htmlFor="qbank-difficulty" className="text-xs text-muted-foreground">Difficulty</label>
+                <select id="qbank-difficulty" value={newQDifficulty} onChange={(e) => setNewQDifficulty(e.target.value)}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                   {Q_DIFFICULTY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Module (optional)</label>
-                <select value={newQModuleId} onChange={(e) => setNewQModuleId(e.target.value)}
+                <label htmlFor="qbank-module" className="text-xs text-muted-foreground">Module (optional)</label>
+                <select id="qbank-module" value={newQModuleId} onChange={(e) => setNewQModuleId(e.target.value)}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
                   <option value="">None</option>
                   {modules.map((m) => <option key={m.id} value={m.id}>{m.module_name}</option>)}
@@ -194,7 +194,7 @@ export function QuestionBankTab({ activeCompanyId, modules, showNewQ, setShowNew
             </div>
             {newQType === "multiple_choice" && (
               <div className="space-y-2">
-                <label className="text-xs text-muted-foreground">Options</label>
+                <span className="text-xs text-muted-foreground">Options</span>
                 {newQOptions.map((opt, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <button onClick={() => setNewQCorrect(opt)}
@@ -223,18 +223,18 @@ export function QuestionBankTab({ activeCompanyId, modules, showNewQ, setShowNew
             )}
             {newQType === "short_answer" && (
               <div>
-                <label className="text-xs text-muted-foreground">Correct Answer *</label>
-                <Input value={newQCorrect} onChange={(e) => setNewQCorrect(e.target.value)} placeholder="Expected answer" />
+                <label htmlFor="qbank-correct-answer" className="text-xs text-muted-foreground">Correct Answer *</label>
+                <Input id="qbank-correct-answer" value={newQCorrect} onChange={(e) => setNewQCorrect(e.target.value)} placeholder="Expected answer" />
               </div>
             )}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="text-xs text-muted-foreground">Category (optional)</label>
-                <Input value={newQCategory} onChange={(e) => setNewQCategory(e.target.value)} placeholder="e.g. Use of Force, Radio Comms" />
+                <label htmlFor="qbank-category" className="text-xs text-muted-foreground">Category (optional)</label>
+                <Input id="qbank-category" value={newQCategory} onChange={(e) => setNewQCategory(e.target.value)} placeholder="e.g. Use of Force, Radio Comms" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Explanation (shown after answering)</label>
-                <Input value={newQExplanation} onChange={(e) => setNewQExplanation(e.target.value)} placeholder="Why this is the correct answer..." />
+                <label htmlFor="qbank-explanation" className="text-xs text-muted-foreground">Explanation (shown after answering)</label>
+                <Input id="qbank-explanation" value={newQExplanation} onChange={(e) => setNewQExplanation(e.target.value)} placeholder="Why this is the correct answer..." />
               </div>
             </div>
             <div className="flex gap-2">

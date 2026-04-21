@@ -30,6 +30,8 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
   const [qbResult, setQBResult] = useState<{ synced: number; errors: string[] } | null>(null);
   const [syncingADP, setSyncingADP] = useState(false);
   const [adpResult, setADPResult] = useState<{ synced: number; errors: string[] } | null>(null);
+  const [syncingPaychex, setSyncingPaychex] = useState(false);
+  const [paychexResult, setPaychexResult] = useState<{ synced: number; errors: string[] } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -280,6 +282,34 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
           {adpResult && (
             <span className={`text-xs ${adpResult.synced > 0 ? "text-green-600" : "text-amber-600"}`}>
               {adpResult.synced > 0 ? `✓ ${adpResult.synced} synced` : adpResult.errors[0] ?? "No data synced"}
+            </span>
+          )}
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs font-mono"
+            onClick={async () => {
+              if (!activeCompanyId) return;
+              setSyncingPaychex(true); setPaychexResult(null);
+              try {
+                const { syncTimesheetsToPaychex } = await import("@/lib/services/paychex-service");
+                const approved = timesheets.filter((t: Sheet) => t.approved);
+                const mapped = approved.map((t: Sheet) => ({
+                  employeeEmail: t.users?.email ?? "",
+                  date: parseUTC(t.clock_in).toISOString().split("T")[0],
+                  hours: parseFloat(((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(2)),
+                  eventName: t.events?.name,
+                }));
+                const result = await syncTimesheetsToPaychex(activeCompanyId, mapped);
+                setPaychexResult(result);
+                setTimeout(() => setPaychexResult(null), 8000);
+              } catch (err) {
+                setPaychexResult({ synced: 0, errors: [String(err)] });
+              } finally { setSyncingPaychex(false); }
+            }} disabled={syncingPaychex}>
+            {syncingPaychex ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            Sync to Paychex
+          </Button>
+          {paychexResult && (
+            <span className={`text-xs ${paychexResult.synced > 0 ? "text-green-600" : "text-amber-600"}`}>
+              {paychexResult.synced > 0 ? `✓ ${paychexResult.synced} synced` : paychexResult.errors[0] ?? "No data synced"}
             </span>
           )}
         </div>

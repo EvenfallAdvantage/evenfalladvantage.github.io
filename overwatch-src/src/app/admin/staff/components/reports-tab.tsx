@@ -169,43 +169,43 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                             <>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Title</label>
-                                  <Input value={editIncData.title ?? ""} onChange={e => setEditIncData(p => ({ ...p, title: e.target.value }))} className="h-8 text-sm" />
+                                  <label htmlFor="report-incident-title" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Title</label>
+                                  <Input id="report-incident-title" value={editIncData.title ?? ""} onChange={e => setEditIncData(p => ({ ...p, title: e.target.value }))} className="h-8 text-sm" />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Location</label>
-                                  <Input value={editIncData.location ?? ""} onChange={e => setEditIncData(p => ({ ...p, location: e.target.value }))} className="h-8 text-sm" />
+                                  <label htmlFor="report-incident-location" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Location</label>
+                                  <Input id="report-incident-location" value={editIncData.location ?? ""} onChange={e => setEditIncData(p => ({ ...p, location: e.target.value }))} className="h-8 text-sm" />
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Type</label>
-                                  <select value={editIncData.type ?? ""} onChange={e => setEditIncData(p => ({ ...p, type: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
+                                  <label htmlFor="report-incident-type" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Type</label>
+                                  <select id="report-incident-type" value={editIncData.type ?? ""} onChange={e => setEditIncData(p => ({ ...p, type: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
                                     {["general","medical","fire","theft","assault","trespass","disturbance","weather","other"].map(t => <option key={t} value={t}>{t}</option>)}
                                   </select>
                                 </div>
                                 <div className="flex gap-2">
                                   <div className="flex-1">
-                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Severity</label>
-                                    <select value={editIncData.severity ?? ""} onChange={e => setEditIncData(p => ({ ...p, severity: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
+                                    <label htmlFor="report-incident-severity" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Severity</label>
+                                    <select id="report-incident-severity" value={editIncData.severity ?? ""} onChange={e => setEditIncData(p => ({ ...p, severity: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
                                       {["critical","high","medium","low"].map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                   </div>
                                   <div className="flex-1">
-                                    <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Priority</label>
-                                    <select value={editIncData.priority ?? ""} onChange={e => setEditIncData(p => ({ ...p, priority: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
+                                    <label htmlFor="report-incident-priority" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Priority</label>
+                                    <select id="report-incident-priority" value={editIncData.priority ?? ""} onChange={e => setEditIncData(p => ({ ...p, priority: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
                                       {["low","medium","high","urgent"].map(p => <option key={p} value={p}>{p}</option>)}
                                     </select>
                                   </div>
                                 </div>
                                 <div>
-                                  <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Status</label>
-                                  <select value={editIncData.status ?? ""} onChange={e => setEditIncData(p => ({ ...p, status: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
+                                  <label htmlFor="report-incident-status" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Status</label>
+                                  <select id="report-incident-status" value={editIncData.status ?? ""} onChange={e => setEditIncData(p => ({ ...p, status: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm">
                                     {["open","investigating","resolved","closed"].map(s => <option key={s} value={s}>{s}</option>)}
                                   </select>
                                 </div>
                               </div>
                               <div>
-                                <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Narrative</label>
-                                <textarea value={editIncData.description ?? ""} onChange={e => setEditIncData(p => ({ ...p, description: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[100px] resize-y" />
+                                <label htmlFor="report-incident-narrative" className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 block mb-0.5">Narrative</label>
+                                <textarea id="report-incident-narrative" value={editIncData.description ?? ""} onChange={e => setEditIncData(p => ({ ...p, description: e.target.value }))} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm min-h-[100px] resize-y" />
                               </div>
                               <div className="flex gap-2">
                                 <Button size="sm" className="h-7 gap-1 text-xs" onClick={async () => {

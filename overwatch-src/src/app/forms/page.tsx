@@ -299,21 +299,23 @@ export default function FormsPage() {
 
             {/* Submission form */}
             <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Report Details</label>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Report Details</span>
               {(selected.fields ?? []).length > 0 ? (
                 <div className="space-y-3">
-                  {(selected.fields as FormField[]).map((f) => (
+                  {(selected.fields as FormField[]).map((f) => {
+                    const fieldId = `form-field-${f.id}`;
+                    return (
                     <div key={f.id} className="space-y-1">
-                      <label className="text-xs font-medium">{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</label>
+                      <label htmlFor={f.type !== "checkbox" && f.type !== "radio" && f.type !== "rating" ? fieldId : undefined} className="text-xs font-medium">{f.label}{f.required && <span className="text-red-500 ml-0.5">*</span>}</label>
                       {f.type === "text" && (
-                        <Input value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.label} className="h-8 text-sm" />
+                        <Input id={fieldId} value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.label} className="h-8 text-sm" />
                       )}
                       {f.type === "textarea" && (
-                        <textarea value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.label}
+                        <textarea id={fieldId} value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.label}
                           className="w-full resize-none rounded-lg border border-border/50 bg-muted/50 px-3 py-2 text-sm outline-none min-h-[80px] focus:border-primary/50 focus:ring-1 focus:ring-primary/20" rows={3} />
                       )}
                       {f.type === "select" && (
-                        <select value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))}
+                        <select id={fieldId} value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))}
                           className="w-full rounded-lg border border-border/50 bg-muted/50 px-3 py-2 text-sm outline-none h-8">
                           <option value="">Select...</option>
                           {(f.options ?? []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
@@ -326,25 +328,25 @@ export default function FormsPage() {
                         </label>
                       )}
                       {f.type === "date" && (
-                        <Input type="date" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} className="h-8 text-sm" />
+                        <Input id={fieldId} type="date" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} className="h-8 text-sm" />
                       )}
                       {f.type === "time" && (
-                        <Input type="time" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} className="h-8 text-sm" />
+                        <Input id={fieldId} type="time" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} className="h-8 text-sm" />
                       )}
                       {f.type === "datetime" && (
-                        <Input type="datetime-local" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} className="h-8 text-sm" />
+                        <Input id={fieldId} type="datetime-local" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} className="h-8 text-sm" />
                       )}
                       {f.type === "number" && (
-                        <Input type="number" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "0"} className="h-8 text-sm" />
+                        <Input id={fieldId} type="number" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "0"} className="h-8 text-sm" />
                       )}
                       {f.type === "email" && (
-                        <Input type="email" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "email@example.com"} className="h-8 text-sm" />
+                        <Input id={fieldId} type="email" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "email@example.com"} className="h-8 text-sm" />
                       )}
                       {f.type === "phone" && (
-                        <Input type="tel" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "(555) 123-4567"} className="h-8 text-sm" />
+                        <Input id={fieldId} type="tel" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "(555) 123-4567"} className="h-8 text-sm" />
                       )}
                       {f.type === "url" && (
-                        <Input type="url" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "https://..."} className="h-8 text-sm" />
+                        <Input id={fieldId} type="url" value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.placeholder ?? "https://..."} className="h-8 text-sm" />
                       )}
                       {f.type === "radio" && (
                         <div className="flex flex-col gap-1.5">
@@ -369,14 +371,15 @@ export default function FormsPage() {
                       )}
                       {f.type === "signature" && (
                         <div className="space-y-1">
-                          <Input value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder="Type your full name as signature" className="h-8 text-sm italic font-serif" />
+                          <Input id={fieldId} value={(formValues[f.label] as string) ?? ""} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder="Type your full name as signature" className="h-8 text-sm italic font-serif" />
                           {formValues[f.label] && (
                             <p className="text-xs text-muted-foreground">Electronically signed as: <span className="italic font-serif">{String(formValues[f.label])}</span> on {new Date().toLocaleDateString()}</p>
                           )}
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <textarea

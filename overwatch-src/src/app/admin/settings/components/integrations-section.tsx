@@ -87,6 +87,12 @@ const INTEGRATION_GROUPS: IntGroup[] = [
       { key: "org_oid", label: "Organization OID", type: "text", placeholder: "your_org_oid" },
       { key: "environment", label: "Environment", type: "select", options: ["sandbox", "production"] },
     ]},
+    { provider: "paychex", label: "Paychex Flex", logo: "/images/integrations/paychex.png", desc: "Sync approved timesheets to Paychex Flex for payroll processing and direct deposits", fields: [
+      { key: "client_id", label: "API Client ID", type: "text", placeholder: "your_client_id" },
+      { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
+      { key: "company_id", label: "Company ID (displayId)", type: "text", placeholder: "your_company_id" },
+      { key: "environment", label: "Environment", type: "select", options: ["sandbox", "production"] },
+    ]},
   ]},
 ];
 
@@ -276,7 +282,7 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
         })}
 
         <div className="rounded-lg border border-dashed border-border/40 p-3 text-center">
-          <p className="text-[10px] text-muted-foreground">More integrations coming soon: Verkada cameras, Brivo access control, Samsara fleet GPS, Paychex payroll</p>
+          <p className="text-[10px] text-muted-foreground">More integrations coming soon: Verkada cameras, Brivo access control, Samsara fleet GPS</p>
         </div>
       </CardContent>
     </Card>
