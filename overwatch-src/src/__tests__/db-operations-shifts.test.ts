@@ -67,7 +67,7 @@ describe("getUserShifts()", () => {
     expect(mockedEnsureInternalUser).toHaveBeenCalled();
     expect(mockClient.from).toHaveBeenCalledWith("shifts");
     expect(queryBuilder.select).toHaveBeenCalledWith(
-      "*, events!inner(id, name, location, company_id, ops_guide, timezone)"
+      "*, events!inner(id, name, location, company_id, ops_guide, timezone, post_orders), post_orders"
     );
     expect(queryBuilder.eq).toHaveBeenCalledWith("assigned_user_id", "internal-user-1");
     expect(queryBuilder.eq).toHaveBeenCalledWith("events.company_id", "comp-1");
