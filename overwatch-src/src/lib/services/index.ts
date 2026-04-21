@@ -11,6 +11,8 @@ export { sendPushNotification, sendBroadcastPush } from "./push-service";
 export { triggerBackgroundCheck, parseCheckrWebhook } from "./checkr-service";
 export { sendTemplateEnvelope, sendHtmlEnvelope, sendOnboardingDocuments } from "./docusign-service";
 export { syncTimesheetsToGusto, verifyGustoConnection } from "./gusto-service";
+export { syncTimesheetsToQuickBooks, verifyQuickBooksConnection } from "./quickbooks-service";
+export { syncTimesheetsToADP, verifyADPConnection } from "./adp-service";
 export { listRecords, createRecords, updateRecords, deleteRecords, syncApplicantToAirtable, pullNewApplicantsFromAirtable, verifyAirtableConnection } from "./airtable-service";
 export { onApplicantHired } from "./hiring-orchestrator";
 export type { HireContext, HireResult } from "./hiring-orchestrator";
@@ -18,7 +20,7 @@ export { dispatch, dispatchToMany } from "./notification-dispatcher";
 export type { DispatchParams, DispatchResult } from "./notification-dispatcher";
 export {
   getActiveConfig, getEmailConfig, getWhatsAppConfig, getTwilioConfig, getOneSignalConfig,
-  getCheckrConfig, getDocuSignConfig, getGustoConfig,
+  getCheckrConfig, getDocuSignConfig, getGustoConfig, getQuickBooksConfig, getADPConfig,
   isIntegrationActive, clearConfigCache,
 } from "./integrations";
 export type { ProviderKey } from "./integrations";

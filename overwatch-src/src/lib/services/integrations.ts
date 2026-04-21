@@ -15,7 +15,8 @@ import { getIntegrationsConfig } from "@/lib/supabase/db";
 
 export type ProviderKey =
   | "whatsapp" | "signal" | "twilio" | "email" | "onesignal"
-  | "fillout" | "airtable" | "checkr" | "docusign" | "gusto";
+  | "fillout" | "airtable" | "checkr" | "docusign" | "gusto"
+  | "quickbooks" | "adp";
 
 export interface IntegrationConfig {
   provider: string;
@@ -66,6 +67,20 @@ export interface GustoConfig {
   client_secret: string;
   company_uuid: string;
   sync_frequency: string;
+}
+
+export interface QuickBooksConfig {
+  client_id: string;
+  client_secret: string;
+  realm_id: string;
+  environment: "sandbox" | "production";
+}
+
+export interface ADPConfig {
+  client_id: string;
+  client_secret: string;
+  org_oid: string;
+  environment: "sandbox" | "production";
 }
 
 // ─── Config Cache ─────────────────────────────────────────
@@ -122,6 +137,14 @@ export async function getDocuSignConfig(companyId: string) {
 
 export async function getGustoConfig(companyId: string) {
   return getActiveConfig<GustoConfig>(companyId, "gusto");
+}
+
+export async function getQuickBooksConfig(companyId: string) {
+  return getActiveConfig<QuickBooksConfig>(companyId, "quickbooks");
+}
+
+export async function getADPConfig(companyId: string) {
+  return getActiveConfig<ADPConfig>(companyId, "adp");
 }
 
 /** Check whether a provider is active for a company (fast, cached) */

@@ -26,6 +26,10 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
   const [collapsedOps, setCollapsedOps] = useState<Set<string>>(new Set());
   const [syncingGusto, setSyncingGusto] = useState(false);
   const [gustoResult, setGustoResult] = useState<{ synced: number; errors: string[] } | null>(null);
+  const [syncingQB, setSyncingQB] = useState(false);
+  const [qbResult, setQBResult] = useState<{ synced: number; errors: string[] } | null>(null);
+  const [syncingADP, setSyncingADP] = useState(false);
+  const [adpResult, setADPResult] = useState<{ synced: number; errors: string[] } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -220,6 +224,62 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
           {gustoResult && (
             <span className={`text-xs ${gustoResult.synced > 0 ? "text-green-600" : "text-amber-600"}`}>
               {gustoResult.synced > 0 ? `✓ ${gustoResult.synced} synced` : gustoResult.errors[0] ?? "No data synced"}
+            </span>
+          )}
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs font-mono"
+            onClick={async () => {
+              if (!activeCompanyId) return;
+              setSyncingQB(true); setQBResult(null);
+              try {
+                const { syncTimesheetsToQuickBooks } = await import("@/lib/services/quickbooks-service");
+                const approved = timesheets.filter((t: Sheet) => t.approved);
+                const mapped = approved.map((t: Sheet) => ({
+                  employeeEmail: t.users?.email ?? "",
+                  date: parseUTC(t.clock_in).toISOString().split("T")[0],
+                  hours: parseFloat(((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(2)),
+                  eventName: t.events?.name,
+                }));
+                const result = await syncTimesheetsToQuickBooks(activeCompanyId, mapped);
+                setQBResult(result);
+                setTimeout(() => setQBResult(null), 8000);
+              } catch (err) {
+                setQBResult({ synced: 0, errors: [String(err)] });
+              } finally { setSyncingQB(false); }
+            }} disabled={syncingQB}>
+            {syncingQB ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            Sync to QuickBooks
+          </Button>
+          {qbResult && (
+            <span className={`text-xs ${qbResult.synced > 0 ? "text-green-600" : "text-amber-600"}`}>
+              {qbResult.synced > 0 ? `✓ ${qbResult.synced} synced` : qbResult.errors[0] ?? "No data synced"}
+            </span>
+          )}
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs font-mono"
+            onClick={async () => {
+              if (!activeCompanyId) return;
+              setSyncingADP(true); setADPResult(null);
+              try {
+                const { syncTimesheetsToADP } = await import("@/lib/services/adp-service");
+                const approved = timesheets.filter((t: Sheet) => t.approved);
+                const mapped = approved.map((t: Sheet) => ({
+                  employeeEmail: t.users?.email ?? "",
+                  date: parseUTC(t.clock_in).toISOString().split("T")[0],
+                  hours: parseFloat(((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(2)),
+                  eventName: t.events?.name,
+                }));
+                const result = await syncTimesheetsToADP(activeCompanyId, mapped);
+                setADPResult(result);
+                setTimeout(() => setADPResult(null), 8000);
+              } catch (err) {
+                setADPResult({ synced: 0, errors: [String(err)] });
+              } finally { setSyncingADP(false); }
+            }} disabled={syncingADP}>
+            {syncingADP ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            Sync to ADP
+          </Button>
+          {adpResult && (
+            <span className={`text-xs ${adpResult.synced > 0 ? "text-green-600" : "text-amber-600"}`}>
+              {adpResult.synced > 0 ? `✓ ${adpResult.synced} synced` : adpResult.errors[0] ?? "No data synced"}
             </span>
           )}
         </div>

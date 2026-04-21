@@ -75,6 +75,18 @@ const INTEGRATION_GROUPS: IntGroup[] = [
       { key: "company_uuid", label: "Gusto Company UUID", type: "text", placeholder: "uuid-from-gusto" },
       { key: "sync_frequency", label: "Sync Frequency", type: "select", options: ["manual", "daily", "weekly", "per_pay_period"] },
     ]},
+    { provider: "quickbooks", label: "QuickBooks Online", logo: "/images/integrations/quickbooks.png", desc: "Sync approved timesheets to QuickBooks as TimeActivity entries for payroll processing", fields: [
+      { key: "client_id", label: "OAuth Client ID", type: "text", placeholder: "your_client_id" },
+      { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
+      { key: "realm_id", label: "Company ID (realmId)", type: "text", placeholder: "123456789" },
+      { key: "environment", label: "Environment", type: "select", options: ["sandbox", "production"] },
+    ]},
+    { provider: "adp", label: "ADP Workforce Now", logo: "/images/integrations/adp.png", desc: "Sync approved timesheets to ADP as time card entries for payroll processing", fields: [
+      { key: "client_id", label: "API Client ID", type: "text", placeholder: "your_client_id" },
+      { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
+      { key: "org_oid", label: "Organization OID", type: "text", placeholder: "your_org_oid" },
+      { key: "environment", label: "Environment", type: "select", options: ["sandbox", "production"] },
+    ]},
   ]},
 ];
 
@@ -264,7 +276,7 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
         })}
 
         <div className="rounded-lg border border-dashed border-border/40 p-3 text-center">
-          <p className="text-[10px] text-muted-foreground">More integrations coming soon: Verkada cameras, Brivo access control, Samsara fleet GPS, QuickBooks</p>
+          <p className="text-[10px] text-muted-foreground">More integrations coming soon: Verkada cameras, Brivo access control, Samsara fleet GPS, Paychex payroll</p>
         </div>
       </CardContent>
     </Card>

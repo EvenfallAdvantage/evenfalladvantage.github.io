@@ -63,6 +63,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkConverting, setBulkConverting] = useState(false);
   const [convertProgress, setConvertProgress] = useState("");
+  const [pullingAirtable, setPullingAirtable] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
@@ -231,6 +232,28 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
                 {bulkConverting ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {convertProgress}</> : <><ArrowRight className="h-3.5 w-3.5" /> Convert Hired to Roster ({applicants.filter((a: Applicant) => a.status === "hired" && !a.converted_user_id).length})</>}
               </Button>
             )}
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={async () => {
+              if (!activeCompanyId) return;
+              setPullingAirtable(true);
+              try {
+                const { pullNewApplicantsFromAirtable } = await import("@/lib/services/airtable-service");
+                const pulled = await pullNewApplicantsFromAirtable(activeCompanyId);
+                if (pulled.length === 0) { toast.info("No new applicants found in Airtable"); return; }
+                let created = 0;
+                for (const a of pulled) {
+                  try {
+                    await createApplicant(activeCompanyId, { firstName: a.firstName, lastName: a.lastName, email: a.email, phone: a.phone });
+                    created++;
+                  } catch { /* skip duplicates */ }
+                }
+                toast.success(`Imported ${created} applicant${created !== 1 ? "s" : ""} from Airtable`);
+                await loadData();
+              } catch (err) { toast.error("Airtable import failed"); console.error(err); }
+              finally { setPullingAirtable(false); }
+            }} disabled={pullingAirtable}>
+              {pullingAirtable ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              Import from Airtable
+            </Button>
             <Button size="sm" className="gap-1.5" onClick={() => setShowAddApp(!showAddApp)}>
               {showAddApp ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
               {showAddApp ? "Cancel" : "Add Applicant"}
