@@ -15,6 +15,7 @@ import {
   type LegacyCourse, type LegacyModule, type LegacyCourseModule,
 } from "@/lib/legacy-bridge";
 import { SlidesPanel } from "./slides-panel";
+import { logger } from "@/lib/logger";
 
 interface CoursesTabProps {
   triggerNew: number;
@@ -59,7 +60,7 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
 
   const loadCourses = useCallback(async () => {
     setLoading(true);
-    try { setCourses(await getLegacyCourses(true)); } catch {}
+    try { setCourses(await getLegacyCourses(true)); } catch (e) { logger.swallow("instructor-courses:load", e, "warn"); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { loadCourses(); }, [loadCourses]);
@@ -68,7 +69,7 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
     if (xCourseId === id) { setXCourseId(null); setXModuleId(null); return; }
     setXCourseId(id); setXModuleId(null); setEditModId(null);
     setModulesLoading(true);
-    try { setCourseModules(await getLegacyCourseModules(id)); } catch {}
+    try { setCourseModules(await getLegacyCourseModules(id)); } catch (e) { logger.swallow("instructor-courses:load-modules", e, "warn"); }
     finally { setModulesLoading(false); }
   }
   function toggleModule(id: string) {

@@ -31,13 +31,14 @@ export async function trackError(payload: ErrorPayload) {
     let companyId: string | null = null;
     try {
       // Read from auth store if available in window (scoped — no PII)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const store = (window as any).__OVERWATCH_AUTH_STORE__;
+      const store = window.__OVERWATCH_AUTH_STORE__;
       if (store) {
         userId = store.userId ?? null;
         companyId = store.activeCompanyId ?? null;
       }
-    } catch { /* ignore */ }
+    } catch {
+      // localStorage/window may be unavailable — do not log from here to avoid recursion
+    }
 
     await supabase.from("error_logs").insert({
       company_id: companyId,

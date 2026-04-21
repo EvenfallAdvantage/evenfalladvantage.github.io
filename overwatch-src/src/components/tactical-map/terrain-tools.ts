@@ -8,6 +8,8 @@
  * Uses Cesium's terrain sampling for elevation data.
  */
 
+import { logger } from "@/lib/logger";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CesiumRef = any;
 
@@ -171,6 +173,6 @@ export function renderLineOfSight(
  */
 export function clearLineOfSight(viewer: CesiumRef, entityIds: string[]): void {
   for (const id of entityIds) {
-    try { viewer.entities.removeById(id); } catch {}
+    try { viewer.entities.removeById(id); } catch (e) { logger.swallow("terrain-tools:clear-los", e); }
   }
 }

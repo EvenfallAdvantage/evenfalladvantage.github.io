@@ -14,6 +14,7 @@ import {
   getClassEnrollments, markAttendance, getClassAttendance,
   type LegacyScheduledClass, type ClassEnrollmentRow, type ClassAttendanceRow,
 } from "@/lib/legacy-bridge";
+import { logger } from "@/lib/logger";
 
 interface ClassesTabProps {
   instructorId: string | null;
@@ -43,7 +44,7 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setClasses(await getLegacyClasses(instructorId ?? undefined)); } catch {}
+    try { setClasses(await getLegacyClasses(instructorId ?? undefined)); } catch (e) { logger.swallow("instructor-classes:load", e, "warn"); }
     finally { setLoading(false); }
   }, [instructorId]);
   useEffect(() => { load(); }, [load]);
@@ -70,7 +71,7 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
     try {
       const [e, a] = await Promise.all([getClassEnrollments(classId), getClassAttendance(classId)]);
       setEnrollments(e); setAttendance(a);
-    } catch {}
+    } catch (e) { logger.swallow("instructor-classes:load-enrollments", e, "warn"); }
     finally { setEnrollLoading(false); }
   }
 

@@ -24,6 +24,7 @@ import { CSVColumnMapper } from "./csv-column-mapper";
 import { MemberProfileModal } from "./member-profile-modal";
 import { ReadinessModal } from "./readiness-modal";
 import { BadgePreviewModal } from "./badge-preview-modal";
+import { logger } from "@/lib/logger";
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -94,10 +95,10 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
       const bMap: Record<string, StaffBadge> = {};
       for (const b of bList) bMap[b.user_id] = b;
       setRosterBadges(bMap);
-    } catch {}
+    } catch (e) { logger.swallow("roster:load-badges", e, "debug"); }
     try {
       setReadiness(await getCompanyReadiness(activeCompanyId));
-    } catch {}
+    } catch (e) { logger.swallow("roster:load-readiness", e, "debug"); }
   }, [activeCompanyId]);
 
   useEffect(() => { loadInternalData(); }, [loadInternalData]);

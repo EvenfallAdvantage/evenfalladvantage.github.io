@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import type { ActiveTool } from "../map-tools";
 import { RANGE_RING_RADII_M } from "../map-tools";
 import { clearLineOfSight } from "../terrain-tools";
@@ -30,19 +31,19 @@ export function useMapTools(
     const viewer = viewerRef.current;
     if (viewer) {
       if (prevTool === "measure") {
-        ["measure-p1", "measure-p2", "measure-line"].forEach(id => { try { viewer.entities.removeById(id); } catch {} });
+        ["measure-p1", "measure-p2", "measure-line"].forEach(id => { try { viewer.entities.removeById(id); } catch (e) { logger.swallow("map-tools:clear-measure", e); } });
       }
       if (prevTool === "range-rings") {
-        RANGE_RING_RADII_M.forEach((_: number, i: number) => { try { viewer.entities.removeById(`ring-${i}`); viewer.entities.removeById(`ring-label-${i}`); } catch {} });
-        try { viewer.entities.removeById("ring-center"); } catch {}
+        RANGE_RING_RADII_M.forEach((_: number, i: number) => { try { viewer.entities.removeById(`ring-${i}`); viewer.entities.removeById(`ring-label-${i}`); } catch (e) { logger.swallow("map-tools:clear-range-rings", e); } });
+        try { viewer.entities.removeById("ring-center"); } catch (e) { logger.swallow("map-tools:clear-ring-center", e); }
       }
       if (prevTool === "los") {
         clearLineOfSight(viewer, losEntityIdsRef.current);
-        try { viewer.entities.removeById("los-click-1"); } catch {}
+        try { viewer.entities.removeById("los-click-1"); } catch (e) { logger.swallow("map-tools:clear-los-click", e); }
         losEntityIdsRef.current = [];
       }
       if (prevTool === "elevation") {
-        try { viewer.entities.removeById("elev-click-1"); viewer.entities.removeById("elev-line"); } catch {}
+        try { viewer.entities.removeById("elev-click-1"); viewer.entities.removeById("elev-line"); } catch (e) { logger.swallow("map-tools:clear-elevation", e); }
       }
     }
     setActiveTool(nextTool);

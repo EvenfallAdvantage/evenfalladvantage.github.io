@@ -10,6 +10,7 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   getAllTimeOffRequests, reviewTimeOffRequest, removeConflictingShifts,
 } from "@/lib/supabase/db";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LeaveReq = any;
@@ -32,7 +33,7 @@ export function LeaveTab({ activeCompanyId, canManage, members }: LeaveTabProps)
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
     try {
       setLeaveRequests(await getAllTimeOffRequests(activeCompanyId));
-    } catch {}
+    } catch (e) { logger.swallow("leave:load", e, "warn"); }
     finally { setLoading(false); }
   }, [activeCompanyId]);
 

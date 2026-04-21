@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getQuizzes, createQuiz, submitQuizAttempt, getUserQuizAttempts, deleteQuiz, updateQuiz, getAssessmentQuestions, importQuestionsToQuiz, getTrainingModules, completeModule } from "@/lib/supabase/db";
 import type { TrainingModule } from "@/types";
+import { logger } from "@/lib/logger";
 
 type Question = { id: string; text: string; options: string[]; correctIndex: number };
 type BankQuestion = { id: string; question_text: string; options: string[]; correct_answer: string; difficulty: string; category: string | null };
@@ -55,7 +56,7 @@ export default function QuizzesPage() {
     try {
       const [q, m] = await Promise.all([getQuizzes(activeCompanyId), getTrainingModules(activeCompanyId)]);
       setQuizzes(q); setModules(m as TrainingModule[]);
-    } catch {} finally { setLoading(false); }
+    } catch (e) { logger.swallow("quizzes:load", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);

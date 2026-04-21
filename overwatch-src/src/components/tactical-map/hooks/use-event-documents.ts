@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { logger } from "@/lib/logger";
 import type { OperationPin } from "../types";
 import { getEventDocuments } from "@/lib/supabase/db-documents";
 import type { OperationDocument } from "@/types/operations";
@@ -24,7 +25,7 @@ export function useEventDocuments(operations: OperationPin[]) {
             }
           }
           docs[op.id] = Object.values(byType);
-        } catch {}
+        } catch (e) { logger.swallow("event-docs:load-per-op", e, "warn"); }
       }));
       setEventDocs(docs);
       eventDocsRef.current = docs;

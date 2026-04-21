@@ -10,6 +10,7 @@ import {
 } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 import { type Channel, type Message, type ChannelPermissions, DEFAULT_PERMS, getChannelPerms, parseExt } from "./chat-helpers";
+import { logger } from "@/lib/logger";
 
 export function useChatChannels() {
   const { user, activeCompanyId } = useAuthStore();
@@ -56,8 +57,8 @@ export function useChatChannels() {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
     try {
       setChannels(await getChatChannels(activeCompanyId));
-      try { setUnread(await getUnreadCounts(activeCompanyId)); } catch {}
-    } catch {} finally { setLoading(false); }
+      try { setUnread(await getUnreadCounts(activeCompanyId)); } catch (e) { logger.swallow("chat:load-unread", e, "debug"); }
+    } catch (e) { logger.swallow("chat:load-channels", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { loadChannels(); }, [loadChannels]);
@@ -70,11 +71,11 @@ export function useChatChannels() {
     const channel = supabase.channel(`chat:${selected.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `channel_id=eq.${selected.id}` },
         async () => {
-          try { setMessages(await getChatMessages(selected.id)); setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch {}
+          try { setMessages(await getChatMessages(selected.id)); setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch (e) { logger.swallow("chat:realtime-message", e, "debug"); }
         })
       .on("postgres_changes", { event: "*", schema: "public", table: "chat_reactions", filter: `message_id=in.(${messages.map(m => m.id).join(",")})` },
         async () => {
-          try { setMessages(await getChatMessages(selected.id)); } catch {}
+          try { setMessages(await getChatMessages(selected.id)); } catch (e) { logger.swallow("chat:realtime-reaction", e, "debug"); }
         })
       .on("broadcast", { event: "typing" }, (payload: { payload?: { name?: string } }) => {
         const name = payload?.payload?.name;

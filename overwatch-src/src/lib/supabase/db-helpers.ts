@@ -143,10 +143,11 @@ export async function getSignedFileUrl(storagePath: string, expiresIn = 3600): P
     .createSignedUrl(path, expiresIn);
 
   if (error || !data?.signedUrl) {
-    console.warn("[Storage] Failed to sign URL:", error?.message);
-    // Fallback: try public URL for backward compatibility
-    const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
-    return pub.publicUrl;
+    // Log the failure but do NOT fall back to a public URL — that could
+    // expose private files if the bucket is misconfigured.
+    const msg = error?.message ?? "No signed URL returned";
+    console.warn(`[Storage] Failed to sign URL for ${bucket}/${path}:`, msg);
+    throw new Error(`Failed to generate signed URL: ${msg}`);
   }
 
   return data.signedUrl;

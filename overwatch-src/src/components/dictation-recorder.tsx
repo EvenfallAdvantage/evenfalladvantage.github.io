@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { detectSpeechTier, describeTier, type SpeechTier } from "@/lib/speech";
 import type { WhisperProgress } from "@/lib/speech/whisper-engine";
+import { logger } from "@/lib/logger";
 
 /* ── Web Speech API type stubs ── */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,9 +14,7 @@ type SpeechRecognitionInstance = any;
 
 function getSpeechRecognitionCtor(): (new () => SpeechRecognitionInstance) | null {
   if (typeof window === "undefined") return null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const w = window as any;
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+  return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
 }
 
 const NATIVE_ERROR_MESSAGES: Record<string, string> = {
@@ -48,8 +47,8 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
   useEffect(() => {
     setTier(detectSpeechTier());
     return () => {
-      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch {} }
-      if (mediaRecorderRef.current?.state === "recording") { try { mediaRecorderRef.current.stop(); } catch {} }
+      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) { logger.swallow("dictation:recognition-stop-cleanup", e); } }
+      if (mediaRecorderRef.current?.state === "recording") { try { mediaRecorderRef.current.stop(); } catch (e) { logger.swallow("dictation:media-stop-cleanup", e, "trace"); } }
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
@@ -74,7 +73,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     if (recognitionRef.current) {
       const ref = recognitionRef.current;
       recognitionRef.current = null;
-      try { ref.stop(); } catch {}
+      try { ref.stop(); } catch (e) { logger.swallow("dictation:recognition-stop", e, "trace"); }
     }
     setIsRecording(false);
     stopTimer();
@@ -130,7 +129,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
 
     recognition.addEventListener("end", () => {
       if (recordingRef.current && recognitionRef.current) {
-        try { recognition.start(); } catch {}
+        try { recognition.start(); } catch (e) { logger.swallow("dictation:recognition-restart", e, "trace"); }
       }
     });
 

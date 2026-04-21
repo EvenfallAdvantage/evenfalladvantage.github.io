@@ -14,6 +14,7 @@ import { CoursesTab } from "./components/courses-tab";
 import { ClassesTab } from "./components/classes-tab";
 import { StudentsTab } from "./components/students-tab";
 import { AssessmentsTab } from "./components/assessments-tab";
+import { logger } from "@/lib/logger";
 
 type Tab = "courses" | "classes" | "students" | "assessments";
 
@@ -58,7 +59,7 @@ export default function InstructorHQPage() {
     try {
       const id = await ensureInstructorLinked({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName });
       setInstructorId(id);
-    } catch {}
+    } catch (e) { logger.swallow("instructor-link:ensure", e, "warn"); }
     finally { setLinking(false); }
   }, [user, hasAccess]);
 

@@ -17,6 +17,7 @@ import {
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
 import { FileText } from "lucide-react";
 import { ApplicantDetailModal } from "./applicant-detail-modal";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Applicant = any;
@@ -67,7 +68,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
     try {
       setApplicants(await getApplicants(activeCompanyId));
-    } catch {}
+    } catch (e) { logger.swallow("applicants:load", e, "warn"); }
     finally { setLoading(false); }
   }, [activeCompanyId]);
 

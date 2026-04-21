@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
 import type { DrawMode } from "../map-tools";
 import { getAnnotations, createAnnotation, deleteAnnotation, subscribeAnnotations, type MapAnnotation } from "@/lib/supabase/db-annotations";
 
@@ -61,14 +62,14 @@ export function useAnnotations(
 
     // Clean up temp markers
     const viewer = viewerRef.current;
-    drawPoints.forEach((_, i) => { try { viewer?.entities.removeById(`draw-pt-${i}`); } catch {} });
+    drawPoints.forEach((_, i) => { try { viewer?.entities.removeById(`draw-pt-${i}`); } catch (e) { logger.swallow("annotations:remove-draw-pt", e); } });
     setDrawPoints([]);
     setDrawMode("none");
   }, [drawPoints, drawMode, drawColor, companyId, viewerRef]);
 
   const handleDrawCancel = useCallback(() => {
     const viewer = viewerRef.current;
-    drawPoints.forEach((_, i) => { try { viewer?.entities.removeById(`draw-pt-${i}`); } catch {} });
+    drawPoints.forEach((_, i) => { try { viewer?.entities.removeById(`draw-pt-${i}`); } catch (e) { logger.swallow("annotations:remove-draw-pt-cancel", e); } });
     setDrawPoints([]);
     setDrawMode("none");
   }, [drawPoints, viewerRef]);

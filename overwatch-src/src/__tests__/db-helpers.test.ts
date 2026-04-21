@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { createMockSupabase } from "./helpers/mock-supabase";
 
 // ---------------------------------------------------------------------------
@@ -201,30 +201,27 @@ describe("getSignedFileUrl()", () => {
     expect(result).toBe("https://signed.url/abc");
   });
 
-  it("falls back to public URL if signed URL fails", async () => {
-    setMockResponse({
-      data: { publicUrl: "https://public.url/fallback" },
-      error: null,
-    });
+  it("throws when signed URL fails (does not fall back to public URL)", async () => {
     // Override createSignedUrl to simulate an error
-    const bucket = (mockClient.storage.from as ReturnType<typeof vi.fn>)();
-    (bucket.createSignedUrl as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+    const bucket = (mockClient.storage.from as Mock)();
+    (bucket.createSignedUrl as Mock).mockResolvedValueOnce({
       data: null,
       error: { message: "Signing failed" },
     });
 
     // Re-mock storage.from to return the bucket with the overridden createSignedUrl
-    (mockClient.storage.from as ReturnType<typeof vi.fn>).mockReturnValueOnce(bucket);
+    (mockClient.storage.from as Mock).mockReturnValueOnce(bucket);
 
-    const result = await getSignedFileUrl("my-bucket/path/to/file.pdf");
-    expect(result).toBe("https://public.url/fallback");
+    await expect(getSignedFileUrl("my-bucket/path/to/file.pdf")).rejects.toThrow(
+      "Failed to generate signed URL: Signing failed"
+    );
   });
 
   it("uses default expiry of 3600 if not specified", async () => {
     setMockResponse({ data: { signedUrl: "https://signed.url/abc" }, error: null });
     await getSignedFileUrl("bucket/file.txt");
 
-    const bucket = (mockClient.storage.from as ReturnType<typeof vi.fn>)();
+    const bucket = (mockClient.storage.from as Mock)();
     // The createSignedUrl was called; check the last invocation args
     expect(bucket.createSignedUrl).toHaveBeenCalledWith("file.txt", 3600);
   });
@@ -233,7 +230,7 @@ describe("getSignedFileUrl()", () => {
     setMockResponse({ data: { signedUrl: "https://signed.url/abc" }, error: null });
     await getSignedFileUrl("bucket/file.txt", 7200);
 
-    const bucket = (mockClient.storage.from as ReturnType<typeof vi.fn>)();
+    const bucket = (mockClient.storage.from as Mock)();
     expect(bucket.createSignedUrl).toHaveBeenCalledWith("file.txt", 7200);
   });
 });

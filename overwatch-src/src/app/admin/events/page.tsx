@@ -21,6 +21,7 @@ import { CreateWizard } from "./components/create-wizard";
 import { ConflictWarningModal, type ConflictWarningData } from "./components/conflict-warning-modal";
 import { OperationDetail } from "./components/operation-detail";
 import { getAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
+import { logger } from "@/lib/logger";
 
 /* ── Component ─────────────────────────────────────────── */
 
@@ -79,7 +80,7 @@ export default function AdminEventsPage() {
       ]);
       setEvents(evts);
       if (co?.timezone) setCompanyTimezone(co.timezone);
-    } catch {} finally { setLoading(false); }
+    } catch (e) { logger.swallow("admin-events:load", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);

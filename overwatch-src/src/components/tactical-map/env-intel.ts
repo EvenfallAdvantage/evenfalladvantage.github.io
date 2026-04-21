@@ -3,6 +3,8 @@
  * All data fetched from free APIs (no keys required).
  */
 
+import { logger } from "@/lib/logger";
+
 // ─── Nearby POIs via Overpass API (OpenStreetMap) ─────────────
 
 export interface NearbyPOI {
@@ -44,7 +46,7 @@ export async function getNearbyPOIs(lat: number, lng: number, radiusM = 5000): P
         return parsed.data;
       }
     }
-  } catch {}
+  } catch (e) { logger.swallow("env-intel:poi-cache-read", e, "debug"); }
 
   const bbox = getBBox(lat, lng, radiusM);
   const filters = Object.entries(POI_QUERIES)
@@ -78,7 +80,7 @@ export async function getNearbyPOIs(lat: number, lng: number, radiusM = 5000): P
 
     // Cache the results
     poiCache = { key: cacheKey, data: result, ts: Date.now() };
-    try { localStorage.setItem(`poi-cache-${cacheKey}`, JSON.stringify({ data: result, ts: Date.now() })); } catch {}
+    try { localStorage.setItem(`poi-cache-${cacheKey}`, JSON.stringify({ data: result, ts: Date.now() })); } catch (e) { logger.swallow("env-intel:poi-cache-write", e, "debug"); }
 
     return result;
   } catch (err) {

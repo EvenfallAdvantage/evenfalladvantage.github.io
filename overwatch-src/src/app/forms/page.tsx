@@ -11,6 +11,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updateForm, getActiveTimesheet, getUserFormSubmissions } from "@/lib/supabase/db";
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
+import { logger } from "@/lib/logger";
 
 type FieldType = "text" | "textarea" | "select" | "checkbox" | "date" | "time" | "datetime" | "number" | "email" | "phone" | "url" | "radio" | "rating" | "signature";
 type FormField = { id: string; label: string; type: FieldType; required: boolean; options?: string[]; placeholder?: string; min?: number; max?: number };
@@ -91,8 +92,8 @@ export default function FormsPage() {
       setForms(f);
       setActiveTimesheet(ts);
       // Load user's own submissions scoped to active company
-      try { setMySubmissions(await getUserFormSubmissions(activeCompanyId)); } catch {}
-    } catch {} finally { setLoading(false); }
+      try { setMySubmissions(await getUserFormSubmissions(activeCompanyId)); } catch (e) { logger.swallow("forms:load-my-submissions", e, "debug"); }
+    } catch (e) { logger.swallow("forms:load", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);

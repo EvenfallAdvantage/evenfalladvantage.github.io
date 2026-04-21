@@ -27,6 +27,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { checkPasswordStrength } from "@/lib/security";
 import { formatPhone } from "@/lib/format-phone";
 import { logSecurityEvent, checkLoginAttempts, recordFailedAttempt, clearLoginAttempts } from "@/lib/security/audit";
+import { logger } from "@/lib/logger";
 
 const FEATURES = [
   { icon: Crosshair, title: "Patrol Operations", desc: "QR checkpoint scanning, geofenced patrol routes, GPS-verified activity logs, and real-time officer tracking across all active sites" },
@@ -496,7 +497,7 @@ function HomePageInner() {
         const supabase = createClient();
         const { data } = await supabase.rpc("get_partner_companies");
         if (data?.length) setPartners(data);
-      } catch {}
+      } catch (e) { logger.swallow("landing:load-partners", e, "debug"); }
     })();
   }, []);
 

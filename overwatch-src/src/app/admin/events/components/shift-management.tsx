@@ -1,53 +1,22 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
-  Plus, Loader2, Clock, Zap, Calendar, Check, X,
-  AlertTriangle, List, LayoutGrid, Trash2, Upload,
+  Plus, Zap, List, LayoutGrid, Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { toast } from "sonner";
 import {
-  getEventShifts, createShift,
-  deleteShift, assignShift, getConflictingShifts,
-  bulkCreateShifts,
+  getEventShifts, deleteShift, assignShift, getConflictingShifts,
 } from "@/lib/supabase/db";
-import type { OperationAvailability } from "@/lib/supabase/db-availability";
-import type { ConflictWarningData } from "./conflict-warning-modal";
-import {
-  type Shift, type Member,
-  fmtTime, fmtDateLong, getDaysInRange, groupByDay, pad2,
-  PATTERNS, toISO,
-} from "./shared";
-import { localToUTC, tzAbbrev } from "@/lib/timezone";
-import {
-  parseCSVRaw,
-  SHIFT_FIELDS,
-  suggestShiftMapping,
-  applyShiftMapping,
-  validateShiftRows,
-  type ShiftImportRow,
-} from "@/lib/csv-import";
-
-/* ── Types ── */
-
-interface ShiftManagementProps {
-  eventId: string;
-  companyId: string;
-  startDate: string;
-  endDate: string;
-  shifts: Shift[];
-  members: Member[];
-  availability: OperationAvailability[];
-  onShiftsChange: (shifts: Shift[]) => void;
-  onConflictWarning: (data: ConflictWarningData) => void;
-  /** IANA timezone for the event (e.g. "America/Los_Angeles") */
-  eventTimezone?: string;
-}
+import { toast } from "sonner";
+import { type Shift, fmtTime } from "./shared";
+import type { ShiftManagementProps } from "./shift-management/types";
+import { useShiftDerivedData } from "./shift-management/use-shift-helpers";
+import { QuickFillPanel } from "./shift-management/quick-fill-panel";
+import { CustomShiftForm } from "./shift-management/custom-shift-form";
+import { CsvImportPanel } from "./shift-management/csv-import-panel";
+import { ShiftCalendarView } from "./shift-management/shift-calendar-view";
+import { ShiftListView } from "./shift-management/shift-list-view";
 
 /* ── Component ── */
 
@@ -63,32 +32,10 @@ export function ShiftManagement({
   onConflictWarning,
   eventTimezone,
 }: ShiftManagementProps) {
-  /* ── Quick Fill state ── */
-  const [posts, setPosts] = useState<string[]>([]);
-  const [newPost, setNewPost] = useState("");
-  const [pattern, setPattern] = useState<"8" | "12">("8");
-  const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set());
-  const [generating, setGenerating] = useState(false);
+  /* ── Panel visibility state ── */
   const [showBuilder, setShowBuilder] = useState(false);
-
-  /* ── Custom shift state ── */
   const [showCustom, setShowCustom] = useState(false);
-  const [cRole, setCRole] = useState("");
-  const [cStart, setCStart] = useState("");
-  const [cEnd, setCEnd] = useState("");
-  const [cAssign, setCAssign] = useState("");
-  const [cPostOrders, setCPostOrders] = useState("");
-  const [addingCustom, setAddingCustom] = useState(false);
-
-  /* ── CSV Import state ── */
   const [showImport, setShowImport] = useState(false);
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [csvRows, setCsvRows] = useState<string[][]>([]);
-  const [csvMapping, setCsvMapping] = useState<Record<string, string | null>>({});
-  const [csvStep, setCsvStep] = useState<"upload" | "map" | "preview">("upload");
-  const [csvPreview, setCsvPreview] = useState<{ valid: ShiftImportRow[]; errors: { line: number; message: string }[] } | null>(null);
-  const [csvImporting, setCsvImporting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* ── View state ── */
   const [shiftView, setShiftView] = useState<"list" | "calendar">("calendar");
@@ -96,45 +43,11 @@ export function ShiftManagement({
   const [deletingShift, setDeletingShift] = useState<string | null>(null);
 
   /* ── Derived ── */
-  const opDays = getDaysInRange(startDate, endDate);
-  const shiftsByDay = groupByDay(shifts);
-  const previewCount = posts.length * (pattern === "8" ? 3 : 2) * selectedDays.size;
-
-  // Availability lookup
-  const availByUser = new Map<string, string>();
-  for (const a of availability) { availByUser.set(a.user_id, a.status); }
-
-  // Sort members by availability
-  const sortedMembers = [...members].sort((a: Member, b: Member) => {
-    const as = availByUser.get(a.users?.id) ?? "pending";
-    const bs = availByUser.get(b.users?.id) ?? "pending";
-    const order: Record<string, number> = { available: 0, tentative: 1, pending: 2, unavailable: 3 };
-    return (order[as] ?? 2) - (order[bs] ?? 2);
-  });
-
-  // Detect scheduling conflicts
-  const adminConflictIds = new Set<string>();
-  const assignedShifts = shifts.filter((s: Shift) => s.assigned_user_id);
-  for (let i = 0; i < assignedShifts.length; i++) {
-    for (let j = i + 1; j < assignedShifts.length; j++) {
-      const a = assignedShifts[i], b = assignedShifts[j];
-      if (a.assigned_user_id === b.assigned_user_id &&
-          new Date(a.start_time) < new Date(b.end_time) &&
-          new Date(a.end_time) > new Date(b.start_time)) {
-        adminConflictIds.add(a.id); adminConflictIds.add(b.id);
-      }
-    }
-  }
+  const {
+    opDays, shiftsByDay, availByUser, sortedMembers, adminConflictIds,
+  } = useShiftDerivedData(startDate, endDate, shifts, members, availability);
 
   /* ── Handlers ── */
-
-  function renderMemberOptions() {
-    return sortedMembers.map((m: Member) => {
-      const s = availByUser.get(m.users?.id);
-      const tag = s === "available" ? " \u2713" : s === "tentative" ? " ?" : s === "unavailable" ? " \u2717" : "";
-      return <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}{tag}</option>;
-    });
-  }
 
   async function handleDeleteShift(shiftId: string) {
     setDeletingShift(shiftId);
@@ -173,377 +86,20 @@ export function ShiftManagement({
     catch (err) { console.error(err); }
   }
 
-  async function handleGenerate() {
-    if (posts.length === 0 || selectedDays.size === 0) return;
-    setGenerating(true);
-    try {
-      const batch: { eventId: string; role: string; startTime: string; endTime: string }[] = [];
-      const pat = PATTERNS[pattern];
-      for (const day of Array.from(selectedDays).sort()) {
-        for (const p of pat) {
-          for (const post of posts) {
-            batch.push({ eventId, role: `${post} — ${p.label}`, startTime: toISO(day, p.sH, p.sM, false, eventTimezone), endTime: toISO(day, p.eH, p.eM, p.overnight, eventTimezone) });
-          }
-        }
-      }
-      for (let i = 0; i < batch.length; i += 5) { await Promise.all(batch.slice(i, i + 5).map(s => createShift(s))); }
-      onShiftsChange(await getEventShifts(eventId));
-      setPosts([]); setSelectedDays(new Set()); setShowBuilder(false);
-    } catch (err) { console.error(err); } finally { setGenerating(false); }
-  }
-
-  async function handleAddCustom() {
-    if (!cStart || !cEnd) return;
-    // Convert datetime-local inputs from event timezone to UTC
-    const utcStart = eventTimezone ? localToUTC(cStart, eventTimezone) : new Date(cStart).toISOString();
-    const utcEnd = eventTimezone ? localToUTC(cEnd, eventTimezone) : new Date(cEnd).toISOString();
-    const shiftPostOrders = cPostOrders.trim() || undefined;
-    if (cAssign) {
-      try {
-        const conflicts = await getConflictingShifts(cAssign, utcStart, utcEnd);
-        if (conflicts.length > 0) {
-          onConflictWarning({
-            shiftId: "new", userId: cAssign,
-            conflicts: conflicts.map((c: Shift) => ({
-              role: c.role ?? "Shift",
-              eventName: c.events?.name ?? "Unknown Op",
-              time: `${fmtTime(c.start_time, eventTimezone)} — ${fmtTime(c.end_time, eventTimezone)}`,
-            })),
-            pendingAction: async () => {
-              setAddingCustom(true);
-              try {
-                await createShift({ eventId, role: cRole || undefined, startTime: utcStart, endTime: utcEnd, assignedUserId: cAssign || undefined, postOrders: shiftPostOrders });
-                setCRole(""); setCStart(""); setCEnd(""); setCAssign(""); setCPostOrders(""); setShowCustom(false);
-                onShiftsChange(await getEventShifts(eventId));
-              } finally { setAddingCustom(false); }
-            },
-          });
-          return;
-        }
-      } catch (err) { console.error("Conflict check failed:", err); }
-    }
-    setAddingCustom(true);
-    try {
-      await createShift({ eventId, role: cRole || undefined, startTime: utcStart, endTime: utcEnd, assignedUserId: cAssign || undefined, postOrders: shiftPostOrders });
-      setCRole(""); setCStart(""); setCEnd(""); setCAssign(""); setCPostOrders(""); setShowCustom(false);
-      onShiftsChange(await getEventShifts(eventId));
-    } catch (err) { console.error(err); } finally { setAddingCustom(false); }
-  }
-
-  function addPost() { if (!newPost.trim() || posts.includes(newPost.trim())) return; setPosts([...posts, newPost.trim()]); setNewPost(""); }
-  function toggleDay(d: string) { const n = new Set(selectedDays); if (n.has(d)) n.delete(d); else n.add(d); setSelectedDays(n); }
-
-  /* ── CSV Import handlers ── */
-
-  function handleCsvFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      const result = parseCSVRaw(text);
-      if (result.errors.length > 0 && result.rows.length === 0) {
-        toast.error("Failed to parse CSV: " + result.errors[0].message);
-        return;
-      }
-      setCsvHeaders(result.headers);
-      setCsvRows(result.rows);
-      setCsvMapping(suggestShiftMapping(result.headers));
-      setCsvStep("map");
-    };
-    reader.readAsText(file);
-    // reset input so same file can be re-selected
-    e.target.value = "";
-  }
-
-  function handleCsvMappingConfirm() {
-    const mapped = applyShiftMapping(csvRows, csvHeaders, csvMapping);
-    const result = validateShiftRows(mapped);
-    setCsvPreview(result);
-    setCsvStep("preview");
-  }
-
-  async function handleCsvImport() {
-    if (!csvPreview || csvPreview.valid.length === 0) return;
-    setCsvImporting(true);
-    try {
-      // Build email-to-userId lookup from members
-      const emailToUserId = new Map<string, string>();
-      for (const m of members) {
-        if (m.users?.email && m.users?.id) {
-          emailToUserId.set(m.users.email.toLowerCase(), m.users.id);
-        }
-      }
-
-      const shiftData = csvPreview.valid.map((r) => {
-        // Parse date + time → local datetime string → UTC
-        const startLocal = `${r.date}T${r.start_time}`;
-        const endLocal = `${r.date}T${r.end_time}`;
-        const startUTC = eventTimezone ? localToUTC(startLocal, eventTimezone) : new Date(startLocal).toISOString();
-        const endUTC = eventTimezone ? localToUTC(endLocal, eventTimezone) : new Date(endLocal).toISOString();
-
-        // Resolve staff email to user ID
-        let assignedUserId: string | null = null;
-        if (r.staff_email) {
-          assignedUserId = emailToUserId.get(r.staff_email.toLowerCase()) ?? null;
-        }
-
-        return {
-          start_time: startUTC,
-          end_time: endUTC,
-          role: r.role,
-          assigned_user_id: assignedUserId,
-          notes: r.notes,
-        };
-      });
-
-      const result = await bulkCreateShifts(eventId, companyId, shiftData);
-      if (result.errors.length > 0) {
-        toast.error(`Imported ${result.created} shifts with ${result.errors.length} error(s)`);
-      } else {
-        toast.success(`Successfully imported ${result.created} shift${result.created !== 1 ? "s" : ""}`);
-      }
-      onShiftsChange(await getEventShifts(eventId));
-      // Reset import state
-      setShowImport(false);
-      setCsvStep("upload");
-      setCsvHeaders([]);
-      setCsvRows([]);
-      setCsvMapping({});
-      setCsvPreview(null);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to import shifts");
-    } finally {
-      setCsvImporting(false);
-    }
-  }
-
-  function resetCsvImport() {
-    setShowImport(false);
-    setCsvStep("upload");
-    setCsvHeaders([]);
-    setCsvRows([]);
-    setCsvMapping({});
-    setCsvPreview(null);
-  }
-
-  /* ── Shift row renderer (shared between list and calendar detail) ── */
-
-  function renderShiftRow(sh: Shift) {
-    const filled = !!sh.assigned_user_id;
-    const hasConflict = adminConflictIds.has(sh.id);
-    return (
-      <div key={sh.id} className={`rounded-lg border px-2.5 sm:px-3 py-2 transition-colors ${hasConflict ? "border-red-500/40 bg-red-500/[0.06]" : filled ? "border-green-500/20 bg-green-500/[0.03]" : "border-amber-500/20 bg-amber-500/[0.03]"}`}>
-        <div className="flex items-center gap-2 sm:gap-3">
-          {hasConflict ? <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" /> : <Clock className={`h-3.5 w-3.5 shrink-0 ${filled ? "text-green-500" : "text-amber-500"}`} />}
-          <div className="flex-1 min-w-0 text-xs truncate">
-            <span className="font-medium">{sh.role ?? "Shift"}</span>
-            <span className="text-muted-foreground ml-1.5 sm:ml-2 font-mono">{fmtTime(sh.start_time, eventTimezone)} — {fmtTime(sh.end_time, eventTimezone)}</span>
-            {hasConflict && <span className="ml-1 sm:ml-2 text-red-500 font-semibold text-[10px]">CONFLICT</span>}
-          </div>
-          <button onClick={() => handleDeleteShift(sh.id)} disabled={deletingShift === sh.id}
-            className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 shrink-0" title="Delete">
-            {deletingShift === sh.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-          </button>
-        </div>
-        <div className="mt-1.5 ml-5.5 sm:ml-[26px]">
-          <select value={sh.assigned_user_id ?? ""} onChange={(e) => handleAssign(sh.id, e.target.value)}
-            className={`h-6 w-full sm:w-auto sm:max-w-[180px] truncate rounded border bg-background px-1.5 text-[10px] font-medium cursor-pointer ${hasConflict ? "border-red-500/40 text-red-500" : filled ? "border-green-500/30 text-green-600" : "border-amber-500/30 text-amber-600"}`}>
-            <option value="">Open</option>
-            {renderMemberOptions()}
-          </select>
-        </div>
-      </div>
-    );
-  }
-
-  /* ── Calendar cell helpers ── */
-
-  function renderCalendarView() {
-    if (shifts.length === 0) {
-      return (
-        <div className="text-center py-8">
-          <Calendar className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-          <p className="text-sm font-medium text-muted-foreground/60">No shifts yet</p>
-        </div>
-      );
-    }
-    const sortedDays = Array.from(shiftsByDay.entries()).sort(([a], [b]) => a.localeCompare(b));
-    const firstDay = new Date(sortedDays[0][0] + "T12:00:00");
-    const startOfWeek = new Date(firstDay);
-    startOfWeek.setDate(firstDay.getDate() - firstDay.getDay());
-    const lastDay = new Date(sortedDays[sortedDays.length - 1][0] + "T12:00:00");
-    const endOfWeek = new Date(lastDay);
-    endOfWeek.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
-    const calDays: string[] = [];
-    const cur = new Date(startOfWeek);
-    while (cur <= endOfWeek) {
-      calDays.push(cur.toISOString().slice(0, 10));
-      cur.setDate(cur.getDate() + 1);
-    }
-    const opDaySet = new Set(opDays);
-
-    const memberMap = new Map<string, { fn: string; ln: string; role: string; avatar: string }>();
-    members.forEach((m: Member) => { if (m.users?.id) memberMap.set(m.users.id, { fn: m.users.first_name ?? "", ln: m.users.last_name ?? "", role: m.role ?? "member", avatar: m.users.avatar_url ?? "" }); });
-
-    return (
-      <div>
-        <div className="grid grid-cols-7 gap-px mb-1">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
-            <div key={d} className="text-center text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/40 py-1">{d}</div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {calDays.map(day => {
-            const dayShifts = shiftsByDay.get(day) ?? [];
-            const isOpDay = opDaySet.has(day);
-            const filled = dayShifts.filter((s: Shift) => s.assigned_user_id).length;
-            const open = dayShifts.length - filled;
-            const hasConflicts = dayShifts.some((s: Shift) => adminConflictIds.has(s.id));
-            const isSelected = calendarDay === day;
-            const dayNum = new Date(day + "T12:00:00").getDate();
-            const isToday = day === new Date().toISOString().slice(0, 10);
-            const totalHrs = dayShifts.reduce((sum: number, s: Shift) => {
-              const ms = new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
-              return sum + (ms > 0 ? ms / 3600000 : ms / 3600000 + 24);
-            }, 0);
-            const uniqueStaff = [...new Set(dayShifts.filter((s: Shift) => s.assigned_user_id).map((s: Shift) => s.assigned_user_id as string))];
-            const staffData = uniqueStaff.slice(0, 3).map(uid => {
-              const u = memberMap.get(uid);
-              return { uid, ini: u ? `${u.fn[0] ?? ""}${u.ln[0] ?? ""}` : "?", fn: u?.fn ?? "", ln: u?.ln ?? "", role: u?.role ?? "member", avatar: u?.avatar ?? "" };
-            });
-
-            return (
-              <button key={day} onClick={() => isOpDay ? setCalendarDay(isSelected ? null : day) : undefined}
-                className={`relative rounded-lg p-1.5 min-h-[68px] text-left transition-all border ${
-                  isSelected ? "border-primary bg-primary/10 ring-1 ring-primary/30" :
-                  !isOpDay ? "border-transparent opacity-30" :
-                  hasConflicts ? "border-red-500/30 bg-red-500/[0.04] hover:bg-red-500/[0.08]" :
-                  dayShifts.length > 0 && open === 0 ? "border-green-500/20 bg-green-500/[0.04] hover:bg-green-500/[0.08]" :
-                  dayShifts.length > 0 ? "border-amber-500/20 bg-amber-500/[0.04] hover:bg-amber-500/[0.08]" :
-                  "border-border/20 hover:bg-muted/30"
-                }`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-[11px] font-mono font-semibold ${isToday ? "text-primary" : isOpDay ? "" : "text-muted-foreground/30"}`}>{dayNum}</span>
-                  {dayShifts.length > 0 && <span className="text-[8px] font-mono text-muted-foreground/60">{totalHrs.toFixed(0)}h</span>}
-                </div>
-                {dayShifts.length > 0 && (
-                  <div className="mt-0.5 flex flex-wrap gap-0.5">
-                    {filled > 0 && (
-                      <span className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[8px] font-bold bg-green-500/15 text-green-600">
-                        <Check className="h-2 w-2" />{filled}
-                      </span>
-                    )}
-                    {open > 0 && (
-                      <span className="inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold bg-amber-500/15 text-amber-600">
-                        {open}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {staffData.length > 0 && (
-                  <TooltipProvider>
-                  <div className="mt-0.5 flex gap-0.5">
-                    {staffData.map((s) => (
-                      <Tooltip key={s.uid}>
-                        <TooltipTrigger>
-                          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[7px] font-bold text-primary/70 cursor-default">{s.ini}</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="p-0 overflow-hidden rounded-lg">
-                          <div className="flex items-center gap-2 px-3 py-2">
-                            <Avatar className="h-7 w-7">
-                              {s.avatar && <AvatarImage src={s.avatar} />}
-                              <AvatarFallback className="text-[9px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-xs font-semibold leading-tight">{s.fn} {s.ln}</p>
-                              <p className="text-[10px] capitalize opacity-70">{s.role}</p>
-                            </div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                    {uniqueStaff.length > 3 && (() => {
-                      const overflow = uniqueStaff.slice(3).map(uid => {
-                        const u = memberMap.get(uid);
-                        return { uid, ini: u ? `${u.fn[0] ?? ""}${u.ln[0] ?? ""}` : "?", fn: u?.fn ?? "", ln: u?.ln ?? "", role: u?.role ?? "member", avatar: u?.avatar ?? "" };
-                      });
-                      return (
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <span className="inline-flex h-4 items-center rounded-full bg-muted/40 px-1 text-[7px] font-bold text-muted-foreground/60 cursor-default">+{uniqueStaff.length - 3}</span>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="p-0 overflow-hidden rounded-lg">
-                            <div className="py-1">
-                              {overflow.map(s => (
-                                <div key={s.uid} className="flex items-center gap-2 px-3 py-1.5">
-                                  <Avatar className="h-6 w-6">
-                                    {s.avatar && <AvatarImage src={s.avatar} />}
-                                    <AvatarFallback className="text-[8px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <p className="text-[11px] font-semibold leading-tight">{s.fn} {s.ln}</p>
-                                    <p className="text-[9px] capitalize opacity-70">{s.role}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })()}
-                  </div>
-                  </TooltipProvider>
-                )}
-                {hasConflicts && (
-                  <AlertTriangle className="absolute top-1 right-1 h-2.5 w-2.5 text-red-500" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Legend */}
-        <div className="flex items-center gap-4 mt-3 pt-2 border-t border-border/10">
-          <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-green-500/30" /> Fully Staffed</span>
-          <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-amber-500/30" /> Open Slots</span>
-          <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><AlertTriangle className="h-2 w-2 text-red-500" /> Conflict</span>
-        </div>
-
-        {/* Expanded Day Detail */}
-        {calendarDay && shiftsByDay.has(calendarDay) && (
-          <div className="mt-3 rounded-xl border border-primary/20 bg-primary/[0.02] p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-primary" />
-                {fmtDateLong(calendarDay)}
-              </h4>
-              <button onClick={() => setCalendarDay(null)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
-            </div>
-            <div className="space-y-1">
-              {(shiftsByDay.get(calendarDay) ?? []).map((sh: Shift) => renderShiftRow(sh))}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <>
       {/* Action Buttons */}
       <div className="px-3 sm:px-4 py-2 flex flex-wrap items-center gap-2 border-b border-border/20">
         <Button size="sm" variant={showBuilder ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
-          onClick={() => { setShowBuilder(!showBuilder); setShowCustom(false); resetCsvImport(); }}>
+          onClick={() => { setShowBuilder(!showBuilder); setShowCustom(false); setShowImport(false); }}>
           <Zap className="h-3.5 w-3.5" /> Quick Fill
         </Button>
         <Button size="sm" variant={showCustom ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
-          onClick={() => { setShowCustom(!showCustom); setShowBuilder(false); resetCsvImport(); }}>
+          onClick={() => { setShowCustom(!showCustom); setShowBuilder(false); setShowImport(false); }}>
           <Plus className="h-3.5 w-3.5" /> Custom Shift
         </Button>
         <Button size="sm" variant={showImport ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
-          onClick={() => { setShowImport(!showImport); setShowBuilder(false); setShowCustom(false); if (showImport) resetCsvImport(); }}>
+          onClick={() => { setShowImport(!showImport); setShowBuilder(false); setShowCustom(false); }}>
           <Upload className="h-3.5 w-3.5" /> Import Shifts
         </Button>
         {/* View toggle */}
@@ -559,227 +115,73 @@ export function ShiftManagement({
 
       {/* Quick Fill Panel */}
       {showBuilder && (
-        <div className="px-3 sm:px-4 py-3 space-y-3 border-b border-border/20 bg-primary/[0.02]">
-          <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Posts / Positions</label>
-            <div className="flex flex-wrap items-center gap-1.5 mt-1">
-              {posts.map(p => (
-                <Badge key={p} variant="secondary" className="gap-1 text-xs pr-1">
-                  {p}
-                  <button onClick={() => setPosts(posts.filter(x => x !== p))} className="hover:text-red-400"><X className="h-2.5 w-2.5" /></button>
-                </Badge>
-              ))}
-              <div className="flex gap-1">
-                <Input value={newPost} onChange={(e) => setNewPost(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addPost()} placeholder="e.g. Front Gate" className="h-6 w-32 text-xs" />
-                <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={addPost} disabled={!newPost.trim()}><Plus className="h-3 w-3" /></Button>
-              </div>
-            </div>
-          </div>
-          <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Shift Pattern</label>
-            <div className="flex gap-2 mt-1">
-              {(["8", "12"] as const).map(p => (
-                <button key={p} onClick={() => setPattern(p)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${pattern === p ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:border-border"}`}>
-                  {p === "8" ? "8-Hour (Day / Swing / Night)" : "12-Hour (Day / Night)"}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-3 mt-1.5">{PATTERNS[pattern].map(p => <span key={p.label} className="text-[10px] text-muted-foreground font-mono">{p.label}: {pad2(p.sH)}{pad2(p.sM)}–{pad2(p.eH)}{pad2(p.eM)}</span>)}</div>
-          </div>
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Coverage Days</label>
-              <button onClick={() => setSelectedDays(new Set(opDays))} className="text-[10px] text-primary hover:underline">Select All</button>
-            </div>
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {opDays.map(day => {
-                const d = new Date(day + "T12:00:00");
-                const lbl = d.toLocaleDateString([], { weekday: "short", month: "numeric", day: "numeric" });
-                const sel = selectedDays.has(day);
-                return (<button key={day} onClick={() => toggleDay(day)} className={`px-2 py-1 rounded-md text-[10px] font-mono border transition-colors ${sel ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:border-border"}`}>{sel && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{lbl}</button>);
-              })}
-            </div>
-          </div>
-          <div className="flex items-center gap-3 pt-1">
-            <Button size="sm" className="gap-1.5" onClick={handleGenerate} disabled={posts.length === 0 || selectedDays.size === 0 || generating}>
-              {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />} Generate {previewCount} Shift{previewCount !== 1 ? "s" : ""}
-            </Button>
-            {previewCount > 0 && <span className="text-[10px] text-muted-foreground font-mono">{posts.length} post{posts.length > 1 ? "s" : ""} × {pattern === "8" ? "3" : "2"} periods × {selectedDays.size} day{selectedDays.size > 1 ? "s" : ""}</span>}
-          </div>
-        </div>
+        <QuickFillPanel
+          eventId={eventId}
+          opDays={opDays}
+          eventTimezone={eventTimezone}
+          onShiftsChange={onShiftsChange}
+          onClose={() => setShowBuilder(false)}
+        />
       )}
 
       {/* Custom Shift Form */}
       {showCustom && (
-        <div className="px-3 sm:px-4 py-3 space-y-2 border-b border-border/20 bg-primary/[0.02]">
-          <Input placeholder="Role / Position (e.g. Supervisor)" value={cRole} onChange={(e) => setCRole(e.target.value)} className="h-8 text-sm" />
-          {eventTimezone && (
-            <p className="text-[10px] text-muted-foreground">Times are in <span className="font-semibold">{tzAbbrev(eventTimezone)}</span> ({eventTimezone})</p>
-          )}
-          <div className="flex gap-2">
-            <div className="flex-1"><label className="text-[10px] text-muted-foreground">Start</label><Input type="datetime-local" value={cStart} onChange={(e) => setCStart(e.target.value)} className="h-8 text-sm" /></div>
-            <div className="flex-1"><label className="text-[10px] text-muted-foreground">End</label><Input type="datetime-local" value={cEnd} onChange={(e) => setCEnd(e.target.value)} className="h-8 text-sm" /></div>
-          </div>
-          <select value={cAssign} onChange={(e) => setCAssign(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm">
-            <option value="">Unassigned</option>
-            {renderMemberOptions()}
-          </select>
-          <div>
-            <label className="text-[10px] text-muted-foreground">Post Orders (optional, overrides event-level)</label>
-            <textarea
-              value={cPostOrders}
-              onChange={(e) => setCPostOrders(e.target.value)}
-              placeholder="Shift-specific post orders..."
-              rows={2}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" className="h-7 text-xs" onClick={handleAddCustom} disabled={!cStart || !cEnd || addingCustom}>{addingCustom ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add Shift"}</Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowCustom(false)}>Cancel</Button>
-          </div>
-        </div>
+        <CustomShiftForm
+          eventId={eventId}
+          sortedMembers={sortedMembers}
+          availByUser={availByUser}
+          eventTimezone={eventTimezone}
+          onShiftsChange={onShiftsChange}
+          onConflictWarning={onConflictWarning}
+          onClose={() => setShowCustom(false)}
+        />
       )}
 
       {/* CSV Import Panel */}
       {showImport && (
-        <div className="px-3 sm:px-4 py-3 space-y-3 border-b border-border/20 bg-primary/[0.02]">
-          <input type="file" accept=".csv,text/csv" ref={fileInputRef} onChange={handleCsvFile} className="hidden" />
-
-          {csvStep === "upload" && (
-            <div className="text-center py-4">
-              <Upload className="h-6 w-6 mx-auto text-muted-foreground/40 mb-2" />
-              <p className="text-xs text-muted-foreground mb-2">Upload a CSV file with shift data</p>
-              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => fileInputRef.current?.click()}>
-                Choose CSV File
-              </Button>
-              <p className="text-[10px] text-muted-foreground/60 mt-2">Required columns: Date, Start Time, End Time</p>
-            </div>
-          )}
-
-          {csvStep === "map" && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold">Map CSV Columns</p>
-                <span className="text-[10px] text-muted-foreground">{csvRows.length} row{csvRows.length !== 1 ? "s" : ""} found</span>
-              </div>
-              <div className="space-y-1.5">
-                {SHIFT_FIELDS.map((field) => (
-                  <div key={field.key} className="flex items-center gap-2">
-                    <label className="text-[10px] font-medium w-32 shrink-0">
-                      {field.label} {field.required && <span className="text-red-500">*</span>}
-                    </label>
-                    <select
-                      value={csvMapping[field.key] ?? ""}
-                      onChange={(e) => setCsvMapping({ ...csvMapping, [field.key]: e.target.value || null })}
-                      className="flex-1 h-7 rounded border border-border bg-background px-2 text-xs"
-                    >
-                      <option value="">— Skip —</option>
-                      {csvHeaders.map((h) => (
-                        <option key={h} value={h}>{h}</option>
-                      ))}
-                    </select>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" className="h-7 text-xs" onClick={handleCsvMappingConfirm}
-                  disabled={!csvMapping.date || !csvMapping.start_time || !csvMapping.end_time}>
-                  Preview Import
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={resetCsvImport}>Cancel</Button>
-              </div>
-            </div>
-          )}
-
-          {csvStep === "preview" && csvPreview && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold">Import Preview</p>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-[10px]">{csvPreview.valid.length} valid</Badge>
-                  {csvPreview.errors.length > 0 && <Badge variant="destructive" className="text-[10px]">{csvPreview.errors.length} error{csvPreview.errors.length !== 1 ? "s" : ""}</Badge>}
-                </div>
-              </div>
-              {csvPreview.errors.length > 0 && (
-                <div className="rounded border border-red-500/20 bg-red-500/[0.04] p-2 space-y-0.5 max-h-24 overflow-y-auto">
-                  {csvPreview.errors.slice(0, 10).map((e, i) => (
-                    <p key={i} className="text-[10px] text-red-500">Line {e.line}: {e.message}</p>
-                  ))}
-                  {csvPreview.errors.length > 10 && <p className="text-[10px] text-red-500/60">...and {csvPreview.errors.length - 10} more</p>}
-                </div>
-              )}
-              {csvPreview.valid.length > 0 && (
-                <div className="rounded border border-border/30 overflow-hidden max-h-40 overflow-y-auto">
-                  <table className="w-full text-[10px]">
-                    <thead className="bg-muted/50 sticky top-0">
-                      <tr>
-                        <th className="text-left px-2 py-1 font-semibold">Date</th>
-                        <th className="text-left px-2 py-1 font-semibold">Start</th>
-                        <th className="text-left px-2 py-1 font-semibold">End</th>
-                        <th className="text-left px-2 py-1 font-semibold">Role</th>
-                        <th className="text-left px-2 py-1 font-semibold">Staff</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {csvPreview.valid.slice(0, 10).map((r, i) => (
-                        <tr key={i} className="border-t border-border/10">
-                          <td className="px-2 py-1">{r.date}</td>
-                          <td className="px-2 py-1">{r.start_time}</td>
-                          <td className="px-2 py-1">{r.end_time}</td>
-                          <td className="px-2 py-1">{r.role ?? "—"}</td>
-                          <td className="px-2 py-1">{r.staff_email ?? r.staff_name ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {csvPreview.valid.length > 10 && <p className="text-center text-[10px] text-muted-foreground py-1">...and {csvPreview.valid.length - 10} more</p>}
-                </div>
-              )}
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" className="h-7 text-xs gap-1.5" onClick={handleCsvImport}
-                  disabled={csvPreview.valid.length === 0 || csvImporting}>
-                  {csvImporting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-                  Import {csvPreview.valid.length} Shift{csvPreview.valid.length !== 1 ? "s" : ""}
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCsvStep("map")}>Back</Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={resetCsvImport}>Cancel</Button>
-              </div>
-            </div>
-          )}
-        </div>
+        <CsvImportPanel
+          eventId={eventId}
+          companyId={companyId}
+          members={members}
+          eventTimezone={eventTimezone}
+          onShiftsChange={onShiftsChange}
+          onClose={() => setShowImport(false)}
+        />
       )}
 
       {/* List View */}
       {shiftView === "list" && (
-        <div className="px-3 sm:px-4 py-3 space-y-4">
-          {shifts.length === 0 ? (
-            <div className="text-center py-8">
-              <Calendar className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-              <p className="text-sm font-medium text-muted-foreground/60">No shifts yet</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Use Quick Fill to batch-generate shifts, or add a custom shift.</p>
-            </div>
-          ) : (
-            Array.from(shiftsByDay.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([day, dayShifts]) => (
-              <div key={day}>
-                <h4 className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 mb-1.5 flex items-center gap-1.5">
-                  <Calendar className="h-3 w-3" /> {fmtDateLong(day)}
-                  <span className="text-muted-foreground/30 font-normal">· {dayShifts.length} shift{dayShifts.length > 1 ? "s" : ""} · {dayShifts.filter((s: Shift) => s.assigned_user_id).length} filled</span>
-                </h4>
-                <div className="space-y-1">
-                  {dayShifts.map((sh: Shift) => renderShiftRow(sh))}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        <ShiftListView
+          shifts={shifts}
+          shiftsByDay={shiftsByDay}
+          sortedMembers={sortedMembers}
+          availByUser={availByUser}
+          adminConflictIds={adminConflictIds}
+          deletingShift={deletingShift}
+          eventTimezone={eventTimezone}
+          onDelete={handleDeleteShift}
+          onAssign={handleAssign}
+        />
       )}
 
       {/* Calendar View */}
       {shiftView === "calendar" && (
         <div className="px-3 sm:px-4 py-3">
-          {renderCalendarView()}
+          <ShiftCalendarView
+            shifts={shifts}
+            shiftsByDay={shiftsByDay}
+            opDays={opDays}
+            members={members}
+            sortedMembers={sortedMembers}
+            availByUser={availByUser}
+            adminConflictIds={adminConflictIds}
+            calendarDay={calendarDay}
+            setCalendarDay={setCalendarDay}
+            deletingShift={deletingShift}
+            eventTimezone={eventTimezone}
+            onDelete={handleDeleteShift}
+            onAssign={handleAssign}
+          />
         </div>
       )}
     </>

@@ -10,6 +10,7 @@ import { getNotifications, markNotificationRead, markAllNotificationsRead } from
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { usePageHeader } from "@/stores/page-header-store";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Notif = any;
@@ -46,7 +47,7 @@ export default function NotificationsPage() {
   const load = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
     try { setNotifications(await getNotifications(activeCompanyId)); }
-    catch {} finally { setLoading(false); }
+    catch (e) { logger.swallow("notifications:load", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);

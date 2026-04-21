@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import {
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask, reorderOnboardingTasks,
 } from "@/lib/supabase/db";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OTask = any;
@@ -31,7 +32,7 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
     try {
       setOTasks(await getOnboardingTasks(activeCompanyId));
-    } catch {}
+    } catch (e) { logger.swallow("onboarding:load", e, "warn"); }
     finally { setLoading(false); }
   }, [activeCompanyId]);
 

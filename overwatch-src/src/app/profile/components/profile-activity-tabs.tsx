@@ -8,6 +8,7 @@ import { FileText, Activity, FolderOpen, Loader2, Clock } from "lucide-react";
 import { getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import type { Sub, Sheet, Attempt } from "./types";
+import { logger } from "@/lib/logger";
 
 interface Props {
   activeCompanyId: string | null;
@@ -21,7 +22,7 @@ export function ProfileActivityTabs({ activeCompanyId }: Props) {
 
   const loadSubmissions = useCallback(async () => {
     if (tabLoaded.submissions) return;
-    try { setSubmissions(await getUserFormSubmissions(activeCompanyId ?? undefined)); } catch {}
+    try { setSubmissions(await getUserFormSubmissions(activeCompanyId ?? undefined)); } catch (e) { logger.swallow("profile-activity:load-submissions", e, "debug"); }
     setTabLoaded((p) => ({ ...p, submissions: true }));
   }, [tabLoaded.submissions, activeCompanyId]);
 
@@ -31,7 +32,7 @@ export function ProfileActivityTabs({ activeCompanyId }: Props) {
       const [ts, qa] = await Promise.all([getRecentTimesheets(10, activeCompanyId ?? undefined), getUserQuizAttempts()]);
       setTimesheets(ts.filter((t: Sheet) => t.clock_out));
       setQuizAttempts(qa);
-    } catch {}
+    } catch (e) { logger.swallow("profile-activity:load-activity", e, "warn"); }
     setTabLoaded((p) => ({ ...p, activity: true }));
   }, [tabLoaded.activity, activeCompanyId]);
 

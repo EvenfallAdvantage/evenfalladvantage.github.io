@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { getSiteMapBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
 import { getLocationHistory, getLocationHistoryAt } from "@/lib/supabase/db-location";
@@ -68,7 +69,7 @@ export function useCesiumLayers(params: {
     if (!viewer || !Cesium || loading) return;
 
     (entityGroupsRef.current.operations ?? []).forEach((e: { id: string }) => {
-      try { viewer.entities.removeById(e.id); } catch {}
+      try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
     });
     entityGroupsRef.current.operations = [];
 
@@ -147,7 +148,7 @@ export function useCesiumLayers(params: {
     if (!viewer || !Cesium || loading) return;
 
     (entityGroupsRef.current.staff ?? []).forEach((e: { id: string }) => {
-      try { viewer.entities.removeById(e.id); } catch {}
+      try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
     });
     entityGroupsRef.current.staff = [];
     if (!layers.staff) return;
@@ -194,7 +195,7 @@ export function useCesiumLayers(params: {
     if (!viewer || !Cesium || loading) return;
 
     (entityGroupsRef.current.incidents ?? []).forEach((e: { id: string }) => {
-      try { viewer.entities.removeById(e.id); } catch {}
+      try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
     });
     entityGroupsRef.current.incidents = [];
     if (!layers.incidents) return;
@@ -301,7 +302,7 @@ export function useCesiumLayers(params: {
 
     // Remove old site overlay layers
     (entityGroupsRef.current.siteOverlays ?? []).forEach((layer: { layerRef: unknown; eventId: string }) => {
-      try { viewer.imageryLayers.remove(layer.layerRef, false); } catch {}
+      try { viewer.imageryLayers.remove(layer.layerRef, false); } catch (e) { logger.swallow("cesium-layers:remove-site-overlay", e); }
     });
     entityGroupsRef.current.siteOverlays = [];
 
@@ -344,7 +345,7 @@ export function useCesiumLayers(params: {
 
     // Clear old storyboard pin entities
     (entityGroupsRef.current.storyboardPins ?? []).forEach((e: { id: string }) => {
-      try { viewer.entities.removeById(e.id); } catch {}
+      try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
     });
     entityGroupsRef.current.storyboardPins = [];
 
@@ -453,7 +454,7 @@ export function useCesiumLayers(params: {
 
     // Remove existing dark basemap layer
     if (entityGroupsRef.current.nvDarkLayer) {
-      try { viewer.imageryLayers.remove(entityGroupsRef.current.nvDarkLayer, false); } catch {}
+      try { viewer.imageryLayers.remove(entityGroupsRef.current.nvDarkLayer, false); } catch (e) { logger.swallow("cesium-layers:remove-nv-dark", e); }
       entityGroupsRef.current.nvDarkLayer = null;
     }
 
@@ -526,7 +527,7 @@ export function useCesiumLayers(params: {
         const layer = viewer.imageryLayers.addImageryProvider(radarProvider);
         layer.alpha = 0.6;
         weatherLayerRef.current = layer;
-      } catch {}
+      } catch (e) { logger.swallow("cesium-layers:weather-refresh", e); }
     }, 300000); // 5 minutes
     return () => clearInterval(interval);
   }, [layers.weather, viewerRef, cesiumRef]);
@@ -574,7 +575,7 @@ export function useCesiumLayers(params: {
     if (!viewer || !Cesium || loading) return;
 
     if (entityGroupsRef.current.sentinel1Layer) {
-      try { viewer.imageryLayers.remove(entityGroupsRef.current.sentinel1Layer, false); } catch {}
+      try { viewer.imageryLayers.remove(entityGroupsRef.current.sentinel1Layer, false); } catch (e) { logger.swallow("cesium-layers:remove-sentinel1", e); }
       entityGroupsRef.current.sentinel1Layer = null;
     }
     if (layers.sentinel1) {
@@ -589,7 +590,7 @@ export function useCesiumLayers(params: {
     if (!viewer || !Cesium || loading) return;
 
     if (entityGroupsRef.current.sentinel2Layer) {
-      try { viewer.imageryLayers.remove(entityGroupsRef.current.sentinel2Layer, false); } catch {}
+      try { viewer.imageryLayers.remove(entityGroupsRef.current.sentinel2Layer, false); } catch (e) { logger.swallow("cesium-layers:remove-sentinel2", e); }
       entityGroupsRef.current.sentinel2Layer = null;
     }
     if (layers.sentinel2) {
@@ -635,7 +636,7 @@ export function useCesiumLayers(params: {
 
     // Clear old aircraft entities
     (entityGroupsRef.current.aircraft ?? []).forEach((e: { id: string }) => {
-      try { viewer.entities.removeById(e.id); } catch {}
+      try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
     });
     entityGroupsRef.current.aircraft = [];
 
@@ -650,7 +651,7 @@ export function useCesiumLayers(params: {
       getAircraft(bbox.south, bbox.north, bbox.west, bbox.east).then(planes => {
         // Clear old
         (entityGroupsRef.current.aircraft ?? []).forEach((e: { id: string }) => {
-          try { viewer.entities.removeById(e.id); } catch {}
+          try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
         });
         entityGroupsRef.current.aircraft = [];
 
@@ -702,7 +703,7 @@ export function useCesiumLayers(params: {
     if (!viewer || !Cesium || loading) return;
 
     (entityGroupsRef.current.orbits ?? []).forEach((e: { id: string }) => {
-      try { viewer.entities.removeById(e.id); } catch {}
+      try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
     });
     entityGroupsRef.current.orbits = [];
 
@@ -781,7 +782,7 @@ export function useCesiumLayers(params: {
       if (!viewer || !Cesium) return;
       // Clear old breadcrumb entities
       (entityGroupsRef.current.breadcrumbs ?? []).forEach((e: { id: string }) => {
-        try { viewer.entities.removeById(e.id); } catch {}
+        try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
       });
       entityGroupsRef.current.breadcrumbs = [];
 
@@ -795,7 +796,7 @@ export function useCesiumLayers(params: {
         trailPromise.then(trail => {
           if (trail.length < 2) return;
           // Remove existing trail for this user first
-          try { viewer.entities.removeById(`trail-${s.userId}`); } catch {}
+          try { viewer.entities.removeById(`trail-${s.userId}`); } catch (e) { logger.swallow("cesium-layers:remove-trail", e); }
           const positions = trail.flatMap(p => [p.lng, p.lat]);
           const entity = viewer.entities.add({
             id: `trail-${s.userId}`,
@@ -829,7 +830,7 @@ export function useCesiumLayers(params: {
     if (!viewer || !Cesium || loading) return;
 
     (entityGroupsRef.current.annotations ?? []).forEach((e: { id: string }) => {
-      try { viewer.entities.removeById(e.id); } catch {}
+      try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
     });
     entityGroupsRef.current.annotations = [];
 
@@ -909,7 +910,7 @@ export function useCesiumLayers(params: {
     if (!viewer || !Cesium || loading) return;
 
     (entityGroupsRef.current.pois ?? []).forEach((e: { id: string }) => {
-      try { viewer.entities.removeById(e.id); } catch {}
+      try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-entity", e_); }
     });
     entityGroupsRef.current.pois = [];
 

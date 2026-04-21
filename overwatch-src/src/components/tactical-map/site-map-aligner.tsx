@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import { X, Check, RotateCcw, MapPin, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -113,11 +114,9 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
       setGlobePoints(prev => [...prev, { lat, lng }]);
 
       // Place a temporary cyan marker on the globe via Cesium
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const w = window as any;
-      if (w.Cesium && w.__tacticalMapViewer) {
-        const viewer = w.__tacticalMapViewer;
-        const Cesium = w.Cesium;
+      if (window.Cesium && window.__tacticalMapViewer) {
+        const viewer = window.__tacticalMapViewer;
+        const Cesium = window.Cesium;
         const idx = globePointsRef.current.length; // 0-based index of the point just added
         viewer.entities.add({
           id: `align-globe-${idx}`,
@@ -144,14 +143,12 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
         });
       }
     };
-    (window as unknown as Record<string, unknown>).__siteMapAlignerAddPoint = handler;
+    window.__siteMapAlignerAddPoint = handler;
     return () => {
-      delete (window as unknown as Record<string, unknown>).__siteMapAlignerAddPoint;
+      delete window.__siteMapAlignerAddPoint;
       // Clean up globe markers
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const w = window as any;
-      if (w.__tacticalMapViewer) {
-        [0, 1, 2].forEach(i => { try { w.__tacticalMapViewer.entities.removeById(`align-globe-${i}`); } catch {} });
+      if (window.__tacticalMapViewer) {
+        [0, 1, 2].forEach(i => { try { window.__tacticalMapViewer!.entities.removeById(`align-globe-${i}`); } catch (e) { logger.swallow("site-map-aligner:cleanup", e); } });
       }
     };
   }, []);

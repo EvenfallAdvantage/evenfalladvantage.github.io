@@ -5,7 +5,9 @@
  * TLE data from CelesTrak (free, no key required).
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+import { logger } from "@/lib/logger";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- satellite.js has no TS types
 let satLib: any = null;
 
 /** Load satellite.js from CDN (avoids Turbopack bundling issues) */
@@ -13,15 +15,13 @@ async function loadSatelliteLib(): Promise<typeof satLib> {
   if (satLib) return satLib;
   if (typeof window === "undefined") throw new Error("Browser only");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const w = window as any;
-  if (w.satellite) { satLib = w.satellite; return satLib; }
+  if (window.satellite) { satLib = window.satellite; return satLib; }
 
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js";
     script.async = true;
-    script.onload = () => { satLib = w.satellite; resolve(satLib); };
+    script.onload = () => { satLib = window.satellite; resolve(satLib); };
     script.onerror = () => reject(new Error("Failed to load satellite.js"));
     document.head.appendChild(script);
   });
@@ -58,7 +58,9 @@ try {
       lastFetch = parsed.ts;
     }
   }
-} catch {}
+} catch (_e) {
+  // localStorage may be unavailable (private browsing)
+}
 
 async function fetchTLEs() {
   // TLE data updates ~daily. Cache for 12 hours.
@@ -90,7 +92,7 @@ async function fetchTLEs() {
   // Persist to localStorage for cross-reload caching
   try {
     localStorage.setItem("tle-cache", JSON.stringify({ data: results, ts: lastFetch }));
-  } catch {}
+  } catch (e) { logger.swallow("orbit-tracker:cache-write", e, "debug"); }
 
   return results;
 }
@@ -122,7 +124,7 @@ export async function getSatellitePositions(maxCount = 50): Promise<SatelliteInf
       const speed = Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2);
 
       positions.push({ name: tle.name, type: tle.type, lat, lng, altitude, velocity: speed, tle1: tle.tle1, tle2: tle.tle2 });
-    } catch {}
+    } catch (e) { logger.swallow("orbit-tracker:propagate", e); }
   }
 
   return positions;

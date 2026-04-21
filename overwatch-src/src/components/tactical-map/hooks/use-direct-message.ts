@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { logger } from "@/lib/logger";
 import { sendDM } from "@/lib/supabase/db-messages";
 
 export function useDirectMessage(companyId: string) {
@@ -13,7 +14,7 @@ export function useDirectMessage(companyId: string) {
       await sendDM(companyId, dmTarget.userId, dmText.trim());
       setDmTarget(null);
       setDmText("");
-    } catch {}
+    } catch (e) { logger.swallow("map-dm:send", e, "warn"); }
     setDmSending(false);
   };
 

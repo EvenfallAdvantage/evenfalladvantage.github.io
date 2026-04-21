@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Channel = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,7 +37,7 @@ export type ExtMeta = { external: true; platform: string; url: string };
 
 export function parseExt(desc: string | null): ExtMeta | null {
   if (!desc) return null;
-  try { const m = JSON.parse(desc); if (m?.external && m?.url) return m; } catch {}
+  try { const m = JSON.parse(desc); if (m?.external && m?.url) return m; } catch (e) { logger.swallow("chat:parse-ext-meta", e, "debug"); }
   return null;
 }
 

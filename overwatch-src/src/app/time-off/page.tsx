@@ -11,6 +11,7 @@ import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTim
 import { parseUTC } from "@/lib/parse-utc";
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Request = any;
@@ -61,7 +62,7 @@ export default function TimeOffPage() {
           setAllRequests(await getAllTimeOffRequests(activeCompanyId));
         }
       }
-    } catch {} finally { setLoading(false); }
+    } catch (e) { logger.swallow("time-off:load", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId, isAdmin]);
 
   useEffect(() => { load(); }, [load]);

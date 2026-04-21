@@ -10,6 +10,7 @@
 
 import { createClient } from "./client";
 import { ensureInternalUser } from "./db-helpers";
+import { logger } from "@/lib/logger";
 import { logDbReadError } from "./db-error";
 
 /**
@@ -352,7 +353,7 @@ export function startLocationWatcher(
           // Returned inside geofence
           lastBreachEventId = null;
         }
-      } catch {}
+      } catch (e) { logger.swallow("db-location:geofence-check", e, "warn"); }
     }
   }, 30000);
 

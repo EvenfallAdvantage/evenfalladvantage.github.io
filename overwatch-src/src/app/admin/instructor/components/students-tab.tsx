@@ -11,6 +11,7 @@ import {
   getLegacyStudents, getLegacyProgress, issueLegacyCertificate,
   type LegacyStudent, type LegacyModuleProgress,
 } from "@/lib/legacy-bridge";
+import { logger } from "@/lib/logger";
 
 interface StudentsTabProps {
   instructorId: string | null;
@@ -32,7 +33,7 @@ export function StudentsTab({ instructorId }: StudentsTabProps) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setStudents(await getLegacyStudents()); } catch {}
+    try { setStudents(await getLegacyStudents()); } catch (e) { logger.swallow("instructor-students:load", e, "warn"); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -41,7 +42,7 @@ export function StudentsTab({ instructorId }: StudentsTabProps) {
     if (expandedId === studentId) { setExpandedId(null); return; }
     setExpandedId(studentId);
     setProgressLoading(true);
-    try { setProgress(await getLegacyProgress(studentId)); } catch {}
+    try { setProgress(await getLegacyProgress(studentId)); } catch (e) { logger.swallow("instructor-students:load-progress", e, "warn"); }
     finally { setProgressLoading(false); }
   }
 

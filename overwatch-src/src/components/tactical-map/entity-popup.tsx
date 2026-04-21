@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { escapeHtml } from "@/lib/security";
+import { escapeHtml, sanitizeHtml } from "@/lib/security";
 
 interface EntityPopupProps {
   entity: {
@@ -54,7 +54,9 @@ export function EntityPopup({ entity, containerWidth, onClose }: EntityPopupProp
         <div
           className="px-3 py-2.5 text-[11px] text-white/80 font-mono leading-relaxed max-h-48 overflow-y-auto [&_strong]:text-accent [&_b]:text-accent"
           dangerouslySetInnerHTML={{
-            __html: entity.description || `<b>${escapeHtml(entity.name)}</b>`,
+            __html: entity.description
+              ? sanitizeHtml(entity.description)
+              : `<b>${escapeHtml(entity.name)}</b>`,
           }}
         />
       </div>

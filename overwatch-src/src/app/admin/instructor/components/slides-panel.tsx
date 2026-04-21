@@ -12,16 +12,8 @@ import {
   getLegacySlides, createLegacySlide, updateLegacySlide, deleteLegacySlide,
   type LegacySlide,
 } from "@/lib/legacy-bridge";
-
-/** Strip dangerous HTML constructs while preserving safe formatting */
-function sanitizeSlideHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, "")
-    .replace(/\bon\w+\s*=\s*[^\s>]*/gi, "")
-    .replace(/javascript\s*:/gi, "blocked:")
-    .replace(/data\s*:(?!image\/(png|jpeg|gif|svg\+xml|webp))/gi, "blocked:");
-}
+import { sanitizeHtml } from "@/lib/security";
+import { logger } from "@/lib/logger";
 
 const SLIDE_TYPES = [
   { value: "text", label: "Text", icon: Type },
@@ -57,7 +49,7 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
 
   const loadSlides = useCallback(async () => {
     setSlidesLoading(true);
-    try { setSlides(await getLegacySlides(moduleId)); } catch {}
+    try { setSlides(await getLegacySlides(moduleId)); } catch (e) { logger.swallow("instructor-slides:load", e, "warn"); }
     finally { setSlidesLoading(false); }
   }, [moduleId]);
 
@@ -124,7 +116,7 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
           </div>
           {previewSlide.image_url && <NextImage src={previewSlide.image_url} alt="Slide preview" className="rounded max-h-40 object-contain" width={400} height={160} unoptimized />}
           {previewSlide.content ? (
-            <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeSlideHtml(previewSlide.content) }} />
+            <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed" dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewSlide.content) }} />
           ) : <p className="text-[10px] text-muted-foreground italic">No content</p>}
         </div>
       )}

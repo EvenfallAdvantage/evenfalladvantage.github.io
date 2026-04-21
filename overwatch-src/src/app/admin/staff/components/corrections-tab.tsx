@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCompanyTimeChangeRequests, reviewTimeChangeRequest } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TCR = any;
@@ -26,7 +27,7 @@ export function CorrectionsTab({ activeCompanyId, canManage }: CorrectionsTabPro
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
     try {
       setTimeChangeReqs(await getCompanyTimeChangeRequests(activeCompanyId));
-    } catch {}
+    } catch (e) { logger.swallow("corrections:load", e, "warn"); }
     finally { setLoading(false); }
   }, [activeCompanyId]);
 

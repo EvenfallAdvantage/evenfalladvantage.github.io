@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { getCompanyTimesheets, approveTimesheet, unapproveTimesheet, deleteTimesheet } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sheet = any;
@@ -31,7 +32,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
     try {
       const ts = await getCompanyTimesheets(activeCompanyId);
       setTimesheets(ts.filter((t: Sheet) => t.clock_out));
-    } catch {}
+    } catch (e) { logger.swallow("timesheets-admin:load", e, "warn"); }
     finally { setLoading(false); }
   }, [activeCompanyId]);
 

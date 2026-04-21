@@ -10,6 +10,7 @@ import {
   getPostComments, addPostComment,
 } from "@/lib/supabase/db";
 import type { Post } from "./shared";
+import { logger } from "@/lib/logger";
 
 interface PinnedBriefingProps {
   activeCompanyId: string;
@@ -32,7 +33,7 @@ export function PinnedBriefing({ activeCompanyId, userId }: PinnedBriefingProps)
     try {
       const p = await getPosts(activeCompanyId, 5);
       setPosts(p);
-    } catch {}
+    } catch (e) { logger.swallow("pinned-briefing:load-posts", e, "warn"); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
@@ -55,7 +56,7 @@ export function PinnedBriefing({ activeCompanyId, userId }: PinnedBriefingProps)
       const [c, r] = await Promise.all([getPostComments(postId), getPostReactions(postId)]);
       setPostComments((prev) => ({ ...prev, [postId]: c }));
       setPostReactions((prev) => ({ ...prev, [postId]: r }));
-    } catch {}
+    } catch (e) { logger.swallow("pinned-briefing:load-engagement", e, "debug"); }
   }
 
   async function handleSendComment(postId: string) {

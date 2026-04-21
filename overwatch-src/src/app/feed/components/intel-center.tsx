@@ -19,6 +19,7 @@ import {
   PROVIDER_LABELS,
   type CompanyStats, type IntelData, type OwnerIntel,
 } from "./shared";
+import { logger } from "@/lib/logger";
 
 interface IntelCenterProps {
   activeCompanyId: string;
@@ -40,7 +41,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
         try {
           const oi = await getOwnerIntel(activeCompanyId);
           if (!cancelled) setOwnerIntel(oi);
-        } catch {}
+        } catch (e) { logger.swallow("intel-center:load-owner", e, "warn"); }
       }).catch(() => {});
     return () => { cancelled = true; };
   }, [activeCompanyId]);

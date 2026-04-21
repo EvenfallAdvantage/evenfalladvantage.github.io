@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { timeAgo } from "@/lib/utils";
 import { MediaEmbed, ContentWithEmbeds } from "./media-embed";
 import { getPostComments, getPostReactions, togglePostReaction, addPostComment, deletePostComment } from "@/lib/supabase/db";
+import { logger } from "@/lib/logger";
 
 const POST_TYPES = [
   { value: "update", label: "Update", icon: Radar, color: "text-blue-500" },
@@ -79,7 +80,7 @@ export function BriefingPostCard({
       const [c, r] = await Promise.all([getPostComments(post.id), getPostReactions(post.id)]);
       setComments(c);
       setReactions(r);
-    } catch {}
+    } catch (e) { logger.swallow("briefing-post-card:load-engagement", e, "debug"); }
   }
 
   async function handleReaction() {

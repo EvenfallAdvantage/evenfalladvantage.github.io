@@ -19,6 +19,7 @@ import SavedAssessmentsPanel from "./components/saved-assessments-panel";
 import AssessmentForm from "./components/assessment-form";
 import RiskResultsDisplay from "./components/risk-results-display";
 import { generateAssessmentPDF } from "./components/assessment-pdf";
+import { logger } from "@/lib/logger";
 
 export default function SiteAssessmentPage() {
   const searchParams = useSearchParams();
@@ -84,14 +85,14 @@ export default function SiteAssessmentPage() {
             setExpandedSections(new Set(SECTIONS.map((s) => s.id)));
           }
         }
-      } catch {}
+      } catch (e) { logger.swallow("site-assessment:load-draft", e, "debug"); }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-save to localStorage
   const save = useCallback(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { logger.swallow("site-assessment:save-draft", e, "debug"); }
   }, [data]);
   useEffect(() => { save(); }, [save]);
 

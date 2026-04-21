@@ -10,6 +10,7 @@ import {
   type JobPosting,
 } from "@/lib/supabase/db-postings";
 import { PostingFormModal } from "./posting-form-modal";
+import { logger } from "@/lib/logger";
 
 interface PostingsTabProps {
   activeCompanyId: string;
@@ -38,7 +39,7 @@ export function PostingsTab({ activeCompanyId, canManage: _canManage, companyNam
       ]);
       setPostings(p);
       setPostingCounts(c);
-    } catch {}
+    } catch (e) { logger.swallow("postings:load", e, "warn"); }
     finally { setLoading(false); }
   }, [activeCompanyId]);
 

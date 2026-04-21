@@ -23,17 +23,15 @@ export function loadCesium(): Promise<typeof globalThis.Cesium> {
   }
 
   // Already loaded
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const w = window as any;
-  if (w.Cesium) {
-    return Promise.resolve(w.Cesium);
+  if (window.Cesium) {
+    return Promise.resolve(window.Cesium);
   }
 
   if (loadPromise) return loadPromise;
 
   loadPromise = new Promise((resolve, reject) => {
     // Set base URL before the script loads
-    w.CESIUM_BASE_URL = CESIUM_CDN;
+    window.CESIUM_BASE_URL = CESIUM_CDN;
 
     // Load CSS
     if (!document.querySelector('link[href*="cesium"]')) {
@@ -48,9 +46,9 @@ export function loadCesium(): Promise<typeof globalThis.Cesium> {
     script.src = `${CESIUM_CDN}/Cesium.js`;
     script.async = true;
     script.onload = () => {
-      if (w.Cesium) {
-        w.Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
-        resolve(w.Cesium);
+      if (window.Cesium) {
+        window.Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
+        resolve(window.Cesium);
       } else {
         reject(new Error("CesiumJS failed to initialize"));
       }

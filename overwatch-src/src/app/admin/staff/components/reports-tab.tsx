@@ -16,6 +16,7 @@ import {
   getIncidents, updateIncident, deleteIncident, addIncidentUpdate,
 } from "@/lib/supabase/db";
 import { exportCSV, INCIDENT_COLUMNS } from "@/lib/csv-export";
+import { logger } from "@/lib/logger";
 
 interface FormSub {
   id: string;
@@ -72,7 +73,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
       ]);
       setFormSubmissions(forms);
       setIncidents(incs);
-    } catch {}
+    } catch (e) { logger.swallow("reports:load", e, "warn"); }
     finally { setLoading(false); }
   }, [activeCompanyId]);
 

@@ -27,6 +27,7 @@ import { ReportsTab } from "./components/reports-tab";
 import { ApplicantsTab } from "./components/applicants-tab";
 import { RosterTab } from "./components/roster-tab";
 import { getCompanyPostings } from "@/lib/supabase/db-postings";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -110,7 +111,7 @@ export default function AdminStaffPage() {
       ]).then(([pendingTimesheets, pendingLeave, pendingForms, openIncidents, pendingCorrections, newApplicants, activePostings]) => {
         setCounts({ pendingTimesheets, pendingLeave, pendingForms, openIncidents, pendingCorrections, newApplicants, activePostings });
       });
-    } catch {} finally { setLoading(false); }
+    } catch (e) { logger.swallow("staff-dashboard:load-counts", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);

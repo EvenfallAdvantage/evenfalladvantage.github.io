@@ -13,6 +13,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { usePageHeader } from "@/stores/page-header-store";
 import Image from "next/image";
+import { logger } from "@/lib/logger";
 
 type LineItem = {
   id: number;
@@ -83,14 +84,14 @@ export default function InvoicesPage() {
         if (data.nextId) setNextId(data.nextId);
         if (data.logoUrl) setLogoUrl(data.logoUrl);
       }
-    } catch {}
+    } catch (e) { logger.swallow("invoices:load-draft", e, "debug"); }
   }, []);
 
   // Save to localStorage on changes
   const save = useCallback(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, items, nextId, logoUrl }));
-    } catch {}
+    } catch (e) { logger.swallow("invoices:save-draft", e, "debug"); }
   }, [form, items, nextId, logoUrl]);
 
   useEffect(() => { save(); }, [save]);
@@ -154,7 +155,7 @@ export default function InvoicesPage() {
       // ─── Row 1: Logo + Invoice meta (side by side) ───
       const logoH = logoUrl ? 22 : 0;
       if (logoUrl) {
-        try { pdf.addImage(logoUrl, "PNG", M, y, 22, 22); } catch {}
+        try { pdf.addImage(logoUrl, "PNG", M, y, 22, 22); } catch (e) { logger.swallow("invoices-pdf:logo", e, "debug"); }
       }
 
       // Invoice # / Date / Due right-aligned at top

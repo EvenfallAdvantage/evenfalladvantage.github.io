@@ -29,6 +29,7 @@ import { WeeklyHoursCalendar } from "@/components/timeclock/weekly-hours-calenda
 import { RecentWatchLog } from "@/components/timeclock/recent-watch-log";
 import { ShiftDetailModal } from "@/components/timeclock/shift-detail-modal";
 import { ClockInModal } from "@/components/timeclock/clock-in-modal";
+import { logger } from "@/lib/logger";
 
 const ScanPage = dynamic(() => import("@/app/scan/page"), { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
@@ -140,7 +141,7 @@ function TimeClockInner() {
       if (enabled) {
         locationStopRef.current = startLocationWatcher(authUser.id, activeCompanyId);
       }
-    } catch {}
+    } catch (e) { logger.swallow("timeclock:location-start", e, "debug"); }
   }
 
   async function handleClockIn() {

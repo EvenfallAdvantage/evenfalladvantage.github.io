@@ -12,6 +12,7 @@ import { usePageHeader } from "@/stores/page-header-store";
 
 import { BriefingComposer } from "@/components/updates/briefing-composer";
 import { BriefingPostCard } from "@/components/updates/briefing-post-card";
+import { logger } from "@/lib/logger";
 
 interface PostReaction {
   id: string;
@@ -83,7 +84,7 @@ export default function UpdatesPage() {
         setReactions(rMap);
         setComments(cMap);
       }
-    } catch {} finally { setLoading(false); }
+    } catch (e) { logger.swallow("updates:load", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);

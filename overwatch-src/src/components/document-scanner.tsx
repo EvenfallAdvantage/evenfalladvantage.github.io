@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { X, RotateCcw, Check, FlipHorizontal, Zap, ZapOff, Sun, Contrast, Move } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 
 type Props = {
   onCapture: (file: File) => void;
@@ -279,7 +280,7 @@ export default function DocumentScanner({ onCapture, onClose }: Props) {
       // @ts-expect-error - torch not in standard TS MediaTrackConstraints types
       await track.applyConstraints({ advanced: [{ torch: newVal }] });
       setTorch(newVal);
-    } catch { /* no torch support */ }
+    } catch (e) { logger.swallow("document-scanner:torch", e, "debug"); }
   }
 
   async function flipCamera() {

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fetchUserProfile, registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
 import { seedInternalUserId, clearInternalUserCache } from "@/lib/supabase/db-helpers";
 import { useAuthStore } from "@/stores/auth-store";
+import { logger } from "@/lib/logger";
 import type { SessionUser, CompanyContext } from "@/types";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -102,9 +103,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
           return;
         }
-      } catch {
-        // DB not ready or tables missing — fall back to metadata
-      }
+    } catch (e) {
+      logger.swallow("auth-provider:load-profile-fallback", e, "debug");
+    }
 
       // Fallback: use Supabase auth metadata
       setUser(mapSupabaseUser(authUser));

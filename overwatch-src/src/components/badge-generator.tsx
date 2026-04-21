@@ -9,6 +9,7 @@ import { getCompanyMembers } from "@/lib/supabase/db";
 import { getOrCreateBadge, getCompanyBadges, type StaffBadge } from "@/lib/supabase/db-badges";
 import QRCode from "qrcode";
 import { downloadBadgeCard } from "./badge-download";
+import { logger } from "@/lib/logger";
 
 interface BadgeGeneratorProps {
   companyId: string;
@@ -45,13 +46,13 @@ export function BadgeGenerator({ companyId, companyName, companyLogo, brandColor
             qrMap[b.user_id] = await QRCode.toDataURL(b.qr_data, {
               width: 200, margin: 1, color: { dark: "#000000", light: "#ffffff" }, errorCorrectionLevel: "H",
             });
-          } catch {}
+          } catch (e) { logger.swallow("badge-generator:qr-encode", e, "debug"); }
         }
         if (!cancelled) {
           setBadges(badgeMap);
           setQrImages(qrMap);
         }
-      } catch {}
+      } catch (e) { logger.swallow("badge-generator:load", e, "warn"); }
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };

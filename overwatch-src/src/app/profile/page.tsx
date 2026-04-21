@@ -19,6 +19,7 @@ import { WorkHistoryCard } from "./components/work-history-card";
 import { ProfileActivityTabs } from "./components/profile-activity-tabs";
 import { ProfileBadgeCard } from "./components/profile-badge-card";
 import { PayStubCard } from "./components/pay-stub-card";
+import { logger } from "@/lib/logger";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -46,8 +47,8 @@ export default function ProfilePage() {
       try {
         const profile = await getMemberProfile(activeCompanyId);
         setMp(profile);
-      } catch {}
-      try { setOnboardingProgress(await getMyOnboardingProgress(activeCompanyId)); } catch {}
+      } catch (e) { logger.swallow("profile:load-member", e, "warn"); }
+      try { setOnboardingProgress(await getMyOnboardingProgress(activeCompanyId)); } catch (e) { logger.swallow("profile:load-onboarding", e, "debug"); }
       setMpLoaded(true);
     })();
   }, [activeCompanyId, mpLoaded]);

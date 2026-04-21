@@ -7,6 +7,7 @@
  */
 
 import { getLegacyCrimeData } from "@/lib/legacy-bridge";
+import { logger } from "@/lib/logger";
 
 export type RiskLevel = "Negligible" | "Low" | "Moderate" | "High" | "Critical";
 
@@ -317,7 +318,7 @@ export async function geocodeAddress(
           geocoded: true,
         };
       }
-    } catch { /* try next query */ }
+    } catch (e) { logger.swallow("geo-risk:geocode-try", e, "debug"); }
   }
   return { lat: null, lon: null, county: "", city, state, displayName: `${city}, ${state}`, geocoded: false };
 }
@@ -364,7 +365,7 @@ export async function getMultiTierCrimeData(
       _crimeCache[cacheKey] = { data: result, ts: Date.now() };
       return result;
     }
-  } catch { /* RPC unavailable — fall through to static */ }
+  } catch (e) { logger.swallow("geo-risk:crime-rpc-fallback", e, "debug"); }
 
   // ── Fallback: Static data ──
   const result = getStaticCrimeData(city, county, state);

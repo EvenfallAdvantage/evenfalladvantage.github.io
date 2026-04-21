@@ -1,6 +1,7 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
+import { logger } from "@/lib/logger";
 
 // ─── Posts (Briefing) ───────────────────────────────────
 
@@ -276,7 +277,7 @@ export async function deleteKBDocument(docId: string) {
       if (pathMatch) {
         await supabase.storage.from("field-manual").remove([decodeURIComponent(pathMatch[1])]);
       }
-    } catch {}
+    } catch (e) { logger.swallow("db-content:delete-kb-storage", e, "warn"); }
   }
   const { error } = await supabase.from("kb_documents").delete().eq("id", docId);
   if (error) throw error;
@@ -440,7 +441,7 @@ export async function sendChatMessage(params: {
       { id: crypto.randomUUID(), channel_id: params.channelId, user_id: userId, role: "member", joined_at: new Date().toISOString() },
       { onConflict: "channel_id,user_id" }
     );
-  } catch {}
+  } catch (e) { logger.swallow("db-content:chat-member-ensure", e, "debug"); }
   const { data, error } = await supabase
     .from("chat_messages")
     .insert({
@@ -502,7 +503,7 @@ export async function updateLastRead(channelId: string) {
   // We use delete+insert because the chat_members RLS has no UPDATE policy.
   try {
     await supabase.from("chat_members").delete().eq("channel_id", channelId).eq("user_id", userId);
-  } catch {}
+  } catch (e) { logger.swallow("db-content:chat-member-delete", e, "debug"); }
   try {
     await supabase.from("chat_members").insert({
       id: crypto.randomUUID(),
@@ -512,7 +513,7 @@ export async function updateLastRead(channelId: string) {
       role: "member",
       joined_at: new Date().toISOString(),
     });
-  } catch {}
+  } catch (e) { logger.swallow("db-content:chat-member-reinsert", e, "debug"); }
 }
 
 export async function getUnreadCounts(companyId: string) {

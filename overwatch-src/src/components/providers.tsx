@@ -10,12 +10,13 @@ import BrandThemeProvider from "@/components/brand-theme-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { installGlobalErrorHandlers } from "@/lib/error-tracker";
 import { useAuthStore } from "@/stores/auth-store";
+import { logger } from "@/lib/logger";
 import { useState, useEffect } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/overwatch/sw.js").catch(() => {});
+      navigator.serviceWorker.register("/overwatch/sw.js").catch((e) => { logger.swallow("sw:register", e, "debug"); });
     }
     // Install global error tracking
     installGlobalErrorHandlers();
@@ -24,8 +25,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // Expose minimal auth context for error tracker (scoped — no PII)
   useEffect(() => {
     const unsub = useAuthStore.subscribe((state) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).__OVERWATCH_AUTH_STORE__ = {
+      window.__OVERWATCH_AUTH_STORE__ = {
         userId: state.user?.id ?? null,
         activeCompanyId: state.activeCompanyId ?? null,
       };

@@ -20,6 +20,7 @@ import {
   markDocumentRead, unmarkDocumentRead, getUserDocumentReads,
   getDocumentReadStatus, getCompanyMembers, updateKBFolderOrder,
 } from "@/lib/supabase/db";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Folder = any;
@@ -103,7 +104,7 @@ export default function KnowledgeBasePage() {
 
   const loadFolders = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
-    try { setFolders(await getKBFolders(activeCompanyId)); } catch {} finally { setLoading(false); }
+    try { setFolders(await getKBFolders(activeCompanyId)); } catch (e) { logger.swallow("kb:load-folders", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { loadFolders(); }, [loadFolders]);

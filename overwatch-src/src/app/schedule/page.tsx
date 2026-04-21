@@ -23,6 +23,7 @@ import type { OperationPin, StaffPin, IncidentPin } from "@/components/tactical-
 import { fmtDate, fmtTime, type Ev, type Shift, type Asset } from "./components/schedule-helpers";
 import { ScheduleTab } from "./components/schedule-tab";
 import { ArmoryTab } from "./components/armory-tab";
+import { logger } from "@/lib/logger";
 
 const TacticalMap = dynamic(() => import("@/components/tactical-map").then(m => ({ default: m.TacticalMap })), { ssr: false, loading: () => <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
@@ -94,12 +95,12 @@ export default function SchedulePage() {
       ]);
       setEvents(ev);
       setShifts(sh);
-    } catch {} finally { setLoading(false); }
+    } catch (e) { logger.swallow("schedule:load", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
   const loadAssets = useCallback(async () => {
     if (!activeCompanyId || activeCompanyId === "pending") { setAssetsLoading(false); return; }
-    try { setAssets(await getAssets(activeCompanyId)); } catch {} finally { setAssetsLoading(false); }
+    try { setAssets(await getAssets(activeCompanyId)); } catch (e) { logger.swallow("schedule:load-assets", e, "debug"); } finally { setAssetsLoading(false); }
   }, [activeCompanyId]);
 
   useEffect(() => { loadSchedule(); loadAssets(); }, [loadSchedule, loadAssets]);
@@ -182,7 +183,7 @@ export default function SchedulePage() {
           ]);
           docsMap[ev.id] = docs.filter((d: OperationDocument) => d.status === "issued");
           availMap[ev.id] = avail;
-        } catch {}
+        } catch (e) { logger.swallow("schedule:load-event-docs", e, "debug"); }
       }));
       setEventDocs(docsMap);
       setMyAvail(availMap);

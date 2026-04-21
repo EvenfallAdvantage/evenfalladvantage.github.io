@@ -26,6 +26,7 @@ import { ActivityFeed } from "./activity-feed";
 import { AssessmentBadge } from "./assessment-linking";
 import { DocumentPanels, type DocPanelType } from "./document-panels";
 import { ShiftManagement } from "./shift-management";
+import { logger } from "@/lib/logger";
 
 interface OperationDetailProps {
   event: Event;
@@ -106,13 +107,13 @@ export function OperationDetail({
       try {
         const assessments = await getAssessmentsByEventId(ev.id);
         if (assessments.length > 0) setLinkedAssessment(assessments[0]);
-      } catch { /* assessment load optional */ }
+      } catch (e) { logger.swallow("operation-detail:load-assessment", e, "debug"); }
 
       // Load post orders
       try {
         const po = await getEventPostOrders(ev.id);
         if (po) { setPostOrders(po); setPostOrdersDraft(po); }
-      } catch { /* post orders load optional */ }
+      } catch (e) { logger.swallow("operation-detail:load-post-orders", e, "debug"); }
 
       // Load storyboard if event has a site map
       if (ev?.site_map_url) {
@@ -168,10 +169,8 @@ export function OperationDetail({
   function handleStoryboardPinsChange(newPins: StoryboardPin[]) {
     setStoryboardPins(newPins);
     if (activeCompanyId && activeCompanyId !== "pending") {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if ((window as any).__sbSaveTimer) clearTimeout((window as any).__sbSaveTimer);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).__sbSaveTimer = setTimeout(async () => {
+      if (window.__sbSaveTimer) clearTimeout(window.__sbSaveTimer);
+      window.__sbSaveTimer = setTimeout(async () => {
         try {
           const currentSbId = storyboardIdRef.current;
           let incidentPins: StoryboardPin[] = [];

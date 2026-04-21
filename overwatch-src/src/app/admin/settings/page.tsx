@@ -11,6 +11,7 @@ import LeavePoliciesSection from "./components/leave-policies-section";
 import FeatureVisibilitySection from "./components/feature-visibility-section";
 import IntegrationsSection from "./components/integrations-section";
 import ErrorLogViewer from "./components/error-log-viewer";
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Policy = any;
@@ -68,9 +69,9 @@ export default function AdminSettingsPage() {
       try {
         const ints = await getIntegrationsConfig(activeCompanyId);
         setIntegrations(ints);
-      } catch {}
+      } catch (e) { logger.swallow("admin-settings:load-integrations", e, "debug"); }
       setLoaded(true);
-    } catch {}
+    } catch (e) { logger.swallow("admin-settings:load", e, "warn"); }
   }, [activeCompanyId]);
 
   useEffect(() => { void load(); }, [load]); // eslint-disable-line -- async data-loading pattern

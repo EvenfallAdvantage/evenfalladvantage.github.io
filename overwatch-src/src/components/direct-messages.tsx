@@ -11,6 +11,7 @@ import {
   subscribeDMs, type DMConversation, type DirectMessage,
 } from "@/lib/supabase/db-messages";
 import { getCompanyMembers } from "@/lib/supabase/db";
+import { logger } from "@/lib/logger";
 
 interface DirectMessagesProps {
   companyId: string;
@@ -80,7 +81,7 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
       const lng = pos.coords.longitude.toFixed(6);
       await sendDM(companyId, selectedUserId, `📍 My location: ${lat}, ${lng}\nhttps://www.google.com/maps?q=${lat},${lng}`);
       await loadMessages(selectedUserId);
-    } catch { /* geolocation denied or failed */ }
+    } catch (e) { logger.swallow("direct-messages:share-location", e, "warn"); }
     finally { setSending(false); }
   }
 
@@ -106,7 +107,7 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
         avatar_url: member.users?.avatar_url ?? null,
         role: member.role,
       })).filter((m: { user_id: string }) => m.user_id && m.user_id !== user?.id));
-    } catch {}
+    } catch (e) { logger.swallow("direct-messages:load-members", e, "warn"); }
   }
 
   async function handleSelectNewRecipient(userId: string) {

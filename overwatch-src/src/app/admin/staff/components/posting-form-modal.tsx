@@ -8,6 +8,7 @@ import {
   createJobPosting, updateJobPosting,
   type JobPosting,
 } from "@/lib/supabase/db-postings";
+import { logger } from "@/lib/logger";
 
 interface PostingFormModalProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,7 +96,7 @@ export function PostingFormModal({ posting, activeCompanyId, onClose, onSaved }:
                 await createJobPosting(activeCompanyId, postingForm as Parameters<typeof createJobPosting>[1]);
               }
               onSaved();
-            } catch {}
+            } catch (e) { logger.swallow("posting-form:save", e, "warn"); }
             setSavingPosting(false);
           }}>
             {savingPosting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}

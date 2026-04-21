@@ -3,7 +3,10 @@
  *
  * FLIR Thermal: Simulates forward-looking infrared camera
  * CRT Mode: Retro surveillance monitor aesthetic
+ * @module
  */
+
+import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CesiumRef = any;
@@ -117,6 +120,6 @@ export function applyShader(viewer: CesiumRef, Cesium: CesiumRef, fragmentShader
  */
 export function removeShader(viewer: CesiumRef, stage: CesiumRef): void {
   if (stage) {
-    try { viewer.scene.postProcessStages.remove(stage); } catch {}
+    try { viewer.scene.postProcessStages.remove(stage); } catch (e) { logger.swallow("shaders:remove-stage", e); }
   }
 }

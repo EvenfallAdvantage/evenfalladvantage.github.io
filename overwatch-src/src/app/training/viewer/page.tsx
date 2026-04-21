@@ -15,17 +15,8 @@ import {
 import { getLegacyModules, getLegacySlides, updateLegacyProgress, type LegacySlide } from "@/lib/legacy-bridge";
 import { ensureStudentLinked } from "@/lib/account-linker";
 import { useAuthStore } from "@/stores/auth-store";
+import { sanitizeHtml } from "@/lib/security";
 import type { TrainingModule, ModuleSlide } from "@/types";
-
-/** Strip dangerous HTML constructs while preserving safe formatting */
-function sanitizeSlideHtml(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-    .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, "")
-    .replace(/\bon\w+\s*=\s*[^\s>]*/gi, "")
-    .replace(/javascript\s*:/gi, "blocked:")
-    .replace(/data\s*:(?!image\/(png|jpeg|gif|svg\+xml|webp))/gi, "blocked:");
-}
 
 export default function ModuleViewerPage() {
   return (
@@ -411,7 +402,7 @@ function ModuleViewerInner() {
               {/* Slide body */}
               <div
                 className="prose prose-sm dark:prose-invert max-w-none px-6 py-6"
-                dangerouslySetInnerHTML={{ __html: sanitizeSlideHtml(slide.content_html) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(slide.content_html) }}
               />
             </CardContent>
           </Card>

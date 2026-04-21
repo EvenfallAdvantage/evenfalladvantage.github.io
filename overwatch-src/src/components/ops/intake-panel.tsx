@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { IntakeData, OperationDocument } from "@/types/operations";
 import { createIntakeShare, getEventShares, type IntakeShare } from "@/lib/supabase/db-intake-shares";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 /* ── Chip option lists ──────────────────────────────── */
 
@@ -292,7 +293,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
         <div className="flex items-center gap-1">
           <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={async () => {
             setShowShareModal(true);
-            try { setShares(await getEventShares(eventId)); } catch {}
+            try { setShares(await getEventShares(eventId)); } catch (e) { logger.swallow("intake-panel:load-shares", e, "warn"); }
           }}>
             <Share2 className="h-3 w-3" /> Share
           </Button>

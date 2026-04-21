@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Camera, CameraOff, X, SwitchCamera, Flashlight, FlashlightOff, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 
 interface QrScannerProps {
   onScan: (value: string) => void;
@@ -39,7 +40,7 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
       scannerRef.current = null;
     }
     if (html5ScannerRef.current) {
-      try { html5ScannerRef.current.stop().catch(() => {}); } catch { /* ignore */ }
+      try { html5ScannerRef.current.stop().catch(() => {}); } catch (e) { logger.swallow("qr-scanner:stop-cleanup", e, "trace"); }
       html5ScannerRef.current = null;
     }
     if (streamRef.current) {
@@ -87,8 +88,8 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
       if (caps.torch) {
         if (mountedRef.current) setHasTorch(true);
       }
-    } catch {
-      // Advanced constraints not supported — camera still works
+    } catch (e) {
+      logger.swallow("qr-scanner:camera-caps", e, "debug");
     }
   }, []);
 
@@ -137,7 +138,7 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cameras = devices.filter((d) => d.kind === "videoinput");
       if (mountedRef.current) setHasMultipleCameras(cameras.length > 1);
-    } catch { /* ignore */ }
+    } catch (e) { logger.swallow("qr-scanner:enumerate-devices", e, "debug"); }
 
     // Prefer native BarcodeDetector (Chrome/Edge/Android, Safari 17.2+)
     const hasNative = "BarcodeDetector" in window;
@@ -164,8 +165,8 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
           await videoRef.current.play();
           if (mountedRef.current) setScanning(true);
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const BD = (window as any).BarcodeDetector;
+          const BD = window.BarcodeDetector;
+          if (!BD) return;
           const detector = new BD({ formats: ["qr_code", "code_128", "code_39", "ean_13", "ean_8", "upc_a", "upc_e"] });
           scannerRef.current = setInterval(async () => {
             if (!videoRef.current || videoRef.current.readyState < 2 || scannedRef.current) return;
@@ -174,7 +175,7 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
               if (barcodes.length > 0 && barcodes[0].rawValue && mountedRef.current) {
                 handleDetected(barcodes[0].rawValue);
               }
-            } catch { /* frame error */ }
+            } catch (e) { logger.swallow("qr-scanner:frame-detect", e, "trace"); }
           }, 150);
         }
       } catch (err: unknown) {
@@ -217,7 +218,7 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await track.applyConstraints({ advanced: [{ torch: next } as any] });
       setTorchOn(next);
-    } catch { /* torch not supported */ }
+    } catch (e) { logger.swallow("qr-scanner:torch", e, "debug"); }
   }
 
   // Adjust zoom
@@ -229,7 +230,7 @@ export default function QrScanner({ onScan, onClose, title = "Scan QR / Barcode"
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await track.applyConstraints({ advanced: [{ zoom: next } as any] });
       setZoomLevel(next);
-    } catch { /* zoom not supported */ }
+    } catch (e) { logger.swallow("qr-scanner:zoom", e, "debug"); }
   }
 
   useEffect(() => {

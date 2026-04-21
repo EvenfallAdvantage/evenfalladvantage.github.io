@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { logger } from "@/lib/logger";
 import type { ActiveTool, DrawMode } from "../map-tools";
 import { haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "../map-tools";
 import type { Waypoint } from "../drone-planner";
@@ -132,8 +133,7 @@ export function useCesiumClickHandler(params: {
       const lng = Cesium.Math.toDegrees(Cesium.Cartographic.fromCartesian(cartesian).longitude);
 
       // Site map aligner — feed globe points
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const alignerFn = (window as any).__siteMapAlignerAddPoint;
+      const alignerFn = window.__siteMapAlignerAddPoint;
       if (alignerFn && aligningOp) {
         alignerFn(lat, lng);
         return;
@@ -395,7 +395,7 @@ export function useCesiumClickHandler(params: {
     viewer.camera.moveStart.addEventListener(handler);
     return () => {
       clearTimeout(armTimer);
-      try { viewer.camera.moveStart.removeEventListener(handler); } catch {}
+      try { viewer.camera.moveStart.removeEventListener(handler); } catch (e) { logger.swallow("click-handler:remove-listener", e); }
     };
   }, [selectedEntity?.id, selectedEntity, viewerRef]);
 

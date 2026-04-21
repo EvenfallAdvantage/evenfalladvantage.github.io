@@ -10,6 +10,7 @@ import {
   createLegacyAssessment, updateLegacyAssessment,
   type LegacyAssessment, type LegacyModule,
 } from "@/lib/legacy-bridge";
+import { logger } from "@/lib/logger";
 
 interface AssessmentsTabProps {
   triggerNew: number;
@@ -42,7 +43,7 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
     try {
       const [a, m] = await Promise.all([getLegacyAssessments(), getLegacyModules()]);
       setAssessments(a); setModules(m);
-    } catch {}
+    } catch (e) { logger.swallow("instructor-assessments:load", e, "warn"); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);

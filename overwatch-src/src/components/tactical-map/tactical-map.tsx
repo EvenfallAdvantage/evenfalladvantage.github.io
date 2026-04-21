@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { logger } from "@/lib/logger";
 import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-layers-panel";
@@ -47,13 +48,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) return { ...DEFAULT_LAYERS, ...JSON.parse(saved) };
-    } catch {}
+    } catch (e) { logger.swallow("tactical-map:layers-read", e, "debug"); }
     return DEFAULT_LAYERS;
   });
   const setLayers = useCallback((update: LayerVisibility | ((prev: LayerVisibility) => LayerVisibility)) => {
     setLayersRaw(prev => {
       const next = typeof update === "function" ? update(prev) : update;
-      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch {}
+      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch (e) { logger.swallow("tactical-map:layers-write", e, "debug"); }
       return next;
     });
   }, [storageKey]);
@@ -152,12 +153,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         if (destroyed) { viewer.destroy(); return; }
         viewerRef.current = viewer;
         // Expose viewer for site-map-aligner globe markers
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).__tacticalMapViewer = viewer;
+        window.__tacticalMapViewer = viewer;
 
         // Expose annotation delete handler for popup onclick
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).__deleteAnnotation = (annId: string) => {
+        window.__deleteAnnotation = (annId: string) => {
           deleteAnnotation(annId).then(() => {
             setSelectedEntityRef.current?.(null);
           });
@@ -165,8 +164,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
         // Expose doc viewer handler for operation pin popups
         // Uses ref to always access latest docs (closure would capture stale state)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).__openOpDoc = (eventId: string, docType: string) => {
+        window.__openOpDoc = (eventId: string, docType: string) => {
           const docs = eventDocsRef.current[eventId] ?? [];
           const doc = docs.find((d: OperationDocument) => d.doc_type === docType);
           if (doc) {
@@ -176,8 +174,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         };
 
         // Expose DM handler for staff pin popups — opens inline modal
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (window as any).__openStaffDM = (userId: string, name: string) => {
+        window.__openStaffDM = (userId: string, name: string) => {
           setDmTarget({ userId, name: name || "Staff" });
           setDmText("");
           setSelectedEntityRef.current?.(null);
@@ -201,7 +198,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
             });
             cameraRestored = true;
           }
-        } catch {}
+        } catch (e) { logger.swallow("tactical-map:camera-restore", e, "debug"); }
         if (!cameraRestored) {
           viewer.camera.flyTo({
             destination: Cesium.Cartesian3.fromDegrees(CONUS_CENTER.lng, CONUS_CENTER.lat, 5000000),
@@ -224,7 +221,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
                 pitch: viewer.camera.pitch,
               };
               localStorage.setItem(cameraKey, JSON.stringify(cam));
-            } catch {}
+            } catch (e) { logger.swallow("tactical-map:camera-save", e, "debug"); }
           }, 500);
         });
 
@@ -254,16 +251,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       viewerRef.current = null;
       cesiumRef.current = null;
       // Clean up global references on unmount
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).__tacticalMapViewer;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).__deleteAnnotation;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).__siteMapAlignerAddPoint;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).__openStaffDM;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (window as any).__openOpDoc;
+      delete window.__tacticalMapViewer;
+      delete window.__deleteAnnotation;
+      delete window.__siteMapAlignerAddPoint;
+      delete window.__openStaffDM;
+      delete window.__openOpDoc;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: Cesium viewer init must run once
   }, []);

@@ -15,6 +15,7 @@
  * Failures do NOT block the hiring flow — they're logged and reported.
  */
 
+import { logger } from "@/lib/logger";
 import { sendEmail, buildWelcomeEmail } from "./email-service";
 import { sendWhatsAppWelcome, getWhatsAppCommunityLink } from "./whatsapp-service";
 import { triggerBackgroundCheck } from "./checkr-service";
@@ -66,7 +67,7 @@ export async function onApplicantHired(ctx: HireContext): Promise<HireResult> {
   if (waActive) {
     try {
       communityLink = (await getWhatsAppCommunityLink(ctx.companyId)) ?? undefined;
-    } catch {}
+    } catch (e) { logger.swallow("hiring-orchestrator:wa-link", e, "debug"); }
   }
 
   // ─── 1. Welcome Email ────────────────────────────────
