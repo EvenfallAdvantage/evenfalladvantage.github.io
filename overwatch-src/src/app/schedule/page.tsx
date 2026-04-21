@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   CalendarDays, Loader2, QrCode, Globe, Plus,
@@ -340,12 +341,14 @@ export default function SchedulePage() {
 
       {/* ── Map Tab ── */}
       {tab === "map" && (
-        <TacticalMap
-          operations={mapOps} staff={mapStaff} incidents={mapIncidents}
-          companyId={activeCompanyId ?? ""} isAdmin={isAdmin}
-          onSelectOperation={(id) => { window.location.href = `/overwatch/admin/events?expand=${id}`; }}
-          onMessageStaff={(userId) => { window.location.href = `/overwatch/chat?dm=${userId}`; }}
-        />
+        <ErrorBoundary fallback={<div className="flex justify-center py-24 text-sm text-muted-foreground">Failed to load map. Try refreshing the page.</div>}>
+          <TacticalMap
+            operations={mapOps} staff={mapStaff} incidents={mapIncidents}
+            companyId={activeCompanyId ?? ""} isAdmin={isAdmin}
+            onSelectOperation={(id) => { window.location.href = `/overwatch/admin/events?expand=${id}`; }}
+            onMessageStaff={(userId) => { window.location.href = `/overwatch/chat?dm=${userId}`; }}
+          />
+        </ErrorBoundary>
       )}
 
       {/* ── Doc Viewer Modal ── */}

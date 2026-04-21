@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { ErrorBoundary } from "@/components/error-boundary";
 import Image from "next/image";
 import {
   Shield, Radio, GraduationCap, MapPin,
@@ -526,7 +527,7 @@ function HomePageInner() {
         <div className="absolute inset-0 z-[15] pointer-events-none bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-radial from-[#dd8c33]/8 via-transparent to-transparent rounded-full blur-3xl" />
         {/* Desktop: 3D Globe */}
-        <div className="hidden md:block"><TacticalGlobe /></div>
+        <div className="hidden md:block"><ErrorBoundary fallback={<div style={{ height: "clamp(160px, 22vw, 280px)" }} />}><TacticalGlobe /></ErrorBoundary></div>
         {/* Mobile: Animated Radar Grid — centered behind hero text */}
         <div className="md:hidden absolute inset-x-0 z-10 flex items-center justify-center" style={{ top: "15%" }}>
           <MobileHeroRadar />
