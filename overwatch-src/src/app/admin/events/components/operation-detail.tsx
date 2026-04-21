@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { MapPin, Loader2, FileText, Activity, DollarSign, Check, X } from "lucide-react";
+import { MapPin, Loader2, FileText, Activity, DollarSign, Check, X, ChevronDown, ScrollText, Save, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   getEventShifts, getCompanyMembers,
   getLatestDocument, getEventAvailability,
   loadStoryboard, saveStoryboard,
+  getEventPostOrders, updateEventPostOrders,
 } from "@/lib/supabase/db";
 import { updateEventPayRate } from "@/lib/supabase/db-pay";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
@@ -67,6 +69,13 @@ export function OperationDetail({
   const [payRateInput, setPayRateInput] = useState("");
   const [currentPayRate, setCurrentPayRate] = useState<number | null>(ev.pay_rate != null ? Number(ev.pay_rate) : null);
 
+  // Post Orders
+  const [postOrders, setPostOrders] = useState("");
+  const [postOrdersEditing, setPostOrdersEditing] = useState(false);
+  const [postOrdersDraft, setPostOrdersDraft] = useState("");
+  const [postOrdersSaving, setPostOrdersSaving] = useState(false);
+  const [postOrdersOpen, setPostOrdersOpen] = useState(false);
+
   // Storyboard
   const [storyboardPins, setStoryboardPins] = useState<StoryboardPin[]>([]);
   const [_storyboardId, setStoryboardId] = useState<string | null>(null);
@@ -98,6 +107,12 @@ export function OperationDetail({
         const assessments = await getAssessmentsByEventId(ev.id);
         if (assessments.length > 0) setLinkedAssessment(assessments[0]);
       } catch { /* assessment load optional */ }
+
+      // Load post orders
+      try {
+        const po = await getEventPostOrders(ev.id);
+        if (po) { setPostOrders(po); setPostOrdersDraft(po); }
+      } catch { /* post orders load optional */ }
 
       // Load storyboard if event has a site map
       if (ev?.site_map_url) {
@@ -193,6 +208,17 @@ export function OperationDetail({
     } catch { toast.error("Failed to update pay rate"); }
   }
 
+  async function savePostOrders() {
+    setPostOrdersSaving(true);
+    try {
+      await updateEventPostOrders(ev.id, postOrdersDraft);
+      setPostOrders(postOrdersDraft);
+      setPostOrdersEditing(false);
+      toast.success("Post orders saved");
+    } catch { toast.error("Failed to save post orders"); }
+    finally { setPostOrdersSaving(false); }
+  }
+
   return (
     <div className="border-t border-border/30 bg-muted/20">
       {/* Stats Bar */}
@@ -215,6 +241,7 @@ export function OperationDetail({
       {/* Shift toolbar + docs / activity / assessment buttons */}
       <ShiftManagement
         eventId={ev.id}
+        companyId={activeCompanyId}
         startDate={ev.start_date}
         endDate={ev.end_date}
         shifts={shifts}
@@ -295,6 +322,56 @@ export function OperationDetail({
 
       {/* Activity Feed */}
       <ActivityFeed eventId={ev.id} visible={showActivity} />
+
+      {/* Post Orders */}
+      <div className="px-3 sm:px-4 py-3 border-b border-border/20">
+        <button
+          onClick={() => setPostOrdersOpen(!postOrdersOpen)}
+          className="flex items-center gap-1.5 w-full text-left"
+        >
+          <ScrollText className="h-3 w-3 text-muted-foreground" />
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Post Orders</span>
+          {postOrders && <Badge variant="secondary" className="text-[9px] ml-1">{postOrders.length} chars</Badge>}
+          <ChevronDown className={`h-3 w-3 ml-auto text-muted-foreground transition-transform ${postOrdersOpen ? "" : "-rotate-90"}`} />
+        </button>
+        {postOrdersOpen && (
+          <div className="mt-2 space-y-2">
+            {postOrdersEditing ? (
+              <>
+                <textarea
+                  value={postOrdersDraft}
+                  onChange={(e) => setPostOrdersDraft(e.target.value)}
+                  placeholder="Enter post orders, standing instructions, and procedures for this operation..."
+                  rows={8}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground">{postOrdersDraft.length} characters</span>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="h-7 text-xs gap-1" onClick={savePostOrders} disabled={postOrdersSaving}>
+                      {postOrdersSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setPostOrdersEditing(false); setPostOrdersDraft(postOrders); }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {postOrders ? (
+                  <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-mono bg-muted/30 rounded-lg p-3 max-h-64 overflow-y-auto">{postOrders}</pre>
+                ) : (
+                  <p className="text-xs text-muted-foreground/60 italic">No post orders set for this operation.</p>
+                )}
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setPostOrdersEditing(true); setPostOrdersDraft(postOrders); }}>
+                  <Pencil className="h-3 w-3" /> {postOrders ? "Edit" : "Add Post Orders"}
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Site Map */}
       <div className="px-3 sm:px-4 py-3 border-b border-border/20">

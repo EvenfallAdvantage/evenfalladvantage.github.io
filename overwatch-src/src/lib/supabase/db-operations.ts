@@ -35,6 +35,7 @@ export async function createEvent(params: {
   locationLng?: number;
   payRate?: number | null;
   timezone?: string;
+  postOrders?: string;
 }) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,6 +58,7 @@ export async function createEvent(params: {
     tlp_step: params.tlpStep ?? "receive_mission",
     site_map_url: params.siteMapUrl ?? null,
     timezone: params.timezone ?? null,
+    post_orders: params.postOrders ?? null,
     ...ts(),
   };
   if (params.payRate !== undefined && params.payRate !== null) {
@@ -81,6 +83,7 @@ export async function updateEvent(eventId: string, updates: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   opsGuide?: Record<string, any>;
   timezone?: string;
+  postOrders?: string;
 }) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,6 +96,7 @@ export async function updateEvent(eventId: string, updates: {
   if (updates.status !== undefined) row.status = updates.status;
   if (updates.opsGuide !== undefined) row.ops_guide = updates.opsGuide;
   if (updates.timezone !== undefined) row.timezone = updates.timezone;
+  if (updates.postOrders !== undefined) row.post_orders = updates.postOrders;
   const { data, error } = await supabase
     .from("events")
     .update(row)
@@ -130,7 +134,7 @@ export async function getUserShifts(companyId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("shifts")
-    .select("*, events!inner(id, name, location, company_id, ops_guide, timezone)")
+    .select("*, events!inner(id, name, location, company_id, ops_guide, timezone, post_orders), post_orders")
     .eq("assigned_user_id", userId)
     .eq("events.company_id", companyId)
     .order("start_time", { ascending: true });
@@ -171,6 +175,7 @@ export async function createShift(params: {
   startTime: string;
   endTime: string;
   assignedUserId?: string;
+  postOrders?: string;
 }) {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -183,6 +188,7 @@ export async function createShift(params: {
       end_time: params.endTime,
       assigned_user_id: params.assignedUserId ?? null,
       status: params.assignedUserId ? "confirmed" : "open",
+      post_orders: params.postOrders ?? null,
       ...ts(),
     })
     .select("*, users(first_name, last_name)")
@@ -227,6 +233,65 @@ export async function getConflictingShifts(
 export async function deleteShift(shiftId: string) {
   const supabase = createClient();
   const { error } = await supabase.from("shifts").delete().eq("id", shiftId);
+  if (error) throw error;
+}
+
+// ─── Bulk Shift Creation ─────────────────────────────
+
+export async function bulkCreateShifts(
+  eventId: string,
+  companyId: string,
+  shifts: {
+    start_time: string; // UTC ISO
+    end_time: string;   // UTC ISO
+    role?: string;
+    assigned_user_id?: string | null;
+    notes?: string;
+  }[],
+): Promise<{ created: number; errors: string[] }> {
+  const supabase = createClient();
+  const errors: string[] = [];
+  let created = 0;
+
+  for (let i = 0; i < shifts.length; i += 25) {
+    const batch = shifts.slice(i, i + 25).map((s) => ({
+      id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      event_id: eventId,
+      company_id: companyId,
+      start_time: s.start_time,
+      end_time: s.end_time,
+      role: s.role ?? "Guard",
+      status: s.assigned_user_id ? "confirmed" : "open",
+      assigned_user_id: s.assigned_user_id ?? null,
+      ...ts(),
+    }));
+    const { error } = await supabase.from("shifts").insert(batch);
+    if (error) errors.push(`Batch ${Math.floor(i / 25) + 1}: ${error.message}`);
+    else created += batch.length;
+  }
+
+  return { created, errors };
+}
+
+// ─── Post Orders ─────────────────────────────────────
+
+export async function getEventPostOrders(eventId: string): Promise<string | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("post_orders")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (error) { logDbReadError("event post_orders", error); return null; }
+  return data?.post_orders ?? null;
+}
+
+export async function updateEventPostOrders(eventId: string, text: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("events")
+    .update({ post_orders: text, updated_at: new Date().toISOString() })
+    .eq("id", eventId);
   if (error) throw error;
 }
 

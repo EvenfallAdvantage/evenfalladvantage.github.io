@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  CalendarDays, Clock, List, ChevronDown, AlertTriangle,
+  CalendarDays, Clock, List, ChevronDown, AlertTriangle, ScrollText,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { parseUTC } from "@/lib/parse-utc";
@@ -14,6 +14,7 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
   conflictIds: Set<string>;
   timezone?: string;
 }) {
+  const [postOrdersOpenId, setPostOrdersOpenId] = useState<string | null>(null);
   const [open, setOpen] = useState(highlight);
   const [view, setView] = useState<"list" | "calendar">("calendar");
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
@@ -64,7 +65,10 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
           {/* ── List View ── */}
           {view === "list" && (
             <div className="mt-1.5 space-y-1">
-              {shifts.map((sh: Shift) => (
+              {shifts.map((sh: Shift) => {
+                const shiftPostOrders: string | null = sh.post_orders ?? sh.events?.post_orders ?? null;
+                const poOpen = postOrdersOpenId === sh.id;
+                return (
                 <div key={sh.id} className={`text-xs ${conflictIds.has(sh.id) ? "rounded-md bg-amber-500/10 px-2 py-1.5 -mx-2" : ""}`}>
                   <div className="flex items-center gap-2">
                     {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
@@ -72,6 +76,12 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
                       {!highlight && `${fmtDate(sh.start_time, timezone)} · `}{fmtTime(sh.start_time, timezone)} — {fmtTime(sh.end_time, timezone)}
                     </span>
                     <div className="flex items-center gap-1 ml-auto">
+                      {shiftPostOrders && (
+                        <button onClick={() => setPostOrdersOpenId(poOpen ? null : sh.id)} title="Post Orders"
+                          className="text-muted-foreground/60 hover:text-primary transition-colors">
+                          <ScrollText className="h-3 w-3" />
+                        </button>
+                      )}
                       {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
                       <Badge className={`text-[9px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
                         {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
@@ -79,8 +89,17 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
                     </div>
                   </div>
                   {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-5 mt-0.5">Role: {sh.role}</div>}
+                  {poOpen && shiftPostOrders && (
+                    <div className="ml-5 mt-1.5 rounded border border-primary/15 bg-primary/[0.02] p-2">
+                      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <ScrollText className="h-2.5 w-2.5" /> Post Orders
+                      </p>
+                      <pre className="whitespace-pre-wrap text-[10px] text-muted-foreground font-mono leading-relaxed">{shiftPostOrders}</pre>
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -141,16 +160,32 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
                   </div>
                   {(shiftsByDay.get(selectedDay) ?? []).map((sh: Shift) => {
                     const hasConflict = conflictIds.has(sh.id);
+                    const calPostOrders: string | null = sh.post_orders ?? sh.events?.post_orders ?? null;
+                    const calPoOpen = postOrdersOpenId === `cal-${sh.id}`;
                     return (
                       <div key={sh.id} className={`rounded border px-2 py-1.5 ${hasConflict ? "border-amber-500/30 bg-amber-500/[0.04]" : "border-primary/15 bg-primary/[0.02]"}`}>
                         <div className="flex items-center gap-2 text-xs">
                           {hasConflict ? <AlertTriangle className="h-2.5 w-2.5 text-amber-500 shrink-0" /> : <Clock className="h-2.5 w-2.5 text-primary/60 shrink-0" />}
                           <span className="text-muted-foreground font-mono">{fmtTime(sh.start_time, timezone)} — {fmtTime(sh.end_time, timezone)}</span>
+                          {calPostOrders && (
+                            <button onClick={() => setPostOrdersOpenId(calPoOpen ? null : `cal-${sh.id}`)} title="Post Orders"
+                              className="text-muted-foreground/60 hover:text-primary transition-colors">
+                              <ScrollText className="h-2.5 w-2.5" />
+                            </button>
+                          )}
                           <Badge className={`text-[8px] ml-auto ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
                             {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
                           </Badge>
                         </div>
                         {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-4 mt-0.5">Role: {sh.role}</div>}
+                        {calPoOpen && calPostOrders && (
+                          <div className="ml-4 mt-1.5 rounded border border-primary/15 bg-primary/[0.02] p-2">
+                            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+                              <ScrollText className="h-2.5 w-2.5" /> Post Orders
+                            </p>
+                            <pre className="whitespace-pre-wrap text-[10px] text-muted-foreground font-mono leading-relaxed">{calPostOrders}</pre>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

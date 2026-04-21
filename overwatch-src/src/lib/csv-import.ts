@@ -257,3 +257,96 @@ export function validateStaffRows(
 
   return { valid, errors };
 }
+
+// ─── Shift CSV import ────────────────────────────────
+
+export const SHIFT_FIELDS = [
+  { key: "date", label: "Date", required: true },
+  { key: "start_time", label: "Start Time", required: true },
+  { key: "end_time", label: "End Time", required: true },
+  { key: "role", label: "Role / Position", required: false },
+  { key: "staff_email", label: "Assigned Staff Email", required: false },
+  { key: "staff_name", label: "Assigned Staff Name", required: false },
+  { key: "notes", label: "Notes", required: false },
+] as const;
+
+export type ShiftImportRow = {
+  date: string;
+  start_time: string;
+  end_time: string;
+  role?: string;
+  staff_email?: string;
+  staff_name?: string;
+  notes?: string;
+};
+
+const SHIFT_FIELD_ALIASES: Record<string, string[]> = {
+  date: ["date", "shift date", "day"],
+  start_time: ["start", "start time", "begin", "from", "clock in"],
+  end_time: ["end", "end time", "finish", "to", "clock out"],
+  role: ["role", "position", "post", "assignment"],
+  staff_email: ["email", "staff email", "assigned email"],
+  staff_name: ["name", "staff name", "assigned", "assignee"],
+  notes: ["notes", "comments", "instructions"],
+};
+
+/** Suggest auto-mappings from CSV headers to shift fields via fuzzy matching. */
+export function suggestShiftMapping(csvHeaders: string[]): Record<string, string | null> {
+  const mapping: Record<string, string | null> = {};
+  for (const field of SHIFT_FIELDS) {
+    const normalized = field.key.toLowerCase().replace(/_/g, "");
+    const aliases = SHIFT_FIELD_ALIASES[field.key] ?? [];
+
+    const match = csvHeaders.find((h) => {
+      const hn = h.toLowerCase().replace(/[_\s\-]/g, "");
+      const hLower = h.toLowerCase().trim();
+      if (hn === normalized) return true;
+      for (const alias of aliases) {
+        const an = alias.replace(/[_\s\-]/g, "");
+        if (hn === an || hLower === alias) return true;
+      }
+      return false;
+    });
+    mapping[field.key] = match ?? null;
+  }
+  return mapping;
+}
+
+export function applyShiftMapping(
+  rows: string[][],
+  headers: string[],
+  mapping: Record<string, string | null>,
+): ShiftImportRow[] {
+  return rows.map((row) => {
+    const get = (field: string) => {
+      const header = mapping[field];
+      if (!header) return "";
+      const idx = headers.indexOf(header);
+      return idx >= 0 ? (row[idx] ?? "").trim() : "";
+    };
+    return {
+      date: get("date"),
+      start_time: get("start_time"),
+      end_time: get("end_time"),
+      role: get("role") || undefined,
+      staff_email: get("staff_email") || undefined,
+      staff_name: get("staff_name") || undefined,
+      notes: get("notes") || undefined,
+    };
+  });
+}
+
+export function validateShiftRows(rows: ShiftImportRow[]): {
+  valid: ShiftImportRow[];
+  errors: { line: number; message: string }[];
+} {
+  const valid: ShiftImportRow[] = [];
+  const errors: { line: number; message: string }[] = [];
+  rows.forEach((r, i) => {
+    if (!r.date) { errors.push({ line: i + 2, message: "Missing date" }); return; }
+    if (!r.start_time) { errors.push({ line: i + 2, message: "Missing start time" }); return; }
+    if (!r.end_time) { errors.push({ line: i + 2, message: "Missing end time" }); return; }
+    valid.push(r);
+  });
+  return { valid, errors };
+}
