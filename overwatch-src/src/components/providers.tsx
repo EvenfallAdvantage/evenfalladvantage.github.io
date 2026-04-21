@@ -1,7 +1,6 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth-provider";
@@ -11,7 +10,7 @@ import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { installGlobalErrorHandlers } from "@/lib/error-tracker";
 import { useAuthStore } from "@/stores/auth-store";
 import { logger } from "@/lib/logger";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -32,17 +31,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     });
     return unsub;
   }, []);
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60 * 1000,
-            refetchOnWindowFocus: false,
-          },
-        },
-      })
-  );
 
   return (
     <ThemeProvider
@@ -51,18 +39,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange={false}
     >
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <BrandThemeProvider />
-          <SecurityProvider>
-            <TooltipProvider delay={0}>
-              {children}
-              <Toaster richColors position="top-right" />
-              <PwaInstallPrompt />
-            </TooltipProvider>
-          </SecurityProvider>
-        </AuthProvider>
-      </QueryClientProvider>
+      <AuthProvider>
+        <BrandThemeProvider />
+        <SecurityProvider>
+          <TooltipProvider delay={0}>
+            {children}
+            <Toaster richColors position="top-right" />
+            <PwaInstallPrompt />
+          </TooltipProvider>
+        </SecurityProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

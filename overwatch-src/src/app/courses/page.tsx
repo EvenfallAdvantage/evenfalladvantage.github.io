@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUserPayments } from "@/lib/supabase/db";
 import { getLegacyCourses } from "@/lib/legacy-bridge";
@@ -121,7 +122,18 @@ function CoursesContent() {
   async function handlePurchase(course: Course) {
     setPurchasing(course.id);
     try {
-      const res = await fetch("/api/checkout", {
+      // Checkout requires a server-side Stripe session. In the static export,
+      // this must be handled by a Supabase Edge Function (not a Next.js API route).
+      const checkoutUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`
+        : null;
+
+      if (!checkoutUrl) {
+        toast.error("Course purchases are not available yet.");
+        return;
+      }
+
+      const res = await fetch(checkoutUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -136,9 +148,13 @@ function CoursesContent() {
       if (data.url) {
         window.location.href = data.url;
       } else {
+        toast.error("Unable to start checkout. Please try again.");
         console.error("No checkout URL returned:", data);
       }
-    } catch (err) { console.error("Purchase error:", err); }
+    } catch (err) {
+      toast.error("Purchase failed. Please try again.");
+      console.error("Purchase error:", err);
+    }
     finally { setPurchasing(null); }
   }
 

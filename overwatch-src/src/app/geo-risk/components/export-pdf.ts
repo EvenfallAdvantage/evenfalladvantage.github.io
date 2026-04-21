@@ -1,4 +1,3 @@
-import jsPDF from "jspdf";
 import type { RiskResult } from "./shared";
 import {
   hasCrimeometerKey, hasFamilyWatchdogKey,
@@ -17,6 +16,7 @@ type ExportContext = {
 
 export async function exportGeoRiskPDF(ctx: ExportContext) {
   const { result, incidents, offenders, envRisk, companyName, brandHex, companyLogo } = ctx;
+  const { default: jsPDF } = await import("jspdf");
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();

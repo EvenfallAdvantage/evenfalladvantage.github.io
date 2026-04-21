@@ -6,7 +6,6 @@ import {
   Eye, ShieldCheck, AlertOctagon, QrCode,
   UserPlus, X, Upload, Download, Check,
 } from "lucide-react";
-import QRCode from "qrcode";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -244,6 +243,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
       const badge = rosterBadges[uid];
       setBulkProgress(`Downloading ${++count}/${membersWithBadges.length}...`);
       try {
+        const QRCode = (await import("qrcode")).default;
         const qr = await QRCode.toDataURL(badge.qr_data, {
           width: 280,
           margin: 1,

@@ -7,7 +7,6 @@ import { QrCode, Download, Loader2 } from "lucide-react";
 import { getMyBadge, type StaffBadge } from "@/lib/supabase/db-badges";
 import { downloadBadgeCard } from "@/components/badge-download";
 import { toast } from "sonner";
-import QRCode from "qrcode";
 
 interface ProfileBadgeCardProps {
   activeCompanyId: string;
@@ -41,6 +40,7 @@ export function ProfileBadgeCard({
       const b = await getMyBadge(activeCompanyId, userId);
       setBadge(b);
       if (b) {
+        const QRCode = (await import("qrcode")).default;
         const qrUrl = await QRCode.toDataURL(b.qr_data, {
           width: 280,
           margin: 1,
@@ -54,7 +54,7 @@ export function ProfileBadgeCard({
     setLoading(false);
   }, [activeCompanyId, userId]);
 
-  useEffect(() => { void loadBadge(); }, [loadBadge]); // eslint-disable-line -- async data-loading pattern
+  useEffect(() => { void loadBadge(); }, [loadBadge]);
 
   if (loading) return null;
   if (!badge) return null;

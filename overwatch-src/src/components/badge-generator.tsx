@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getCompanyMembers } from "@/lib/supabase/db";
 import { getOrCreateBadge, getCompanyBadges, type StaffBadge } from "@/lib/supabase/db-badges";
-import QRCode from "qrcode";
 import { downloadBadgeCard } from "./badge-download";
 import { logger } from "@/lib/logger";
 
@@ -43,6 +42,7 @@ export function BadgeGenerator({ companyId, companyName, companyLogo, brandColor
         for (const b of badgeData) {
           badgeMap[b.user_id] = b;
           try {
+            const QRCode = (await import("qrcode")).default;
             qrMap[b.user_id] = await QRCode.toDataURL(b.qr_data, {
               width: 200, margin: 1, color: { dark: "#000000", light: "#ffffff" }, errorCorrectionLevel: "H",
             });
@@ -65,6 +65,7 @@ export function BadgeGenerator({ companyId, companyName, companyLogo, brandColor
     try {
       const badge = await getOrCreateBadge(companyId, userId);
       setBadges((prev) => ({ ...prev, [userId]: badge }));
+      const QRCode = (await import("qrcode")).default;
       const qrDataUrl = await QRCode.toDataURL(badge.qr_data, {
         width: 200, margin: 1, color: { dark: "#000000", light: "#ffffff" }, errorCorrectionLevel: "H",
       });

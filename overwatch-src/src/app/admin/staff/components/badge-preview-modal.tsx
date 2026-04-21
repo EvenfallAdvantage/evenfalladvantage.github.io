@@ -7,7 +7,6 @@ import { Download, Loader2, X, QrCode } from "lucide-react";
 import { downloadBadgeCard } from "@/components/badge-download";
 import { toast } from "sonner";
 import type { StaffBadge } from "@/lib/supabase/db-badges";
-import QRCode from "qrcode";
 
 interface BadgePreviewModalProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,11 +37,13 @@ export function BadgePreviewModal({
   const bc = brandColor || "#d59b3c";
 
   useEffect(() => {
-    QRCode.toDataURL(badge.qr_data, {
-      width: 280,
-      margin: 1,
-      color: { dark: "#1a1a2e", light: "#ffffff" },
-    }).then(setQrDataUrl);
+    import("qrcode").then(({ default: QRCode }) =>
+      QRCode.toDataURL(badge.qr_data, {
+        width: 280,
+        margin: 1,
+        color: { dark: "#1a1a2e", light: "#ffffff" },
+      }).then(setQrDataUrl)
+    );
   }, [badge.qr_data]);
 
   async function handleDownload() {
