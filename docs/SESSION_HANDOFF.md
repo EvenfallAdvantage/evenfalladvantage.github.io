@@ -1,163 +1,149 @@
-# Session Handoff — April 14, 2026
+# Session Handoff — April 15, 2026
 
 **Project:** Evenfall Advantage — Overwatch Platform
 **Repo:** https://github.com/EvenfallAdvantage/evenfalladvantage.github.io
 **Working Directory:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io`
-**CI/CD:** Build & Deploy passing on GitHub Pages.
+**CI/CD:** Build & Deploy passing on GitHub Pages. Next.js 16.2.4, Node 22.
 **Tests:** 519/519 passing (28 test files), 0 TypeScript errors.
-**ESLint:** 0 errors, 0 warnings. Lint is blocking in CI (--max-warnings 0). Was 94 errors / 2,461 warnings.
-**Navigation:** Client-side via Next.js `<Link>` (resolved CesiumJS conflict — was not a conflict).
+**ESLint:** 0 errors, 0 warnings. Lint is blocking in CI (--max-warnings 0).
+**npm audit:** 0 vulnerabilities (all patched April 15).
+**Navigation:** Client-side via Next.js `<Link>`.
 
 ---
 
-## What Was Done This Session (April 13, 2026)
+## What Was Done This Session (April 13-15, 2026)
 
-### DEPENDENCY MANAGEMENT & CI/CD
+### DEPENDENCY MANAGEMENT & CI/CD (April 13)
+- Merged 15 Dependabot PRs, closed 2 (ESLint 10 incompatible, @types/qrcode.react stub)
+- TypeScript 6.0 compat: `noUncheckedSideEffectImports: false`
+- Service worker build-time versioning via GITHUB_SHA injection
+- CI: Node 22, actions/cache v5, upload-pages-artifact v5, lint blocking (--max-warnings 0)
+- npm audit: patched protobufjs (critical), next 16.1.6→16.2.4 (high), dompurify + hono (moderate)
 
-#### Dependabot PR Triage (17 PRs)
-- **Merged 15 PRs** — 5 GitHub Actions (checkout v6, setup-node v6, codeql-action v4, configure-pages v6, deploy-pages v5), 5 patch/minor npm (tailwindcss/postcss, react-hook-form, recharts, framer-motion, @supabase/ssr), 5 major npm (lucide-react 1.8.0, @types/node 25, TypeScript 6.0, dotenv 17, @google-cloud/functions-framework 5)
-- **Closed 2 PRs** — ESLint 10 (incompatible with eslint-config-next), @types/qrcode.react (stub package, conflicting)
+### COMPONENT DECOMPOSITION (April 13)
+17 pages decomposed, total reduction from 13,382 → 1,942 lines (−85%):
+- tactical-map.tsx: 1,943 → 410 (8 hooks + types + DM modal)
+- admin/staff/page.tsx: 2,173 → 202 (8 tab components + 2 modals)
+- admin/events/page.tsx: 1,674 → 217 (wizard + operation detail)
+- feed/page.tsx: 1,121 → 69 (11 components)
+- incidents/page.tsx: 981 → 131 (6 components)
+- operation-detail.tsx: 940 → 272 (5 focused components)
+- Plus 11 more pages (geo-risk, profile, instructor, training, schedule, chat, site-assessment, academy, settings, timeclock, apply, updates)
 
-#### TypeScript 6.0 Compatibility
-- Added `noUncheckedSideEffectImports: false` to tsconfig.json — TS 6.0 defaults this to true, breaking bare CSS imports (`import "./globals.css"`) since Next.js only declares `*.module.css` in its type definitions
+### TEST COVERAGE: 58 → 519 Tests (April 13-14)
+- security-full (43), db-helpers (22), db-postings (30), db-badges (25)
+- db-intake-shares (15), db-assessments (19), db-operations across 6 files (118)
+- db-users (82), component tests (15), auth-guard (4), timeclock-utils (20)
+- incident-constants (24), assessment-types (22), db-error (6), export-csv (18)
 
-#### Service Worker Build-Time Versioning
-- Replaced hardcoded `CACHE_NAME = "overwatch-v10"` with `"overwatch-__BUILD_HASH__"`
-- CI pipeline injects first 8 chars of `GITHUB_SHA` into `out/sw.js` after build
-- Eliminates stale chunk 404s after deploys — no more manual version bumps
+### FEATURES SHIPPED (April 13-15)
 
-#### CI Node.js 24 Compatibility
-- `actions/cache` v4 → v5, `actions/upload-pages-artifact` v3 → v4
-- Node.js runtime 20 → 22 (current LTS)
-- Fixes deprecation warning (Node.js 20 forced to 24 starting June 2, 2026)
+#### Mass Clock System (scan/page.tsx — rewritten)
+- Event selector (dropdown, persists to localStorage, warns if no event)
+- Live "Currently Clocked In" panel (auto-refresh 10s, shows names + elapsed time)
+- Mass Clock Out button (one-click, event-filtered, confirmation dialog)
+- Per-badge 30s cooldown (prevents accidental double-scan toggle)
+- 1.5s result display (reduced from 3s for faster throughput)
+- Audio feedback (ascending=in, descending=out, buzz=error, vibration on mobile)
+- Offline queue (queues when actually offline, retries on reconnect, stores eventId)
+- Better error messages (shows actual DB error instead of fake "Queued" for RLS issues)
+- Cross-company badge validation (rejects badges from other companies)
+- `crypto.randomUUID()` fallback for older Safari
 
-### COMPONENT DECOMPOSITION
+#### Badge Management
+- Bulk "Generate All Badges" + "Download All" buttons on roster
+- Badge preview modal (QR card preview + download button) instead of auto-download
+- Staff can view/download their own badge from Profile page
+- `getMyBadge()` read-only self-lookup function
 
-#### tactical-map.tsx: 1,943 → 410 lines (−79%)
-Extracted 8 custom hooks, 1 component, and 1 types file into `components/tactical-map/`:
-- `hooks/use-cesium-layers.ts` (888 lines) — all 21 layer plotting/toggling effects
-- `hooks/use-click-handler.ts` (372 lines) — entity picking, tools, drawing, waypoints
-- `hooks/use-annotations.ts` (76 lines) — drawing state, subscription, save/cancel/clear
-- `hooks/use-map-tools.ts` (56 lines) — measure, range rings, LOS, elevation state
-- `hooks/use-time-machine.ts` (45 lines) — replay state, debounced fetch, effectiveStaff
-- `hooks/use-event-documents.ts` (33 lines) — operation doc loading + ref mirror
-- `hooks/use-direct-message.ts` (18 lines) — DM target/text/sending + sendMessage
-- `hooks/use-drone-planner.ts` (7 lines) — planner open + waypoints state
-- `quick-dm-modal.tsx` — extracted inline DM dialog to standalone component
-- `types.ts` — shared StaffPin, OperationPin, IncidentPin, TacticalMapProps
+#### CSV Staff Import with Column Mapper
+- Visual column mapping UI (fuzzy auto-match headers like "Legal Name" → first_name)
+- SKIP_HEADERS prevents "Full Name" from matching individual name fields
+- New importable fields: nickname, city, shirt_size, region, status
+- Status normalization: "Active" → hired, "Approved for Hire" → offered, etc.
+- Bulk applicant import with status constraint validation
 
-#### admin/staff/page.tsx: 2,173 → 202 lines (−91%)
-Extracted 8 tab components and 2 modals into `app/admin/staff/components/`:
-- `roster-tab.tsx` (364 lines) — member cards, role management, badges, CSV import
-- `applicants-tab.tsx` (432 lines) — pipeline, add form, status workflow, hire
-- `reports-tab.tsx` (398 lines) — form submissions + incidents review/edit
-- `timesheets-tab.tsx` (171 lines) — grouped timesheets, approve, Gusto sync
-- `leave-tab.tsx` (160 lines) — leave requests with filter + review
-- `onboarding-tab.tsx` (152 lines) — task CRUD with reorder
-- `postings-tab.tsx` (137 lines) — job postings + posting form modal
-- `corrections-tab.tsx` (121 lines) — time change requests review
-- `applicant-detail-modal.tsx` (237 lines) — applicant detail view
-- `posting-form-modal.tsx` (104 lines) — new/edit posting form
-- Each tab self-loads its data on mount; parent is thin orchestrator with tab bar + badge counts
+#### Applicants → Roster Conversion
+- "Convert Hired to Roster" bulk button on Applicants tab
+- Uses `convert_applicant_to_roster` RPC (SECURITY DEFINER) to bypass RLS
+- Creates users + company_memberships (status='active', role='staff')
+- Doesn't downgrade existing roles (ON CONFLICT preserves owner/admin/manager)
+- Select all / bulk delete for applicants tab
 
-#### admin/events/page.tsx: 1,674 → 217 lines (−87%)
-Extracted into `app/admin/events/components/`:
-- `create-wizard.tsx` (441 lines) — 5-step operation creation wizard
-- `operation-detail.tsx` (940 lines) — expanded op view with shifts, docs, storyboard, calendar, activity
-- `conflict-warning-modal.tsx` (51 lines) — shift conflict dialog
-- `shared.tsx` (99 lines) — types, constants, helper functions
+#### Pay Rates
+- Event-based pay rates with member override (cascade: member → event → company default)
+- Pay rate editor on roster member cards (inline edit, green if override)
+- Event pay rate field in creation wizard + operation detail
+- Timesheets tab shows Rate × Hours = Pay columns with totals
+- Staff profile Pay Stub card (rate, total hours, total pay, recent timesheets)
+- SQL: `default_pay_rate` on companies, `pay_rate` on events, `pay_rate_override` on memberships
 
-#### feed/page.tsx: 1,121 → 69 lines (−94%)
-Extracted 10 components into `app/feed/components/`:
-- `intel-center.tsx` (332 lines) — leadership dashboard with charts
-- `duty-status.tsx` (279 lines) — clock in/out widget + modal
-- `pinned-briefing.tsx` (146 lines) — pinned posts with reactions
-- `onboarding-banner.tsx` (131 lines) — no-company banner + create modal
-- `shared.tsx` (135 lines) — types, utilities, chart components
-- Plus 5 smaller components (upcoming shift, KPI cards, actions, tools)
+#### Timezone Support
+- Events have timezone field (IANA format, e.g., 'America/Los_Angeles')
+- Company default timezone as fallback
+- `localToUTC()` / `formatInTimezone()` / `utcToLocalInput()` utilities
+- Shift creation converts times through event timezone
+- Shift display uses event timezone (schedule, timeclock, operation detail)
+- Timezone selector dropdown in event creation wizard
+- Backwards compatible: existing events without timezone use browser-local
 
-#### incidents/page.tsx: 981 → 131 lines (−87%)
-Extracted 5 components into `app/incidents/components/`:
-- `incident-list.tsx` (431 lines) — cards, expand/detail, edit, timeline
-- `incident-create-form.tsx` (437 lines) — full creation form + site map pin
-- `incident-filters.tsx` (59 lines) — search + status filter + stats
-- `site-map-mark-modal.tsx` (83 lines) / `site-map-view-modal.tsx` (64 lines)
-- `constants.ts` (46 lines) — shared types and enums
+#### Shift CSV Upload
+- "Import Shifts" button in shift management
+- 3-step flow: upload → column map → preview + import
+- Auto-suggests mapping for Date, Start/End Time, Role, Staff Email
+- Converts to UTC using event timezone
+- Resolves staff_email to user IDs from company members
 
-#### geo-risk/page.tsx: 1,023 → 164 lines (−84%)
-Extracted 8 components: address-search, risk-results, export-pdf (pure 457-line util), api-key-config, shared types, etc.
+#### Post Orders
+- Event-level post orders (rich text area, collapsible section in operation detail)
+- Per-shift override (optional textarea in custom shift form)
+- Staff can view post orders in schedule tab (ScrollText icon per shift)
+- Resolution: shift post_orders → event post_orders → null
 
-#### profile/page.tsx: 944 → 118 lines (−88%)
-Extracted 10 components: personal-profile-card, education-card, work-history-card, notification-prefs, avatar, completeness bar, etc.
+#### Site Assessment → Database
+- Multi-assessment DB persistence (save/load/delete, list panel)
+- Assessment ↔ Intake bidirectional linking ("Create Op from Assessment" + "Link Assessment" picker)
 
-#### admin/instructor/page.tsx: 907 → 112 lines (−88%)
-Extracted 5 tab components: courses, classes, students, assessments, slides-panel.
+#### Error Feedback
+- `logDbReadError()` toast + console for all DB read failures (13 modules, ~65 functions)
+- Scan page shows actual DB errors instead of generic messages
 
-#### admin/training/page.tsx: 899 → 97 lines (−89%)
-Extracted 3 tab components: modules-tab, question-bank-tab, staff-progress-tab.
+#### Mobile Responsiveness
+- All 22 modals audited — `p-4` padding, `w-full max-w-*`, `max-h-[90vh] overflow-y-auto`
+- `overflow-x-hidden` on html+body+page root to fix modal centering
+- Shadcn DialogContent base component fixed
 
-#### schedule/page.tsx: 898 → 320 lines (−64%)
-Extracted 3 components: schedule-tab, armory-tab, shift-accordion.
+#### Timesheets Admin
+- Delete unapproved timesheets (trash icon per entry)
+- Unapprove approved timesheets (revert to pending)
+- Delete any entry including approved (stricter confirmation)
+- Timesheet limit increased from 50 → 1000
 
-#### chat/page.tsx: 819 → 102 lines (−88%)
-Extracted 3 components + 1 hook: channels-tab, external-tab, use-chat-channels.
+#### Profile & Dashboard
+- Clock status auto-refresh every 15s + on tab focus (timeclock + dashboard)
+- Activity feed filtered by active company
+- Badge card on profile (view + download own badge)
 
-### ESLINT CLEANUP: 94 → 30 errors, 2,461 → 133 warnings
-- Added proper types for 20+ `any` usages across 12 files
-- Excluded vendored `public/cesium/**` from linting (25 no-this-alias + 2,328 warnings)
-- Fixed 3 unescaped entities, 6 require-imports, 1 array constructor
-- Remaining 30 errors are all `react-compiler` rules requiring behavioral analysis
-
-### TEST COVERAGE: 58 → 410 Tests
-
-#### New Test Files (14)
-- `helpers/mock-supabase.ts` — reusable Supabase client mock factory with chainable query builder
-- `security-full.test.ts` (43 tests) — password strength, sanitizeObject, encrypt/decrypt round-trip, CSRF tokens, security constants
-- `db-helpers.test.ts` (22 tests) — ts(), getAuthUserId, ensureInternalUser caching/dedup, getSignedFileUrl URL parsing + fallback
-- `db-postings.test.ts` (28 tests) — generateJobFeedXML (pure), CRUD, applicant counts aggregation, slug-based public lookup
-- `db-badges.test.ts` (25 tests) — getOrCreateBadge, QR data format, clock-in/out, lookupBadge JSON parsing, revoke
-- `db-intake-shares.test.ts` (16 tests) — token-based share lookup, create/submit/delete lifecycle
-- `db-assessments.test.ts` (18 tests) — upsert (update vs insert), unlinked filter, event linking
-- `db-operations-events.test.ts` (18 tests) — CRUD, updateEvent conditional field mapping
-- `db-operations-shifts.test.ts` (19 tests) — createShift/assignShift status branching, getConflictingShifts conditional .neq
-- `db-operations-assets.test.ts` (16 tests) — checkout/checkin multi-step + auth, getAssetByQrCode two-phase lookup
-- `db-operations-incidents.test.ts` (24 tests) — deleteIncident storyboard pin removal, getIncidents conditional status filter
-- `db-operations-patrols.test.ts` (21 tests) — logPatrolScan auth, checkpoint QR format
-- `db-operations-storyboards.test.ts` (20 tests) — saveStoryboard 3-path upsert, getOperationActivity 3-source aggregation
-- `db-users.test.ts` (82 tests) — upsertUser phone-key retry, fetchUserProfile auto-create + race condition retry, createCompany slug generation, uploadAvatar validation
-
-### SITE ASSESSMENT → DATABASE
-
-Replaced single-assessment localStorage model with multi-assessment DB-backed persistence:
-- Saved assessments panel with risk level badges and date
-- Save/Update button with DB persistence via `saveSiteAssessment`
-- Load from DB via `?id=` URL param or list selection
-- Delete assessment from DB
-- New Assessment button to start fresh
-- `lon`/`lng` mapping between page state and DB schema
-- localStorage retained as crash-recovery draft buffer
-
-### ERROR FEEDBACK FOR DB READ FAILURES
-
-Created centralized `db-error.ts` with `logDbReadError()` — toast notifications + structured console logging. Updated 13 DB modules (~65 read functions) to show user-visible errors instead of silently returning empty arrays. All return values unchanged — no caller contracts broken.
+### RLS / SQL FIXES APPLIED
+- `v2_fix_rls_auth_uid.sql` — Fixed `is_company_manager()` to JOIN through `users.supabase_id`
+- `rpc_convert_applicant.sql` — SECURITY DEFINER RPC for applicant→roster conversion
+- `fix_onboarding_to_active.sql` — Updated converted memberships to status='active'
+- `managers_insert_timesheets` — RLS INSERT policy for manager+ to create timesheets for others
+- `managers_delete_timesheets` — RLS DELETE policy for manager+ company-wide
+- Dropped 5 broad SELECT policies on public storage buckets (avatars, certs, logos, field-manual, operation-maps)
+- `add_pay_rates.sql` — pay rate columns on companies, events, memberships
+- `add_timezones.sql` — timezone columns on events, companies
+- `add_post_orders.sql` — post_orders columns on events, shifts
 
 ---
 
-## SQL Migrations To Run
+## SQL Migrations To Run (if not already done)
 
-| File | Status | Purpose |
-|------|--------|---------|
-| `sql/v2_upgrade_tables.sql` | **DONE** | All v2 tables (site_assessments, intake_shares, job_postings, staff_badges) |
-| `sql/v2_fix_rls_policies.sql` | **DONE** | Role-scoped RLS with WITH CHECK, is_company_manager() helper, token-based intake_shares read |
-| `sql/add_events_settings_column.sql` | Run if not done | JSONB settings column for site map bounds |
-
-### FK Fix for staff_badges
-```sql
-ALTER TABLE staff_badges DROP CONSTRAINT staff_badges_user_id_fkey;
-ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-ALTER TABLE staff_badges DROP CONSTRAINT IF EXISTS staff_badges_generated_by_fkey;
-ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_generated_by_fkey FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL;
-```
+| File | Purpose |
+|------|---------|
+| `sql/add_pay_rates.sql` | `default_pay_rate` on companies, `pay_rate` on events, `pay_rate_override` on memberships |
+| `sql/add_timezones.sql` | `timezone` on events, `timezone` on companies |
+| `sql/add_post_orders.sql` | `post_orders` on events, `post_orders` on shifts |
 
 ---
 
@@ -178,80 +164,79 @@ ALTER TABLE staff_badges ADD CONSTRAINT staff_badges_generated_by_fkey FOREIGN K
 
 ### High
 - **Backup workflow failing** — `SUPABASE_DB_URL` needs Session Mode pooler URL (IPv4).
-- **ESLint 10 blocked** — `eslint-config-next` is not yet compatible with ESLint 10. Pinned to ESLint 9.x. Revisit when Next.js ships ESLint 10 support.
+- **ESLint 10 blocked** — `eslint-config-next` not yet compatible. Pinned to ESLint 9.x.
+- **Instructor role lacks scan permissions** — Instructors can't mass clock (RLS blocks). Workaround: promote to manager. Fix: add 'instructor' to `is_company_manager()`.
 
 ### Medium
+- **Offline scan retry always clocks IN** — doesn't check if person was already clocked in. Brief operators: if WiFi drops, only scan for clock-INs.
+- **Cross-device race condition** — two scanners can double-clock-in same person (no DB unique constraint). Mitigated by physical badge control.
 - **Sentinel-1 SAR rate limiting** — Free tier has request limits.
-- **landing page (720 lines)** — not decomposed yet (low churn, mostly static marketing)
-- **6 suppressed ESLint directives** — storyboard-editor popover positioning (3), theme-toggle hydration (1), settings data-load (1), address-autocomplete prop sync (1), mount-only viewer init (1), scan loop (1)
+- **Landing page (720 lines)** — not decomposed (low churn, mostly static marketing).
+- **6 suppressed ESLint directives** — storyboard-editor (3), theme-toggle (1), settings data-load (1), address-autocomplete (1).
 
 ### Low
-- **XML job feed deployment** — Edge Function scaffolded at `supabase/functions/job-feed/`. Needs `supabase functions deploy job-feed --no-verify-jwt` to go live.
-- **LinkedIn/ZipRecruiter API** — Integration scaffolding not yet built. Requires partner approvals.
-- **Whisper WASM dictation** — 75MB model download on first use.
-- **Drone Planner** — Camera footprint cones and no-fly zones not implemented.
-- **Duplicate QR libraries** — `html5-qrcode` (fallback in qr-scanner.tsx) + `jsqr` (primary in scan/page.tsx). Could consolidate.
+- **XML job feed deployment** — Edge Function scaffolded at `supabase/functions/job-feed/`. Needs `supabase functions deploy job-feed --no-verify-jwt`.
+- **Offline queue not persisted** — tab close/refresh loses queue (useState only, not localStorage).
+- **No event filter on "Currently Clocked In" panel** — shows all company staff, not just event-specific.
 
 ---
 
 ## Architecture Notes
 
-### Component Decomposition (Phase 2 — completed April 13)
+### Mass Clock Flow
+1. Event selector → localStorage persistence
+2. Camera → jsQR decode → handleScan
+3. lookupBadge (staff_badges + users join via FK name) → company validation
+4. isUserClockedIn → qrClockIn/qrClockOut (using activeCompanyId)
+5. Per-badge 30s cooldown map → audio feedback → live panel refresh
 
-**tactical-map.tsx** → thin orchestrator (410 lines) + 8 hooks in `hooks/` directory:
-- `use-cesium-layers.ts` — all entity/layer plotting (operations, staff, incidents, weather, buildings, night vision, shaders, aircraft, satellites, breadcrumbs, annotations, POIs, geofence alerts, site map overlays, storyboard pins)
-- `use-click-handler.ts` — entity picking, measurement tools, drawing, drone waypoints, LOS/elevation
-- `use-annotations.ts` — drawing state + realtime subscription + save/cancel/clear
-- `use-map-tools.ts` — tool state (measure, range rings, LOS, elevation) + cleanup
-- `use-time-machine.ts` — time replay + debounced historical staff fetch
-- `use-event-documents.ts` — operation document loading with ref mirror for closures
-- `use-direct-message.ts` — DM modal state + send function
-- `use-drone-planner.ts` — planner open/close + waypoints
+### Pay Rate Resolution
+1. `company_memberships.pay_rate_override` (per-person)
+2. `events.pay_rate` (per-operation)
+3. `companies.default_pay_rate` (fallback)
 
-**admin/staff/page.tsx** → thin orchestrator (202 lines) + 10 components in `components/`:
-- Each tab component self-loads data on mount and owns its state
-- Parent only manages: active tab, loading state, members list, company info, tab badge counts
-- Modals (`ApplicantDetailModal`, `PostingFormModal`, `MemberProfileModal`, `ReadinessModal`) are standalone components receiving data via props
+### Timezone Resolution
+1. `events.timezone` (per-event, IANA format)
+2. `companies.timezone` (company default)
+3. Browser timezone (last resort for old events)
 
-### New DB Tables (v2)
-- `site_assessments` — Persisted security assessments
-- `intake_shares` — Token-based client intake share links
-- `job_postings` — Job listing management with status workflow
-- `staff_badges` — QR badge records with badge numbers
+### Post Orders Resolution
+1. `shifts.post_orders` (per-shift override)
+2. `events.post_orders` (event default)
+3. null (no post orders)
 
-### RLS Model (v2 tables)
-All v2 tables use a two-tier RLS model:
-- **Read**: Any authenticated company member can SELECT
-- **Write**: Only `manager`, `admin`, or `owner` roles can INSERT/UPDATE/DELETE (via `is_company_manager()` function)
-- **Public**: `job_postings` allows unauthenticated SELECT where `status = 'active'`; `intake_shares` allows unauthenticated SELECT only via token lookup
-
-### Test Infrastructure
-- **Mock factory**: `src/__tests__/helpers/mock-supabase.ts` — chainable Supabase client mock with `setMockResponse()` and `setAuthUser()` helpers
-- **Convention**: Pure function tests need no mocking; DB tests use `vi.mock("@/lib/supabase/client")` + mock factory
-- **Coverage**: Security (password, encryption, sanitization), DB helpers (caching, auth, signed URLs), all V2 DB modules (badges, intake shares, postings, assessments)
+### FK Disambiguation (PostgREST)
+Multiple tables have 2+ FKs to `users`. Must specify FK name:
+- `timesheets` → `users!timesheets_user_id_fkey`
+- `staff_badges` → `users!staff_badges_user_id_fkey`
+- `company_memberships` → standard (only one FK)
 
 ### Key Patterns
-- **Badge download**: Shared `badge-download.ts` used by both roster inline buttons and standalone badge-generator
-- **Public pages**: `/intake?t={token}`, `/careers?company={slug}`, `/apply?c={id}` — all use query params (not path segments) due to `output: "export"` static hosting
-- **Sidebar navigation**: All links use native `<a>` tags with `/overwatch` basePath prefix
-- **Tactical map click handler**: Entity picking runs FIRST (before globe.pick) to ensure billboard clicks work. `losEntityIds` is a ref, not state, to prevent infinite handler recreation.
-- **Brand utilities**: `lib/brand-utils.ts` is the single source of truth for `hexToRgb`, `adjustBrightness`, `getLuminance` — used by brand-theme-provider, admin/settings, and tests
-- **Service layer stubs**: `lib/services/*.ts` are scaffolding for server-side integrations (Twilio, DocuSign, etc.) — cannot run in static export
-- **Error feedback**: `lib/supabase/db-error.ts` provides `logDbReadError()` — toast + console logging for all DB read failures across 13 modules
+- **Badge QR format**: `JSON.stringify({ uid, cid, bn })` — immutable per badge
+- **RPC for privileged operations**: `convert_applicant_to_roster` (SECURITY DEFINER)
+- **CSV column mapper**: `parseCSVRaw` → `suggestMapping/suggestShiftMapping` → `applyMapping/applyShiftMapping` → validate → bulk insert
+- **Service worker**: `CACHE_NAME = "overwatch-__BUILD_HASH__"` injected by CI
+- **Error feedback**: `db-error.ts` → toast + console for all DB read failures
+- **Scan error handling**: only queues when `navigator.onLine` is false; shows actual DB error when online
 
 ### Git Identity
 - Name: `denalifox`
 - Email: `denalifox@users.noreply.github.com`
 
 ### Push Authentication
-- `$token = gh auth token; git push "https://x-access-token:${token}@github.com/EvenfallAdvantage/evenfalladvantage.github.io.git" main`
+```powershell
+$token = gh auth token; git push "https://x-access-token:${token}@github.com/EvenfallAdvantage/evenfalladvantage.github.io.git" main
+```
 
 ---
 
 ## Recommended Next Steps
 
-1. **Deploy XML job feed** — `supabase functions deploy job-feed --no-verify-jwt` (function scaffolded, needs Supabase CLI)
-2. **Backup workflow fix** — Set `SUPABASE_DB_URL` secret to Session Mode pooler URL (IPv4) in GitHub Actions settings
-3. **More component tests** — Expand `.test.tsx` coverage to roster tab, incident create form, clock-in modal
-4. **Test CesiumJS soft navigation** — Sidebar now uses `<Link>`; verify WebGL context handles soft nav on schedule/map page
-5. **Bug fixes** — Ready for bug-crushing sprint
+1. **Donnaroo smoke test this weekend** — event created, shifts assigned, badges printed, mass clock ready
+2. **Auth email invites** — Supabase Edge Function calling `auth.admin.inviteUserByEmail()` for new roster members
+3. **Fix instructor scan permissions** — add 'instructor' to `is_company_manager()` or create separate scan RLS
+4. **Persist offline scan queue** — move from useState to localStorage/IndexedDB
+5. **Add event filter to "Currently Clocked In" panel** — filter by selected eventId
+6. **More component tests** — expand `.test.tsx` coverage (roster, incident form, clock-in modal)
+7. **Backup workflow fix** — `SUPABASE_DB_URL` Session Mode pooler URL (IPv4)
+8. **Rich text editor for post orders** — upgrade textarea to proper editor (TipTap/ProseMirror)
