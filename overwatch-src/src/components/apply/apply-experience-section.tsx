@@ -33,8 +33,9 @@ export function ApplyExperienceSection({ workHistory, onAdd, onUpdate, onRemove 
           </button>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Employer</label>
+              <label htmlFor={`apply-employer-${idx}`} className="text-xs text-zinc-400 mb-1 block">Employer</label>
               <Input
+                id={`apply-employer-${idx}`}
                 value={job.employer}
                 onChange={(e) => onUpdate(idx, "employer", e.target.value)}
                 className="bg-zinc-800 border-zinc-600 text-white"
@@ -42,8 +43,9 @@ export function ApplyExperienceSection({ workHistory, onAdd, onUpdate, onRemove 
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Job Title</label>
+              <label htmlFor={`apply-job-title-${idx}`} className="text-xs text-zinc-400 mb-1 block">Job Title</label>
               <Input
+                id={`apply-job-title-${idx}`}
                 value={job.title}
                 onChange={(e) => onUpdate(idx, "title", e.target.value)}
                 className="bg-zinc-800 border-zinc-600 text-white"
@@ -51,8 +53,9 @@ export function ApplyExperienceSection({ workHistory, onAdd, onUpdate, onRemove 
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Start Date</label>
+              <label htmlFor={`apply-start-date-${idx}`} className="text-xs text-zinc-400 mb-1 block">Start Date</label>
               <Input
+                id={`apply-start-date-${idx}`}
                 value={job.startDate}
                 onChange={(e) => onUpdate(idx, "startDate", e.target.value)}
                 type="month"
@@ -60,9 +63,10 @@ export function ApplyExperienceSection({ workHistory, onAdd, onUpdate, onRemove 
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">End Date</label>
+              <label htmlFor={`apply-end-date-${idx}`} className="text-xs text-zinc-400 mb-1 block">End Date</label>
               <div className="space-y-1.5">
                 <Input
+                  id={`apply-end-date-${idx}`}
                   value={job.endDate === "Present" ? "" : job.endDate}
                   onChange={(e) => onUpdate(idx, "endDate", e.target.value)}
                   type="month"
@@ -82,8 +86,9 @@ export function ApplyExperienceSection({ workHistory, onAdd, onUpdate, onRemove 
             </div>
           </div>
           <div>
-            <label className="text-xs text-zinc-400 mb-1 block">Description</label>
+            <label htmlFor={`apply-job-description-${idx}`} className="text-xs text-zinc-400 mb-1 block">Description</label>
             <textarea
+              id={`apply-job-description-${idx}`}
               value={job.description}
               onChange={(e) => onUpdate(idx, "description", e.target.value)}
               rows={2}

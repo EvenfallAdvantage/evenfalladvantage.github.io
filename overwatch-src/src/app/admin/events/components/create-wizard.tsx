@@ -218,13 +218,13 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
         {createStep === 0 && (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2"><Label className="text-xs">Operation Name *</Label><Input placeholder="e.g. Spring Festival Security" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" /></div>
+              <div className="sm:col-span-2"><Label htmlFor="operation-name" className="text-xs">Operation Name *</Label><Input id="operation-name" placeholder="e.g. Spring Festival Security" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" /></div>
               <div className="sm:col-span-2"><Label className="text-xs">Location</Label><AddressAutocomplete value={location} onChange={setLocation} onSelect={(s: AddressSelection) => { setLocation(s.displayName); setLocationLat(s.lat); setLocationLng(s.lon); if (s.street && !guide.siteAddress) setGuide(g => ({ ...g, siteAddress: `${s.street}, ${s.city}, ${s.state} ${s.postcode}`.trim() })); }} onClear={() => { setLocationLat(null); setLocationLng(null); }} placeholder="e.g. 123 Main St, Los Angeles, CA" className="mt-1" /></div>
-              <div><Label className="text-xs">Start Date & Time *</Label><Input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1" /></div>
-              <div><Label className="text-xs">End Date & Time *</Label><Input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="event-start-date" className="text-xs">Start Date & Time *</Label><Input id="event-start-date" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="event-end-date" className="text-xs">End Date & Time *</Label><Input id="event-end-date" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1" /></div>
               <div>
-                <Label className="text-xs">Timezone</Label>
-                <select value={eventTimezone} onChange={(e) => setEventTimezone(e.target.value)}
+                <Label htmlFor="event-timezone" className="text-xs">Timezone</Label>
+                <select id="event-timezone" value={eventTimezone} onChange={(e) => setEventTimezone(e.target.value)}
                   className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm">
                   {US_TIMEZONES.map(tz => (
                     <option key={tz.value} value={tz.value}>{tz.label}</option>
@@ -245,18 +245,18 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
-                <Label className="text-xs">Time Sensitivity</Label>
-                <select value={intakeTimeSensitivity} onChange={(e) => setIntakeTimeSensitivity(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                <Label htmlFor="event-time-sensitivity" className="text-xs">Time Sensitivity</Label>
+                <select id="event-time-sensitivity" value={intakeTimeSensitivity} onChange={(e) => setIntakeTimeSensitivity(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                   {["Low", "Medium", "High", "Immediate"].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
-                <Label className="text-xs flex items-center gap-1"><DollarSign className="h-3 w-3 text-green-500" /> Pay Rate ($/hr)</Label>
-                <Input type="number" step="0.01" min="0" placeholder="e.g. 25.00" value={payRate} onChange={(e) => setPayRate(e.target.value)} className="mt-1" />
+                <Label htmlFor="event-pay-rate" className="text-xs flex items-center gap-1"><DollarSign className="h-3 w-3 text-green-500" /> Pay Rate ($/hr)</Label>
+                <Input id="event-pay-rate" type="number" step="0.01" min="0" placeholder="e.g. 25.00" value={payRate} onChange={(e) => setPayRate(e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-xs">Mission Statement</Label>
-                <Input placeholder={`${companyName || "Company"} will [do what] for [client] at [location] in order to [purpose]`} value={intakeMission} onChange={(e) => setIntakeMission(e.target.value)} className="mt-1" />
+                <Label htmlFor="event-mission-statement" className="text-xs">Mission Statement</Label>
+                <Input id="event-mission-statement" placeholder={`${companyName || "Company"} will [do what] for [client] at [location] in order to [purpose]`} value={intakeMission} onChange={(e) => setIntakeMission(e.target.value)} className="mt-1" />
               </div>
             </div>
           </>
@@ -267,19 +267,19 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
           <>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" /> Client & site details appear on the OPs Guide shared with your team.</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div><Label className="text-xs">Client Name</Label><Input placeholder="e.g. Acme Corp" value={guide.clientName} onChange={(e) => updateGuide("clientName", e.target.value)} className="mt-1" /></div>
-              <div><Label className="text-xs">Client Contact Person</Label><Input placeholder="e.g. Jane Smith" value={guide.clientContact} onChange={(e) => updateGuide("clientContact", e.target.value)} className="mt-1" /></div>
-              <div><Label className="text-xs">Client Phone</Label><PhoneInput value={guide.clientPhone} onChange={(v) => updateGuide("clientPhone", v)} className="mt-1" /></div>
-              <div><Label className="text-xs">Client Email</Label><Input placeholder="jane@acme.com" type="email" value={guide.clientEmail} onChange={(e) => updateGuide("clientEmail", e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="client-name" className="text-xs">Client Name</Label><Input id="client-name" placeholder="e.g. Acme Corp" value={guide.clientName} onChange={(e) => updateGuide("clientName", e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="client-contact-person" className="text-xs">Client Contact Person</Label><Input id="client-contact-person" placeholder="e.g. Jane Smith" value={guide.clientContact} onChange={(e) => updateGuide("clientContact", e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="client-phone" className="text-xs">Client Phone</Label><PhoneInput id="client-phone" value={guide.clientPhone} onChange={(v) => updateGuide("clientPhone", v)} className="mt-1" /></div>
+              <div><Label htmlFor="client-email" className="text-xs">Client Email</Label><Input id="client-email" placeholder="jane@acme.com" type="email" value={guide.clientEmail} onChange={(e) => updateGuide("clientEmail", e.target.value)} className="mt-1" /></div>
               <div className="sm:col-span-2"><Label className="text-xs">Site Address</Label><AddressAutocomplete value={guide.siteAddress} onChange={(v) => updateGuide("siteAddress", v)} onSelect={(s: AddressSelection) => { updateGuide("siteAddress", `${s.street}, ${s.city}, ${s.state} ${s.postcode}`.trim()); if (!locationLat) { setLocationLat(s.lat); setLocationLng(s.lon); } }} placeholder="Full site address if different from operation location" className="mt-1" /></div>
-              <div><Label className="text-xs">Site Type</Label>
-                <select value={guide.siteType} onChange={(e) => updateGuide("siteType", e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+              <div><Label htmlFor="site-type" className="text-xs">Site Type</Label>
+                <select id="site-type" value={guide.siteType} onChange={(e) => updateGuide("siteType", e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                   <option value="">Select...</option>
                   {SITE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
-              <div><Label className="text-xs">Parking Info</Label><Input placeholder="e.g. Lot B, permit required" value={guide.parkingInfo} onChange={(e) => updateGuide("parkingInfo", e.target.value)} className="mt-1" /></div>
-              <div className="sm:col-span-2"><Label className="text-xs">Check-In Procedure</Label><Input placeholder="e.g. Report to lobby, sign in at front desk" value={guide.checkInProcedure} onChange={(e) => updateGuide("checkInProcedure", e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="parking-info" className="text-xs">Parking Info</Label><Input id="parking-info" placeholder="e.g. Lot B, permit required" value={guide.parkingInfo} onChange={(e) => updateGuide("parkingInfo", e.target.value)} className="mt-1" /></div>
+              <div className="sm:col-span-2"><Label htmlFor="check-in-procedure" className="text-xs">Check-In Procedure</Label><Input id="check-in-procedure" placeholder="e.g. Report to lobby, sign in at front desk" value={guide.checkInProcedure} onChange={(e) => updateGuide("checkInProcedure", e.target.value)} className="mt-1" /></div>
             </div>
             <div className="pt-2 border-t border-border/20 space-y-3">
               <div>
@@ -294,16 +294,16 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div><Label className="text-xs">Estimated Attendance</Label><Input placeholder="e.g. 500" value={intakeAttendance} onChange={(e) => setIntakeAttendance(e.target.value)} className="mt-1" /></div>
-                <div><Label className="text-xs">Environment</Label>
-                  <select value={intakeEnvironment} onChange={(e) => setIntakeEnvironment(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                <div><Label htmlFor="estimated-attendance" className="text-xs">Estimated Attendance</Label><Input id="estimated-attendance" placeholder="e.g. 500" value={intakeAttendance} onChange={(e) => setIntakeAttendance(e.target.value)} className="mt-1" /></div>
+                <div><Label htmlFor="environment" className="text-xs">Environment</Label>
+                  <select id="environment" value={intakeEnvironment} onChange={(e) => setIntakeEnvironment(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                     <option value="">Select...</option>
                     <option value="Indoor">Indoor</option>
                     <option value="Outdoor">Outdoor</option>
                     <option value="Hybrid">Hybrid</option>
                   </select>
                 </div>
-                <div className="sm:col-span-1"><Label className="text-xs">Environment Notes</Label><Input placeholder="e.g. Urban, multi-level" value={intakeEnvNotes} onChange={(e) => setIntakeEnvNotes(e.target.value)} className="mt-1" /></div>
+                <div className="sm:col-span-1"><Label htmlFor="environment-notes" className="text-xs">Environment Notes</Label><Input id="environment-notes" placeholder="e.g. Urban, multi-level" value={intakeEnvNotes} onChange={(e) => setIntakeEnvNotes(e.target.value)} className="mt-1" /></div>
               </div>
             </div>
             {/* Site Map Upload */}
@@ -368,12 +368,12 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
                 ))}
               </div>
             </div>
-            <div><Label className="text-xs">Client Request (in their words)</Label><Textarea value={intakeClientRequest} onChange={(v) => setIntakeClientRequest(v)} placeholder="What the client asked for verbatim — helps align expectations" rows={2} /></div>
-            <div><Label className="text-xs">Scope of Work</Label><Textarea value={guide.scope} onChange={(v) => updateGuide("scope", v)} placeholder="Describe the overall scope: access control, patrol routes, crowd management, etc." rows={3} /></div>
-            <div><Label className="text-xs">Post Orders / Standing Instructions</Label><Textarea value={guide.postOrders} onChange={(v) => updateGuide("postOrders", v)} placeholder="Detailed instructions for each post position, duties, and responsibilities" rows={3} /></div>
+            <div><Label htmlFor="client-request" className="text-xs">Client Request (in their words)</Label><Textarea id="client-request" value={intakeClientRequest} onChange={(v) => setIntakeClientRequest(v)} placeholder="What the client asked for verbatim — helps align expectations" rows={2} /></div>
+            <div><Label htmlFor="scope-of-work" className="text-xs">Scope of Work</Label><Textarea id="scope-of-work" value={guide.scope} onChange={(v) => updateGuide("scope", v)} placeholder="Describe the overall scope: access control, patrol routes, crowd management, etc." rows={3} /></div>
+            <div><Label htmlFor="post-orders" className="text-xs">Post Orders / Standing Instructions</Label><Textarea id="post-orders" value={guide.postOrders} onChange={(v) => updateGuide("postOrders", v)} placeholder="Detailed instructions for each post position, duties, and responsibilities" rows={3} /></div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div><Label className="text-xs">Deliverables</Label><Textarea value={intakeDeliverables} onChange={(v) => setIntakeDeliverables(v)} placeholder="e.g. Security plan, post-event report, incident logs" rows={2} /></div>
-              <div><Label className="text-xs">Out of Scope</Label><Textarea value={intakeOutOfScope} onChange={(v) => setIntakeOutOfScope(v)} placeholder={`What ${companyName || "the company"} is NOT responsible for`} rows={2} /></div>
+              <div><Label htmlFor="deliverables" className="text-xs">Deliverables</Label><Textarea id="deliverables" value={intakeDeliverables} onChange={(v) => setIntakeDeliverables(v)} placeholder="e.g. Security plan, post-event report, incident logs" rows={2} /></div>
+              <div><Label htmlFor="out-of-scope" className="text-xs">Out of Scope</Label><Textarea id="out-of-scope" value={intakeOutOfScope} onChange={(v) => setIntakeOutOfScope(v)} placeholder={`What ${companyName || "the company"} is NOT responsible for`} rows={2} /></div>
             </div>
           </>
         )}
@@ -383,25 +383,25 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
           <>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Shirt className="h-3.5 w-3.5" /> Dress code, equipment, and communication details.</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div><Label className="text-xs">Dress Code</Label>
-                <select value={guide.dressCode} onChange={(e) => updateGuide("dressCode", e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+              <div><Label htmlFor="dress-code" className="text-xs">Dress Code</Label>
+                <select id="dress-code" value={guide.dressCode} onChange={(e) => updateGuide("dressCode", e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                   <option value="">Select...</option>
                   {DRESS_CODES.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
-              <div><Label className="text-xs">Required Gear</Label><Input placeholder="e.g. Flashlight, radio, body cam" value={guide.requiredGear} onChange={(e) => updateGuide("requiredGear", e.target.value)} className="mt-1" /></div>
-              <div><Label className="text-xs">Communication Channel</Label><Input placeholder="e.g. WhatsApp Ops Chat, Radio Ch. 5" value={guide.communicationChannel} onChange={(e) => updateGuide("communicationChannel", e.target.value)} className="mt-1" /></div>
-              <div><Label className="text-xs">Radio Channels / Plan</Label><Input placeholder="e.g. Ch 1: Command, Ch 2: Security, Ch 3: Medical" value={intakeRadioChannels} onChange={(e) => setIntakeRadioChannels(e.target.value)} className="mt-1" /></div>
-              <div className="sm:col-span-2"><Label className="text-xs">Reporting Instructions</Label><Textarea value={guide.reportingInstructions} onChange={(v) => updateGuide("reportingInstructions", v)} placeholder="How and when to submit reports (e.g. Overwatch incident form, end-of-shift DAR)" rows={2} /></div>
+              <div><Label htmlFor="required-gear" className="text-xs">Required Gear</Label><Input id="required-gear" placeholder="e.g. Flashlight, radio, body cam" value={guide.requiredGear} onChange={(e) => updateGuide("requiredGear", e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="communication-channel" className="text-xs">Communication Channel</Label><Input id="communication-channel" placeholder="e.g. WhatsApp Ops Chat, Radio Ch. 5" value={guide.communicationChannel} onChange={(e) => updateGuide("communicationChannel", e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="radio-channels" className="text-xs">Radio Channels / Plan</Label><Input id="radio-channels" placeholder="e.g. Ch 1: Command, Ch 2: Security, Ch 3: Medical" value={intakeRadioChannels} onChange={(e) => setIntakeRadioChannels(e.target.value)} className="mt-1" /></div>
+              <div className="sm:col-span-2"><Label htmlFor="reporting-instructions" className="text-xs">Reporting Instructions</Label><Textarea id="reporting-instructions" value={guide.reportingInstructions} onChange={(v) => updateGuide("reportingInstructions", v)} placeholder="How and when to submit reports (e.g. Overwatch incident form, end-of-shift DAR)" rows={2} /></div>
             </div>
             <div className="pt-2 border-t border-border/20 grid gap-3 sm:grid-cols-2">
-              <div><Label className="text-xs">Medical Capability</Label>
-                <select value={intakeMedical} onChange={(e) => setIntakeMedical(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+              <div><Label htmlFor="medical-capability" className="text-xs">Medical Capability</Label>
+                <select id="medical-capability" value={intakeMedical} onChange={(e) => setIntakeMedical(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                   <option value="">Select...</option>
                   {MEDICAL_CAPABILITIES.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
-              <div><Label className="text-xs">Additional Equipment</Label><Input placeholder="e.g. Barriers, lighting, PPE, first aid kits" value={intakeEquipment} onChange={(e) => setIntakeEquipment(e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="additional-equipment" className="text-xs">Additional Equipment</Label><Input id="additional-equipment" placeholder="e.g. Barriers, lighting, PPE, first aid kits" value={intakeEquipment} onChange={(e) => setIntakeEquipment(e.target.value)} className="mt-1" /></div>
             </div>
           </>
         )}
@@ -411,21 +411,21 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
           <>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Emergency, risk assessment, command structure, and success criteria.</p>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div><Label className="text-xs">Emergency Contact Name</Label><Input placeholder="e.g. Operations Manager" value={guide.emergencyContact} onChange={(e) => updateGuide("emergencyContact", e.target.value)} className="mt-1" /></div>
-              <div><Label className="text-xs">Emergency Phone</Label><PhoneInput value={guide.emergencyPhone} onChange={(v) => updateGuide("emergencyPhone", v)} className="mt-1" /></div>
-              <div className="sm:col-span-2"><Label className="text-xs">Emergency Procedure</Label><Textarea value={guide.emergencyProcedure} onChange={(v) => updateGuide("emergencyProcedure", v)} placeholder="Evacuation routes, rally points, chain of command" rows={2} /></div>
+              <div><Label htmlFor="emergency-contact-name" className="text-xs">Emergency Contact Name</Label><Input id="emergency-contact-name" placeholder="e.g. Operations Manager" value={guide.emergencyContact} onChange={(e) => updateGuide("emergencyContact", e.target.value)} className="mt-1" /></div>
+              <div><Label htmlFor="emergency-phone" className="text-xs">Emergency Phone</Label><PhoneInput id="emergency-phone" value={guide.emergencyPhone} onChange={(v) => updateGuide("emergencyPhone", v)} className="mt-1" /></div>
+              <div className="sm:col-span-2"><Label htmlFor="emergency-procedure" className="text-xs">Emergency Procedure</Label><Textarea id="emergency-procedure" value={guide.emergencyProcedure} onChange={(v) => updateGuide("emergencyProcedure", v)} placeholder="Evacuation routes, rally points, chain of command" rows={2} /></div>
             </div>
             {/* Risk Assessment */}
             <div className="pt-2 border-t border-border/20 space-y-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Risk Assessment</p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div><Label className="text-xs">Risk Level</Label>
-                  <select value={intakeRiskLevel} onChange={(e) => setIntakeRiskLevel(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                <div><Label htmlFor="risk-level" className="text-xs">Risk Level</Label>
+                  <select id="risk-level" value={intakeRiskLevel} onChange={(e) => setIntakeRiskLevel(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                     <option value="">Select...</option>
                     {["Low", "Moderate", "High", "Critical"].map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
-                <div><Label className="text-xs">Client-Identified Risks</Label><Input placeholder="e.g. Previous incidents, known bad actors" value={intakeClientRisks} onChange={(e) => setIntakeClientRisks(e.target.value)} className="mt-1" /></div>
+                <div><Label htmlFor="client-identified-risks" className="text-xs">Client-Identified Risks</Label><Input id="client-identified-risks" placeholder="e.g. Previous incidents, known bad actors" value={intakeClientRisks} onChange={(e) => setIntakeClientRisks(e.target.value)} className="mt-1" /></div>
               </div>
               <div>
                 <Label className="text-xs">Threat Types</Label>
@@ -454,14 +454,14 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
             <div className="pt-2 border-t border-border/20 space-y-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Command & Control</p>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div><Label className="text-xs">Command Model</Label>
-                  <select value={intakeCommandModel} onChange={(e) => setIntakeCommandModel(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                <div><Label htmlFor="command-model" className="text-xs">Command Model</Label>
+                  <select id="command-model" value={intakeCommandModel} onChange={(e) => setIntakeCommandModel(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                     <option value="">Select...</option>
                     {COMMAND_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
-                <div><Label className="text-xs">Escalation Flow</Label>
-                  <select value={intakeEscalation} onChange={(e) => setIntakeEscalation(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+                <div><Label htmlFor="escalation-flow" className="text-xs">Escalation Flow</Label>
+                  <select id="escalation-flow" value={intakeEscalation} onChange={(e) => setIntakeEscalation(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                     <option value="">Select...</option>
                     <option value="Staff → Supervisor → Command">Staff → Supervisor → Command</option>
                     <option value="Direct to Command">Direct to Command</option>
@@ -491,7 +491,7 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
                   </button>
                 ))}
               </div>
-              <div><Label className="text-xs">Special Instructions / Additional Notes</Label><Textarea value={guide.specialInstructions} onChange={(v) => updateGuide("specialInstructions", v)} placeholder="VIP details, restricted areas, weather contingencies, additional success measures" rows={2} /></div>
+              <div><Label htmlFor="special-instructions" className="text-xs">Special Instructions / Additional Notes</Label><Textarea id="special-instructions" value={guide.specialInstructions} onChange={(v) => updateGuide("specialInstructions", v)} placeholder="VIP details, restricted areas, weather contingencies, additional success measures" rows={2} /></div>
             </div>
           </>
         )}

@@ -16,13 +16,13 @@ export function ApplyAdditionalInfoSection({ availability, coverLetter, onChange
         Additional Info
       </h2>
       <div>
-        <label className="text-xs text-zinc-400 mb-1 block">Availability</label>
-        <Input value={availability} onChange={(e) => onChange("availability", e.target.value)}
+        <label htmlFor="apply-availability" className="text-xs text-zinc-400 mb-1 block">Availability</label>
+        <Input id="apply-availability" value={availability} onChange={(e) => onChange("availability", e.target.value)}
           className="bg-zinc-900 border-zinc-700 text-white" placeholder="Weekdays, Weekends, Nights, etc." />
       </div>
       <div>
-        <label className="text-xs text-zinc-400 mb-1 block">Why do you want to work with us?</label>
-        <textarea value={coverLetter} onChange={(e) => onChange("coverLetter", e.target.value)}
+        <label htmlFor="apply-cover-letter" className="text-xs text-zinc-400 mb-1 block">Why do you want to work with us?</label>
+        <textarea id="apply-cover-letter" value={coverLetter} onChange={(e) => onChange("coverLetter", e.target.value)}
           rows={3} className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-primary"
           placeholder="Tell us about yourself and why you'd be a great fit..." />
       </div>

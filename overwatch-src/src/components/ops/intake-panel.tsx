@@ -56,9 +56,9 @@ const EMPTY_INTAKE: IntakeData = {
   successCriteria: [], additionalSuccessMeasures: "",
 };
 
-function Txt({ value, onChange, placeholder, rows = 2, disabled }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; disabled?: boolean }) {
+function Txt({ id, value, onChange, placeholder, rows = 2, disabled }: { id?: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; disabled?: boolean }) {
   return (
-    <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} disabled={disabled}
+    <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} disabled={disabled}
       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y disabled:opacity-60" />
   );
 }
@@ -305,10 +305,10 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       <SectionHeader title="Mission Overview" />
       <div className="space-y-2">
         <div><Label className="text-xs">Engagement Type</Label><Chips field="engagementType" options={ENGAGEMENT_TYPES} /></div>
-        <div><Label className="text-xs">Client Request</Label><Txt value={data.clientRequest} onChange={(v) => upd("clientRequest", v)} placeholder="What the client asked for..." rows={2} disabled={isLocked} /></div>
-        <div><Label className="text-xs">Mission Statement</Label><Txt value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName || "Company"} will provide [service] for [client] at [location] in order to [purpose].`} rows={2} disabled={isLocked} /></div>
-        <div><Label className="text-xs">Time Sensitivity</Label>
-          <select value={data.timeSensitivity} onChange={(e) => upd("timeSensitivity", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+        <div><Label htmlFor="intake-client-request" className="text-xs">Client Request</Label><Txt id="intake-client-request" value={data.clientRequest} onChange={(v) => upd("clientRequest", v)} placeholder="What the client asked for..." rows={2} disabled={isLocked} /></div>
+        <div><Label htmlFor="intake-mission-statement" className="text-xs">Mission Statement</Label><Txt id="intake-mission-statement" value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName || "Company"} will provide [service] for [client] at [location] in order to [purpose].`} rows={2} disabled={isLocked} /></div>
+        <div><Label htmlFor="intake-time-sensitivity" className="text-xs">Time Sensitivity</Label>
+          <select id="intake-time-sensitivity" value={data.timeSensitivity} onChange={(e) => upd("timeSensitivity", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
             <option value="">Select...</option>
             {["Low", "Medium", "High", "Immediate"].map(t => <option key={t} value={t}>{t}</option>)}
           </select>
@@ -339,16 +339,16 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
         </div>
         <div><Label className="text-xs">Venue Type</Label><Chips field="venueType" options={VENUE_TYPES} /></div>
         <div className="grid gap-2 sm:grid-cols-3">
-          <div><Label className="text-xs">Est. Attendance</Label><Input value={data.estimatedAttendance} onChange={(e) => upd("estimatedAttendance", e.target.value)} placeholder="e.g. 500" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-          <div><Label className="text-xs">Environment</Label>
-            <select value={data.environment} onChange={(e) => upd("environment", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+          <div><Label htmlFor="intake-estimated-attendance" className="text-xs">Est. Attendance</Label><Input id="intake-estimated-attendance" value={data.estimatedAttendance} onChange={(e) => upd("estimatedAttendance", e.target.value)} placeholder="e.g. 500" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="intake-environment" className="text-xs">Environment</Label>
+            <select id="intake-environment" value={data.environment} onChange={(e) => upd("environment", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
               <option value="">Select...</option>
               <option value="Indoor">Indoor</option>
               <option value="Outdoor">Outdoor</option>
               <option value="Hybrid">Hybrid</option>
             </select>
           </div>
-          <div><Label className="text-xs">Environment Notes</Label><Input value={data.environmentNotes} onChange={(e) => upd("environmentNotes", e.target.value)} placeholder="e.g. Urban, multi-level" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="intake-environment-notes" className="text-xs">Environment Notes</Label><Input id="intake-environment-notes" value={data.environmentNotes} onChange={(e) => upd("environmentNotes", e.target.value)} placeholder="e.g. Urban, multi-level" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
       </div>
 
@@ -395,8 +395,8 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       <div className="space-y-2">
         <div><Label className="text-xs">Services Requested</Label><Chips field="servicesRequested" options={SERVICES_REQUESTED} /></div>
         <div className="grid gap-2 sm:grid-cols-2">
-          <div><Label className="text-xs">Deliverables</Label><Txt value={data.deliverables} onChange={(v) => upd("deliverables", v)} placeholder="e.g. Security plan, post-event report" rows={2} disabled={isLocked} /></div>
-          <div><Label className="text-xs">Out of Scope</Label><Txt value={data.outOfScope} onChange={(v) => upd("outOfScope", v)} placeholder="What the company is NOT responsible for" rows={2} disabled={isLocked} /></div>
+          <div><Label htmlFor="intake-deliverables" className="text-xs">Deliverables</Label><Txt id="intake-deliverables" value={data.deliverables} onChange={(v) => upd("deliverables", v)} placeholder="e.g. Security plan, post-event report" rows={2} disabled={isLocked} /></div>
+          <div><Label htmlFor="intake-out-of-scope" className="text-xs">Out of Scope</Label><Txt id="intake-out-of-scope" value={data.outOfScope} onChange={(v) => upd("outOfScope", v)} placeholder="What the company is NOT responsible for" rows={2} disabled={isLocked} /></div>
         </div>
       </div>
 
@@ -404,24 +404,24 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       <SectionHeader title="Comms & Equipment" />
       <div className="space-y-2">
         <div className="grid gap-2 sm:grid-cols-3">
-          <div><Label className="text-xs">Medical Capability</Label>
-            <select value={data.medicalCapability} onChange={(e) => upd("medicalCapability", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+          <div><Label htmlFor="intake-medical-capability" className="text-xs">Medical Capability</Label>
+            <select id="intake-medical-capability" value={data.medicalCapability} onChange={(e) => upd("medicalCapability", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
               <option value="">Select...</option>
               {MEDICAL_CAPABILITIES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
-          <div><Label className="text-xs">Equipment Available</Label><Input value={data.equipmentAvailable} onChange={(e) => upd("equipmentAvailable", e.target.value)} placeholder="e.g. Radios, barriers, PPE" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-          <div><Label className="text-xs">Radio Channels</Label><Input value={(data as unknown as Record<string, string>).radioChannels ?? ""} onChange={(e) => setData(prev => ({ ...prev, radioChannels: e.target.value } as IntakeData))} placeholder="Ch 1: Cmd, Ch 2: Sec" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="intake-equipment-available" className="text-xs">Equipment Available</Label><Input id="intake-equipment-available" value={data.equipmentAvailable} onChange={(e) => upd("equipmentAvailable", e.target.value)} placeholder="e.g. Radios, barriers, PPE" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="intake-radio-channels" className="text-xs">Radio Channels</Label><Input id="intake-radio-channels" value={(data as unknown as Record<string, string>).radioChannels ?? ""} onChange={(e) => setData(prev => ({ ...prev, radioChannels: e.target.value } as IntakeData))} placeholder="Ch 1: Cmd, Ch 2: Sec" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
       </div>
 
       {/* Risks */}
       <SectionHeader title="Risks" />
       <div className="space-y-2">
-        <div><Label className="text-xs">Client-Identified Risks</Label><Txt value={data.clientIdentifiedRisks} onChange={(v) => upd("clientIdentifiedRisks", v)} placeholder="Previous incidents, known bad actors" rows={1} disabled={isLocked} /></div>
+        <div><Label htmlFor="intake-client-identified-risks" className="text-xs">Client-Identified Risks</Label><Txt id="intake-client-identified-risks" value={data.clientIdentifiedRisks} onChange={(v) => upd("clientIdentifiedRisks", v)} placeholder="Previous incidents, known bad actors" rows={1} disabled={isLocked} /></div>
         <div className="grid gap-2 sm:grid-cols-2">
-          <div><Label className="text-xs">Risk Level</Label>
-            <select value={data.riskLevel} onChange={(e) => upd("riskLevel", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+          <div><Label htmlFor="intake-risk-level" className="text-xs">Risk Level</Label>
+            <select id="intake-risk-level" value={data.riskLevel} onChange={(e) => upd("riskLevel", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
               <option value="">Select...</option>
               {["Low", "Moderate", "High", "Critical"].map(r => <option key={r} value={r}>{r}</option>)}
             </select>
@@ -435,14 +435,14 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       <SectionHeader title="Command" />
       <div className="space-y-2">
         <div className="grid gap-2 sm:grid-cols-2">
-          <div><Label className="text-xs">Command Model</Label>
-            <select value={data.commandModel} onChange={(e) => upd("commandModel", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+          <div><Label htmlFor="intake-command-model" className="text-xs">Command Model</Label>
+            <select id="intake-command-model" value={data.commandModel} onChange={(e) => upd("commandModel", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
               <option value="">Select...</option>
               {COMMAND_MODELS.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
-          <div><Label className="text-xs">Escalation Flow</Label>
-            <select value={data.escalationFlow} onChange={(e) => upd("escalationFlow", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+          <div><Label htmlFor="intake-escalation-flow" className="text-xs">Escalation Flow</Label>
+            <select id="intake-escalation-flow" value={data.escalationFlow} onChange={(e) => upd("escalationFlow", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
               <option value="">Select...</option>
               <option value="Staff → Supervisor → Command">Staff → Supervisor → Command</option>
               <option value="Direct to Command">Direct to Command</option>
@@ -456,7 +456,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       <SectionHeader title="Success" />
       <div className="space-y-2">
         <Chips field="successCriteria" options={SUCCESS_CRITERIA} color="green" />
-        <div><Label className="text-xs">Additional Success Measures</Label><Txt value={data.additionalSuccessMeasures} onChange={(v) => upd("additionalSuccessMeasures", v)} placeholder="Any additional success metrics" rows={1} disabled={isLocked} /></div>
+        <div><Label htmlFor="intake-additional-success-measures" className="text-xs">Additional Success Measures</Label><Txt id="intake-additional-success-measures" value={data.additionalSuccessMeasures} onChange={(v) => upd("additionalSuccessMeasures", v)} placeholder="Any additional success metrics" rows={1} disabled={isLocked} /></div>
       </div>
 
       {/* Actions */}

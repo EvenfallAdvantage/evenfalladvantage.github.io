@@ -157,23 +157,24 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
           )}
           {/* ── Section 1: Core Info ── */}
           <div className="space-y-3">
-            <Input placeholder="Incident title / summary *" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
+            <label htmlFor="incident-title" className="sr-only">Incident title / summary</label>
+            <Input id="incident-title" placeholder="Incident title / summary *" value={newTitle} onChange={e => setNewTitle(e.target.value)} />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Type *</label>
-                <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={newType} onChange={e => setNewType(e.target.value)}>
+                <label htmlFor="incident-type" className="text-xs font-medium text-muted-foreground">Type *</label>
+                <select id="incident-type" className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={newType} onChange={e => setNewType(e.target.value)}>
                   {TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Severity</label>
-                <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={newSeverity} onChange={e => setNewSeverity(e.target.value)}>
+                <label htmlFor="incident-severity" className="text-xs font-medium text-muted-foreground">Severity</label>
+                <select id="incident-severity" className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={newSeverity} onChange={e => setNewSeverity(e.target.value)}>
                   {SEVERITY.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Priority</label>
-                <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={newPriority} onChange={e => setNewPriority(e.target.value)}>
+                <label htmlFor="incident-priority" className="text-xs font-medium text-muted-foreground">Priority</label>
+                <select id="incident-priority" className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={newPriority} onChange={e => setNewPriority(e.target.value)}>
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
@@ -181,8 +182,8 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Location / Post</label>
-                <Input className="mt-1" placeholder="Building, floor, area..." value={newLocation} onChange={e => setNewLocation(e.target.value)} />
+                <label htmlFor="incident-location" className="text-xs font-medium text-muted-foreground">Location / Post</label>
+                <Input id="incident-location" className="mt-1" placeholder="Building, floor, area..." value={newLocation} onChange={e => setNewLocation(e.target.value)} />
               </div>
             </div>
           </div>
@@ -192,23 +193,23 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">When &amp; Conditions</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Date of Incident</label>
-                <Input type="date" className="mt-1" value={incidentDate} onChange={e => setIncidentDate(e.target.value)} />
+                <label htmlFor="incident-date" className="text-xs font-medium text-muted-foreground">Date of Incident</label>
+                <Input id="incident-date" type="date" className="mt-1" value={incidentDate} onChange={e => setIncidentDate(e.target.value)} />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Time of Incident</label>
-                <Input type="time" className="mt-1" value={incidentTime} onChange={e => setIncidentTime(e.target.value)} />
+                <label htmlFor="incident-time" className="text-xs font-medium text-muted-foreground">Time of Incident</label>
+                <Input id="incident-time" type="time" className="mt-1" value={incidentTime} onChange={e => setIncidentTime(e.target.value)} />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Weather</label>
-                <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={weather} onChange={e => setWeather(e.target.value)}>
+                <label htmlFor="incident-weather" className="text-xs font-medium text-muted-foreground">Weather</label>
+                <select id="incident-weather" className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={weather} onChange={e => setWeather(e.target.value)}>
                   <option value="">Select...</option>
                   {WEATHER_OPTIONS.map(w => <option key={w} value={w}>{w}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Lighting</label>
-                <select className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={lighting} onChange={e => setLighting(e.target.value)}>
+                <label htmlFor="incident-lighting" className="text-xs font-medium text-muted-foreground">Lighting</label>
+                <select id="incident-lighting" className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={lighting} onChange={e => setLighting(e.target.value)}>
                   <option value="">Select...</option>
                   {LIGHTING_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
@@ -218,8 +219,9 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
 
           {/* ── Section 3: Narrative ── */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Narrative</p>
+            <label htmlFor="incident-narrative" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Narrative</label>
             <textarea
+              id="incident-narrative"
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[100px]"
               placeholder="Describe what happened in detail — who, what, when, where, how. Be factual and objective."
               value={newDesc}
@@ -259,8 +261,8 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
               {/* Injuries & Property Damage */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Injuries</p>
-                  <select className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={injuryLevel} onChange={e => setInjuryLevel(e.target.value)}>
+                  <label htmlFor="incident-injury-level" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Injuries</label>
+                  <select id="incident-injury-level" className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={injuryLevel} onChange={e => setInjuryLevel(e.target.value)}>
                     {INJURY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                   {injuryLevel !== "None" && (
@@ -268,8 +270,8 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
                   )}
                 </div>
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Property Damage</p>
-                  <select className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={propertyDamage} onChange={e => setPropertyDamage(e.target.value)}>
+                  <label htmlFor="incident-property-damage" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Property Damage</label>
+                  <select id="incident-property-damage" className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={propertyDamage} onChange={e => setPropertyDamage(e.target.value)}>
                     {PROPERTY_DAMAGE.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                   {propertyDamage !== "None" && (
@@ -328,8 +330,9 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
 
               {/* Suspect Description */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Suspect / Person of Interest</p>
+                <label htmlFor="incident-suspect-description" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Suspect / Person of Interest</label>
                 <textarea
+                  id="incident-suspect-description"
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px]"
                   placeholder="Physical description, clothing, direction of travel, vehicle info... (leave blank if N/A)"
                   value={suspectDesc}

@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils";
  */
 export function PageLoader({ className, text }: { className?: string; text?: string }) {
   return (
-    <div className={cn("flex flex-col items-center justify-center py-16 gap-3", className)}>
-      <Loader2 className="h-7 w-7 animate-spin text-muted-foreground motion-reduce:animate-none" />
+    <div className={cn("flex flex-col items-center justify-center py-16 gap-3", className)} role="status" aria-live="polite">
+      <Loader2 className="h-7 w-7 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden="true" />
+      <span className="sr-only">Loading{text ? `: ${text}` : ""}...</span>
       {text && <p className="text-xs text-muted-foreground">{text}</p>}
     </div>
   );

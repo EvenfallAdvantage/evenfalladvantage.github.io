@@ -86,11 +86,11 @@ export default function CompanyProfileSection({
         <CardContent className="space-y-4 pt-6">
           <h3 className="text-sm font-semibold">Company Profile</h3>
           <div>
-            <Label className="text-xs text-muted-foreground">Company Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
+            <Label htmlFor="company-name" className="text-xs text-muted-foreground">Company Name</Label>
+            <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Company Logo</Label>
+            <Label htmlFor="company-logo-url" className="text-xs text-muted-foreground">Company Logo</Label>
             <div className="flex items-center gap-2 mt-1">
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -100,7 +100,7 @@ export default function CompanyProfileSection({
                   <ImageIcon className="h-4 w-4 text-muted-foreground" />
                 </div>
               )}
-              <Input value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="flex-1" placeholder="https://example.com/logo.png" />
+              <Input id="company-logo-url" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="flex-1" placeholder="https://example.com/logo.png" />
               <input
                 ref={logoFileRef}
                 type="file"
@@ -135,20 +135,21 @@ export default function CompanyProfileSection({
             <p className="text-[10px] text-muted-foreground mt-1">Upload an image or paste a URL. It will appear in the sidebar.</p>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Label htmlFor="company-website-url" className="text-xs text-muted-foreground flex items-center gap-1.5">
               <LinkIcon className="h-3 w-3" /> Company Website
             </Label>
-            <Input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} className="mt-1" placeholder="https://www.yourcompany.com" />
+            <Input id="company-website-url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} className="mt-1" placeholder="https://www.yourcompany.com" />
             <p className="text-[10px] text-muted-foreground mt-1">Your company&apos;s website. Visitors can click your badge on the landing page to visit it.</p>
           </div>
           <div ref={tzRef}>
-            <Label className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Label htmlFor="company-timezone" className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Globe className="h-3 w-3" /> Timezone
             </Label>
             <div className="relative mt-1">
               <div className="flex gap-1.5">
                 <div className="relative flex-1">
                   <Input
+                    id="company-timezone"
                     value={tzOpen ? tzSearch : timezone}
                     onChange={(e) => { setTzSearch(e.target.value); setTzOpen(true); }}
                     onFocus={() => { setTzSearch(""); setTzOpen(true); }}
@@ -193,22 +194,22 @@ export default function CompanyProfileSection({
           {/* Brand Colors */}
           <div className="space-y-4">
             <div>
-              <Label className="text-xs text-muted-foreground">Primary Color (dark backgrounds)</Label>
+              <Label htmlFor="company-brand-color" className="text-xs text-muted-foreground">Primary Color (dark backgrounds)</Label>
               <p className="text-[10px] text-muted-foreground/60 mb-1.5">Used for sidebar, dark surfaces. Must be a dark color.</p>
               <div className="flex items-center gap-2">
                 <input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="h-9 w-9 rounded-md border border-border cursor-pointer bg-transparent" />
-                <Input value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="flex-1 font-mono" />
+                <Input id="company-brand-color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="flex-1 font-mono" />
                 {getLuminance(brandColor) > 0.15 && (
                   <span className="text-[10px] text-amber-500 flex items-center gap-1"><AlertTriangle size={12} /> Too light</span>
                 )}
               </div>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Accent Color (highlights &amp; buttons)</Label>
+              <Label htmlFor="company-accent-color" className="text-xs text-muted-foreground">Accent Color (highlights &amp; buttons)</Label>
               <p className="text-[10px] text-muted-foreground/60 mb-1.5">Used for buttons, active states, badges. Should be bright/visible.</p>
               <div className="flex items-center gap-2">
                 <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-9 w-9 rounded-md border border-border cursor-pointer bg-transparent" />
-                <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="flex-1 font-mono" />
+                <Input id="company-accent-color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="flex-1 font-mono" />
                 {getLuminance(accentColor) < 0.1 && (
                   <span className="text-[10px] text-amber-500 flex items-center gap-1"><AlertTriangle size={12} /> Too dark</span>
                 )}

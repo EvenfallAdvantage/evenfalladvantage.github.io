@@ -17,9 +17,9 @@ const TASK_CHANGES = ["Reassign personnel", "Adjust patrol routes", "Modify acce
 const AFFECTED_AREAS = ["Entry / Exit points", "VIP areas", "Main stage / crowd zone", "Parking / Transit", "All areas"];
 const PACE_LEVELS = ["Primary", "Alternate", "Contingency", "Emergency", "Recovery"];
 
-function Txt({ value, onChange, placeholder, rows = 2, disabled }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; disabled?: boolean }) {
+function Txt({ id, value, onChange, placeholder, rows = 2, disabled }: { id?: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; disabled?: boolean }) {
   return (
-    <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} disabled={disabled}
+    <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} disabled={disabled}
       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y disabled:opacity-60" />
   );
 }
@@ -181,9 +181,9 @@ export default function FragoPanel({ eventId, companyId, eventName, currentUserI
 
       {/* Header fields */}
       <div className="grid gap-2 sm:grid-cols-3">
-        <div><Label className="text-xs">Prepared By</Label><Input value={data.preparedBy} onChange={(e) => upd("preparedBy", e.target.value)} placeholder="Your name" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-        <div><Label className="text-xs">Date</Label><Input type="date" value={data.dateIssued} onChange={(e) => upd("dateIssued", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-        <div><Label className="text-xs">Time</Label><Input type="time" value={data.timeIssued} onChange={(e) => upd("timeIssued", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+        <div><Label htmlFor="frago-prepared-by" className="text-xs">Prepared By</Label><Input id="frago-prepared-by" value={data.preparedBy} onChange={(e) => upd("preparedBy", e.target.value)} placeholder="Your name" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+        <div><Label htmlFor="frago-date-issued" className="text-xs">Date</Label><Input id="frago-date-issued" type="date" value={data.dateIssued} onChange={(e) => upd("dateIssued", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+        <div><Label htmlFor="frago-time-issued" className="text-xs">Time</Label><Input id="frago-time-issued" type="time" value={data.timeIssued} onChange={(e) => upd("timeIssued", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
       </div>
 
       {/* 1. Situation Update */}
@@ -200,9 +200,9 @@ export default function FragoPanel({ eventId, companyId, eventName, currentUserI
             ))}
           </div>
         </div>
-        <div><Label className="text-xs">Description of Change</Label><Txt value={data.changeDescription} onChange={(v) => upd("changeDescription", v)} placeholder="Detailed description of what has changed..." rows={2} disabled={isIssued} /></div>
-        <div><Label className="text-xs">Updated Risk Level</Label>
-          <select value={data.updatedRiskLevel} onChange={(e) => upd("updatedRiskLevel", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+        <div><Label htmlFor="frago-change-description" className="text-xs">Description of Change</Label><Txt id="frago-change-description" value={data.changeDescription} onChange={(v) => upd("changeDescription", v)} placeholder="Detailed description of what has changed..." rows={2} disabled={isIssued} /></div>
+        <div><Label htmlFor="frago-updated-risk-level" className="text-xs">Updated Risk Level</Label>
+          <select id="frago-updated-risk-level" value={data.updatedRiskLevel} onChange={(e) => upd("updatedRiskLevel", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
             <option value="">No change</option>
             {["Low", "Moderate", "High", "Critical"].map(r => <option key={r} value={r}>{r}</option>)}
           </select>
@@ -217,7 +217,7 @@ export default function FragoPanel({ eventId, companyId, eventName, currentUserI
           Mission has changed
         </label>
         {data.missionChanged && (
-          <div><Label className="text-xs">Updated Mission</Label><Txt value={data.updatedMission} onChange={(v) => upd("updatedMission", v)} placeholder="Updated mission statement..." rows={2} disabled={isIssued} /></div>
+          <div><Label htmlFor="frago-updated-mission" className="text-xs">Updated Mission</Label><Txt id="frago-updated-mission" value={data.updatedMission} onChange={(v) => upd("updatedMission", v)} placeholder="Updated mission statement..." rows={2} disabled={isIssued} /></div>
         )}
       </div>
 
@@ -235,7 +235,7 @@ export default function FragoPanel({ eventId, companyId, eventName, currentUserI
             ))}
           </div>
         </div>
-        <div><Label className="text-xs">Specific Instructions</Label><Txt value={data.specificInstructions} onChange={(v) => upd("specificInstructions", v)} placeholder="Detailed execution changes..." rows={2} disabled={isIssued} /></div>
+        <div><Label htmlFor="frago-specific-instructions" className="text-xs">Specific Instructions</Label><Txt id="frago-specific-instructions" value={data.specificInstructions} onChange={(v) => upd("specificInstructions", v)} placeholder="Detailed execution changes..." rows={2} disabled={isIssued} /></div>
         <div>
           <Label className="text-xs">Areas Affected</Label>
           <div className="flex flex-wrap gap-1.5 mt-1">
@@ -253,12 +253,12 @@ export default function FragoPanel({ eventId, companyId, eventName, currentUserI
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">6. Contingency Status</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <div><Label className="text-xs">Current PACE Level</Label>
-            <select value={data.currentLevel} onChange={(e) => upd("currentLevel", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+          <div><Label htmlFor="frago-current-level" className="text-xs">Current PACE Level</Label>
+            <select id="frago-current-level" value={data.currentLevel} onChange={(e) => upd("currentLevel", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
               {PACE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
-          <div><Label className="text-xs">Action Being Taken</Label><Input value={data.actionBeingTaken} onChange={(e) => upd("actionBeingTaken", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label htmlFor="frago-action-being-taken" className="text-xs">Action Being Taken</Label><Input id="frago-action-being-taken" value={data.actionBeingTaken} onChange={(e) => upd("actionBeingTaken", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
         </div>
       </div>
 
@@ -271,10 +271,10 @@ export default function FragoPanel({ eventId, companyId, eventName, currentUserI
             Effective Immediately
           </label>
           {!data.effectiveImmediately && (
-            <div><Label className="text-xs">Effective Time</Label><Input type="time" value={data.effectiveTime} onChange={(e) => upd("effectiveTime", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+            <div><Label htmlFor="frago-effective-time" className="text-xs">Effective Time</Label><Input id="frago-effective-time" type="time" value={data.effectiveTime} onChange={(e) => upd("effectiveTime", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
           )}
-          <div><Label className="text-xs">Duration</Label>
-            <select value={data.duration} onChange={(e) => upd("duration", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+          <div><Label htmlFor="frago-duration" className="text-xs">Duration</Label>
+            <select id="frago-duration" value={data.duration} onChange={(e) => upd("duration", e.target.value)} disabled={isIssued} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
               <option value="Temporary">Temporary</option>
               <option value="Until Further Notice">Until Further Notice</option>
               <option value="Permanent">Permanent</option>

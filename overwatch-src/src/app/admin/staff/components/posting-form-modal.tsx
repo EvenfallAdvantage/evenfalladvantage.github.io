@@ -40,22 +40,22 @@ export function PostingFormModal({ posting, activeCompanyId, onClose, onSaved }:
         </div>
         <div className="flex-1 overflow-auto px-5 py-4 space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground">Title *</label>
-            <Input placeholder="e.g., Security Officer" value={postingForm.title} onChange={(e) => setPostingForm((f) => ({ ...f, title: e.target.value }))} />
+            <label htmlFor="posting-title" className="text-xs text-muted-foreground">Title *</label>
+            <Input id="posting-title" placeholder="e.g., Security Officer" value={postingForm.title} onChange={(e) => setPostingForm((f) => ({ ...f, title: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground">Department</label>
-              <Input placeholder="e.g., Operations" value={postingForm.department} onChange={(e) => setPostingForm((f) => ({ ...f, department: e.target.value }))} />
+              <label htmlFor="posting-department" className="text-xs text-muted-foreground">Department</label>
+              <Input id="posting-department" placeholder="e.g., Operations" value={postingForm.department} onChange={(e) => setPostingForm((f) => ({ ...f, department: e.target.value }))} />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Location</label>
-              <Input placeholder="e.g., Chicago, IL" value={postingForm.location} onChange={(e) => setPostingForm((f) => ({ ...f, location: e.target.value }))} />
+              <label htmlFor="posting-location" className="text-xs text-muted-foreground">Location</label>
+              <Input id="posting-location" placeholder="e.g., Chicago, IL" value={postingForm.location} onChange={(e) => setPostingForm((f) => ({ ...f, location: e.target.value }))} />
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Employment Type</label>
-            <select value={postingForm.employment_type} onChange={(e) => setPostingForm((f) => ({ ...f, employment_type: e.target.value }))} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm">
+            <label htmlFor="posting-employment-type" className="text-xs text-muted-foreground">Employment Type</label>
+            <select id="posting-employment-type" value={postingForm.employment_type} onChange={(e) => setPostingForm((f) => ({ ...f, employment_type: e.target.value }))} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm">
               <option value="full-time">Full-Time</option>
               <option value="part-time">Part-Time</option>
               <option value="contract">Contract</option>
@@ -64,17 +64,17 @@ export function PostingFormModal({ posting, activeCompanyId, onClose, onSaved }:
             </select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Job Description *</label>
-            <textarea className="mt-1 w-full min-h-[120px] rounded-lg border border-border bg-background px-3 py-2 text-sm resize-y" placeholder="Describe the role, responsibilities, and qualifications..." value={postingForm.description_html} onChange={(e) => setPostingForm((f) => ({ ...f, description_html: e.target.value }))} />
+            <label htmlFor="posting-description" className="text-xs text-muted-foreground">Job Description *</label>
+            <textarea id="posting-description" className="mt-1 w-full min-h-[120px] rounded-lg border border-border bg-background px-3 py-2 text-sm resize-y" placeholder="Describe the role, responsibilities, and qualifications..." value={postingForm.description_html} onChange={(e) => setPostingForm((f) => ({ ...f, description_html: e.target.value }))} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Requirements</label>
-            <textarea className="mt-1 w-full min-h-[60px] rounded-lg border border-border bg-background px-3 py-2 text-sm resize-y" placeholder="Required qualifications, certifications, experience..." value={postingForm.requirements} onChange={(e) => setPostingForm((f) => ({ ...f, requirements: e.target.value }))} />
+            <label htmlFor="posting-requirements" className="text-xs text-muted-foreground">Requirements</label>
+            <textarea id="posting-requirements" className="mt-1 w-full min-h-[60px] rounded-lg border border-border bg-background px-3 py-2 text-sm resize-y" placeholder="Required qualifications, certifications, experience..." value={postingForm.requirements} onChange={(e) => setPostingForm((f) => ({ ...f, requirements: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground">Compensation Range</label>
-              <Input placeholder="e.g., $18-22/hr" value={postingForm.compensation_range} onChange={(e) => setPostingForm((f) => ({ ...f, compensation_range: e.target.value }))} />
+              <label htmlFor="posting-compensation-range" className="text-xs text-muted-foreground">Compensation Range</label>
+              <Input id="posting-compensation-range" placeholder="e.g., $18-22/hr" value={postingForm.compensation_range} onChange={(e) => setPostingForm((f) => ({ ...f, compensation_range: e.target.value }))} />
             </div>
             <div className="flex items-end pb-1">
               <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">

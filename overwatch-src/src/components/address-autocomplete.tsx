@@ -34,6 +34,7 @@ export type AddressSelection = {
 };
 
 interface AddressAutocompleteProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   onSelect?: (selection: AddressSelection) => void;
@@ -46,6 +47,7 @@ interface AddressAutocompleteProps {
 }
 
 export default function AddressAutocomplete({
+  id,
   value,
   onChange,
   onSelect,
@@ -216,6 +218,7 @@ export default function AddressAutocomplete({
       )}
       <div className="relative">
         <input
+          id={id}
           type="text"
           value={value}
           onChange={(e) => handleInputChange(e.target.value)}

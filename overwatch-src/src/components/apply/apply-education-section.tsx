@@ -33,8 +33,9 @@ export function ApplyEducationSection({ education, onAdd, onUpdate, onRemove }: 
           </button>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Institution</label>
+              <label htmlFor={`apply-institution-${idx}`} className="text-xs text-zinc-400 mb-1 block">Institution</label>
               <Input
+                id={`apply-institution-${idx}`}
                 value={edu.institution}
                 onChange={(e) => onUpdate(idx, "institution", e.target.value)}
                 className="bg-zinc-800 border-zinc-600 text-white"
@@ -42,8 +43,9 @@ export function ApplyEducationSection({ education, onAdd, onUpdate, onRemove }: 
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Degree / Program</label>
+              <label htmlFor={`apply-degree-${idx}`} className="text-xs text-zinc-400 mb-1 block">Degree / Program</label>
               <Input
+                id={`apply-degree-${idx}`}
                 value={edu.degree}
                 onChange={(e) => onUpdate(idx, "degree", e.target.value)}
                 className="bg-zinc-800 border-zinc-600 text-white"
@@ -51,8 +53,9 @@ export function ApplyEducationSection({ education, onAdd, onUpdate, onRemove }: 
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">Start Year</label>
+              <label htmlFor={`apply-edu-start-year-${idx}`} className="text-xs text-zinc-400 mb-1 block">Start Year</label>
               <Input
+                id={`apply-edu-start-year-${idx}`}
                 value={edu.startYear}
                 onChange={(e) => {
                   const v = e.target.value.replace(/\D/g, "").slice(0, 4);
@@ -64,8 +67,9 @@ export function ApplyEducationSection({ education, onAdd, onUpdate, onRemove }: 
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400 mb-1 block">End Year</label>
+              <label htmlFor={`apply-edu-end-year-${idx}`} className="text-xs text-zinc-400 mb-1 block">End Year</label>
               <Input
+                id={`apply-edu-end-year-${idx}`}
                 value={edu.endYear}
                 onChange={(e) => {
                   const raw = e.target.value;

@@ -17,13 +17,13 @@ export function ApplyCredentialsSection({ guardCardNumber, guardCardExpiry, onCh
       </h2>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="text-xs text-zinc-400 mb-1 block">Guard Card Number</label>
-          <Input value={guardCardNumber} onChange={(e) => onChange("guardCardNumber", e.target.value)}
+          <label htmlFor="apply-guard-card-number" className="text-xs text-zinc-400 mb-1 block">Guard Card Number</label>
+          <Input id="apply-guard-card-number" value={guardCardNumber} onChange={(e) => onChange("guardCardNumber", e.target.value)}
             className="bg-zinc-900 border-zinc-700 text-white" placeholder="GC-12345" />
         </div>
         <div>
-          <label className="text-xs text-zinc-400 mb-1 block">Guard Card Expiry</label>
-          <Input value={guardCardExpiry} onChange={(e) => onChange("guardCardExpiry", e.target.value)}
+          <label htmlFor="apply-guard-card-expiry" className="text-xs text-zinc-400 mb-1 block">Guard Card Expiry</label>
+          <Input id="apply-guard-card-expiry" value={guardCardExpiry} onChange={(e) => onChange("guardCardExpiry", e.target.value)}
             type="date" className="bg-zinc-900 border-zinc-700 text-white" />
         </div>
       </div>

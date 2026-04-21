@@ -29,9 +29,9 @@ const EMPTY_WARNO: WarnoData = {
   eaRole: [], clientAuthority: "",
 };
 
-function Txt({ value, onChange, placeholder, rows = 2 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
+function Txt({ id, value, onChange, placeholder, rows = 2 }: { id?: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
   return (
-    <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
+    <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows}
       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y" />
   );
 }
@@ -207,25 +207,25 @@ export default function WarnoPanel({ eventId, companyId, eventName, companyName,
 
       {/* Header fields */}
       <div className="grid gap-2 sm:grid-cols-2">
-        <div><Label className="text-xs">Prepared By</Label><Input value={data.preparedBy} onChange={(e) => upd("preparedBy", e.target.value)} placeholder="Your name" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-        <div><Label className="text-xs">Date Issued</Label><Input type="date" value={data.dateIssued} onChange={(e) => upd("dateIssued", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+        <div><Label htmlFor="warno-prepared-by" className="text-xs">Prepared By</Label><Input id="warno-prepared-by" value={data.preparedBy} onChange={(e) => upd("preparedBy", e.target.value)} placeholder="Your name" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+        <div><Label htmlFor="warno-date-issued" className="text-xs">Date Issued</Label><Input id="warno-date-issued" type="date" value={data.dateIssued} onChange={(e) => upd("dateIssued", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
       </div>
 
       {/* 1. Situation */}
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">1. Situation</p>
-        <div><Label className="text-xs">Operational Overview</Label><Txt value={data.operationalOverview} onChange={(v) => upd("operationalOverview", v)} placeholder="[Client] is preparing for [event] at [location]. The environment includes..." rows={2} /></div>
+        <div><Label htmlFor="warno-operational-overview" className="text-xs">Operational Overview</Label><Txt id="warno-operational-overview" value={data.operationalOverview} onChange={(v) => upd("operationalOverview", v)} placeholder="[Client] is preparing for [event] at [location]. The environment includes..." rows={2} /></div>
         <div className="grid gap-2 sm:grid-cols-3">
-          <div><Label className="text-xs">Crowd Size / Density</Label><Input value={data.crowdSizeDensity} onChange={(e) => upd("crowdSizeDensity", e.target.value)} placeholder="e.g. 500" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-          <div><Label className="text-xs">Environment</Label><Input value={data.environment} onChange={(e) => upd("environment", e.target.value)} placeholder="e.g. Outdoor, urban" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-          <div><Label className="text-xs">Known Concerns</Label><Input value={data.knownConcerns} onChange={(e) => upd("knownConcerns", e.target.value)} placeholder="e.g. Prior incidents" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label htmlFor="warno-crowd-size-density" className="text-xs">Crowd Size / Density</Label><Input id="warno-crowd-size-density" value={data.crowdSizeDensity} onChange={(e) => upd("crowdSizeDensity", e.target.value)} placeholder="e.g. 500" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label htmlFor="warno-environment" className="text-xs">Environment</Label><Input id="warno-environment" value={data.environment} onChange={(e) => upd("environment", e.target.value)} placeholder="e.g. Outdoor, urban" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label htmlFor="warno-known-concerns" className="text-xs">Known Concerns</Label><Input id="warno-known-concerns" value={data.knownConcerns} onChange={(e) => upd("knownConcerns", e.target.value)} placeholder="e.g. Prior incidents" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
         </div>
       </div>
 
       {/* 2. Mission */}
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">2. Mission</p>
-        <Txt value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName} will [what] for [client] at [location] in order to [purpose].`} rows={2} />
+        <Txt id="warno-mission-statement" value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName} will [what] for [client] at [location] in order to [purpose].`} rows={2} />
       </div>
 
       {/* 3. Initial Tasks */}
@@ -257,9 +257,9 @@ export default function WarnoPanel({ eventId, companyId, eventName, companyName,
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">4. Timeline</p>
         <div className="grid gap-2 sm:grid-cols-3">
-          <div><Label className="text-xs">Assessment Start</Label><Input type="date" value={data.assessmentStart} onChange={(e) => upd("assessmentStart", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-          <div><Label className="text-xs">Key Milestones</Label><Input value={data.keyMilestones} onChange={(e) => upd("keyMilestones", e.target.value)} placeholder="e.g. Site walkthrough 3/25" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-          <div><Label className="text-xs">Deliverables Due</Label><Input type="date" value={data.finalDeliverablesDate} onChange={(e) => upd("finalDeliverablesDate", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label htmlFor="warno-assessment-start" className="text-xs">Assessment Start</Label><Input id="warno-assessment-start" type="date" value={data.assessmentStart} onChange={(e) => upd("assessmentStart", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label htmlFor="warno-key-milestones" className="text-xs">Key Milestones</Label><Input id="warno-key-milestones" value={data.keyMilestones} onChange={(e) => upd("keyMilestones", e.target.value)} placeholder="e.g. Site walkthrough 3/25" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label htmlFor="warno-deliverables-due" className="text-xs">Deliverables Due</Label><Input id="warno-deliverables-due" type="date" value={data.finalDeliverablesDate} onChange={(e) => upd("finalDeliverablesDate", e.target.value)} className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
         </div>
       </div>
 
@@ -267,8 +267,8 @@ export default function WarnoPanel({ eventId, companyId, eventName, companyName,
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">5. Coordination</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <div><Label className="text-xs">Client POC</Label><Input value={data.clientPoc} onChange={(e) => upd("clientPoc", e.target.value)} placeholder="Name / phone" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
-          <div><Label className="text-xs">{companyName} POC</Label><Input value={data.eaPoc} onChange={(e) => upd("eaPoc", e.target.value)} placeholder="Name / phone" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label htmlFor="warno-client-poc" className="text-xs">Client POC</Label><Input id="warno-client-poc" value={data.clientPoc} onChange={(e) => upd("clientPoc", e.target.value)} placeholder="Name / phone" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
+          <div><Label htmlFor="warno-ea-poc" className="text-xs">{companyName} POC</Label><Input id="warno-ea-poc" value={data.eaPoc} onChange={(e) => upd("eaPoc", e.target.value)} placeholder="Name / phone" className="mt-1 h-8 text-sm" disabled={isIssued} /></div>
         </div>
         <div>
           <Label className="text-xs">Communication Method</Label>
@@ -297,7 +297,7 @@ export default function WarnoPanel({ eventId, companyId, eventName, companyName,
             ))}
           </div>
         </div>
-        <div><Label className="text-xs">Client Authority</Label><Txt value={data.clientAuthority} onChange={(v) => upd("clientAuthority", v)} placeholder="[Client] retains operational authority unless otherwise specified." rows={1} /></div>
+        <div><Label htmlFor="warno-client-authority" className="text-xs">Client Authority</Label><Txt id="warno-client-authority" value={data.clientAuthority} onChange={(v) => upd("clientAuthority", v)} placeholder="[Client] retains operational authority unless otherwise specified." rows={1} /></div>
       </div>
 
       {/* Actions */}

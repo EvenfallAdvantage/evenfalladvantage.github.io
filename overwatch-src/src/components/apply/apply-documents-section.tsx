@@ -75,8 +75,9 @@ export function ApplyDocumentsSection({ pendingFiles, filePreviews, onAddDocumen
       <div className="rounded-lg border border-dashed border-zinc-700 bg-zinc-900/50 p-4 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-xs text-zinc-400 mb-1 block">Certificate Name</label>
+            <label htmlFor="apply-cert-name" className="text-xs text-zinc-400 mb-1 block">Certificate Name</label>
             <Input
+              id="apply-cert-name"
               value={docFormName}
               onChange={(e) => setDocFormName(e.target.value)}
               className="bg-zinc-800 border-zinc-600 text-white"
@@ -84,8 +85,9 @@ export function ApplyDocumentsSection({ pendingFiles, filePreviews, onAddDocumen
             />
           </div>
           <div>
-            <label className="text-xs text-zinc-400 mb-1 block">Type</label>
+            <label htmlFor="apply-cert-type" className="text-xs text-zinc-400 mb-1 block">Type</label>
             <select
+              id="apply-cert-type"
               value={docFormType}
               onChange={(e) => setDocFormType(e.target.value)}
               className="w-full h-9 rounded-md border border-zinc-600 bg-zinc-800 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary"
@@ -97,8 +99,9 @@ export function ApplyDocumentsSection({ pendingFiles, filePreviews, onAddDocumen
           </div>
         </div>
         <div>
-          <label className="text-xs text-zinc-400 mb-1 block">File (image or PDF)</label>
+          <label htmlFor="apply-cert-file" className="text-xs text-zinc-400 mb-1 block">File (image or PDF)</label>
           <input
+            id="apply-cert-file"
             ref={fileInputRef}
             type="file"
             accept="image/*,.pdf"

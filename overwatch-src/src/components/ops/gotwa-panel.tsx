@@ -15,9 +15,9 @@ const COMM_METHODS = ["Radio", "Phone", "Hybrid"];
 const DURATIONS = ["< 30 min", "30–60 min", "1–2 hours", "Event duration"];
 const STATUS_OPTIONS = ["Normal", "Elevated Awareness", "Active Issue", "Escalated"];
 
-function Txt({ value, onChange, placeholder, rows = 2, disabled }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; disabled?: boolean }) {
+function Txt({ id, value, onChange, placeholder, rows = 2, disabled }: { id?: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; disabled?: boolean }) {
   return (
-    <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} disabled={disabled}
+    <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} disabled={disabled}
       className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y disabled:opacity-60" />
   );
 }
@@ -170,16 +170,16 @@ export default function GotwaPanel({ eventId, companyId, eventName, eventLocatio
 
       {/* Header fields */}
       <div className="grid gap-2 sm:grid-cols-2">
-        <div><Label className="text-xs">Prepared By</Label><Input value={data.preparedBy} onChange={(e) => upd("preparedBy", e.target.value)} placeholder="Supervisor name" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-        <div><Label className="text-xs">Date/Time</Label><Input type="datetime-local" value={data.dateTime} onChange={(e) => upd("dateTime", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+        <div><Label htmlFor="gotwa-prepared-by" className="text-xs">Prepared By</Label><Input id="gotwa-prepared-by" value={data.preparedBy} onChange={(e) => upd("preparedBy", e.target.value)} placeholder="Supervisor name" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+        <div><Label htmlFor="gotwa-date-time" className="text-xs">Date/Time</Label><Input id="gotwa-date-time" type="datetime-local" value={data.dateTime} onChange={(e) => upd("dateTime", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
       </div>
 
       {/* G — Going */}
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">G — Where am I Going?</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <div><Label className="text-xs">Area / Location</Label><Input value={data.area} onChange={(e) => upd("area", e.target.value)} placeholder="e.g. North perimeter, Lot B" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-          <div><Label className="text-xs">Objective</Label><Input value={data.objective} onChange={(e) => upd("objective", e.target.value)} placeholder="e.g. Patrol + crowd control" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-area" className="text-xs">Area / Location</Label><Input id="gotwa-area" value={data.area} onChange={(e) => upd("area", e.target.value)} placeholder="e.g. North perimeter, Lot B" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-objective" className="text-xs">Objective</Label><Input id="gotwa-objective" value={data.objective} onChange={(e) => upd("objective", e.target.value)} placeholder="e.g. Patrol + crowd control" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
       </div>
 
@@ -187,9 +187,9 @@ export default function GotwaPanel({ eventId, companyId, eventName, eventLocatio
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">O — Who is going with me? (Others)</p>
         <div className="grid gap-2 sm:grid-cols-3">
-          <div><Label className="text-xs">Personnel Assigned</Label><Input value={data.personnelAssigned} onChange={(e) => upd("personnelAssigned", e.target.value)} placeholder="Names / call signs" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-          <div><Label className="text-xs">Supervisor</Label><Input value={data.supervisor} onChange={(e) => upd("supervisor", e.target.value)} placeholder="Supervisor name" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-          <div><Label className="text-xs">Support Elements</Label><Input value={data.supportElements} onChange={(e) => upd("supportElements", e.target.value)} placeholder="e.g. Medical, LE liaison" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-personnel-assigned" className="text-xs">Personnel Assigned</Label><Input id="gotwa-personnel-assigned" value={data.personnelAssigned} onChange={(e) => upd("personnelAssigned", e.target.value)} placeholder="Names / call signs" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-supervisor" className="text-xs">Supervisor</Label><Input id="gotwa-supervisor" value={data.supervisor} onChange={(e) => upd("supervisor", e.target.value)} placeholder="Supervisor name" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-support-elements" className="text-xs">Support Elements</Label><Input id="gotwa-support-elements" value={data.supportElements} onChange={(e) => upd("supportElements", e.target.value)} placeholder="e.g. Medical, LE liaison" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
       </div>
 
@@ -197,14 +197,14 @@ export default function GotwaPanel({ eventId, companyId, eventName, eventLocatio
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">T — How long will I be gone? (Time)</p>
         <div className="grid gap-2 sm:grid-cols-3">
-          <div><Label className="text-xs">Start Time</Label><Input type="time" value={data.startTime} onChange={(e) => upd("startTime", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-          <div><Label className="text-xs">Expected Duration</Label>
-            <select value={data.expectedDuration} onChange={(e) => upd("expectedDuration", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+          <div><Label htmlFor="gotwa-start-time" className="text-xs">Start Time</Label><Input id="gotwa-start-time" type="time" value={data.startTime} onChange={(e) => upd("startTime", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-expected-duration" className="text-xs">Expected Duration</Label>
+            <select id="gotwa-expected-duration" value={data.expectedDuration} onChange={(e) => upd("expectedDuration", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
               <option value="">Select...</option>
               {DURATIONS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
           </div>
-          <div><Label className="text-xs">Return / Check-In Time</Label><Input type="time" value={data.returnCheckInTime} onChange={(e) => upd("returnCheckInTime", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-return-check-in-time" className="text-xs">Return / Check-In Time</Label><Input id="gotwa-return-check-in-time" type="time" value={data.returnCheckInTime} onChange={(e) => upd("returnCheckInTime", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
       </div>
 
@@ -222,17 +222,17 @@ export default function GotwaPanel({ eventId, companyId, eventName, eventLocatio
             ))}
           </div>
         </div>
-        <div><Label className="text-xs">Immediate Action</Label><Txt value={data.immediateAction} onChange={(v) => upd("immediateAction", v)} placeholder="What to do immediately if this occurs..." rows={1} disabled={isLocked} /></div>
-        <div><Label className="text-xs">Escalation Trigger</Label><Input value={data.escalationTrigger} onChange={(e) => upd("escalationTrigger", e.target.value)} placeholder="e.g. If not resolved in 5 min, escalate" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+        <div><Label htmlFor="gotwa-immediate-action" className="text-xs">Immediate Action</Label><Txt id="gotwa-immediate-action" value={data.immediateAction} onChange={(v) => upd("immediateAction", v)} placeholder="What to do immediately if this occurs..." rows={1} disabled={isLocked} /></div>
+        <div><Label htmlFor="gotwa-escalation-trigger" className="text-xs">Escalation Trigger</Label><Input id="gotwa-escalation-trigger" value={data.escalationTrigger} onChange={(e) => upd("escalationTrigger", e.target.value)} placeholder="e.g. If not resolved in 5 min, escalate" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
       </div>
 
       {/* A — Actions */}
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-500">A — What do I do if you don&apos;t return? (Actions)</p>
         <div className="grid gap-2 sm:grid-cols-3">
-          <div><Label className="text-xs">If No Issue</Label><Input value={data.ifNoIssue} onChange={(e) => upd("ifNoIssue", e.target.value)} placeholder="e.g. Resume patrol" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-          <div><Label className="text-xs">Who to Notify</Label><Input value={data.whoToNotify} onChange={(e) => upd("whoToNotify", e.target.value)} placeholder="e.g. Command" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
-          <div><Label className="text-xs">Follow-On Actions</Label><Input value={data.followOnActions} onChange={(e) => upd("followOnActions", e.target.value)} placeholder="e.g. Send backup team" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-if-no-issue" className="text-xs">If No Issue</Label><Input id="gotwa-if-no-issue" value={data.ifNoIssue} onChange={(e) => upd("ifNoIssue", e.target.value)} placeholder="e.g. Resume patrol" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-who-to-notify" className="text-xs">Who to Notify</Label><Input id="gotwa-who-to-notify" value={data.whoToNotify} onChange={(e) => upd("whoToNotify", e.target.value)} placeholder="e.g. Command" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-follow-on-actions" className="text-xs">Follow-On Actions</Label><Input id="gotwa-follow-on-actions" value={data.followOnActions} onChange={(e) => upd("followOnActions", e.target.value)} placeholder="e.g. Send backup team" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
       </div>
 
@@ -240,8 +240,8 @@ export default function GotwaPanel({ eventId, companyId, eventName, eventLocatio
       <div className="space-y-2 pt-2 border-t border-border/20">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status & Communications</p>
         <div className="grid gap-2 sm:grid-cols-3">
-          <div><Label className="text-xs">Current Status</Label>
-            <select value={data.status} onChange={(e) => upd("status", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
+          <div><Label htmlFor="gotwa-status" className="text-xs">Current Status</Label>
+            <select id="gotwa-status" value={data.status} onChange={(e) => upd("status", e.target.value)} disabled={isLocked} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm disabled:opacity-60">
               {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
@@ -256,9 +256,9 @@ export default function GotwaPanel({ eventId, companyId, eventName, eventLocatio
               ))}
             </div>
           </div>
-          <div><Label className="text-xs">Channel</Label><Input value={data.channel} onChange={(e) => upd("channel", e.target.value)} placeholder="e.g. Ch 2" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
+          <div><Label htmlFor="gotwa-channel" className="text-xs">Channel</Label><Input id="gotwa-channel" value={data.channel} onChange={(e) => upd("channel", e.target.value)} placeholder="e.g. Ch 2" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
         </div>
-        <div><Label className="text-xs">Notes</Label><Txt value={data.notes} onChange={(v) => upd("notes", v)} placeholder="Additional notes..." rows={1} disabled={isLocked} /></div>
+        <div><Label htmlFor="gotwa-notes" className="text-xs">Notes</Label><Txt id="gotwa-notes" value={data.notes} onChange={(v) => upd("notes", v)} placeholder="Additional notes..." rows={1} disabled={isLocked} /></div>
       </div>
 
       {/* Actions */}
