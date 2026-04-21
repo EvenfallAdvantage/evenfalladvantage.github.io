@@ -67,7 +67,7 @@
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.2.4",
     "happy-dom": "^20.9.0",
     "jsdom": "^29.0.1",
     "knip": "^6.6.0",
