@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ListSkeleton } from "@/components/loading-skeleton";
+import { IncidentMediaUpload } from "./incident-media-upload";
 import { toast } from "sonner";
 import {
   updateIncident,
@@ -364,6 +365,9 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                       </Button>
                     </div>
                   )}
+
+                  {/* Evidence / Media */}
+                  <IncidentMediaUpload incidentId={inc.id} companyId={activeCompanyId} readOnly={!isAdmin} />
 
                   {/* Timeline */}
                   <div>

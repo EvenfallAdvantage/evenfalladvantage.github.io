@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { MapPin, Loader2, FileText, Activity, DollarSign, Check, X, ChevronDown, ScrollText, Save, Pencil } from "lucide-react";
+import { MapPin, Loader2, FileText, Activity, DollarSign, Check, X, ChevronDown, ScrollText, Save, Pencil, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -267,6 +267,29 @@ export function OperationDetail({
           linkedAssessment={linkedAssessment}
           onLinkedAssessmentChange={setLinkedAssessment}
         />
+        {(ev.status === "completed" || ev.status === "in_progress") && (
+          <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs"
+            onClick={async () => {
+              try {
+                const { generateEventDARs } = await import("@/lib/supabase/db-dar");
+                const today = new Date().toISOString().split("T")[0];
+                const dars = await generateEventDARs(ev.id, today);
+                if (dars.length === 0) { toast.info("No completed shifts found for today"); return; }
+                // Build a simple text DAR and copy to clipboard
+                const text = dars.map(d => [
+                  `=== DAR: ${d.staffName} — ${d.eventName} (${d.date}) ===`,
+                  `Clock: ${new Date(d.clockIn).toLocaleTimeString()} — ${new Date(d.clockOut).toLocaleTimeString()} (${d.totalHours}h)`,
+                  `Patrols: ${d.patrolCount} | Incidents: ${d.incidentCount} | Break: ${d.breakMinutes}m`,
+                  ...d.entries.map(e => `  ${new Date(e.time).toLocaleTimeString()} [${e.type}] ${e.description}`),
+                  "",
+                ].join("\n")).join("\n");
+                await navigator.clipboard.writeText(text);
+                toast.success(`${dars.length} DAR${dars.length > 1 ? "s" : ""} copied to clipboard`);
+              } catch (err) { toast.error("Failed to generate DARs"); console.error(err); }
+            }}>
+            <ClipboardList className="h-3.5 w-3.5" /> DAR
+          </Button>
+        )}
         {/* Pay Rate */}
         <div className="ml-auto flex items-center gap-1.5">
           {editingPayRate ? (
