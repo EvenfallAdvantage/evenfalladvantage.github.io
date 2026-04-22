@@ -194,13 +194,51 @@ $token = gh auth token; git push "https://x-access-token:${token}@github.com/Eve
 
 ---
 
+## Phase A-D Work (Late April 21, 2026) — 7 Additional Commits
+
+### PHASE A — UX Foundation
+- **Terminology unification** — 7 nav labels + 7 page headers aligned (Reports→Incidents, Roster→Directory, Planning→Ops Planning, etc.)
+- **Killed 82 dead `"pending"` guards** across 42 files — replaced with `!activeCompanyId`
+- **Command palette (Cmd+K)** — 25+ searchable pages with role filtering, using existing `cmdk` dependency
+- **useConfirmDialog hook** — async AlertDialog replacement for native `confirm()`
+- **Deleted ghost redirect pages** — `/settings` and `/assets`
+
+### PHASE B — Architecture Hardening
+- **React Query** re-introduced with shared `QueryClient` + `useCompanyQuery` hook (keyed by `[resource, companyId]`)
+- **Soft company switching** — replaced `window.location.reload()` with query cache invalidation + `router.push`
+- **PageShell component** — declarative header management (pages wrap content instead of manual setHeader/clearHeader)
+- **Auth store fixes** — `useActiveCompany()` memoized selector, `clearSession` removes persisted company to prevent cross-user leakage
+
+### PHASE C — Critical Features (Data + UI)
+- **Certification compliance** (`db-compliance.ts`) — expiry tracking, compliance summary, shift qualification gating + ComplianceWidget on dashboard
+- **Invoicing system** (`db-invoices.ts`) — full CRUD, auto-increment numbers, generate-from-timesheets, bill rates
+- **Overtime detection** (`db-overtime.ts`) — configurable thresholds, weekly hours report, OT/DT split + OvertimeWidget on dashboard
+- **Shift swap marketplace** (`db-shift-swap.ts`) — create/claim/approve/reject + ShiftSwapTab in schedule page
+- **Panic/SOS alerts** (`db-panic.ts`) — GPS capture, manager notification + SOS button on mobile nav + PanicAlertBanner on dashboard
+
+### PHASE D — Enhanced Features
+- **Broadcast messaging** (`db-broadcast.ts`) — send to all/on-duty/managers with ack tracking
+- **Incident media attachments** (`db-incident-media.ts`) — photo/video upload with SHA-256 chain-of-custody hash
+- **Break tracking** (`db-breaks.ts`) — meal/rest breaks, CA labor law compliance check, geofence enforcement
+- **DAR auto-generation** (`db-dar.ts`) — compiles clock times + patrols + incidents + breaks into a structured report
+
+### SQL Migrations To Run (Phase C+D)
+| File | Purpose |
+|------|---------|
+| `sql/run_all_new_migrations.sql` | Invoices + Panic Alerts + Shift Swap Requests (already run) |
+| `sql/add_broadcasts_breaks_media.sql` | Broadcasts + Timesheet Breaks + Incident Media |
+
+---
+
 ## Recommended Next Steps
 
-1. **Deploy OAuth refresh Edge Function** — `supabase functions deploy oauth-refresh --no-verify-jwt` + set up cron trigger
-2. **Fix instructor scan permissions** — add 'instructor' to `is_company_manager()` RLS function
-3. **Migrate integration service calls to Edge Functions** — prevent API key exposure in browser
-4. **Backup workflow fix** — `SUPABASE_DB_URL` Session Mode pooler URL (IPv4)
-5. **Persist offline scan queue** — move from useState to localStorage/IndexedDB
-6. **Upgrade eslint-plugin-react-hooks** — fix ~100 React Compiler lint violations (mostly setState-in-effect refactoring)
-7. **Auth email invites** — Supabase Edge Function calling `auth.admin.inviteUserByEmail()`
-8. **Add event filter to "Currently Clocked In" panel**
+1. **Run Phase D SQL migration** — `sql/add_broadcasts_breaks_media.sql`
+2. **Deploy OAuth refresh Edge Function** — `supabase functions deploy oauth-refresh --no-verify-jwt` + set up cron trigger
+3. **Wire broadcast UI** — add "Send Alert" button to chat/admin for managers
+4. **Wire incident media upload** — add photo/video attachment to incident create form
+5. **Wire break tracking UI** — add break start/stop buttons to timeclock
+6. **Wire DAR generation** — add "Generate DAR" button to operation detail for completed shifts
+7. **Build authenticated client portal** — add `client` role, read-only views for operations/incidents/invoices/DARs
+8. **Fix instructor scan permissions** — add 'instructor' to `is_company_manager()` RLS function
+9. **Migrate integration service calls to Edge Functions** — prevent API key exposure in browser
+10. **Persist offline scan queue** — move from useState to localStorage/IndexedDB
