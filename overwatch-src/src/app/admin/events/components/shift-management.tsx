@@ -17,6 +17,7 @@ import { CustomShiftForm } from "./shift-management/custom-shift-form";
 import { CsvImportPanel } from "./shift-management/csv-import-panel";
 import { ShiftCalendarView } from "./shift-management/shift-calendar-view";
 import { ShiftListView } from "./shift-management/shift-list-view";
+import { AutoSchedulePanel } from "./shift-management/auto-schedule-panel";
 
 /* ── Component ── */
 
@@ -148,6 +149,17 @@ export function ShiftManagement({
           onClose={() => setShowImport(false)}
         />
       )}
+
+      {/* Auto-Schedule Panel */}
+      <div className="px-3 sm:px-4 py-2">
+        <AutoSchedulePanel
+          eventId={eventId}
+          companyId={companyId}
+          startDate={startDate}
+          endDate={endDate}
+          onShiftsChanged={async () => { onShiftsChange(await getEventShifts(eventId)); }}
+        />
+      </div>
 
       {/* List View */}
       {shiftView === "list" && (
