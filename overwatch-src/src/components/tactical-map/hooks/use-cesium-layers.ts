@@ -21,6 +21,7 @@ import { useOrbitLayer } from "./use-orbit-layer";
 import { useTrailsLayer } from "./use-trails-layer";
 import { useAnnotationsLayer } from "./use-annotations-layer";
 import { usePoiLayer } from "./use-poi-layer";
+import { useS2IntelLayer } from "./use-s2-intel-layer";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -95,6 +96,9 @@ export function useCesiumLayers(params: {
 
   // ─── Sub-hook: Nearby POIs ───────────────────────────
   const { nearbyPOIs } = usePoiLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, operations });
+
+  // ─── Sub-hook: S2 Underground Intel ─────────────────
+  const s2Intel = useS2IntelLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: layers.s2Intel });
 
   // ─── 3D Buildings Toggle ─────────────────────────────
   useEffect(() => {
@@ -378,5 +382,6 @@ export function useCesiumLayers(params: {
     geofenceAlerts,
     aligningOp, setAligningOp,
     savedBounds, setSavedBounds,
+    s2Intel,
   };
 }

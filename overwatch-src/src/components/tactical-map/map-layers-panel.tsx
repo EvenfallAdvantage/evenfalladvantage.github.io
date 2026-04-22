@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   Layers, Users, Flag, CloudRain, Building2, Mountain,
   Eye, EyeOff, ChevronRight, Target, AlertTriangle, Moon, Satellite,
-  Hospital, Plane, Scan, Monitor, Orbit, Radar,
+  Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 
@@ -30,6 +30,8 @@ export interface LayerVisibility {
   // Live feeds
   aircraft: boolean;
   satelliteOrbits: boolean;
+  // S2 Underground Intel
+  s2Intel: boolean;
   // Site maps
   siteOverlays: Record<string, boolean>;
   siteOverlayOpacity: number;
@@ -55,6 +57,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   crtMode: false,
   aircraft: false,
   satelliteOrbits: false,
+  s2Intel: false,
   siteOverlays: {},
   siteOverlayOpacity: 0.75,
 };
@@ -85,6 +88,7 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "s2Intel", label: "S2 Underground CIP", icon: <Shield className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   // Visual effects
   { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "EFFECTS" },
