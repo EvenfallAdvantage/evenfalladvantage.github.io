@@ -75,19 +75,19 @@ const INTEGRATION_GROUPS: IntGroup[] = [
       { key: "company_uuid", label: "Gusto Company UUID", type: "text", placeholder: "uuid-from-gusto" },
       { key: "sync_frequency", label: "Sync Frequency", type: "select", options: ["manual", "daily", "weekly", "per_pay_period"] },
     ]},
-    { provider: "quickbooks", label: "QuickBooks Online", logo: "/images/integrations/quickbooks.png", desc: "Sync approved timesheets to QuickBooks as TimeActivity entries for payroll processing", fields: [
+    { provider: "quickbooks", label: "QuickBooks Online", logo: "/images/integrations/quickbooks.svg", desc: "Sync approved timesheets to QuickBooks as TimeActivity entries for payroll processing", fields: [
       { key: "client_id", label: "OAuth Client ID", type: "text", placeholder: "your_client_id" },
       { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "realm_id", label: "Company ID (realmId)", type: "text", placeholder: "123456789" },
       { key: "environment", label: "Environment", type: "select", options: ["sandbox", "production"] },
     ]},
-    { provider: "adp", label: "ADP Workforce Now", logo: "/images/integrations/adp.png", desc: "Sync approved timesheets to ADP as time card entries for payroll processing", fields: [
+    { provider: "adp", label: "ADP Workforce Now", logo: "/images/integrations/adp.svg", desc: "Sync approved timesheets to ADP as time card entries for payroll processing", fields: [
       { key: "client_id", label: "API Client ID", type: "text", placeholder: "your_client_id" },
       { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "org_oid", label: "Organization OID", type: "text", placeholder: "your_org_oid" },
       { key: "environment", label: "Environment", type: "select", options: ["sandbox", "production"] },
     ]},
-    { provider: "paychex", label: "Paychex Flex", logo: "/images/integrations/paychex.png", desc: "Sync approved timesheets to Paychex Flex for payroll processing and direct deposits", fields: [
+    { provider: "paychex", label: "Paychex Flex", logo: "/images/integrations/paychex.svg", desc: "Sync approved timesheets to Paychex Flex for payroll processing and direct deposits", fields: [
       { key: "client_id", label: "API Client ID", type: "text", placeholder: "your_client_id" },
       { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "company_id", label: "Company ID (displayId)", type: "text", placeholder: "your_company_id" },
