@@ -53,7 +53,7 @@ export default function PatrolsPage() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
-    setHeader("PATROLS", "Patrol routes, checkpoints, and scan logs", <Footprints className="h-5 w-5" />);
+    setHeader("WATCH LOG", "Patrol routes, checkpoints, and scan logs", <Footprints className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
