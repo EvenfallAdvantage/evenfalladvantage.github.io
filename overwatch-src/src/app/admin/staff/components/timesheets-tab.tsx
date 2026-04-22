@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState, useMemo } from "react";
 import {
   Clock, Loader2, ChevronDown, ChevronUp, Flag, Download, Trash2,
 } from "lucide-react";
@@ -10,7 +10,7 @@ import { getCompanyTimesheets, approveTimesheet, unapproveTimesheet, deleteTimes
 import { parseUTC } from "@/lib/parse-utc";
 import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
-import { logger } from "@/lib/logger";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sheet = any;
@@ -22,8 +22,14 @@ interface TimesheetsTabProps {
 
 export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
-  const [timesheets, setTimesheets] = useState<Sheet[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: allTimesheets = [], isLoading: loading, refetch } = useCompanyQuery<Sheet[]>(
+    "company-timesheets",
+    (cid) => getCompanyTimesheets(cid),
+  );
+  const timesheets = useMemo(
+    () => allTimesheets.filter((t: Sheet) => t.clock_out),
+    [allTimesheets],
+  );
   const [approving, setApproving] = useState<string | null>(null);
   const [collapsedOps, setCollapsedOps] = useState<Set<string>>(new Set());
   const [syncingGusto, setSyncingGusto] = useState(false);
@@ -34,17 +40,6 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
   const [adpResult, setADPResult] = useState<{ synced: number; errors: string[] } | null>(null);
   const [syncingPaychex, setSyncingPaychex] = useState(false);
   const [paychexResult, setPaychexResult] = useState<{ synced: number; errors: string[] } | null>(null);
-
-  const loadData = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
-      const ts = await getCompanyTimesheets(activeCompanyId);
-      setTimesheets(ts.filter((t: Sheet) => t.clock_out));
-    } catch (e) { logger.swallow("timesheets-admin:load", e, "warn"); }
-    finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
 
   async function handleApprove(id: string) {
     setApproving(id);
@@ -64,7 +59,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
           }).catch(() => {});
         }).catch(() => {});
       }
-      await loadData();
+      await refetch();
     } catch (err) { console.error(err); }
     finally { setApproving(null); }
   }
@@ -72,7 +67,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
   async function handleUnapprove(id: string) {
     try {
       await unapproveTimesheet(id);
-      await loadData();
+      await refetch();
     } catch (err) { console.error(err); }
   }
 
@@ -86,7 +81,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
     if (!await confirm({ description: msg, variant: "destructive", confirmLabel: "Delete" })) return;
     try {
       await deleteTimesheet(id);
-      await loadData();
+      await refetch();
     } catch (err) { console.error(err); }
   }
 

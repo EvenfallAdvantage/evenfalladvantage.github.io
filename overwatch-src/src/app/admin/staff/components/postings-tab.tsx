@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Plus, Pencil, Trash2, Copy, Globe, Briefcase,
 } from "lucide-react";
@@ -11,7 +11,7 @@ import {
 } from "@/lib/supabase/db-postings";
 import { PostingFormModal } from "./posting-form-modal";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
-import { logger } from "@/lib/logger";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 
 interface PostingsTabProps {
   activeCompanyId: string;
@@ -21,36 +21,21 @@ interface PostingsTabProps {
 
 export function PostingsTab({ activeCompanyId, canManage: _canManage, companyName: _companyName }: PostingsTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
-  const [postings, setPostings] = useState<JobPosting[]>([]);
-  const [postingCounts, setPostingCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
+  const { data: postings = [], isLoading: postingsLoading, refetch: refetchPostings } = useCompanyQuery<JobPosting[]>(
+    "company-postings",
+    (cid) => getCompanyPostings(cid),
+  );
+  const { data: postingCounts = {}, isLoading: countsLoading, refetch: refetchCounts } = useCompanyQuery<Record<string, number>>(
+    "posting-applicant-counts",
+    (cid) => getPostingApplicantCounts(cid),
+  );
+  const loading = postingsLoading || countsLoading;
   const [showNewPosting, setShowNewPosting] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editingPosting, setEditingPosting] = useState<any>(null);
 
-  // Derive joinCode from companyName — not ideal, but postings tab needs it for the careers link
-  // We receive it indirectly. The parent passes companyName; we also need joinCode for the careers link.
-  // We'll accept it via an extended approach — but for simplicity, we compute the careers URL from activeCompanyId.
-
-  const loadData = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
-      const [p, c] = await Promise.all([
-        getCompanyPostings(activeCompanyId),
-        getPostingApplicantCounts(activeCompanyId),
-      ]);
-      setPostings(p);
-      setPostingCounts(c);
-    } catch (e) { logger.swallow("postings:load", e, "warn"); }
-    finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
-
   async function handleReload() {
-    if (!activeCompanyId) return;
-    setPostings(await getCompanyPostings(activeCompanyId));
-    setPostingCounts(await getPostingApplicantCounts(activeCompanyId));
+    await Promise.all([refetchPostings(), refetchCounts()]);
     setShowNewPosting(false);
     setEditingPosting(null);
   }
@@ -97,13 +82,13 @@ export function PostingsTab({ activeCompanyId, canManage: _canManage, companyNam
                 {p.status === "draft" && (
                   <Button size="sm" variant="outline" className="text-xs h-7" onClick={async () => {
                     await publishPosting(p.id);
-                    if (activeCompanyId) setPostings(await getCompanyPostings(activeCompanyId));
+                    await refetchPostings();
                   }}>Publish</Button>
                 )}
                 {p.status === "active" && (
                   <Button size="sm" variant="outline" className="text-xs h-7" onClick={async () => {
                     await closePosting(p.id);
-                    if (activeCompanyId) setPostings(await getCompanyPostings(activeCompanyId));
+                    await refetchPostings();
                   }}>Close</Button>
                 )}
                 <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => {
@@ -113,7 +98,7 @@ export function PostingsTab({ activeCompanyId, canManage: _canManage, companyNam
                 <Button size="sm" variant="ghost" className="text-xs h-7 text-red-500" onClick={async () => {
                   if (!await confirm({ description: "Delete this posting?", variant: "destructive", confirmLabel: "Delete" })) return;
                   await deletePosting(p.id);
-                  if (activeCompanyId) setPostings(await getCompanyPostings(activeCompanyId));
+                  await refetchPostings();
                 }}><Trash2 className="h-3 w-3" /></Button>
               </div>
             </div>

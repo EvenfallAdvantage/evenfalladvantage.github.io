@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUserPayments } from "@/lib/supabase/db";
 import { getLegacyCourses } from "@/lib/legacy-bridge";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Course = any;
@@ -46,14 +46,6 @@ function CoursesContent() {
   const user = useAuthStore((s) => s.user);
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const searchParams = useSearchParams();
-
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader("COURSES", "Professional security training courses", <Video className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   const [pageTab, setPageTab] = useState<PageTab>("courses");
   const [courses, setCourses] = useState<Course[]>([]);
@@ -162,7 +154,7 @@ function CoursesContent() {
   const ownedCount = purchasedCourses.size;
 
   return (
-    <>
+    <PageShell title="COURSES" subtitle="Professional security training courses" icon={<Video className="h-5 w-5" />}>
       <div className="space-y-4">
         {/* Status banners from Stripe redirect */}
         {status === "success" && (
@@ -413,7 +405,7 @@ function CoursesContent() {
           )
         )}
       </div>
-    </>
+    </PageShell>
   );
 }
 

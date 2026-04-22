@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   ClipboardList, Loader2, ChevronDown, Trash2,
   AlertTriangle, MapPin, CheckCircle2,
@@ -17,7 +17,8 @@ import {
 } from "@/lib/supabase/db";
 import { exportCSV, INCIDENT_COLUMNS } from "@/lib/csv-export";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
-import { logger } from "@/lib/logger";
+import { useCompanyQuery } from "@/hooks/use-company-query";
+import { getQueryClient } from "@/lib/query-client";
 
 interface FormSub {
   id: string;
@@ -54,9 +55,15 @@ interface ReportsTabProps {
 
 export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
-  const [formSubmissions, setFormSubmissions] = useState<FormSub[]>([]);
-  const [incidents, setIncidents] = useState<IncidentRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: formSubmissions = [], isLoading: formsLoading, refetch: refetchForms } = useCompanyQuery<FormSub[]>(
+    "form-submissions",
+    (cid) => getAllFormSubmissions(cid),
+  );
+  const { data: incidents = [], isLoading: incLoading, refetch: refetchIncidents } = useCompanyQuery<IncidentRow[]>(
+    "incidents",
+    (cid) => getIncidents(cid),
+  );
+  const loading = formsLoading || incLoading;
   const [reviewingForm, setReviewingForm] = useState<string | null>(null);
   const [expandedFormSub, setExpandedFormSub] = useState<string | null>(null);
   const [expandedIncident, setExpandedIncident] = useState<string | null>(null);
@@ -66,20 +73,12 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
   const [editingFormSub, setEditingFormSub] = useState<string | null>(null);
   const [editFormSubData, setEditFormSubData] = useState<Record<string, string>>({});
 
-  const loadData = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
-      const [forms, incs] = await Promise.all([
-        getAllFormSubmissions(activeCompanyId),
-        getIncidents(activeCompanyId),
-      ]);
-      setFormSubmissions(forms);
-      setIncidents(incs);
-    } catch (e) { logger.swallow("reports:load", e, "warn"); }
-    finally { setLoading(false); }
-  }, [activeCompanyId]);
+  const formsKey = ["form-submissions", activeCompanyId ?? ""];
+  const incidentsKey = ["incidents", activeCompanyId ?? ""];
 
-  useEffect(() => { loadData(); }, [loadData]);
+  async function loadData() {
+    await Promise.all([refetchForms(), refetchIncidents()]);
+  }
 
   async function handleFormReview(id: string) {
     setReviewingForm(id);
@@ -249,7 +248,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                                     if (!await confirm({ description: "Delete this incident report?", variant: "destructive", confirmLabel: "Delete" })) return;
                                     try {
                                         await deleteIncident(inc.id);
-                                      setIncidents((prev) => prev.filter((i) => i.id !== inc.id));
+                                      getQueryClient().setQueryData<IncidentRow[]>(incidentsKey, (prev = []) => prev.filter((i) => i.id !== inc.id));
                                       toast.success("Incident deleted");
                                     } catch { toast.error("Failed to delete"); }
                                   }}><Trash2 className="h-3 w-3" /> Delete</Button>
@@ -345,7 +344,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                                 <Button size="sm" className="h-7 gap-1 text-xs" onClick={async () => {
                                   try {
                                     const updated = await editFormSubmission(f.id, editFormSubData);
-                                    setFormSubmissions(prev => prev.map(sub => sub.id === f.id ? { ...sub, data: editFormSubData, change_log: updated?.change_log } : sub));
+                                    getQueryClient().setQueryData<FormSub[]>(formsKey, (prev = []) => prev.map(sub => sub.id === f.id ? { ...sub, data: editFormSubData, change_log: updated?.change_log } : sub));
                                     setEditingFormSub(null);
                                     toast.success("Submission updated");
                                   } catch { toast.error("Failed to update"); }
@@ -395,7 +394,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                                 if (!await confirm({ description: "Delete this submission?", variant: "destructive", confirmLabel: "Delete" })) return;
                                 try {
                                   await deleteFormSubmission(f.id);
-                                  setFormSubmissions(prev => prev.filter(sub => sub.id !== f.id));
+                                  getQueryClient().setQueryData<FormSub[]>(formsKey, (prev = []) => prev.filter(sub => sub.id !== f.id));
                                   toast.success("Submission deleted");
                                 } catch { toast.error("Failed to delete"); }
                               }}>

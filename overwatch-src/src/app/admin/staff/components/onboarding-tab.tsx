@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   ListChecks, Plus, X, ChevronUp, ChevronDown, Trash2, Loader2,
 } from "lucide-react";
@@ -12,7 +12,8 @@ import {
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask, reorderOnboardingTasks,
 } from "@/lib/supabase/db";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
-import { logger } from "@/lib/logger";
+import { useCompanyQuery } from "@/hooks/use-company-query";
+import { getQueryClient } from "@/lib/query-client";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OTask = any;
@@ -24,21 +25,13 @@ interface OnboardingTabProps {
 
 export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
-  const [oTasks, setOTasks] = useState<OTask[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: oTasks = [], isLoading: loading, refetch } = useCompanyQuery<OTask[]>(
+    "onboarding-tasks",
+    (cid) => getOnboardingTasks(cid),
+  );
   const [showAddTask, setShowAddTask] = useState(false);
   const [taskForm, setTaskForm] = useState({ title: "", description: "", category: "general", isRequired: true });
   const [savingTask, setSavingTask] = useState(false);
-
-  const loadTasks = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
-      setOTasks(await getOnboardingTasks(activeCompanyId));
-    } catch (e) { logger.swallow("onboarding:load", e, "warn"); }
-    finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { loadTasks(); }, [loadTasks]);
 
   async function handleAddTask() {
     if (!taskForm.title.trim() || !activeCompanyId) return;
@@ -47,7 +40,7 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
       await createOnboardingTask(activeCompanyId, { ...taskForm, sortOrder: oTasks.length });
       setTaskForm({ title: "", description: "", category: "general", isRequired: true });
       setShowAddTask(false);
-      setOTasks(await getOnboardingTasks(activeCompanyId));
+      await refetch();
       toast.success("Task created");
     } catch (err) { console.error(err); toast.error("Failed to create task"); }
     finally { setSavingTask(false); }
@@ -57,7 +50,7 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
     if (!await confirm({ description: "Delete this onboarding task?", variant: "destructive", confirmLabel: "Delete" })) return;
     try {
       await deleteOnboardingTask(id);
-      if (activeCompanyId) setOTasks(await getOnboardingTasks(activeCompanyId));
+      await refetch();
     } catch (err) { console.error(err); }
   }
 
@@ -66,10 +59,14 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
     if (swapIdx < 0 || swapIdx >= oTasks.length) return;
     const updated = [...oTasks];
     [updated[index], updated[swapIdx]] = [updated[swapIdx], updated[index]];
-    setOTasks(updated);
+    // Optimistically update cache
+    getQueryClient().setQueryData(
+      ["onboarding-tasks", activeCompanyId ?? ""],
+      updated,
+    );
     try {
       await reorderOnboardingTasks(updated.map((t: OTask, i: number) => ({ id: t.id, sort_order: i })));
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); await refetch(); }
   }
 
   if (loading) {

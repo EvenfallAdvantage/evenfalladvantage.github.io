@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   CalendarOff, CheckCircle2, XCircle, Loader2,
 } from "lucide-react";
@@ -10,7 +10,7 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   getAllTimeOffRequests, reviewTimeOffRequest, removeConflictingShifts,
 } from "@/lib/supabase/db";
-import { logger } from "@/lib/logger";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LeaveReq = any;
@@ -24,20 +24,12 @@ interface LeaveTabProps {
 }
 
 export function LeaveTab({ activeCompanyId, canManage, members }: LeaveTabProps) {
-  const [leaveRequests, setLeaveRequests] = useState<LeaveReq[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: leaveRequests = [], isLoading: loading, refetch } = useCompanyQuery<LeaveReq[]>(
+    "time-off-requests",
+    (cid) => getAllTimeOffRequests(cid),
+  );
   const [reviewingLeave, setReviewingLeave] = useState<string | null>(null);
   const [leaveFilter, setLeaveFilter] = useState<"pending" | "all">("pending");
-
-  const loadData = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
-      setLeaveRequests(await getAllTimeOffRequests(activeCompanyId));
-    } catch (e) { logger.swallow("leave:load", e, "warn"); }
-    finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
 
   const pendingLeave = leaveRequests.filter((r: LeaveReq) => r.status === "pending");
   const filteredLeave = leaveFilter === "pending" ? pendingLeave : leaveRequests;
@@ -98,7 +90,7 @@ export function LeaveTab({ activeCompanyId, canManage, members }: LeaveTabProps)
         }
       }
       // Reload
-      setLeaveRequests(await getAllTimeOffRequests(activeCompanyId));
+      await refetch();
     } catch (err) { console.error(err); }
     finally { setReviewingLeave(null); }
   }

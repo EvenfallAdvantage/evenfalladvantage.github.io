@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 import {
   lookupBadge, isUserClockedIn, qrClockIn, qrClockOut,
   getClockedInStaff, massClockOut,
@@ -81,12 +81,7 @@ const EVENT_STORAGE_KEY = "scan-selected-event";
 
 export default function ScanPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
-  const setHeader = usePageHeader((s) => s.setHeader);
   const { confirm, ConfirmDialog } = useConfirmDialog();
-
-  useEffect(() => {
-    setHeader("MASS CLOCK", "Scan badges for rapid clock in/out");
-  }, [setHeader]);
 
   // Camera refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -375,6 +370,7 @@ export default function ScanPage() {
   // ── Render ──
 
   return (
+    <PageShell title="MASS CLOCK" subtitle="Scan badges for rapid clock in/out">
     <div className="max-w-lg mx-auto space-y-4">
 
       {/* Offline banner */}
@@ -550,5 +546,6 @@ export default function ScanPage() {
       </div>
       <ConfirmDialog />
     </div>
+    </PageShell>
   );
 }

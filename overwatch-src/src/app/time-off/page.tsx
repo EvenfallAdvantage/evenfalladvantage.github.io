@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { CalendarOff, Plus, Loader2, Trash2, ClipboardList, Users } from "lucide-react";
@@ -12,7 +12,7 @@ import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTim
 import { useCompanyQuery } from "@/hooks/use-company-query";
 import { parseUTC } from "@/lib/parse-utc";
 import { toast } from "sonner";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,21 +24,6 @@ export default function TimeOffPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
-
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader(
-      "LEAVE",
-      "Request and track leave days",
-      <CalendarOff className="h-5 w-5" />,
-      <Button size="sm" className="gap-1.5 w-full sm:w-auto" onClick={() => setShowCreate(true)}>
-        <Plus className="h-4 w-4" /> Request Leave
-      </Button>
-    );
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   const [showCreate, setShowCreate] = useState(false);
   const [startDate, setStartDate] = useState("");
@@ -163,7 +148,16 @@ export default function TimeOffPage() {
   const pendingCount = allRequests.filter((r: Request) => r.status === "pending").length;
 
   return (
-    <>
+    <PageShell
+      title="LEAVE"
+      subtitle="Request and track leave days"
+      icon={<CalendarOff className="h-5 w-5" />}
+      actions={
+        <Button size="sm" className="gap-1.5 w-full sm:w-auto" onClick={() => setShowCreate(true)}>
+          <Plus className="h-4 w-4" /> Request Leave
+        </Button>
+      }
+    >
       <div className="space-y-4">
         {/* Admin tabs */}
         {isAdmin && (
@@ -279,6 +273,6 @@ export default function TimeOffPage() {
         )}
       </div>
       <ConfirmDialog />
-    </>
+    </PageShell>
   );
 }

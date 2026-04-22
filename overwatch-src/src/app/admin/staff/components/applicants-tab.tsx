@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   Loader2, Trash2, UserPlus, Plus, ArrowRight, X, XCircle,
   Upload, Copy,
@@ -18,7 +18,7 @@ import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchest
 import { FileText } from "lucide-react";
 import { ApplicantDetailModal } from "./applicant-detail-modal";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
-import { logger } from "@/lib/logger";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Applicant = any;
@@ -45,8 +45,10 @@ const DOCUMENT_TYPES = ["Guard Card", "CPR/First Aid", "EMT", "OSHA", "Firearms"
 
 export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCode, members: _members, onHireResult }: ApplicantsTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
-  const [applicants, setApplicants] = useState<Applicant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: applicants = [], isLoading: loading, refetch } = useCompanyQuery<Applicant[]>(
+    "applicants",
+    (cid) => getApplicants(cid),
+  );
   const [appFilter, setAppFilter] = useState("all");
   const [showAddApp, setShowAddApp] = useState(false);
   const [appForm, setAppForm] = useState({
@@ -66,16 +68,6 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
   const [bulkConverting, setBulkConverting] = useState(false);
   const [convertProgress, setConvertProgress] = useState("");
   const [pullingAirtable, setPullingAirtable] = useState(false);
-
-  const loadData = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
-      setApplicants(await getApplicants(activeCompanyId));
-    } catch (e) { logger.swallow("applicants:load", e, "warn"); }
-    finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
 
   async function handleAddApplicant() {
     if (!appForm.firstName.trim() || !appForm.email.trim() || !activeCompanyId) return;
@@ -117,7 +109,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
         education: [], workHistory: [], pendingFiles: [],
       });
       setShowAddApp(false);
-      setApplicants(await getApplicants(activeCompanyId));
+      await refetch();
       toast.success("Applicant added");
     } catch (err) { console.error(err); toast.error("Failed to add applicant"); } finally { setSavingApp(false); }
   }
@@ -153,7 +145,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
           }
         } catch (err) { console.error("Convert failed:", err); }
       }
-      if (activeCompanyId) setApplicants(await getApplicants(activeCompanyId));
+      await refetch();
     } catch (err) { console.error(err); } finally { setUpdatingApp(null); }
   }
 
@@ -161,7 +153,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
     if (!await confirm({ description: "Delete this applicant?", variant: "destructive", confirmLabel: "Delete" })) return;
     try {
       await deleteApplicant(id);
-      if (activeCompanyId) setApplicants(await getApplicants(activeCompanyId));
+      await refetch();
       toast.success("Applicant deleted");
     } catch (err) { console.error(err); toast.error("Failed to delete applicant"); }
   }
@@ -175,7 +167,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
       try { await deleteApplicant(id); deleted++; } catch { /* continue */ }
     }
     setSelected(new Set());
-    if (activeCompanyId) setApplicants(await getApplicants(activeCompanyId));
+    await refetch();
     toast.success(`Deleted ${deleted} applicant${deleted > 1 ? "s" : ""}`);
     setBulkDeleting(false);
   }
@@ -200,7 +192,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
     }
     setConvertProgress("");
     setBulkConverting(false);
-    setApplicants(await getApplicants(activeCompanyId));
+    await refetch();
     if (errors > 0) {
       toast.warning(`Converted ${converted}, failed ${errors} (likely duplicate emails)`);
     } else {
@@ -249,7 +241,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
                   } catch { /* skip duplicates */ }
                 }
                 toast.success(`Imported ${created} applicant${created !== 1 ? "s" : ""} from Airtable`);
-                await loadData();
+                await refetch();
               } catch (err) { toast.error("Airtable import failed"); console.error(err); }
               finally { setPullingAirtable(false); }
             }} disabled={pullingAirtable}>
@@ -570,13 +562,11 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
           onClose={() => setViewingApplicant(null)}
           onStatusChange={async (id, status) => {
             await handleAppStatus(id, status);
-            if (activeCompanyId) {
-              const updated = await getApplicants(activeCompanyId);
-              setApplicants(updated);
-              const fresh = updated.find((x: Applicant) => x.id === id);
-              if (fresh) setViewingApplicant(fresh);
-              else setViewingApplicant(null);
-            }
+            const result = await refetch();
+            const updated = result.data ?? [];
+            const fresh = updated.find((x: Applicant) => x.id === id);
+            if (fresh) setViewingApplicant(fresh);
+            else setViewingApplicant(null);
           }}
         />
       )}

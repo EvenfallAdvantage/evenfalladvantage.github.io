@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Clock, CheckCircle2, XCircle, Loader2,
 } from "lucide-react";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCompanyTimeChangeRequests, reviewTimeChangeRequest } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
-import { logger } from "@/lib/logger";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TCR = any;
@@ -19,19 +19,11 @@ interface CorrectionsTabProps {
 }
 
 export function CorrectionsTab({ activeCompanyId, canManage }: CorrectionsTabProps) {
-  const [timeChangeReqs, setTimeChangeReqs] = useState<TCR[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: timeChangeReqs = [], isLoading: loading, refetch } = useCompanyQuery<TCR[]>(
+    "company-time-change-requests",
+    (cid) => getCompanyTimeChangeRequests(cid),
+  );
   const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
-
-  const loadData = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
-      setTimeChangeReqs(await getCompanyTimeChangeRequests(activeCompanyId));
-    } catch (e) { logger.swallow("corrections:load", e, "warn"); }
-    finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { loadData(); }, [loadData]);
 
   async function handleTCRReview(id: string, status: "approved" | "denied") {
     setReviewingTCR(id);
@@ -53,7 +45,7 @@ export function CorrectionsTab({ activeCompanyId, canManage }: CorrectionsTabPro
         }).catch(() => {});
       }
       // Reload
-      setTimeChangeReqs(await getCompanyTimeChangeRequests(activeCompanyId));
+      await refetch();
     } catch (err) { console.error(err); }
     finally { setReviewingTCR(null); }
   }
