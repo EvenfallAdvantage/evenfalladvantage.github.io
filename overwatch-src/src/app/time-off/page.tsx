@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { CalendarOff, Plus, Loader2, Trash2, ClipboardList, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest, deleteTimeOffRequest, removeConflictingShifts, getCompanyMembers } from "@/lib/supabase/db";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 import { parseUTC } from "@/lib/parse-utc";
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
-import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Request = any;
@@ -38,10 +39,6 @@ export default function TimeOffPage() {
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
-  const [requests, setRequests] = useState<Request[]>([]);
-  const [allRequests, setAllRequests] = useState<Request[]>([]);
-  const [policies, setPolicies] = useState<Policy[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -52,20 +49,21 @@ export default function TimeOffPage() {
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [deletingReq, setDeletingReq] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const reqs = await getTimeOffRequests();
-      setRequests(reqs);
-      if (activeCompanyId) {
-        setPolicies(await getTimeOffPolicies(activeCompanyId));
-        if (isAdmin) {
-          setAllRequests(await getAllTimeOffRequests(activeCompanyId));
-        }
-      }
-    } catch (e) { logger.swallow("time-off:load", e, "warn"); } finally { setLoading(false); }
-  }, [activeCompanyId, isAdmin]);
+  const { data: requests = [], isLoading: reqLoading, refetch: refetchRequests } = useQuery<Request[]>({
+    queryKey: ["time-off-requests-mine", activeCompanyId ?? ""],
+    queryFn: () => getTimeOffRequests(),
+  });
+  const { data: policies = [], isLoading: polLoading, refetch: refetchPolicies } = useCompanyQuery<Policy[]>(
+    "time-off-policies", (cid) => getTimeOffPolicies(cid)
+  );
+  const { data: allRequests = [], isLoading: allLoading, refetch: refetchAll } = useCompanyQuery<Request[]>(
+    "time-off-requests-all", (cid) => getAllTimeOffRequests(cid), { enabled: isAdmin }
+  );
+  const loading = reqLoading || polLoading || (isAdmin && allLoading);
 
-  useEffect(() => { load(); }, [load]);
+  const load = async () => {
+    await Promise.all([refetchRequests(), refetchPolicies(), isAdmin ? refetchAll() : Promise.resolve()]);
+  };
 
   async function handleCreate() {
     if (!startDate || !endDate || !selectedPolicy || !activeCompanyId) return;

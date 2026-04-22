@@ -35,6 +35,7 @@ import {
 } from "@/lib/supabase/db";
 import type { StoryboardPin } from "@/components/storyboard-editor";
 import { SiteMapViewModal } from "./site-map-view-modal";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import {
   TYPES,
   STATUS,
@@ -56,6 +57,7 @@ interface IncidentListProps {
 }
 
 export function IncidentList({ incidents, members, loading, search, isAdmin, activeCompanyId, onReload }: IncidentListProps) {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updates, setUpdates] = useState<Record<string, IncidentUpdate[]>>({});
   const [newComment, setNewComment] = useState("");
@@ -103,7 +105,7 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this incident?")) return;
+    if (!await confirm({ description: "Delete this incident?", variant: "destructive", confirmLabel: "Delete" })) return;
     try {
       await deleteIncident(id);
       await onReload();
@@ -419,6 +421,7 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
         })}
       </div>
 
+      <ConfirmDialog />
       {/* View on Map Modal (read-only / admin-editable) */}
       {viewMapUrl && viewMapIncidentId && (
         <SiteMapViewModal

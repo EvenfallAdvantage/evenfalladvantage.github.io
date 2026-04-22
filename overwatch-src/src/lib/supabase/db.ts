@@ -23,3 +23,4 @@ export * from "./db-broadcast";
 export * from "./db-incident-media";
 export * from "./db-breaks";
 export * from "./db-dar";
+export * from "./db-client-portal";

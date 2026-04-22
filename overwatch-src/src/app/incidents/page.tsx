@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { AlertTriangle, Plus } from "lucide-react";
 import Link from "next/link";
@@ -12,6 +13,7 @@ import {
   getCompanyMembers,
   getActiveTimesheet,
 } from "@/lib/supabase/db";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 import { usePageHeader } from "@/stores/page-header-store";
 
 import { IncidentCreateForm } from "./components/incident-create-form";
@@ -24,15 +26,26 @@ export default function IncidentsPage() {
   const activeCompany = useAuthStore(s => s.getActiveCompany());
   const isAdmin = activeCompany && hasMinRole(activeCompany.role as CompanyRole, "manager");
 
-  const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
+  const { data: incidents = [], isLoading: incLoading, refetch: refetchIncidents } = useCompanyQuery<Incident[]>(
+    "incidents", (cid) => getIncidents(cid, filter), { extraKeys: [filter] }
+  );
+  const { data: members = [], isLoading: memLoading, refetch: refetchMembers } = useCompanyQuery<Member[]>(
+    "company-members", (cid) => getCompanyMembers(cid)
+  );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [activeTimesheet, setActiveTimesheet] = useState<any>(null);
+  const { data: activeTimesheet = null, refetch: refetchTimesheet } = useQuery<any>({
+    queryKey: ["active-timesheet", activeCompanyId ?? ""],
+    queryFn: () => getActiveTimesheet(),
+    enabled: !!activeCompanyId,
+  });
+  const loading = incLoading || memLoading;
+  const load = async () => {
+    await Promise.all([refetchIncidents(), refetchMembers(), refetchTimesheet()]);
+  };
 
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
@@ -48,22 +61,6 @@ export default function IncidentsPage() {
     );
     return () => clearHeader();
   }, [setHeader, clearHeader, showCreate]);
-
-  const load = useCallback(async () => {
-    if (!activeCompanyId) return;
-    try {
-      const [inc, mem, ts] = await Promise.all([
-        getIncidents(activeCompanyId, filter),
-        getCompanyMembers(activeCompanyId),
-        getActiveTimesheet(),
-      ]);
-      setIncidents(inc);
-      setMembers(mem);
-      setActiveTimesheet(ts);
-    } catch { /* */ } finally { setLoading(false); }
-  }, [activeCompanyId, filter]);
-
-  useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return (

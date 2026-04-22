@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import {
   getOnboardingTasks, createOnboardingTask, deleteOnboardingTask, reorderOnboardingTasks,
 } from "@/lib/supabase/db";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,6 +23,7 @@ interface OnboardingTabProps {
 }
 
 export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps) {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [oTasks, setOTasks] = useState<OTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -52,7 +54,7 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
   }
 
   async function handleDeleteTask(id: string) {
-    if (!confirm("Delete this onboarding task?")) return;
+    if (!await confirm({ description: "Delete this onboarding task?", variant: "destructive", confirmLabel: "Delete" })) return;
     try {
       await deleteOnboardingTask(id);
       if (activeCompanyId) setOTasks(await getOnboardingTasks(activeCompanyId));
@@ -161,6 +163,7 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
           ))}
         </div>
       )}
+      <ConfirmDialog />
     </div>
   );
 }

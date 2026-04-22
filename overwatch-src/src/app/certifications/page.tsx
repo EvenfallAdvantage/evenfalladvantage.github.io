@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUserCertifications, addCertification, deleteCertification, verifyCertificate } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { usePageHeader } from "@/stores/page-header-store";
@@ -114,6 +115,7 @@ function generateCertPDF(cert: Cert, userName: string) {
 }
 
 export default function CertificationsPage() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const user = useAuthStore((s) => s.user);
 
@@ -209,7 +211,7 @@ export default function CertificationsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this certification?")) return;
+    if (!await confirm({ description: "Delete this certification?", variant: "destructive", confirmLabel: "Delete" })) return;
     setDeleting(id);
     try { await deleteCertification(id); await load(); }
     catch (err) { console.error(err); }
@@ -431,6 +433,7 @@ export default function CertificationsPage() {
           onClose={() => setShowScanner(false)}
         />
       )}
+      <ConfirmDialog />
       {/* Document Preview Modal */}
       {viewDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setViewDoc(null)}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Radar, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +9,12 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getPosts, createPost, togglePinPost, deletePost, getChatChannels } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 import { usePageHeader } from "@/stores/page-header-store";
+import { useCompanyQuery } from "@/hooks/use-company-query";
+import { getQueryClient } from "@/lib/query-client";
 
 import { BriefingComposer } from "@/components/updates/briefing-composer";
 import { BriefingPostCard } from "@/components/updates/briefing-post-card";
-import { logger } from "@/lib/logger";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 interface PostReaction {
   id: string;
@@ -31,6 +33,7 @@ interface PostComment {
 type Post = any;
 
 export default function UpdatesPage() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const { user, activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
@@ -43,51 +46,55 @@ export default function UpdatesPage() {
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [togglingPin, setTogglingPin] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [reactions, setReactions] = useState<Record<string, PostReaction[]>>({});
-  const [comments, setComments] = useState<Record<string, PostComment[]>>({});
 
-  // Channel counts for unified tab bar
-  const [channelCount, setChannelCount] = useState(0);
-  const [externalCount, setExternalCount] = useState(0);
+  type UpdatesBundle = {
+    posts: Post[];
+    channelCount: number;
+    externalCount: number;
+    reactions: Record<string, PostReaction[]>;
+    comments: Record<string, PostComment[]>;
+  };
 
-  const load = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
+  const { data: bundle, isLoading: loading, refetch } = useCompanyQuery<UpdatesBundle>(
+    "updates-feed",
+    async (cid) => {
       const [postsData, channelsData] = await Promise.all([
-        getPosts(activeCompanyId),
-        getChatChannels(activeCompanyId).catch(() => []),
+        getPosts(cid),
+        getChatChannels(cid).catch(() => []),
       ]);
-      setPosts(postsData);
       const chs = channelsData as { id: string; description?: string | null }[];
       const ext = chs.filter((c) => { try { const m = JSON.parse(c.description || ""); return m?.external; } catch { return false; } });
-      setChannelCount(chs.length - ext.length);
-      setExternalCount(ext.length);
-
-      // Pre-load reactions and comments for all posts
+      const rMap: Record<string, PostReaction[]> = {};
+      const cMap: Record<string, PostComment[]> = {};
       if (postsData.length > 0) {
         const { getPostReactions, getPostComments } = await import("@/lib/supabase/db");
         const [allReactions, allComments] = await Promise.all([
           Promise.all(postsData.map((p: { id: string }) => getPostReactions(p.id).catch(() => []))),
           Promise.all(postsData.map((p: { id: string }) => getPostComments(p.id).catch(() => []))),
         ]);
-        const rMap: Record<string, PostReaction[]> = {};
-        const cMap: Record<string, PostComment[]> = {};
         postsData.forEach((p: { id: string }, i: number) => {
           rMap[p.id] = allReactions[i];
           cMap[p.id] = allComments[i];
         });
-        setReactions(rMap);
-        setComments(cMap);
       }
-    } catch (e) { logger.swallow("updates:load", e, "warn"); } finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { load(); }, [load]);
+      return {
+        posts: postsData,
+        channelCount: chs.length - ext.length,
+        externalCount: ext.length,
+        reactions: rMap,
+        comments: cMap,
+      };
+    }
+  );
+  const posts: Post[] = bundle?.posts ?? [];
+  const channelCount = bundle?.channelCount ?? 0;
+  const externalCount = bundle?.externalCount ?? 0;
+  const reactions = bundle?.reactions ?? {};
+  const comments = bundle?.comments ?? {};
+  const load = async () => { await refetch(); };
 
   // Realtime — new posts from teammates appear automatically
   useEffect(() => {
@@ -100,10 +107,12 @@ export default function UpdatesPage() {
         schema: "public",
         table: "posts",
         filter: `company_id=eq.${activeCompanyId}`,
-      }, () => { load(); })
+      }, () => {
+        getQueryClient().invalidateQueries({ queryKey: ["updates-feed", activeCompanyId] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [activeCompanyId, load]);
+  }, [activeCompanyId]);
 
   async function handlePost(data: { title: string; content: string; imageUrl: string; linkUrl: string; postType: string }) {
     if (!data.content.trim() || !activeCompanyId) return;
@@ -150,7 +159,7 @@ export default function UpdatesPage() {
   }
 
   async function handleDelete(postId: string) {
-    if (!confirm("Delete this post? This cannot be undone.")) return;
+    if (!await confirm({ description: "Delete this post? This cannot be undone.", variant: "destructive", confirmLabel: "Delete" })) return;
     setDeleting(postId);
     try { await deletePost(postId); await load(); }
     catch (err) { console.error(err); }
@@ -226,6 +235,7 @@ export default function UpdatesPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog />
     </>
   );
 }

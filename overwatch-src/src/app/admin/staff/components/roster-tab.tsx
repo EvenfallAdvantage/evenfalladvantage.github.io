@@ -23,6 +23,7 @@ import { CSVColumnMapper } from "./csv-column-mapper";
 import { MemberProfileModal } from "./member-profile-modal";
 import { ReadinessModal } from "./readiness-modal";
 import { BadgePreviewModal } from "./badge-preview-modal";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 
@@ -43,6 +44,7 @@ interface RosterTabProps {
 }
 
 export function RosterTab({ activeCompanyId, canManage, canManageRoles, members, onReload, myRole, companyName, userCompanies }: RosterTabProps) {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [search, setSearch] = useState("");
   const [changingRole, setChangingRole] = useState<string | null>(null);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
@@ -118,7 +120,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
       return;
     }
     if (member?.role === "owner" && newRole !== "owner") {
-      if (!confirm(`Downgrade this owner to ${newRole}? This cannot be undone from the UI unless another owner restores it.`)) return;
+      if (!await confirm({ description: `Downgrade this owner to ${newRole}? This cannot be undone from the UI unless another owner restores it.` })) return;
     }
     setChangingRole(membershipId);
     setError(null);
@@ -128,7 +130,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
   }
 
   async function handleRemoveMember(membershipId: string, name: string) {
-    if (!confirm(`Remove ${name} from the organization?`)) return;
+    if (!await confirm({ description: `Remove ${name} from the organization?`, variant: "destructive", confirmLabel: "Remove" })) return;
     setRemovingMember(membershipId);
     setError(null);
     try { await removeMember(membershipId); onReload(); }
@@ -548,6 +550,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
       )}
 
       {/* ── Badge Preview Modal ── */}
+      <ConfirmDialog />
       {badgePreview && (
         <BadgePreviewModal
           member={badgePreview.member}

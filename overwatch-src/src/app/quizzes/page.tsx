@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Target, Plus, Loader2, ChevronLeft, CheckCircle2, XCircle, Play, Trash2, PencilLine, Save, X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getQuizzes, createQuiz, submitQuizAttempt, getUserQuizAttempts, deleteQuiz, updateQuiz, getAssessmentQuestions, importQuestionsToQuiz, getTrainingModules, completeModule } from "@/lib/supabase/db";
 import type { TrainingModule } from "@/types";
-import { logger } from "@/lib/logger";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 
 type Question = { id: string; text: string; options: string[]; correctIndex: number };
 type BankQuestion = { id: string; question_text: string; options: string[]; correct_answer: string; difficulty: string; category: string | null };
@@ -20,12 +21,18 @@ type Quiz = any;
 type Attempt = any;
 
 export default function QuizzesPage() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [modules, setModules] = useState<TrainingModule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: quizzes = [], isLoading: quizLoading, refetch: refetchQuizzes } = useCompanyQuery<Quiz[]>(
+    "quizzes", (cid) => getQuizzes(cid)
+  );
+  const { data: modules = [], isLoading: modLoading } = useCompanyQuery<TrainingModule[]>(
+    "training-modules", (cid) => getTrainingModules(cid) as Promise<TrainingModule[]>
+  );
+  const loading = quizLoading || modLoading;
+  const load = async () => { await refetchQuizzes(); };
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
@@ -51,16 +58,6 @@ export default function QuizzesPage() {
   const [loadingBank, setLoadingBank] = useState(false);
   const [importing, setImporting] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
-      const [q, m] = await Promise.all([getQuizzes(activeCompanyId), getTrainingModules(activeCompanyId)]);
-      setQuizzes(q); setModules(m as TrainingModule[]);
-    } catch (e) { logger.swallow("quizzes:load", e, "warn"); } finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { load(); }, [load]);
-
   async function handleCreate() {
     if (!newTitle.trim() || !activeCompanyId) return;
     setCreating(true);
@@ -73,7 +70,7 @@ export default function QuizzesPage() {
 
   async function handleDeleteQuiz(quizId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm("Delete this drill and all attempt history?")) return;
+    if (!await confirm({ description: "Delete this drill and all attempt history?", variant: "destructive", confirmLabel: "Delete" })) return;
     setDeletingQuiz(quizId);
     try { await deleteQuiz(quizId); await load(); }
     catch (err) { console.error(err); }
@@ -495,6 +492,7 @@ export default function QuizzesPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog />
     </>
   );
 }

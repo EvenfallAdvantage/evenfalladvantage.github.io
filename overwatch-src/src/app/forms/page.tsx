@@ -11,6 +11,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updateForm, getActiveTimesheet, getUserFormSubmissions } from "@/lib/supabase/db";
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 type FieldType = "text" | "textarea" | "select" | "checkbox" | "date" | "time" | "datetime" | "number" | "email" | "phone" | "url" | "radio" | "rating" | "signature";
@@ -39,6 +40,7 @@ type Form = any;
 type Submission = any;
 
 export default function FormsPage() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
@@ -110,7 +112,7 @@ export default function FormsPage() {
 
   async function handleDeleteForm(formId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm("Delete this form and all its submissions?")) return;
+    if (!await confirm({ description: "Delete this form and all its submissions?", variant: "destructive", confirmLabel: "Delete" })) return;
     setDeletingForm(formId);
     try { await deleteForm(formId); await load(); }
     catch (err) { console.error(err); }
@@ -560,8 +562,8 @@ export default function FormsPage() {
                                 }}>
                                   <Pencil className="h-3 w-3" /> Edit
                                 </Button>
-                                <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={async () => {
-                                  if (!confirm("Delete this report?")) return;
+                                 <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={async () => {
+                                  if (!await confirm({ description: "Delete this report?", variant: "destructive", confirmLabel: "Delete" })) return;
                                   try {
                                     const { deleteFormSubmission } = await import("@/lib/supabase/db-forms");
                                     await deleteFormSubmission(s.id);
@@ -601,6 +603,7 @@ export default function FormsPage() {
           </>
         )}
       </div>
+      <ConfirmDialog />
     </>
   );
 }

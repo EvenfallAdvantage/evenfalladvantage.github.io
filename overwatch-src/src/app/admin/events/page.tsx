@@ -21,11 +21,13 @@ import { CreateWizard } from "./components/create-wizard";
 import { ConflictWarningModal, type ConflictWarningData } from "./components/conflict-warning-modal";
 import { OperationDetail } from "./components/operation-detail";
 import { getAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 /* ── Component ─────────────────────────────────────────── */
 
 export default function AdminEventsPage() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const internalUserId = useAuthStore((s) => s.user?.id ?? null);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
@@ -143,7 +145,7 @@ export default function AdminEventsPage() {
   }
 
   async function handleDeleteEvent(eventId: string) {
-    if (!confirm("Delete this operation and all its shifts?")) return;
+    if (!await confirm({ description: "Delete this operation and all its shifts?", variant: "destructive", confirmLabel: "Delete" })) return;
     setDeletingEvent(eventId);
     try { await deleteEvent(eventId); if (expanded === eventId) setExpanded(null); await load(); toast.success("Operation deleted"); }
     catch (err) { console.error(err); toast.error("Failed to delete operation"); } finally { setDeletingEvent(null); }
@@ -277,6 +279,7 @@ export default function AdminEventsPage() {
       {adminViewingDoc && (
         <DocViewerModal doc={adminViewingDoc} onClose={() => setAdminViewingDoc(null)} />
       )}
+      <ConfirmDialog />
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   BookOpen, FolderOpen, FileText, Plus, Loader2, Trash2,
@@ -20,7 +20,8 @@ import {
   markDocumentRead, unmarkDocumentRead, getUserDocumentReads,
   getDocumentReadStatus, getCompanyMembers, updateKBFolderOrder,
 } from "@/lib/supabase/db";
-import { logger } from "@/lib/logger";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Folder = any;
@@ -54,6 +55,7 @@ function formatSize(bytes: number | null | undefined) {
 }
 
 export default function KnowledgeBasePage() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
@@ -74,10 +76,15 @@ export default function KnowledgeBasePage() {
     return () => clearHeader();
   }, [setHeader, clearHeader, isAdmin, showCreateFolder]);
 
+  const { data: foldersData = [], isLoading: loading, refetch: refetchFolders } = useCompanyQuery<Folder[]>(
+    "kb-folders", (cid) => getKBFolders(cid)
+  );
   const [folders, setFolders] = useState<Folder[]>([]);
+  // Keep local state mirror so moveFolder can optimistically reorder
+  useEffect(() => { setFolders(foldersData); }, [foldersData]);
+
   const [docs, setDocs] = useState<Doc[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
-  const [loading, setLoading] = useState(true);
   const [showCreateDoc, setShowCreateDoc] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDocTitle, setNewDocTitle] = useState("");
@@ -102,12 +109,7 @@ export default function KnowledgeBasePage() {
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [loadingReadStatus, setLoadingReadStatus] = useState(false);
 
-  const loadFolders = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try { setFolders(await getKBFolders(activeCompanyId)); } catch (e) { logger.swallow("kb:load-folders", e, "warn"); } finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { loadFolders(); }, [loadFolders]);
+  const loadFolders = async () => { await refetchFolders(); };
 
   async function selectFolder(f: Folder) {
     setSelectedFolder(f);
@@ -133,7 +135,7 @@ export default function KnowledgeBasePage() {
   }
 
   async function handleDeleteFolder(folderId: string) {
-    if (!confirm("Delete this folder and all its documents?")) return;
+    if (!await confirm({ description: "Delete this folder and all its documents?", variant: "destructive", confirmLabel: "Delete" })) return;
     setDeletingFolder(folderId);
     try {
       await deleteKBFolder(folderId);
@@ -156,7 +158,7 @@ export default function KnowledgeBasePage() {
   }
 
   async function handleDeleteDoc(docId: string) {
-    if (!confirm("Delete this document?")) return;
+    if (!await confirm({ description: "Delete this document?", variant: "destructive", confirmLabel: "Delete" })) return;
     setDeletingDoc(docId);
     try {
       await deleteKBDocument(docId);
@@ -515,6 +517,7 @@ export default function KnowledgeBasePage() {
         </div>
       )}
 
+      <ConfirmDialog />
       {/* ── Read Status Modal (Admin) ── */}
       {readStatusDoc && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setReadStatusDoc(null)}>

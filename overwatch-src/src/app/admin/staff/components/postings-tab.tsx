@@ -10,6 +10,7 @@ import {
   type JobPosting,
 } from "@/lib/supabase/db-postings";
 import { PostingFormModal } from "./posting-form-modal";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 interface PostingsTabProps {
@@ -19,6 +20,7 @@ interface PostingsTabProps {
 }
 
 export function PostingsTab({ activeCompanyId, canManage: _canManage, companyName: _companyName }: PostingsTabProps) {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [postings, setPostings] = useState<JobPosting[]>([]);
   const [postingCounts, setPostingCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -109,7 +111,7 @@ export function PostingsTab({ activeCompanyId, canManage: _canManage, companyNam
                   setShowNewPosting(true);
                 }}><Pencil className="h-3 w-3" /></Button>
                 <Button size="sm" variant="ghost" className="text-xs h-7 text-red-500" onClick={async () => {
-                  if (!confirm("Delete this posting?")) return;
+                  if (!await confirm({ description: "Delete this posting?", variant: "destructive", confirmLabel: "Delete" })) return;
                   await deletePosting(p.id);
                   if (activeCompanyId) setPostings(await getCompanyPostings(activeCompanyId));
                 }}><Trash2 className="h-3 w-3" /></Button>
@@ -135,6 +137,7 @@ export function PostingsTab({ activeCompanyId, canManage: _canManage, companyNam
         </div>
       )}
 
+      <ConfirmDialog />
       {/* New/Edit Posting Modal */}
       {showNewPosting && (
         <PostingFormModal

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { getCompanyTimesheets, approveTimesheet, unapproveTimesheet, deleteTimesheet } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,6 +21,7 @@ interface TimesheetsTabProps {
 }
 
 export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps) {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [timesheets, setTimesheets] = useState<Sheet[]>([]);
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
     const msg = isApproved
       ? `Delete APPROVED timesheet for ${name}? This is permanent and cannot be undone.`
       : `Delete timesheet for ${name}? This cannot be undone.`;
-    if (!confirm(msg)) return;
+    if (!await confirm({ description: msg, variant: "destructive", confirmLabel: "Delete" })) return;
     try {
       await deleteTimesheet(id);
       await loadData();
@@ -314,6 +316,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
           )}
         </div>
       )}
+      <ConfirmDialog />
     </>
   );
 }

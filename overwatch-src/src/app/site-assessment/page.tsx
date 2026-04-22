@@ -12,6 +12,7 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { geocodeAddress } from "@/lib/geo-risk-data";
 import { saveSiteAssessment, getCompanyAssessments, getAssessment, deleteAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 import { SECTIONS, STORAGE_KEY, getDefaultData, calculateRisk } from "./components/assessment-types";
 import type { NominatimResult, RiskResult } from "./components/assessment-types";
@@ -22,6 +23,7 @@ import { generateAssessmentPDF } from "./components/assessment-pdf";
 import { logger } from "@/lib/logger";
 
 export default function SiteAssessmentPage() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const searchParams = useSearchParams();
   const [data, setData] = useState<Record<string, string>>(getDefaultData);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["clientInfo"]));
@@ -124,8 +126,8 @@ export default function SiteAssessmentPage() {
     localStorage.removeItem(STORAGE_KEY);
   }
 
-  function clearForm() {
-    if (!confirm("Clear this assessment? All data will be lost.")) return;
+  async function clearForm() {
+    if (!await confirm({ description: "Clear this assessment? All data will be lost." })) return;
     setAssessmentId(null);
     resetForm();
   }
@@ -190,7 +192,7 @@ export default function SiteAssessmentPage() {
 
   const handleDelete = async () => {
     if (!assessmentId) return;
-    if (!confirm("Delete this saved assessment?")) return;
+    if (!await confirm({ description: "Delete this saved assessment?", variant: "destructive", confirmLabel: "Delete" })) return;
     try {
       await deleteAssessment(assessmentId);
       setAssessmentId(null);
@@ -203,12 +205,12 @@ export default function SiteAssessmentPage() {
     } catch { toast.error("Failed to delete assessment"); }
   };
 
-  const handleLoadAssessment = (assessment: SiteAssessment) => {
+  const handleLoadAssessment = async (assessment: SiteAssessment) => {
     const hasUnsavedData = Object.entries(data).some(
       ([key, val]) => val && key !== "assessmentDate" && val !== getDefaultData()[key]
     );
     if (hasUnsavedData && !assessmentId) {
-      if (!confirm("Load this assessment? Unsaved changes will be lost.")) return;
+      if (!await confirm({ description: "Load this assessment? Unsaved changes will be lost." })) return;
     }
     setAssessmentId(assessment.id);
     const assessmentData = (assessment.data || {}) as Record<string, string>;
@@ -300,6 +302,7 @@ export default function SiteAssessmentPage() {
           />
         )}
       </div>
+      <ConfirmDialog />
     </>
   );
 }

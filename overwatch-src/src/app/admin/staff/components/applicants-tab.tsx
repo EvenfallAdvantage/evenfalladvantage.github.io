@@ -17,6 +17,7 @@ import {
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
 import { FileText } from "lucide-react";
 import { ApplicantDetailModal } from "./applicant-detail-modal";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +44,7 @@ const STATUS_COLORS: Record<string, string> = {
 const DOCUMENT_TYPES = ["Guard Card", "CPR/First Aid", "EMT", "OSHA", "Firearms", "Security License", "Military", "LEO", "Other"] as const;
 
 export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCode, members: _members, onHireResult }: ApplicantsTabProps) {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState(true);
   const [appFilter, setAppFilter] = useState("all");
@@ -156,7 +158,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
   }
 
   async function handleDeleteApp(id: string) {
-    if (!confirm("Delete this applicant?")) return;
+    if (!await confirm({ description: "Delete this applicant?", variant: "destructive", confirmLabel: "Delete" })) return;
     try {
       await deleteApplicant(id);
       if (activeCompanyId) setApplicants(await getApplicants(activeCompanyId));
@@ -166,7 +168,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
 
   async function handleBulkDelete() {
     if (selected.size === 0) return;
-    if (!confirm(`Delete ${selected.size} selected applicant${selected.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
+    if (!await confirm({ description: `Delete ${selected.size} selected applicant${selected.size > 1 ? "s" : ""}? This cannot be undone.`, variant: "destructive", confirmLabel: "Delete" })) return;
     setBulkDeleting(true);
     let deleted = 0;
     for (const id of selected) {
@@ -182,7 +184,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
     if (!activeCompanyId) return;
     const hired = applicants.filter((a: Applicant) => a.status === "hired" && !a.converted_user_id);
     if (hired.length === 0) { toast.info("No unconverted hired applicants"); return; }
-    if (!confirm(`Convert ${hired.length} hired applicant${hired.length > 1 ? "s" : ""} to roster members?\n\nThis will create user accounts and add them to your team.`)) return;
+    if (!await confirm({ description: `Convert ${hired.length} hired applicant${hired.length > 1 ? "s" : ""} to roster members? This will create user accounts and add them to your team.`, confirmLabel: "Convert" })) return;
     setBulkConverting(true);
     let converted = 0;
     let errors = 0;
@@ -558,6 +560,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
       </div>
 
       {/* ── Applicant Detail Modal ── */}
+      <ConfirmDialog />
       {viewingApplicant && activeCompanyId && (
         <ApplicantDetailModal
           applicant={viewingApplicant}

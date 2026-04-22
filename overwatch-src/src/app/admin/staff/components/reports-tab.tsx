@@ -16,6 +16,7 @@ import {
   getIncidents, updateIncident, deleteIncident, addIncidentUpdate,
 } from "@/lib/supabase/db";
 import { exportCSV, INCIDENT_COLUMNS } from "@/lib/csv-export";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 interface FormSub {
@@ -52,6 +53,7 @@ interface ReportsTabProps {
 }
 
 export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [formSubmissions, setFormSubmissions] = useState<FormSub[]>([]);
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -244,7 +246,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                                     setEditIncData({ title: inc.title, type: inc.type, severity: inc.severity, priority: inc.priority, status: inc.status, location: inc.location, description: inc.description });
                                   }}><Pencil className="h-3 w-3" /> Edit</Button>
                                   <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={async () => {
-                                    if (!confirm("Delete this incident report?")) return;
+                                    if (!await confirm({ description: "Delete this incident report?", variant: "destructive", confirmLabel: "Delete" })) return;
                                     try {
                                         await deleteIncident(inc.id);
                                       setIncidents((prev) => prev.filter((i) => i.id !== inc.id));
@@ -390,7 +392,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                                 <Pencil className="h-3 w-3" /> Edit
                               </Button>
                               <Button size="sm" variant="outline" className="h-7 gap-1 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10" onClick={async () => {
-                                if (!confirm("Delete this submission?")) return;
+                                if (!await confirm({ description: "Delete this submission?", variant: "destructive", confirmLabel: "Delete" })) return;
                                 try {
                                   await deleteFormSubmission(f.id);
                                   setFormSubmissions(prev => prev.filter(sub => sub.id !== f.id));
@@ -427,6 +429,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
           )}
         </div>
       )}
+      <ConfirmDialog />
     </>
   );
 }

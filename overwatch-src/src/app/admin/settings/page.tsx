@@ -10,6 +10,7 @@ import CompanyProfileSection from "./components/company-profile-section";
 import LeavePoliciesSection from "./components/leave-policies-section";
 import FeatureVisibilitySection from "./components/feature-visibility-section";
 import IntegrationsSection from "./components/integrations-section";
+import ClientPortalSection from "./components/client-portal-section";
 import ErrorLogViewer from "./components/error-log-viewer";
 import { logger } from "@/lib/logger";
 
@@ -118,6 +119,8 @@ export default function AdminSettingsPage() {
           companyId={activeCompanyId!}
           initialIntegrations={integrations}
         />
+
+        <ClientPortalSection companyId={activeCompanyId!} />
 
         <ErrorLogViewer companyId={activeCompanyId!} />
       </div>

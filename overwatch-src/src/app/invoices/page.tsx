@@ -13,6 +13,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { usePageHeader } from "@/stores/page-header-store";
 import Image from "next/image";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 type LineItem = {
@@ -56,6 +57,7 @@ const EMPTY_FORM: InvoiceData = {
 const STORAGE_KEY = "overwatch_invoice_current";
 
 export default function InvoicesPage() {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
@@ -115,8 +117,8 @@ export default function InvoicesPage() {
     );
   }
 
-  function clearForm() {
-    if (!confirm("Clear this invoice? This cannot be undone.")) return;
+  async function clearForm() {
+    if (!await confirm({ description: "Clear this invoice? This cannot be undone." })) return;
     setForm(EMPTY_FORM);
     setItems([]);
     setNextId(1);
@@ -635,6 +637,7 @@ export default function InvoicesPage() {
           )}
         </div>
       </div>
+      <ConfirmDialog />
     </>
   );
 }
