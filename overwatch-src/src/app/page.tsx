@@ -415,20 +415,20 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
 }
 
 const INTEGRATIONS_LOGOS = [
-  { name: "WhatsApp", src: "/images/integrations/whatsapp.png", alt: "WhatsApp Business", url: "https://business.whatsapp.com" },
-  { name: "Signal", src: "/images/integrations/signal.png", alt: "Signal", url: "https://signal.org" },
-  { name: "Twilio", src: "/images/integrations/twilio.jpeg", alt: "Twilio", url: "https://www.twilio.com" },
-  { name: "Checkr", src: "/images/integrations/checkr.jpeg", alt: "Checkr", url: "https://checkr.com" },
-  { name: "Gusto", src: "/images/integrations/gusto.jpeg", alt: "Gusto", url: "https://gusto.com" },
-  { name: "QuickBooks", src: "/images/integrations/quickbooks.png", alt: "QuickBooks Online", url: "https://quickbooks.intuit.com" },
-  { name: "ADP", src: "/images/integrations/adp.jpeg", alt: "ADP Workforce Now", url: "https://www.adp.com" },
-  { name: "DocuSign", src: "/images/integrations/docusign.jpeg", alt: "DocuSign", url: "https://www.docusign.com" },
-  { name: "OneSignal", src: "/images/integrations/onesignal.jpeg", alt: "OneSignal", url: "https://onesignal.com" },
-  { name: "Airtable", src: "/images/integrations/airtable.jpeg", alt: "Airtable", url: "https://airtable.com" },
-  { name: "Fillout", src: "/images/integrations/fillout.png", alt: "Fillout", url: "https://www.fillout.com" },
-  { name: "Paychex", src: "/images/integrations/paychex.jpeg", alt: "Paychex Flex", url: "https://www.paychex.com" },
-  { name: "Stripe", src: "/images/integrations/stripe.jpeg", alt: "Stripe", url: "https://stripe.com" },
-  { name: "Supabase", src: "/images/integrations/supabase.jpeg", alt: "Supabase", url: "https://supabase.com" },
+  { name: "WhatsApp", src: "/overwatch/images/integrations/whatsapp.png", alt: "WhatsApp Business", url: "https://business.whatsapp.com" },
+  { name: "Signal", src: "/overwatch/images/integrations/signal.png", alt: "Signal", url: "https://signal.org" },
+  { name: "Twilio", src: "/overwatch/images/integrations/twilio.jpeg", alt: "Twilio", url: "https://www.twilio.com" },
+  { name: "Checkr", src: "/overwatch/images/integrations/checkr.jpeg", alt: "Checkr", url: "https://checkr.com" },
+  { name: "Gusto", src: "/overwatch/images/integrations/gusto.jpeg", alt: "Gusto", url: "https://gusto.com" },
+  { name: "QuickBooks", src: "/overwatch/images/integrations/quickbooks.png", alt: "QuickBooks Online", url: "https://quickbooks.intuit.com" },
+  { name: "ADP", src: "/overwatch/images/integrations/adp.jpeg", alt: "ADP Workforce Now", url: "https://www.adp.com" },
+  { name: "DocuSign", src: "/overwatch/images/integrations/docusign.jpeg", alt: "DocuSign", url: "https://www.docusign.com" },
+  { name: "OneSignal", src: "/overwatch/images/integrations/onesignal.jpeg", alt: "OneSignal", url: "https://onesignal.com" },
+  { name: "Airtable", src: "/overwatch/images/integrations/airtable.jpeg", alt: "Airtable", url: "https://airtable.com" },
+  { name: "Fillout", src: "/overwatch/images/integrations/fillout.png", alt: "Fillout", url: "https://www.fillout.com" },
+  { name: "Paychex", src: "/overwatch/images/integrations/paychex.jpeg", alt: "Paychex Flex", url: "https://www.paychex.com" },
+  { name: "Stripe", src: "/overwatch/images/integrations/stripe.jpeg", alt: "Stripe", url: "https://stripe.com" },
+  { name: "Supabase", src: "/overwatch/images/integrations/supabase.jpeg", alt: "Supabase", url: "https://supabase.com" },
 ];
 
 function FeatureCarousel() {
