@@ -177,18 +177,18 @@ export default function PatrolsPage() {
     <>
       <div className="space-y-4">
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
           <Link href="/timeclock"
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
             Clock
           </Link>
           {isAdmin && (
             <Link href="/timeclock?tab=mass-clock"
-              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+              className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
               Mass Clock
             </Link>
           )}
-          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
+          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm whitespace-nowrap shrink-0">
             <Footprints className="h-3.5 w-3.5 text-primary" />
             Patrols
           </div>
@@ -217,7 +217,7 @@ export default function PatrolsPage() {
         </Card>
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto max-w-full">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto max-w-full scrollbar-hide">
           {TABS.map(t => (
             <button
               key={t.id}

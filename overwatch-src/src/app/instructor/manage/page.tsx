@@ -143,10 +143,10 @@ export default function TrainingManagerPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-muted/30 rounded-lg p-1">
+      <div className="flex gap-1 bg-muted/30 rounded-lg p-1 overflow-x-auto scrollbar-hide">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap shrink-0 ${tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
             {t.icon} {t.label}
           </button>
         ))}

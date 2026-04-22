@@ -182,14 +182,14 @@ export default function AcademyPage() {
       {/* Legacy Courses Section */}
       {showCourses && <div className="space-y-4">
         <h2 className="text-lg font-semibold">Course Catalog</h2>
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
           {([
             { id: "courses" as Tab, label: "Courses", icon: BookOpen },
             { id: "progress" as Tab, label: "Progress", icon: BarChart3 },
             { id: "assessments" as Tab, label: "Assessments", icon: ShieldCheck },
           ]).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap ${tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               {tab === t.id && <t.icon className="h-3.5 w-3.5 text-primary" />} {t.label}
             </button>
           ))}

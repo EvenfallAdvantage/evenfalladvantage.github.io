@@ -229,21 +229,21 @@ function TimeClockInner() {
     <>
       <div className="space-y-4">
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
           <button onClick={() => setWatchTab("clock")}
-            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${watchTab === "clock" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${watchTab === "clock" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
             {watchTab === "clock" && <Clock className="h-3.5 w-3.5 text-primary" />}
             Clock
           </button>
           {isManager && (
             <button onClick={() => setWatchTab("mass-clock")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${watchTab === "mass-clock" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${watchTab === "mass-clock" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               {watchTab === "mass-clock" && <ScanLine className="h-3.5 w-3.5 text-primary" />}
               Mass Clock
             </button>
           )}
           <Link href="/patrols"
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
             Patrols
           </Link>
         </div>
