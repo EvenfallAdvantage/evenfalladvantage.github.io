@@ -12,12 +12,31 @@ import { PageShell } from "@/components/layout/page-shell";
 import { DictationRecorder } from "@/components/dictation-recorder";
 import { getIncidents, getForms, createForm, submitForm, getFormSubmissions } from "@/lib/supabase/db";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Incident = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Submission = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Form = any;
+type Incident = Record<string, unknown> & {
+  id: string;
+  title: string;
+  status: string;
+};
+type Submission = Record<string, unknown> & {
+  id: string;
+  data?: {
+    transcript?: string;
+    personType?: string;
+    personName?: string;
+    linkedIncidentId?: string;
+    recordedAt?: string;
+    recordedBy?: string;
+  };
+  created_at: string;
+  users?: {
+    first_name?: string;
+    last_name?: string;
+  };
+};
+type Form = Record<string, unknown> & {
+  id: string;
+  name: string;
+};
 
 const PERSON_TYPES = ["Witness", "Suspect", "Victim", "Reporting Party", "Bystander", "Client", "Employee", "Other"];
 

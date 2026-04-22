@@ -15,8 +15,13 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 import { getQueryClient } from "@/lib/query-client";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type OTask = any;
+type OTask = Record<string, unknown> & {
+  id: string;
+  title: string;
+  description?: string | null;
+  category: string;
+  is_required?: boolean | null;
+};
 
 interface OnboardingTabProps {
   activeCompanyId: string;

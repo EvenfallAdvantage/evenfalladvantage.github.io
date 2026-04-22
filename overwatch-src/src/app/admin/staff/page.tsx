@@ -29,8 +29,11 @@ import { RosterTab } from "./components/roster-tab";
 import { getCompanyPostings } from "@/lib/supabase/db-postings";
 import { logger } from "@/lib/logger";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Member = any;
+type Member = Record<string, unknown> & {
+  id: string;
+  role: string;
+  users?: { id?: string };
+};
 
 type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "postings";
 

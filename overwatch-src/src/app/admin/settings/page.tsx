@@ -14,10 +14,16 @@ import ClientPortalSection from "./components/client-portal-section";
 import ErrorLogViewer from "./components/error-log-viewer";
 import { logger } from "@/lib/logger";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Policy = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type IntConfig = any;
+type Policy = Record<string, unknown> & {
+  id: string;
+  name: string;
+  type: string;
+};
+type IntConfig = Record<string, unknown> & {
+  provider: string;
+  config?: Record<string, string> | null;
+  is_active?: boolean | null;
+};
 
 export default function AdminSettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);

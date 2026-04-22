@@ -12,8 +12,11 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 const LEAVE_TYPES = ["vacation", "sick", "personal", "bereavement", "parental", "unpaid"];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Policy = any;
+type Policy = Record<string, unknown> & {
+  id: string;
+  name: string;
+  type: string;
+};
 
 interface LeavePoliciesSectionProps {
   companyId: string;

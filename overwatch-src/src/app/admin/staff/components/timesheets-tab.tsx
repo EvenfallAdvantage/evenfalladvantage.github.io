@@ -12,8 +12,25 @@ import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Sheet = any;
+type Sheet = Record<string, unknown> & {
+  id: string;
+  user_id?: string;
+  approved?: boolean;
+  clock_in: string;
+  clock_out: string;
+  users?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
+  events?: {
+    name?: string;
+    pay_rate?: number | string | null;
+  };
+  shifts?: {
+    events?: { name?: string };
+  };
+};
 
 interface TimesheetsTabProps {
   activeCompanyId: string;
@@ -47,10 +64,11 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
       await approveTimesheet(id);
       // Notify employee their timesheet was approved
       const sheet = timesheets.find((t: Sheet) => t.id === id);
-      if (sheet?.user_id && activeCompanyId) {
+      const sheetUserId = sheet?.user_id;
+      if (sheetUserId && activeCompanyId) {
         import("@/lib/services/notification-dispatcher").then(({ dispatch }) => {
           dispatch({
-            userId: sheet.user_id,
+            userId: sheetUserId,
             companyId: activeCompanyId!,
             title: "Timesheet Approved",
             body: "Your timesheet has been approved by management.",

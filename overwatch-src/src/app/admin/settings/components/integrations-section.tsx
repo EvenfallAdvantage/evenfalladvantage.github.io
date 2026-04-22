@@ -14,8 +14,11 @@ type IntField = { key: string; label: string; type: string; placeholder?: string
 type IntDef = { provider: string; label: string; logo: string | null; desc: string; fields: IntField[] };
 type IntGroup = { id: string; label: string; desc: string; items: IntDef[] };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type IntConfig = any;
+type IntConfig = Record<string, unknown> & {
+  provider: string;
+  config?: Record<string, string> | null;
+  is_active?: boolean | null;
+};
 
 const INTEGRATION_GROUPS: IntGroup[] = [
   { id: "messaging", label: "Messaging & Alerts", desc: "Team comms, SMS dispatch, email automation, and push notifications", items: [

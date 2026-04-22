@@ -12,10 +12,25 @@ import {
 } from "@/lib/supabase/db";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type LeaveReq = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Member = any;
+type LeaveReq = Record<string, unknown> & {
+  id: string;
+  status: string;
+  user_id?: string | null;
+  users?: {
+    id?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+  } | null;
+  time_off_policies?: { name?: string | null } | null;
+  start_date: string;
+  end_date: string;
+  leave_type?: string | null;
+  note?: string | null;
+};
+type Member = Record<string, unknown> & {
+  role: string;
+  users?: { id?: string | null } | null;
+};
 
 interface LeaveTabProps {
   activeCompanyId: string;

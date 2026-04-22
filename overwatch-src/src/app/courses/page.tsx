@@ -17,8 +17,16 @@ import { getUserPayments } from "@/lib/supabase/db";
 import { getLegacyCourses } from "@/lib/legacy-bridge";
 import { PageShell } from "@/components/layout/page-shell";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Course = any;
+type Course = Record<string, unknown> & {
+  id: string;
+  title: string;
+  description?: string | null;
+  price: number;
+  duration_hours: number;
+  difficulty_level: string;
+  is_required?: boolean | null;
+  is_active?: boolean | null;
+};
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   beginner: "bg-green-500/15 text-green-600",
@@ -31,6 +39,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 function normalizeCourse(row: Record<string, unknown>): Course {
   return {
     ...row,
+    id: (row.id as string) ?? "",
     title: (row.course_name as string) || (row.title as string) || "Untitled",
     difficulty_level: ((row.difficulty_level as string) || "beginner").toLowerCase(),
     price: (row.price as number) ?? 0,

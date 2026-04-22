@@ -20,10 +20,21 @@ import { ApplicantDetailModal } from "./applicant-detail-modal";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Applicant = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Member = any;
+type Applicant = Record<string, unknown> & {
+  id: string;
+  status: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  guard_card_number?: string;
+  availability?: string;
+  experience?: string;
+  source?: string;
+  created_at: string;
+  converted_user_id?: string;
+};
+type Member = Record<string, unknown>;
 
 interface ApplicantsTabProps {
   activeCompanyId: string;

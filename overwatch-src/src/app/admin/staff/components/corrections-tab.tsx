@@ -10,8 +10,21 @@ import { getCompanyTimeChangeRequests, reviewTimeChangeRequest } from "@/lib/sup
 import { parseUTC } from "@/lib/parse-utc";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type TCR = any;
+type TCR = Record<string, unknown> & {
+  id: string;
+  status: string;
+  user_id?: string | null;
+  users?: { first_name?: string | null; last_name?: string | null } | null;
+  timesheets?: {
+    user_id?: string | null;
+    clock_in?: string | null;
+    clock_out?: string | null;
+  } | null;
+  requested_clock_in?: string | null;
+  requested_clock_out?: string | null;
+  reason?: string | null;
+  created_at: string;
+};
 
 interface CorrectionsTabProps {
   activeCompanyId: string;

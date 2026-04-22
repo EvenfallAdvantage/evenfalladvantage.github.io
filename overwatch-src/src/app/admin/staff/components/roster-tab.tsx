@@ -27,8 +27,20 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Member = any;
+type Member = Record<string, unknown> & {
+  id: string;
+  role: string;
+  status?: string;
+  user_id?: string;
+  pay_rate_override?: number | string | null;
+  users?: {
+    id?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    avatar_url?: string;
+  };
+};
 
 type ReadinessEntry = { profileMissing: string[]; readingMissing: { id: string; title: string }[] };
 
@@ -215,6 +227,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
     let count = 0;
     for (const m of membersToGen) {
       const uid = m.user_id || m.users?.id;
+      if (!uid) continue;
       setBulkProgress(`Generating ${++count}/${membersToGen.length}...`);
       try {
         const b = await getOrCreateBadge(activeCompanyId, uid);
@@ -242,6 +255,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
     let count = 0;
     for (const m of membersWithBadges) {
       const uid = m.user_id || m.users?.id;
+      if (!uid) continue;
       const badge = rosterBadges[uid];
       setBulkProgress(`Downloading ${++count}/${membersWithBadges.length}...`);
       try {
@@ -497,6 +511,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                     })()}
                     {canManage && (() => {
                       const uid = m.user_id || u?.id;
+                      if (!uid) return null;
                       const hasBadge = !!rosterBadges[uid];
                       return (
                         <button
