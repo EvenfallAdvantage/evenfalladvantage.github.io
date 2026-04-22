@@ -42,6 +42,7 @@ export function useIncidentsLayer(params: {
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.55,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
         },
         description: (() => {
           const narrative = parseIncidentNarrative(inc.description ?? "");

@@ -53,6 +53,7 @@ export function useAircraftLayer(params: {
               image: createPinCanvas("#38bdf8", "flag"),
               scale: 0.4,
               rotation: -plane.heading * (Math.PI / 180),
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
             label: {
               text: `${plane.callsign || plane.icao24}\n${formatAltitude(plane.altitude)}`,
@@ -64,6 +65,7 @@ export function useAircraftLayer(params: {
               pixelOffset: new Cesium.Cartesian2(0, -18),
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
               scale: 0.8,
+              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
             },
             description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">
               <b>${plane.callsign || plane.icao24}</b>

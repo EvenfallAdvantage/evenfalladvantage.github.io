@@ -103,6 +103,7 @@ export function useS2IntelLayer({
                 height: 28,
                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
                 verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
               };
             } else {
               entityOpts.point = {
@@ -111,6 +112,7 @@ export function useS2IntelLayer({
                 outlineColor: Cesium.Color.BLACK,
                 outlineWidth: 1.5,
                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                disableDepthTestDistance: Number.POSITIVE_INFINITY,
               };
               entityOpts.label = {
                 text: layer.icon,
@@ -122,6 +124,7 @@ export function useS2IntelLayer({
                 pixelOffset: new Cesium.Cartesian2(0, -16),
                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
                 scale: 0.9,
+                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
               };
             }
 

@@ -374,7 +374,15 @@ export function useCesiumLayers(params: {
   // ─── Geofence Alert Feed ────────────────────────────
   useEffect(() => {
     if (!companyId || loading) return;
+
+    // Initial fetch
     getRecentGeofenceAlerts(companyId, 10).then(setGeofenceAlerts).catch(() => {});
+
+    // Refresh every 60 seconds
+    const interval = setInterval(() => {
+      getRecentGeofenceAlerts(companyId, 10).then(setGeofenceAlerts).catch(() => {});
+    }, 60000);
+    return () => clearInterval(interval);
   }, [companyId, loading]);
 
   return {

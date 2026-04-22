@@ -54,6 +54,7 @@ export function usePoiLayer(params: {
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             scale: 0.45,
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           label: {
             text: poi.name,
@@ -67,6 +68,7 @@ export function usePoiLayer(params: {
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
             scale: 0.8,
+            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
           },
           description: `<b>${poi.name}</b><br/>Type: ${poi.type.replace("_", " ")}`,
         });

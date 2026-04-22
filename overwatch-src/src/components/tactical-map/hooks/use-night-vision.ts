@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -12,16 +12,16 @@ export function useNightVision(params: {
 }) {
   const { viewerRef, cesiumRef, entityGroupsRef, loading, layers } = params;
 
-  // ─── Night Vision Mode ───────────────────────────────
-  // Swaps to a dark basemap (CartoDB Dark Matter) and styles 3D buildings
-  // with green outlines for a tactical night-ops aesthetic.
+  // Track which imagery layers were visible before night mode was toggled on
+  // so we can restore only those layers when night mode is turned off
+  const savedLayerVisibility = useRef<boolean[]>([]);
+
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
-    // Delay slightly on initial load to ensure Cesium base imagery layers
-    // are fully initialized before we try to toggle them.
+    // Delay slightly to ensure Cesium imagery layers are fully initialized
     const timerId = setTimeout(() => {
       if (!viewerRef.current || !cesiumRef.current) return;
 
@@ -34,10 +34,13 @@ export function useNightVision(params: {
       const buildings = entityGroupsRef.current.buildings?.[0];
 
       if (!layers.nightVision) {
-        // Restore: show all base imagery layers, reset building style
+        // Restore only the layers that were visible before night mode
+        const saved = savedLayerVisibility.current;
         for (let i = 0; i < viewer.imageryLayers.length; i++) {
-          viewer.imageryLayers.get(i).show = true;
+          // If we have saved state, use it; otherwise default to showing the base layer only
+          viewer.imageryLayers.get(i).show = saved.length > i ? saved[i] : (i === 0);
         }
+        savedLayerVisibility.current = [];
         if (buildings) {
           buildings.style = undefined;
         }
@@ -45,7 +48,13 @@ export function useNightVision(params: {
         return;
       }
 
-      // Hide ALL existing base imagery layers (satellite + OSM)
+      // Save current layer visibility state BEFORE hiding anything
+      savedLayerVisibility.current = [];
+      for (let i = 0; i < viewer.imageryLayers.length; i++) {
+        savedLayerVisibility.current.push(viewer.imageryLayers.get(i).show);
+      }
+
+      // Hide ALL existing imagery layers
       for (let i = 0; i < viewer.imageryLayers.length; i++) {
         viewer.imageryLayers.get(i).show = false;
       }
@@ -59,7 +68,7 @@ export function useNightVision(params: {
       });
       const darkLayer = viewer.imageryLayers.addImageryProvider(darkProvider, 0);
       darkLayer.alpha = 1.0;
-      // Hide all other layers again (the add may have shifted indices)
+      // Ensure the dark layer is the only visible one
       for (let i = 1; i < viewer.imageryLayers.length; i++) {
         viewer.imageryLayers.get(i).show = false;
       }

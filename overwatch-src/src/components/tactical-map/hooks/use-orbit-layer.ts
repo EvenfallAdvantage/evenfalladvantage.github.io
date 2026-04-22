@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { getSatellitePositions, computeGroundTrack } from "../orbit-tracker";
@@ -12,6 +12,15 @@ export function useOrbitLayer(params: {
   layers: LayerVisibility;
 }) {
   const { viewerRef, cesiumRef, entityGroupsRef, loading, layers } = params;
+
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  // ─── Satellite orbit refresh timer ─────────────────
+  useEffect(() => {
+    if (!layers.satelliteOrbits) return;
+    const interval = setInterval(() => setRefreshTick(t => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, [layers.satelliteOrbits]);
 
   // ─── Satellite Orbits (CelesTrak) ──────────────────
   useEffect(() => {
@@ -43,6 +52,7 @@ export function useOrbitLayer(params: {
             color: Cesium.Color.fromCssColorString(satColor),
             outlineColor: Cesium.Color.WHITE,
             outlineWidth: 1,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
           label: {
             text: sat.name,
@@ -53,6 +63,7 @@ export function useOrbitLayer(params: {
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             pixelOffset: new Cesium.Cartesian2(8, 0),
             scale: 0.8,
+            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
           },
           description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">
             <b>${sat.name}</b>
@@ -85,10 +96,5 @@ export function useOrbitLayer(params: {
       });
     }).catch(() => {});
 
-    // Refresh satellite positions every 60s
-    const interval = setInterval(() => {
-      // Just re-trigger the effect by toggling a counter
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [layers.satelliteOrbits, loading, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.satelliteOrbits, loading, viewerRef, cesiumRef, entityGroupsRef, refreshTick]);
 }
