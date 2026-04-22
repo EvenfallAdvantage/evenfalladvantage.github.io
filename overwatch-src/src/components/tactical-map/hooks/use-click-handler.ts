@@ -81,7 +81,7 @@ export function useCesiumClickHandler(params: {
       // If we picked an entity and no tool is active, show popup
       if (activeTool === "none" && drawMode === "none" && !dronePlannerOpen && !aligningOp) {
         if (Cesium.defined(picked)) {
-          if (picked.id?.id && picked.id?.name) {
+          if (picked.id?.id && (picked.id?.name || picked.id?.description)) {
             const entity = picked.id;
             const entityId = entity.id as string;
 
