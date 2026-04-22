@@ -1,4 +1,4 @@
-export type CompanyRole = "owner" | "admin" | "instructor" | "manager" | "lead" | "breaker" | "staff";
+export type CompanyRole = "owner" | "admin" | "instructor" | "manager" | "lead" | "breaker" | "staff" | "client";
 
 const ROLE_HIERARCHY: Record<CompanyRole, number> = {
   owner: 60,
@@ -8,6 +8,7 @@ const ROLE_HIERARCHY: Record<CompanyRole, number> = {
   lead: 30,
   breaker: 20,
   staff: 10,
+  client: 5,  // Below staff — can only view client-facing content
 };
 
 export function hasMinRole(userRole: CompanyRole, requiredRole: CompanyRole): boolean {
@@ -54,6 +55,11 @@ export function canManageLegacyCourses(role: CompanyRole): boolean {
   return role === "instructor" || hasMinRole(role, "admin");
 }
 
+/** Check if the role is a client (not internal staff) */
+export function isClientRole(role: CompanyRole): boolean {
+  return role === "client";
+}
+
 export const ROLE_LABELS: Record<CompanyRole, string> = {
   owner: "Owner",
   admin: "Admin",
@@ -62,4 +68,5 @@ export const ROLE_LABELS: Record<CompanyRole, string> = {
   lead: "Lead",
   breaker: "Breaker",
   staff: "Staff",
+  client: "Client",
 };
