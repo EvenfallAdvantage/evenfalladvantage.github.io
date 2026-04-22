@@ -31,28 +31,28 @@ import { logSecurityEvent, checkLoginAttempts, recordFailedAttempt, clearLoginAt
 import { logger } from "@/lib/logger";
 
 const FEATURES = [
-  { icon: Crosshair, title: "Patrol Operations", desc: "QR checkpoint scanning, geofenced patrol routes, GPS-verified activity logs, and real-time officer tracking across all active sites" },
-  { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out with kiosk PIN mode, geofencing, break tracking, timesheet corrections, and one-click Gusto payroll sync" },
-  { icon: AlertTriangle, title: "Incident Command", desc: "Real-time incident reporting with severity tiers, status escalation, officer assignments, location tagging, and full audit trails" },
-  { icon: Radio, title: "Encrypted Comms", desc: "AES-256 encrypted team channels with WhatsApp & Signal bridging, file attachments, reactions, read receipts, and unread tracking" },
-  { icon: GraduationCap, title: "Academy LMS", desc: "Interactive slideshow courses, timed quizzes with question banks, certification tracking, state-specific curricula, and completion analytics" },
+  { icon: Crosshair, title: "Patrol Operations", desc: "QR checkpoint scanning, geofenced patrol routes, GPS-verified activity logs, real-time officer tracking, and daily activity report generation" },
+  { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out, mass badge scanning, break tracking (CA compliant), geofence enforcement, and multi-provider payroll sync" },
+  { icon: AlertTriangle, title: "Incident Command", desc: "Real-time incident reporting with severity tiers, photo/video evidence with SHA-256 chain-of-custody, and SOS panic alerts" },
+  { icon: Radio, title: "Encrypted Comms", desc: "AES-256 encrypted team channels with WhatsApp & Signal bridging, broadcast alerts with acknowledgment tracking, and read receipts" },
+  { icon: GraduationCap, title: "Academy LMS", desc: "Interactive slideshow courses, timed quizzes with question banks, certification tracking with expiry alerts, and compliance dashboards" },
   { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with real-time emotional tension meters, performance scoring, and scenario outcome tracking" },
   { icon: Shield, title: "Site Assessment", desc: "7-section security evaluations with risk matrix scoring, auto-generated recommendations, multi-page PDF reports, and CSV exports" },
   { icon: MapPin, title: "Geo-Risk Intel", desc: "FBI UCR crime data for any US location with composite risk scoring, threat heat mapping, and historical trend analysis" },
-  { icon: UserPlus, title: "Hire-to-Deploy Pipeline", desc: "Public apply form, CSV bulk import, Checkr background checks, DocuSign e-sign, auto-onboarding checklists, and one-click deployment" },
-  { icon: Users, title: "Personnel Command", desc: "Full roster management, shift scheduling with conflict detection, leave approvals, role-based access control, and readiness dashboards" },
-  { icon: QrCode, title: "Asset & Equipment", desc: "QR-coded asset tracking with checkout/checkin logs, assignment history, maintenance scheduling, depreciation tracking, and bulk import" },
+  { icon: UserPlus, title: "Hire-to-Deploy Pipeline", desc: "Public apply form, CSV bulk import, Checkr background checks, DocuSign e-sign, Airtable sync, and auto-onboarding checklists" },
+  { icon: Users, title: "Smart Scheduling", desc: "Shift templates with recurrence, auto-fill with availability + cert + OT constraints, shift swap marketplace, and overtime detection" },
+  { icon: QrCode, title: "Asset & Equipment", desc: "QR-coded asset tracking with checkout/checkin logs, assignment history, and batch management across multiple sites" },
   { icon: Globe, title: "State Laws DB", desc: "All 50 states — licensing, training hours, use-of-force doctrine, citizen's arrest, weapons regs, statutes, and regulatory agency links" },
-  { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, incident analytics, personnel stats, weekly trends, org composition charts, and one-click CSV exports" },
-  { icon: FileText, title: "Invoice Generator", desc: "Professional client invoicing with line items, tax calculations, live preview, branded PDF export, and localStorage draft persistence" },
-  { icon: BookOpen, title: "Knowledge Base", desc: "Searchable field manuals, SOPs, company policies, required reading assignments with completion tracking, and document versioning" },
-  { icon: Award, title: "Certifications Hub", desc: "Guard card and license tracking with file uploads, expiration alerts, renewal reminders, compliance dashboards, and PDF certificates" },
+  { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, compliance tracking, overtime alerts, incident analytics, weekly trends, and auto-generated daily activity reports" },
+  { icon: FileText, title: "Invoicing System", desc: "Persistent invoicing with bill rates, timesheet-to-invoice generation, status tracking, and client portal for payment visibility" },
+  { icon: BookOpen, title: "Client Portal", desc: "Authenticated read-only portal for clients — view operations, incidents, invoices, and daily activity reports with one-click access" },
+  { icon: Award, title: "Certifications Hub", desc: "Guard card and license tracking with expiry alerts, compliance dashboard, shift qualification gating, and auto-generated PDF certificates" },
 ];
 
 const STATS = [
-  { value: "20+", label: "Operations Modules" },
+  { value: "25+", label: "Operations Modules" },
   { value: "50", label: "States Updated 2026" },
-  { value: "11", label: "Integrations" },
+  { value: "14", label: "Integrations" },
   { value: "24/7", label: "Operational Uptime" },
 ];
 
@@ -420,10 +420,13 @@ const INTEGRATIONS_LOGOS = [
   { name: "Twilio", src: "/images/integrations/twilio.jpeg", alt: "Twilio" },
   { name: "Checkr", src: "/images/integrations/checkr.jpeg", alt: "Checkr" },
   { name: "Gusto", src: "/images/integrations/gusto.jpeg", alt: "Gusto" },
+  { name: "QuickBooks", src: "/images/integrations/quickbooks.png", alt: "QuickBooks Online" },
+  { name: "ADP", src: "/images/integrations/adp.png", alt: "ADP Workforce Now" },
   { name: "DocuSign", src: "/images/integrations/docusign.jpeg", alt: "DocuSign" },
   { name: "OneSignal", src: "/images/integrations/onesignal.jpeg", alt: "OneSignal" },
   { name: "Airtable", src: "/images/integrations/airtable.jpeg", alt: "Airtable" },
   { name: "Fillout", src: "/images/integrations/fillout.png", alt: "Fillout" },
+  { name: "Paychex", src: "/images/integrations/paychex.png", alt: "Paychex Flex" },
   { name: "Stripe", src: "/images/integrations/stripe.jpeg", alt: "Stripe" },
   { name: "Supabase", src: "/images/integrations/supabase.jpeg", alt: "Supabase" },
 ];
@@ -599,9 +602,9 @@ function HomePageInner() {
             <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">INTEGRATES WITH YOUR STACK</h2>
             <p className="text-white/40 max-w-lg mx-auto text-sm">Connect Overwatch with the tools your team already uses — or go fully native.</p>
           </div>
-          {/* Row 1: first 6 */}
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-6 sm:gap-8 justify-items-center max-w-2xl mx-auto">
-            {INTEGRATIONS_LOGOS.slice(0, 6).map((int) => (
+          {/* Row 1: first 7 */}
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-5 sm:gap-6 justify-items-center max-w-3xl mx-auto">
+            {INTEGRATIONS_LOGOS.slice(0, 7).map((int) => (
               <div key={int.name} className="flex flex-col items-center gap-2 group">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all p-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -611,9 +614,9 @@ function HomePageInner() {
               </div>
             ))}
           </div>
-          {/* Row 2: remaining 5, centered */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-6 sm:gap-8 justify-items-center max-w-[520px] mx-auto mt-6">
-            {INTEGRATIONS_LOGOS.slice(6).map((int) => (
+          {/* Row 2: remaining 7, centered */}
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-5 sm:gap-6 justify-items-center max-w-3xl mx-auto mt-6">
+            {INTEGRATIONS_LOGOS.slice(7).map((int) => (
               <div key={int.name} className="flex flex-col items-center gap-2 group">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all p-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}

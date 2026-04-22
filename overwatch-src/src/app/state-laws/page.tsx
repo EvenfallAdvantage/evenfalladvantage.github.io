@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   Scale, Search, IdCard, Clock, User, Shield, Handshake,
   Crosshair, Building2, Gavel, AlertTriangle, ChevronDown, ChevronRight,
@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { STATE_LAWS, type StateLaw } from "@/lib/state-laws-data";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 
 function hasLicense(s: StateLaw) {
   const l = s.licensing.toLowerCase();
@@ -27,14 +27,6 @@ const INFO_SECTIONS: { key: keyof StateLaw; label: string; icon: React.ReactNode
 ];
 
 export default function StateLawsPage() {
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader("STATE GUARD LAWS", "Security guard licensing requirements by state", <Scale className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
-
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "licensed" | "unlicensed">("all");
@@ -56,7 +48,7 @@ export default function StateLawsPage() {
   const licensedCount = STATE_LAWS.filter(hasLicense).length;
 
   return (
-    <>
+    <PageShell title="STATE GUARD LAWS" subtitle="Security guard licensing requirements by state" icon={<Scale className="h-5 w-5" />}>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
@@ -180,6 +172,6 @@ export default function StateLawsPage() {
           })}
         </div>
       </div>
-    </>
+    </PageShell>
   );
 }

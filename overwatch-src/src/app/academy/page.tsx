@@ -18,7 +18,7 @@ import {
   type LegacyModuleProgress, type LegacyAssessmentResult, type LegacyCertificate,
 } from "@/lib/legacy-bridge";
 import type { TrainingModule, StudentModuleProgress } from "@/types";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 
 import ReadinessGauges from "./components/readiness-gauges";
 import TrainingModulesSection from "./components/training-modules-section";
@@ -37,14 +37,6 @@ export default function AcademyPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
   const showCourses = !hiddenTabs.has("/courses");
-
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader("ACADEMY HUB", "Training, SOPs, assessments & certifications", <Compass className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   const [tab, setTab] = useState<Tab>("courses");
   const [loading, setLoading] = useState(true);
@@ -141,15 +133,18 @@ export default function AcademyPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">{linking ? "Linking your training account..." : "Loading academy..."}</p>
-      </div>
+      <PageShell title="ACADEMY HUB" subtitle="Training, SOPs, assessments & certifications" icon={<Compass className="h-5 w-5" />}>
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">{linking ? "Linking your training account..." : "Loading academy..."}</p>
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell title="ACADEMY HUB" subtitle="Training, SOPs, assessments & certifications" icon={<Compass className="h-5 w-5" />}>
+      <div className="space-y-6">
       {/* Readiness indicator */}
       <div className="flex items-center gap-2 justify-end">
         <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-card px-3 py-1.5">
@@ -198,7 +193,8 @@ export default function AcademyPage() {
         {tab === "progress" && <ProgressTab progress={progress} />}
         {tab === "assessments" && <AssessmentsTab results={assessmentResults} />}
       </div>}
-    </div>
+      </div>
+    </PageShell>
   );
 }
 

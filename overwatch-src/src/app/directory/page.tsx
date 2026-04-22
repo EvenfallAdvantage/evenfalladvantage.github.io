@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Users, Search, Mail, Phone, Shield, EyeOff } from "lucide-react";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -17,14 +17,6 @@ type Member = { id: string; role: string; nickname: string | null; status: strin
 
 export default function DirectoryPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
-
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader("DIRECTORY", "Personnel directory and contact info", <Users className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   // React Query — auto-caches, auto-retries, invalidates on company switch
   const { data: members = [] } = useCompanyQuery(
@@ -65,7 +57,7 @@ export default function DirectoryPage() {
     : "";
 
   return (
-    <>
+    <PageShell title="DIRECTORY" subtitle="Personnel directory and contact info" icon={<Users className="h-5 w-5" />}>
       <div className="space-y-6">
         <div className="grid gap-4 md:grid-cols-[280px_1fr]">
           <div className="space-y-3 rounded-xl border border-border/50 bg-card p-3">
@@ -193,6 +185,6 @@ export default function DirectoryPage() {
           )}
         </div>
       </div>
-    </>
+    </PageShell>
   );
 }

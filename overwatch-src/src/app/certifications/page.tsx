@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 
 const DocumentScanner = dynamic(() => import("@/components/document-scanner"), { ssr: false });
 
@@ -119,19 +119,7 @@ export default function CertificationsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const user = useAuthStore((s) => s.user);
 
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
   const [showAdd, setShowAdd] = useState(false);
-
-  useEffect(() => {
-    setHeader("CERTIFICATIONS", "Manage credentials, generate certificates, and verify", <Award className="h-5 w-5" />,
-      <Button size="sm" className="gap-1.5" onClick={() => setShowAdd(true)}>
-        <Plus className="h-3.5 w-3.5" /> Add Certification
-      </Button>
-    );
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   const [certs, setCerts] = useState<Cert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -255,7 +243,16 @@ export default function CertificationsPage() {
   const expired = active.filter((c) => c.expiry_date && new Date(c.expiry_date) < now);
 
   return (
-    <>
+    <PageShell
+      title="CERTIFICATIONS"
+      subtitle="Manage credentials, generate certificates, and verify"
+      icon={<Award className="h-5 w-5" />}
+      actions={
+        <Button size="sm" className="gap-1.5" onClick={() => setShowAdd(true)}>
+          <Plus className="h-3.5 w-3.5" /> Add Certification
+        </Button>
+      }
+    >
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -459,6 +456,6 @@ export default function CertificationsPage() {
           </div>
         </div>
       )}
-    </>
+    </PageShell>
   );
 }

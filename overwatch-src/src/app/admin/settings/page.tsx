@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Building2, Settings } from "lucide-react";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, getTimeOffPolicies, getIntegrationsConfig } from "@/lib/supabase/db";
 
@@ -24,14 +24,6 @@ export default function AdminSettingsPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isOwner = activeCompany?.role === "owner";
   const isAdminPlus = ["owner", "admin"].includes(activeCompany?.role ?? "");
-
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader("HQ CONFIG", "Organization profile and settings", <Settings className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   // Loaded data
   const [loaded, setLoaded] = useState(false);
@@ -79,18 +71,26 @@ export default function AdminSettingsPage() {
 
   if (activeCompany && !isAdminPlus) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <Building2 className="mb-3 h-10 w-10 text-muted-foreground/40" />
-        <p className="text-sm font-medium">Access Restricted</p>
-        <p className="mt-1 max-w-xs text-xs text-muted-foreground">Only admins and owners can access HQ Config.</p>
-      </div>
+      <PageShell title="HQ CONFIG" subtitle="Organization profile and settings" icon={<Settings className="h-5 w-5" />}>
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <Building2 className="mb-3 h-10 w-10 text-muted-foreground/40" />
+          <p className="text-sm font-medium">Access Restricted</p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">Only admins and owners can access HQ Config.</p>
+        </div>
+      </PageShell>
     );
   }
 
-  if (!loaded) return null;
+  if (!loaded) {
+    return (
+      <PageShell title="HQ CONFIG" subtitle="Organization profile and settings" icon={<Settings className="h-5 w-5" />}>
+        <></>
+      </PageShell>
+    );
+  }
 
   return (
-    <>
+    <PageShell title="HQ CONFIG" subtitle="Organization profile and settings" icon={<Settings className="h-5 w-5" />}>
       <div className="space-y-6">
         <CompanyProfileSection
           companyId={activeCompanyId!}
@@ -124,6 +124,6 @@ export default function AdminSettingsPage() {
 
         <ErrorLogViewer companyId={activeCompanyId!} />
       </div>
-    </>
+    </PageShell>
   );
 }

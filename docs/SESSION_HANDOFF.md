@@ -1,4 +1,4 @@
-# Session Handoff — April 21, 2026
+# Session Handoff — April 22, 2026
 
 **Project:** Evenfall Advantage — Overwatch Platform
 **Repo:** https://github.com/EvenfallAdvantage/evenfalladvantage.github.io
@@ -222,23 +222,33 @@ $token = gh auth token; git push "https://x-access-token:${token}@github.com/Eve
 - **Break tracking** (`db-breaks.ts`) — meal/rest breaks, CA labor law compliance check, geofence enforcement
 - **DAR auto-generation** (`db-dar.ts`) — compiles clock times + patrols + incidents + breaks into a structured report
 
-### SQL Migrations To Run (Phase C+D)
-| File | Purpose |
-|------|---------|
-| `sql/run_all_new_migrations.sql` | Invoices + Panic Alerts + Shift Swap Requests (already run) |
-| `sql/add_broadcasts_breaks_media.sql` | Broadcasts + Timesheet Breaks + Incident Media |
+### CONTINUED WORK (April 22, 2026) — 8 More Commits
+- **Auto-scheduling engine** (`db-scheduling.ts`) — shift templates with recurrence, smart-fill algorithm (availability + certs + OT + rest constraints)
+- **All 37 native `confirm()` calls** migrated to shadcn AlertDialog via `useConfirmDialog`
+- **Client portal** — 5 pages (`/client/*`) with dedicated shell, client role, invite flow in admin settings
+- **React Query migration** — 8 total pages now use `useCompanyQuery` (directory, notifications, time-off, knowledge-base, incidents, quizzes, updates, admin/events)
+- **PageShell migration** — 11 pages use declarative `<PageShell>` instead of manual setHeader
+- **Mobile tab bars** fixed across 12 pages (shrink-0 + scrollbar-hide)
+- **Landing page** updated with new features, 14 integrations, updated stats
+- **Bug fixes** — shift swap PostgREST query rewrite, patrols header, Reports nav label restored, db-error message extraction
+
+### SQL Migrations To Run
+| File | Purpose | Status |
+|------|---------|--------|
+| `sql/run_all_new_migrations.sql` | Invoices + Panic Alerts + Shift Swap Requests | Run |
+| `sql/add_broadcasts_breaks_media.sql` | Broadcasts + Timesheet Breaks + Incident Media | Run |
+| `sql/add_shift_templates.sql` | Shift Templates for auto-scheduling | Pending |
 
 ---
 
 ## Recommended Next Steps
 
-1. **Run Phase D SQL migration** — `sql/add_broadcasts_breaks_media.sql`
-2. **Deploy OAuth refresh Edge Function** — `supabase functions deploy oauth-refresh --no-verify-jwt` + set up cron trigger
-3. **Wire broadcast UI** — add "Send Alert" button to chat/admin for managers
-4. **Wire incident media upload** — add photo/video attachment to incident create form
-5. **Wire break tracking UI** — add break start/stop buttons to timeclock
-6. **Wire DAR generation** — add "Generate DAR" button to operation detail for completed shifts
-7. **Build authenticated client portal** — add `client` role, read-only views for operations/incidents/invoices/DARs
-8. **Fix instructor scan permissions** — add 'instructor' to `is_company_manager()` RLS function
-9. **Migrate integration service calls to Edge Functions** — prevent API key exposure in browser
-10. **Persist offline scan queue** — move from useState to localStorage/IndexedDB
+1. **Run shift templates migration** — `sql/add_shift_templates.sql`
+2. **Deploy OAuth refresh Edge Function** — `supabase functions deploy oauth-refresh --no-verify-jwt` + cron trigger
+3. **Wire auto-scheduling UI** — add template management + smart-fill button to shift management
+4. **Fix instructor scan permissions** — add 'instructor' to `is_company_manager()` RLS function
+5. **Migrate integration service calls to Edge Functions** — prevent API key exposure in browser
+6. **Persist offline scan queue** — move from useState to localStorage/IndexedDB
+7. **Visitor management** — guard-post kiosk mode with sign-in log
+8. **Full offline support** — IndexedDB outbox for all mutations + background sync
+9. **Upgrade eslint-plugin-react-hooks** to v7 — fix ~100 setState-in-effect patterns

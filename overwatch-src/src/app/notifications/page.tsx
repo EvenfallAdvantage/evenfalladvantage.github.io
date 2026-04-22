@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 import { getQueryClient } from "@/lib/query-client";
 import Link from "next/link";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Notif = any;
@@ -33,13 +33,6 @@ const TYPE_ICONS: Record<string, { icon: typeof Bell; color: string }> = {
 
 export default function NotificationsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader("NOTIFICATIONS", "Important updates, events, and assignments", <Bell className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   const { data: notifications = [], isLoading: loading, refetch } = useCompanyQuery(
     "notifications",
@@ -87,7 +80,7 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n: Notif) => !n.read).length;
 
   return (
-    <>
+    <PageShell title="NOTIFICATIONS" subtitle="Important updates, events, and assignments" icon={<Bell className="h-5 w-5" />}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
@@ -152,6 +145,6 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
-    </>
+    </PageShell>
   );
 }

@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 import {
   getCheckpoints,
   createCheckpoint,
@@ -48,14 +48,7 @@ export default function PatrolsPage() {
   const activeCompany = useAuthStore(s => s.getActiveCompany());
   const isAdmin = activeCompany && hasMinRole(activeCompany.role as CompanyRole, "manager");
 
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
   const { confirm, ConfirmDialog } = useConfirmDialog();
-
-  useEffect(() => {
-    setHeader("WATCH LOG", "Patrol routes, checkpoints, and scan logs", <Footprints className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   const [tab, setTab] = useState<"scan" | "checkpoints" | "routes" | "log">("scan");
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
@@ -174,7 +167,7 @@ export default function PatrolsPage() {
   ];
 
   return (
-    <>
+    <PageShell title="WATCH LOG" subtitle="Patrol routes, checkpoints, and scan logs" icon={<Footprints className="h-5 w-5" />}>
       <div className="space-y-4">
         {/* Tabs */}
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
@@ -607,6 +600,6 @@ export default function PatrolsPage() {
         )}
       </div>
       <ConfirmDialog />
-    </>
+    </PageShell>
   );
 }

@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 import { geocodeAddress } from "@/lib/geo-risk-data";
 import { saveSiteAssessment, getCompanyAssessments, getAssessment, deleteAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
 import { toast } from "sonner";
@@ -43,14 +43,6 @@ export default function SiteAssessmentPage() {
   // Address autocomplete display state
   const [addrQuery, setAddrQuery] = useState("");
   const [addrResolved, setAddrResolved] = useState<string | null>(null);
-
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader("SITE ASSESSMENT", "Professional security evaluation and risk scoring", <ClipboardCheck className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   // Load saved assessments list on mount
   useEffect(() => {
@@ -247,7 +239,7 @@ export default function SiteAssessmentPage() {
   const completionPct = Math.round((completedFields / totalFields) * 100);
 
   return (
-    <>
+    <PageShell title="SITE ASSESSMENT" subtitle="Professional security evaluation and risk scoring" icon={<ClipboardCheck className="h-5 w-5" />}>
       <div className="space-y-6">
         <SavedAssessmentsPanel
           assessments={savedAssessments}
@@ -303,6 +295,6 @@ export default function SiteAssessmentPage() {
         )}
       </div>
       <ConfirmDialog />
-    </>
+    </PageShell>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MapPin } from "lucide-react";
 import {
   geocodeAddress, getMultiTierCrimeData,
@@ -12,7 +12,7 @@ import {
   type CrimeIncident, type SexOffender, type EnvironmentalRisk,
 } from "@/lib/crime-incidents";
 import { useAuthStore } from "@/stores/auth-store";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 
 import type { RiskResult } from "./components/shared";
 import { AddressSearch, type AddressData } from "./components/address-search";
@@ -23,14 +23,6 @@ import { ApiKeyConfig } from "./components/api-key-config";
 
 export default function GeoRiskPage() {
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
-
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader("GEO-RISK", "FBI crime data + facility risk scoring", <MapPin className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   // ── Address form state ──
   const [addressData, setAddressData] = useState<AddressData>({
@@ -129,36 +121,40 @@ export default function GeoRiskPage() {
   // ── Results view ──
   if (result) {
     return (
-      <RiskResults
-        result={result}
-        incidents={incidents}
-        offenders={offenders}
-        envRisk={envRisk}
-        overlayLoading={overlayLoading}
-        overlaySources={overlaySources}
-        companyName={companyName}
-        brandHex={brandHex}
-        companyLogo={companyLogo ?? undefined}
-        onNewAnalysis={() => setResult(null)}
-      />
+      <PageShell title="GEO-RISK" subtitle="FBI crime data + facility risk scoring" icon={<MapPin className="h-5 w-5" />}>
+        <RiskResults
+          result={result}
+          incidents={incidents}
+          offenders={offenders}
+          envRisk={envRisk}
+          overlayLoading={overlayLoading}
+          overlaySources={overlaySources}
+          companyName={companyName}
+          brandHex={brandHex}
+          companyLogo={companyLogo ?? undefined}
+          onNewAnalysis={() => setResult(null)}
+        />
+      </PageShell>
     );
   }
 
   // ── Input form view ──
   return (
-    <div className="space-y-6">
-      <AddressSearch
-        data={addressData}
-        onChange={setAddressData}
-        onAnalyze={analyzeRisk}
-        analyzing={analyzing}
-      />
+    <PageShell title="GEO-RISK" subtitle="FBI crime data + facility risk scoring" icon={<MapPin className="h-5 w-5" />}>
+      <div className="space-y-6">
+        <AddressSearch
+          data={addressData}
+          onChange={setAddressData}
+          onAnalyze={analyzeRisk}
+          analyzing={analyzing}
+        />
 
-      <AnalysisHistory history={history} onSelect={setResult} />
+        <AnalysisHistory history={history} onSelect={setResult} />
 
-      <HowItWorks />
+        <HowItWorks />
 
-      <ApiKeyConfig />
-    </div>
+        <ApiKeyConfig />
+      </div>
+    </PageShell>
   );
 }

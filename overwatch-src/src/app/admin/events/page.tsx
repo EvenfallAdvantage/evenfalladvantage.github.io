@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Flag, MapPin, Plus, Loader2, ChevronDown, ChevronRight,
@@ -13,6 +13,7 @@ import {
   getEvents, deleteEvent, updateEventStatus, getEventShifts,
   getEventDocuments, getCompanyDetails,
 } from "@/lib/supabase/db";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 import { DocsPopup, DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import type { OperationDocument } from "@/types/operations";
 import { usePageHeader } from "@/stores/page-header-store";
@@ -22,7 +23,6 @@ import { ConflictWarningModal, type ConflictWarningData } from "./components/con
 import { OperationDetail } from "./components/operation-detail";
 import { getAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
-import { logger } from "@/lib/logger";
 
 /* ── Component ─────────────────────────────────────────── */
 
@@ -54,9 +54,18 @@ export default function AdminEventsPage() {
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [companyTimezone, setCompanyTimezone] = useState<string | undefined>();
+  /* ── Data ── */
+
+  const { data: events = [], isLoading: loading, refetch: refetchEvents } = useCompanyQuery(
+    "events",
+    (cid) => getEvents(cid),
+  );
+
+  const { data: companyDetails } = useCompanyQuery(
+    "company-details",
+    (cid) => getCompanyDetails(cid),
+  );
+  const companyTimezone = companyDetails?.timezone;
 
   // Expanded op
   const expandParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("expand") : null;
@@ -70,22 +79,6 @@ export default function AdminEventsPage() {
   const [adminDocsPopup, setAdminDocsPopup] = useState<string | null>(null);
   const [adminViewingDoc, setAdminViewingDoc] = useState<OperationDocument | null>(null);
   const [adminEventDocs, setAdminEventDocs] = useState<Record<string, OperationDocument[]>>({});
-
-  /* ── Data ── */
-
-  const load = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try {
-      const [evts, co] = await Promise.all([
-        getEvents(activeCompanyId),
-        getCompanyDetails(activeCompanyId),
-      ]);
-      setEvents(evts);
-      if (co?.timezone) setCompanyTimezone(co.timezone);
-    } catch (e) { logger.swallow("admin-events:load", e, "warn"); } finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { load(); }, [load]);
 
   // Handle fromAssessment URL param
   useEffect(() => {
@@ -140,14 +133,14 @@ export default function AdminEventsPage() {
           }
         }
       }
-      await load();
+      await refetchEvents();
     } catch (err) { console.error(err); }
   }
 
   async function handleDeleteEvent(eventId: string) {
     if (!await confirm({ description: "Delete this operation and all its shifts?", variant: "destructive", confirmLabel: "Delete" })) return;
     setDeletingEvent(eventId);
-    try { await deleteEvent(eventId); if (expanded === eventId) setExpanded(null); await load(); toast.success("Operation deleted"); }
+    try { await deleteEvent(eventId); if (expanded === eventId) setExpanded(null); await refetchEvents(); toast.success("Operation deleted"); }
     catch (err) { console.error(err); toast.error("Failed to delete operation"); } finally { setDeletingEvent(null); }
   }
 
@@ -167,7 +160,7 @@ export default function AdminEventsPage() {
                 setInitialAssessment(null);
                 window.history.replaceState({}, "", "/overwatch/admin/events");
               }
-              await load();
+              await refetchEvents();
             }}
             onCancel={() => {
               setShowCreate(false);
@@ -264,7 +257,7 @@ export default function AdminEventsPage() {
                       companyName={companyName}
                       companyLogo={companyLogo}
                       brandColor={brandColor}
-                      onReload={load}
+                      onReload={async () => { await refetchEvents(); }}
                       onConflictWarning={setConflictWarning}
                     />
                   )}

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 import { DictationRecorder } from "@/components/dictation-recorder";
 import { getIncidents, getForms, createForm, submitForm, getFormSubmissions } from "@/lib/supabase/db";
 
@@ -23,13 +23,6 @@ const PERSON_TYPES = ["Witness", "Suspect", "Victim", "Reporting Party", "Bystan
 
 export default function DictatePage() {
   const { user, activeCompanyId } = useAuthStore();
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
-  useEffect(() => {
-    setHeader("REPORTS", "Voice-to-text report dictation", <Mic className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
 
   const [loading, setLoading] = useState(true);
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -94,8 +87,9 @@ export default function DictatePage() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Report type tabs */}
+    <PageShell title="REPORTS" subtitle="Voice-to-text report dictation" icon={<Mic className="h-5 w-5" />}>
+      <div className="space-y-4">
+        {/* Report type tabs */}
       <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
         <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
           <Mic className="h-3.5 w-3.5 text-primary" />
@@ -201,6 +195,7 @@ export default function DictatePage() {
           )}
         </>
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 }

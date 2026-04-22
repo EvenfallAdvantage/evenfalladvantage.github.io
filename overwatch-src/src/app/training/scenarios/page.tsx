@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SCENARIOS, STATE_COLORS, getSubjectImage, type Scenario, type Step } from "@/lib/deescalation-scenarios";
-import { usePageHeader } from "@/stores/page-header-store";
+import { PageShell } from "@/components/layout/page-shell";
 import Image from "next/image";
 
 type ScenarioResult = { steps: number; success: boolean; date: string };
@@ -51,9 +51,6 @@ function MeterBar({ value, max = 100 }: { value: number; max?: number }) {
 }
 
 export default function ScenariosPage() {
-  const setHeader = usePageHeader((s) => s.setHeader);
-  const clearHeader = usePageHeader((s) => s.clearHeader);
-
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
   const [currentStepId, setCurrentStepId] = useState("start");
   const [meter, setMeter] = useState(40);
@@ -139,18 +136,13 @@ export default function ScenariosPage() {
     return () => { if (audioRef.current) audioRef.current.pause(); };
   }, []);
 
-  useEffect(() => {
-    setHeader("DE-ESCALATION", "Interactive scenario-based conflict resolution", <MessageCircle className="h-5 w-5" />);
-    return () => clearHeader();
-  }, [setHeader, clearHeader]);
-
   // ─── Results Screen ───
   if (activeScenario && ending) {
     const success = !!ending.success;
     const stateStyle = STATE_COLORS[ending.state] || STATE_COLORS.Distressed;
     const resultImg = getSubjectImage(activeScenario.subjectId, ending.state);
     return (
-      <>
+      <PageShell title="DE-ESCALATION" subtitle="Interactive scenario-based conflict resolution" icon={<MessageCircle className="h-5 w-5" />}>
         <div className="max-w-xl mx-auto space-y-6">
           <div className={`rounded-xl border-2 overflow-hidden ${success ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
             {/* Subject result photo */}
@@ -199,7 +191,7 @@ export default function ScenariosPage() {
             </Button>
           </div>
         </div>
-      </>
+      </PageShell>
     );
   }
 
@@ -212,7 +204,7 @@ export default function ScenariosPage() {
     const hasAudio = Object.keys(activeScenario.audioMap).length > 0;
 
     return (
-      <>
+      <PageShell title="DE-ESCALATION" subtitle="Interactive scenario-based conflict resolution" icon={<MessageCircle className="h-5 w-5" />}>
         <div className="max-w-xl mx-auto space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -319,7 +311,7 @@ export default function ScenariosPage() {
             ))}
           </div>
         </div>
-      </>
+      </PageShell>
     );
   }
 
@@ -327,7 +319,7 @@ export default function ScenariosPage() {
   const completedCount = Object.values(results).filter((r) => r.success).length;
 
   return (
-    <>
+    <PageShell title="DE-ESCALATION" subtitle="Interactive scenario-based conflict resolution" icon={<MessageCircle className="h-5 w-5" />}>
       <div className="space-y-6">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
@@ -423,6 +415,6 @@ export default function ScenariosPage() {
           </CardContent>
         </Card>
       </div>
-    </>
+    </PageShell>
   );
 }
