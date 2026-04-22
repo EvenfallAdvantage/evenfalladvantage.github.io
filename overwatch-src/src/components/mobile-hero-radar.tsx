@@ -53,7 +53,7 @@ export default function MobileHeroRadar() {
 
     // Animation state
     const now = performance.now() / 1000;
-    const sweepAngle = (now * 0.9) % (Math.PI * 2); // ~4s per rotation
+    const sweepAngle = (Math.PI * 2) - ((now * 0.9) % (Math.PI * 2)); // counter-clockwise to match desktop globe
     const sweepWidth = 0.5; // radians of the sweep tail
 
     // Clear
