@@ -1,11 +1,52 @@
 /* ── Shared types, constants, and helpers for events admin ── */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Event = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Shift = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Member = any;
+export interface Event {
+  id: string;
+  name: string;
+  company_id: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+  location?: string;
+  client_name?: string;
+  timezone?: string;
+  pay_rate?: number | null;
+  bill_rate?: number | null;
+  post_orders?: string | null;
+  site_map_url?: string | null;
+  geofence_radius_meters?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  settings?: Record<string, unknown> | null;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown; // Allow additional Supabase columns
+}
+
+export interface Shift {
+  id: string;
+  event_id: string;
+  date?: string;
+  start_time: string;
+  end_time: string;
+  role?: string;
+  assigned_user_id?: string | null;
+  post_orders?: string | null;
+  users?: { id: string; first_name: string; last_name: string; email?: string } | null;
+  events?: { name: string; timezone?: string; pay_rate?: number } | null;
+  [key: string]: unknown;
+}
+
+export interface Member {
+  id?: string;
+  user_id: string;
+  role: string;
+  status?: string;
+  nickname?: string | null;
+  pay_rate_override?: number | null;
+  users?: { id: string; first_name: string; last_name: string; email?: string; phone?: string | null; avatar_url?: string | null } | null;
+  [key: string]: unknown;
+}
 
 /* ── OPs Guide Type ──────────────────────────────────── */
 

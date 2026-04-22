@@ -27,8 +27,8 @@ export function useShiftDerivedData(
 
   // Sort members by availability
   const sortedMembers = [...members].sort((a: Member, b: Member) => {
-    const as = availByUser.get(a.users?.id) ?? "pending";
-    const bs = availByUser.get(b.users?.id) ?? "pending";
+    const as = availByUser.get(a.users?.id ?? "") ?? "pending";
+    const bs = availByUser.get(b.users?.id ?? "") ?? "pending";
     const order: Record<string, number> = { available: 0, tentative: 1, pending: 2, unavailable: 3 };
     return (order[as] ?? 2) - (order[bs] ?? 2);
   });
@@ -58,7 +58,7 @@ export function renderMemberOptions(
   availByUser: Map<string, string>,
 ) {
   return sortedMembers.map((m: Member) => {
-    const s = availByUser.get(m.users?.id);
+    const s = availByUser.get(m.users?.id ?? "");
     const tag = s === "available" ? " \u2713" : s === "tentative" ? " ?" : s === "unavailable" ? " \u2717" : "";
     return <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}{tag}</option>;
   });

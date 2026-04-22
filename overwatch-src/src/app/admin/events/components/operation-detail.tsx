@@ -93,14 +93,14 @@ export function OperationDetail({
         getLatestDocument(ev.id, "intake").catch(() => null),
       ]);
       setShifts(s); setMembers(m); setAvailability(avail);
-      const guide = ev?.ops_guide || {};
-      const intake = (intakeDoc?.data as Record<string, unknown>) || {};
+      const guide = (ev?.ops_guide ?? {}) as Record<string, string>;
+      const intake = (intakeDoc?.data as Record<string, unknown>) ?? {};
       setMergedIntake({
         ...guide, ...intake,
         location: ev?.location || guide.siteAddress || "",
         startDate: ev?.start_date || "",
         endDate: ev?.end_date || "",
-        radioChannels: intake.radioChannels || guide.radioChannels || "",
+        radioChannels: (intake.radioChannels as string) || guide.radioChannels || "",
       });
 
       // Load linked assessment
