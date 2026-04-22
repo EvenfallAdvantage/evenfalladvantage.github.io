@@ -602,27 +602,14 @@ function HomePageInner() {
             <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">INTEGRATES WITH YOUR STACK</h2>
             <p className="text-white/40 max-w-lg mx-auto text-sm">Connect Overwatch with the tools your team already uses — or go fully native.</p>
           </div>
-          {/* Row 1: first 7 */}
-          <div className="grid grid-cols-4 sm:grid-cols-7 gap-5 sm:gap-6 justify-items-center max-w-3xl mx-auto">
-            {INTEGRATIONS_LOGOS.slice(0, 7).map((int) => (
+          <div className="grid grid-cols-5 sm:grid-cols-7 gap-4 sm:gap-6 justify-items-center max-w-3xl mx-auto">
+            {INTEGRATIONS_LOGOS.map((int) => (
               <a key={int.name} href={int.url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
-                <div className="h-14 w-14 rounded-xl border border-white/5 group-hover:border-[#dd8c33]/30 transition-all overflow-hidden" style={int.bg ? { backgroundColor: int.bg } : undefined}>
+                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl border border-white/5 group-hover:border-[#dd8c33]/30 transition-all overflow-hidden" style={int.bg ? { backgroundColor: int.bg } : undefined}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={int.src} alt={int.alt} className="h-full w-full object-cover" />
                 </div>
-                <span className="text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">{int.name}</span>
-              </a>
-            ))}
-          </div>
-          {/* Row 2: remaining 7, centered */}
-          <div className="grid grid-cols-4 sm:grid-cols-7 gap-5 sm:gap-6 justify-items-center max-w-3xl mx-auto mt-6">
-            {INTEGRATIONS_LOGOS.slice(7).map((int) => (
-              <a key={int.name} href={int.url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
-                <div className="h-14 w-14 rounded-xl border border-white/5 group-hover:border-[#dd8c33]/30 transition-all overflow-hidden" style={int.bg ? { backgroundColor: int.bg } : undefined}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={int.src} alt={int.alt} className="h-full w-full object-cover" />
-                </div>
-                <span className="text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">{int.name}</span>
+                <span className="text-[9px] sm:text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">{int.name}</span>
               </a>
             ))}
           </div>
