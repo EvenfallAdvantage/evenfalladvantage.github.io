@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { FileText, Send, Loader2, Check, X, Download, ChevronDown, ChevronUp, Pencil, Save, AlertTriangle } from "lucide-react";
+import { FileText, Send, Loader2, Check, X, Download, Pencil, Save, AlertTriangle } from "lucide-react";
+import { OpordSectionHeader, OpsChips } from "./ops-shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -251,29 +252,8 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
   const isIssued = doc?.status === "issued";
   const isLocked = isIssued && !editOverride;
 
-  function SectionHeader({ id, title }: { id: string; title: string }) {
-    return (
-      <button type="button" onClick={() => toggleSection(id)} className="flex items-center justify-between w-full pt-2 border-t border-border/20">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
-        {collapsed[id] ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronUp className="h-3 w-3 text-muted-foreground" />}
-      </button>
-    );
-  }
-
-  function Chips({ field, options, color = "primary" }: { field: keyof OpordData; options: string[]; color?: string }) {
-    const arr = data[field] as string[];
-    const colorClass = color === "red" ? "border-red-500/60 bg-red-500/10 text-red-500" : color === "green" ? "border-green-500/60 bg-green-500/10 text-green-600" : "border-primary bg-primary/10 text-primary";
-    return (
-      <div className="flex flex-wrap gap-1.5 mt-1">
-        {options.map(t => (
-          <button key={t} type="button" onClick={() => !isLocked && toggle(field, t)}
-            className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${arr.includes(t) ? colorClass : "border-border/40 text-muted-foreground hover:border-border"}`}>
-            {arr.includes(t) && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{t}
-          </button>
-        ))}
-      </div>
-    );
-  }
+  // SectionHeader and Chips extracted to ops-shared.tsx (module-level)
+  // to satisfy React Compiler (no component definitions during render).
 
   return (
     <div className="px-3 sm:px-4 py-3 space-y-3 border-b border-border/20 bg-primary/[0.02]">
@@ -325,10 +305,10 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       </div>
 
       {/* 1. Situation */}
-      <SectionHeader id="situation" title="1. Situation" />
+      <OpordSectionHeader id="situation" title="1. Situation" collapsed={!!collapsed.situation} onToggle={toggleSection} />
       {!collapsed.situation && (
         <div className="space-y-2">
-          <div><Label className="text-xs">Venue Type</Label><Chips field="venueType" options={VENUE_TYPES} /></div>
+          <div><Label className="text-xs">Venue Type</Label><OpsChips selected={data.venueType as string[]} options={VENUE_TYPES} disabled={isLocked} onToggle={(v) => toggle("venueType", v)} /></div>
           <div className="grid gap-2 sm:grid-cols-3">
             <div><Label htmlFor="opord-environment" className="text-xs">Environment</Label><Input id="opord-environment" value={data.environment} onChange={(e) => upd("environment", e.target.value)} placeholder="Indoor / Outdoor / Hybrid" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
             <div><Label htmlFor="opord-estimated-attendance" className="text-xs">Est. Attendance</Label><Input id="opord-estimated-attendance" value={data.estimatedAttendance} onChange={(e) => upd("estimatedAttendance", e.target.value)} placeholder="e.g. 500" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
@@ -339,18 +319,18 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
               </select>
             </div>
           </div>
-          <div><Label className="text-xs">Threat Types</Label><Chips field="threatTypes" options={THREAT_TYPES} color="red" /></div>
+          <div><Label className="text-xs">Threat Types</Label><OpsChips selected={data.threatTypes as string[]} options={THREAT_TYPES} color="red" disabled={isLocked} onToggle={(v) => toggle("threatTypes", v)} /></div>
         </div>
       )}
 
       {/* 2. Mission */}
-      <SectionHeader id="mission" title="2. Mission" />
+      <OpordSectionHeader id="mission" title="2. Mission" collapsed={!!collapsed.mission} onToggle={toggleSection} />
       {!collapsed.mission && (
         <div><Txt id="opord-mission-statement" value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName} will provide [service] for [client] at [location] in order to [purpose].`} rows={2} disabled={isLocked} /></div>
       )}
 
       {/* 3. Execution */}
-      <SectionHeader id="execution" title="3. Execution" />
+      <OpordSectionHeader id="execution" title="3. Execution" collapsed={!!collapsed.execution} onToggle={toggleSection} />
       {!collapsed.execution && (
         <div className="space-y-2">
           <div className="grid gap-2 sm:grid-cols-2">
@@ -363,8 +343,8 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
               </select>
             </div>
           </div>
-          <div><Label className="text-xs">Operational Approach</Label><Chips field="operationalApproach" options={OPS_APPROACHES} /></div>
-          <div><Label className="text-xs">Primary Focus Areas</Label><Chips field="primaryFocusAreas" options={FOCUS_AREAS} /></div>
+          <div><Label className="text-xs">Operational Approach</Label><OpsChips selected={data.operationalApproach as string[]} options={OPS_APPROACHES} disabled={isLocked} onToggle={(v) => toggle("operationalApproach", v)} /></div>
+          <div><Label className="text-xs">Primary Focus Areas</Label><OpsChips selected={data.primaryFocusAreas as string[]} options={FOCUS_AREAS} disabled={isLocked} onToggle={(v) => toggle("primaryFocusAreas", v)} /></div>
           <div className="grid gap-2 sm:grid-cols-3">
             <div><Label htmlFor="opord-entry-points" className="text-xs">Entry Points</Label><Input id="opord-entry-points" value={data.entryPoints} onChange={(e) => upd("entryPoints", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
             <div><Label htmlFor="opord-high-risk-zones" className="text-xs">High-Risk Zones</Label><Input id="opord-high-risk-zones" value={data.highRiskZones} onChange={(e) => upd("highRiskZones", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
@@ -374,7 +354,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       )}
 
       {/* 4. Support */}
-      <SectionHeader id="support" title="4. Support" />
+      <OpordSectionHeader id="support" title="4. Support" collapsed={!!collapsed.support} onToggle={toggleSection} />
       {!collapsed.support && (
         <div className="space-y-2">
           <div className="grid gap-2 sm:grid-cols-3">
@@ -387,12 +367,12 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
             <div><Label htmlFor="opord-comms-method" className="text-xs">Comms Method</Label><Input id="opord-comms-method" value={data.communicationMethod} onChange={(e) => upd("communicationMethod", e.target.value)} placeholder="e.g. Radio + WhatsApp" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
             <div><Label htmlFor="opord-radio-channels" className="text-xs">Radio Channels</Label><Input id="opord-radio-channels" value={data.radioChannels} onChange={(e) => upd("radioChannels", e.target.value)} placeholder="Ch 1: Cmd, Ch 2: Sec" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
           </div>
-          <div><Label className="text-xs">Equipment</Label><Chips field="equipment" options={EQUIPMENT_LIST} /></div>
+          <div><Label className="text-xs">Equipment</Label><OpsChips selected={data.equipment as string[]} options={EQUIPMENT_LIST} disabled={isLocked} onToggle={(v) => toggle("equipment", v)} /></div>
         </div>
       )}
 
       {/* 5. Command & Control */}
-      <SectionHeader id="c2" title="5. Command & Control" />
+      <OpordSectionHeader id="c2" title="5. Command & Control" collapsed={!!collapsed.c2} onToggle={toggleSection} />
       {!collapsed.c2 && (
         <div className="space-y-2">
           <div className="grid gap-2 sm:grid-cols-3">
@@ -419,7 +399,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       )}
 
       {/* 6. Contingency */}
-      <SectionHeader id="contingency" title="6. Contingency (PACE)" />
+      <OpordSectionHeader id="contingency" title="6. Contingency (PACE)" collapsed={!!collapsed.contingency} onToggle={toggleSection} />
       {!collapsed.contingency && (
         <div className="grid gap-2 sm:grid-cols-2">
           <div><Label htmlFor="opord-primary-plan" className="text-xs">Primary Plan</Label><Txt id="opord-primary-plan" value={data.primaryPlan} onChange={(v) => upd("primaryPlan", v)} placeholder="Standard operations continue as planned" rows={1} disabled={isLocked} /></div>
@@ -431,7 +411,7 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       )}
 
       {/* 7. Timeline */}
-      <SectionHeader id="timeline" title="7. Timeline" />
+      <OpordSectionHeader id="timeline" title="7. Timeline" collapsed={!!collapsed.timeline} onToggle={toggleSection} />
       {!collapsed.timeline && (
         <div className="grid gap-2 sm:grid-cols-3">
           <div><Label htmlFor="opord-operational-start" className="text-xs">Operational Start</Label><Input id="opord-operational-start" value={data.operationalStart} onChange={(e) => upd("operationalStart", e.target.value)} className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
@@ -441,16 +421,16 @@ export default function OpordPanel({ eventId, companyId, eventName, eventStart, 
       )}
 
       {/* 8. Success Criteria */}
-      <SectionHeader id="success" title="8. Success Criteria" />
+      <OpordSectionHeader id="success" title="8. Success Criteria" collapsed={!!collapsed.success} onToggle={toggleSection} />
       {!collapsed.success && (
         <div className="space-y-2">
-          <Chips field="successCriteria" options={SUCCESS_OPTIONS} color="green" />
+          <OpsChips selected={data.successCriteria as string[]} options={SUCCESS_OPTIONS} color="green" disabled={isLocked} onToggle={(v) => toggle("successCriteria", v)} />
           <div><Label htmlFor="opord-additional-measures" className="text-xs">Additional Measures</Label><Txt id="opord-additional-measures" value={data.additionalSuccessMeasures} onChange={(v) => upd("additionalSuccessMeasures", v)} placeholder="Any additional success metrics" rows={1} disabled={isLocked} /></div>
         </div>
       )}
 
       {/* 9. Notes */}
-      <SectionHeader id="notes" title="9. Special Instructions / Notes" />
+      <OpordSectionHeader id="notes" title="9. Special Instructions / Notes" collapsed={!!collapsed.notes} onToggle={toggleSection} />
       {!collapsed.notes && (
         <div><Txt id="opord-special-instructions" value={data.specialInstructions} onChange={(v) => upd("specialInstructions", v)} placeholder="VIP details, restricted areas, weather contingencies..." rows={2} disabled={isLocked} /></div>
       )}

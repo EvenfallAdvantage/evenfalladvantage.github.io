@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { FileText, Loader2, Check, X, Pencil, Save, Upload, MapPin, Trash2, Navigation, Share2, Copy, ExternalLink } from "lucide-react";
+import { IntakeSectionHeader, OpsChips } from "./ops-shared";
 import AddressAutocomplete, { type AddressSelection } from "@/components/address-autocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -250,28 +251,8 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
   const isIssued = doc?.status === "issued";
   const isLocked = isIssued && !editOverride;
 
-  function SectionHeader({ title }: { title: string }) {
-    return (
-      <div className="pt-2 border-t border-border/20">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
-      </div>
-    );
-  }
-
-  function Chips({ field, options, color = "primary" }: { field: keyof IntakeData; options: string[]; color?: string }) {
-    const arr = data[field] as string[];
-    const colorClass = color === "red" ? "border-red-500/60 bg-red-500/10 text-red-500" : color === "amber" ? "border-amber-500/60 bg-amber-500/10 text-amber-600" : color === "green" ? "border-green-500/60 bg-green-500/10 text-green-600" : "border-primary bg-primary/10 text-primary";
-    return (
-      <div className="flex flex-wrap gap-1.5 mt-1">
-        {options.map(t => (
-          <button key={t} type="button" onClick={() => !isLocked && toggle(field, t)}
-            className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${arr.includes(t) ? colorClass : "border-border/40 text-muted-foreground hover:border-border"}`}>
-            {arr.includes(t) && <Check className="h-2.5 w-2.5 inline mr-0.5" />}{t}
-          </button>
-        ))}
-      </div>
-    );
-  }
+  // SectionHeader and Chips are imported from ops-shared.tsx (module-level)
+  // to satisfy React Compiler (no component definitions during render).
 
   return (
     <div className="px-3 sm:px-4 py-3 space-y-3 border-b border-border/20 bg-primary/[0.02]">
@@ -302,9 +283,9 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       </div>
 
       {/* Mission Overview */}
-      <SectionHeader title="Mission Overview" />
+      <IntakeSectionHeader title="Mission Overview" />
       <div className="space-y-2">
-        <div><Label className="text-xs">Engagement Type</Label><Chips field="engagementType" options={ENGAGEMENT_TYPES} /></div>
+        <div><Label className="text-xs">Engagement Type</Label><OpsChips selected={data.engagementType as string[]} options={ENGAGEMENT_TYPES} disabled={isLocked} onToggle={(v) => toggle("engagementType", v)} /></div>
         <div><Label htmlFor="intake-client-request" className="text-xs">Client Request</Label><Txt id="intake-client-request" value={data.clientRequest} onChange={(v) => upd("clientRequest", v)} placeholder="What the client asked for..." rows={2} disabled={isLocked} /></div>
         <div><Label htmlFor="intake-mission-statement" className="text-xs">Mission Statement</Label><Txt id="intake-mission-statement" value={data.missionStatement} onChange={(v) => upd("missionStatement", v)} placeholder={`${companyName || "Company"} will provide [service] for [client] at [location] in order to [purpose].`} rows={2} disabled={isLocked} /></div>
         <div><Label htmlFor="intake-time-sensitivity" className="text-xs">Time Sensitivity</Label>
@@ -316,7 +297,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       </div>
 
       {/* Location & Environment */}
-      <SectionHeader title="Location & Environment" />
+      <IntakeSectionHeader title="Location & Environment" />
       <div className="space-y-2">
         <div>
           <Label className="text-xs flex items-center gap-1"><Navigation className="h-3 w-3" /> Operation Address</Label>
@@ -337,7 +318,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
           </div>
           <p className="text-[10px] text-muted-foreground mt-0.5">This sets the operation&apos;s pin location on the tactical map.</p>
         </div>
-        <div><Label className="text-xs">Venue Type</Label><Chips field="venueType" options={VENUE_TYPES} /></div>
+        <div><Label className="text-xs">Venue Type</Label><OpsChips selected={data.venueType as string[]} options={VENUE_TYPES} disabled={isLocked} onToggle={(v) => toggle("venueType", v)} /></div>
         <div className="grid gap-2 sm:grid-cols-3">
           <div><Label htmlFor="intake-estimated-attendance" className="text-xs">Est. Attendance</Label><Input id="intake-estimated-attendance" value={data.estimatedAttendance} onChange={(e) => upd("estimatedAttendance", e.target.value)} placeholder="e.g. 500" className="mt-1 h-8 text-sm" disabled={isLocked} /></div>
           <div><Label htmlFor="intake-environment" className="text-xs">Environment</Label>
@@ -353,7 +334,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       </div>
 
       {/* Site Map */}
-      <SectionHeader title="Site Map / Floor Plan" />
+      <IntakeSectionHeader title="Site Map / Floor Plan" />
       <div className="space-y-2">
         {siteMapUrl ? (
           <div className="space-y-2">
@@ -391,9 +372,9 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       </div>
 
       {/* Scope */}
-      <SectionHeader title="Scope" />
+      <IntakeSectionHeader title="Scope" />
       <div className="space-y-2">
-        <div><Label className="text-xs">Services Requested</Label><Chips field="servicesRequested" options={SERVICES_REQUESTED} /></div>
+        <div><Label className="text-xs">Services Requested</Label><OpsChips selected={data.servicesRequested as string[]} options={SERVICES_REQUESTED} disabled={isLocked} onToggle={(v) => toggle("servicesRequested", v)} /></div>
         <div className="grid gap-2 sm:grid-cols-2">
           <div><Label htmlFor="intake-deliverables" className="text-xs">Deliverables</Label><Txt id="intake-deliverables" value={data.deliverables} onChange={(v) => upd("deliverables", v)} placeholder="e.g. Security plan, post-event report" rows={2} disabled={isLocked} /></div>
           <div><Label htmlFor="intake-out-of-scope" className="text-xs">Out of Scope</Label><Txt id="intake-out-of-scope" value={data.outOfScope} onChange={(v) => upd("outOfScope", v)} placeholder="What the company is NOT responsible for" rows={2} disabled={isLocked} /></div>
@@ -401,7 +382,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       </div>
 
       {/* Comms & Equipment */}
-      <SectionHeader title="Comms & Equipment" />
+      <IntakeSectionHeader title="Comms & Equipment" />
       <div className="space-y-2">
         <div className="grid gap-2 sm:grid-cols-3">
           <div><Label htmlFor="intake-medical-capability" className="text-xs">Medical Capability</Label>
@@ -416,7 +397,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       </div>
 
       {/* Risks */}
-      <SectionHeader title="Risks" />
+      <IntakeSectionHeader title="Risks" />
       <div className="space-y-2">
         <div><Label htmlFor="intake-client-identified-risks" className="text-xs">Client-Identified Risks</Label><Txt id="intake-client-identified-risks" value={data.clientIdentifiedRisks} onChange={(v) => upd("clientIdentifiedRisks", v)} placeholder="Previous incidents, known bad actors" rows={1} disabled={isLocked} /></div>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -427,12 +408,12 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
             </select>
           </div>
         </div>
-        <div><Label className="text-xs">Threat Types</Label><Chips field="threatTypes" options={THREAT_TYPES} color="red" /></div>
-        <div><Label className="text-xs">Constraints</Label><Chips field="constraints" options={CONSTRAINT_TYPES} color="amber" /></div>
+        <div><Label className="text-xs">Threat Types</Label><OpsChips selected={data.threatTypes as string[]} options={THREAT_TYPES} color="red" disabled={isLocked} onToggle={(v) => toggle("threatTypes", v)} /></div>
+        <div><Label className="text-xs">Constraints</Label><OpsChips selected={data.constraints as string[]} options={CONSTRAINT_TYPES} color="amber" disabled={isLocked} onToggle={(v) => toggle("constraints", v)} /></div>
       </div>
 
       {/* Command */}
-      <SectionHeader title="Command" />
+      <IntakeSectionHeader title="Command" />
       <div className="space-y-2">
         <div className="grid gap-2 sm:grid-cols-2">
           <div><Label htmlFor="intake-command-model" className="text-xs">Command Model</Label>
@@ -449,13 +430,13 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
             </select>
           </div>
         </div>
-        <div><Label className="text-xs">EA Role</Label><Chips field="eaRole" options={EA_ROLES} /></div>
+        <div><Label className="text-xs">EA Role</Label><OpsChips selected={data.eaRole as string[]} options={EA_ROLES} disabled={isLocked} onToggle={(v) => toggle("eaRole", v)} /></div>
       </div>
 
       {/* Success */}
-      <SectionHeader title="Success" />
+      <IntakeSectionHeader title="Success" />
       <div className="space-y-2">
-        <Chips field="successCriteria" options={SUCCESS_CRITERIA} color="green" />
+        <OpsChips selected={data.successCriteria as string[]} options={SUCCESS_CRITERIA} color="green" disabled={isLocked} onToggle={(v) => toggle("successCriteria", v)} />
         <div><Label htmlFor="intake-additional-success-measures" className="text-xs">Additional Success Measures</Label><Txt id="intake-additional-success-measures" value={data.additionalSuccessMeasures} onChange={(v) => upd("additionalSuccessMeasures", v)} placeholder="Any additional success metrics" rows={1} disabled={isLocked} /></div>
       </div>
 
