@@ -420,7 +420,7 @@ const INTEGRATIONS_LOGOS = [
   { name: "Twilio", src: "/overwatch/images/integrations/twilio.jpeg", alt: "Twilio", url: "https://www.twilio.com" },
   { name: "Checkr", src: "/overwatch/images/integrations/checkr.jpeg", alt: "Checkr", url: "https://checkr.com" },
   { name: "Gusto", src: "/overwatch/images/integrations/gusto.jpeg", alt: "Gusto", url: "https://gusto.com" },
-  { name: "QuickBooks", src: "/overwatch/images/integrations/quickbooks.png", alt: "QuickBooks Online", url: "https://quickbooks.intuit.com" },
+  { name: "QuickBooks", src: "/overwatch/images/integrations/quickbooks.png", alt: "QuickBooks Online", url: "https://quickbooks.intuit.com", bg: "#2CA01C" },
   { name: "ADP", src: "/overwatch/images/integrations/adp.jpeg", alt: "ADP Workforce Now", url: "https://www.adp.com" },
   { name: "DocuSign", src: "/overwatch/images/integrations/docusign.jpeg", alt: "DocuSign", url: "https://www.docusign.com" },
   { name: "OneSignal", src: "/overwatch/images/integrations/onesignal.jpeg", alt: "OneSignal", url: "https://onesignal.com" },
@@ -606,7 +606,7 @@ function HomePageInner() {
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-5 sm:gap-6 justify-items-center max-w-3xl mx-auto">
             {INTEGRATIONS_LOGOS.slice(0, 7).map((int) => (
               <a key={int.name} href={int.url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
-                <div className="h-14 w-14 rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all overflow-hidden">
+                <div className="h-14 w-14 rounded-xl border border-white/5 group-hover:border-[#dd8c33]/30 transition-all overflow-hidden" style={int.bg ? { backgroundColor: int.bg } : undefined}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={int.src} alt={int.alt} className="h-full w-full object-cover" />
                 </div>
@@ -618,7 +618,7 @@ function HomePageInner() {
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-5 sm:gap-6 justify-items-center max-w-3xl mx-auto mt-6">
             {INTEGRATIONS_LOGOS.slice(7).map((int) => (
               <a key={int.name} href={int.url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
-                <div className="h-14 w-14 rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all overflow-hidden">
+                <div className="h-14 w-14 rounded-xl border border-white/5 group-hover:border-[#dd8c33]/30 transition-all overflow-hidden" style={int.bg ? { backgroundColor: int.bg } : undefined}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={int.src} alt={int.alt} className="h-full w-full object-cover" />
                 </div>
