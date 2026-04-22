@@ -41,16 +41,22 @@ export function useS2IntelLayer({
     });
   };
 
+  // Persistent data source ref for clustering
+  const dataSourceRef = useRef<{ ds: unknown; name: string } | null>(null);
+
   // Main effect: render features for active layers
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading || !enabled) return;
 
-    // Clear previous S2 entities
-    const prevEntities = entityGroupsRef.current.s2Intel ?? [];
-    for (const e of prevEntities) {
-      try { viewer.entities.removeById(e.id); } catch (err) { logger.swallow("s2-intel:remove", err); }
+    // Remove previous data source if it exists
+    if (dataSourceRef.current) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        viewer.dataSources.remove(dataSourceRef.current.ds as any, true);
+      } catch (err) { logger.swallow("s2-intel:remove-ds", err); }
+      dataSourceRef.current = null;
     }
     entityGroupsRef.current.s2Intel = [];
 
@@ -69,6 +75,13 @@ export function useS2IntelLayer({
 
       // Pre-load MIL-STD-2525 symbols
       const symbols = await preloadSymbols(28);
+
+      // Create a CustomDataSource with clustering enabled
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const ds = new (Cesium as any).CustomDataSource("s2-intel");
+      ds.clustering.enabled = true;
+      ds.clustering.pixelRange = 40;
+      ds.clustering.minimumClusterSize = 3;
 
       const allEntities: { id: string }[] = [];
       let totalFeatures = 0;
@@ -128,7 +141,7 @@ export function useS2IntelLayer({
               };
             }
 
-            viewer.entities.add(entityOpts);
+            ds.entities.add(entityOpts);
             allEntities.push({ id: entityId });
           } catch (err) {
             logger.swallow("s2-intel:add-entity", err);
@@ -138,6 +151,9 @@ export function useS2IntelLayer({
       }
 
       if (!cancelled) {
+        // Add the clustered data source to the viewer
+        viewer.dataSources.add(ds);
+        dataSourceRef.current = { ds, name: "s2-intel" };
         entityGroupsRef.current.s2Intel = allEntities;
         setFeatureCount(totalFeatures);
         setLastRefresh(new Date());
