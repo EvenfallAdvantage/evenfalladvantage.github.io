@@ -129,7 +129,7 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
   const [intForms, setIntForms] = useState<Record<string, { config: Record<string, string>; isActive: boolean }>>(buildForms);
 
   async function handleSaveIntegration(provider: string) {
-    if (!companyId || companyId === "pending") return;
+    if (!companyId) return;
     setSavingInt(provider);
     try {
       const form = intForms[provider];

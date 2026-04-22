@@ -16,7 +16,7 @@ export function ActionRequired({ activeCompanyId }: ActionRequiredProps) {
   const [ownerIntel, setOwnerIntel] = useState<OwnerIntel | null>(null);
 
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     let cancelled = false;
     getOwnerIntel(activeCompanyId).then((oi) => {
       if (!cancelled) setOwnerIntel(oi);

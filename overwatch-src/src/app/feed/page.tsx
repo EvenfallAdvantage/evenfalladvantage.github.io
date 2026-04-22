@@ -40,7 +40,7 @@ export default function FeedPage() {
     return <DashboardSkeleton />;
   }
 
-  const validCompanyId = activeCompanyId && activeCompanyId !== "pending" ? activeCompanyId : null;
+  const validCompanyId = activeCompanyId ?? null;
 
   return (
     <div className="space-y-6">

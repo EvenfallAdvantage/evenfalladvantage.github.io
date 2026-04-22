@@ -19,7 +19,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
 
   const [unreadCount, setUnreadCount] = useState(0);
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     const refresh = () => getUnreadNotificationCount(activeCompanyId).then(setUnreadCount).catch(() => {});
     refresh();
     const interval = setInterval(refresh, 60000);

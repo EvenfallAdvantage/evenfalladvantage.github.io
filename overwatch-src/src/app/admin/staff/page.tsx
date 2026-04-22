@@ -89,7 +89,7 @@ export default function AdminStaffPage() {
   const canManage = myRole === "owner" || myRole === "admin" || myRole === "manager";
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const [m, company] = await Promise.all([
         getCompanyMembers(activeCompanyId),

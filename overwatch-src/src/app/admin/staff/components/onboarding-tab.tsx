@@ -29,7 +29,7 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
   const [savingTask, setSavingTask] = useState(false);
 
   const loadTasks = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       setOTasks(await getOnboardingTasks(activeCompanyId));
     } catch (e) { logger.swallow("onboarding:load", e, "warn"); }
@@ -39,7 +39,7 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
   useEffect(() => { loadTasks(); }, [loadTasks]);
 
   async function handleAddTask() {
-    if (!taskForm.title.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!taskForm.title.trim() || !activeCompanyId) return;
     setSavingTask(true);
     try {
       await createOnboardingTask(activeCompanyId, { ...taskForm, sortOrder: oTasks.length });
@@ -55,7 +55,7 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
     if (!confirm("Delete this onboarding task?")) return;
     try {
       await deleteOnboardingTask(id);
-      if (activeCompanyId && activeCompanyId !== "pending") setOTasks(await getOnboardingTasks(activeCompanyId));
+      if (activeCompanyId) setOTasks(await getOnboardingTasks(activeCompanyId));
     } catch (err) { console.error(err); }
   }
 

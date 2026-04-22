@@ -28,7 +28,7 @@ export default function LeavePoliciesSection({ companyId, initialPolicies }: Lea
   const [deletingPolicy, setDeletingPolicy] = useState<string | null>(null);
 
   async function handleAddPolicy() {
-    if (!policyName.trim() || !companyId || companyId === "pending") return;
+    if (!policyName.trim() || !companyId) return;
     setCreatingPolicy(true);
     try {
       await createTimeOffPolicy({ companyId, name: policyName.trim(), type: policyType });

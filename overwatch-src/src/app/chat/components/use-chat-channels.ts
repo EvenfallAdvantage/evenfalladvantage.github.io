@@ -54,7 +54,7 @@ export function useChatChannels() {
   const external = channels.filter((c: Channel) => parseExt(c.description)).map((c: Channel) => ({ ...c, meta: parseExt(c.description)! }));
 
   const loadChannels = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       setChannels(await getChatChannels(activeCompanyId));
       try { setUnread(await getUnreadCounts(activeCompanyId)); } catch (e) { logger.swallow("chat:load-unread", e, "debug"); }
@@ -146,7 +146,7 @@ export function useChatChannels() {
   }
 
   async function handleCreate() {
-    if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!newName.trim() || !activeCompanyId) return;
     setCreating(true);
     try {
       const avatarUrl = newAvatarUrl.trim() || undefined;
@@ -186,7 +186,7 @@ export function useChatChannels() {
   }
 
   async function handleAddExternal() {
-    if (!extName.trim() || !extUrl.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!extName.trim() || !extUrl.trim() || !activeCompanyId) return;
     setCreatingExt(true);
     try {
       const desc = JSON.stringify({ external: true, platform: extPlat, url: extUrl.trim() });

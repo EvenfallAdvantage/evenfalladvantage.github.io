@@ -67,7 +67,7 @@ export default function AcademyPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const companyReady = activeCompanyId && activeCompanyId !== "pending";
+      const companyReady = !!activeCompanyId;
       const owPromises = companyReady ? [
         getTrainingModules(activeCompanyId),
         getMyModuleProgress(activeCompanyId),

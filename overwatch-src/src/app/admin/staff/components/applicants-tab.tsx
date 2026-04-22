@@ -66,7 +66,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
   const [pullingAirtable, setPullingAirtable] = useState(false);
 
   const loadData = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       setApplicants(await getApplicants(activeCompanyId));
     } catch (e) { logger.swallow("applicants:load", e, "warn"); }
@@ -76,7 +76,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
   useEffect(() => { loadData(); }, [loadData]);
 
   async function handleAddApplicant() {
-    if (!appForm.firstName.trim() || !appForm.email.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!appForm.firstName.trim() || !appForm.email.trim() || !activeCompanyId) return;
     setSavingApp(true);
     try {
       // Upload files first if any
@@ -124,7 +124,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
     setUpdatingApp(id);
     try {
       await updateApplicantStatus(id, status);
-      if (status === "hired" && activeCompanyId && activeCompanyId !== "pending") {
+      if (status === "hired" && activeCompanyId) {
         try {
           await convertApplicantToUser(id, activeCompanyId);
           // Fire integration triggers (email, WhatsApp, Checkr, DocuSign)
@@ -151,7 +151,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
           }
         } catch (err) { console.error("Convert failed:", err); }
       }
-      if (activeCompanyId && activeCompanyId !== "pending") setApplicants(await getApplicants(activeCompanyId));
+      if (activeCompanyId) setApplicants(await getApplicants(activeCompanyId));
     } catch (err) { console.error(err); } finally { setUpdatingApp(null); }
   }
 
@@ -159,7 +159,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
     if (!confirm("Delete this applicant?")) return;
     try {
       await deleteApplicant(id);
-      if (activeCompanyId && activeCompanyId !== "pending") setApplicants(await getApplicants(activeCompanyId));
+      if (activeCompanyId) setApplicants(await getApplicants(activeCompanyId));
       toast.success("Applicant deleted");
     } catch (err) { console.error(err); toast.error("Failed to delete applicant"); }
   }
@@ -173,13 +173,13 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
       try { await deleteApplicant(id); deleted++; } catch { /* continue */ }
     }
     setSelected(new Set());
-    if (activeCompanyId && activeCompanyId !== "pending") setApplicants(await getApplicants(activeCompanyId));
+    if (activeCompanyId) setApplicants(await getApplicants(activeCompanyId));
     toast.success(`Deleted ${deleted} applicant${deleted > 1 ? "s" : ""}`);
     setBulkDeleting(false);
   }
 
   async function handleConvertAllHired() {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     const hired = applicants.filter((a: Applicant) => a.status === "hired" && !a.converted_user_id);
     if (hired.length === 0) { toast.info("No unconverted hired applicants"); return; }
     if (!confirm(`Convert ${hired.length} hired applicant${hired.length > 1 ? "s" : ""} to roster members?\n\nThis will create user accounts and add them to your team.`)) return;
@@ -567,7 +567,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
           onClose={() => setViewingApplicant(null)}
           onStatusChange={async (id, status) => {
             await handleAppStatus(id, status);
-            if (activeCompanyId && activeCompanyId !== "pending") {
+            if (activeCompanyId) {
               const updated = await getApplicants(activeCompanyId);
               setApplicants(updated);
               const fresh = updated.find((x: Applicant) => x.id === id);

@@ -39,8 +39,8 @@ export default function IncidentsPage() {
 
   useEffect(() => {
     setHeader(
-      "REPORTS",
-      "Incident reports, field reports, and documentation",
+      "INCIDENTS",
+      "Incident reports and field documentation",
       <AlertTriangle className="h-5 w-5" />,
       <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 w-full sm:w-auto">
         <Plus className="h-4 w-4" /> Report Incident
@@ -50,7 +50,7 @@ export default function IncidentsPage() {
   }, [setHeader, clearHeader, showCreate]);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     try {
       const [inc, mem, ts] = await Promise.all([
         getIncidents(activeCompanyId, filter),

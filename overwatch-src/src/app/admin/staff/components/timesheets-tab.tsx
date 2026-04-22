@@ -34,7 +34,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
   const [paychexResult, setPaychexResult] = useState<{ synced: number; errors: string[] } | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const ts = await getCompanyTimesheets(activeCompanyId);
       setTimesheets(ts.filter((t: Sheet) => t.clock_out));

@@ -103,7 +103,7 @@ export default function KnowledgeBasePage() {
   const [loadingReadStatus, setLoadingReadStatus] = useState(false);
 
   const loadFolders = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try { setFolders(await getKBFolders(activeCompanyId)); } catch (e) { logger.swallow("kb:load-folders", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
@@ -123,7 +123,7 @@ export default function KnowledgeBasePage() {
   }
 
   async function handleCreateFolder() {
-    if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!newName.trim() || !activeCompanyId) return;
     setCreating(true);
     try {
       await createKBFolder({ companyId: activeCompanyId, name: newName.trim() });
@@ -169,7 +169,7 @@ export default function KnowledgeBasePage() {
   }
 
   async function handleCreateDoc() {
-    if (!newDocTitle.trim() || !selectedFolder || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!newDocTitle.trim() || !selectedFolder || !activeCompanyId) return;
     setCreating(true);
     try {
       let fileUrl: string | undefined;
@@ -227,7 +227,7 @@ export default function KnowledgeBasePage() {
   }
 
   async function openReadStatus(d: Doc) {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     setReadStatusDoc(d);
     setLoadingReadStatus(true);
     try {

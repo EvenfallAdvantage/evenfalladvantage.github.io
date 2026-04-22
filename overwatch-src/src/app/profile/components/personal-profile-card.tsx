@@ -71,7 +71,7 @@ export function PersonalProfileCard({ user, onUserChange, mp, onMpChange, mpLoad
   }
 
   async function handleSaveCompany() {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     setSavingComp(true);
     try {
       await updateMemberProfile(activeCompanyId, compForm);

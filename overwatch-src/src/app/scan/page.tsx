@@ -83,7 +83,7 @@ export default function ScanPage() {
   const setHeader = usePageHeader((s) => s.setHeader);
 
   useEffect(() => {
-    setHeader("QR Scanner", "Scan staff badges to clock in/out");
+    setHeader("MASS CLOCK", "Scan badges for rapid clock in/out");
   }, [setHeader]);
 
   // Camera refs

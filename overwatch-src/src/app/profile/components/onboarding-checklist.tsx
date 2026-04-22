@@ -30,7 +30,7 @@ export function OnboardingChecklist({ mp, onMpChange, activeCompanyId, onboardin
   if (!isOnboarding || onboardingProgress.length === 0) return null;
 
   async function handleToggleOnboarding(taskId: string, completed: boolean) {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     setTogglingTask(taskId);
     try {
       await toggleOnboardingTask(taskId, completed);
@@ -40,7 +40,7 @@ export function OnboardingChecklist({ mp, onMpChange, activeCompanyId, onboardin
   }
 
   async function handleCompleteOnboarding() {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     try {
       await completeOnboarding(activeCompanyId);
       onMpChange(await getMemberProfile(activeCompanyId));

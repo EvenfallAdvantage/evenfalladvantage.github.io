@@ -31,7 +31,7 @@ export function PostingsTab({ activeCompanyId, canManage: _canManage, companyNam
   // We'll accept it via an extended approach — but for simplicity, we compute the careers URL from activeCompanyId.
 
   const loadData = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const [p, c] = await Promise.all([
         getCompanyPostings(activeCompanyId),

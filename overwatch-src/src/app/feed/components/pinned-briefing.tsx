@@ -29,7 +29,7 @@ export function PinnedBriefing({ activeCompanyId, userId }: PinnedBriefingProps)
   const [togglingReaction, setTogglingReaction] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     try {
       const p = await getPosts(activeCompanyId, 5);
       setPosts(p);

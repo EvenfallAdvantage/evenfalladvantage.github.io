@@ -1,242 +1,134 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { Command } from "cmdk";
 import {
-  LayoutDashboard, Radar, Radio, Users, Clock, AlertTriangle,
-  Footprints, CalendarDays, QrCode, ClipboardList, GraduationCap,
-  Target, MessageCircle, FileText, Shield, MapPin, Scale, BookOpen,
-  Video, Award, CalendarOff, BarChart3, Settings, HelpCircle,
-  Flag, UserCog, SlidersHorizontal, Building2, ShieldAlert, Activity,
-  Search, Command, ArrowRight,
+  LayoutDashboard, Radio, Users, Clock, AlertTriangle, CalendarDays,
+  School, BookOpen, MessageCircle, Scale, Video, Award,
+  MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
+  NotebookPen, GraduationCap, ShieldAlert, Activity, User,
+  Bell, Search, ScanLine, Settings,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useAuthStore } from "@/stores/auth-store";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 
-const ICON_MAP: Record<string, LucideIcon> = {
-  LayoutDashboard, Radar, Radio, Users, Clock, AlertTriangle,
-  Footprints, CalendarDays, QrCode, ClipboardList, GraduationCap,
-  Target, MessageCircle, FileText, Shield, MapPin, Scale, BookOpen,
-  Video, Award, CalendarOff, BarChart3, Settings, HelpCircle,
-  Flag, UserCog, SlidersHorizontal, Building2, ShieldAlert, Activity,
+const ICON_MAP: Record<string, React.ElementType> = {
+  LayoutDashboard, Radio, Users, Clock, AlertTriangle, CalendarDays,
+  School, BookOpen, MessageCircle, Scale, Video, Award,
+  MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
+  NotebookPen, GraduationCap, ShieldAlert, Activity, User,
+  Bell, Search, ScanLine, Settings,
 };
 
-type PaletteItem = {
-  title: string;
+interface CommandItem {
+  label: string;
   href: string;
   icon: string;
-  section: string;
-};
+  keywords?: string;
+  roles?: string[];
+}
 
-const ALL_ITEMS: PaletteItem[] = [
-  { title: "Dashboard", href: "/feed", icon: "LayoutDashboard", section: "Navigation" },
-  { title: "Briefing", href: "/updates", icon: "Radar", section: "Navigation" },
-  { title: "Comms", href: "/chat", icon: "Radio", section: "Comms" },
-  { title: "Roster", href: "/directory", icon: "Users", section: "Comms" },
-  { title: "Watch Log", href: "/timeclock", icon: "Clock", section: "Field Ops" },
-  { title: "Reports", href: "/incidents", icon: "ClipboardList", section: "Field Ops" },
-  { title: "Field Reports", href: "/forms", icon: "ClipboardList", section: "Field Ops" },
-  { title: "Patrols", href: "/patrols", icon: "Footprints", section: "Field Ops" },
-  { title: "Deployments", href: "/schedule", icon: "CalendarDays", section: "Field Ops" },
-  { title: "Armory", href: "/schedule", icon: "QrCode", section: "Field Ops" },
-  { title: "Academy", href: "/academy", icon: "GraduationCap", section: "Readiness" },
-  { title: "Field Manual", href: "/knowledge-base", icon: "BookOpen", section: "Readiness" },
-  { title: "De-Escalation", href: "/training/scenarios", icon: "MessageCircle", section: "Readiness" },
-  { title: "Courses", href: "/courses", icon: "BookOpen", section: "Readiness" },
-  { title: "Certifications", href: "/certifications", icon: "Award", section: "Readiness" },
-  { title: "Geo-Risk", href: "/geo-risk", icon: "MapPin", section: "Readiness" },
-  { title: "Site Assessment", href: "/site-assessment", icon: "Shield", section: "Readiness" },
-  { title: "State Laws", href: "/state-laws", icon: "Scale", section: "Readiness" },
-  { title: "Invoices", href: "/invoices", icon: "FileText", section: "Readiness" },
-  { title: "Leave", href: "/time-off", icon: "CalendarOff", section: "Readiness" },
-  { title: "Operations", href: "/admin/events", icon: "Flag", section: "Command" },
-  { title: "Personnel", href: "/admin/staff", icon: "UserCog", section: "Command" },
-  { title: "Training Admin", href: "/admin/training", icon: "SlidersHorizontal", section: "Command" },
-  { title: "Question Bank", href: "/admin/questions", icon: "HelpCircle", section: "Command" },
-  { title: "Intel Center", href: "/feed", icon: "Activity", section: "Command" },
-  { title: "Security", href: "/admin/security", icon: "ShieldAlert", section: "Command" },
-  { title: "Profile", href: "/profile", icon: "Users", section: "Account" },
-  { title: "My Settings", href: "/settings", icon: "Settings", section: "Account" },
-  { title: "HQ Config", href: "/admin/settings", icon: "Building2", section: "Account" },
-  { title: "Notifications", href: "/notifications", icon: "Radar", section: "Account" },
-  { title: "Join Company", href: "/join", icon: "Users", section: "Account" },
+const COMMANDS: CommandItem[] = [
+  // Core
+  { label: "Dashboard", href: "/feed", icon: "LayoutDashboard", keywords: "home feed" },
+  { label: "Comms", href: "/chat", icon: "Radio", keywords: "chat messages channels" },
+  { label: "Directory", href: "/directory", icon: "Users", keywords: "roster staff contacts" },
+  { label: "Watch Log", href: "/timeclock", icon: "Clock", keywords: "timeclock clock in out" },
+  { label: "Incidents", href: "/incidents", icon: "AlertTriangle", keywords: "reports incidents" },
+  { label: "Operations", href: "/schedule", icon: "CalendarDays", keywords: "schedule shifts" },
+  // Readiness
+  { label: "Academy Hub", href: "/academy", icon: "School", keywords: "training learning" },
+  { label: "Field Manual", href: "/knowledge-base", icon: "BookOpen", keywords: "sops protocols" },
+  { label: "De-Escalation", href: "/training/scenarios", icon: "MessageCircle", keywords: "scenarios conflict" },
+  { label: "State Laws", href: "/state-laws", icon: "Scale", keywords: "guard licensing" },
+  { label: "Courses", href: "/courses", icon: "Video", keywords: "training courses" },
+  { label: "Certifications", href: "/certifications", icon: "Award", keywords: "certs credentials" },
+  { label: "Geo-Risk", href: "/geo-risk", icon: "MapPin", keywords: "crime data risk" },
+  { label: "Site Assessment", href: "/site-assessment", icon: "ClipboardCheck", keywords: "security evaluation" },
+  { label: "Invoices", href: "/invoices", icon: "FileText", keywords: "billing invoice" },
+  { label: "Leave", href: "/time-off", icon: "CalendarOff", keywords: "time off vacation pto" },
+  { label: "Forms", href: "/forms", icon: "FileText", keywords: "forms submissions reports" },
+  { label: "Patrols", href: "/patrols", icon: "ScanLine", keywords: "checkpoints routes" },
+  // Profile
+  { label: "Profile", href: "/profile", icon: "User", keywords: "my profile account" },
+  { label: "Notifications", href: "/notifications", icon: "Bell", keywords: "alerts updates" },
+  // Command (manager+)
+  { label: "Ops Planning", href: "/admin/events", icon: "Flag", keywords: "operations events planning", roles: ["owner", "admin", "manager"] },
+  { label: "Personnel", href: "/admin/staff", icon: "UserCog", keywords: "staff management hr", roles: ["owner", "admin", "manager"] },
+  { label: "Training Admin", href: "/admin/training", icon: "NotebookPen", keywords: "modules slides", roles: ["owner", "admin", "manager"] },
+  { label: "HQ Config", href: "/admin/settings", icon: "Settings", keywords: "settings company organization", roles: ["owner", "admin"] },
+  { label: "Mass Clock", href: "/scan", icon: "ScanLine", keywords: "qr scanner badge", roles: ["owner", "admin", "manager"] },
 ];
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const role = activeCompany?.role;
 
-  const filtered = query.trim()
-    ? ALL_ITEMS.filter(
-        (item) =>
-          item.title.toLowerCase().includes(query.toLowerCase()) ||
-          item.section.toLowerCase().includes(query.toLowerCase()) ||
-          item.href.toLowerCase().includes(query.toLowerCase())
-      )
-    : ALL_ITEMS;
-
-  const openPalette = useCallback(() => {
-    setOpen(true);
-    setQuery("");
-    setSelectedIndex(0);
-  }, []);
-
-  const closePalette = useCallback(() => {
-    setOpen(false);
-    setQuery("");
-  }, []);
-
-  const navigate = useCallback(
-    (href: string) => {
-      closePalette();
-      router.push(href);
-    },
-    [closePalette, router]
-  );
-
-  // Keyboard shortcut: Ctrl+K or Cmd+K
+  // Keyboard shortcut: Cmd+K or Ctrl+K
   useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
+    const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        if (open) closePalette();
-        else openPalette();
+        setOpen((prev) => !prev);
       }
-      if (e.key === "Escape" && open) {
-        closePalette();
-      }
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, openPalette, closePalette]);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
-  // Focus input when opened
-  useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 50);
-  }, [open]);
+  const handleSelect = useCallback(
+    (href: string) => {
+      setOpen(false);
+      router.push(href);
+    },
+    [router]
+  );
 
-  // Reset selection on query change
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
-  // Scroll selected item into view
-  useEffect(() => {
-    if (!listRef.current) return;
-    const items = listRef.current.querySelectorAll("[data-palette-item]");
-    items[selectedIndex]?.scrollIntoView({ block: "nearest" });
-  }, [selectedIndex]);
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" && filtered[selectedIndex]) {
-      e.preventDefault();
-      navigate(filtered[selectedIndex].href);
-    }
-  }
-
-  if (!open) return null;
-
-  // Group by section
-  const sections: Record<string, PaletteItem[]> = {};
-  filtered.forEach((item) => {
-    if (!sections[item.section]) sections[item.section] = [];
-    sections[item.section].push(item);
+  const filteredCommands = COMMANDS.filter((cmd) => {
+    if (!cmd.roles) return true;
+    return role && hasMinRole(role as CompanyRole, cmd.roles[cmd.roles.length - 1] as CompanyRole);
   });
 
-  let globalIndex = -1;
-
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm" onClick={closePalette} />
-
-      {/* Palette */}
-      <div className="fixed inset-0 z-[101] flex items-start justify-center pt-[15vh] px-4">
-        <div className="w-full max-w-lg rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden">
-          {/* Search */}
-          <div className="flex items-center gap-3 border-b border-border/50 px-4 py-3">
-            <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search pages, tools, commands..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="p-0 gap-0 max-w-lg overflow-hidden">
+        <Command className="rounded-lg" loop>
+          <div className="flex items-center border-b border-border/50 px-3">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground mr-2" />
+            <Command.Input
+              placeholder="Search pages..."
+              className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             />
-            <kbd className="hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-border/60 bg-muted px-1.5 text-[10px] font-mono text-muted-foreground">
-              ESC
-            </kbd>
           </div>
-
-          {/* Results */}
-          <div ref={listRef} className="max-h-[50vh] overflow-y-auto p-2">
-            {filtered.length === 0 ? (
-              <div className="py-8 text-center text-sm text-muted-foreground">
-                No results for &ldquo;{query}&rdquo;
-              </div>
-            ) : (
-              Object.entries(sections).map(([section, items]) => (
-                <div key={section} className="mb-1">
-                  <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                    {section}
-                  </p>
-                  {items.map((item) => {
-                    globalIndex++;
-                    const idx = globalIndex;
-                    const Icon = ICON_MAP[item.icon] || Command;
-                    const isSelected = idx === selectedIndex;
-                    return (
-                      <button
-                        key={item.href}
-                        data-palette-item
-                        onClick={() => navigate(item.href)}
-                        onMouseEnter={() => setSelectedIndex(idx)}
-                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                          isSelected ? "bg-primary/10 text-primary" : "text-foreground hover:bg-accent"
-                        }`}
-                      >
-                        <Icon className="h-4 w-4 shrink-0" />
-                        <span className="flex-1 text-left font-medium">{item.title}</span>
-                        {isSelected && <ArrowRight className="h-3 w-3 text-primary" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))
-            )}
+          <Command.List className="max-h-[300px] overflow-y-auto p-2">
+            <Command.Empty className="py-6 text-center text-sm text-muted-foreground">
+              No results found.
+            </Command.Empty>
+            {filteredCommands.map((cmd) => {
+              const Icon = ICON_MAP[cmd.icon] ?? LayoutDashboard;
+              return (
+                <Command.Item
+                  key={cmd.href}
+                  value={`${cmd.label} ${cmd.keywords ?? ""}`}
+                  onSelect={() => handleSelect(cmd.href)}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm cursor-pointer data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
+                >
+                  <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-medium">{cmd.label}</span>
+                </Command.Item>
+              );
+            })}
+          </Command.List>
+          <div className="border-t border-border/50 px-3 py-2 text-[10px] text-muted-foreground/60 flex items-center justify-between">
+            <span>Navigate with <kbd className="rounded border border-border/50 px-1">↑↓</kbd> keys</span>
+            <span><kbd className="rounded border border-border/50 px-1">↵</kbd> to open</span>
           </div>
-
-          {/* Footer */}
-          <div className="border-t border-border/50 px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <kbd className="inline-flex h-4 items-center rounded border border-border/60 bg-muted px-1 text-[9px] font-mono">↑↓</kbd>
-                navigate
-              </span>
-              <span className="flex items-center gap-1">
-                <kbd className="inline-flex h-4 items-center rounded border border-border/60 bg-muted px-1 text-[9px] font-mono">↵</kbd>
-                select
-              </span>
-              <span className="flex items-center gap-1">
-                <kbd className="inline-flex h-4 items-center rounded border border-border/60 bg-muted px-1 text-[9px] font-mono">esc</kbd>
-                close
-              </span>
-            </div>
-            <span className="text-[9px] text-muted-foreground/50 font-mono">OVERWATCH</span>
-          </div>
-        </div>
-      </div>
-    </>
+        </Command>
+      </DialogContent>
+    </Dialog>
   );
 }

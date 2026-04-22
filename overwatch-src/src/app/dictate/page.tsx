@@ -27,7 +27,7 @@ export default function DictatePage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("REPORTS", "Incident reports, field reports, and documentation", <Mic className="h-5 w-5" />);
+    setHeader("DICTATION", "Voice-to-text report dictation", <Mic className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
@@ -51,7 +51,7 @@ export default function DictatePage() {
   }, [transcript, interimText]);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const inc = await getIncidents(activeCompanyId, "all");
       setIncidents(inc);

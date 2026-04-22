@@ -20,7 +20,7 @@ function ErrorLogList({ companyId }: { companyId: string }) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!companyId || companyId === "pending") return;
+    if (!companyId) return;
     import("@/lib/error-tracker").then(({ getErrorLogs }) => {
       getErrorLogs(companyId, 30).then(setLogs).catch(() => {}).finally(() => setLoading(false));
     });

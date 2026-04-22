@@ -24,7 +24,7 @@ export function StaffProgressTab({ activeCompanyId, modules }: StaffProgressTabP
   const [progressLoading, setProgressLoading] = useState(false);
 
   const loadProgress = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     setProgressLoading(true);
     try {
       const [s, p, q] = await Promise.all([

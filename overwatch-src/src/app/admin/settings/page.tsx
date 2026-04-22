@@ -46,7 +46,7 @@ export default function AdminSettingsPage() {
   const [integrations, setIntegrations] = useState<IntConfig[]>([]);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     try {
       const [c, p] = await Promise.all([
         getCompanyDetails(activeCompanyId),

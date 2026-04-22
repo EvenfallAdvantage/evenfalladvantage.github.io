@@ -57,7 +57,7 @@ export function QuestionBankTab({ activeCompanyId, modules, showNewQ, setShowNew
   const [editQSaving, setEditQSaving] = useState(false);
 
   const loadQuestions = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     setQLoading(true);
     try {
       const [qs, cats] = await Promise.all([

@@ -63,7 +63,7 @@ export default function CompanyProfileSection({
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
   async function handleSave() {
-    if (!companyId || companyId === "pending") return;
+    if (!companyId) return;
     setSaving(true);
     try {
       await updateCompany(companyId, { name, brandColor, accentColor, timezone, logoUrl: logoUrl || undefined, websiteUrl: websiteUrl || undefined });
@@ -108,7 +108,7 @@ export default function CompanyProfileSection({
                 className="hidden"
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
-                  if (!file || !companyId || companyId === "pending") return;
+                  if (!file || !companyId) return;
                   setUploadingLogo(true);
                   try {
                     const url = await uploadCompanyLogo(file, companyId);

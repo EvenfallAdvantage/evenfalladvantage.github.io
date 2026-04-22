@@ -24,7 +24,7 @@ export function CorrectionsTab({ activeCompanyId, canManage }: CorrectionsTabPro
   const [reviewingTCR, setReviewingTCR] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       setTimeChangeReqs(await getCompanyTimeChangeRequests(activeCompanyId));
     } catch (e) { logger.swallow("corrections:load", e, "warn"); }

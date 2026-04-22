@@ -42,7 +42,7 @@ export default function AdminEventsPage() {
 
   useEffect(() => {
     setHeader(
-      "PLANNING",
+      "OPS PLANNING",
       "Plan and manage security operations",
       <Flag className="h-5 w-5" />,
       <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
@@ -72,7 +72,7 @@ export default function AdminEventsPage() {
   /* ── Data ── */
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const [evts, co] = await Promise.all([
         getEvents(activeCompanyId),
@@ -153,7 +153,7 @@ export default function AdminEventsPage() {
     <>
       <div className="space-y-6">
         {/* ── CREATE WIZARD ── */}
-        {showCreate && activeCompanyId && activeCompanyId !== "pending" && (
+        {showCreate && activeCompanyId && (
           <CreateWizard
             activeCompanyId={activeCompanyId}
             companyName={companyName}
@@ -254,7 +254,7 @@ export default function AdminEventsPage() {
                   </div>
 
                   {/* ── Expanded Operation Detail ── */}
-                  {isExp && activeCompanyId && activeCompanyId !== "pending" && (
+                  {isExp && activeCompanyId && (
                     <OperationDetail
                       event={ev}
                       activeCompanyId={activeCompanyId}

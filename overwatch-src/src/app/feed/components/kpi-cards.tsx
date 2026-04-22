@@ -18,7 +18,7 @@ export function KpiCards({ activeCompanyId }: KpiCardsProps) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
 
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     let cancelled = false;
     getDashboardMetrics(activeCompanyId).then((m) => {
       if (!cancelled) setMetrics(m);

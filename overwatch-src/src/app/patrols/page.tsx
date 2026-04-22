@@ -51,7 +51,7 @@ export default function PatrolsPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("WATCH LOG", "Clock in/out and track your duty hours", <Footprints className="h-5 w-5" />);
+    setHeader("PATROLS", "Patrol routes, checkpoints, and scan logs", <Footprints className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
@@ -87,7 +87,7 @@ export default function PatrolsPage() {
   const [rtCheckpoints, setRtCheckpoints] = useState<string[]>([]);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     try {
       const [cp, rt, lg] = await Promise.all([
         getCheckpoints(activeCompanyId),

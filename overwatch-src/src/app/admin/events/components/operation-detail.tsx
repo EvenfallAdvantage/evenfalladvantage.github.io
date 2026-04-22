@@ -168,7 +168,7 @@ export function OperationDetail({
 
   function handleStoryboardPinsChange(newPins: StoryboardPin[]) {
     setStoryboardPins(newPins);
-    if (activeCompanyId && activeCompanyId !== "pending") {
+    if (activeCompanyId) {
       if (window.__sbSaveTimer) clearTimeout(window.__sbSaveTimer);
       window.__sbSaveTimer = setTimeout(async () => {
         try {

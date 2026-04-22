@@ -62,7 +62,7 @@ export default function QuestionBankPage() {
   const [editSaving, setEditSaving] = useState(false);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const [qs, mods, cats] = await Promise.all([
         getAssessmentQuestions(activeCompanyId, {

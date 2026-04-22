@@ -31,7 +31,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
   const [ownerIntel, setOwnerIntel] = useState<OwnerIntel | null>(null);
 
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     let cancelled = false;
     Promise.all([getCompanyStats(activeCompanyId), getIntelData(activeCompanyId)])
       .then(async ([cs, id]) => {

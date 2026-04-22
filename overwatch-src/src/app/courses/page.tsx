@@ -141,7 +141,7 @@ function CoursesContent() {
           courseTitle: course.title,
           priceInCents: Math.round(course.price * 100),
           userId: user?.id || "",
-          companyId: activeCompanyId && activeCompanyId !== "pending" ? activeCompanyId : "",
+          companyId: activeCompanyId ?? "",
         }),
       });
       const data = await res.json();

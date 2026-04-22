@@ -26,7 +26,7 @@ export function NotificationPreferencesCard({ mp, onMpChange, activeCompanyId }:
           <span className="text-xs">Mute all notifications</span>
           <button
             onClick={async () => {
-              if (!activeCompanyId || activeCompanyId === "pending") return;
+              if (!activeCompanyId) return;
               const next = !mp.notifications_muted;
               try {
                 await updateMemberProfile(activeCompanyId, { notificationsMuted: next });
@@ -45,7 +45,7 @@ export function NotificationPreferencesCard({ mp, onMpChange, activeCompanyId }:
           </div>
           <button
             onClick={async () => {
-              if (!activeCompanyId || activeCompanyId === "pending") return;
+              if (!activeCompanyId) return;
               const next = !(mp.location_sharing ?? true);
               try {
                 await updateMemberProfile(activeCompanyId, { locationSharing: next });
@@ -66,7 +66,7 @@ export function NotificationPreferencesCard({ mp, onMpChange, activeCompanyId }:
                 <button
                   key={day}
                   onClick={async () => {
-                    if (!activeCompanyId || activeCompanyId === "pending") return;
+                    if (!activeCompanyId) return;
                     const next = active
                       ? (mp.notification_days ?? []).filter((d: string) => d !== day)
                       : [...(mp.notification_days ?? []), day];

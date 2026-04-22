@@ -20,7 +20,7 @@ export default function DirectoryPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("ROSTER", "Personnel directory and contact info", <Users className="h-5 w-5" />);
+    setHeader("DIRECTORY", "Personnel directory and contact info", <Users className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
@@ -29,7 +29,7 @@ export default function DirectoryPage() {
   const [selected, setSelected] = useState<Member | null>(null);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     try {
       const data = await getCompanyMembers(activeCompanyId);
       setMembers(data as unknown as Member[]);
@@ -40,7 +40,7 @@ export default function DirectoryPage() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     getCompanyMembers(activeCompanyId).then((data) => {
       if (!cancelled) setMembers(data as unknown as Member[]);
     }).catch(() => {});
@@ -49,7 +49,7 @@ export default function DirectoryPage() {
 
   // Realtime — roster updates when members join/leave/change roles
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     const supabase = createClient();
     const channel = supabase
       .channel(`directory-${activeCompanyId}`)

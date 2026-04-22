@@ -52,7 +52,7 @@ export default function QuizzesPage() {
   const [importing, setImporting] = useState(false);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const [q, m] = await Promise.all([getQuizzes(activeCompanyId), getTrainingModules(activeCompanyId)]);
       setQuizzes(q); setModules(m as TrainingModule[]);
@@ -62,7 +62,7 @@ export default function QuizzesPage() {
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
-    if (!newTitle.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!newTitle.trim() || !activeCompanyId) return;
     setCreating(true);
     try {
       await createQuiz({ companyId: activeCompanyId, title: newTitle.trim(), description: newDesc.trim() || undefined, passingScore: parseInt(newPassScore) || 70, moduleId: newModuleId || undefined });
@@ -96,7 +96,7 @@ export default function QuizzesPage() {
   }
 
   async function openImportPanel() {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     setShowImport(true);
     setLoadingBank(true);
     setSelectedBankIds(new Set());

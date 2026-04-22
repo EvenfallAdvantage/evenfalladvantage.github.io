@@ -17,7 +17,7 @@ export function UpcomingShift({ activeCompanyId }: UpcomingShiftProps) {
   const [now] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     let cancelled = false;
     getUserShifts(activeCompanyId).then((allShifts) => {
       if (cancelled) return;

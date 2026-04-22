@@ -28,7 +28,7 @@ export function OnboardingBanner({ user }: OnboardingBannerProps) {
   const showBanner =
     !user.companies ||
     user.companies.length === 0 ||
-    (user.companies.length === 1 && user.companies[0].companyId === "pending");
+    (user.companies.length === 1 && !user.companies[0].companyId);
 
   async function handleCreateCompany() {
     if (!newCoName.trim() || !user.id) return;

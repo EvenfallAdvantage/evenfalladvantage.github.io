@@ -88,7 +88,7 @@ export default function SchedulePage() {
   }, [setHeader, clearHeader, tab, isAdmin]);
 
   const loadSchedule = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const [ev, sh] = await Promise.all([
         getUpcomingEvents(activeCompanyId),
@@ -100,7 +100,7 @@ export default function SchedulePage() {
   }, [activeCompanyId]);
 
   const loadAssets = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setAssetsLoading(false); return; }
+    if (!activeCompanyId) { setAssetsLoading(false); return; }
     try { setAssets(await getAssets(activeCompanyId)); } catch (e) { logger.swallow("schedule:load-assets", e, "debug"); } finally { setAssetsLoading(false); }
   }, [activeCompanyId]);
 
@@ -108,7 +108,7 @@ export default function SchedulePage() {
 
   // ─── Map Tab: load operation pins, staff locations, incidents ────
   const loadMapData = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending" || tab !== "map") return;
+    if (!activeCompanyId || tab !== "map") return;
     try {
       const ops: OperationPin[] = events
         .filter((ev: Ev) => ev.location_lat && ev.location_lng)
@@ -154,7 +154,7 @@ export default function SchedulePage() {
 
   // Subscribe to real-time staff location updates when map tab is active
   useEffect(() => {
-    if (tab !== "map" || !activeCompanyId || activeCompanyId === "pending") return;
+    if (tab !== "map" || !activeCompanyId) return;
     const refreshStaff = () => {
       getStaffLocations(activeCompanyId).then((locs) => {
         setMapStaff(locs.map((s: { userId: string; name: string; lat: number; lng: number; heading: number | null; speed: number | null; updatedAt: string }) => ({
@@ -203,7 +203,7 @@ export default function SchedulePage() {
 
   // ─── Armory handlers ────
   async function handleCreateAsset() {
-    if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!newName.trim() || !activeCompanyId) return;
     setCreating(true);
     try {
       await createAsset({ companyId: activeCompanyId, name: newName.trim(), assetType: newType || undefined, serialNumber: newSerial || undefined });
@@ -227,7 +227,7 @@ export default function SchedulePage() {
   }
 
   async function handleSendReminders() {
-    if (!activeCompanyId || activeCompanyId === "pending" || !shifts.length) return;
+    if (!activeCompanyId || !shifts.length) return;
     setSendingReminders(true);
     try {
       const { dispatch } = await import("@/lib/services/notification-dispatcher");
@@ -273,7 +273,7 @@ export default function SchedulePage() {
 
   async function handleCheckinoutScan(value: string) {
     setScanMode(null);
-    if (!activeCompanyId || activeCompanyId === "pending") {
+    if (!activeCompanyId) {
       setScanResult({ type: "error", message: "No active company." });
       setTimeout(() => setScanResult(null), 4000); return;
     }

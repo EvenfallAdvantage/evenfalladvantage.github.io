@@ -65,7 +65,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
   const [editFormSubData, setEditFormSubData] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const [forms, incs] = await Promise.all([
         getAllFormSubmissions(activeCompanyId),

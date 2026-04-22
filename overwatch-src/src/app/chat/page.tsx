@@ -95,7 +95,7 @@ export default function ChatPage() {
       )}
 
       {/* ────────── MESSAGES (DM) TAB ────────── */}
-      {tab === "messages" && activeCompanyId && activeCompanyId !== "pending" && (
+      {tab === "messages" && activeCompanyId && (
         <DirectMessages companyId={activeCompanyId} initialUserId={dmUserId} />
       )}
 

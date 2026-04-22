@@ -196,7 +196,7 @@ export default function CertificationsPage() {
         issuedBy: issuedBy.trim() || undefined,
         documentUrl,
         category,
-        companyId: activeCompanyId && activeCompanyId !== "pending" ? activeCompanyId : undefined,
+        companyId: activeCompanyId ?? undefined,
         certificateNumber: `CERT-${Date.now().toString(36).toUpperCase()}`,
         verificationCode: crypto.randomUUID().split("-").slice(0, 2).join("").toUpperCase(),
       });

@@ -11,14 +11,14 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: "Dashboard", href: "/feed", icon: "LayoutDashboard" },
       { title: "Comms", href: "/chat", icon: "Radio" },
-      { title: "Roster", href: "/directory", icon: "Users" },
+      { title: "Directory", href: "/directory", icon: "Users" },
     ],
   },
   {
     label: "Field Ops",
     items: [
       { title: "Watch Log", href: "/timeclock", icon: "Clock" },
-      { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
+      { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
       { title: "Operations", href: "/schedule", icon: "CalendarDays" },
     ],
   },
@@ -55,7 +55,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Command",
     items: [
       {
-        title: "Planning",
+        title: "Ops Planning",
         href: "/admin/events",
         icon: "Flag",
         roles: ["owner", "admin", "manager"],
@@ -97,7 +97,7 @@ export const NAV_SECTIONS: NavSection[] = [
 
 export const MOBILE_NAV_ITEMS: NavItem[] = [
   { title: "Watch", href: "/timeclock", icon: "Clock" },
-  { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
+  { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
   { title: "Home", href: "/feed", icon: "LayoutDashboard" },
   { title: "Comms", href: "/chat", icon: "Radio" },
   { title: "More", href: "/more", icon: "Menu" },

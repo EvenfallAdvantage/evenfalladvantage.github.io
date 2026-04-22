@@ -56,7 +56,7 @@ export default function TimeOffPage() {
     try {
       const reqs = await getTimeOffRequests();
       setRequests(reqs);
-      if (activeCompanyId && activeCompanyId !== "pending") {
+      if (activeCompanyId) {
         setPolicies(await getTimeOffPolicies(activeCompanyId));
         if (isAdmin) {
           setAllRequests(await getAllTimeOffRequests(activeCompanyId));

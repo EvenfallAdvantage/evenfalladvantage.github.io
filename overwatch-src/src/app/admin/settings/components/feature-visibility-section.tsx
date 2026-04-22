@@ -20,7 +20,7 @@ export default function FeatureVisibilitySection({ companyId, initialHiddenTabs 
   const [savedTabs, setSavedTabs] = useState(false);
 
   async function handleSave() {
-    if (!companyId || companyId === "pending") return;
+    if (!companyId) return;
     setSavingTabs(true);
     try {
       await updateCompanySettings(companyId, { hiddenTabs });

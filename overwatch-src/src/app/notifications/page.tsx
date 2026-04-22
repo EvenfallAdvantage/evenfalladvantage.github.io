@@ -45,7 +45,7 @@ export default function NotificationsPage() {
   const [markingAll, setMarkingAll] = useState(false);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try { setNotifications(await getNotifications(activeCompanyId)); }
     catch (e) { logger.swallow("notifications:load", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
@@ -54,7 +54,7 @@ export default function NotificationsPage() {
 
   // Realtime subscription — new notifications appear automatically
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     const supabase = createClient();
     const channel = supabase
       .channel(`notifications-${activeCompanyId}`)
@@ -77,7 +77,7 @@ export default function NotificationsPage() {
   }
 
   async function handleMarkAll() {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     setMarkingAll(true);
     try {
       await markAllNotificationsRead(activeCompanyId);

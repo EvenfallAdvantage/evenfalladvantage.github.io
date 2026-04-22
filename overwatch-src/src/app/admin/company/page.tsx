@@ -21,7 +21,7 @@ export default function CompanySettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     getCompanyDetails(activeCompanyId).then((company) => {
       if (company?.settings) {
         const s = company.settings as { hiddenTabs?: string[] };
@@ -38,7 +38,7 @@ export default function CompanySettingsPage() {
   }
 
   async function handleSave() {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     setSaving(true);
     try {
       await updateCompanySettings(activeCompanyId, { hiddenTabs });

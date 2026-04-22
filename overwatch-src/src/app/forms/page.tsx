@@ -52,8 +52,8 @@ export default function FormsPage() {
 
   useEffect(() => {
     setHeader(
-      "REPORTS",
-      "Incident reports, field reports, and documentation",
+      "FORMS",
+      "Field reports, submissions, and documentation",
       <ClipboardList className="h-5 w-5" />,
       isAdmin ? (
         <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 w-full sm:w-auto">
@@ -86,7 +86,7 @@ export default function FormsPage() {
   const [editFormData, setEditFormData] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const [f, ts] = await Promise.all([getForms(activeCompanyId), getActiveTimesheet()]);
       setForms(f);
@@ -99,7 +99,7 @@ export default function FormsPage() {
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
-    if (!newName.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!newName.trim() || !activeCompanyId) return;
     setCreating(true);
     try {
       await createForm({ companyId: activeCompanyId, name: newName.trim(), description: newDesc.trim() || undefined });

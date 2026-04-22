@@ -121,7 +121,7 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
   }, [initialAssessment]);
 
   async function handleCreate() {
-    if (!name.trim() || !startDate || !endDate || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!name.trim() || !startDate || !endDate || !activeCompanyId) return;
     setCreating(true);
     try {
       const eventId = crypto.randomUUID();

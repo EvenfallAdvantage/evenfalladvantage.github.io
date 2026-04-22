@@ -42,7 +42,7 @@ export default function ProfilePage() {
 
   // Load member profile + onboarding progress
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending" || mpLoaded) return;
+    if (!activeCompanyId || mpLoaded) return;
     (async () => {
       try {
         const profile = await getMemberProfile(activeCompanyId);
@@ -116,7 +116,7 @@ export default function ProfilePage() {
               />
             )}
 
-            {activeCompanyId && activeCompanyId !== "pending" && (
+            {activeCompanyId && (
               <PayStubCard activeCompanyId={activeCompanyId} />
             )}
 

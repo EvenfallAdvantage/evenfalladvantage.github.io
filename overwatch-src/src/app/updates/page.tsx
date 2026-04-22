@@ -56,7 +56,7 @@ export default function UpdatesPage() {
   const [externalCount, setExternalCount] = useState(0);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       const [postsData, channelsData] = await Promise.all([
         getPosts(activeCompanyId),
@@ -91,7 +91,7 @@ export default function UpdatesPage() {
 
   // Realtime — new posts from teammates appear automatically
   useEffect(() => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     const supabase = createClient();
     const channel = supabase
       .channel(`posts-${activeCompanyId}`)
@@ -106,7 +106,7 @@ export default function UpdatesPage() {
   }, [activeCompanyId, load]);
 
   async function handlePost(data: { title: string; content: string; imageUrl: string; linkUrl: string; postType: string }) {
-    if (!data.content.trim() || !activeCompanyId || activeCompanyId === "pending") return;
+    if (!data.content.trim() || !activeCompanyId) return;
     setPosting(true);
     try {
       await createPost({

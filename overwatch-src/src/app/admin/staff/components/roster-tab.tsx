@@ -88,7 +88,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
 
   // Load badges and readiness
   const loadInternalData = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") return;
+    if (!activeCompanyId) return;
     try {
       const bList = await getCompanyBadges(activeCompanyId);
       const bMap: Record<string, StaffBadge> = {};
@@ -183,7 +183,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
   }
 
   async function handleImport() {
-    if (!activeCompanyId || activeCompanyId === "pending" || importPreview.length === 0) return;
+    if (!activeCompanyId || importPreview.length === 0) return;
     setImporting(true);
     try {
       const result = await bulkCreateApplicants(activeCompanyId, importPreview);

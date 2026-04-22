@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/auth-provider";
 import { SecurityProvider } from "@/components/security-provider";
 import BrandThemeProvider from "@/components/brand-theme-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { CommandPalette } from "@/components/command-palette";
 import { installGlobalErrorHandlers } from "@/lib/error-tracker";
 import { useAuthStore } from "@/stores/auth-store";
 import { logger } from "@/lib/logger";
@@ -45,6 +46,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <TooltipProvider delay={0}>
             {children}
             <Toaster richColors position="top-right" />
+            <CommandPalette />
             <PwaInstallPrompt />
           </TooltipProvider>
         </SecurityProvider>

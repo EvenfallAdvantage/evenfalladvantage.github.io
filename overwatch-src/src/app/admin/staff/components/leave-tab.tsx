@@ -30,7 +30,7 @@ export function LeaveTab({ activeCompanyId, canManage, members }: LeaveTabProps)
   const [leaveFilter, setLeaveFilter] = useState<"pending" | "all">("pending");
 
   const loadData = useCallback(async () => {
-    if (!activeCompanyId || activeCompanyId === "pending") { setLoading(false); return; }
+    if (!activeCompanyId) { setLoading(false); return; }
     try {
       setLeaveRequests(await getAllTimeOffRequests(activeCompanyId));
     } catch (e) { logger.swallow("leave:load", e, "warn"); }
