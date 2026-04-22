@@ -106,6 +106,26 @@ export function useCesiumLayers(params: {
     if (buildings?.[0]) buildings[0].show = layers.buildings;
   }, [layers.buildings, entityGroupsRef]);
 
+  // ─── 3D Terrain Toggle ──────────────────────────────
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+    if (layers.terrain) {
+      // Enable world terrain with normals + water mask
+      viewer.scene.setTerrain(Cesium.Terrain.fromWorldTerrain({
+        requestVertexNormals: true,
+        requestWaterMask: true,
+      }));
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+    } else {
+      // Flat ellipsoid (no terrain)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      viewer.terrainProvider = new (Cesium as any).EllipsoidTerrainProvider();
+      viewer.scene.globe.depthTestAgainstTerrain = false;
+    }
+  }, [layers.terrain, loading, viewerRef, cesiumRef]);
+
   // ─── Load saved bounds from DB when site maps are toggled ────
   useEffect(() => {
     operations.forEach((op) => {
@@ -262,6 +282,7 @@ export function useCesiumLayers(params: {
               pixelOffset: new Cesium.Cartesian2(0, -32),
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 100000),
             },
             description: desc,
           });

@@ -58,7 +58,7 @@ export function useOperationsLayer(params: {
           pixelOffset: new Cesium.Cartesian2(0, -40),
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
           disableDepthTestDistance: Number.POSITIVE_INFINITY,
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
+          // Operations labels always visible — key info at any zoom level
         },
         description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">
           <b>${escapeHtml(op.name)}</b>

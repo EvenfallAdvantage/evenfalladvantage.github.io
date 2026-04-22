@@ -48,9 +48,9 @@ export function useS2IntelLayer({
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
-    if (!viewer || !Cesium || loading || !enabled) return;
+    if (!viewer || !Cesium || loading) return;
 
-    // Remove previous data source if it exists
+    // Always clean up previous data source first
     if (dataSourceRef.current) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,6 +59,9 @@ export function useS2IntelLayer({
       dataSourceRef.current = null;
     }
     entityGroupsRef.current.s2Intel = [];
+
+    // If disabled, just clean up and return
+    if (!enabled) return;
 
     let cancelled = false;
 
@@ -80,8 +83,33 @@ export function useS2IntelLayer({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ds = new (Cesium as any).CustomDataSource("s2-intel");
       ds.clustering.enabled = true;
-      ds.clustering.pixelRange = 40;
+      ds.clustering.pixelRange = 45;
       ds.clustering.minimumClusterSize = 3;
+
+      // Style cluster labels: smaller, styled, visible above terrain
+      ds.clustering.clusterEvent.addEventListener(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (entities: any[], cluster: { label: any; billboard: any; point: any }) => {
+          cluster.label.show = true;
+          cluster.label.text = String(entities.length);
+          cluster.label.font = "bold 12px monospace";
+          cluster.label.fillColor = Cesium.Color.WHITE;
+          cluster.label.outlineColor = Cesium.Color.BLACK;
+          cluster.label.outlineWidth = 3;
+          cluster.label.style = Cesium.LabelStyle.FILL_AND_OUTLINE;
+          cluster.label.disableDepthTestDistance = Number.POSITIVE_INFINITY;
+          cluster.label.pixelOffset = new Cesium.Cartesian2(0, -2);
+          // Use a small colored circle as the cluster background
+          cluster.point.show = true;
+          cluster.point.pixelSize = Math.min(14 + entities.length * 0.3, 24);
+          cluster.point.color = Cesium.Color.fromCssColorString("#ef4444").withAlpha(0.85);
+          cluster.point.outlineColor = Cesium.Color.WHITE;
+          cluster.point.outlineWidth = 1.5;
+          cluster.point.disableDepthTestDistance = Number.POSITIVE_INFINITY;
+          // Hide the default billboard
+          cluster.billboard.show = false;
+        }
+      );
 
       const allEntities: { id: string }[] = [];
       let totalFeatures = 0;

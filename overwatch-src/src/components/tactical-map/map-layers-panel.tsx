@@ -167,36 +167,33 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
                     </button>
                   );
                 })}
+                {/* S2 sub-layer feeds — inline under INTELLIGENCE group */}
+                {group === "INTELLIGENCE" && layers.s2Intel && s2ActiveLayers && onToggleS2Layer && (
+                  <div className="ml-3 mt-1 mb-1 space-y-0.5 border-l border-white/10 pl-2">
+                    <p className="text-[8px] font-mono text-white/25 uppercase tracking-wider">
+                      Feeds {s2FeatureCount ? `(${s2FeatureCount})` : ""}
+                    </p>
+                    {S2_LAYERS.map((sl: S2Layer) => {
+                      const active = s2ActiveLayers.has(sl.id);
+                      return (
+                        <button
+                          key={sl.id}
+                          onClick={() => onToggleS2Layer(sl.id)}
+                          className={`w-full flex items-center gap-2 rounded-md px-2 py-1 text-[10px] transition-colors ${
+                            active ? "bg-white/10 text-white" : "text-white/35 hover:text-white/60 hover:bg-white/5"
+                          }`}
+                        >
+                          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: sl.color }} />
+                          <span className="flex-1 text-left truncate">{sl.label}</span>
+                          {active ? <Eye className="h-2.5 w-2.5 text-green-400" /> : <EyeOff className="h-2.5 w-2.5" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           ))}
-
-          {/* S2 Underground Sub-Layer Controls */}
-          {layers.s2Intel && s2ActiveLayers && onToggleS2Layer && (
-            <div>
-              <p className="text-[9px] font-mono text-white/30 uppercase tracking-wider mb-1">
-                S2 INTEL FEEDS {s2FeatureCount ? <span className="text-white/50">({s2FeatureCount})</span> : null}
-              </p>
-              <div className="space-y-0.5">
-                {S2_LAYERS.map((sl: S2Layer) => {
-                  const active = s2ActiveLayers.has(sl.id);
-                  return (
-                    <button
-                      key={sl.id}
-                      onClick={() => onToggleS2Layer(sl.id)}
-                      className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[10px] transition-colors ${
-                        active ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60 hover:bg-white/5"
-                      }`}
-                    >
-                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: sl.color }} />
-                      <span className="flex-1 text-left truncate">{sl.label}</span>
-                      {active ? <Eye className="h-2.5 w-2.5 text-green-400" /> : <EyeOff className="h-2.5 w-2.5" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Site Map Overlays */}
           {opsWithSiteMaps.length > 0 && (
