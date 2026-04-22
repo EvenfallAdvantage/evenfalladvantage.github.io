@@ -18,7 +18,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Field Ops",
     items: [
       { title: "Watch Log", href: "/timeclock", icon: "Clock" },
-      { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
+      { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
       { title: "Operations", href: "/schedule", icon: "CalendarDays" },
     ],
   },
@@ -97,7 +97,7 @@ export const NAV_SECTIONS: NavSection[] = [
 
 export const MOBILE_NAV_ITEMS: NavItem[] = [
   { title: "Watch", href: "/timeclock", icon: "Clock" },
-  { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
+  { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
   { title: "Home", href: "/feed", icon: "LayoutDashboard" },
   { title: "Comms", href: "/chat", icon: "Radio" },
   { title: "More", href: "/more", icon: "Menu" },

@@ -52,7 +52,7 @@ export default function IncidentsPage() {
 
   useEffect(() => {
     setHeader(
-      "INCIDENTS",
+      "REPORTS",
       "Incident reports and field documentation",
       <AlertTriangle className="h-5 w-5" />,
       <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 w-full sm:w-auto">

@@ -27,7 +27,7 @@ export default function DictatePage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("DICTATION", "Voice-to-text report dictation", <Mic className="h-5 w-5" />);
+    setHeader("REPORTS", "Voice-to-text report dictation", <Mic className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
