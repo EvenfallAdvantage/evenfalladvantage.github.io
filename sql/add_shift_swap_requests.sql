@@ -26,26 +26,26 @@ CREATE POLICY shift_swap_select ON public.shift_swap_requests FOR SELECT
     JOIN public.company_memberships cm ON cm.company_id = e.company_id
     JOIN public.users u ON u.id = cm.user_id
     WHERE s.id = shift_swap_requests.shift_id
-      AND u.supabase_id = auth.uid()
+      AND u.supabase_id = auth.uid()::text
   ));
 
 -- Staff can create swap requests for their own shifts
 CREATE POLICY shift_swap_insert ON public.shift_swap_requests FOR INSERT
   WITH CHECK (requester_id IN (
-    SELECT u.id FROM public.users u WHERE u.supabase_id = auth.uid()
+    SELECT u.id FROM public.users u WHERE u.supabase_id = auth.uid()::text
   ));
 
 -- Staff can update (claim/cancel) their own requests; managers can approve/reject
 CREATE POLICY shift_swap_update ON public.shift_swap_requests FOR UPDATE
   USING (
-    requester_id IN (SELECT u.id FROM public.users u WHERE u.supabase_id = auth.uid())
+    requester_id IN (SELECT u.id FROM public.users u WHERE u.supabase_id = auth.uid()::text)
     OR EXISTS (
       SELECT 1 FROM public.shifts s
       JOIN public.events e ON e.id = s.event_id
       JOIN public.company_memberships cm ON cm.company_id = e.company_id
       JOIN public.users u ON u.id = cm.user_id
       WHERE s.id = shift_swap_requests.shift_id
-        AND u.supabase_id = auth.uid()
+        AND u.supabase_id = auth.uid()::text
         AND cm.role IN ('owner', 'admin', 'manager')
     )
   );

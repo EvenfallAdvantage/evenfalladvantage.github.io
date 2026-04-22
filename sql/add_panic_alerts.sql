@@ -24,7 +24,7 @@ ALTER TABLE public.panic_alerts ENABLE ROW LEVEL SECURITY;
 -- Staff can create alerts for themselves
 CREATE POLICY panic_insert ON public.panic_alerts FOR INSERT
   WITH CHECK (user_id IN (
-    SELECT u.id FROM public.users u WHERE u.supabase_id = auth.uid()
+    SELECT u.id FROM public.users u WHERE u.supabase_id = auth.uid()::text
   ));
 
 -- Company members can read alerts
@@ -33,7 +33,7 @@ CREATE POLICY panic_select ON public.panic_alerts FOR SELECT
     SELECT 1 FROM public.company_memberships cm
     JOIN public.users u ON u.id = cm.user_id
     WHERE cm.company_id = panic_alerts.company_id
-      AND u.supabase_id = auth.uid()
+      AND u.supabase_id = auth.uid()::text
   ));
 
 -- Managers can update (acknowledge/resolve) alerts
@@ -42,6 +42,6 @@ CREATE POLICY panic_update ON public.panic_alerts FOR UPDATE
     SELECT 1 FROM public.company_memberships cm
     JOIN public.users u ON u.id = cm.user_id
     WHERE cm.company_id = panic_alerts.company_id
-      AND u.supabase_id = auth.uid()
+      AND u.supabase_id = auth.uid()::text
       AND cm.role IN ('owner', 'admin', 'manager')
   ));

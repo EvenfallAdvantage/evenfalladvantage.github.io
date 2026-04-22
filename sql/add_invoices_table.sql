@@ -38,7 +38,7 @@ CREATE POLICY invoices_select ON public.invoices FOR SELECT
     SELECT 1 FROM public.company_memberships cm
     JOIN public.users u ON u.id = cm.user_id
     WHERE cm.company_id = invoices.company_id
-      AND u.supabase_id = auth.uid()
+      AND u.supabase_id = auth.uid()::text
       AND cm.role IN ('owner', 'admin', 'manager')
   ));
 
@@ -47,7 +47,7 @@ CREATE POLICY invoices_insert ON public.invoices FOR INSERT
     SELECT 1 FROM public.company_memberships cm
     JOIN public.users u ON u.id = cm.user_id
     WHERE cm.company_id = invoices.company_id
-      AND u.supabase_id = auth.uid()
+      AND u.supabase_id = auth.uid()::text
       AND cm.role IN ('owner', 'admin', 'manager')
   ));
 
@@ -56,7 +56,7 @@ CREATE POLICY invoices_update ON public.invoices FOR UPDATE
     SELECT 1 FROM public.company_memberships cm
     JOIN public.users u ON u.id = cm.user_id
     WHERE cm.company_id = invoices.company_id
-      AND u.supabase_id = auth.uid()
+      AND u.supabase_id = auth.uid()::text
       AND cm.role IN ('owner', 'admin', 'manager')
   ));
 
@@ -65,6 +65,6 @@ CREATE POLICY invoices_delete ON public.invoices FOR DELETE
     SELECT 1 FROM public.company_memberships cm
     JOIN public.users u ON u.id = cm.user_id
     WHERE cm.company_id = invoices.company_id
-      AND u.supabase_id = auth.uid()
+      AND u.supabase_id = auth.uid()::text
       AND cm.role IN ('owner', 'admin')
   ) AND status = 'draft');
