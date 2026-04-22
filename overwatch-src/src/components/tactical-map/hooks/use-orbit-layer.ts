@@ -52,7 +52,6 @@ export function useOrbitLayer(params: {
             outlineWidth: 2,
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             pixelOffset: new Cesium.Cartesian2(8, 0),
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
             scale: 0.8,
           },
           description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">
@@ -64,13 +63,18 @@ export function useOrbitLayer(params: {
         });
         entityGroupsRef.current.orbits.push(entity);
 
-        // Ground track polyline (async)
+        // Ground track polyline at orbital altitude (async)
+        const orbitAltM = sat.altitude * 1000; // km → meters
         computeGroundTrack(sat.tle1, sat.tle2, 90, 1).then(track => {
           if (track.length > 2) {
+            // Build positions with orbital altitude so the track arcs above the globe
+            const positions = track.map(([lng, lat]: [number, number]) =>
+              Cesium.Cartesian3.fromDegrees(lng, lat, orbitAltM)
+            );
             const trackEntity = viewer.entities.add({
               id: `sat-track-${i}`,
               polyline: {
-                positions: Cesium.Cartesian3.fromDegreesArray(track.flatMap(([lng, lat]: [number, number]) => [lng, lat])),
+                positions,
                 width: 1,
                 material: Cesium.Color.fromCssColorString(satColor).withAlpha(0.3),
               },

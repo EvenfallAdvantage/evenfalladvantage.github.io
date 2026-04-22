@@ -20,57 +20,62 @@ export function useNightVision(params: {
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
-    // Remove existing dark basemap layer
-    if (entityGroupsRef.current.nvDarkLayer) {
-      try { viewer.imageryLayers.remove(entityGroupsRef.current.nvDarkLayer, false); } catch (e) { logger.swallow("cesium-layers:remove-nv-dark", e); }
-      entityGroupsRef.current.nvDarkLayer = null;
-    }
+    // Delay slightly on initial load to ensure Cesium base imagery layers
+    // are fully initialized before we try to toggle them.
+    const timerId = setTimeout(() => {
+      if (!viewerRef.current || !cesiumRef.current) return;
 
-    // Restore default building style
-    const buildings = entityGroupsRef.current.buildings?.[0];
-
-    if (!layers.nightVision) {
-      // Restore: show base imagery, reset building style
-      const baseLayer = viewer.imageryLayers.get(0);
-      if (baseLayer) baseLayer.show = true;
-      if (buildings) {
-        // eslint-disable-next-line react-hooks/immutability -- mutating the 3D tileset style on the ref-stored instance is intentional
-        buildings.style = undefined;
+      // Remove existing dark basemap layer
+      if (entityGroupsRef.current.nvDarkLayer) {
+        try { viewer.imageryLayers.remove(entityGroupsRef.current.nvDarkLayer, false); } catch (e) { logger.swallow("cesium-layers:remove-nv-dark", e); }
+        entityGroupsRef.current.nvDarkLayer = null;
       }
-      viewer.scene.globe.enableLighting = false;
-      return;
-    }
 
-    // Hide the default satellite/street base imagery
-    const baseLayer = viewer.imageryLayers.get(0);
-    if (baseLayer) baseLayer.show = false;
-    // Also hide OSM layer if active
-    const osmRef = entityGroupsRef.current.osmLayerRef;
-    if (osmRef?.[0]) osmRef[0].show = false;
+      const buildings = entityGroupsRef.current.buildings?.[0];
 
-    // Add CartoDB Dark Matter tiles as the base
-    const darkProvider = new Cesium.UrlTemplateImageryProvider({
-      url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-      credit: "CartoDB Dark Matter",
-      minimumLevel: 0,
-      maximumLevel: 18,
-    });
-    const darkLayer = viewer.imageryLayers.addImageryProvider(darkProvider, 0);
-    darkLayer.alpha = 1.0;
-    entityGroupsRef.current.nvDarkLayer = darkLayer;
+      if (!layers.nightVision) {
+        // Restore: show all base imagery layers, reset building style
+        for (let i = 0; i < viewer.imageryLayers.length; i++) {
+          viewer.imageryLayers.get(i).show = true;
+        }
+        if (buildings) {
+          buildings.style = undefined;
+        }
+        viewer.scene.globe.enableLighting = false;
+        return;
+      }
 
-    // Style 3D buildings: dark fill with neon green edges
-    // Using a very low-alpha bright green — the building faces render
-    // semi-transparent while edges (where multiple faces overlap at
-    // geometry seams) accumulate to a brighter neon green outline effect.
-    if (buildings) {
-      buildings.style = new Cesium.Cesium3DTileStyle({
-        color: "color('rgba(0, 255, 65, 0.15)')",
-        show: true,
+      // Hide ALL existing base imagery layers (satellite + OSM)
+      for (let i = 0; i < viewer.imageryLayers.length; i++) {
+        viewer.imageryLayers.get(i).show = false;
+      }
+
+      // Add CartoDB Dark Matter tiles as the sole basemap
+      const darkProvider = new Cesium.UrlTemplateImageryProvider({
+        url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        credit: "CartoDB Dark Matter",
+        minimumLevel: 0,
+        maximumLevel: 18,
       });
-    }
+      const darkLayer = viewer.imageryLayers.addImageryProvider(darkProvider, 0);
+      darkLayer.alpha = 1.0;
+      // Hide all other layers again (the add may have shifted indices)
+      for (let i = 1; i < viewer.imageryLayers.length; i++) {
+        viewer.imageryLayers.get(i).show = false;
+      }
+      entityGroupsRef.current.nvDarkLayer = darkLayer;
 
-    // Enable silhouette-like effect via scene lighting
-    viewer.scene.globe.enableLighting = true;
+      // Style 3D buildings with neon green edges
+      if (buildings) {
+        buildings.style = new Cesium.Cesium3DTileStyle({
+          color: "color('rgba(0, 255, 65, 0.15)')",
+          show: true,
+        });
+      }
+
+      viewer.scene.globe.enableLighting = true;
+    }, 300);
+
+    return () => clearTimeout(timerId);
   }, [layers.nightVision, loading, viewerRef, cesiumRef, entityGroupsRef]);
 }
