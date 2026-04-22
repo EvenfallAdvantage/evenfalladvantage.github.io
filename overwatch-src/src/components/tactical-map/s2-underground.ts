@@ -160,8 +160,31 @@ export async function fetchS2LayerFeatures(
   }
 }
 
+// Fields to skip in the "show all properties" dump (internal/boring fields)
+const SKIP_FIELDS = new Set([
+  "OBJECTID", "ObjectId", "objectid", "FID", "fid", "Shape", "shape",
+  "Shape__Area", "Shape__Length", "GlobalID", "globalid", "CreationDate",
+  "Creator", "EditDate", "Editor", "created_user", "last_edited_user",
+  "last_edited_date", "created_date",
+]);
+
+// Fields that look like names/titles (show as bold header)
+const TITLE_FIELDS = [
+  "IncidentName", "incident_name", "Name", "name", "Title", "title",
+  "EventName", "event_name", "CallSign", "callsign", "PlaceName",
+  "Location", "location", "City", "city", "State", "state",
+];
+
+// Fields that look like dates (format as date)
+const DATE_FIELDS = [
+  "FireDiscoveryDateTime", "Date", "date", "StartDate", "start_date",
+  "EndDate", "end_date", "ReportDate", "report_date", "time", "Time",
+  "EventDate", "ModifiedDate", "IrwinModifiedDate",
+];
+
 /**
  * Build a description HTML string from feature properties for Cesium popups.
+ * Shows ALL non-empty, non-internal fields for maximum information.
  */
 export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
   const p = feature.properties;
@@ -169,28 +192,56 @@ export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
 
   parts.push(`<b style="color:${layer.color}">${layer.label}</b>`);
 
-  // Common ArcGIS field names
-  const title = p.IncidentName ?? p.incident_name ?? p.Name ?? p.name ?? p.OBJECTID ?? "";
-  if (title) parts.push(`<br/><b>${String(title)}</b>`);
-
-  const desc = p.Description ?? p.description ?? p.Comments ?? p.comments ?? "";
-  if (desc) parts.push(`<br/>${String(desc).slice(0, 300)}`);
-
-  const date = p.FireDiscoveryDateTime ?? p.Date ?? p.date ?? p.CreationDate ?? p.created_date ?? "";
-  if (date) {
-    const d = new Date(typeof date === "number" ? date : String(date));
-    if (!isNaN(d.getTime())) parts.push(`<br/><small>${d.toLocaleDateString()} ${d.toLocaleTimeString()}</small>`);
+  // Find and show the best title field
+  for (const field of TITLE_FIELDS) {
+    if (p[field] != null && String(p[field]).trim()) {
+      parts.push(`<br/><b>${String(p[field])}</b>`);
+      break;
+    }
   }
 
-  // Magnitude for earthquakes
-  const mag = p.mag ?? p.Magnitude ?? p.magnitude;
-  if (mag != null) parts.push(`<br/>Magnitude: <b>${mag}</b>`);
+  // Show all meaningful properties as a compact list
+  const shown = new Set<string>();
+  for (const [key, val] of Object.entries(p)) {
+    if (val == null || val === "" || val === 0 || val === "null" || val === "None") continue;
+    if (SKIP_FIELDS.has(key)) continue;
+    if (TITLE_FIELDS.includes(key) && shown.size === 0) { shown.add(key); continue; } // already shown as title
+    if (shown.has(key)) continue;
+    shown.add(key);
 
-  // Fire-specific
-  const acres = p.DailyAcres ?? p.GISAcres ?? p.area_acres;
-  if (acres != null) parts.push(`<br/>Acres: ${Number(acres).toLocaleString()}`);
+    const strVal = String(val);
+    if (strVal.length > 500) continue; // skip huge blobs
 
-  parts.push(`<br/><small style="opacity:0.5">Source: S2 Underground CIP</small>`);
+    // Format dates nicely
+    if (DATE_FIELDS.includes(key)) {
+      const d = new Date(typeof val === "number" ? val : strVal);
+      if (!isNaN(d.getTime())) {
+        parts.push(`<br/><small style="opacity:0.7">${formatFieldName(key)}: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}</small>`);
+        continue;
+      }
+    }
+
+    // Format numbers
+    if (typeof val === "number") {
+      const formatted = Number.isInteger(val) ? val.toLocaleString() : val.toFixed(2);
+      parts.push(`<br/><small>${formatFieldName(key)}: <b>${formatted}</b></small>`);
+      continue;
+    }
+
+    // Regular string
+    parts.push(`<br/><small>${formatFieldName(key)}: ${strVal.slice(0, 200)}</small>`);
+  }
+
+  parts.push(`<br/><small style="opacity:0.3">Source: S2 Underground CIP</small>`);
 
   return parts.join("");
+}
+
+/** Convert camelCase/snake_case field names to readable labels */
+function formatFieldName(field: string): string {
+  return field
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, c => c.toUpperCase())
+    .trim();
 }

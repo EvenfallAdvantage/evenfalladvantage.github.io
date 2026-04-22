@@ -118,13 +118,20 @@ export function useCesiumLayers(params: {
         requestWaterMask: true,
       }));
       viewer.scene.globe.depthTestAgainstTerrain = true;
+      // Re-show buildings if the buildings toggle is on
+      const buildings = entityGroupsRef.current.buildings?.[0];
+      if (buildings) buildings.show = layers.buildings;
     } else {
       // Flat ellipsoid (no terrain)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       viewer.terrainProvider = new (Cesium as any).EllipsoidTerrainProvider();
       viewer.scene.globe.depthTestAgainstTerrain = false;
+      // Force-hide buildings — they float without terrain since their Z positions
+      // are baked relative to terrain elevation
+      const buildings = entityGroupsRef.current.buildings?.[0];
+      if (buildings) buildings.show = false;
     }
-  }, [layers.terrain, loading, viewerRef, cesiumRef]);
+  }, [layers.terrain, layers.buildings, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Load saved bounds from DB when site maps are toggled ────
   useEffect(() => {
