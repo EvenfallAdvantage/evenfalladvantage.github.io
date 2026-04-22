@@ -11,7 +11,7 @@ import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 import {
   S2_LAYERS, fetchS2LayerFeatures, buildS2Description,
 } from "../s2-underground";
-import { preloadSymbols } from "../mil-symbols";
+import { preloadSymbolsForFeatures } from "../mil-symbols";
 
 interface UseS2IntelLayerParams {
   viewerRef: CesiumRef;
@@ -76,9 +76,6 @@ export function useS2IntelLayer({
       const Cesium = cesiumRef.current;
       if (!viewer || !Cesium || cancelled) return;
 
-      // Pre-load MIL-STD-2525 symbols
-      const symbols = await preloadSymbols(28);
-
       // Create a CustomDataSource with clustering enabled
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const ds = new (Cesium as any).CustomDataSource("s2-intel");
@@ -112,69 +109,68 @@ export function useS2IntelLayer({
       );
 
       const allEntities: { id: string }[] = [];
-      let totalFeatures = 0;
 
+      // Step 1: Collect all features from all active layers
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allFeatures: { feature: any; layer: typeof S2_LAYERS[0] }[] = [];
       for (const layer of S2_LAYERS) {
         if (!activeLayers.has(layer.id)) continue;
-
         const features = await fetchS2LayerFeatures(layer);
         if (cancelled) return;
-
-        const symbolUrl = symbols.get(layer.category) ?? "";
-
         for (const feature of features) {
-          const entityId = `s2-${layer.id}-${feature.lat.toFixed(4)}-${feature.lng.toFixed(4)}-${totalFeatures}`;
-          const desc = buildS2Description(feature, layer);
-          const featureName = String(feature.properties.IncidentName ?? feature.properties.incident_name ?? feature.properties.Name ?? feature.properties.name ?? feature.properties.OBJECTID ?? "Intel");
+          allFeatures.push({ feature, layer });
+        }
+      }
 
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const entityOpts: any = {
-              id: entityId,
-              name: `${layer.label} — ${featureName}`,
-              position: Cesium.Cartesian3.fromDegrees(feature.lng, feature.lat),
-              description: desc,
+      if (cancelled || allFeatures.length === 0) return;
+
+      // Step 2: Batch-generate MIL-STD-2525 symbols with fuzzy matching
+      const symbolMap = await preloadSymbolsForFeatures(
+        allFeatures.map(f => ({ properties: f.feature.properties, layerCategory: f.layer.category })),
+        28
+      );
+
+      // Step 3: Add entities with per-feature symbols
+      for (let idx = 0; idx < allFeatures.length; idx++) {
+        const { feature, layer } = allFeatures[idx];
+        const entityId = `s2-${layer.id}-${feature.lat.toFixed(4)}-${feature.lng.toFixed(4)}-${idx}`;
+        const desc = buildS2Description(feature, layer);
+        const featureName = String(feature.properties.IncidentName ?? feature.properties.incident_name ?? feature.properties.Name ?? feature.properties.name ?? feature.properties.OBJECTID ?? "Intel");
+        const symbolUrl = symbolMap.get(idx) ?? "";
+
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const entityOpts: any = {
+            id: entityId,
+            name: `${layer.label} — ${featureName}`,
+            position: Cesium.Cartesian3.fromDegrees(feature.lng, feature.lat),
+            description: desc,
+          };
+
+          if (symbolUrl) {
+            entityOpts.billboard = {
+              image: symbolUrl,
+              width: 28,
+              height: 28,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
             };
-
-            // Use MIL-STD-2525 billboard if symbol available, otherwise fall back to point
-            if (symbolUrl) {
-              entityOpts.billboard = {
-                image: symbolUrl,
-                width: 28,
-                height: 28,
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-                disableDepthTestDistance: Number.POSITIVE_INFINITY,
-              };
-            } else {
-              entityOpts.point = {
-                pixelSize: 9,
-                color: Cesium.Color.fromCssColorString(layer.color).withAlpha(0.9),
-                outlineColor: Cesium.Color.BLACK,
-                outlineWidth: 1.5,
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                disableDepthTestDistance: Number.POSITIVE_INFINITY,
-              };
-              entityOpts.label = {
-                text: layer.icon,
-                font: "bold 11px monospace",
-                fillColor: Cesium.Color.WHITE,
-                outlineColor: Cesium.Color.fromCssColorString(layer.color),
-                outlineWidth: 3,
-                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                pixelOffset: new Cesium.Cartesian2(0, -16),
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                scale: 0.9,
-                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
-              };
-            }
-
-            ds.entities.add(entityOpts);
-            allEntities.push({ id: entityId });
-          } catch (err) {
-            logger.swallow("s2-intel:add-entity", err);
+          } else {
+            entityOpts.point = {
+              pixelSize: 9,
+              color: Cesium.Color.fromCssColorString(layer.color).withAlpha(0.9),
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 1.5,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            };
           }
-          totalFeatures++;
+
+          ds.entities.add(entityOpts);
+          allEntities.push({ id: entityId });
+        } catch (err) {
+          logger.swallow("s2-intel:add-entity", err);
         }
       }
 
@@ -183,7 +179,7 @@ export function useS2IntelLayer({
         viewer.dataSources.add(ds);
         dataSourceRef.current = { ds, name: "s2-intel" };
         entityGroupsRef.current.s2Intel = allEntities;
-        setFeatureCount(totalFeatures);
+        setFeatureCount(allEntities.length);
         setLastRefresh(new Date());
       }
     }

@@ -52,7 +52,8 @@ export function useOrbitLayer(params: {
             color: Cesium.Color.fromCssColorString(satColor),
             outlineColor: Cesium.Color.WHITE,
             outlineWidth: 1,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            // No disableDepthTestDistance — satellites at orbital altitude
+            // are naturally occluded by the globe via depth testing
           },
           label: {
             text: sat.name,
