@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { addCertification, deleteCertification, getUserCertifications } from "@/lib/supabase/db";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import type { LegacyCertificate } from "@/lib/legacy-bridge";
 
 type Cert = { id: string; cert_type: string; issue_date: string | null; expiry_date: string | null; status: string };
@@ -31,6 +32,7 @@ export default function CertificationsSection({ owCerts, legacyCertificates, onC
   const [certExpiry, setCertExpiry] = useState("");
   const [addingCert, setAddingCert] = useState(false);
   const [deletingCert, setDeletingCert] = useState<string | null>(null);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   async function handleAddCert() {
     if (!certType.trim()) return;
@@ -43,7 +45,7 @@ export default function CertificationsSection({ owCerts, legacyCertificates, onC
   }
 
   async function handleDeleteCert(id: string) {
-    if (!confirm("Delete this certification?")) return;
+    if (!await confirm({ description: "Delete this certification?", variant: "destructive" })) return;
     setDeletingCert(id);
     try { await deleteCertification(id); onCertsChange(await getUserCertifications() as Cert[]); }
     catch (err) { console.error(err); } finally { setDeletingCert(null); }
@@ -139,6 +141,7 @@ export default function CertificationsSection({ owCerts, legacyCertificates, onC
           </div>
         )}
       </CardContent>
+      <ConfirmDialog />
     </Card>
   );
 }

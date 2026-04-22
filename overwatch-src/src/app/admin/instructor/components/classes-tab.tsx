@@ -15,6 +15,7 @@ import {
   type LegacyScheduledClass, type ClassEnrollmentRow, type ClassAttendanceRow,
 } from "@/lib/legacy-bridge";
 import { logger } from "@/lib/logger";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 interface ClassesTabProps {
   instructorId: string | null;
@@ -41,6 +42,7 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
   const [ncEnd, setNcEnd] = useState("17:00");
   const [ncLocation, setNcLocation] = useState("");
   const [ncMax, setNcMax] = useState("20");
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,7 +83,7 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
   }
 
   async function handleCancelClass(classId: string) {
-    if (!confirm("Cancel this class?")) return;
+    if (!await confirm({ description: "Cancel this class?", variant: "destructive" })) return;
     await updateLegacyClass(classId, { status: "cancelled" });
     await load();
   }
@@ -180,6 +182,7 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
         })}
         {classes.length === 0 && <div className="text-center py-8 text-sm text-muted-foreground">No classes scheduled.</div>}
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

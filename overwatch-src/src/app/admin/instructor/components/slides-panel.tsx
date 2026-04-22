@@ -14,6 +14,7 @@ import {
 } from "@/lib/legacy-bridge";
 import { sanitizeHtml } from "@/lib/security";
 import { logger } from "@/lib/logger";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 const SLIDE_TYPES = [
   { value: "text", label: "Text", icon: Type },
@@ -46,6 +47,7 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
   const [esType, setEsType] = useState("text");
   const [esImage, setEsImage] = useState("");
   const [savingSlideEdit, setSavingSlideEdit] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const loadSlides = useCallback(async () => {
     setSlidesLoading(true);
@@ -78,7 +80,7 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
   }
 
   async function handleDeleteSlide(slideId: string) {
-    if (!confirm("Delete this slide?")) return;
+    if (!await confirm({ description: "Delete this slide?", variant: "destructive" })) return;
     await deleteLegacySlide(slideId); if (editSlide?.id === slideId) setEditSlide(null);
     setSlides(await getLegacySlides(moduleId));
   }
@@ -158,6 +160,7 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
           </div>
         </div>
       )}
+      <ConfirmDialog />
     </div>
   );
 }

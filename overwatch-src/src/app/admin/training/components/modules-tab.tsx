@@ -14,6 +14,7 @@ import {
   getModuleSlides, createModuleSlide, updateModuleSlide, deleteModuleSlide, reorderModuleSlides,
 } from "@/lib/supabase/db";
 import type { TrainingModule, ModuleSlide } from "@/types";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 const DIFFICULTY_OPTIONS = ["Beginner", "Intermediate", "Advanced", "Critical", "Essential"];
 
@@ -60,6 +61,7 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
   const [editSlideTitle, setEditSlideTitle] = useState("");
   const [editSlideContent, setEditSlideContent] = useState("");
   const [editSlideImage, setEditSlideImage] = useState("");
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const loadModules = useCallback(async () => {
     if (!activeCompanyId) { setLoading(false); return; }
@@ -130,7 +132,7 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
   }
 
   async function handleDeleteModule(moduleId: string) {
-    if (!confirm("Delete this module and ALL its slides? This cannot be undone.")) return;
+    if (!await confirm({ description: "Delete this module and ALL its slides? This cannot be undone.", variant: "destructive" })) return;
     try {
       await deleteTrainingModule(moduleId);
       if (expandedModule === moduleId) { setExpandedModule(null); setSlides([]); }
@@ -170,7 +172,7 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
   }
 
   async function handleDeleteSlide(slideId: string) {
-    if (!confirm("Delete this slide?")) return;
+    if (!await confirm({ description: "Delete this slide?", variant: "destructive" })) return;
     try {
       await deleteModuleSlide(slideId);
       if (expandedModule) await loadSlides(expandedModule);
@@ -412,6 +414,7 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
           ))}
         </div>
       )}
+      <ConfirmDialog />
     </>
   );
 }

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { getTimeOffPolicies, createTimeOffPolicy, deleteTimeOffPolicy } from "@/lib/supabase/db";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 const LEAVE_TYPES = ["vacation", "sick", "personal", "bereavement", "parental", "unpaid"];
 
@@ -26,6 +27,7 @@ export default function LeavePoliciesSection({ companyId, initialPolicies }: Lea
   const [policyType, setPolicyType] = useState("vacation");
   const [creatingPolicy, setCreatingPolicy] = useState(false);
   const [deletingPolicy, setDeletingPolicy] = useState<string | null>(null);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   async function handleAddPolicy() {
     if (!policyName.trim() || !companyId) return;
@@ -40,7 +42,7 @@ export default function LeavePoliciesSection({ companyId, initialPolicies }: Lea
   }
 
   async function handleDeletePolicy(policyId: string) {
-    if (!confirm("Delete this leave policy?")) return;
+    if (!await confirm({ description: "Delete this leave policy?", variant: "destructive" })) return;
     setDeletingPolicy(policyId);
     try {
       await deleteTimeOffPolicy(policyId);
@@ -104,6 +106,7 @@ export default function LeavePoliciesSection({ companyId, initialPolicies }: Lea
           </div>
         )}
       </CardContent>
+      <ConfirmDialog />
     </Card>
   );
 }

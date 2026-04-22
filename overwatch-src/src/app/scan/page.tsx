@@ -15,6 +15,7 @@ import {
 import { getEvents } from "@/lib/supabase/db-operations";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 // ── Types ──
 
@@ -81,6 +82,7 @@ const EVENT_STORAGE_KEY = "scan-selected-event";
 export default function ScanPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const setHeader = usePageHeader((s) => s.setHeader);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
     setHeader("MASS CLOCK", "Scan badges for rapid clock in/out");
@@ -358,7 +360,7 @@ export default function ScanPage() {
   async function handleMassClockOut() {
     if (!activeCompanyId) return;
     const count = clockedIn.length;
-    if (!confirm(`Clock out all ${count} staff${selectedEventName !== "No event selected" ? ` for ${selectedEventName}` : ""}?`)) return;
+    if (!await confirm({ description: `Clock out all ${count} staff${selectedEventName !== "No event selected" ? ` for ${selectedEventName}` : ""}?` })) return;
     setClockingOutAll(true);
     try {
       const result = await massClockOut(activeCompanyId, selectedEventId);
@@ -546,6 +548,7 @@ export default function ScanPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

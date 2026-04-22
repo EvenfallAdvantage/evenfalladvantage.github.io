@@ -14,6 +14,7 @@ import {
   getQuestionCategories,
 } from "@/lib/supabase/db";
 import type { TrainingModule, AssessmentQuestion } from "@/types";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 const Q_DIFFICULTY_OPTIONS = ["easy", "medium", "hard"] as const;
 const Q_TYPE_OPTIONS = ["multiple_choice", "true_false", "short_answer"] as const;
@@ -55,6 +56,7 @@ export function QuestionBankTab({ activeCompanyId, modules, showNewQ, setShowNew
   const [editQCategory, setEditQCategory] = useState("");
   const [editQModuleId, setEditQModuleId] = useState("");
   const [editQSaving, setEditQSaving] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const loadQuestions = useCallback(async () => {
     if (!activeCompanyId) return;
@@ -122,7 +124,7 @@ export function QuestionBankTab({ activeCompanyId, modules, showNewQ, setShowNew
   }
 
   async function handleDeleteQ(id: string) {
-    if (!confirm("Delete this question?")) return;
+    if (!await confirm({ description: "Delete this question?", variant: "destructive" })) return;
     try { await deleteAssessmentQuestion(id); await loadQuestions(); }
     catch (err) { console.error(err); }
   }
@@ -332,6 +334,7 @@ export function QuestionBankTab({ activeCompanyId, modules, showNewQ, setShowNew
           ))}
         </div>
       )}
+      <ConfirmDialog />
     </>
   );
 }

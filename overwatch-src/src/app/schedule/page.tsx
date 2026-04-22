@@ -26,6 +26,7 @@ import { ScheduleTab } from "./components/schedule-tab";
 import { ArmoryTab } from "./components/armory-tab";
 import { ShiftSwapTab } from "./components/shift-swap-tab";
 import { logger } from "@/lib/logger";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 const TacticalMap = dynamic(() => import("@/components/tactical-map").then(m => ({ default: m.TacticalMap })), { ssr: false, loading: () => <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
@@ -36,6 +37,7 @@ export default function SchedulePage() {
 
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const [tab, setTab] = useState<"schedule" | "armory" | "map" | "swaps">("map");
 
@@ -259,7 +261,7 @@ export default function SchedulePage() {
   }
 
   async function handleDeleteAsset(id: string) {
-    if (!confirm("Delete this asset?")) return;
+    if (!await confirm({ description: "Delete this asset?", variant: "destructive" })) return;
     setDeletingAsset(id);
     try { await deleteAsset(id); await loadAssets(); toast.success("Asset deleted"); }
     catch (err) { console.error(err); toast.error("Failed to delete asset"); }
@@ -363,6 +365,8 @@ export default function SchedulePage() {
       {viewingDoc && (
         <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
+
+      <ConfirmDialog />
     </>
   );
 }

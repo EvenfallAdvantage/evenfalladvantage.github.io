@@ -13,6 +13,7 @@ import { useCompanyQuery } from "@/hooks/use-company-query";
 import { parseUTC } from "@/lib/parse-utc";
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Request = any;
@@ -48,6 +49,7 @@ export default function TimeOffPage() {
   const [tab, setTab] = useState<"mine" | "team">("mine");
   const [reviewing, setReviewing] = useState<string | null>(null);
   const [deletingReq, setDeletingReq] = useState<string | null>(null);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const { data: requests = [], isLoading: reqLoading, refetch: refetchRequests } = useQuery<Request[]>({
     queryKey: ["time-off-requests-mine", activeCompanyId ?? ""],
@@ -104,7 +106,7 @@ export default function TimeOffPage() {
     const msg = wasApproved
       ? "Cancel this approved leave request? Note: shifts that were removed during approval will need to be manually re-created."
       : "Cancel this leave request?";
-    if (!confirm(msg)) return;
+    if (!await confirm({ description: msg, variant: "destructive" })) return;
     setDeletingReq(id);
     try { await deleteTimeOffRequest(id); await load(); toast.success("Request cancelled"); }
     catch (err) { console.error(err); toast.error("Failed to cancel request"); }
@@ -276,6 +278,7 @@ export default function TimeOffPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog />
     </>
   );
 }

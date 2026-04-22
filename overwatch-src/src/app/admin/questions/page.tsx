@@ -16,6 +16,7 @@ import {
   getQuestionCategories, getTrainingModules,
 } from "@/lib/supabase/db";
 import type { AssessmentQuestion, TrainingModule } from "@/types";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 const DIFFICULTY_OPTIONS = ["easy", "medium", "hard"] as const;
 const TYPE_OPTIONS = ["multiple_choice", "true_false", "short_answer"] as const;
@@ -60,6 +61,7 @@ export default function QuestionBankPage() {
   const [editCategory, setEditCategory] = useState("");
   const [editModuleId, setEditModuleId] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const load = useCallback(async () => {
     if (!activeCompanyId) { setLoading(false); return; }
@@ -142,7 +144,7 @@ export default function QuestionBankPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this question?")) return;
+    if (!await confirm({ description: "Delete this question?", variant: "destructive" })) return;
     try { await deleteAssessmentQuestion(id); await load(); }
     catch (err) { console.error(err); }
   }
@@ -395,6 +397,7 @@ export default function QuestionBankPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog />
     </>
   );
 }
