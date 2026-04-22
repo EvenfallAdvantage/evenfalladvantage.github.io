@@ -415,20 +415,20 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
 }
 
 const INTEGRATIONS_LOGOS = [
-  { name: "WhatsApp", src: "/images/integrations/whatsapp.png", alt: "WhatsApp Business" },
-  { name: "Signal", src: "/images/integrations/signal.png", alt: "Signal" },
-  { name: "Twilio", src: "/images/integrations/twilio.jpeg", alt: "Twilio" },
-  { name: "Checkr", src: "/images/integrations/checkr.jpeg", alt: "Checkr" },
-  { name: "Gusto", src: "/images/integrations/gusto.jpeg", alt: "Gusto" },
-  { name: "QuickBooks", src: "/images/integrations/quickbooks.png", alt: "QuickBooks Online" },
-  { name: "ADP", src: "/images/integrations/adp.jpeg", alt: "ADP Workforce Now" },
-  { name: "DocuSign", src: "/images/integrations/docusign.jpeg", alt: "DocuSign" },
-  { name: "OneSignal", src: "/images/integrations/onesignal.jpeg", alt: "OneSignal" },
-  { name: "Airtable", src: "/images/integrations/airtable.jpeg", alt: "Airtable" },
-  { name: "Fillout", src: "/images/integrations/fillout.png", alt: "Fillout" },
-  { name: "Paychex", src: "/images/integrations/paychex.jpeg", alt: "Paychex Flex" },
-  { name: "Stripe", src: "/images/integrations/stripe.jpeg", alt: "Stripe" },
-  { name: "Supabase", src: "/images/integrations/supabase.jpeg", alt: "Supabase" },
+  { name: "WhatsApp", src: "/images/integrations/whatsapp.png", alt: "WhatsApp Business", url: "https://business.whatsapp.com" },
+  { name: "Signal", src: "/images/integrations/signal.png", alt: "Signal", url: "https://signal.org" },
+  { name: "Twilio", src: "/images/integrations/twilio.jpeg", alt: "Twilio", url: "https://www.twilio.com" },
+  { name: "Checkr", src: "/images/integrations/checkr.jpeg", alt: "Checkr", url: "https://checkr.com" },
+  { name: "Gusto", src: "/images/integrations/gusto.jpeg", alt: "Gusto", url: "https://gusto.com" },
+  { name: "QuickBooks", src: "/images/integrations/quickbooks.png", alt: "QuickBooks Online", url: "https://quickbooks.intuit.com" },
+  { name: "ADP", src: "/images/integrations/adp.jpeg", alt: "ADP Workforce Now", url: "https://www.adp.com" },
+  { name: "DocuSign", src: "/images/integrations/docusign.jpeg", alt: "DocuSign", url: "https://www.docusign.com" },
+  { name: "OneSignal", src: "/images/integrations/onesignal.jpeg", alt: "OneSignal", url: "https://onesignal.com" },
+  { name: "Airtable", src: "/images/integrations/airtable.jpeg", alt: "Airtable", url: "https://airtable.com" },
+  { name: "Fillout", src: "/images/integrations/fillout.png", alt: "Fillout", url: "https://www.fillout.com" },
+  { name: "Paychex", src: "/images/integrations/paychex.jpeg", alt: "Paychex Flex", url: "https://www.paychex.com" },
+  { name: "Stripe", src: "/images/integrations/stripe.jpeg", alt: "Stripe", url: "https://stripe.com" },
+  { name: "Supabase", src: "/images/integrations/supabase.jpeg", alt: "Supabase", url: "https://supabase.com" },
 ];
 
 function FeatureCarousel() {
@@ -605,25 +605,25 @@ function HomePageInner() {
           {/* Row 1: first 7 */}
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-5 sm:gap-6 justify-items-center max-w-3xl mx-auto">
             {INTEGRATIONS_LOGOS.slice(0, 7).map((int) => (
-              <div key={int.name} className="flex flex-col items-center gap-2 group">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all p-2.5">
+              <a key={int.name} href={int.url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
+                <div className="h-14 w-14 rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={int.src} alt={int.alt} className="h-8 w-8 object-contain" />
+                  <img src={int.src} alt={int.alt} className="h-full w-full object-cover" />
                 </div>
-                <span className="text-[10px] text-white/30 font-medium">{int.name}</span>
-              </div>
+                <span className="text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">{int.name}</span>
+              </a>
             ))}
           </div>
           {/* Row 2: remaining 7, centered */}
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-5 sm:gap-6 justify-items-center max-w-3xl mx-auto mt-6">
             {INTEGRATIONS_LOGOS.slice(7).map((int) => (
-              <div key={int.name} className="flex flex-col items-center gap-2 group">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all p-2.5">
+              <a key={int.name} href={int.url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
+                <div className="h-14 w-14 rounded-xl bg-white/5 border border-white/5 group-hover:border-[#dd8c33]/30 group-hover:bg-[#dd8c33]/5 transition-all overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={int.src} alt={int.alt} className="h-8 w-8 object-contain" />
+                  <img src={int.src} alt={int.alt} className="h-full w-full object-cover" />
                 </div>
-                <span className="text-[10px] text-white/30 font-medium">{int.name}</span>
-              </div>
+                <span className="text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">{int.name}</span>
+              </a>
             ))}
           </div>
         </div>
