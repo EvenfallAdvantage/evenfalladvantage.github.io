@@ -420,7 +420,7 @@ const INTEGRATIONS_LOGOS = [
   { name: "Twilio", src: "/overwatch/images/integrations/twilio.jpeg", alt: "Twilio", url: "https://www.twilio.com" },
   { name: "Checkr", src: "/overwatch/images/integrations/checkr.jpeg", alt: "Checkr", url: "https://checkr.com" },
   { name: "Gusto", src: "/overwatch/images/integrations/gusto.jpeg", alt: "Gusto", url: "https://gusto.com" },
-  { name: "QuickBooks", src: "/overwatch/images/integrations/quickbooks.png", alt: "QuickBooks Online", url: "https://quickbooks.intuit.com", bg: "#2CA01C" },
+  { name: "QuickBooks", src: "/overwatch/images/integrations/quickbooks.png", alt: "QuickBooks Online", url: "https://quickbooks.intuit.com", bg: "#ffffff" },
   { name: "ADP", src: "/overwatch/images/integrations/adp.jpeg", alt: "ADP Workforce Now", url: "https://www.adp.com" },
   { name: "DocuSign", src: "/overwatch/images/integrations/docusign.jpeg", alt: "DocuSign", url: "https://www.docusign.com" },
   { name: "OneSignal", src: "/overwatch/images/integrations/onesignal.jpeg", alt: "OneSignal", url: "https://onesignal.com" },
