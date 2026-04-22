@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { NAV_SECTIONS } from "./nav-items";
 import { useAuthStore } from "@/stores/auth-store";
+import { invalidateCompanyQueries } from "@/lib/query-client";
 import { isSuperAdmin } from "@/lib/security/super-admin";
 import type { NavItem } from "@/types";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -471,7 +472,12 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
                 {user.companies.map((company) => (
                   <DropdownMenuItem
                     key={company.companyId}
-                    onClick={() => { setActiveCompany(company.companyId); window.location.reload(); }}
+                    onClick={() => {
+                      const oldId = useAuthStore.getState().activeCompanyId;
+                      setActiveCompany(company.companyId);
+                      if (oldId) invalidateCompanyQueries(oldId);
+                      router.push("/feed");
+                    }}
                     className="gap-2"
                   >
                     <Building2 className="h-4 w-4" />

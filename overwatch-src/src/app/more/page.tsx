@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/auth-store";
+import { invalidateCompanyQueries } from "@/lib/query-client";
 import { isSuperAdmin } from "@/lib/security/super-admin";
 import { NAV_SECTIONS } from "@/components/layout/nav-items";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -277,9 +278,11 @@ export default function MorePage() {
                     key={company.companyId}
                     onClick={() => {
                       if (!isActive) {
+                        const oldId = useAuthStore.getState().activeCompanyId;
                         setActiveCompany(company.companyId);
+                        if (oldId) invalidateCompanyQueries(oldId);
                         setShowSwitcher(false);
-                        window.location.reload();
+                        router.push("/feed");
                       }
                     }}
                     className={cn(

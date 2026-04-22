@@ -1,6 +1,8 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { getQueryClient } from "@/lib/query-client";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth-provider";
@@ -40,17 +42,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange={false}
     >
-      <AuthProvider>
-        <BrandThemeProvider />
-        <SecurityProvider>
-          <TooltipProvider delay={0}>
-            {children}
-            <Toaster richColors position="top-right" />
-            <CommandPalette />
-            <PwaInstallPrompt />
-          </TooltipProvider>
-        </SecurityProvider>
-      </AuthProvider>
+      <QueryClientProvider client={getQueryClient()}>
+        <AuthProvider>
+          <BrandThemeProvider />
+          <SecurityProvider>
+            <TooltipProvider delay={0}>
+              {children}
+              <Toaster richColors position="top-right" />
+              <CommandPalette />
+              <PwaInstallPrompt />
+            </TooltipProvider>
+          </SecurityProvider>
+        </AuthProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

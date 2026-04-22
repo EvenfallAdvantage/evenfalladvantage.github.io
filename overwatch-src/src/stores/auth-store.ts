@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useShallow } from "zustand/shallow";
 import type { SessionUser, CompanyContext } from "@/types";
 
 interface AuthState {
@@ -42,8 +43,11 @@ export const useAuthStore = create<AuthState>()(
         );
       },
 
-      clearSession: () =>
-        set({ user: null, activeCompanyId: null, isLoading: false }),
+      clearSession: () => {
+        set({ user: null, activeCompanyId: null, isLoading: false });
+        // Clear persisted company to prevent cross-user leakage
+        try { localStorage.removeItem("overwatch-auth"); } catch {}
+      },
     }),
     {
       name: "overwatch-auth",
@@ -51,3 +55,17 @@ export const useAuthStore = create<AuthState>()(
     }
   )
 );
+
+/**
+ * Memoized selector for the active company context.
+ * Use this instead of `useAuthStore((s) => s.getActiveCompany())`
+ * to avoid re-renders when unrelated store slices change.
+ */
+export function useActiveCompany(): CompanyContext | null {
+  return useAuthStore(
+    useShallow((s) => {
+      if (!s.user || !s.activeCompanyId) return null;
+      return s.user.companies.find((c) => c.companyId === s.activeCompanyId) ?? null;
+    })
+  );
+}
