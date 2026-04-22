@@ -12,6 +12,7 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { useChatChannels } from "./components/use-chat-channels";
 import { ChannelsTab } from "./components/channels-tab";
 import { ExternalTab } from "./components/external-tab";
+import { BroadcastPanel } from "./components/broadcast-panel";
 
 type Tab = "channels" | "external" | "messages";
 
@@ -97,6 +98,11 @@ export default function ChatPage() {
       {/* ────────── MESSAGES (DM) TAB ────────── */}
       {tab === "messages" && activeCompanyId && (
         <DirectMessages companyId={activeCompanyId} initialUserId={dmUserId} />
+      )}
+
+      {/* ────────── BROADCAST PANEL (managers only, all tabs) ────────── */}
+      {isAdmin && activeCompanyId && (
+        <BroadcastPanel activeCompanyId={activeCompanyId} />
       )}
 
       {/* ────────── EXTERNAL GROUPS TAB ────────── */}
