@@ -35,8 +35,10 @@ export function useAnnotationsLayer(params: {
           id: `ann-${ann.id}`,
           polyline: {
             positions: Cesium.Cartesian3.fromDegreesArray(positions),
-            width: 3,
-            material: color,
+            width: ann.type === "arrow" ? 12 : 3,
+            material: ann.type === "arrow"
+              ? new Cesium.PolylineArrowMaterialProperty(color)
+              : color,
             clampToGround: true,
           },
         });

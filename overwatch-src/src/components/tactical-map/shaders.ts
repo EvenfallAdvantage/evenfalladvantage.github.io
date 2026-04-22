@@ -89,8 +89,8 @@ export const CRT_SHADER = `
     subpixel = mix(0.95, 1.0, subpixel);
     crt *= subpixel;
 
-    // Film grain / noise
-    float noise = random(uv + fract(float(0) * 0.001)) * 0.06;
+    // Film grain / noise (animated using Cesium frame number)
+    float noise = random(uv + fract(float(czm_frameNumber) * 0.001)) * 0.06;
     crt += noise;
 
     // Vignette

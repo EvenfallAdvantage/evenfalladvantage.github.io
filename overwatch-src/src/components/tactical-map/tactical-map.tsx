@@ -101,7 +101,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const { dmTarget, setDmTarget, dmText, setDmText, dmSending, sendMessage: sendDmMessage } = useDirectMessage(companyId);
 
   // Cesium layer plotting/toggling effects
-  const { nearbyPOIs: _nearbyPOIs, geofenceAlerts, aligningOp, setAligningOp, savedBounds: _savedBounds, setSavedBounds } = useCesiumLayers({
+  const { nearbyPOIs: _nearbyPOIs, geofenceAlerts, aligningOp, setAligningOp, savedBounds: _savedBounds, setSavedBounds, s2Intel } = useCesiumLayers({
     viewerRef,
     cesiumRef,
     entityGroupsRef,
@@ -392,7 +392,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
 
-      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} onRealignSiteMap={(op) => {
+      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} s2ActiveLayers={s2Intel.activeLayers} onToggleS2Layer={s2Intel.toggleLayer} s2FeatureCount={s2Intel.featureCount} onRealignSiteMap={(op) => {
         // Clear saved bounds to force re-alignment
         setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
         setAligningOp(op);

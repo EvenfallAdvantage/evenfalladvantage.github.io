@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { logger } from "@/lib/logger";
 import type { ActiveTool, DrawMode } from "../map-tools";
 import { haversineDistance, initialBearing, RANGE_RING_RADII_M, RANGE_RING_LABELS } from "../map-tools";
 import type { Waypoint } from "../drone-planner";
@@ -62,6 +61,8 @@ export function useCesiumClickHandler(params: {
 
   const [selectedEntity, setSelectedEntity] = useState<{
     id: string; name: string; description: string; screenX: number; screenY: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    worldPosition?: any; // Cesium.Cartesian3 for follow-camera re-projection
   } | null>(null);
   const _popupAnimFrame = useRef<number>(0);
 
@@ -90,12 +91,15 @@ export function useCesiumClickHandler(params: {
             const deleteBtn = isAnnotation && isAdmin
               ? `<br/><br/><span style="cursor:pointer;color:#ef4444" onclick="window.__deleteAnnotation&&window.__deleteAnnotation('${annId}')">🗑 Delete this drawing</span>`
               : "";
+            // Get world position for follow-camera re-projection
+            const worldPos = entity.position?.getValue?.(viewer.clock.currentTime) ?? null;
             setSelectedEntity({
               id: entityId,
               name: entity.name ?? "",
               description: (entity.description?.getValue?.() ?? entity.description ?? "") + deleteBtn,
               screenX: click.position.x,
               screenY: click.position.y,
+              worldPosition: worldPos,
             });
             return;
           }
@@ -385,19 +389,32 @@ export function useCesiumClickHandler(params: {
 
   // Dismiss popup when camera moves (user is navigating away)
   // Use a short delay to avoid dismissing immediately on click (which can
-  // trigger a micro camera movement from mouse jitter between down/up)
+  // Follow-camera: re-project popup position on every render frame
+  // so it stays attached to its entity during pan/zoom/tilt.
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || !selectedEntity) return;
-    let armed = false;
-    const armTimer = setTimeout(() => { armed = true; }, 300);
-    const handler = () => { if (armed) setSelectedEntity(null); };
-    viewer.camera.moveStart.addEventListener(handler);
-    return () => {
-      clearTimeout(armTimer);
-      try { viewer.camera.moveStart.removeEventListener(handler); } catch (e) { logger.swallow("click-handler:remove-listener", e); }
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || !selectedEntity?.worldPosition) return;
+
+    let frameId: ReturnType<typeof requestAnimationFrame>;
+    const update = () => {
+      if (!viewerRef.current || !selectedEntity?.worldPosition) return;
+      const screenPos = Cesium.SceneTransforms.worldToWindowCoordinates(
+        viewer.scene, selectedEntity.worldPosition
+      );
+      if (screenPos) {
+        setSelectedEntity(prev => prev ? { ...prev, screenX: screenPos.x, screenY: screenPos.y } : null);
+      }
+      frameId = requestAnimationFrame(update);
     };
-  }, [selectedEntity?.id, selectedEntity, viewerRef]);
+    // Start tracking after a short delay to avoid initial jitter
+    const timer = setTimeout(() => { frameId = requestAnimationFrame(update); }, 500);
+
+    return () => {
+      clearTimeout(timer);
+      cancelAnimationFrame(frameId);
+    };
+  }, [selectedEntity?.id, selectedEntity?.worldPosition, viewerRef, cesiumRef]);
 
   return { selectedEntity, setSelectedEntity };
 }

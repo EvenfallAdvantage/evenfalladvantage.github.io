@@ -7,6 +7,7 @@ import {
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield,
 } from "lucide-react";
 import type { OperationPin } from "./types";
+import { S2_LAYERS, type S2Layer } from "./s2-underground";
 
 export interface LayerVisibility {
   staff: boolean;
@@ -102,9 +103,12 @@ interface MapLayersPanelProps {
   operations: OperationPin[];
   onRealignSiteMap?: (op: OperationPin) => void;
   isAdmin?: boolean;
+  s2ActiveLayers?: Set<string>;
+  onToggleS2Layer?: (layerId: string) => void;
+  s2FeatureCount?: number;
 }
 
-export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, isAdmin }: MapLayersPanelProps) {
+export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount }: MapLayersPanelProps) {
   const [open, setOpen] = useState(true);
 
   function toggle(key: keyof Omit<LayerVisibility, "siteOverlays">) {
@@ -166,6 +170,33 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
               </div>
             </div>
           ))}
+
+          {/* S2 Underground Sub-Layer Controls */}
+          {layers.s2Intel && s2ActiveLayers && onToggleS2Layer && (
+            <div>
+              <p className="text-[9px] font-mono text-white/30 uppercase tracking-wider mb-1">
+                S2 INTEL FEEDS {s2FeatureCount ? <span className="text-white/50">({s2FeatureCount})</span> : null}
+              </p>
+              <div className="space-y-0.5">
+                {S2_LAYERS.map((sl: S2Layer) => {
+                  const active = s2ActiveLayers.has(sl.id);
+                  return (
+                    <button
+                      key={sl.id}
+                      onClick={() => onToggleS2Layer(sl.id)}
+                      className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[10px] transition-colors ${
+                        active ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60 hover:bg-white/5"
+                      }`}
+                    >
+                      <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: sl.color }} />
+                      <span className="flex-1 text-left truncate">{sl.label}</span>
+                      {active ? <Eye className="h-2.5 w-2.5 text-green-400" /> : <EyeOff className="h-2.5 w-2.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Site Map Overlays */}
           {opsWithSiteMaps.length > 0 && (
