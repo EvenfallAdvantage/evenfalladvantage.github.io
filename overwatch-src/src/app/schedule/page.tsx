@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
-  CalendarDays, Loader2, QrCode, Globe, Plus,
+  CalendarDays, Loader2, QrCode, Globe, Plus, ArrowLeftRight,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import type { OperationPin, StaffPin, IncidentPin } from "@/components/tactical-
 import { fmtDate, fmtTime, type Ev, type Shift, type Asset } from "./components/schedule-helpers";
 import { ScheduleTab } from "./components/schedule-tab";
 import { ArmoryTab } from "./components/armory-tab";
+import { ShiftSwapTab } from "./components/shift-swap-tab";
 import { logger } from "@/lib/logger";
 
 const TacticalMap = dynamic(() => import("@/components/tactical-map").then(m => ({ default: m.TacticalMap })), { ssr: false, loading: () => <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
@@ -36,7 +37,7 @@ export default function SchedulePage() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
-  const [tab, setTab] = useState<"schedule" | "armory" | "map">("map");
+  const [tab, setTab] = useState<"schedule" | "armory" | "map" | "swaps">("map");
 
   // Armory "show create" state
   const [showCreate, setShowCreate] = useState(false);
@@ -301,6 +302,10 @@ export default function SchedulePage() {
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "schedule" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               {tab === "schedule" && <CalendarDays className="h-3.5 w-3.5 text-primary" />}Schedule
             </button>
+            <button onClick={() => setTab("swaps")}
+              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "swaps" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+              {tab === "swaps" && <ArrowLeftRight className="h-3.5 w-3.5 text-primary" />}Swaps
+            </button>
             <button onClick={() => setTab("armory")}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "armory" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
               {tab === "armory" && <QrCode className="h-3.5 w-3.5 text-primary" />}Armory
@@ -320,6 +325,9 @@ export default function SchedulePage() {
             handleSendReminders={handleSendReminders}
           />
         )}
+
+        {/* ── Swaps Tab ── */}
+        {tab === "swaps" && <ShiftSwapTab />}
 
         {/* ── Armory Tab ── */}
         {tab === "armory" && (

@@ -15,6 +15,9 @@ import { DutyStatus } from "./components/duty-status";
 import { KpiCards } from "./components/kpi-cards";
 import { QuickActions } from "./components/quick-actions";
 import { IntelCenter } from "./components/intel-center";
+import { ComplianceWidget } from "./components/compliance-widget";
+import { OvertimeWidget } from "./components/overtime-widget";
+import { PanicAlertBanner } from "./components/panic-alert-banner";
 import { ProfessionalTools } from "./components/professional-tools";
 
 export default function FeedPage() {
@@ -44,6 +47,11 @@ export default function FeedPage() {
 
   return (
     <div className="space-y-6">
+      {/* Active SOS alerts — leadership only, top priority */}
+      {isLeadership && validCompanyId && (
+        <PanicAlertBanner activeCompanyId={validCompanyId} />
+      )}
+
       {/* No-company onboarding banner */}
       <OnboardingBanner user={user} />
 
@@ -72,6 +80,14 @@ export default function FeedPage() {
 
       {/* Quick Actions Grid */}
       <QuickActions />
+
+      {/* Compliance + Overtime — leadership only */}
+      {isLeadership && validCompanyId && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ComplianceWidget activeCompanyId={validCompanyId} />
+          <OvertimeWidget activeCompanyId={validCompanyId} />
+        </div>
+      )}
 
       {/* Intel Center — leadership only */}
       {isLeadership && validCompanyId && (
