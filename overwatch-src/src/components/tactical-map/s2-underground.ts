@@ -228,6 +228,13 @@ export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
       continue;
     }
 
+    // URLs — render as clickable embed links
+    if (strVal.match(/^https?:\/\//)) {
+      const domain = strVal.replace(/^https?:\/\//, "").split("/")[0];
+      parts.push(`<br/><small>${formatFieldName(key)}: <a href="${strVal}" target="_blank" rel="noopener noreferrer" data-embed-url="${strVal}" style="color:#dd8c33;text-decoration:underline;cursor:pointer">${domain}</a></small>`);
+      continue;
+    }
+
     // Regular string
     parts.push(`<br/><small>${formatFieldName(key)}: ${strVal.slice(0, 200)}</small>`);
   }

@@ -218,7 +218,7 @@ export function sanitizeHtml(html: string): string {
     ],
     ALLOWED_ATTR: [
       "href", "src", "alt", "title", "class", "style",
-      "width", "height", "target", "rel",
+      "width", "height", "target", "rel", "data-embed-url",
     ],
     ALLOW_DATA_ATTR: false,
     ADD_ATTR: ["target"],
