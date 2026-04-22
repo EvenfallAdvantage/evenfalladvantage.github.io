@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Users, Search, Mail, Phone, Shield, EyeOff } from "lucide-react";
 import { usePageHeader } from "@/stores/page-header-store";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyMembers } from "@/lib/supabase/db";
+import { useCompanyQuery } from "@/hooks/use-company-query";
 import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
+import { getQueryClient } from "@/lib/query-client";
 
 type MemberUser = { id: string; first_name: string; last_name: string; email: string | null; phone: string | null; avatar_url: string | null };
 type Member = { id: string; role: string; nickname: string | null; status: string; title: string | null; hide_contact_roster: boolean; users: MemberUser | null };
@@ -24,28 +26,14 @@ export default function DirectoryPage() {
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
-  const [members, setMembers] = useState<Member[]>([]);
+  // React Query — auto-caches, auto-retries, invalidates on company switch
+  const { data: members = [] } = useCompanyQuery(
+    "directory-members",
+    async (cid) => (await getCompanyMembers(cid)) as unknown as Member[],
+  );
+
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Member | null>(null);
-
-  const load = useCallback(async () => {
-    if (!activeCompanyId) return;
-    try {
-      const data = await getCompanyMembers(activeCompanyId);
-      setMembers(data as unknown as Member[]);
-    } catch {
-      // DB may not be ready
-    }
-  }, [activeCompanyId]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!activeCompanyId) return;
-    getCompanyMembers(activeCompanyId).then((data) => {
-      if (!cancelled) setMembers(data as unknown as Member[]);
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [activeCompanyId]);
 
   // Realtime — roster updates when members join/leave/change roles
   useEffect(() => {
@@ -58,10 +46,13 @@ export default function DirectoryPage() {
         schema: "public",
         table: "company_members",
         filter: `company_id=eq.${activeCompanyId}`,
-      }, () => { load(); })
+      }, () => {
+        // Invalidate the React Query cache so it refetches
+        getQueryClient().invalidateQueries({ queryKey: ["directory-members", activeCompanyId] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [activeCompanyId, load]);
+  }, [activeCompanyId]);
 
   const filtered = members.filter((m) => {
     const name = `${m.users?.first_name ?? ""} ${m.users?.last_name ?? ""}`.toLowerCase();

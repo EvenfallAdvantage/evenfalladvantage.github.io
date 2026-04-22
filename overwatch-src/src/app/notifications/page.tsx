@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { timeAgo } from "@/lib/utils";
 import { Bell, CheckCheck, Loader2, Info, AlertTriangle, Megaphone, Calendar, ClipboardList, ShieldCheck, CalendarOff, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
+import { useCompanyQuery } from "@/hooks/use-company-query";
+import { getQueryClient } from "@/lib/query-client";
 import Link from "next/link";
 import { usePageHeader } from "@/stores/page-header-store";
-import { logger } from "@/lib/logger";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Notif = any;
@@ -40,17 +41,11 @@ export default function NotificationsPage() {
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
-  const [notifications, setNotifications] = useState<Notif[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: notifications = [], isLoading: loading, refetch } = useCompanyQuery(
+    "notifications",
+    (cid) => getNotifications(cid),
+  );
   const [markingAll, setMarkingAll] = useState(false);
-
-  const load = useCallback(async () => {
-    if (!activeCompanyId) { setLoading(false); return; }
-    try { setNotifications(await getNotifications(activeCompanyId)); }
-    catch (e) { logger.swallow("notifications:load", e, "warn"); } finally { setLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { load(); }, [load]);
 
   // Realtime subscription — new notifications appear automatically
   useEffect(() => {
@@ -63,15 +58,17 @@ export default function NotificationsPage() {
         schema: "public",
         table: "notifications",
         filter: `company_id=eq.${activeCompanyId}`,
-      }, () => { load(); })
+      }, () => {
+        getQueryClient().invalidateQueries({ queryKey: ["notifications", activeCompanyId] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [activeCompanyId, load]);
+  }, [activeCompanyId]);
 
   async function handleMarkRead(id: string) {
     try {
       await markNotificationRead(id);
-      setNotifications((prev) => prev.map((n: Notif) => n.id === id ? { ...n, read: true } : n));
+      await refetch();
       window.dispatchEvent(new Event("notifications-read"));
     } catch (err) { console.warn("Mark read failed:", err); }
   }
@@ -81,7 +78,7 @@ export default function NotificationsPage() {
     setMarkingAll(true);
     try {
       await markAllNotificationsRead(activeCompanyId);
-      setNotifications((prev) => prev.map((n: Notif) => ({ ...n, read: true })));
+      await refetch();
       window.dispatchEvent(new Event("notifications-read"));
     } catch (err) { console.warn("Mark all read failed:", err); }
     finally { setMarkingAll(false); }
