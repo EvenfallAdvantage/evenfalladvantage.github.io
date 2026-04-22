@@ -89,7 +89,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   } = useAnnotations(companyId, viewerRef, cesiumRef, entityGroupsRef);
 
   // Time Machine
-  const { timeMachineOpen, setTimeMachineOpen, replayTime: _replayTime, setReplayTime, debouncedReplayTime, effectiveStaff } = useTimeMachine(staff, companyId);
+  const { timeMachineOpen, setTimeMachineOpen, replayTime: _replayTime, setReplayTime, debouncedReplayTime, effectiveStaff, effectiveIncidents, effectiveAnnotations } = useTimeMachine(staff, companyId, incidents, annotations);
 
   // Drone Planner
   const { dronePlannerOpen, setDronePlannerOpen, droneWaypoints, setDroneWaypoints } = useDronePlanner();
@@ -109,11 +109,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     layers,
     operations,
     staff: effectiveStaff,
-    incidents,
+    incidents: effectiveIncidents,
     companyId,
     isAdmin,
     eventDocs,
-    annotations,
+    annotations: effectiveAnnotations,
     debouncedReplayTime,
     timeMachineOpen,
   });

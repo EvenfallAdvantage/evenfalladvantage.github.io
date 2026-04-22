@@ -22,6 +22,7 @@ import { useTrailsLayer } from "./use-trails-layer";
 import { useAnnotationsLayer } from "./use-annotations-layer";
 import { usePoiLayer } from "./use-poi-layer";
 import { useS2IntelLayer } from "./use-s2-intel-layer";
+import { useHeatmapLayer } from "./use-heatmap-layer";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -99,6 +100,9 @@ export function useCesiumLayers(params: {
 
   // ─── Sub-hook: S2 Underground Intel ─────────────────
   const s2Intel = useS2IntelLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: layers.s2Intel });
+
+  // ─── Sub-hook: Incident Heatmap ────────────────────
+  useHeatmapLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, incidents });
 
   // ─── 3D Terrain & Buildings Toggle (combined) ────────
   useEffect(() => {

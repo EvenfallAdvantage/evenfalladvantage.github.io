@@ -1,11 +1,17 @@
-import { useState, useEffect } from "react";
-import type { StaffPin } from "../types";
+import { useState, useEffect, useMemo } from "react";
+import type { StaffPin, IncidentPin } from "../types";
+import type { MapAnnotation } from "@/lib/supabase/db-annotations";
 import { getStaffLocationsAt } from "@/lib/supabase/db-location";
 
 /** Wrapper so the react-compiler does not flag `Date.now()` as an inline impure call */
 function currentTimestamp() { return Date.now(); }
 
-export function useTimeMachine(staff: StaffPin[], companyId: string) {
+export function useTimeMachine(
+  staff: StaffPin[],
+  companyId: string,
+  incidents?: IncidentPin[],
+  annotations?: MapAnnotation[],
+) {
   const [timeMachineOpen, setTimeMachineOpen] = useState(false);
   const [replayTime, setReplayTime] = useState(currentTimestamp);
   const [timeMachineStaff, setTimeMachineStaff] = useState<StaffPin[]>([]);
@@ -41,7 +47,29 @@ export function useTimeMachine(staff: StaffPin[], companyId: string) {
   }, [timeMachineOpen, debouncedReplayTime, companyId]);
 
   // Use time machine staff when replaying, otherwise live staff
-  const effectiveStaff = timeMachineOpen && debouncedReplayTime < currentTimestamp() - 5000 ? timeMachineStaff : staff;
+  const isReplaying = timeMachineOpen && debouncedReplayTime < currentTimestamp() - 5000;
+  const effectiveStaff = isReplaying ? timeMachineStaff : staff;
 
-  return { timeMachineOpen, setTimeMachineOpen, replayTime, setReplayTime, debouncedReplayTime, effectiveStaff };
+  // Filter incidents to only show those created before the replay timestamp
+  const effectiveIncidents = useMemo(() => {
+    if (!isReplaying || !incidents) return incidents ?? [];
+    return incidents.filter(i => {
+      const createdAt = i.createdAt ? new Date(i.createdAt).getTime() : 0;
+      return createdAt <= debouncedReplayTime;
+    });
+  }, [isReplaying, incidents, debouncedReplayTime]);
+
+  // Filter annotations to only show those created before the replay timestamp
+  const effectiveAnnotations = useMemo(() => {
+    if (!isReplaying || !annotations) return annotations ?? [];
+    return annotations.filter(a => {
+      const createdAt = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      return createdAt <= debouncedReplayTime;
+    });
+  }, [isReplaying, annotations, debouncedReplayTime]);
+
+  return {
+    timeMachineOpen, setTimeMachineOpen, replayTime, setReplayTime,
+    debouncedReplayTime, effectiveStaff, effectiveIncidents, effectiveAnnotations,
+  };
 }
