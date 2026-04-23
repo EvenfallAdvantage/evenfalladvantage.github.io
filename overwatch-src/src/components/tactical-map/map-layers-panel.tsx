@@ -101,13 +101,14 @@ interface MapLayersPanelProps {
   onFlyToAll: () => void;
   operations: OperationPin[];
   onRealignSiteMap?: (op: OperationPin) => void;
+  onAdjustSiteMap?: (op: OperationPin) => void;
   isAdmin?: boolean;
   s2ActiveLayers?: Set<string>;
   onToggleS2Layer?: (layerId: string) => void;
   s2FeatureCount?: number;
 }
 
-export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount }: MapLayersPanelProps) {
+export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, onAdjustSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount }: MapLayersPanelProps) {
   const [open, setOpen] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
@@ -196,8 +197,11 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
                               <span className="flex-1 text-left truncate">{op.name}</span>
                               {siteActive ? <Eye className="h-3 w-3 text-green-400" /> : <EyeOff className="h-3 w-3" />}
                             </button>
-                            {siteActive && isAdmin && onRealignSiteMap && (
-                              <button onClick={() => onRealignSiteMap(op)} className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded" title="Re-align site map">↻</button>
+                            {siteActive && isAdmin && (
+                              <div className="flex gap-0.5">
+                                {onAdjustSiteMap && <button onClick={() => onAdjustSiteMap(op)} className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded" title="Fine-tune position">⇔</button>}
+                                {onRealignSiteMap && <button onClick={() => onRealignSiteMap(op)} className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded" title="Re-align (3-point pick)">↻</button>}
+                              </div>
                             )}
                           </div>
                         );

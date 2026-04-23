@@ -15,7 +15,9 @@ import { DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import type { OperationDocument } from "@/types/operations";
 import { EntityPopup } from "./entity-popup";
 import { MapControlButtons } from "./map-control-buttons";
+import { toast } from "sonner";
 import { GeofenceAlertTicker } from "./geofence-alert-ticker";
+import { SiteMapAdjuster } from "./site-map-adjuster";
 import type { TacticalMapProps } from "./types";
 import { useTimeMachine } from "./hooks/use-time-machine";
 import { useDronePlanner } from "./hooks/use-drone-planner";
@@ -74,6 +76,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [_cameraPitch, setCameraPitch] = useState(-0.5);
   const [containerWidth, setContainerWidth] = useState(800);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [adjustingOp, setAdjustingOp] = useState<{ id: string; name: string; bounds: import("@/lib/supabase/db-operations").SiteMapBounds } | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const entityGroupsRef = useRef<Record<string, any>>({});
@@ -396,6 +399,14 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         // Clear saved bounds to force re-alignment
         setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
         setAligningOp(op);
+      }} onAdjustSiteMap={(op) => {
+        // Open the fine-tune adjuster with current saved bounds
+        const currentBounds = _savedBounds[op.id];
+        if (currentBounds) {
+          setAdjustingOp({ id: op.id, name: op.name, bounds: currentBounds });
+        } else {
+          toast("No saved bounds to adjust. Use the ↻ button to align first.");
+        }
       }} />}
       {!error && !loading && (
         <MapToolsBar
@@ -453,6 +464,20 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
             }));
             setAligningOp(null);
           }}
+        />
+      )}
+
+      {/* Site Map Fine-Tune Adjuster */}
+      {adjustingOp && (
+        <SiteMapAdjuster
+          bounds={adjustingOp.bounds}
+          onSave={(newBounds) => {
+            setSavedBounds((prev) => ({ ...prev, [adjustingOp.id]: newBounds }));
+            saveSiteMapBounds(adjustingOp.id, newBounds);
+            setAdjustingOp(null);
+            toast.success("Site map position updated");
+          }}
+          onCancel={() => setAdjustingOp(null)}
         />
       )}
     </div>
