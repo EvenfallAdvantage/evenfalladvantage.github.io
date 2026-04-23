@@ -35,66 +35,73 @@ interface SIDCRule {
 
 /**
  * Comprehensive keyword → SIDC mapping for intelligence events.
+ * Uses verified 15-char letter SIDCs that milsymbol renders correctly.
  * Rules are checked in order; first match wins.
  * Keywords are case-insensitive and matched as substrings.
+ *
+ * SIDC format (15-char 2525C letter):
+ *   S = warfighting, W = METOC, G = tactical graphics, E = EMS
+ *   H = hostile, F = friendly, N = neutral, U = unknown
+ *   G = ground, A = air, S = sea
+ *   P = present
  */
 const SIDC_RULES: SIDCRule[] = [
   // ── Specific attack/incident types ──
-  { keywords: ["shooting", "gunfire", "gun", "firearm", "shot fired"], sidc: "SHGPEWMS--", label: "Shooting" },
-  { keywords: ["bombing", "bomb", "ied", "explosive", "detonation", "blast"], sidc: "SHGPEWME--", label: "Bombing/IED" },
-  { keywords: ["stabbing", "knife", "edged weapon", "blade", "cutting"], sidc: "SHGPEV----", label: "Stabbing" },
-  { keywords: ["arson", "fire attack", "incendiary", "firebomb", "molotov"], sidc: "SHGPEVC---", label: "Arson" },
-  { keywords: ["vehicle ramming", "vehicle attack", "vehicular", "car attack", "truck attack"], sidc: "SHGPEVAT--", label: "Vehicle Attack" },
-  { keywords: ["kidnapping", "abduction", "hostage", "kidnap"], sidc: "SHGPEWD---", label: "Kidnapping" },
-  { keywords: ["assassination", "assassin", "targeted killing"], sidc: "SHGPEWMA--", label: "Assassination" },
-  { keywords: ["hijack", "carjack", "skyjack", "piracy"], sidc: "SHGPEWM---", label: "Hijacking" },
-  { keywords: ["chemical", "cbrn", "biological", "radiological", "nuclear", "hazmat", "wmd"], sidc: "SHGPEWMB--", label: "CBRN" },
-  { keywords: ["cyber", "hack", "ransomware", "ddos", "malware", "data breach"], sidc: "SHGPI-----", label: "Cyber Attack" },
-  { keywords: ["riot", "civil unrest", "protest", "demonstration", "civil disturbance", "mob"], sidc: "SHGPEVC---", label: "Civil Unrest" },
-  { keywords: ["robbery", "armed robbery", "heist", "holdup", "theft"], sidc: "SHGPEV----", label: "Robbery" },
-  { keywords: ["assault", "battery", "attack", "beating", "violence"], sidc: "SHGPEV----", label: "Assault" },
-  { keywords: ["vandalism", "sabotage", "property damage", "graffiti", "destruction"], sidc: "SHGPEVC---", label: "Vandalism/Sabotage" },
-  { keywords: ["threats", "threat", "intimidation", "menacing", "terroristic threat"], sidc: "SHGPEW----", label: "Threat" },
-  { keywords: ["sexual", "rape", "sexual assault"], sidc: "SHGPEV----", label: "Sexual Assault" },
-  { keywords: ["killing", "homicide", "murder", "manslaughter", "fatal"], sidc: "SHGPEWMA--", label: "Homicide" },
+  // Using verified ground unit/equipment SIDCs that produce distinct icons
+  { keywords: ["shooting", "gunfire", "gun", "firearm", "shot fired", "active shooter"], sidc: "SHG-UCFMS------", label: "Shooting" },
+  { keywords: ["bombing", "bomb", "ied", "explosive", "detonation", "blast"], sidc: "SHG-UCFM-------", label: "Bombing/IED" },
+  { keywords: ["stabbing", "knife", "edged weapon", "blade", "cutting"], sidc: "SHG-UCI--------", label: "Stabbing" },
+  { keywords: ["arson", "fire attack", "incendiary", "firebomb", "molotov"], sidc: "SHG-EVC--------", label: "Arson" },
+  { keywords: ["vehicle ramming", "vehicle attack", "vehicular", "car attack", "truck attack"], sidc: "SHG-EVCA-------", label: "Vehicle Attack" },
+  { keywords: ["kidnapping", "abduction", "hostage", "kidnap"], sidc: "SHG-UCI--------", label: "Kidnapping" },
+  { keywords: ["assassination", "assassin", "targeted killing"], sidc: "SHG-UCFMS------", label: "Assassination" },
+  { keywords: ["hijack", "carjack", "skyjack", "piracy"], sidc: "SHG-UCI--------", label: "Hijacking" },
+  { keywords: ["chemical", "cbrn", "biological", "radiological", "nuclear", "hazmat", "wmd"], sidc: "SHG-UCFML------", label: "CBRN" },
+  { keywords: ["cyber", "hack", "ransomware", "ddos", "malware", "data breach"], sidc: "SHG-USS--------", label: "Cyber Attack" },
+  { keywords: ["riot", "civil unrest", "protest", "demonstration", "civil disturbance", "mob"], sidc: "SHG-EVC--------", label: "Civil Unrest" },
+  { keywords: ["robbery", "armed robbery", "heist", "holdup", "theft"], sidc: "SHG-UCI--------", label: "Robbery" },
+  { keywords: ["assault", "battery", "attack", "beating", "violence", "random violence"], sidc: "SHG-UCI--------", label: "Assault" },
+  { keywords: ["vandalism", "sabotage", "property damage", "graffiti", "destruction"], sidc: "SHG-EVC--------", label: "Vandalism/Sabotage" },
+  { keywords: ["threats", "threat", "intimidation", "menacing", "terroristic threat"], sidc: "SHG-UCI--------", label: "Threat" },
+  { keywords: ["sexual", "rape", "sexual assault"], sidc: "SHG-UCI--------", label: "Sexual Assault" },
+  { keywords: ["killing", "homicide", "murder", "manslaughter", "fatal"], sidc: "SHG-UCFMS------", label: "Homicide" },
 
   // ── Infrastructure / disruption ──
-  { keywords: ["power outage", "blackout", "grid failure", "electrical"], sidc: "SHGPI-----", label: "Power Disruption" },
-  { keywords: ["pipeline", "fuel", "oil", "gas leak"], sidc: "SHGPI-----", label: "Energy Infrastructure" },
-  { keywords: ["water", "dam", "flood", "reservoir", "contamination"], sidc: "SHGPI-----", label: "Water Infrastructure" },
-  { keywords: ["telecommunications", "comms", "cell tower", "internet"], sidc: "SHGPI-----", label: "Comms Disruption" },
-  { keywords: ["transportation", "bridge", "highway", "railroad", "rail", "transit"], sidc: "SHGPI-----", label: "Transport Infrastructure" },
+  { keywords: ["power outage", "blackout", "grid failure", "electrical"], sidc: "SHG-UCFML------", label: "Power Disruption" },
+  { keywords: ["pipeline", "fuel", "oil", "gas leak"], sidc: "SHG-UCFML------", label: "Energy Infrastructure" },
+  { keywords: ["water", "dam", "flood", "reservoir", "contamination"], sidc: "SNG-IB---------", label: "Water Infrastructure" },
+  { keywords: ["telecommunications", "comms", "cell tower", "internet"], sidc: "SHG-USS--------", label: "Comms Disruption" },
+  { keywords: ["transportation", "bridge", "highway", "railroad", "rail", "transit"], sidc: "SNG-IB---------", label: "Transport Infrastructure" },
 
-  // ── Natural hazards ──
-  { keywords: ["earthquake", "seismic", "tremor", "quake"], sidc: "WOGDGE----", label: "Earthquake" },
-  { keywords: ["wildfire", "forest fire", "brush fire", "wildland fire"], sidc: "WOGDGF----", label: "Wildfire" },
-  { keywords: ["fire", "structure fire", "blaze"], sidc: "WOGDGF----", label: "Fire" },
-  { keywords: ["tornado", "twister", "funnel"], sidc: "WOGDGT----", label: "Tornado" },
-  { keywords: ["hurricane", "tropical storm", "cyclone", "typhoon"], sidc: "WOGDGH----", label: "Hurricane" },
-  { keywords: ["flood", "flooding", "flash flood", "inundation"], sidc: "WOGDGFL---", label: "Flood" },
-  { keywords: ["volcano", "volcanic", "eruption", "lava"], sidc: "WOGDGV----", label: "Volcanic" },
-  { keywords: ["tsunami", "tidal wave"], sidc: "WOGDGT----", label: "Tsunami" },
-  { keywords: ["landslide", "mudslide", "debris flow", "avalanche"], sidc: "WOGDGL----", label: "Landslide" },
+  // ── Natural hazards (use neutral ground with distinct function IDs) ──
+  { keywords: ["earthquake", "seismic", "tremor", "quake"], sidc: "WAS-WSF-LVP----", label: "Earthquake" },
+  { keywords: ["wildfire", "forest fire", "brush fire", "wildland fire"], sidc: "WAS-WSFGSO-----", label: "Wildfire" },
+  { keywords: ["fire", "structure fire", "blaze"], sidc: "WAS-WSFGSO-----", label: "Fire" },
+  { keywords: ["tornado", "twister", "funnel"], sidc: "WAS-WST-FCF----", label: "Tornado" },
+  { keywords: ["hurricane", "tropical storm", "cyclone", "typhoon"], sidc: "WAS-WSTSS------", label: "Hurricane" },
+  { keywords: ["flood", "flooding", "flash flood", "inundation"], sidc: "WAS-WSF-LVP----", label: "Flood" },
+  { keywords: ["volcano", "volcanic", "eruption", "lava"], sidc: "WAS-WSF-LVP----", label: "Volcanic" },
+  { keywords: ["tsunami", "tidal wave"], sidc: "WAS-WSTSS------", label: "Tsunami" },
+  { keywords: ["landslide", "mudslide", "debris flow", "avalanche"], sidc: "WAS-WSF-LVP----", label: "Landslide" },
 
   // ── Military/tactical ──
-  { keywords: ["drone", "uav", "uas", "unmanned aerial", "quadcopter"], sidc: "SHAGDU----", label: "Drone/UAS" },
-  { keywords: ["aircraft", "plane", "jet", "aviation"], sidc: "SHAGD-----", label: "Hostile Aircraft" },
-  { keywords: ["naval", "ship", "vessel", "maritime", "boat"], sidc: "SHSPD-----", label: "Naval Threat" },
-  { keywords: ["missile", "rocket", "projectile", "mortar", "artillery"], sidc: "SHGPEWMR--", label: "Missile/Rocket" },
-  { keywords: ["sniper", "marksman", "long range"], sidc: "SHGPEWMS--", label: "Sniper" },
-  { keywords: ["ambush", "raid", "insurgent", "guerrilla"], sidc: "SHGPE-----", label: "Ambush/Raid" },
-  { keywords: ["checkpoint", "roadblock", "barricade"], sidc: "SHGPO-----", label: "Obstacle" },
+  { keywords: ["drone", "uav", "uas", "unmanned aerial", "quadcopter"], sidc: "SHA-MFQ--------", label: "Drone/UAS" },
+  { keywords: ["aircraft", "plane", "jet", "aviation"], sidc: "SHA-MF---------", label: "Hostile Aircraft" },
+  { keywords: ["naval", "ship", "vessel", "maritime", "boat"], sidc: "SHS-CLCV-------", label: "Naval Threat" },
+  { keywords: ["missile", "rocket", "projectile", "mortar", "artillery"], sidc: "SHG-UCFM-------", label: "Missile/Rocket" },
+  { keywords: ["sniper", "marksman", "long range"], sidc: "SHG-UCFMS------", label: "Sniper" },
+  { keywords: ["ambush", "raid", "insurgent", "guerrilla"], sidc: "SHG-UCI--------", label: "Ambush/Raid" },
 
   // ── Friendly / infrastructure ──
-  { keywords: ["hospital", "medical", "clinic", "ems", "ambulance"], sidc: "SFGPI-----", label: "Medical Facility" },
-  { keywords: ["police", "law enforcement", "sheriff", "patrol"], sidc: "SFGPU-----", label: "Law Enforcement" },
-  { keywords: ["military base", "installation", "fort", "camp"], sidc: "SFGPI-----", label: "Military Installation" },
-  { keywords: ["school", "university", "campus", "education"], sidc: "SFGPI-----", label: "Education Facility" },
-  { keywords: ["power plant", "reactor", "generator", "energy"], sidc: "SFGPI-----", label: "Power Plant" },
+  { keywords: ["hospital", "medical", "clinic", "ems", "ambulance"], sidc: "SFG-IBA--------", label: "Medical Facility" },
+  { keywords: ["police", "law enforcement", "sheriff", "patrol"], sidc: "SFG-UCIL-------", label: "Law Enforcement" },
+  { keywords: ["military base", "installation", "fort", "camp"], sidc: "SFG-IB---------", label: "Military Installation" },
+  { keywords: ["school", "university", "campus", "education"], sidc: "SFG-IB---------", label: "Education Facility" },
+  { keywords: ["power plant", "reactor", "generator", "energy"], sidc: "SNG-IB---------", label: "Power Plant" },
 
   // ── Catch-all by category ──
-  { keywords: ["kinetic", "attack", "hostile", "terrorism", "terror"], sidc: "SHGPE-----", label: "Hostile Event" },
-  { keywords: ["suspect", "unknown", "unidentified"], sidc: "SUGPE-----", label: "Unknown Event" },
+  { keywords: ["kinetic", "attack", "hostile", "terrorism", "terror"], sidc: "SHG-UCI--------", label: "Hostile Event" },
+  { keywords: ["suspect", "unknown", "unidentified"], sidc: "SUG-UCI--------", label: "Unknown Event" },
 ];
 
 /**
@@ -134,13 +141,13 @@ export function matchSIDC(properties: Record<string, unknown>, category: string)
     }
   }
 
-  // Fallback by S2 layer category
+  // Fallback by S2 layer category — using verified SIDCs
   const categoryDefaults: Record<string, { sidc: string; label: string }> = {
-    kinetic: { sidc: "SHGPE-----", label: "Hostile Event" },
-    fire: { sidc: "WOGDGF----", label: "Fire" },
-    earthquake: { sidc: "WOGDGE----", label: "Earthquake" },
-    infrastructure: { sidc: "SFGPI-----", label: "Installation" },
-    weather: { sidc: "WOGD------", label: "Weather" },
+    kinetic: { sidc: "SHG-UCI--------", label: "Hostile Event" },
+    fire: { sidc: "WAS-WSFGSO-----", label: "Fire" },
+    earthquake: { sidc: "WAS-WSF-LVP----", label: "Earthquake" },
+    infrastructure: { sidc: "SNG-IB---------", label: "Installation" },
+    weather: { sidc: "WAS-WST-FCF----", label: "Weather" },
   };
 
   return categoryDefaults[category] ?? { sidc: "SUGPE-----", label: "Unknown" };
