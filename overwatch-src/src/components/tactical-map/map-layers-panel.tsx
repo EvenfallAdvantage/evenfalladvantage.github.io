@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import {
-  Layers, Users, Flag, CloudRain, Mountain,
-  Eye, EyeOff, ChevronRight, Target, AlertTriangle, Moon, Satellite,
-  Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield,
+  Layers, Users, CloudRain, Mountain,
+  Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
+  Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
@@ -75,16 +75,16 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "satellite", label: "Satellite View", icon: <Satellite className="h-3.5 w-3.5" />, group: "MAP" },
   { key: "terrain", label: "3D Terrain & Buildings", icon: <Mountain className="h-3.5 w-3.5" />, group: "MAP" },
   // Operations data
-  { key: "operations", label: "Operations", icon: <Flag className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  { key: "operations", label: "Operations", icon: <MapPin className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "staff", label: "Staff", icon: <Users className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "breadcrumbs", label: "Patrol Trails", icon: <Radar className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "incidents", label: "Incidents", icon: <AlertTriangle className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "OPERATIONS" },
-  { key: "annotations", label: "Drawings", icon: <Flag className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  { key: "annotations", label: "Drawings", icon: <PenTool className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   // Intelligence feeds
   { key: "weather", label: "Weather Radar", icon: <CloudRain className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  { key: "sentinel1", label: "SAR Imagery", icon: <Radar className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  { key: "sentinel2", label: "Satellite Photos", icon: <Satellite className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "sentinel1", label: "SAR Imagery", icon: <Scan className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "sentinel2", label: "Satellite Photos", icon: <Layers className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
@@ -109,6 +109,11 @@ interface MapLayersPanelProps {
 
 export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount }: MapLayersPanelProps) {
   const [open, setOpen] = useState(true);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
+  function toggleGroup(group: string) {
+    setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }));
+  }
 
   function toggle(key: keyof Omit<LayerVisibility, "siteOverlays">) {
     onChange({ ...layers, [key]: !layers[key] });
@@ -144,10 +149,15 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
             <button onClick={onFlyToAll} className="text-[9px] hover:opacity-80 font-mono font-bold" style={{ color: "var(--brand-accent, #d59b3c)" }}>FLY TO ALL</button>
           </div>
 
-          {groups.map((group) => (
+          {groups.map((group) => {
+            const isCollapsed = collapsedGroups[group] ?? false;
+            return (
             <div key={group}>
-              <p className="text-[9px] font-mono text-white/30 uppercase tracking-wider mb-1">{group}</p>
-              <div className="space-y-0.5">
+              <button onClick={() => toggleGroup(group)} className="flex items-center justify-between w-full mb-1 group">
+                <span className="text-[9px] font-mono text-white/30 uppercase tracking-wider">{group}</span>
+                {isCollapsed ? <ChevronRight className="h-2.5 w-2.5 text-white/20" /> : <ChevronDown className="h-2.5 w-2.5 text-white/20" />}
+              </button>
+              {!isCollapsed && <div className="space-y-0.5">
                 {LAYER_TOGGLES.filter((t) => t.group === group).map((t) => {
                   const active = layers[t.key];
                   return (
@@ -194,12 +204,12 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
                       })}
                     </div>
                     {/* Site overlay opacity slider */}
-                    <div className="flex items-center gap-2 mt-1.5 px-1">
-                      <span className="text-[8px] text-white/30">Opacity</span>
+                    <div className="flex items-center gap-1.5 mt-1.5 px-1 max-w-full overflow-hidden">
+                      <span className="text-[7px] text-white/30 shrink-0">Opacity</span>
                       <input type="range" min={0} max={100} value={Math.round(layers.siteOverlayOpacity * 100)}
                         onChange={(e) => onChange({ ...layers, siteOverlayOpacity: parseInt(e.target.value) / 100 })}
-                        className="flex-1 h-1 accent-[var(--brand-accent,#d59b3c)]" />
-                      <span className="text-[8px] text-white/40 w-7 text-right">{Math.round(layers.siteOverlayOpacity * 100)}%</span>
+                        className="h-1 min-w-0 w-full max-w-[80px]" style={{ accentColor: "var(--brand-accent, #d59b3c)" }} />
+                      <span className="text-[7px] text-white/40 shrink-0">{Math.round(layers.siteOverlayOpacity * 100)}%</span>
                     </div>
                   </div>
                 )}
@@ -227,9 +237,10 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
                     })}
                   </div>
                 )}
-              </div>
+              </div>}
             </div>
-          ))}
+            );
+          })}
 
 
         </div>
