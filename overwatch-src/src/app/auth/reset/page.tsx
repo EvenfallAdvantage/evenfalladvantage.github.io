@@ -26,9 +26,9 @@ export default function ResetPasswordPage() {
       setSent(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to send reset email";
-      // Friendlier message for rate limiting
+      // Friendlier message for rate limiting (Supabase auth API limit, not SMTP)
       if (msg.toLowerCase().includes("rate limit")) {
-        setError("Please wait a minute before requesting another reset email.");
+        setError("Too many requests. Please wait a few minutes and try again. If this persists, contact support.");
       } else if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("no user")) {
         // Don't reveal whether email exists (security best practice)
         setSent(true);
