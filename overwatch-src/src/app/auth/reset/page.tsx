@@ -25,7 +25,16 @@ export default function ResetPasswordPage() {
       if (resetError) throw resetError;
       setSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send reset email");
+      const msg = err instanceof Error ? err.message : "Failed to send reset email";
+      // Friendlier message for rate limiting
+      if (msg.toLowerCase().includes("rate limit")) {
+        setError("Please wait a minute before requesting another reset email.");
+      } else if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("no user")) {
+        // Don't reveal whether email exists (security best practice)
+        setSent(true);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
