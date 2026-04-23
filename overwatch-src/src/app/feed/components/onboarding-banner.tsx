@@ -6,8 +6,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { createCompanyWithOwner } from "@/lib/supabase/db-users";
+import { toast } from "sonner";
+import { createCompanyWithOwner, fetchUserProfile } from "@/lib/supabase/db-users";
 import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/stores/auth-store";
+import type { CompanyContext } from "@/types";
 
 interface OnboardingBannerProps {
   user: {
@@ -24,6 +27,7 @@ export function OnboardingBanner({ user }: OnboardingBannerProps) {
   const [newCoName, setNewCoName] = useState("");
   const [creatingCo, setCreatingCo] = useState(false);
   const createCoRef = useRef<HTMLInputElement>(null);
+  const { setUser, setActiveCompany } = useAuthStore();
 
   const showBanner =
     !user.companies ||
@@ -41,7 +45,7 @@ export function OnboardingBanner({ user }: OnboardingBannerProps) {
       const authUser = session?.user;
       if (!authUser) throw new Error("Not authenticated");
 
-      await createCompanyWithOwner({
+      const result = await createCompanyWithOwner({
         companyName: newCoName.trim(),
         supabaseId: authUser.id,
         email: authUser.email ?? null,
@@ -49,12 +53,58 @@ export function OnboardingBanner({ user }: OnboardingBannerProps) {
         firstName: user.firstName,
         lastName: user.lastName,
       });
+
+      // Re-fetch profile and refresh the auth store in place — avoids a
+      // full page reload, which blows away React state and re-runs every
+      // data hook from scratch.
+      const profile = await fetchUserProfile();
+      if (profile?.user) {
+        const allCompanies: CompanyContext[] = (profile.memberships ?? []).map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (m: any) => ({
+            companyId: m.companies?.id ?? m.company_id,
+            companyName: m.companies?.name ?? "Unknown",
+            companySlug: m.companies?.slug ?? "",
+            companyLogo: m.companies?.logo_url ?? null,
+            brandColor: m.companies?.brand_color ?? "#1d3451",
+            accentColor: m.companies?.accent_color ?? "#d59b3c",
+            role: m.role ?? "staff",
+            isTrainingProvider: m.companies?.is_training_provider ?? false,
+            settings: m.companies?.settings ?? {},
+            membership: {
+              id: m.id,
+              nickname: m.nickname ?? null,
+              status: m.status ?? "active",
+            },
+          })
+        );
+        const seen = new Set<string>();
+        const companies = allCompanies.filter((c) => {
+          if (seen.has(c.companyId)) return false;
+          seen.add(c.companyId);
+          return true;
+        });
+
+        setUser({
+          id: profile.user.id,
+          email: profile.user.email ?? authUser.email ?? null,
+          phone: profile.user.phone ?? authUser.phone ?? null,
+          firstName: profile.user.first_name ?? "",
+          lastName: profile.user.last_name ?? "",
+          avatarUrl: profile.user.avatar_url ?? null,
+          isPlatformAdmin: profile.user.is_platform_admin ?? false,
+          companies,
+          activeCompanyId: result.company.id,
+        });
+        setActiveCompany(result.company.id);
+      }
+
       setShowCreateCo(false);
       setNewCoName("");
-      window.location.reload();
+      toast.success(`Welcome to ${result.company.name ?? "your new company"}!`);
     } catch (err) {
       console.error("Failed to create company:", err);
-      alert(err instanceof Error ? err.message : "Failed to create company. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Failed to create company. Please try again.");
     } finally {
       setCreatingCo(false);
     }

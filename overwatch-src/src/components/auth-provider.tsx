@@ -31,6 +31,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           (meta.company_name || meta.join_code) &&
           !autoRegAttempted.current
         ) {
+          // Skip auto-register if auth/callback page is handling it.
+          // Both this provider and /auth/callback listen for onAuthStateChange
+          // on email confirmation; racing them creates duplicate companies.
+          if (
+            typeof window !== "undefined" &&
+            window.location.pathname.includes("/auth/callback")
+          ) {
+            return;
+          }
           autoRegAttempted.current = true;
           try {
             const supabase = createClient();

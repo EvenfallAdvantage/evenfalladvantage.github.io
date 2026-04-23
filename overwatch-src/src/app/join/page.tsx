@@ -52,11 +52,16 @@ function JoinPageInner() {
         return;
       }
 
-      // Guard: skip if user already belongs to a company
-      const existing = await fetchUserProfile(authUser.id);
-      if (existing?.memberships && existing.memberships.length > 0) {
-        router.push("/feed");
-        return;
+      // Guard: skip if user already belongs to a company — but ONLY when
+      // we're not in explicit "create" mode. "Create Company" in the sidebar
+      // navigates here with ?mode=create and should allow existing users
+      // to create additional companies.
+      if (searchParams.get("mode") !== "create") {
+        const existing = await fetchUserProfile(authUser.id);
+        if (existing?.memberships && existing.memberships.length > 0) {
+          router.push("/feed");
+          return;
+        }
       }
 
       const result = await createCompanyWithOwner({
@@ -137,7 +142,7 @@ function JoinPageInner() {
       const authUser = session?.user;
       if (!authUser) {
         // Not logged in — redirect to register with code preserved
-        router.push(`/register?code=${encodeURIComponent(companyCode)}`);
+        router.push(`/?auth=register&code=${encodeURIComponent(companyCode)}`);
         return;
       }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { joinCompanyByCode, registerUserInDB } from "@/lib/supabase/db";
@@ -8,6 +8,7 @@ import { joinCompanyByCode, registerUserInDB } from "@/lib/supabase/db";
 export default function AuthCallbackPage() {
   const router = useRouter();
   const handled = useRef(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (handled.current) return;
@@ -28,11 +29,17 @@ export default function AuthCallbackPage() {
 
         try {
           await handlePostAuth(supabase, session);
+          router.replace("/feed");
         } catch (err) {
-          console.warn("Post-auth processing failed:", err);
+          console.error("Post-auth processing failed:", err);
+          // Show error instead of silently redirecting — otherwise the user
+          // lands on /feed with no company and no idea registration failed.
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Account setup failed. Please try again."
+          );
         }
-
-        router.replace("/feed");
       }
     );
 
@@ -40,7 +47,7 @@ export default function AuthCallbackPage() {
     // here directly without a valid token), redirect to login.
     const timeout = setTimeout(() => {
       subscription.unsubscribe();
-      router.replace("/login?error=auth_callback_timeout");
+      router.replace("/?auth=login&error=auth_callback_timeout");
     }, 8000);
 
     return () => {
@@ -48,6 +55,38 @@ export default function AuthCallbackPage() {
       subscription.unsubscribe();
     };
   }, [router]);
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="flex max-w-sm flex-col items-center gap-4 rounded-lg border border-border/50 bg-card p-6 text-center shadow-xl">
+          <h1 className="text-lg font-semibold">Account setup failed</h1>
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <div className="flex w-full gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                handled.current = false;
+                setError("");
+                // Re-run the effect by forcing a reload of this page
+                window.location.reload();
+              }}
+              className="flex-1 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={() => router.replace("/?auth=login")}
+              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Back to login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
