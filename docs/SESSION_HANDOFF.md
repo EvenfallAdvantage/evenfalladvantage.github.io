@@ -5,9 +5,10 @@
 **Working Directory:** `C:\Users\54MUR41\projects\evenfalladvantage.github.io`
 **CI/CD:** Build & Deploy passing on GitHub Pages. Next.js 16.2.4, Node 22.
 **Tests:** 519/519 passing (28 test files), 0 TypeScript errors.
-**Commits this session:** 43
+**Commits this session:** 55
 **React Query pages:** 15 migrated
 **PageShell pages:** 14 migrated
+**SMTP:** Resend custom SMTP configured in Supabase (noreply@evenfalladvantage.com)
 **Native confirm():** 0 remaining (37/37 migrated)
 **Empty catch blocks:** 0 remaining (141/141 replaced)
 **ESLint:** 0 errors, 0 warnings. Lint is blocking in CI (--max-warnings 0).
