@@ -1,20 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Mail, ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { Mail, ArrowLeft, Loader2, CheckCircle2, Clock } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+
+const COOLDOWN_SECONDS = 60;
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
 
-  async function handleSubmit(e: React.FormEvent) {
+  // Cooldown timer
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => setCooldown(c => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || loading || cooldown > 0) return;
     setError("");
     setLoading(true);
     try {
@@ -24,20 +34,28 @@ export default function ResetPasswordPage() {
       });
       if (resetError) throw resetError;
       setSent(true);
+      // Start cooldown to prevent rapid re-sends
+      setCooldown(COOLDOWN_SECONDS);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to send reset email";
-      // Friendlier message for rate limiting (Supabase auth API limit, not SMTP)
       if (msg.toLowerCase().includes("rate limit")) {
-        setError("Too many requests. Please wait a few minutes and try again. If this persists, contact support.");
+        setError("Too many requests. Please wait a few minutes and try again.");
+        setCooldown(COOLDOWN_SECONDS * 3); // Longer cooldown after rate limit
       } else if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("no user")) {
         // Don't reveal whether email exists (security best practice)
         setSent(true);
+        setCooldown(COOLDOWN_SECONDS);
       } else {
         setError(msg);
       }
     } finally {
       setLoading(false);
     }
+  }, [email, loading, cooldown]);
+
+  function handleSendAgain() {
+    if (cooldown > 0) return;
+    setSent(false);
   }
 
   return (
@@ -59,22 +77,30 @@ export default function ResetPasswordPage() {
             <div>
               <p className="text-sm text-white font-medium">Check your email</p>
               <p className="text-xs text-white/40 mt-1">
-                We sent a password reset link to <span className="text-[#dd8c33]">{email}</span>
+                If an account exists for <span className="text-[#dd8c33]">{email}</span>, we&apos;ve sent a reset link.
               </p>
               <p className="text-xs text-white/30 mt-2">Didn&apos;t receive it? Check spam or try again.</p>
             </div>
-            <button onClick={() => { setSent(false); setEmail(""); }}
-              className="text-xs text-[#dd8c33] hover:underline font-medium">
-              Send again
-            </button>
+            {cooldown > 0 ? (
+              <div className="flex items-center justify-center gap-1.5 text-xs text-white/30">
+                <Clock className="h-3 w-3" />
+                <span>Resend available in {cooldown}s</span>
+              </div>
+            ) : (
+              <button onClick={handleSendAgain}
+                className="text-xs text-[#dd8c33] hover:underline font-medium">
+                Send again
+              </button>
+            )}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="text-xs font-medium text-white/60 block mb-1">Email address</label>
+              <label htmlFor="reset-email" className="text-xs font-medium text-white/60 block mb-1">Email address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
                 <input
+                  id="reset-email"
                   type="email"
                   placeholder="you@company.com"
                   value={email}
@@ -89,11 +115,16 @@ export default function ResetPasswordPage() {
             {error && <p className="text-xs text-red-400">{error}</p>}
             <button
               type="submit"
-              disabled={loading || !email.trim()}
+              disabled={loading || !email.trim() || cooldown > 0}
               className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-              Send Reset Link
+              {loading ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Sending...</>
+              ) : cooldown > 0 ? (
+                <><Clock className="h-4 w-4" /> Wait {cooldown}s</>
+              ) : (
+                <><Mail className="h-4 w-4" /> Send Reset Link</>
+              )}
             </button>
           </form>
         )}
