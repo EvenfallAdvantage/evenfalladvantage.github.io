@@ -275,14 +275,53 @@ const DATE_FIELDS = new Set<string>([
 ]);
 
 /**
+ * Format a timestamp (ms) as "N minutes/hours/days ago" for popup display.
+ * Falls back to a compact locale date for older entries.
+ */
+function formatRelativeAge(ms: number): string {
+  const diffMs = Date.now() - ms;
+  if (diffMs < 0) return "in the future";
+  const min = diffMs / 60000;
+  if (min < 60) return `${Math.round(min)} min ago`;
+  const hr = min / 60;
+  if (hr < 48) return `${hr.toFixed(1)} hours ago`;
+  const days = hr / 24;
+  if (days < 30) return `${days.toFixed(1)} days ago`;
+  return new Date(ms).toLocaleDateString();
+}
+
+/**
  * Build a description HTML string from feature properties for Cesium popups.
  * Shows ALL non-empty, non-internal fields for maximum information.
+ *
+ * For time-aware feeds (those with a `dateFields` allowlist) the popup
+ * always opens with the authoritative timestamp — even if the underlying
+ * field is missing/null — so analysts always know how old an intel point is.
  */
 export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
   const p = feature.properties;
   const parts: string[] = [];
 
   parts.push(`<b style="color:${layer.color}">${layer.label}</b>`);
+
+  // Always show the authoritative timestamp for time-aware layers, even
+  // when missing — this is the most important field for kinetic intel.
+  const featureTs = getFeatureTimestamp(p, layer.dateFields);
+  const dateFieldShown = new Set<string>();
+  if (layer.dateFields) {
+    if (featureTs !== null) {
+      const d = new Date(featureTs);
+      parts.push(
+        `<br/><b style="opacity:0.9">When:</b> <span style="color:${layer.color};opacity:0.85">` +
+        `${d.toLocaleDateString()} ${d.toLocaleTimeString()} <span style="opacity:0.5">(${formatRelativeAge(featureTs)})</span></span>`
+      );
+      // Mark every dateField as "already shown" so the iterator below doesn't
+      // re-emit the same value under a different field name.
+      for (const f of layer.dateFields) dateFieldShown.add(f);
+    } else {
+      parts.push(`<br/><b style="opacity:0.7">When:</b> <span style="opacity:0.4">date not reported by source</span>`);
+    }
+  }
 
   // Find and show the best title field
   for (const field of TITLE_FIELDS) {
@@ -293,11 +332,11 @@ export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
   }
 
   // Show all meaningful properties as a compact list
-  const shown = new Set<string>();
+  const shown = new Set<string>(dateFieldShown);
   for (const [key, val] of Object.entries(p)) {
     if (val == null || val === "" || val === 0 || val === "null" || val === "None") continue;
     if (SKIP_FIELDS.has(key)) continue;
-    if (TITLE_FIELDS.includes(key) && shown.size === 0) { shown.add(key); continue; } // already shown as title
+    if (TITLE_FIELDS.includes(key) && shown.size === dateFieldShown.size) { shown.add(key); continue; } // already shown as title
     if (shown.has(key)) continue;
     shown.add(key);
 
