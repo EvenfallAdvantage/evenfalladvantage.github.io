@@ -7,86 +7,231 @@ import { logger } from "@/lib/logger";
 
 // ─── Nearby POIs via Overpass API (OpenStreetMap) ─────────────
 
+export type PoiType =
+  | "hospital"
+  | "police"
+  | "fire_station"
+  | "pharmacy"
+  | "school"
+  | "fuel"
+  | "helipad"
+  | "shelter";
+
 export interface NearbyPOI {
   id: number;
-  type: "hospital" | "police" | "fire_station" | "pharmacy";
+  type: PoiType;
   name: string;
   lat: number;
   lng: number;
-  distance?: number;
 }
 
-const POI_QUERIES: Record<NearbyPOI["type"], string> = {
-  hospital: '[amenity=hospital]',
-  police: '[amenity=police]',
-  fire_station: '[amenity=fire_station]',
-  pharmacy: '[amenity=pharmacy]',
+/**
+ * Overpass query filters per POI type. The map value is a complete tag
+ * selector clause that follows `node` / `way`. We OR these together inside
+ * a single bbox query for efficiency (one HTTP roundtrip per tile).
+ */
+const POI_QUERIES: Record<PoiType, string[]> = {
+  hospital:     ['[amenity=hospital]'],
+  police:       ['[amenity=police]'],
+  fire_station: ['[amenity=fire_station]'],
+  pharmacy:     ['[amenity=pharmacy]'],
+  school:       ['[amenity=school]', '[amenity=university]', '[amenity=college]'],
+  fuel:         ['[amenity=fuel]'],
+  helipad:      ['[aeroway=helipad]', '[aeroway=heliport]'],
+  shelter:      ['[amenity=shelter]', '[emergency=assembly_point]'],
 };
 
-// POI cache — hospitals and fire stations don't move. Cache 7 days.
+// Cached results last 7 days.
 const POI_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
-let poiCache: { key: string; data: NearbyPOI[]; ts: number } | null = null;
+/**
+ * Tile grid resolution. Each cell is ~0.1° (~11km lat). All POI queries
+ * are aligned to this grid so the same cell is requested at most once
+ * regardless of where in the cell the user looks. 0.1° is a sweet spot:
+ * small enough that a single Overpass query is fast, large enough that
+ * a typical city viewport touches only a handful of cells.
+ */
+export const POI_TILE_DEG = 0.1;
 
-export async function getNearbyPOIs(lat: number, lng: number, radiusM = 5000): Promise<NearbyPOI[]> {
-  // Round coordinates to 2 decimal places for cache key stability
-  const cacheKey = `${lat.toFixed(2)},${lng.toFixed(2)},${radiusM}`;
+/** Result of a tile fetch, plus an empty-success marker so we don't refetch dry tiles. */
+interface TileEntry {
+  data: NearbyPOI[];
+  ts: number;
+}
 
-  // Check memory cache
-  if (poiCache?.key === cacheKey && Date.now() - poiCache.ts < POI_CACHE_TTL) {
-    return poiCache.data;
+const tileCache = new Map<string, TileEntry>();
+const inflight = new Map<string, Promise<NearbyPOI[]>>();
+
+function tileKey(tileLat: number, tileLng: number, types: readonly PoiType[]): string {
+  const sorted = [...types].sort().join(",");
+  return `${tileLat.toFixed(1)},${tileLng.toFixed(1)}|${sorted}`;
+}
+
+function readTileFromStorage(key: string): TileEntry | null {
+  try {
+    const raw = localStorage.getItem(`poi-tile-${key}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.ts || Date.now() - parsed.ts >= POI_CACHE_TTL) return null;
+    return parsed as TileEntry;
+  } catch (e) {
+    logger.swallow("env-intel:poi-tile-read", e, "debug");
+    return null;
+  }
+}
+
+function writeTileToStorage(key: string, entry: TileEntry) {
+  try {
+    localStorage.setItem(`poi-tile-${key}`, JSON.stringify(entry));
+  } catch (e) {
+    logger.swallow("env-intel:poi-tile-write", e, "debug");
+  }
+}
+
+/**
+ * Fetch all POI types for one tile cell. Cached per-tile so a single tile
+ * is queried at most once across the session (within TTL).
+ */
+async function fetchTile(tileLat: number, tileLng: number, types: readonly PoiType[]): Promise<NearbyPOI[]> {
+  const key = tileKey(tileLat, tileLng, types);
+
+  const memHit = tileCache.get(key);
+  if (memHit && Date.now() - memHit.ts < POI_CACHE_TTL) return memHit.data;
+
+  const storageHit = readTileFromStorage(key);
+  if (storageHit) {
+    tileCache.set(key, storageHit);
+    return storageHit.data;
   }
 
-  // Check localStorage cache
-  try {
-    const stored = localStorage.getItem(`poi-cache-${cacheKey}`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (parsed.ts && Date.now() - parsed.ts < POI_CACHE_TTL) {
-        poiCache = { key: cacheKey, data: parsed.data, ts: parsed.ts };
-        return parsed.data;
-      }
-    }
-  } catch (e) { logger.swallow("env-intel:poi-cache-read", e, "debug"); }
+  // Coalesce concurrent requests for the same tile
+  const existing = inflight.get(key);
+  if (existing) return existing;
 
-  const bbox = getBBox(lat, lng, radiusM);
-  const filters = Object.entries(POI_QUERIES)
-    .map(([_type, query]) => `node${query}(${bbox});way${query}(${bbox});`)
+  const south = tileLat;
+  const north = tileLat + POI_TILE_DEG;
+  const west = tileLng;
+  const east = tileLng + POI_TILE_DEG;
+  const bbox = `${south},${west},${north},${east}`;
+
+  const filters = types
+    .flatMap(t => POI_QUERIES[t].map(clause => `node${clause}(${bbox});way${clause}(${bbox});`))
     .join("");
+  const query = `[out:json][timeout:15];(${filters});out center 100;`;
 
-  const query = `[out:json][timeout:10];(${filters});out center 50;`;
+  const promise = (async (): Promise<NearbyPOI[]> => {
+    try {
+      const res = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        body: `data=${encodeURIComponent(query)}`,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) {
+        logger.warn("env-intel", `Overpass tile ${key} returned ${res.status}`);
+        return [];
+      }
+      const data = await res.json();
+      const result: NearbyPOI[] = (data.elements ?? [])
+        .map((el: Record<string, unknown>) => {
+          const elLat = (el.lat ?? (el.center as Record<string, number>)?.lat) as number;
+          const elLng = (el.lon ?? (el.center as Record<string, number>)?.lon) as number;
+          const tags = el.tags as Record<string, string> ?? {};
+          // Determine concrete type from tags (amenity, aeroway, emergency)
+          const amenity = tags.amenity;
+          const aeroway = tags.aeroway;
+          const emergency = tags.emergency;
+          let type: PoiType | null = null;
+          if (amenity === "hospital") type = "hospital";
+          else if (amenity === "police") type = "police";
+          else if (amenity === "fire_station") type = "fire_station";
+          else if (amenity === "pharmacy") type = "pharmacy";
+          else if (amenity === "school" || amenity === "university" || amenity === "college") type = "school";
+          else if (amenity === "fuel") type = "fuel";
+          else if (aeroway === "helipad" || aeroway === "heliport") type = "helipad";
+          else if (amenity === "shelter" || emergency === "assembly_point") type = "shelter";
+          if (!type) return null;
+          return {
+            id: el.id as number,
+            type,
+            name: tags.name || type.replace("_", " "),
+            lat: elLat,
+            lng: elLng,
+          };
+        })
+        .filter((p: NearbyPOI | null): p is NearbyPOI => !!p && !!p.lat && !!p.lng);
 
-  try {
-    const res = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      body: `data=${encodeURIComponent(query)}`,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      signal: AbortSignal.timeout(10000),
-    });
-    const data = await res.json();
+      const entry: TileEntry = { data: result, ts: Date.now() };
+      tileCache.set(key, entry);
+      writeTileToStorage(key, entry);
+      return result;
+    } catch (err) {
+      logger.swallow("env-intel:poi-tile-fetch", err, "warn");
+      return [];
+    } finally {
+      inflight.delete(key);
+    }
+  })();
 
-    const result = (data.elements ?? []).map((el: Record<string, unknown>) => {
-      const elLat = (el.lat ?? (el.center as Record<string, number>)?.lat) as number;
-      const elLng = (el.lon ?? (el.center as Record<string, number>)?.lon) as number;
-      const tags = el.tags as Record<string, string> ?? {};
-      const amenity = tags.amenity as NearbyPOI["type"];
-      return {
-        id: el.id as number,
-        type: amenity,
-        name: tags.name || amenity.replace("_", " "),
-        lat: elLat,
-        lng: elLng,
-      };
-    }).filter((p: NearbyPOI) => p.lat && p.lng);
+  inflight.set(key, promise);
+  return promise;
+}
 
-    // Cache the results
-    poiCache = { key: cacheKey, data: result, ts: Date.now() };
-    try { localStorage.setItem(`poi-cache-${cacheKey}`, JSON.stringify({ data: result, ts: Date.now() })); } catch (e) { logger.swallow("env-intel:poi-cache-write", e, "debug"); }
-
-    return result;
-  } catch (err) {
-    console.warn("[EnvIntel] POI fetch failed:", err);
-    return [];
+/**
+ * Compute the set of tile cells that intersect a lat/lng bounding box.
+ * Returns the (south, west) corner of each cell.
+ */
+function tilesForBbox(south: number, north: number, west: number, east: number): Array<{ lat: number; lng: number }> {
+  const tiles: Array<{ lat: number; lng: number }> = [];
+  const lat0 = Math.floor(south / POI_TILE_DEG) * POI_TILE_DEG;
+  const lng0 = Math.floor(west / POI_TILE_DEG) * POI_TILE_DEG;
+  for (let lat = lat0; lat <= north; lat += POI_TILE_DEG) {
+    for (let lng = lng0; lng <= east; lng += POI_TILE_DEG) {
+      tiles.push({ lat: +lat.toFixed(2), lng: +lng.toFixed(2) });
+    }
   }
+  return tiles;
+}
+
+/**
+ * Fetch every POI in a viewport bounding box, tile by tile. Tiles are
+ * cached per session and persisted to localStorage so panning back to a
+ * previously-visited area is instant.
+ *
+ * Throws no errors — returns whatever it can.
+ */
+export async function getPOIsInBbox(
+  south: number, north: number, west: number, east: number,
+  types: readonly PoiType[] = (Object.keys(POI_QUERIES) as PoiType[]),
+): Promise<NearbyPOI[]> {
+  const tiles = tilesForBbox(south, north, west, east);
+  if (tiles.length === 0) return [];
+
+  // Fan out per-tile fetches (cached/inflight de-duped inside fetchTile)
+  const results = await Promise.all(tiles.map(t => fetchTile(t.lat, t.lng, types)));
+
+  // Flatten, dedupe by id (a way and a node with the same id are rare but possible).
+  const seen = new Map<number, NearbyPOI>();
+  for (const arr of results) {
+    for (const poi of arr) {
+      if (poi.lat < south || poi.lat > north || poi.lng < west || poi.lng > east) continue;
+      if (!seen.has(poi.id)) seen.set(poi.id, poi);
+    }
+  }
+  return Array.from(seen.values());
+}
+
+/**
+ * Fetch POIs within a radius (meters) of a point. Implemented on top of
+ * the tile-grid fetcher so radius-based queries share cache with viewport
+ * queries.
+ */
+export async function getNearbyPOIs(
+  lat: number, lng: number, radiusM = 5000,
+  types: readonly PoiType[] = (Object.keys(POI_QUERIES) as PoiType[]),
+): Promise<NearbyPOI[]> {
+  const dLat = radiusM / 111320;
+  const dLng = radiusM / (111320 * Math.cos(lat * Math.PI / 180));
+  return getPOIsInBbox(lat - dLat, lat + dLat, lng - dLng, lng + dLng, types);
 }
 
 // ─── Sun / Moon Position ──────────────────────────────────────
@@ -162,10 +307,4 @@ export async function getRecentGeofenceAlerts(companyId: string, limit = 20): Pr
   }));
 }
 
-// ─── Helpers ──────────────────────────────────────────────────
 
-function getBBox(lat: number, lng: number, radiusM: number): string {
-  const dLat = radiusM / 111320;
-  const dLng = radiusM / (111320 * Math.cos(lat * Math.PI / 180));
-  return `${lat - dLat},${lng - dLng},${lat + dLat},${lng + dLng}`;
-}
