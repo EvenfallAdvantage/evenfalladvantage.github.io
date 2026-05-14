@@ -33,7 +33,6 @@ export async function createEvent(params: {
   siteMapUrl?: string;
   locationLat?: number;
   locationLng?: number;
-  payRate?: number | null;
   timezone?: string;
   postOrders?: string;
 }) {
@@ -61,9 +60,6 @@ export async function createEvent(params: {
     post_orders: params.postOrders ?? null,
     ...ts(),
   };
-  if (params.payRate !== undefined && params.payRate !== null) {
-    row.pay_rate = params.payRate;
-  }
   const { data, error } = await supabase
     .from("events")
     .insert(row)

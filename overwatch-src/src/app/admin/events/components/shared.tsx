@@ -10,7 +10,6 @@ export interface Event {
   location?: string;
   client_name?: string;
   timezone?: string;
-  pay_rate?: number | null;
   bill_rate?: number | null;
   post_orders?: string | null;
   site_map_url?: string | null;
@@ -33,7 +32,7 @@ export interface Shift {
   assigned_user_id?: string | null;
   post_orders?: string | null;
   users?: { id: string; first_name: string; last_name: string; email?: string } | null;
-  events?: { name: string; timezone?: string; pay_rate?: number } | null;
+  events?: { name: string; timezone?: string } | null;
   [key: string]: unknown;
 }
 

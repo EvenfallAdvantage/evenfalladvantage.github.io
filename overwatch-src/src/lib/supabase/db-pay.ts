@@ -3,15 +3,18 @@ import { ensureInternalUser } from "./db-helpers";
 
 /**
  * Get the effective pay rate for a user, resolving the cascade:
- * member override → event rate → company default
+ * member override → company default
+ *
+ * Pay is per-employee (member override or company default). Operations no longer
+ * carry their own pay rate — set per-member rates via the staff roster.
  */
 export async function getEffectivePayRate(
   userId: string,
   companyId: string,
-  eventId?: string | null
+  _eventId?: string | null,  // kept for backward compat; ignored
 ): Promise<number | null> {
   const supabase = createClient();
-  
+
   // 1. Check member override
   const { data: membership } = await supabase
     .from("company_memberships")
@@ -21,17 +24,7 @@ export async function getEffectivePayRate(
     .maybeSingle();
   if (membership?.pay_rate_override != null) return Number(membership.pay_rate_override);
 
-  // 2. Check event rate
-  if (eventId) {
-    const { data: event } = await supabase
-      .from("events")
-      .select("pay_rate")
-      .eq("id", eventId)
-      .maybeSingle();
-    if (event?.pay_rate != null) return Number(event.pay_rate);
-  }
-
-  // 3. Company default
+  // 2. Company default
   const { data: company } = await supabase
     .from("companies")
     .select("default_pay_rate")
@@ -54,21 +47,6 @@ export async function updateMemberPayRate(
     .from("company_memberships")
     .update({ pay_rate_override: payRate, updated_at: new Date().toISOString() })
     .eq("id", membershipId);
-  if (error) throw error;
-}
-
-/**
- * Update an event's pay rate
- */
-export async function updateEventPayRate(
-  eventId: string,
-  payRate: number | null
-): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("events")
-    .update({ pay_rate: payRate, updated_at: new Date().toISOString() })
-    .eq("id", eventId);
   if (error) throw error;
 }
 
@@ -129,7 +107,7 @@ export async function getMyPaySummary(companyId: string): Promise<{
   // Get recent closed timesheets with event info
   const { data: sheets } = await supabase
     .from("timesheets")
-    .select("id, clock_in, clock_out, event_id, events(name, pay_rate)")
+    .select("id, clock_in, clock_out, event_id, events(name)")
     .eq("user_id", userId)
     .eq("company_id", companyId)
     .not("clock_out", "is", null)
@@ -142,9 +120,8 @@ export async function getMyPaySummary(companyId: string): Promise<{
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timesheets = (sheets ?? []).map((s: any) => {
     const hours = (new Date(s.clock_out).getTime() - new Date(s.clock_in).getTime()) / 3600000;
-    // Resolve rate: member override → event rate → company default
-    const eventRate = s.events?.pay_rate != null ? Number(s.events.pay_rate) : null;
-    const rate = memberRate ?? eventRate ?? companyRate;
+    // Resolve rate: member override → company default
+    const rate = memberRate ?? companyRate;
     const pay = rate != null ? Math.round(hours * rate * 100) / 100 : null;
 
     totalHours += hours;

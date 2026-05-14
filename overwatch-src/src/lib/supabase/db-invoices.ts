@@ -196,7 +196,7 @@ export async function generateInvoiceFromTimesheets(
   // Get event details + bill rate
   const { data: event } = await supabase
     .from("events")
-    .select("name, client_name, bill_rate, pay_rate")
+    .select("name, client_name, bill_rate")
     .eq("id", eventId)
     .maybeSingle();
   if (!event) return null;
@@ -209,9 +209,8 @@ export async function generateInvoiceFromTimesheets(
     .maybeSingle();
 
   const billRate = Number(event.bill_rate)
-    || Number(event.pay_rate) * 1.5  // default markup if no bill rate
     || Number(company?.default_bill_rate)
-    || Number(company?.default_pay_rate) * 1.5
+    || Number(company?.default_pay_rate) * 1.5  // default markup over company pay rate
     || 25; // fallback
 
   // Get approved timesheets for this event

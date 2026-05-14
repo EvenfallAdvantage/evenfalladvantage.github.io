@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Flag, MapPin, Loader2, X, FileText,
-  Check, Shield, Shirt, AlertTriangle, Building2, DollarSign,
+  Check, Shield, Shirt, AlertTriangle, Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,9 +64,6 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
   // Site map upload (wizard step 1)
   const [siteMapFile, setSiteMapFile] = useState<File | null>(null);
   const [siteMapPreview, setSiteMapPreview] = useState<string | null>(null);
-
-  // Pay rate
-  const [payRate, setPayRate] = useState("");
 
   // SOP intake fields
   const [intakeEngagement, setIntakeEngagement] = useState<string[]>([]);
@@ -159,7 +156,6 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
         riskLevel: intakeRiskLevel || undefined,
         tlpStep: "receive_mission",
         siteMapUrl,
-        payRate: payRate.trim() ? parseFloat(payRate) : null,
         timezone: eventTimezone,
       });
       // Create intake document for SOP tracking
@@ -243,16 +239,12 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
                 ))}
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <Label htmlFor="event-time-sensitivity" className="text-xs">Time Sensitivity</Label>
                 <select id="event-time-sensitivity" value={intakeTimeSensitivity} onChange={(e) => setIntakeTimeSensitivity(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
                   {["Low", "Medium", "High", "Immediate"].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
-              </div>
-              <div>
-                <Label htmlFor="event-pay-rate" className="text-xs flex items-center gap-1"><DollarSign className="h-3 w-3 text-green-500" /> Pay Rate ($/hr)</Label>
-                <Input id="event-pay-rate" type="number" step="0.01" min="0" placeholder="e.g. 25.00" value={payRate} onChange={(e) => setPayRate(e.target.value)} className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="event-mission-statement" className="text-xs">Mission Statement</Label>

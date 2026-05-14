@@ -171,7 +171,7 @@ export async function getCompanyTimesheets(companyId: string) {
   // Primary: filter by company_id (set on newer timesheets)
   const { data: directData, error: directErr } = await supabase
     .from("timesheets")
-    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location, pay_rate), shifts(id, role, events(id, name, location))")
+    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location), shifts(id, role, events(id, name, location))")
     .eq("company_id", companyId)
     .order("clock_in", { ascending: false })
     .limit(50);
@@ -191,7 +191,7 @@ export async function getCompanyTimesheets(companyId: string) {
 
   const { data: allTimesheets } = await supabase
     .from("timesheets")
-    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location, pay_rate, company_id), shifts(id, role, events(id, name, location))")
+    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location, company_id), shifts(id, role, events(id, name, location))")
     .in("user_id", userIds)
     .is("company_id", null)
     .order("clock_in", { ascending: false })
