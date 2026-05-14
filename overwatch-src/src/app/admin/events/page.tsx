@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Flag, MapPin, Plus, Loader2, ChevronDown, ChevronRight,
-  Trash2, FileText,
+  Trash2, FileText, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ import { ConflictWarningModal, type ConflictWarningData } from "./components/con
 import { OperationDetail } from "./components/operation-detail";
 import { getAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { ClientIntakeShareModal } from "@/components/ops/client-intake-share-modal";
 
 /* ── Component ─────────────────────────────────────────── */
 
@@ -40,6 +41,7 @@ export default function AdminEventsPage() {
 
   const searchParams = useSearchParams();
   const [showCreate, setShowCreate] = useState(false);
+  const [showClientIntake, setShowClientIntake] = useState(false);
   const [initialAssessment, setInitialAssessment] = useState<SiteAssessment | null>(null);
 
   useEffect(() => {
@@ -47,9 +49,20 @@ export default function AdminEventsPage() {
       "OPS PLANNING",
       "Plan and manage security operations",
       <Flag className="h-5 w-5" />,
-      <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
-        <Plus className="h-4 w-4" /> New Operation
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1.5"
+          onClick={() => setShowClientIntake(true)}
+          title="Send a shareable intake form link to a prospective client"
+        >
+          <Send className="h-4 w-4" /> Request from Client
+        </Button>
+        <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
+          <Plus className="h-4 w-4" /> New Operation
+        </Button>
+      </div>
     );
     return () => clearHeader();
   }, [setHeader, clearHeader]);
@@ -272,6 +285,17 @@ export default function AdminEventsPage() {
       {adminViewingDoc && (
         <DocViewerModal doc={adminViewingDoc} onClose={() => setAdminViewingDoc(null)} />
       )}
+
+      {/* ── Client Intake Share Modal ── */}
+      {activeCompanyId && internalUserId && (
+        <ClientIntakeShareModal
+          companyId={activeCompanyId}
+          userId={internalUserId}
+          open={showClientIntake}
+          onClose={() => setShowClientIntake(false)}
+        />
+      )}
+
       <ConfirmDialog />
     </>
   );
