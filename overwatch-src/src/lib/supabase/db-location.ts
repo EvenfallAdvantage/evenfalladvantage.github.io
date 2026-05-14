@@ -159,8 +159,18 @@ export async function logGeofenceBreach(
 /**
  * Get the last known position for each staff member at a specific point in time.
  * Used by Time Machine to replay historical staff positions.
+ *
+ * @param companyId
+ * @param timestamp Replay timestamp (ms since epoch).
+ * @param lookbackHours How far back from `timestamp` to search for history.
+ *   Defaults to 24h — wide enough to find each user's last fix while
+ *   bounding the query's row count. Caller may widen for deep replays.
  */
-export async function getStaffLocationsAt(companyId: string, timestamp: number): Promise<Array<{
+export async function getStaffLocationsAt(
+  companyId: string,
+  timestamp: number,
+  lookbackHours = 24,
+): Promise<Array<{
   userId: string;
   name: string;
   lat: number;
@@ -177,9 +187,9 @@ export async function getStaffLocationsAt(companyId: string, timestamp: number):
     .select("user_id, lat, lng, heading, speed, recorded_at, users(first_name, last_name)")
     .eq("company_id", companyId)
     .lte("recorded_at", atTime)
-    .gte("recorded_at", new Date(timestamp - 8 * 60 * 60 * 1000).toISOString()) // Only look back 8h
+    .gte("recorded_at", new Date(timestamp - lookbackHours * 60 * 60 * 1000).toISOString())
     .order("recorded_at", { ascending: false })
-    .limit(500);
+    .limit(1000);
 
   if (error) { logDbReadError("staff locations at time", error); return []; }
   if (!history?.length) return [];

@@ -27,10 +27,15 @@ export function useTimeMachine(
   useEffect(() => {
     if (!timeMachineOpen || !companyId) return;
     // Only fetch if we're replaying past (>5s ago)
-    const isReplaying = debouncedReplayTime < currentTimestamp() - 5000;
+    const now = currentTimestamp();
+    const isReplaying = debouncedReplayTime < now - 5000;
     if (!isReplaying) return;
     let cancelled = false;
-    getStaffLocationsAt(companyId, debouncedReplayTime).then((locs) => {
+    // Widen the lookback for deeper replays so a user's last fix from a
+    // few days before the replay timestamp is still found. Floor at 24h.
+    const replayDepthHours = Math.max(0, (now - debouncedReplayTime) / (60 * 60 * 1000));
+    const lookbackHours = Math.max(24, Math.min(168, replayDepthHours + 24));
+    getStaffLocationsAt(companyId, debouncedReplayTime, lookbackHours).then((locs) => {
       if (cancelled) return;
       setTimeMachineStaff(locs.map((l) => ({
         userId: l.userId,

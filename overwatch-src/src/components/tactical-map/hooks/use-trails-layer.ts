@@ -45,11 +45,17 @@ export function useTrailsLayer(params: {
 
       if (!layers.breadcrumbs || staff.length === 0) return;
 
-      const isTimeMachine = timeMachineOpen && debouncedReplayTime < Date.now() - 5000;
+      const now = Date.now();
+      const isTimeMachine = timeMachineOpen && debouncedReplayTime < now - 5000;
+      // Trail window: 4h baseline. When the Time Machine is engaged, expand
+      // to cover the playback depth so the trail visibly elongates as the
+      // slider moves back. Floor at 4h, cap at 7d to keep queries bounded.
+      const replayDepthHours = isTimeMachine ? (now - debouncedReplayTime) / (60 * 60 * 1000) : 0;
+      const trailHours = Math.min(168, Math.max(4, 4 + replayDepthHours));
       staff.forEach(s => {
         const trailPromise = isTimeMachine
-          ? getLocationHistoryAt(s.userId, companyId, 4, debouncedReplayTime)
-          : getLocationHistory(s.userId, companyId, 4);
+          ? getLocationHistoryAt(s.userId, companyId, trailHours, debouncedReplayTime)
+          : getLocationHistory(s.userId, companyId, trailHours);
         trailPromise.then(trail => {
           if (trail.length < 2) return;
           // Remove existing trail for this user first

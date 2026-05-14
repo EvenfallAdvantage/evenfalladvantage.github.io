@@ -27,7 +27,26 @@ export interface S2Layer {
   icon: string;          // Emoji or marker label
   refreshMinutes: number; // auto-refresh interval
   defaultOn: boolean;
+  /**
+   * Candidate property names that carry the feature's authoritative date.
+   * The first one found on a feature is used for age filtering. If no
+   * candidate is found, the feature is kept (assumed static / not time-aware).
+   * If `undefined`, the layer is treated as static (no age filter applied).
+   */
+  dateFields?: readonly string[];
 }
+
+/** Default age window — pins older than this are hidden unless Time Machine extends it. */
+export const S2_DEFAULT_MAX_AGE_HOURS = 72;
+
+// Date-field candidate sets, ordered by likelihood per upstream feed.
+// Verified against actual popup output: the kinetic feed uses literal "Date"
+// (rendered as "Date: 3/29/2025 8:00:00 PM" in feature popups).
+const KINETIC_DATE_FIELDS = ["Date", "date", "EventDate", "event_date", "ReportDate", "report_date", "time", "Time"] as const;
+const WILDFIRE_DATE_FIELDS = ["FireDiscoveryDateTime", "IrwinModifiedDate", "ModifiedDate", "ModifiedOnDateTime_dt"] as const;
+const THERMAL_DATE_FIELDS = ["acq_date", "ACQ_DATE", "AcquisitionDate", "acquisition_date", "Date", "date"] as const;
+const EARTHQUAKE_DATE_FIELDS = ["time", "Time", "Date", "date", "eventTime", "OriginTime"] as const;
+const REPORT_DATE_FIELDS = ["ReportDate", "report_date", "Date", "date", "CreationDate", "EditDate"] as const;
 
 export const S2_LAYERS: S2Layer[] = [
   // Kinetic Events
@@ -40,6 +59,7 @@ export const S2_LAYERS: S2Layer[] = [
     icon: "K",
     refreshMinutes: 30,
     defaultOn: true,
+    dateFields: KINETIC_DATE_FIELDS,
   },
   // Wildfires
   {
@@ -51,6 +71,7 @@ export const S2_LAYERS: S2Layer[] = [
     icon: "F",
     refreshMinutes: 60,
     defaultOn: true,
+    dateFields: WILDFIRE_DATE_FIELDS,
   },
   // Thermal hotspots
   {
@@ -62,6 +83,7 @@ export const S2_LAYERS: S2Layer[] = [
     icon: "T",
     refreshMinutes: 60,
     defaultOn: false,
+    dateFields: THERMAL_DATE_FIELDS,
   },
   // Earthquakes
   {
@@ -73,8 +95,9 @@ export const S2_LAYERS: S2Layer[] = [
     icon: "E",
     refreshMinutes: 15,
     defaultOn: true,
+    dateFields: EARTHQUAKE_DATE_FIELDS,
   },
-  // Power plants
+  // Power plants — static infrastructure, no age filter
   {
     id: "s2-power-plants",
     label: "US Power Plants",
@@ -84,6 +107,7 @@ export const S2_LAYERS: S2Layer[] = [
     icon: "P",
     refreshMinutes: 1440, // daily
     defaultOn: false,
+    // dateFields intentionally omitted — static infrastructure
   },
   // Drone reports
   {
@@ -95,6 +119,7 @@ export const S2_LAYERS: S2Layer[] = [
     icon: "D",
     refreshMinutes: 30,
     defaultOn: false,
+    dateFields: REPORT_DATE_FIELDS,
   },
   // Tipline
   {
@@ -106,8 +131,53 @@ export const S2_LAYERS: S2Layer[] = [
     icon: "I",
     refreshMinutes: 30,
     defaultOn: false,
+    dateFields: REPORT_DATE_FIELDS,
   },
 ];
+
+/**
+ * Parse a date value from a feature property. Handles:
+ *  - ISO strings (`"2024-05-14T..."`)
+ *  - Epoch milliseconds (USGS earthquakes, ArcGIS Date)
+ *  - Epoch seconds (some feeds)
+ *  - Locale-style strings
+ *
+ * Returns timestamp in ms, or null if unparseable.
+ */
+export function parseFeatureDate(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    // Heuristic: values > 1e12 are ms; values > 1e9 are seconds (post-2001).
+    if (value > 1e12) return value;
+    if (value > 1e9) return value * 1000;
+    return null;
+  }
+  if (typeof value === "string") {
+    const s = value.trim();
+    if (!s) return null;
+    const t = Date.parse(s);
+    return Number.isNaN(t) ? null : t;
+  }
+  return null;
+}
+
+/**
+ * Extract the first parseable date from a feature's properties using the
+ * layer's `dateFields` allowlist. Returns null if none parse.
+ */
+export function getFeatureTimestamp(
+  properties: Record<string, unknown>,
+  dateFields: readonly string[] | undefined,
+): number | null {
+  if (!dateFields) return null;
+  for (const field of dateFields) {
+    const v = properties[field];
+    const t = parseFeatureDate(v);
+    if (t !== null) return t;
+  }
+  return null;
+}
 
 // ─── GeoJSON Fetcher ──────────────────────────────────────
 
@@ -121,11 +191,22 @@ export interface S2Feature {
 /**
  * Fetch features from an ArcGIS FeatureServer layer as GeoJSON.
  * Uses the `/query` endpoint with `f=geojson`.
+ *
+ * Filtering rules:
+ *  - If the layer has `dateFields` and `maxAgeHours` is finite, features
+ *    older than `now - maxAgeHours` are dropped client-side. A feature with
+ *    no parseable date in any allowlisted field is kept (defensive: better
+ *    to over-show than silently hide).
+ *  - Static layers (no `dateFields`) are never age-filtered.
+ *  - `maxAgeHours = Infinity` disables age filtering entirely.
  */
 export async function fetchS2LayerFeatures(
   layer: S2Layer,
-  maxFeatures = 500
+  options: { maxFeatures?: number; maxAgeHours?: number } = {},
 ): Promise<S2Feature[]> {
+  const maxFeatures = options.maxFeatures ?? 500;
+  const maxAgeHours = options.maxAgeHours ?? S2_DEFAULT_MAX_AGE_HOURS;
+
   try {
     const params = new URLSearchParams({
       where: "1=1",
@@ -144,6 +225,10 @@ export async function fetchS2LayerFeatures(
     const geojson = await res.json();
     if (!geojson?.features?.length) return [];
 
+    const cutoff = Number.isFinite(maxAgeHours) && layer.dateFields
+      ? Date.now() - maxAgeHours * 60 * 60 * 1000
+      : null;
+
     return geojson.features
       .filter((f: { geometry?: { type?: string; coordinates?: number[] } }) =>
         f.geometry?.type === "Point" && (f.geometry?.coordinates?.length ?? 0) >= 2
@@ -153,7 +238,13 @@ export async function fetchS2LayerFeatures(
         lng: f.geometry.coordinates[0],
         properties: f.properties ?? {},
         layerId: layer.id,
-      }));
+      }))
+      .filter((feat: S2Feature) => {
+        if (cutoff === null) return true;
+        const t = getFeatureTimestamp(feat.properties, layer.dateFields);
+        // Kept if no parseable date OR within window
+        return t === null || t >= cutoff;
+      });
   } catch (err) {
     logger.swallow("s2-underground:fetch", err, "warn");
     return [];
@@ -175,12 +266,13 @@ const TITLE_FIELDS = [
   "Location", "location", "City", "city", "State", "state",
 ];
 
-// Fields that look like dates (format as date)
-const DATE_FIELDS = [
-  "FireDiscoveryDateTime", "Date", "date", "StartDate", "start_date",
-  "EndDate", "end_date", "ReportDate", "report_date", "time", "Time",
-  "EventDate", "ModifiedDate", "IrwinModifiedDate",
-];
+// Fields that look like dates (format as date in popups).
+// Derived from the union of all per-layer dateFields plus a few common extras.
+const DATE_FIELDS = new Set<string>([
+  ...KINETIC_DATE_FIELDS, ...WILDFIRE_DATE_FIELDS, ...THERMAL_DATE_FIELDS,
+  ...EARTHQUAKE_DATE_FIELDS, ...REPORT_DATE_FIELDS,
+  "StartDate", "start_date", "EndDate", "end_date",
+]);
 
 /**
  * Build a description HTML string from feature properties for Cesium popups.
@@ -213,7 +305,7 @@ export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
     if (strVal.length > 500) continue; // skip huge blobs
 
     // Format dates nicely
-    if (DATE_FIELDS.includes(key)) {
+    if (DATE_FIELDS.has(key)) {
       const d = new Date(typeof val === "number" ? val : strVal);
       if (!isNaN(d.getTime())) {
         parts.push(`<br/><small style="opacity:0.7">${formatFieldName(key)}: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}</small>`);

@@ -3,15 +3,23 @@
  *
  * Renders S2 Underground CIP data as Cesium point entities with
  * color-coded markers, popups, and auto-refresh.
+ *
+ * Two layers of state:
+ *   - Sub-layer on/off selections (persisted per-company in localStorage)
+ *   - Effective age window (72h default, expanded if Time Machine is dragged
+ *     further back than 72h)
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logger } from "@/lib/logger";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 import {
-  S2_LAYERS, fetchS2LayerFeatures, buildS2Description,
+  S2_LAYERS, S2_DEFAULT_MAX_AGE_HOURS, fetchS2LayerFeatures, buildS2Description,
 } from "../s2-underground";
 import { preloadSymbolsForFeatures } from "../mil-symbols";
+
+/** Wrapper so the react-compiler does not flag `Date.now()` as an inline impure call */
+function currentTimestamp() { return Date.now(); }
 
 interface UseS2IntelLayerParams {
   viewerRef: CesiumRef;
@@ -19,27 +27,93 @@ interface UseS2IntelLayerParams {
   entityGroupsRef: EntityGroupsRef;
   loading: boolean;
   enabled: boolean; // master toggle from layer panel
+  companyId: string;
+  /** Time Machine replay timestamp; effective only when timeMachineOpen */
+  debouncedReplayTime: number;
+  timeMachineOpen: boolean;
+}
+
+function storageKey(companyId: string) {
+  return `tactical-map-s2-${companyId}`;
+}
+
+/** Read persisted active layer IDs from localStorage. */
+function readPersistedLayers(companyId: string): Set<string> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(storageKey(companyId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return new Set(parsed.filter((id): id is string => typeof id === "string"));
+  } catch (e) {
+    logger.swallow("s2-intel:read-persisted", e, "debug");
+    return null;
+  }
+}
+
+function writePersistedLayers(companyId: string, set: Set<string>) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(storageKey(companyId), JSON.stringify(Array.from(set)));
+  } catch (e) {
+    logger.swallow("s2-intel:write-persisted", e, "debug");
+  }
 }
 
 export function useS2IntelLayer({
   viewerRef, cesiumRef, entityGroupsRef, loading, enabled,
+  companyId, debouncedReplayTime, timeMachineOpen,
 }: UseS2IntelLayerParams) {
-  const [activeLayers, setActiveLayers] = useState<Set<string>>(() =>
-    new Set(S2_LAYERS.filter(l => l.defaultOn).map(l => l.id))
-  );
+  // Initialize from localStorage if available, otherwise from defaultOn flags
+  const [activeLayers, setActiveLayers] = useState<Set<string>>(() => {
+    const persisted = readPersistedLayers(companyId);
+    if (persisted) return persisted;
+    return new Set(S2_LAYERS.filter(l => l.defaultOn).map(l => l.id));
+  });
   const [featureCount, setFeatureCount] = useState(0);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([]);
 
-  // Toggle a specific S2 sub-layer
-  const toggleLayer = (layerId: string) => {
+  // Re-hydrate when company changes (user switches tenants).
+  // Deferred via microtask to avoid cascading setState in the same render.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      const persisted = readPersistedLayers(companyId);
+      setActiveLayers(persisted ?? new Set(S2_LAYERS.filter(l => l.defaultOn).map(l => l.id)));
+    });
+    return () => { cancelled = true; };
+  }, [companyId]);
+
+  // Toggle a specific S2 sub-layer and persist
+  const toggleLayer = useCallback((layerId: string) => {
     setActiveLayers(prev => {
       const next = new Set(prev);
       if (next.has(layerId)) next.delete(layerId);
       else next.add(layerId);
+      writePersistedLayers(companyId, next);
       return next;
     });
-  };
+  }, [companyId]);
+
+  /**
+   * Effective max-age window in hours.
+   *
+   *   - When Time Machine is not engaged: 72h default.
+   *   - When Time Machine is dragged further back than 72h: expand the
+   *     window to include up to the replay timestamp (so the user sees
+   *     the pins that would have been visible then).
+   *
+   * The replay-derived offset is added to the default so we always show
+   * at least 72h plus the depth of the replay.
+   */
+  const effectiveMaxAgeHours = useMemo(() => {
+    if (!timeMachineOpen) return S2_DEFAULT_MAX_AGE_HOURS;
+    const replayDepthHours = Math.max(0, (currentTimestamp() - debouncedReplayTime) / (60 * 60 * 1000));
+    return Math.max(S2_DEFAULT_MAX_AGE_HOURS, replayDepthHours + S2_DEFAULT_MAX_AGE_HOURS);
+  }, [timeMachineOpen, debouncedReplayTime]);
 
   // Persistent data source ref for clustering
   const dataSourceRef = useRef<{ ds: unknown; name: string } | null>(null);
@@ -110,12 +184,13 @@ export function useS2IntelLayer({
 
       const allEntities: { id: string }[] = [];
 
-      // Step 1: Collect all features from all active layers
+      // Step 1: Collect all features from all active layers, filtered to
+      // the effective age window (default 72h, extended by Time Machine).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allFeatures: { feature: any; layer: typeof S2_LAYERS[0] }[] = [];
       for (const layer of S2_LAYERS) {
         if (!activeLayers.has(layer.id)) continue;
-        const features = await fetchS2LayerFeatures(layer);
+        const features = await fetchS2LayerFeatures(layer, { maxAgeHours: effectiveMaxAgeHours });
         if (cancelled) return;
         for (const feature of features) {
           allFeatures.push({ feature, layer });
@@ -201,7 +276,7 @@ export function useS2IntelLayer({
       for (const i of intervalsRef.current) clearInterval(i);
       intervalsRef.current = [];
     };
-  }, [viewerRef, cesiumRef, entityGroupsRef, loading, enabled, activeLayers]);
+  }, [viewerRef, cesiumRef, entityGroupsRef, loading, enabled, activeLayers, effectiveMaxAgeHours]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -216,5 +291,7 @@ export function useS2IntelLayer({
     toggleLayer,
     featureCount,
     lastRefresh,
+    /** Current effective age window applied to S2 fetches (hours). */
+    maxAgeHours: effectiveMaxAgeHours,
   };
 }

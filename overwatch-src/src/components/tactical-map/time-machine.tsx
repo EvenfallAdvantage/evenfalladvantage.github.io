@@ -11,7 +11,7 @@ interface TimeMachineProps {
   maxHours?: number;
 }
 
-export function TimeMachine({ open, onClose, onTimeChange, maxHours = 48 }: TimeMachineProps) {
+export function TimeMachine({ open, onClose, onTimeChange, maxHours = 168 }: TimeMachineProps) {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(4); // playback speed multiplier
   const [offsetMs, setOffsetMs] = useState(0); // 0 = now, negative = past
@@ -67,6 +67,21 @@ export function TimeMachine({ open, onClose, onTimeChange, maxHours = 48 }: Time
   const hoursAgo = Math.abs(offsetMs) / (60 * 60 * 1000);
   const isLive = offsetMs === 0;
 
+  /** Format an "hours ago" value as "-3h" or "-2d" for compact tick labels. */
+  function formatTick(h: number): string {
+    if (h === 0) return "now";
+    if (h < 48) return `-${h}h`;
+    const days = h / 24;
+    return Number.isInteger(days) ? `-${days}d` : `-${days.toFixed(1)}d`;
+  }
+  /** Format the "how long ago" header — readable across the full range. */
+  function formatAgo(h: number): string {
+    if (h < 1) return `${Math.round(h * 60)}m ago`;
+    if (h < 48) return `${h.toFixed(1)}h ago`;
+    const days = h / 24;
+    return `${days.toFixed(1)}d ago`;
+  }
+
   return (
     <div className="absolute bottom-14 left-3 right-3 z-20 rounded-xl backdrop-blur-md border border-white/10 overflow-hidden"
       style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 92%, transparent)" }}>
@@ -82,7 +97,7 @@ export function TimeMachine({ open, onClose, onTimeChange, maxHours = 48 }: Time
             </span>
           ) : (
             <span className="text-[10px] font-mono" style={{ color: "var(--brand-accent, #d59b3c)" }}>
-              {timeStr} ({hoursAgo.toFixed(1)}h ago)
+              {timeStr} ({formatAgo(hoursAgo)})
             </span>
           )}
         </div>
@@ -92,7 +107,7 @@ export function TimeMachine({ open, onClose, onTimeChange, maxHours = 48 }: Time
       {/* Controls + Slider */}
       <div className="flex items-center gap-2 px-3 py-2">
         {/* Transport controls */}
-        <button onClick={() => setOffsetMs(-maxOffsetMs)} className="text-white/50 hover:text-white" title={`Go to ${maxHours}h ago`}>
+        <button onClick={() => setOffsetMs(-maxOffsetMs)} className="text-white/50 hover:text-white" title={`Go to ${formatAgo(maxHours)}`}>
           <SkipBack className="h-3.5 w-3.5" />
         </button>
         <button onClick={() => setPlaying(!playing)} className="text-white/80 hover:text-white" title={playing ? "Pause" : "Play"}>
@@ -134,11 +149,11 @@ export function TimeMachine({ open, onClose, onTimeChange, maxHours = 48 }: Time
             className="w-full h-1.5 cursor-pointer"
             style={{ accentColor: "var(--brand-accent, #d59b3c)" }}
           />
-          {/* Hour markers */}
+          {/* Hour/day markers */}
           <div className="absolute top-4 left-0 right-0 flex justify-between pointer-events-none px-1">
             {Array.from({ length: 5 }, (_, i) => {
               const h = Math.round(maxHours * (i / 4));
-              return <span key={i} className="text-[7px] text-white/20 font-mono">{h === 0 ? "now" : `-${h}h`}</span>;
+              return <span key={i} className="text-[7px] text-white/20 font-mono">{formatTick(h)}</span>;
             }).reverse()}
           </div>
         </div>

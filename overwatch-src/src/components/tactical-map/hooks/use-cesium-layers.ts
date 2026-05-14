@@ -99,7 +99,13 @@ export function useCesiumLayers(params: {
   const { nearbyPOIs } = usePoiLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, operations });
 
   // ─── Sub-hook: S2 Underground Intel ─────────────────
-  const s2Intel = useS2IntelLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: layers.s2Intel });
+  const s2Intel = useS2IntelLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading,
+    enabled: layers.s2Intel,
+    companyId,
+    debouncedReplayTime,
+    timeMachineOpen,
+  });
 
   // ─── Sub-hook: Incident Heatmap ────────────────────
   useHeatmapLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, incidents });
