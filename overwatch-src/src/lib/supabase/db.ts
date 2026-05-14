@@ -25,3 +25,5 @@ export * from "./db-breaks";
 export * from "./db-dar";
 export * from "./db-client-portal";
 export * from "./db-scheduling";
+export * from "./db-api-keys";
+export * from "./db-intake-mappings";

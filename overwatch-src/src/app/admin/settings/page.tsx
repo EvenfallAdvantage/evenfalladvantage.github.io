@@ -11,6 +11,7 @@ import LeavePoliciesSection from "./components/leave-policies-section";
 import FeatureVisibilitySection from "./components/feature-visibility-section";
 import IntegrationsSection from "./components/integrations-section";
 import ClientPortalSection from "./components/client-portal-section";
+import ApiSourcesSection from "./components/api-sources-section";
 import ErrorLogViewer from "./components/error-log-viewer";
 import { logger } from "@/lib/logger";
 
@@ -28,6 +29,7 @@ type IntConfig = Record<string, unknown> & {
 export default function AdminSettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const internalUserId = useAuthStore((s) => s.user?.id ?? null);
   const isOwner = activeCompany?.role === "owner";
   const isAdminPlus = ["owner", "admin"].includes(activeCompany?.role ?? "");
 
@@ -127,6 +129,10 @@ export default function AdminSettingsPage() {
         />
 
         <ClientPortalSection companyId={activeCompanyId!} />
+
+        {internalUserId && (
+          <ApiSourcesSection companyId={activeCompanyId!} userId={internalUserId} />
+        )}
 
         <ErrorLogViewer companyId={activeCompanyId!} />
       </div>

@@ -70,3 +70,11 @@ enabled = true
 verify_jwt = false
 # Public proxy — no JWT needed; CORS origin check + bounding box limits prevent abuse
 entrypoint = "./functions/opensky-proxy/index.ts"
+
+[functions.intake-ingest]
+enabled = true
+verify_jwt = false
+# External company sites POST submissions with a Bearer API key (verified in-function).
+# No JWT possible — third-party sites can't carry Supabase auth.
+import_map = "./functions/intake-ingest/deno.json"
+entrypoint = "./functions/intake-ingest/index.ts"

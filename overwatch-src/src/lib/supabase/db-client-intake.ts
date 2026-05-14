@@ -2,6 +2,8 @@ import { createClient } from "./client";
 
 // ─── Client Intake Tokens ─────────────────────────────
 
+export type IntakeSource = "hosted" | "api" | "webhook";
+
 export type IntakeTokenRow = {
   id: string;
   company_id: string;
@@ -11,10 +13,14 @@ export type IntakeTokenRow = {
   client_email: string | null;
   data: Record<string, unknown>;
   status: "active" | "submitted" | "expired" | "revoked";
-  created_by: string;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
   expires_at: string | null;
+  source?: IntakeSource;
+  api_key_id?: string | null;
+  raw_payload?: Record<string, unknown> | null;
+  submitted_at?: string | null;
   companies?: { name: string; logo_url: string | null; brand_color: string; website_url: string | null };
 };
 

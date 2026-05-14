@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Loader2, Send, Copy, ExternalLink, X, Check, QrCode, Trash2, Clock, AlertCircle,
+  Loader2, Send, Copy, ExternalLink, X, Check, QrCode, Trash2, Clock, AlertCircle, Plug, Globe,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -180,8 +180,9 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
         {/* Body */}
         <div className="px-5 py-4 space-y-4 overflow-y-auto">
           <p className="text-xs text-muted-foreground">
-            Generate a secure link to send to a prospective client. They&apos;ll fill out the security intake form,
-            and you can then convert their submission into a new operation.
+            Generate a secure link to send to a prospective client, or accept submissions from your own
+            website via the API (see <strong>HQ Config → API Sources</strong>). Submissions from any source
+            appear in the list below.
           </p>
 
           {/* Create row */}
@@ -228,6 +229,14 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
               const isRevoked = row.status === "revoked";
               const isExpired = status.tone === "expired";
               const inactive = isRevoked || isExpired;
+              const source = row.source ?? "hosted";
+              const isApi = source === "api";
+              const sourceLabel = isApi
+                ? (row.client_name ? `API · ${row.client_name}` : "API submission")
+                : source === "webhook" ? "Webhook" : "Hosted link";
+              const displayPrimary = isApi
+                ? (row.client_email || row.client_name || `Submission ${row.token.slice(0, 8)}`)
+                : url;
 
               return (
                 <div
@@ -236,7 +245,19 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
                 >
                   <div className="flex items-start gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-mono text-muted-foreground truncate" title={url}>{url}</p>
+                      <div className="flex items-center gap-1.5 text-[9px]">
+                        <span className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded font-medium ${
+                          isApi ? "bg-blue-500/10 text-blue-400" :
+                          source === "webhook" ? "bg-purple-500/10 text-purple-400" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {isApi ? <Plug className="h-2.5 w-2.5" /> : <Globe className="h-2.5 w-2.5" />}
+                          {sourceLabel}
+                        </span>
+                      </div>
+                      <p className={`text-[10px] truncate mt-0.5 ${isApi ? "font-medium" : "font-mono text-muted-foreground"}`} title={displayPrimary}>
+                        {displayPrimary}
+                      </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className={`text-[9px] flex items-center gap-0.5 ${
                           status.tone === "submitted" ? "text-green-500" :
@@ -250,8 +271,10 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
                           {status.label}
                         </span>
                         <span className="text-[9px] text-muted-foreground/50">·</span>
-                        <span className="text-[9px] text-muted-foreground/50">created {relativeTime(row.created_at)}</span>
-                        {row.expires_at && !isExpired && !isRevoked && (
+                        <span className="text-[9px] text-muted-foreground/50">
+                          {isApi ? `received ${relativeTime(row.submitted_at ?? row.created_at)}` : `created ${relativeTime(row.created_at)}`}
+                        </span>
+                        {row.expires_at && !isExpired && !isRevoked && !isApi && (
                           <>
                             <span className="text-[9px] text-muted-foreground/50">·</span>
                             <span className="text-[9px] text-muted-foreground/50">expires {relativeTime(row.expires_at)}</span>
@@ -260,24 +283,28 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
                       </div>
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0">
-                      <Button
-                        size="sm" variant="ghost" className="h-7 w-7 p-0"
-                        onClick={() => handleCopy(row.token)}
-                        disabled={inactive}
-                        aria-label="Copy link"
-                        title="Copy link"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm" variant="ghost" className="h-7 w-7 p-0"
-                        onClick={() => handleShowQR(row.token)}
-                        disabled={inactive}
-                        aria-label="Show QR code"
-                        title="Show QR code"
-                      >
-                        <QrCode className="h-3 w-3" />
-                      </Button>
+                      {!isApi && (
+                        <>
+                          <Button
+                            size="sm" variant="ghost" className="h-7 w-7 p-0"
+                            onClick={() => handleCopy(row.token)}
+                            disabled={inactive}
+                            aria-label="Copy link"
+                            title="Copy link"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm" variant="ghost" className="h-7 w-7 p-0"
+                            onClick={() => handleShowQR(row.token)}
+                            disabled={inactive}
+                            aria-label="Show QR code"
+                            title="Show QR code"
+                          >
+                            <QrCode className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
                       <Button
                         size="sm" variant="ghost" className="h-7 w-7 p-0"
                         onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
