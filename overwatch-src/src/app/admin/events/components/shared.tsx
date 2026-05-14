@@ -117,7 +117,16 @@ export function getDaysInRange(start: string, end: string): string[] {
   return days;
 }
 
-export const PATTERNS: Record<string, { label: string; sH: number; sM: number; eH: number; eM: number; overnight: boolean }[]> = {
+export interface ShiftPeriod {
+  label: string;
+  sH: number;
+  sM: number;
+  eH: number;
+  eM: number;
+  overnight: boolean;
+}
+
+export const PATTERNS: Record<string, ShiftPeriod[]> = {
   "8": [
     { label: "Day",   sH: 6,  sM: 0, eH: 14, eM: 0, overnight: false },
     { label: "Swing", sH: 14, sM: 0, eH: 22, eM: 0, overnight: false },
@@ -128,6 +137,21 @@ export const PATTERNS: Record<string, { label: string; sH: number; sM: number; e
     { label: "Night", sH: 18, sM: 0, eH: 6,  eM: 0, overnight: true },
   ],
 };
+
+/** Compute overnight flag: end time is strictly less-or-equal to start time. */
+export function isOvernight(sH: number, sM: number, eH: number, eM: number): boolean {
+  return eH * 60 + eM <= sH * 60 + sM;
+}
+
+/** Parse "HH:MM" → { h, m }. Returns null on invalid. */
+export function parseHHMM(value: string): { h: number; m: number } | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!match) return null;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return { h, m };
+}
 
 import { localToUTC } from "@/lib/timezone";
 
