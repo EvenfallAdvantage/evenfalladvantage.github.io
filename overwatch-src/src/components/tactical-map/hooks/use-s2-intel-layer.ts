@@ -99,20 +99,15 @@ export function useS2IntelLayer({
   }, [companyId]);
 
   /**
-   * Effective max-age window in hours.
-   *
-   *   - When Time Machine is not engaged: 72h default.
-   *   - When Time Machine is dragged further back than 72h: expand the
-   *     window to include up to the replay timestamp (so the user sees
-   *     the pins that would have been visible then).
-   *
-   * The replay-derived offset is added to the default so we always show
-   * at least 72h plus the depth of the replay.
+   * Additional hours to extend each feed's age window when Time Machine is
+   * engaged. Returns 0 when not replaying. Each feed's effective window is
+   * then `feed.defaultAgeHours + timeMachineExtraHours`, computed in the
+   * loader below — this keeps per-feed defaults honest (e.g. wildfires keep
+   * 14d natural cadence) while allowing the user to look further back.
    */
-  const effectiveMaxAgeHours = useMemo(() => {
-    if (!timeMachineOpen) return S2_DEFAULT_MAX_AGE_HOURS;
-    const replayDepthHours = Math.max(0, (currentTimestamp() - debouncedReplayTime) / (60 * 60 * 1000));
-    return Math.max(S2_DEFAULT_MAX_AGE_HOURS, replayDepthHours + S2_DEFAULT_MAX_AGE_HOURS);
+  const timeMachineExtraHours = useMemo(() => {
+    if (!timeMachineOpen) return 0;
+    return Math.max(0, (currentTimestamp() - debouncedReplayTime) / (60 * 60 * 1000));
   }, [timeMachineOpen, debouncedReplayTime]);
 
   // Persistent data source ref for clustering
@@ -185,12 +180,16 @@ export function useS2IntelLayer({
       const allEntities: { id: string }[] = [];
 
       // Step 1: Collect all features from all active layers, filtered to
-      // the effective age window (default 72h, extended by Time Machine).
+      // each feed's own age window. The window expands by the Time Machine
+      // replay depth so deeper replays surface pins that would have been
+      // visible at that time.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allFeatures: { feature: any; layer: typeof S2_LAYERS[0] }[] = [];
       for (const layer of S2_LAYERS) {
         if (!activeLayers.has(layer.id)) continue;
-        const features = await fetchS2LayerFeatures(layer, { maxAgeHours: effectiveMaxAgeHours });
+        const baseWindow = layer.defaultAgeHours ?? S2_DEFAULT_MAX_AGE_HOURS;
+        const effectiveAge = baseWindow + timeMachineExtraHours;
+        const features = await fetchS2LayerFeatures(layer, { maxAgeHours: effectiveAge });
         if (cancelled) return;
         for (const feature of features) {
           allFeatures.push({ feature, layer });
@@ -276,7 +275,7 @@ export function useS2IntelLayer({
       for (const i of intervalsRef.current) clearInterval(i);
       intervalsRef.current = [];
     };
-  }, [viewerRef, cesiumRef, entityGroupsRef, loading, enabled, activeLayers, effectiveMaxAgeHours]);
+  }, [viewerRef, cesiumRef, entityGroupsRef, loading, enabled, activeLayers, timeMachineExtraHours]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -291,7 +290,7 @@ export function useS2IntelLayer({
     toggleLayer,
     featureCount,
     lastRefresh,
-    /** Current effective age window applied to S2 fetches (hours). */
-    maxAgeHours: effectiveMaxAgeHours,
+    /** Hours added to each feed's natural window by the active Time Machine offset. */
+    timeMachineExtraHours,
   };
 }

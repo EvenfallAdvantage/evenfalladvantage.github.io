@@ -34,10 +34,18 @@ export interface S2Layer {
    * If `undefined`, the layer is treated as static (no age filter applied).
    */
   dateFields?: readonly string[];
+  /**
+   * Per-feed age window (hours). Matched to the upstream feed's actual
+   * update cadence and content — e.g. the kinetic events feed is literally
+   * titled "(30 Days)" so a 72h cutoff would surface only 0–1 features.
+   * `Infinity` disables age filtering. Defaults to S2_DEFAULT_MAX_AGE_HOURS
+   * when omitted.
+   */
+  defaultAgeHours?: number;
 }
 
-/** Default age window — pins older than this are hidden unless Time Machine extends it. */
-export const S2_DEFAULT_MAX_AGE_HOURS = 72;
+/** Fallback age window used when a feed doesn't declare its own. */
+export const S2_DEFAULT_MAX_AGE_HOURS = 168; // 7 days
 
 // Date-field candidate sets, ordered by likelihood per upstream feed.
 // Verified against actual popup output: the kinetic feed uses literal "Date"
@@ -49,7 +57,7 @@ const EARTHQUAKE_DATE_FIELDS = ["time", "Time", "Date", "date", "eventTime", "Or
 const REPORT_DATE_FIELDS = ["ReportDate", "report_date", "Date", "date", "CreationDate", "EditDate"] as const;
 
 export const S2_LAYERS: S2Layer[] = [
-  // Kinetic Events
+  // Kinetic Events — feed name says "30 Days"; cadence is ~1 event per few days
   {
     id: "s2-kinetic-30d",
     label: "Kinetic Events (30 Days)",
@@ -60,8 +68,9 @@ export const S2_LAYERS: S2Layer[] = [
     refreshMinutes: 30,
     defaultOn: true,
     dateFields: KINETIC_DATE_FIELDS,
+    defaultAgeHours: 30 * 24, // 30 days — matches feed name
   },
-  // Wildfires
+  // Wildfires — perimeters can persist for weeks; show last 14 days of active
   {
     id: "s2-wildfires",
     label: "Active Wildfires",
@@ -72,8 +81,9 @@ export const S2_LAYERS: S2Layer[] = [
     refreshMinutes: 60,
     defaultOn: true,
     dateFields: WILDFIRE_DATE_FIELDS,
+    defaultAgeHours: 14 * 24,
   },
-  // Thermal hotspots
+  // Thermal hotspots — VIIRS data is fresh; 48h shows current heat signatures
   {
     id: "s2-thermal",
     label: "Satellite Thermal Hotspots",
@@ -84,8 +94,9 @@ export const S2_LAYERS: S2Layer[] = [
     refreshMinutes: 60,
     defaultOn: false,
     dateFields: THERMAL_DATE_FIELDS,
+    defaultAgeHours: 48,
   },
-  // Earthquakes
+  // Earthquakes — USGS feed; M2.5+ in last 7 days is the standard window
   {
     id: "s2-earthquakes",
     label: "Recent Earthquakes",
@@ -96,6 +107,7 @@ export const S2_LAYERS: S2Layer[] = [
     refreshMinutes: 15,
     defaultOn: true,
     dateFields: EARTHQUAKE_DATE_FIELDS,
+    defaultAgeHours: 7 * 24,
   },
   // Power plants — static infrastructure, no age filter
   {
@@ -109,7 +121,7 @@ export const S2_LAYERS: S2Layer[] = [
     defaultOn: false,
     // dateFields intentionally omitted — static infrastructure
   },
-  // Drone reports
+  // Drone reports — sporadic; 7 days catches a reasonable window
   {
     id: "s2-drones",
     label: "Drone Reports",
@@ -120,8 +132,9 @@ export const S2_LAYERS: S2Layer[] = [
     refreshMinutes: 30,
     defaultOn: false,
     dateFields: REPORT_DATE_FIELDS,
+    defaultAgeHours: 7 * 24,
   },
-  // Tipline
+  // Tipline — sporadic; 7 days
   {
     id: "s2-tipline",
     label: "Tipline Reports",
@@ -132,6 +145,7 @@ export const S2_LAYERS: S2Layer[] = [
     refreshMinutes: 30,
     defaultOn: false,
     dateFields: REPORT_DATE_FIELDS,
+    defaultAgeHours: 7 * 24,
   },
 ];
 
@@ -205,7 +219,10 @@ export async function fetchS2LayerFeatures(
   options: { maxFeatures?: number; maxAgeHours?: number } = {},
 ): Promise<S2Feature[]> {
   const maxFeatures = options.maxFeatures ?? 500;
-  const maxAgeHours = options.maxAgeHours ?? S2_DEFAULT_MAX_AGE_HOURS;
+  // Resolution order: explicit options → per-feed default → fallback constant
+  const maxAgeHours = options.maxAgeHours
+    ?? layer.defaultAgeHours
+    ?? S2_DEFAULT_MAX_AGE_HOURS;
 
   try {
     const params = new URLSearchParams({
