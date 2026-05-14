@@ -97,9 +97,22 @@ async function fetchTLEs() {
   return results;
 }
 
-export async function getSatellitePositions(maxCount = 50): Promise<SatelliteInfo[]> {
+/**
+ * Compute satellite positions at a given timestamp.
+ *
+ * @param maxCount Max satellites to return (default 50).
+ * @param atTimestamp Epoch ms to propagate to. Defaults to now.
+ *   Note: TLE accuracy decays over time; results > 14 days from the TLE
+ *   epoch may drift by tens of kilometers. For typical Time Machine
+ *   windows (≤7 days) accuracy is on the order of ~1 km, sufficient for
+ *   visualization.
+ */
+export async function getSatellitePositions(
+  maxCount = 50,
+  atTimestamp?: number,
+): Promise<SatelliteInfo[]> {
   const [tles, s] = await Promise.all([fetchTLEs(), loadSatelliteLib()]);
-  const now = new Date();
+  const at = new Date(atTimestamp ?? Date.now());
   const positions: SatelliteInfo[] = [];
 
   const sorted = [...tles].sort((a, b) => {
@@ -109,10 +122,10 @@ export async function getSatellitePositions(maxCount = 50): Promise<SatelliteInf
   for (const tle of sorted.slice(0, maxCount)) {
     try {
       const satrec = s.twoline2satrec(tle.tle1, tle.tle2);
-      const posVel = s.propagate(satrec, now);
+      const posVel = s.propagate(satrec, at);
       if (!posVel.position || typeof posVel.position === "boolean") continue;
 
-      const gmst = s.gstime(now);
+      const gmst = s.gstime(at);
       const geo = s.eciToGeodetic(posVel.position, gmst);
       const lat = s.degreesLat(geo.latitude);
       const lng = s.degreesLong(geo.longitude);
@@ -130,17 +143,22 @@ export async function getSatellitePositions(maxCount = 50): Promise<SatelliteInf
   return positions;
 }
 
+/**
+ * Compute the ground track polyline starting from `atTimestamp` (default
+ * now) and walking `minutesAhead` forward.
+ */
 export async function computeGroundTrack(
-  tle1: string, tle2: string, minutesAhead = 90, stepMinutes = 1
+  tle1: string, tle2: string, minutesAhead = 90, stepMinutes = 1,
+  atTimestamp?: number,
 ): Promise<[number, number][]> {
   try {
     const s = await loadSatelliteLib();
     const satrec = s.twoline2satrec(tle1, tle2);
     const points: [number, number][] = [];
-    const now = Date.now();
+    const start = atTimestamp ?? Date.now();
 
     for (let m = 0; m <= minutesAhead; m += stepMinutes) {
-      const time = new Date(now + m * 60000);
+      const time = new Date(start + m * 60000);
       const posVel = s.propagate(satrec, time);
       if (!posVel.position || typeof posVel.position === "boolean") continue;
       const gmst = s.gstime(time);

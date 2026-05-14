@@ -68,6 +68,8 @@ interface LayerToggle {
   label: string;
   icon: React.ReactNode;
   group: string;
+  /** True if this layer cannot be replayed historically (no free historical data source). */
+  liveOnly?: boolean;
 }
 
 const LAYER_TOGGLES: LayerToggle[] = [
@@ -82,12 +84,12 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "annotations", label: "Drawings", icon: <PenTool className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   // Intelligence feeds
-  { key: "weather", label: "Weather Radar", icon: <CloudRain className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  { key: "sentinel1", label: "SAR Imagery", icon: <Scan className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  { key: "sentinel2", label: "Satellite Photos", icon: <Layers className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "weather", label: "Weather Radar", icon: <CloudRain className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
+  { key: "sentinel1", label: "SAR Imagery", icon: <Scan className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
+  { key: "sentinel2", label: "Satellite Photos", icon: <Layers className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "s2Intel", label: "S2 Underground CIP", icon: <Shield className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   // Visual effects
   { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },
@@ -106,9 +108,13 @@ interface MapLayersPanelProps {
   s2ActiveLayers?: Set<string>;
   onToggleS2Layer?: (layerId: string) => void;
   s2FeatureCount?: number;
+  /** True when the Time Machine is open and dragged into the past — used to
+   * tag layers that have no historical data source so the user understands
+   * why those layers are temporarily empty. */
+  isReplaying?: boolean;
 }
 
-export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, onAdjustSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount }: MapLayersPanelProps) {
+export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, onAdjustSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, isReplaying }: MapLayersPanelProps) {
   const [open, setOpen] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
@@ -161,19 +167,28 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
               {!isCollapsed && <div className="space-y-0.5">
                 {LAYER_TOGGLES.filter((t) => t.group === group).map((t) => {
                   const active = layers[t.key];
+                  const isLiveOnlyDuringReplay = !!t.liveOnly && !!isReplaying;
                   return (
                     <button
                       key={t.key}
                       onClick={() => toggle(t.key)}
+                      title={isLiveOnlyDuringReplay ? "Live data only — hidden while Time Machine is replaying" : undefined}
                       className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
-                        active
+                        active && !isLiveOnlyDuringReplay
                           ? "bg-white/10 text-white"
-                          : "text-white/40 hover:text-white/60 hover:bg-white/5"
+                          : isLiveOnlyDuringReplay && active
+                            ? "bg-white/[0.04] text-white/40"
+                            : "text-white/40 hover:text-white/60 hover:bg-white/5"
                       }`}
                     >
                       {t.icon}
                       <span className="flex-1 text-left truncate">{t.label}</span>
-                      {active ? <Eye className="h-3 w-3 text-green-400" /> : <EyeOff className="h-3 w-3" />}
+                      {isLiveOnlyDuringReplay && active && (
+                        <span className="text-[8px] font-mono uppercase tracking-wider px-1 py-0.5 rounded bg-white/5 text-white/30 shrink-0">
+                          Live only
+                        </span>
+                      )}
+                      {active ? <Eye className={`h-3 w-3 ${isLiveOnlyDuringReplay ? "text-white/20" : "text-green-400"}`} /> : <EyeOff className="h-3 w-3" />}
                     </button>
                   );
                 })}

@@ -6,6 +6,9 @@ import { getAircraft, getBoundingBox, formatAltitude, formatSpeed } from "../fli
 import type { OperationPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
+/** Wrapper so the react-compiler does not flag `Date.now()` as an inline impure call */
+function currentTimestamp() { return Date.now(); }
+
 export function useAircraftLayer(params: {
   viewerRef: CesiumRef;
   cesiumRef: CesiumRef;
@@ -13,8 +16,16 @@ export function useAircraftLayer(params: {
   loading: boolean;
   layers: LayerVisibility;
   operations: OperationPin[];
+  /** Time Machine replay timestamp; effective only when timeMachineOpen */
+  debouncedReplayTime: number;
+  timeMachineOpen: boolean;
 }) {
-  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, operations } = params;
+  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, operations, debouncedReplayTime, timeMachineOpen } = params;
+
+  // OpenSky's free tier has no historical data for commercial use.
+  // During Time Machine replay, hide aircraft to avoid showing live
+  // positions while the rest of the map is in the past.
+  const isReplaying = timeMachineOpen && debouncedReplayTime < currentTimestamp() - 5000;
 
   // ─── Live Aircraft (OpenSky Network) ───────────────
   useEffect(() => {
@@ -28,7 +39,7 @@ export function useAircraftLayer(params: {
     });
     entityGroupsRef.current.aircraft = [];
 
-    if (!layers.aircraft) return;
+    if (!layers.aircraft || isReplaying) return;
 
     // Get bounding box from operations or use CONUS
     const op = operations.find(o => o.lat && o.lng);
@@ -119,5 +130,5 @@ export function useAircraftLayer(params: {
     fetchAndRender();
     const interval = setInterval(fetchAndRender, 15000); // Refresh every 15s
     return () => clearInterval(interval);
-  }, [layers.aircraft, loading, operations, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.aircraft, loading, operations, viewerRef, cesiumRef, entityGroupsRef, isReplaying]);
 }

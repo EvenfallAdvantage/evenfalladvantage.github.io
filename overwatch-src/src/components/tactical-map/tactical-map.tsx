@@ -395,7 +395,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
 
-      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} s2ActiveLayers={s2Intel.activeLayers} onToggleS2Layer={s2Intel.toggleLayer} s2FeatureCount={s2Intel.featureCount} onRealignSiteMap={(op) => {
+      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} s2ActiveLayers={s2Intel.activeLayers} onToggleS2Layer={s2Intel.toggleLayer} s2FeatureCount={s2Intel.featureCount} isReplaying={timeMachineOpen} onRealignSiteMap={(op) => {
         // Clear saved bounds to force re-alignment
         setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
         setAligningOp(op);

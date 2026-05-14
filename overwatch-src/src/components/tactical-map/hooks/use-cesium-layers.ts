@@ -78,16 +78,20 @@ export function useCesiumLayers(params: {
   useIncidentsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, incidents });
 
   // ─── Sub-hook: Weather radar ─────────────────────────
-  useWeatherLayer({ viewerRef, cesiumRef, loading, layers });
+  // NEXRAD MRMS only serves current radar; layer hides itself during replay.
+  useWeatherLayer({ viewerRef, cesiumRef, loading, layers, debouncedReplayTime, timeMachineOpen });
 
   // ─── Sub-hook: Night vision ──────────────────────────
   useNightVision({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
 
   // ─── Sub-hook: Live aircraft ─────────────────────────
-  useAircraftLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, operations });
+  // OpenSky has no free historical commercial API; aircraft are hidden in-hook
+  // when the user is replaying past time.
+  useAircraftLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, operations, debouncedReplayTime, timeMachineOpen });
 
   // ─── Sub-hook: Satellite orbits ──────────────────────
-  useOrbitLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
+  // Orbits are deterministic from TLE — propagation honors the replay time.
+  useOrbitLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen });
 
   // ─── Sub-hook: Breadcrumb trails ─────────────────────
   useTrailsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, staff, companyId, debouncedReplayTime, timeMachineOpen });

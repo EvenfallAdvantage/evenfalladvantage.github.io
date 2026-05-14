@@ -4,25 +4,38 @@ import type { LayerVisibility } from "../map-layers-panel";
 import { getSatellitePositions, computeGroundTrack } from "../orbit-tracker";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
+/** Wrapper so the react-compiler does not flag `Date.now()` as an inline impure call */
+function currentTimestamp() { return Date.now(); }
+
 export function useOrbitLayer(params: {
   viewerRef: CesiumRef;
   cesiumRef: CesiumRef;
   entityGroupsRef: EntityGroupsRef;
   loading: boolean;
   layers: LayerVisibility;
+  /** Time Machine replay timestamp; effective only when timeMachineOpen */
+  debouncedReplayTime: number;
+  timeMachineOpen: boolean;
 }) {
-  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers } = params;
+  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen } = params;
 
   const [refreshTick, setRefreshTick] = useState(0);
 
+  // Whether the user is actively replaying past (>5s ago). Live tracking
+  // window allows tiny clock drift to still count as "now".
+  const isReplaying = timeMachineOpen && debouncedReplayTime < currentTimestamp() - 5000;
+
   // ─── Satellite orbit refresh timer ─────────────────
+  // Only auto-refresh in live mode — during replay the time is fixed and
+  // we should not advance the propagation behind the user's back.
   useEffect(() => {
-    if (!layers.satelliteOrbits) return;
+    if (!layers.satelliteOrbits || isReplaying) return;
     const interval = setInterval(() => setRefreshTick(t => t + 1), 60000);
     return () => clearInterval(interval);
-  }, [layers.satelliteOrbits]);
+  }, [layers.satelliteOrbits, isReplaying]);
 
   // ─── Satellite Orbits (CelesTrak) ──────────────────
+  // Orbits are deterministic from TLE — we can render them at any timestamp.
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
@@ -35,7 +48,9 @@ export function useOrbitLayer(params: {
 
     if (!layers.satelliteOrbits) return;
 
-    getSatellitePositions(30).then(sats => {
+    const atTime = isReplaying ? debouncedReplayTime : undefined;
+
+    getSatellitePositions(30, atTime).then(sats => {
       sats.forEach((sat, i) => {
         const satColor = sat.name.includes("SENTINEL-1") ? "#ef4444"
           : sat.name.includes("SENTINEL-2") ? "#22c55e"
@@ -75,9 +90,11 @@ export function useOrbitLayer(params: {
         });
         entityGroupsRef.current.orbits.push(entity);
 
-        // Ground track polyline at orbital altitude (async)
+        // Ground track polyline at orbital altitude (async).
+        // Ground track always starts from the same `atTime` as the satellite
+        // position so the line begins exactly under the marker.
         const orbitAltM = sat.altitude * 1000; // km → meters
-        computeGroundTrack(sat.tle1, sat.tle2, 90, 1).then(track => {
+        computeGroundTrack(sat.tle1, sat.tle2, 90, 1, atTime).then(track => {
           if (track.length > 2) {
             // Build positions with orbital altitude so the track arcs above the globe
             const positions = track.map(([lng, lat]: [number, number]) =>
@@ -97,5 +114,5 @@ export function useOrbitLayer(params: {
       });
     }).catch(() => {});
 
-  }, [layers.satelliteOrbits, loading, viewerRef, cesiumRef, entityGroupsRef, refreshTick]);
+  }, [layers.satelliteOrbits, loading, viewerRef, cesiumRef, entityGroupsRef, refreshTick, isReplaying, debouncedReplayTime]);
 }

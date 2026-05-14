@@ -52,15 +52,24 @@ export function useTrailsLayer(params: {
       // slider moves back. Floor at 4h, cap at 7d to keep queries bounded.
       const replayDepthHours = isTimeMachine ? (now - debouncedReplayTime) / (60 * 60 * 1000) : 0;
       const trailHours = Math.min(168, Math.max(4, 4 + replayDepthHours));
+      // Downsample threshold: for windows beyond 4h, take every Nth point so
+      // a 168h trail stays under ~600 points. Below 4h, render every point.
+      // 1pt/min × 4h = 240 base; aim for ≤ 600 points: stride = ceil(hours/10).
+      const stride = trailHours <= 4 ? 1 : Math.max(1, Math.ceil(trailHours / 10));
       staff.forEach(s => {
         const trailPromise = isTimeMachine
           ? getLocationHistoryAt(s.userId, companyId, trailHours, debouncedReplayTime)
           : getLocationHistory(s.userId, companyId, trailHours);
         trailPromise.then(trail => {
           if (trail.length < 2) return;
+          // Apply downsampling: keep every Nth point, plus always the last
+          // point so the trail ends precisely at the user's current pin.
+          const sampled = stride === 1
+            ? trail
+            : [...trail.filter((_, i) => i % stride === 0), trail[trail.length - 1]];
           // Remove existing trail for this user first
           try { viewer.entities.removeById(`trail-${s.userId}`); } catch (e) { logger.swallow("cesium-layers:remove-trail", e); }
-          const positions = trail.flatMap(p => [p.lng, p.lat]);
+          const positions = sampled.flatMap(p => [p.lng, p.lat]);
           const entity = viewer.entities.add({
             id: `trail-${s.userId}`,
             polyline: {
