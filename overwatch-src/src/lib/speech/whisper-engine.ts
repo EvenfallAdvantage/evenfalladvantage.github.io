@@ -136,6 +136,9 @@ export async function transcribeWithTimestamps(
 
   onProgress?.({ status: "transcribing", message: "Transcribing audio..." });
 
+  // Audio duration in seconds (assumes 16 kHz mono — see audioBufferToFloat32).
+  const audioDurationS = audioData.length / 16000;
+
   // Note: whisper-tiny.en is English-only — do NOT pass language or task
   // (those params are only for multilingual models like whisper-tiny).
   //
@@ -178,9 +181,18 @@ export async function transcribeWithTimestamps(
       for (const c of r.chunks) {
         const ts = c.timestamp;
         if (!Array.isArray(ts) || ts.length < 2) continue;
-        const start = typeof ts[0] === "number" ? ts[0] : null;
-        const end = typeof ts[1] === "number" ? ts[1] : null;
+        let start = typeof ts[0] === "number" ? ts[0] : null;
+        let end = typeof ts[1] === "number" ? ts[1] : null;
         if (start == null || end == null || end <= start) continue;
+        // Clamp to actual audio bounds — Whisper sometimes reports
+        // timestamps past the end of audio (transformers.js issue #1357).
+        // This is the real fix for the "trailing word spillover" bug:
+        // without clamping, the word's midpoint can fall past the actual
+        // audio end and into whatever speaker segment started at that
+        // (non-existent) time.
+        start = Math.max(0, Math.min(start, audioDurationS));
+        end = Math.max(start, Math.min(end, audioDurationS));
+        if (end <= start) continue;
         const word = typeof c.text === "string" ? c.text.trim() : "";
         if (!word) continue;
         words.push({ text: word, start, end });

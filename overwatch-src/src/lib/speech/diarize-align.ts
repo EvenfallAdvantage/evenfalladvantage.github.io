@@ -33,22 +33,22 @@ export type SpeakerTurn = {
 /**
  * Find the best speaker for a Whisper word.
  *
- * Why not just "max overlap"? Whisper's word timestamps inflate the
- * trailing word's `end` time to include silence/breath after the actual
- * speech. This caused a real bug: every speaker turn's final word was
- * being mis-attributed to whichever speaker pyannote labeled the silence
- * that followed.
+ * Whisper's word `end` timestamps are unreliable: they inflate to include
+ * silence/breath after the actual speech, sometimes by 1-2 full seconds.
+ * The word `start` timestamp is reliable — it marks when the audible
+ * speech began. So we anchor speaker assignment to the word's START,
+ * not its midpoint or its full overlap range.
  *
- * Fix: anchor the word to its MIDPOINT (or, when the midpoint falls in
- * a gap between segments, the word's START). Midpoint is robust to the
- * trailing-silence inflation because it ignores how long Whisper claims
- * the word lasted — what matters is where the audible part of the word
- * actually sits.
+ * This was the root cause of the bug where speaker A's last word
+ * ("selected.") got mis-attributed to speaker B: Whisper claimed
+ * "selected." ended at 5.5s, even though A actually finished speaking
+ * at 4.0s and B started at 4.5s. Midpoint anchoring put it at 4.6s
+ * (= Speaker B), but the word's start at 3.7s correctly places it in
+ * Speaker A's segment.
  *
- * Then apply "stickiness": if the previous word's speaker also has any
- * meaningful overlap with this word, prefer keeping that speaker unless
- * the midpoint-winner is decisively better. Reduces single-word "speaker
- * flickering" at turn boundaries.
+ * Stickiness: when the start anchor lands in a region where multiple
+ * speakers' segments overlap (rare, from windowed pyannote output),
+ * prefer the previous word's speaker.
  */
 function assignSpeaker(
   word: WhisperWord,
@@ -57,37 +57,36 @@ function assignSpeaker(
 ): string {
   if (segments.length === 0) return "0";
 
-  const midpoint = (word.start + word.end) / 2;
-
-  // 1. Find segments that contain the midpoint
-  const containing = segments.filter(s => s.start <= midpoint && s.end >= midpoint);
-  if (containing.length === 1) {
-    return containing[0].speaker;
+  // Primary anchor: word START. Reliable because Whisper doesn't
+  // backdate the start of a word, only inflates the end.
+  const containingStart = segments.filter(s => s.start <= word.start && s.end >= word.start);
+  if (containingStart.length === 1) {
+    return containingStart[0].speaker;
   }
-  if (containing.length > 1) {
-    // Multiple segments contain the midpoint (overlap from windowing).
-    // Apply stickiness: prefer previous speaker if it's one of them.
-    if (previousSpeaker && containing.some(s => s.speaker === previousSpeaker)) {
+  if (containingStart.length > 1) {
+    if (previousSpeaker && containingStart.some(s => s.speaker === previousSpeaker)) {
       return previousSpeaker;
     }
-    // Otherwise, pick the one with the highest confidence.
-    const best = containing.reduce((a, b) =>
+    const best = containingStart.reduce((a, b) =>
       (a.confidence ?? 0) >= (b.confidence ?? 0) ? a : b,
     );
     return best.speaker;
   }
 
-  // 2. Midpoint falls in a gap between segments. Try the word's START.
-  const containingStart = segments.filter(s => s.start <= word.start && s.end >= word.start);
-  if (containingStart.length > 0) {
-    if (previousSpeaker && containingStart.some(s => s.speaker === previousSpeaker)) {
+  // Fallback 1: word starts in a gap between segments. Try the midpoint.
+  const midpoint = (word.start + word.end) / 2;
+  const containingMid = segments.filter(s => s.start <= midpoint && s.end >= midpoint);
+  if (containingMid.length > 0) {
+    if (previousSpeaker && containingMid.some(s => s.speaker === previousSpeaker)) {
       return previousSpeaker;
     }
-    return containingStart[0].speaker;
+    return containingMid[0].speaker;
   }
 
-  // 3. Word is entirely outside any segment. Find the nearest segment by
-  // time distance to the word's start.
+  // Fallback 2: word is entirely outside any segment. Prefer previous
+  // speaker if there is one (the user almost certainly is still talking),
+  // otherwise find the nearest segment by time distance.
+  if (previousSpeaker) return previousSpeaker;
   let bestSpeaker = segments[0].speaker;
   let nearestDist = Infinity;
   for (const seg of segments) {
