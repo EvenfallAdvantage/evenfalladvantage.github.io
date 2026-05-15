@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Mic, Square, AlertTriangle, Cpu, Loader2 } from "lucide-react";
+import { Mic, Square, AlertTriangle, Cpu, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { detectSpeechTier, describeTier, type SpeechTier } from "@/lib/speech";
 import type { WhisperProgress } from "@/lib/speech/whisper-engine";
+import type { SpeakerTurn } from "@/lib/speech/diarize-align";
 import { logger } from "@/lib/logger";
 
 /* ── Web Speech API type stubs ── */
@@ -25,7 +26,13 @@ const NATIVE_ERROR_MESSAGES: Record<string, string> = {
 };
 
 interface DictationRecorderProps {
-  onTranscript: (text: string, isFinal: boolean) => void;
+  /**
+   * Called with the transcribed text. When diarization is enabled and
+   * Whisper produced word-level timestamps, `turns` is populated with
+   * structured speaker turns. Otherwise `turns` is undefined and the
+   * caller treats the text as a flat transcript.
+   */
+  onTranscript: (text: string, isFinal: boolean, turns?: SpeakerTurn[]) => void;
   disabled?: boolean;
 }
 
@@ -36,6 +43,20 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
   const [elapsed, setElapsed] = useState(0);
   const [whisperStatus, setWhisperStatus] = useState<WhisperProgress | null>(null);
   const [processingWhisper, setProcessingWhisper] = useState(false);
+  /**
+   * When true and the active tier is "whisper", we run pyannote on the
+   * audio after Whisper transcription and emit speaker-labeled turns.
+   * Persisted across renders via localStorage so the user doesn't have
+   * to re-enable it every time.
+   */
+  const [diarizationEnabled, setDiarizationEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem("dictation:diarization") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -43,14 +64,31 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // Detect best tier on mount
+  // Detect best tier on mount. If the user previously enabled
+  // diarization, force-select the Whisper tier (only Whisper has the
+  // raw audio buffer that diarization needs).
   useEffect(() => {
-    setTier(detectSpeechTier());
+    const detected = detectSpeechTier();
+    setTier(diarizationEnabled ? "whisper" : detected);
     return () => {
       if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) { logger.swallow("dictation:recognition-stop-cleanup", e); } }
       if (mediaRecorderRef.current?.state === "recording") { try { mediaRecorderRef.current.stop(); } catch (e) { logger.swallow("dictation:media-stop-cleanup", e, "trace"); } }
       if (timerRef.current) clearInterval(timerRef.current);
     };
+    // diarizationEnabled is intentionally not in deps: this runs once on mount.
+    // Subsequent toggles are handled by toggleDiarization() below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Toggle diarization on/off. Forces Whisper tier when enabling. */
+  const toggleDiarization = useCallback(() => {
+    setDiarizationEnabled((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("dictation:diarization", next ? "1" : "0"); } catch (e) { logger.swallow("dictation:diarization-persist", e, "trace"); }
+      // Enabling diarization requires the Whisper tier (raw audio access).
+      if (next) setTier("whisper");
+      return next;
+    });
   }, []);
 
   // ─── Timer helpers ──────────────────────────────────
@@ -201,11 +239,11 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       return;
     }
 
-    // Transcribe
+    // Transcribe (and optionally diarize)
     setProcessingWhisper(true);
     try {
       // Lazy-load the Whisper engine (not in main bundle)
-      const { transcribe, audioBufferToFloat32 } = await import("@/lib/speech/whisper-engine");
+      const { transcribeWithTimestamps, audioBufferToFloat32 } = await import("@/lib/speech/whisper-engine");
 
       // Decode the audio blob to an AudioBuffer
       const arrayBuffer = await blob.arrayBuffer();
@@ -213,16 +251,50 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
       await audioCtx.close();
 
-      // Convert to 16kHz mono Float32Array
+      // Convert to 16kHz mono Float32Array. We KEEP this buffer through
+      // the diarization step — same 16kHz mono format pyannote expects.
       const float32 = audioBufferToFloat32(audioBuffer);
 
-      // Run Whisper
-      const text = await transcribe(float32, (p) => setWhisperStatus(p));
+      // Run Whisper. When diarization is enabled we need word-level
+      // timestamps to align speakers; otherwise skip them (faster, less
+      // model state to manage).
+      const wantTimestamps = diarizationEnabled;
+      const result = await transcribeWithTimestamps(float32, (p) => setWhisperStatus(p), wantTimestamps);
 
-      if (text) {
-        onTranscript(text, true);
-      } else {
+      if (!result.text) {
         setError("Could not detect any speech in the recording. Please try again.");
+        return;
+      }
+
+      // If diarization is off, emit the flat text and we're done.
+      if (!diarizationEnabled) {
+        onTranscript(result.text, true);
+        return;
+      }
+
+      // Diarization path: run pyannote on the same audio buffer, then
+      // align Whisper words with speaker segments.
+      try {
+        const { diarize } = await import("@/lib/speech/diarization");
+        const { alignWordsToSpeakers } = await import("@/lib/speech/diarize-align");
+        const segments = await diarize(float32, (p) => setWhisperStatus(p));
+        if (segments.length === 0 || result.words.length === 0) {
+          // Diarization or word timestamps unavailable; emit plain text.
+          onTranscript(result.text, true);
+          return;
+        }
+        const turns = alignWordsToSpeakers(result.words, segments);
+        // Emit both the inline-labeled text (for the textarea) AND the
+        // structured turns (for the speaker-bubble view).
+        const labeledText = turns
+          .map(t => `[Speaker ${Number(t.speaker) + 1}] ${t.text}`)
+          .join("\n");
+        onTranscript(labeledText, true, turns);
+      } catch (diarErr) {
+        // Diarization failed — fall back to plain transcript so the user
+        // never loses their words to a diarization bug.
+        logger.swallow("dictation:diarization-failed", diarErr, "warn");
+        onTranscript(result.text, true);
       }
     } catch (err) {
       console.error("[Dictation] Whisper transcription error:", err);
@@ -231,7 +303,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       setProcessingWhisper(false);
       setWhisperStatus(null);
     }
-  }, [onTranscript]);
+  }, [onTranscript, diarizationEnabled]);
 
   // ─── Unified start/stop ─────────────────────────────
   const handleStart = useCallback(() => {
@@ -248,12 +320,33 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
   return (
     <div className="space-y-2">
       {/* Engine badge */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Badge variant="outline" className="text-[10px] gap-1 font-mono text-muted-foreground">
           {tier === "whisper" && <Cpu className="h-2.5 w-2.5" />}
           {tier === "native" && <Mic className="h-2.5 w-2.5" />}
           {describeTier(tier)}
         </Badge>
+        {/* Diarization toggle. Active state shows a Users badge; clicking
+            it during native-tier auto-switches to Whisper (the only tier
+            that supports speaker detection — raw audio is required). */}
+        <button
+          onClick={toggleDiarization}
+          disabled={isRecording || processingWhisper}
+          className={`text-[10px] inline-flex items-center gap-1 px-1.5 py-0.5 rounded border transition-colors ${
+            diarizationEnabled
+              ? "border-primary/40 bg-primary/10 text-primary"
+              : "border-border/40 text-muted-foreground/50 hover:text-muted-foreground hover:border-border"
+          } disabled:cursor-not-allowed disabled:opacity-50`}
+          title={
+            diarizationEnabled
+              ? "Speaker detection ON — turns 'Whose voice is this?' into [Speaker 1]/[Speaker 2] labels"
+              : tier === "native"
+                ? "Enable speaker detection (will switch to local AI engine — required for audio access)"
+                : "Enable speaker detection"
+          }
+        >
+          <Users className="h-2.5 w-2.5" /> {diarizationEnabled ? "Speakers ON" : "Detect speakers"}
+        </button>
         {tier === "native" && (
           <button
             onClick={() => setTier("whisper")}
@@ -262,7 +355,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
             use local AI instead
           </button>
         )}
-        {tier === "whisper" && getSpeechRecognitionCtor() && (
+        {tier === "whisper" && !diarizationEnabled && getSpeechRecognitionCtor() && (
           <button
             onClick={() => { setTier("native"); setError(null); }}
             className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground underline"
@@ -272,8 +365,8 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
         )}
       </div>
 
-      {/* Whisper status */}
-      {(whisperStatus?.status === "downloading" || whisperStatus?.status === "loading") && (
+      {/* Whisper / diarization status (download or in-progress inference) */}
+      {(whisperStatus?.status === "downloading" || whisperStatus?.status === "loading" || whisperStatus?.status === "diarizing") && (
         <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-xs text-blue-400 flex items-center gap-2">
           <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
           <div className="flex-1">

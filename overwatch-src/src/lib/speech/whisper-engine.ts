@@ -13,9 +13,30 @@ let pipelineInstance: any = null;
 let loadingPromise: Promise<void> | null = null;
 
 export type WhisperProgress = {
-  status: "loading" | "downloading" | "ready" | "transcribing";
+  status: "loading" | "downloading" | "ready" | "transcribing" | "diarizing";
   progress?: number; // 0-100 for download progress
   message?: string;
+};
+
+/**
+ * A single word (or short phrase, depending on tokenization) with its
+ * time range in the audio. Used to align Whisper output with diarization
+ * speaker segments.
+ */
+export type WhisperWord = {
+  text: string;
+  /** Start time in seconds from the start of the audio. */
+  start: number;
+  /** End time in seconds from the start of the audio. */
+  end: number;
+};
+
+/** Structured Whisper result with word-level timestamps. */
+export type WhisperResult = {
+  /** Plain concatenated text (matches the legacy `transcribe()` return). */
+  text: string;
+  /** Word/chunk list with timing. Empty if timestamps weren't requested. */
+  words: WhisperWord[];
 };
 
 type ProgressCallback = (p: WhisperProgress) => void;
@@ -79,11 +100,31 @@ export function isModelLoaded(): boolean {
 
 /**
  * Transcribe a Float32Array of audio samples (16kHz mono) to text.
+ *
+ * Legacy API — returns a plain string. Use `transcribeWithTimestamps`
+ * if you need word-level timing (e.g. to merge with speaker diarization).
  */
 export async function transcribe(
   audioData: Float32Array,
   onProgress?: ProgressCallback,
 ): Promise<string> {
+  const result = await transcribeWithTimestamps(audioData, onProgress, false);
+  return result.text;
+}
+
+/**
+ * Transcribe a Float32Array of audio samples (16kHz mono) to a structured
+ * result with optional word-level timing.
+ *
+ * When `wantTimestamps` is true, Whisper returns each word/sub-chunk with
+ * a `[start, end]` time range. These can be aligned with speaker
+ * diarization segments to produce a fully labeled transcript.
+ */
+export async function transcribeWithTimestamps(
+  audioData: Float32Array,
+  onProgress?: ProgressCallback,
+  wantTimestamps: boolean = true,
+): Promise<WhisperResult> {
   if (!pipelineInstance) {
     await loadModel(onProgress);
   }
@@ -96,15 +137,33 @@ export async function transcribe(
   const result: any = await pipelineInstance(audioData, {
     chunk_length_s: 30,
     stride_length_s: 5,
-    return_timestamps: false,
+    return_timestamps: wantTimestamps ? "word" : false,
   });
 
-  // Result is { text: string } or an array
-  const text = Array.isArray(result)
-    ? result.map((r: { text: string }) => r.text).join(" ")
-    : result.text ?? "";
+  // Result shape: { text: string, chunks?: [{ text, timestamp: [start, end] }] }
+  // or an array of those when audio is chunked. Normalize either way.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const results: any[] = Array.isArray(result) ? result : [result];
 
-  return text.trim();
+  let text = "";
+  const words: WhisperWord[] = [];
+  for (const r of results) {
+    if (r.text) text += (text ? " " : "") + r.text;
+    if (Array.isArray(r.chunks)) {
+      for (const c of r.chunks) {
+        const ts = c.timestamp;
+        if (!Array.isArray(ts) || ts.length < 2) continue;
+        const start = typeof ts[0] === "number" ? ts[0] : null;
+        const end = typeof ts[1] === "number" ? ts[1] : null;
+        if (start == null || end == null || end <= start) continue;
+        const word = typeof c.text === "string" ? c.text.trim() : "";
+        if (!word) continue;
+        words.push({ text: word, start, end });
+      }
+    }
+  }
+
+  return { text: text.trim(), words };
 }
 
 /**
