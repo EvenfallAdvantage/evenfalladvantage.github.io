@@ -32,36 +32,29 @@ export type SpeakerTurn = {
 };
 
 /**
- * Pyannote's segment boundaries have ~0.2-0.5s of slop — the model
- * decides "Speaker A stopped here" based on audio energy + spectral
- * features, and the boundary doesn't always land at the exact moment
- * the next speaker begins. Whisper, meanwhile, marks word boundaries
- * based on phoneme timing. The two systems disagree at the millisecond
- * level even when they agree at the human level.
- *
- * Result: a word that *sounds* like the end of Speaker A's turn often
- * has a Whisper start-time slightly past pyannote's "Speaker A ended"
- * boundary. Without slack, every such word ends up attributed to the
- * NEXT speaker — exactly the bug seen with "selected." and "speaking."
- *
- * BOUNDARY_TOLERANCE_S defines how far into the next segment a word
- * can start and still be "given back" to the previous speaker if:
- *   - the previous word was that speaker, AND
- *   - the previous speaker's segment ended within tolerance.
- */
-const BOUNDARY_TOLERANCE_S = 0.5;
-
-/**
- * Find the best speaker for a Whisper word.
+ * Find the best speaker for a Whisper word (initial / time-based assignment).
  *
  * Strategy (in priority order):
- *   1. If the previous word was speaker P AND speaker P's segment ended
- *      within BOUNDARY_TOLERANCE_S of this word's start, keep P.
- *      (Catches the "trailing word of a turn" boundary slop case.)
- *   2. Anchor on word START — segment that contains it wins. Word start
- *      is reliable; word end is inflated by Whisper to include silence.
- *   3. Fallback to midpoint if word start is in a gap between segments.
- *   4. Last resort: previous speaker if any, else nearest segment.
+ *   1. Word start in exactly one segment → that speaker.
+ *   2. Word start in multiple overlapping segments → previous speaker
+ *      preferred (stickiness), else highest-confidence segment.
+ *   3. Word start in a gap → try midpoint, same stickiness rules.
+ *   4. Word entirely outside any segment → previous speaker if any,
+ *      else nearest segment by time distance.
+ *
+ * Notes on what was tried and removed:
+ *   - We previously added a "boundary tolerance" that kept the previous
+ *     speaker whenever their segment ended within 0.5s of this word.
+ *     That fixed cases where the LAST word of a turn leaked to the next
+ *     speaker, but caused the OPPOSITE bug: the FIRST word of a new
+ *     speaker leaked back to the previous one. Acoustic re-matching
+ *     (acoustic-rematch.ts) is a more accurate way to handle the same
+ *     class of bug — it uses voice features rather than blind temporal
+ *     bias, so it switches direction correctly per word.
+ *
+ *   - Word START is used as the anchor (not midpoint) because Whisper's
+ *     END timestamps are inflated by trailing silence/breath, while the
+ *     START timestamp accurately marks when audible speech begins.
  */
 function assignSpeaker(
   word: WhisperWord,
@@ -70,27 +63,7 @@ function assignSpeaker(
 ): string {
   if (segments.length === 0) return "0";
 
-  // 1. Boundary-tolerance check — handles the most common bug pattern:
-  // pyannote's segment boundary is slightly tighter than where the
-  // speaker actually finished speaking. If the previous word's speaker
-  // ended JUST before this word, the word is almost certainly still
-  // that same speaker finishing their turn.
-  if (previousSpeaker) {
-    const prevSegments = segments.filter(s => s.speaker === previousSpeaker);
-    for (const seg of prevSegments) {
-      // Word's start is between seg.end and seg.end + tolerance
-      if (word.start >= seg.end && word.start - seg.end <= BOUNDARY_TOLERANCE_S) {
-        return previousSpeaker;
-      }
-      // Word's start is just barely INSIDE the previous segment
-      // (start <= seg.end is already a hard match → handled below).
-      // But what about a word that starts inside the previous segment
-      // AND inside the next segment because pyannote's boundaries
-      // overlapped? The containingStart logic below handles that.
-    }
-  }
-
-  // 2. Word start in exactly one segment → that speaker.
+  // 1. Word start in exactly one segment → that speaker.
   const containingStart = segments.filter(s => s.start <= word.start && s.end >= word.start);
   if (containingStart.length === 1) {
     return containingStart[0].speaker;
@@ -106,7 +79,7 @@ function assignSpeaker(
     return best.speaker;
   }
 
-  // 3. Word starts in a gap between segments. Try midpoint.
+  // 2. Word starts in a gap between segments. Try midpoint.
   const midpoint = (word.start + word.end) / 2;
   const containingMid = segments.filter(s => s.start <= midpoint && s.end >= midpoint);
   if (containingMid.length > 0) {
@@ -116,7 +89,7 @@ function assignSpeaker(
     return containingMid[0].speaker;
   }
 
-  // 4. Word is entirely outside any segment. Stickiness wins.
+  // 3. Word is entirely outside any segment. Stickiness wins.
   if (previousSpeaker) return previousSpeaker;
   let bestSpeaker = segments[0].speaker;
   let nearestDist = Infinity;

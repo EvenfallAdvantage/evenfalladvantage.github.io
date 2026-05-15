@@ -89,23 +89,41 @@ export function acousticRematch(
     // be moved to another speaker that has a profile.
   }
 
+  // Identify boundary words — first or last word of a contiguous run of
+  // the same speaker. These are where greedy time-based alignment is
+  // most likely to be wrong, so we apply a more aggressive switching
+  // threshold for them. Interior words use the conservative threshold
+  // to avoid flapping in the middle of a clean turn.
+  const isBoundary = new Array<boolean>(scored.length).fill(false);
+  for (let i = 0; i < scored.length; i++) {
+    const prev = i > 0 ? scored[i - 1].speaker : null;
+    const next = i < scored.length - 1 ? scored[i + 1].speaker : null;
+    if (prev !== scored[i].speaker || next !== scored[i].speaker) {
+      isBoundary[i] = true;
+    }
+  }
+
   // Step 3: for each word, compute distance to every speaker's profile.
-  // Reassign if a different speaker is meaningfully closer.
-  return scored.map(sw => {
+  // Boundary words use a looser margin (any speaker that's CLOSER wins);
+  // interior words use a 25% margin to avoid flapping.
+  const INTERIOR_MARGIN = 0.75;  // alt must be at least 25% closer than current
+  const BOUNDARY_MARGIN = 1.0;   // alt just has to be closer (no margin)
+
+  return scored.map((sw, i) => {
     if (!sw.features || sw.features.unreliable) return { word: sw.word, speaker: sw.speaker };
 
     const currentProfile = profiles.get(sw.speaker);
     if (!currentProfile) return { word: sw.word, speaker: sw.speaker };
 
     const currentDist = featureDistance(sw.features, currentProfile);
+    const margin = isBoundary[i] ? BOUNDARY_MARGIN : INTERIOR_MARGIN;
 
     let bestSpeaker = sw.speaker;
     let bestDist = currentDist;
     for (const [speaker, profile] of profiles) {
       if (speaker === sw.speaker) continue;
       const dist = featureDistance(sw.features, profile);
-      // Be conservative: only switch if the alternative is meaningfully closer
-      if (dist < bestDist * 0.75) {
+      if (dist < bestDist * margin) {
         bestSpeaker = speaker;
         bestDist = dist;
       }
