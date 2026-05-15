@@ -20,6 +20,7 @@
 
 import type { DiarizationSegment } from "./diarization";
 import type { WhisperWord } from "./whisper-engine";
+import { acousticRematch } from "./acoustic-rematch";
 
 export type SpeakerTurn = {
   speaker: string;
@@ -136,58 +137,86 @@ function assignSpeaker(
  *
  * Words within the same span of speaker continuity are concatenated.
  * Returns turns sorted by start time. Empty input → empty output.
+ *
+ * Pipeline:
+ *   1. Greedy time-based assignment (assignSpeaker)
+ *   2. Acoustic re-matching (optional, when `audio` is provided): for
+ *      each word, extract pitch + spectral features and reassign to the
+ *      acoustically-closest speaker. Fixes boundary words that pyannote
+ *      mis-labeled because its segment boundary was slightly off.
+ *   3. Group into speaker turns
+ *   4. Flicker absorption: collapse single-word A-B-A noise turns
+ *
+ * @param words Whisper word-level timestamps
+ * @param segments Pyannote speaker segments
+ * @param audio Optional 16 kHz mono Float32 audio buffer. When provided,
+ *   enables acoustic re-matching for higher accuracy at boundary words.
+ *   Omit to fall back to pure time-based alignment.
  */
 export function alignWordsToSpeakers(
   words: WhisperWord[],
   segments: DiarizationSegment[],
+  audio?: Float32Array,
 ): SpeakerTurn[] {
   if (words.length === 0) return [];
 
   // Sort words by start time defensively
   const sortedWords = [...words].sort((a, b) => a.start - b.start);
 
-  const turns: SpeakerTurn[] = [];
+  // Stage 1: greedy time-based assignment
   let currentSpeaker: string | null = null;
-  let currentText: string[] = [];
-  let currentStart = 0;
-  let currentEnd = 0;
-
+  const initialAssignments: { word: WhisperWord; speaker: string }[] = [];
   for (const word of sortedWords) {
     const speaker = assignSpeaker(word, segments, currentSpeaker);
-    if (speaker !== currentSpeaker) {
-      // Flush previous turn
-      if (currentSpeaker !== null && currentText.length > 0) {
-        turns.push({
-          speaker: currentSpeaker,
-          text: currentText.join(" ").replace(/\s+/g, " ").trim(),
-          start: currentStart,
-          end: currentEnd,
-        });
-      }
-      currentSpeaker = speaker;
-      currentText = [word.text];
-      currentStart = word.start;
-      currentEnd = word.end;
-    } else {
-      currentText.push(word.text);
-      currentEnd = word.end;
-    }
+    initialAssignments.push({ word, speaker });
+    currentSpeaker = speaker;
   }
 
-  // Flush the last turn
-  if (currentSpeaker !== null && currentText.length > 0) {
+  // Stage 2: acoustic re-matching if audio is available. Compares each
+  // word's voice characteristics (pitch, spectral centroid, etc.) against
+  // per-speaker profiles built from confidently-assigned words. Catches
+  // the most common alignment bug: boundary words wrongly attributed to
+  // the adjacent speaker because pyannote's segment edges aren't perfect.
+  const finalAssignments = audio
+    ? acousticRematch(initialAssignments, segments, audio)
+    : initialAssignments;
+
+  // Stage 3: group consecutive same-speaker words into turns
+  const turns: SpeakerTurn[] = [];
+  let groupSpeaker: string | null = null;
+  let groupText: string[] = [];
+  let groupStart = 0;
+  let groupEnd = 0;
+  for (const { word, speaker } of finalAssignments) {
+    if (speaker !== groupSpeaker) {
+      if (groupSpeaker !== null && groupText.length > 0) {
+        turns.push({
+          speaker: groupSpeaker,
+          text: groupText.join(" ").replace(/\s+/g, " ").trim(),
+          start: groupStart,
+          end: groupEnd,
+        });
+      }
+      groupSpeaker = speaker;
+      groupText = [word.text];
+      groupStart = word.start;
+      groupEnd = word.end;
+    } else {
+      groupText.push(word.text);
+      groupEnd = word.end;
+    }
+  }
+  if (groupSpeaker !== null && groupText.length > 0) {
     turns.push({
-      speaker: currentSpeaker,
-      text: currentText.join(" ").replace(/\s+/g, " ").trim(),
-      start: currentStart,
-      end: currentEnd,
+      speaker: groupSpeaker,
+      text: groupText.join(" ").replace(/\s+/g, " ").trim(),
+      start: groupStart,
+      end: groupEnd,
     });
   }
 
-  // Post-alignment cleanup: absorb very short "flicker" turns into their
-  // longer neighbors when the neighbor on both sides is the same speaker.
-  // Example: [A: "hello there"] [B: "okay"] [A: "how are you"] where B's
-  // turn is ~0.3s — almost certainly a misclassification, glue it into A.
+  // Stage 4: flicker absorption — handles A-B-A patterns where B is
+  // brief (typically a noise misclassification).
   return absorbFlickerTurns(turns);
 }
 

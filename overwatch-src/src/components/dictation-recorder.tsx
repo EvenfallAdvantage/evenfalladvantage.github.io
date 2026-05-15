@@ -304,7 +304,10 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
           onTranscript(result.text, true);
           return;
         }
-        const turns = alignWordsToSpeakers(result.words, segments);
+        // Pass the audio buffer through to alignment for acoustic
+        // re-matching — uses pitch/spectral features to fix boundary
+        // words that pyannote mis-labeled.
+        const turns = alignWordsToSpeakers(result.words, segments, float32);
         // Emit both the inline-labeled text (for the textarea) AND the
         // structured turns (for the speaker-bubble view).
         const labeledText = turns
