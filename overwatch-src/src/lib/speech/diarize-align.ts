@@ -34,27 +34,18 @@ export type SpeakerTurn = {
 /**
  * Find the best speaker for a Whisper word (initial / time-based assignment).
  *
- * Strategy (in priority order):
- *   1. Word start in exactly one segment → that speaker.
- *   2. Word start in multiple overlapping segments → previous speaker
- *      preferred (stickiness), else highest-confidence segment.
- *   3. Word start in a gap → try midpoint, same stickiness rules.
- *   4. Word entirely outside any segment → previous speaker if any,
- *      else nearest segment by time distance.
+ * Standard approach: assign each word to the speaker whose segment has
+ * the most temporal overlap with the word. This is the textbook
+ * algorithm used by all major diarization-alignment libraries (pyannote
+ * Python, NVIDIA NeMo, etc.).
  *
- * Notes on what was tried and removed:
- *   - We previously added a "boundary tolerance" that kept the previous
- *     speaker whenever their segment ended within 0.5s of this word.
- *     That fixed cases where the LAST word of a turn leaked to the next
- *     speaker, but caused the OPPOSITE bug: the FIRST word of a new
- *     speaker leaked back to the previous one. Acoustic re-matching
- *     (acoustic-rematch.ts) is a more accurate way to handle the same
- *     class of bug — it uses voice features rather than blind temporal
- *     bias, so it switches direction correctly per word.
+ * If no segment overlaps, fall back to the nearest segment by time
+ * distance. If multiple segments tie, prefer the previous word's
+ * speaker (stickiness) to reduce mid-turn flickering.
  *
- *   - Word START is used as the anchor (not midpoint) because Whisper's
- *     END timestamps are inflated by trailing silence/breath, while the
- *     START timestamp accurately marks when audible speech begins.
+ * Boundary refinement (acoustic re-matching using pitch + spectral
+ * features) happens as a separate post-pass in `alignWordsToSpeakers`,
+ * not here. Keep this function purely time-based and well-understood.
  */
 function assignSpeaker(
   word: WhisperWord,
@@ -63,45 +54,44 @@ function assignSpeaker(
 ): string {
   if (segments.length === 0) return "0";
 
-  // 1. Word start in exactly one segment → that speaker.
-  const containingStart = segments.filter(s => s.start <= word.start && s.end >= word.start);
-  if (containingStart.length === 1) {
-    return containingStart[0].speaker;
-  }
-  if (containingStart.length > 1) {
-    // Multiple segments overlap at word.start. Prefer previous speaker.
-    if (previousSpeaker && containingStart.some(s => s.speaker === previousSpeaker)) {
-      return previousSpeaker;
-    }
-    const best = containingStart.reduce((a, b) =>
-      (a.confidence ?? 0) >= (b.confidence ?? 0) ? a : b,
-    );
-    return best.speaker;
-  }
-
-  // 2. Word starts in a gap between segments. Try midpoint.
-  const midpoint = (word.start + word.end) / 2;
-  const containingMid = segments.filter(s => s.start <= midpoint && s.end >= midpoint);
-  if (containingMid.length > 0) {
-    if (previousSpeaker && containingMid.some(s => s.speaker === previousSpeaker)) {
-      return previousSpeaker;
-    }
-    return containingMid[0].speaker;
-  }
-
-  // 3. Word is entirely outside any segment. Stickiness wins.
-  if (previousSpeaker) return previousSpeaker;
   let bestSpeaker = segments[0].speaker;
-  let nearestDist = Infinity;
+  let bestOverlap = -Infinity;
   for (const seg of segments) {
-    const dist = word.start < seg.start
-      ? seg.start - word.start
-      : word.start > seg.end ? word.start - seg.end : 0;
-    if (dist < nearestDist) {
-      nearestDist = dist;
+    const overlap = Math.min(word.end, seg.end) - Math.max(word.start, seg.start);
+    if (overlap > bestOverlap) {
+      bestOverlap = overlap;
       bestSpeaker = seg.speaker;
     }
   }
+
+  // If there's a tie or near-tie, prefer the previous speaker.
+  if (previousSpeaker && previousSpeaker !== bestSpeaker) {
+    const prevOverlap = segments
+      .filter(s => s.speaker === previousSpeaker)
+      .reduce((max, s) => {
+        const o = Math.min(word.end, s.end) - Math.max(word.start, s.start);
+        return o > max ? o : max;
+      }, -Infinity);
+    // "Near-tie" = previous speaker has at least 80% as much overlap
+    if (prevOverlap > 0 && prevOverlap >= bestOverlap * 0.8) {
+      return previousSpeaker;
+    }
+  }
+
+  // No overlap at all → nearest segment by time distance
+  if (bestOverlap <= 0) {
+    let nearestDist = Infinity;
+    for (const seg of segments) {
+      const dist = word.start < seg.start
+        ? seg.start - word.start
+        : word.start > seg.end ? word.start - seg.end : 0;
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        bestSpeaker = seg.speaker;
+      }
+    }
+  }
+
   return bestSpeaker;
 }
 
