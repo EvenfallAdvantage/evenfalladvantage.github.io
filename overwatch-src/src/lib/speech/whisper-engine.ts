@@ -41,10 +41,15 @@ export type WhisperResult = {
 
 type ProgressCallback = (p: WhisperProgress) => void;
 
-// Use the ONNX-optimized Whisper tiny.en model from HuggingFace
+// Use the ONNX-optimized Whisper tiny.en model from HuggingFace.
+// The `_timestamped` variant was exported with `output_attentions=True` so
+// it supports `return_timestamps: "word"` (cross-attention DTW alignment).
+// The non-timestamped variant cannot emit per-word timing — required for
+// speaker diarization alignment.
+//
 // fp32 is used because q8 quantization requires DequantizeLinear ops
 // that the WASM ONNX runtime doesn't support for all model architectures.
-const MODEL_ID = "onnx-community/whisper-tiny.en";
+const MODEL_ID = "onnx-community/whisper-tiny.en_timestamped";
 
 /**
  * Warm up the pipeline (download model + initialize ONNX runtime).
@@ -132,13 +137,33 @@ export async function transcribeWithTimestamps(
   onProgress?.({ status: "transcribing", message: "Transcribing audio..." });
 
   // Note: whisper-tiny.en is English-only — do NOT pass language or task
-  // (those params are only for multilingual models like whisper-tiny)
+  // (those params are only for multilingual models like whisper-tiny).
+  //
+  // Defensive: if word-level timestamps fail (model variant mismatch,
+  // ONNX runtime missing op, etc.), retry once with plain transcription
+  // so the user gets text even if diarization alignment isn't possible.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: any = await pipelineInstance(audioData, {
-    chunk_length_s: 30,
-    stride_length_s: 5,
-    return_timestamps: wantTimestamps ? "word" : false,
-  });
+  let result: any;
+  try {
+    result = await pipelineInstance(audioData, {
+      chunk_length_s: 30,
+      stride_length_s: 5,
+      return_timestamps: wantTimestamps ? "word" : false,
+    });
+  } catch (err) {
+    if (wantTimestamps) {
+      // Retry without timestamps — preserves user words; diarization
+      // alignment will gracefully fall back to plain text upstream.
+      console.warn("[Whisper] Word timestamps unavailable, falling back to plain transcription:", err);
+      result = await pipelineInstance(audioData, {
+        chunk_length_s: 30,
+        stride_length_s: 5,
+        return_timestamps: false,
+      });
+    } else {
+      throw err;
+    }
+  }
 
   // Result shape: { text: string, chunks?: [{ text, timestamp: [start, end] }] }
   // or an array of those when audio is chunked. Normalize either way.

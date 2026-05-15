@@ -61,9 +61,13 @@ export async function getFormSubmissions(formId: string) {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
+  // Disambiguate `users` join: form_submissions has TWO FKs to users
+  // (user_id = submitter, reviewed_by_id = reviewer). PostgREST requires
+  // the explicit fkey name otherwise it returns "more than one relationship
+  // was found" and drops the join silently.
   const { data, error } = await supabase
     .from("form_submissions")
-    .select("*, users(first_name, last_name)")
+    .select("*, users!form_submissions_user_id_fkey(first_name, last_name)")
     .eq("form_id", formId)
     .order("created_at", { ascending: false });
   if (error) { logDbReadError("form submissions", error); return []; }
@@ -125,9 +129,10 @@ export async function getAllFormSubmissions(companyId: string) {
 
 export async function getEventFormSubmissions(eventId: string) {
   const supabase = createClient();
+  // Disambiguate `users` join — see comment on getFormSubmissions above.
   const { data, error } = await supabase
     .from("form_submissions")
-    .select("*, users(first_name, last_name, avatar_url), forms(name)")
+    .select("*, users!form_submissions_user_id_fkey(first_name, last_name, avatar_url), forms(name)")
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
   if (error) { logDbReadError("event form submissions", error); return []; }
