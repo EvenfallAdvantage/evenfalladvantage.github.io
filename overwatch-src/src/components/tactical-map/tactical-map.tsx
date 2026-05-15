@@ -104,7 +104,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const { dmTarget, setDmTarget, dmText, setDmText, dmSending, sendMessage: sendDmMessage } = useDirectMessage(companyId);
 
   // Cesium layer plotting/toggling effects
-  const { nearbyPOIs: _nearbyPOIs, geofenceAlerts, aligningOp, setAligningOp, savedBounds: _savedBounds, setSavedBounds, s2Intel } = useCesiumLayers({
+  const { nearbyPOIs: _nearbyPOIs, geofenceAlerts, aligningOp, setAligningOp, savedBounds, setSavedBounds, s2Intel } = useCesiumLayers({
     viewerRef,
     cesiumRef,
     entityGroupsRef,
@@ -401,13 +401,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         setAligningOp(op);
       }} onAdjustSiteMap={(op) => {
         // Open the fine-tune adjuster with current saved bounds
-        const currentBounds = _savedBounds[op.id];
+        const currentBounds = savedBounds[op.id];
         if (currentBounds) {
           setAdjustingOp({ id: op.id, name: op.name, bounds: currentBounds });
         } else {
           toast("No saved bounds to adjust. Use the ↻ button to align first.");
         }
-      }} />}
+      }} savedBounds={savedBounds} />}
       {!error && !loading && (
         <MapToolsBar
           activeTool={activeTool}
@@ -452,8 +452,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           onAlign={(bounds) => {
             // Save locally for immediate use
             setSavedBounds((prev) => ({ ...prev, [aligningOp.id]: bounds }));
-            // Persist to DB (company-wide)
-            saveSiteMapBounds(aligningOp.id, bounds);
+            // Persist to DB (company-wide — every member of `companyId`
+            // will now see this overlay on their tactical map).
+            saveSiteMapBounds(aligningOp.id, bounds, companyId);
             setAligningOp(null);
           }}
           onCancel={() => {
@@ -473,7 +474,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           bounds={adjustingOp.bounds}
           onSave={(newBounds) => {
             setSavedBounds((prev) => ({ ...prev, [adjustingOp.id]: newBounds }));
-            saveSiteMapBounds(adjustingOp.id, newBounds);
+            saveSiteMapBounds(adjustingOp.id, newBounds, companyId);
             setAdjustingOp(null);
             toast.success("Site map position updated");
           }}

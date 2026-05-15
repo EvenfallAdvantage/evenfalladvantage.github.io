@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
-import { getSiteMapBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
+import { getSiteMapBounds, getSiteMapBoundsByCompany, migrateLegacyLocalStorageBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
 import { getRecentGeofenceAlerts, type GeofenceAlert } from "../env-intel";
 import { addSentinel1Layer, addSentinel2Layer } from "../sentinel-layer";
 import { FLIR_SHADER, CRT_SHADER, applyShader, removeShader } from "../shaders";
@@ -139,15 +139,44 @@ export function useCesiumLayers(params: {
     }
   }, [layers.terrain, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
-  // ─── Load saved bounds from DB when site maps are toggled ────
+  // ─── Bulk-load all saved bounds for the company on mount ────
+  // Loaded once per (companyId × operation set). Every op with bounds is
+  // marked "loaded" so the renderer below can drape immediately without
+  // requiring the user to toggle the layer first.
+  useEffect(() => {
+    if (!companyId || operations.length === 0) return;
+    let cancelled = false;
+
+    // First, opportunistic migration of any legacy localStorage bounds
+    // from before the DB table existed. Idempotent — safe to re-run.
+    migrateLegacyLocalStorageBounds(
+      operations.map(op => ({ id: op.id, companyId })),
+    ).catch(e => logger.swallow("cesium-layers:bounds-migrate", e, "debug"));
+
+    getSiteMapBoundsByCompany(companyId).then(boundsMap => {
+      if (cancelled) return;
+      setSavedBounds(boundsMap);
+      // Mark every op as "bounds-loaded" so the renderer doesn't open the
+      // aligner prematurely. Ops without bounds also count as loaded (their
+      // bounds are confirmed empty).
+      setBoundsLoaded(new Set(operations.map(op => op.id)));
+      setBoundsLoading(new Set());
+    }).catch(e => {
+      logger.swallow("cesium-layers:bounds-bulk-read", e, "debug");
+      if (!cancelled) setBoundsLoaded(new Set(operations.map(op => op.id)));
+    });
+
+    return () => { cancelled = true; };
+  }, [companyId, operations]);
+
+  // ─── Fallback: per-op load when an op is added after mount ───
+  // (E.g. an admin creates a new op via the wizard while the map is open.)
   useEffect(() => {
     operations.forEach((op) => {
-      if (layers.siteOverlays[op.id] && !savedBounds[op.id] && !boundsLoaded.has(op.id) && !boundsLoading.has(op.id)) {
+      if (!boundsLoaded.has(op.id) && !boundsLoading.has(op.id) && !savedBounds[op.id]) {
         setBoundsLoading(prev => new Set(prev).add(op.id));
         getSiteMapBounds(op.id).then(bounds => {
-          if (bounds) {
-            setSavedBounds(prev => ({ ...prev, [op.id]: bounds }));
-          }
+          if (bounds) setSavedBounds(prev => ({ ...prev, [op.id]: bounds }));
           setBoundsLoaded(prev => new Set(prev).add(op.id));
           setBoundsLoading(prev => { const next = new Set(prev); next.delete(op.id); return next; });
         }).catch(() => {
@@ -156,7 +185,7 @@ export function useCesiumLayers(params: {
         });
       }
     });
-  }, [operations, layers.siteOverlays, savedBounds, boundsLoaded, boundsLoading]);
+  }, [operations, savedBounds, boundsLoaded, boundsLoading]);
 
   // ─── Site Map Overlays (rubber-sheet aligned) ────────
   useEffect(() => {
@@ -170,12 +199,20 @@ export function useCesiumLayers(params: {
     });
     entityGroupsRef.current.siteOverlays = [];
 
-    // Check each toggled-on site map
+    // Check each toggled-on site map. We treat the visibility as:
+    //   - `false` (user explicitly hid it)   → hide
+    //   - `true`  (user explicitly showed it) → show
+    //   - `undefined` (user never set it)    → show iff we have saved bounds
+    // This means: when an admin lays down a site map, every other company
+    // member sees it automatically, without having to toggle anything.
     operations.forEach((op) => {
-      if (!layers.siteOverlays[op.id] || !op.siteMapUrl || !op.lat || !op.lng) return;
+      if (!op.siteMapUrl || !op.lat || !op.lng) return;
+      const userPref = layers.siteOverlays[op.id];
+      const bounds = savedBounds[op.id];
+      const effectiveOn = userPref === undefined ? !!bounds : userPref;
+      if (!effectiveOn) return;
 
       // If we have saved bounds (local or from DB), drape immediately
-      const bounds = savedBounds[op.id];
       if (bounds) {
         try {
           const provider = new Cesium.SingleTileImageryProvider({
@@ -191,9 +228,12 @@ export function useCesiumLayers(params: {
         return;
       }
 
-      // No saved bounds — but only open aligner if we've finished loading
-      // (prevents the aligner from opening while the async bounds fetch is in progress)
-      if (!aligningOp && isAdmin && boundsLoaded.has(op.id) && !boundsLoading.has(op.id)) {
+      // No saved bounds, layer is on, user is admin → open the aligner.
+      // Only fires when the admin explicitly toggled the layer on for an
+      // un-aligned op; we don't auto-open for the "undefined" case so a
+      // member just loading the page doesn't get hit with the aligner UI.
+      if (!aligningOp && isAdmin && userPref === true
+          && boundsLoaded.has(op.id) && !boundsLoading.has(op.id)) {
         setAligningOp(op);
       }
     });
@@ -213,10 +253,15 @@ export function useCesiumLayers(params: {
     });
     entityGroupsRef.current.storyboardPins = [];
 
-    // For each active overlay with saved bounds, load pins
-    const activeOps = operations.filter(op =>
-      layers.siteOverlays[op.id] && savedBounds[op.id] && op.siteMapUrl
-    );
+    // For each active overlay with saved bounds, load pins. We mirror the
+    // effective-on logic from the renderer above: undefined toggle counts
+    // as "on" when bounds exist (admin-laid-down imagery is visible by
+    // default for every company member).
+    const activeOps = operations.filter(op => {
+      if (!savedBounds[op.id] || !op.siteMapUrl) return false;
+      const pref = layers.siteOverlays[op.id];
+      return pref === undefined ? true : pref;
+    });
 
     if (activeOps.length === 0) return;
 

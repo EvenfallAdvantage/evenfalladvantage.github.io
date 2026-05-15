@@ -112,9 +112,14 @@ interface MapLayersPanelProps {
    * tag layers that have no historical data source so the user understands
    * why those layers are temporarily empty. */
   isReplaying?: boolean;
+  /** Bounds keyed by event id. An op is considered "ready" (alignable
+   * overlay already laid down) if it has a non-null entry. Non-admins can
+   * toggle ready overlays on/off; only admins can toggle un-ready ones
+   * (which would open the SiteMapAligner). */
+  savedBounds?: Record<string, unknown>;
 }
 
-export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, onAdjustSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, isReplaying }: MapLayersPanelProps) {
+export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, onAdjustSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, isReplaying, savedBounds }: MapLayersPanelProps) {
   const [open, setOpen] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
@@ -198,21 +203,31 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
                     <p className="text-[8px] font-mono text-white/25 uppercase tracking-wider mb-1">Site Maps</p>
                     <div className="space-y-0.5">
                       {opsWithSiteMaps.map((op) => {
-                        const siteActive = layers.siteOverlays[op.id] ?? false;
+                        const userPref = layers.siteOverlays[op.id];
+                        const hasBounds = !!savedBounds?.[op.id];
+                        // Effective on = explicit user pref if set, otherwise auto-on when bounds exist
+                        const siteActive = userPref === undefined ? hasBounds : userPref;
+                        // Non-admins may toggle aligned (bounds-exist) overlays.
+                        // Only admins may toggle an un-aligned overlay (turning it on
+                        // would open the aligner UI which requires admin perms).
+                        const canToggle = isAdmin || hasBounds;
+                        const blockedTooltip = !canToggle
+                          ? "Admin access required to align this site map"
+                          : "";
                         return (
                           <div key={op.id} className="flex items-center gap-1">
                             <button
-                              onClick={() => { if (!isAdmin && !siteActive) return; toggleSiteOverlay(op.id); }}
+                              onClick={() => { if (!canToggle) return; toggleSiteOverlay(op.id); }}
                               className={`flex-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
                                 siteActive ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60 hover:bg-white/5"
-                              }`}
-                              title={!isAdmin && !siteActive ? "Admin access required to align site maps" : ""}
+                              } ${!canToggle ? "cursor-not-allowed opacity-60" : ""}`}
+                              title={blockedTooltip}
                             >
                               <Layers className="h-3 w-3" />
                               <span className="flex-1 text-left truncate">{op.name}</span>
                               {siteActive ? <Eye className="h-3 w-3 text-green-400" /> : <EyeOff className="h-3 w-3" />}
                             </button>
-                            {siteActive && isAdmin && (
+                            {siteActive && isAdmin && hasBounds && (
                               <div className="flex gap-0.5">
                                 {onAdjustSiteMap && <button onClick={() => onAdjustSiteMap(op)} className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded" title="Fine-tune position">⇔</button>}
                                 {onRealignSiteMap && <button onClick={() => onRealignSiteMap(op)} className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded" title="Re-align (3-point pick)">↻</button>}
