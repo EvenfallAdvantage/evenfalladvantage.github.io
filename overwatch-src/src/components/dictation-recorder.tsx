@@ -410,22 +410,8 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
         )}
       </div>
 
-      {/* Whisper / diarization status (download or in-progress inference) */}
-      {(whisperStatus?.status === "downloading" || whisperStatus?.status === "loading" || whisperStatus?.status === "diarizing") && (
-        <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 px-3 py-2 text-xs text-blue-400 flex items-center gap-2">
-          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-          <div className="flex-1">
-            <span>{whisperStatus.message}</span>
-            {whisperStatus.progress != null && whisperStatus.progress > 0 && (
-              <div className="mt-1 h-1 rounded-full bg-blue-500/20 overflow-hidden">
-                <div className="h-full rounded-full bg-blue-500 transition-all duration-300" style={{ width: `${whisperStatus.progress}%` }} />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Controls */}
+      {/* Controls + unified status (single banner for download, transcribe,
+          and diarize stages — uses brand primary color to match the panel) */}
       <div className="flex items-center gap-3">
         {isRecording ? (
           <Button size="sm" variant="destructive" className="gap-2" onClick={handleStop} disabled={disabled || processingWhisper} aria-label="Stop recording">
@@ -434,7 +420,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
         ) : (
           <Button size="sm" className="gap-2" onClick={handleStart} disabled={disabled || processingWhisper} aria-label="Start recording">
             {processingWhisper ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mic className="h-3.5 w-3.5" />}
-            {processingWhisper ? "Transcribing..." : "Start Recording"}
+            {processingWhisper ? "Working..." : "Start Recording"}
           </Button>
         )}
         {isRecording && (
@@ -448,11 +434,23 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
         )}
       </div>
 
-      {/* Whisper processing indicator */}
-      {processingWhisper && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-500 flex items-center gap-2">
+      {/* Unified status banner — covers all Whisper / diarization stages.
+          Replaces the two stacked banners (blue download bar + orange
+          processing pill) that previously showed simultaneously during the
+          download stage. */}
+      {(processingWhisper || whisperStatus?.status === "downloading" || whisperStatus?.status === "loading") && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary flex items-center gap-2">
           <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-          <span>{whisperStatus?.message ?? "Processing audio with local Whisper AI..."}</span>
+          <div className="flex-1 min-w-0">
+            <span className="truncate block">
+              {whisperStatus?.message ?? "Processing audio with local Whisper AI..."}
+            </span>
+            {whisperStatus?.progress != null && whisperStatus.progress > 0 && (
+              <div className="mt-1 h-1 rounded-full bg-primary/20 overflow-hidden">
+                <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${whisperStatus.progress}%` }} />
+              </div>
+            )}
+          </div>
         </div>
       )}
 
