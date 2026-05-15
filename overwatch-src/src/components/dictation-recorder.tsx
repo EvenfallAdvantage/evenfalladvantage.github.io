@@ -58,6 +58,25 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     }
   });
 
+  /**
+   * Hint to the diarization model — when the user knows the recording
+   * has exactly N speakers, we collapse any extra "ghost speakers"
+   * (caused by background noise misclassification) into the nearest
+   * real speaker. 0 = Auto (no cap, let pyannote decide).
+   *
+   * Persisted across sessions so a user dictating regular 2-person
+   * interviews doesn't have to pick "2" every time.
+   */
+  const [expectedSpeakers, setExpectedSpeakers] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const v = parseInt(localStorage.getItem("dictation:expectedSpeakers") ?? "0", 10);
+      return Number.isFinite(v) && v >= 0 && v <= 8 ? v : 0;
+    } catch {
+      return 0;
+    }
+  });
+
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingRef = useRef(false);
@@ -277,7 +296,9 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       try {
         const { diarize } = await import("@/lib/speech/diarization");
         const { alignWordsToSpeakers } = await import("@/lib/speech/diarize-align");
-        const segments = await diarize(float32, (p) => setWhisperStatus(p));
+        const segments = await diarize(float32, (p) => setWhisperStatus(p), {
+          expectedSpeakers: expectedSpeakers > 0 ? expectedSpeakers : undefined,
+        });
         if (segments.length === 0 || result.words.length === 0) {
           // Diarization or word timestamps unavailable; emit plain text.
           onTranscript(result.text, true);
@@ -303,7 +324,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       setProcessingWhisper(false);
       setWhisperStatus(null);
     }
-  }, [onTranscript, diarizationEnabled]);
+  }, [onTranscript, diarizationEnabled, expectedSpeakers]);
 
   // ─── Unified start/stop ─────────────────────────────
   const handleStart = useCallback(() => {
@@ -347,6 +368,30 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
         >
           <Users className="h-2.5 w-2.5" /> {diarizationEnabled ? "Speakers ON" : "Detect speakers"}
         </button>
+        {/* Expected-speakers hint — shown only when diarization is on.
+            Lets the user collapse "ghost speakers" caused by background
+            noise misclassification by setting an explicit cap. */}
+        {diarizationEnabled && (
+          <select
+            value={expectedSpeakers}
+            onChange={(e) => {
+              const n = parseInt(e.target.value, 10);
+              setExpectedSpeakers(n);
+              try { localStorage.setItem("dictation:expectedSpeakers", String(n)); } catch (err) { logger.swallow("dictation:expected-persist", err, "trace"); }
+            }}
+            disabled={isRecording || processingWhisper}
+            className="text-[10px] rounded border border-border/40 bg-background px-1.5 py-0.5 text-muted-foreground disabled:opacity-50"
+            title="Tell the model how many speakers to expect. 'Auto' lets the model decide (may detect ghost speakers from noise). Setting a specific count collapses any extras into the nearest real speaker."
+            aria-label="Expected number of speakers"
+          >
+            <option value={0}>Auto speakers</option>
+            <option value={2}>2 speakers</option>
+            <option value={3}>3 speakers</option>
+            <option value={4}>4 speakers</option>
+            <option value={5}>5 speakers</option>
+            <option value={6}>6 speakers</option>
+          </select>
+        )}
         {tier === "native" && (
           <button
             onClick={() => setTier("whisper")}
