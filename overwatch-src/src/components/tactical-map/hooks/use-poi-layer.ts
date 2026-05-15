@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { createPinCanvas } from "../pin-canvas";
-import { getPOIsInBbox, getNearbyPOIs, type NearbyPOI, type PoiType } from "../env-intel";
+import { getPOIsInBbox, getNearbyPOIs, countTilesForBbox, type NearbyPOI, type PoiType } from "../env-intel";
 import type { OperationPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -42,16 +42,32 @@ const POI_COLORS: Record<PoiType, string> = {
 };
 
 /**
- * Don't query Overpass at continental zoom — the bounding box would be
- * huge, the query would time out, and the result wouldn't be useful
- * (too many POIs to read at that zoom anyway).
- * 8° ≈ 880 km per side, roughly "metro area + suburbs" view.
+ * Don't query Overpass at low zoom — POI pins are invisible specks at
+ * that scale and the tile fan-out would blast Overpass with hundreds
+ * of requests. 1° ≈ 110 km per side, roughly "city + outskirts" view.
+ *
+ * History: was 8° (~880 km, metro+region) which produced up to 6,561
+ * tiles per camera move and caused `ERR_INSUFFICIENT_RESOURCES` storms
+ * on map mount.
  */
-const MAX_VIEWPORT_DEG_PER_SIDE = 8;
+const MAX_VIEWPORT_DEG_PER_SIDE = 1;
+/**
+ * Hard cap on tiles per viewport fetch. Defense in depth — even within
+ * the viewport gate, an unusual viewport (e.g. very long+thin) could
+ * exceed this. At 0.1° per tile, 50 tiles = ~5° of total area covered.
+ */
+const MAX_TILES_PER_VIEWPORT = 50;
 /** Debounce window after camera.moveEnd before we fetch viewport POIs. */
-const CAMERA_DEBOUNCE_MS = 400;
+const CAMERA_DEBOUNCE_MS = 500;
 /** Radius (m) of the always-on halo fetched around each operation. */
 const OPERATION_HALO_M = 5000;
+/**
+ * Cap on operations queried per page-load. Each operation halo crosses
+ * ~4 tiles (0.09° × 0.11° bbox vs 0.1° grid). A company with 50 ops
+ * could blast 200 cold cache fetches — limit the baseline halo to the
+ * first N ops, biasing toward most-recent activity.
+ */
+const MAX_OPS_FOR_HALO = 20;
 
 interface ViewportRect {
   south: number;
@@ -194,7 +210,11 @@ export function usePoiLayer(params: {
     }
 
     let cancelled = false;
-    const opsWithCoords = operations.filter(o => o.lat && o.lng);
+    // Only fetch halos for the first N operations to bound Overpass load.
+    // Most orgs have <20 active ops; large orgs would otherwise pay a cold-
+    // cache cost of ~4 Overpass tiles per op = potentially hundreds of
+    // requests on first load.
+    const opsWithCoords = operations.filter(o => o.lat && o.lng).slice(0, MAX_OPS_FOR_HALO);
     if (opsWithCoords.length === 0) {
       operationPoisRef.current.clear();
       renderPOIs();
@@ -204,8 +224,9 @@ export function usePoiLayer(params: {
     (async () => {
       const fresh = new Map<number, NearbyPOI>();
       // Fetch halos sequentially to avoid blasting Overpass with N parallel
-      // requests for an org with many operations. Tile cache will turn most
-      // of these into instant returns after the first hit.
+      // requests for an org with many operations. The env-intel tile cache
+      // (in-memory + localStorage, 7-day TTL) makes repeat ops near each
+      // other near-instant after the first hit.
       for (const op of opsWithCoords) {
         if (cancelled) return;
         try {
@@ -246,9 +267,15 @@ export function usePoiLayer(params: {
         if (!rect) return;
         const widthDeg = rect.east - rect.west;
         const heightDeg = rect.north - rect.south;
-        // Skip when zoomed too far out (avoids huge Overpass queries)
-        if (widthDeg > MAX_VIEWPORT_DEG_PER_SIDE || heightDeg > MAX_VIEWPORT_DEG_PER_SIDE) {
-          // Clear viewport-source POIs but keep the operation halo
+        const tileCount = countTilesForBbox(rect.south, rect.north, rect.west, rect.east);
+        // Skip when zoomed too far out OR when the tile count would
+        // exceed the per-fetch cap. Either condition clears any stale
+        // viewport-source POIs but leaves the operation halo intact.
+        if (
+          widthDeg > MAX_VIEWPORT_DEG_PER_SIDE
+          || heightDeg > MAX_VIEWPORT_DEG_PER_SIDE
+          || tileCount > MAX_TILES_PER_VIEWPORT
+        ) {
           if (viewportPoisRef.current.size > 0) {
             viewportPoisRef.current.clear();
             renderPOIs();

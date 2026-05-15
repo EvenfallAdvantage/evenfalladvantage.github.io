@@ -61,6 +61,48 @@ interface TileEntry {
 const tileCache = new Map<string, TileEntry>();
 const inflight = new Map<string, Promise<NearbyPOI[]>>();
 
+/**
+ * Overpass concurrency limit. Overpass's free tier penalises bursts; the
+ * official guidance is ≤2 parallel requests per client. We use 3 as a
+ * compromise that's snappy without being abusive. Any tile fetch beyond
+ * this is queued.
+ */
+const OVERPASS_MAX_CONCURRENT = 3;
+let overpassInflight = 0;
+const overpassQueue: Array<() => void> = [];
+
+function acquireOverpassSlot(): Promise<void> {
+  if (overpassInflight < OVERPASS_MAX_CONCURRENT) {
+    overpassInflight++;
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => {
+    overpassQueue.push(() => { overpassInflight++; resolve(); });
+  });
+}
+
+function releaseOverpassSlot() {
+  overpassInflight = Math.max(0, overpassInflight - 1);
+  const next = overpassQueue.shift();
+  if (next) next();
+}
+
+/**
+ * Backoff state: when Overpass returns an error (429, 5xx, network fail),
+ * we cool down for a fixed window before letting any further requests
+ * through. Prevents tight retry loops from making things worse.
+ */
+let overpassBackoffUntil = 0;
+const OVERPASS_BACKOFF_MS = 60_000; // 60 seconds
+
+function isBackingOff(): boolean {
+  return Date.now() < overpassBackoffUntil;
+}
+function triggerBackoff() {
+  overpassBackoffUntil = Date.now() + OVERPASS_BACKOFF_MS;
+  logger.warn("env-intel", `Overpass backoff engaged for ${OVERPASS_BACKOFF_MS / 1000}s`);
+}
+
 function tileKey(tileLat: number, tileLng: number, types: readonly PoiType[]): string {
   const sorted = [...types].sort().join(",");
   return `${tileLat.toFixed(1)},${tileLng.toFixed(1)}|${sorted}`;
@@ -90,6 +132,11 @@ function writeTileToStorage(key: string, entry: TileEntry) {
 /**
  * Fetch all POI types for one tile cell. Cached per-tile so a single tile
  * is queried at most once across the session (within TTL).
+ *
+ * Concurrency-limited: at most OVERPASS_MAX_CONCURRENT requests in flight
+ * to Overpass at any time. Excess fetches queue. Backoff: if any tile
+ * fetch fails, the next OVERPASS_BACKOFF_MS short-circuits to empty
+ * results to prevent retry storms.
  */
 async function fetchTile(tileLat: number, tileLng: number, types: readonly PoiType[]): Promise<NearbyPOI[]> {
   const key = tileKey(tileLat, tileLng, types);
@@ -107,6 +154,14 @@ async function fetchTile(tileLat: number, tileLng: number, types: readonly PoiTy
   const existing = inflight.get(key);
   if (existing) return existing;
 
+  // Honor the global cool-down — short-circuit to empty + cache it so
+  // subsequent identical fetches inside the backoff window don't pile up.
+  if (isBackingOff()) {
+    const entry: TileEntry = { data: [], ts: Date.now() };
+    tileCache.set(key, entry);
+    return entry.data;
+  }
+
   const south = tileLat;
   const north = tileLat + POI_TILE_DEG;
   const west = tileLng;
@@ -119,7 +174,15 @@ async function fetchTile(tileLat: number, tileLng: number, types: readonly PoiTy
   const query = `[out:json][timeout:15];(${filters});out center 100;`;
 
   const promise = (async (): Promise<NearbyPOI[]> => {
+    await acquireOverpassSlot();
     try {
+      // Re-check backoff after waiting in queue (state may have changed)
+      if (isBackingOff()) {
+        const entry: TileEntry = { data: [], ts: Date.now() };
+        tileCache.set(key, entry);
+        return entry.data;
+      }
+
       const res = await fetch("https://overpass-api.de/api/interpreter", {
         method: "POST",
         body: `data=${encodeURIComponent(query)}`,
@@ -128,6 +191,7 @@ async function fetchTile(tileLat: number, tileLng: number, types: readonly PoiTy
       });
       if (!res.ok) {
         logger.warn("env-intel", `Overpass tile ${key} returned ${res.status}`);
+        if (res.status === 429 || res.status >= 500) triggerBackoff();
         return [];
       }
       const data = await res.json();
@@ -160,14 +224,20 @@ async function fetchTile(tileLat: number, tileLng: number, types: readonly PoiTy
         })
         .filter((p: NearbyPOI | null): p is NearbyPOI => !!p && !!p.lat && !!p.lng);
 
+      // Always cache, even empty results, so a tile with zero POIs isn't
+      // refetched on every camera move.
       const entry: TileEntry = { data: result, ts: Date.now() };
       tileCache.set(key, entry);
       writeTileToStorage(key, entry);
       return result;
     } catch (err) {
+      // Network-level failures (ERR_INSUFFICIENT_RESOURCES, abort, etc.)
+      // get a cooldown too — otherwise a single bad burst can self-amplify.
+      triggerBackoff();
       logger.swallow("env-intel:poi-tile-fetch", err, "warn");
       return [];
     } finally {
+      releaseOverpassSlot();
       inflight.delete(key);
     }
   })();
@@ -179,17 +249,36 @@ async function fetchTile(tileLat: number, tileLng: number, types: readonly PoiTy
 /**
  * Compute the set of tile cells that intersect a lat/lng bounding box.
  * Returns the (south, west) corner of each cell.
+ *
+ * Uses integer arithmetic on tile indices to avoid float accumulation
+ * drift (negligible at small ranges but defensive at large ones).
  */
 function tilesForBbox(south: number, north: number, west: number, east: number): Array<{ lat: number; lng: number }> {
   const tiles: Array<{ lat: number; lng: number }> = [];
-  const lat0 = Math.floor(south / POI_TILE_DEG) * POI_TILE_DEG;
-  const lng0 = Math.floor(west / POI_TILE_DEG) * POI_TILE_DEG;
-  for (let lat = lat0; lat <= north; lat += POI_TILE_DEG) {
-    for (let lng = lng0; lng <= east; lng += POI_TILE_DEG) {
-      tiles.push({ lat: +lat.toFixed(2), lng: +lng.toFixed(2) });
+  const latStart = Math.floor(south / POI_TILE_DEG);
+  const latEnd = Math.floor(north / POI_TILE_DEG);
+  const lngStart = Math.floor(west / POI_TILE_DEG);
+  const lngEnd = Math.floor(east / POI_TILE_DEG);
+  for (let li = latStart; li <= latEnd; li++) {
+    for (let lj = lngStart; lj <= lngEnd; lj++) {
+      tiles.push({
+        lat: +(li * POI_TILE_DEG).toFixed(2),
+        lng: +(lj * POI_TILE_DEG).toFixed(2),
+      });
     }
   }
   return tiles;
+}
+
+/**
+ * Predict the tile count for a given bbox without materializing the
+ * array. Used by the camera-driven fetch to bail early when a viewport
+ * would produce too many requests.
+ */
+export function countTilesForBbox(south: number, north: number, west: number, east: number): number {
+  const latCount = Math.floor(north / POI_TILE_DEG) - Math.floor(south / POI_TILE_DEG) + 1;
+  const lngCount = Math.floor(east / POI_TILE_DEG) - Math.floor(west / POI_TILE_DEG) + 1;
+  return Math.max(0, latCount) * Math.max(0, lngCount);
 }
 
 /**
