@@ -9,6 +9,12 @@ interface SiteMapAdjusterProps {
   bounds: SiteMapBounds;
   onSave: (bounds: SiteMapBounds) => void;
   onCancel: () => void;
+  /**
+   * Called on every intermediate change so the parent can update the
+   * rendered overlay live (without committing to the DB). Lets the
+   * user see where they're dragging the corners to in real time.
+   */
+  onPreview?: (bounds: SiteMapBounds) => void;
 }
 
 /**
@@ -45,7 +51,7 @@ const INITIAL_SCREEN_POSITIONS: ScreenPositions = {
   center: HIDDEN_POS,
 };
 
-export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterProps) {
+export function SiteMapAdjuster({ bounds, onSave, onCancel, onPreview }: SiteMapAdjusterProps) {
   // Seed the four image-space corners from the incoming bounds. If a
   // quad is present, use it directly. Otherwise build a north-up quad
   // from the legacy w/s/e/n rectangle: image top-left = NW = (north, west).
@@ -74,6 +80,19 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
       quad: { c00: corners.c00, c10: corners.c10, c11: corners.c11, c01: corners.c01 },
     };
   }, [corners]);
+
+  // Live preview — push the current quad to the parent on every change
+  // so the rendered overlay tracks the drag in real time. The first run
+  // is suppressed (no change from the initial bounds yet) to avoid
+  // bouncing the parent's state on mount.
+  const isFirstRunRef = useRef(true);
+  useEffect(() => {
+    if (isFirstRunRef.current) {
+      isFirstRunRef.current = false;
+      return;
+    }
+    onPreview?.(toBounds());
+  }, [toBounds, onPreview]);
 
   // Centroid of the quad — used for the MOVE handle's anchor lat/lng.
   const center: GeoPoint = {
@@ -204,28 +223,24 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
     setDragStart(center);
   }
 
-  // Corner handle visual config. Slightly bigger, color-coded by
-  // image-space corner so the user can match handle ↔ source-image edge.
-  const CORNER_STYLE: Record<CornerKey, { color: string; ring: string; hint: string }> = {
-    c00: { color: "bg-amber-400",   ring: "ring-amber-300",   hint: "Top-left (image origin)" },
-    c10: { color: "bg-cyan-400",    ring: "ring-cyan-300",    hint: "Top-right" },
-    c01: { color: "bg-emerald-400", ring: "ring-emerald-300", hint: "Bottom-left" },
-    c11: { color: "bg-fuchsia-400", ring: "ring-fuchsia-300", hint: "Bottom-right" },
-  };
+  // Corner handles use a single, neutral style — white circle with a
+  // dark border. Industry-standard for map editors (Google Maps, Leaflet,
+  // Mapbox all use this convention). Lets the colorful site map underneath
+  // be the visual focus instead of the controls.
+  const CORNER_KEYS: CornerKey[] = ["c00", "c10", "c01", "c11"];
 
   return (
     <>
       {/* Direct-drag handles, projected onto the canvas every frame */}
-      {(Object.keys(CORNER_STYLE) as CornerKey[]).map((key) => {
+      {CORNER_KEYS.map((key) => {
         const pos = screenPositions[key];
-        const cfg = CORNER_STYLE[key];
         const isActive = dragging === key;
         return (
           <div
             key={key}
-            title={cfg.hint}
+            title="Drag corner to fine-tune"
             onMouseDown={(e) => startCornerDrag(e, key)}
-            className={`fixed z-40 -ml-3 -mt-3 h-6 w-6 rounded-full border-2 border-white shadow-lg cursor-grab active:cursor-grabbing transition-transform ${cfg.color} ${isActive ? `scale-125 ring-4 ${cfg.ring}/60` : "hover:scale-110"}`}
+            className={`fixed z-40 -ml-2.5 -mt-2.5 h-5 w-5 rounded-full bg-white border-2 border-[#0f1a2e] shadow-lg cursor-grab active:cursor-grabbing transition-transform ${isActive ? "scale-150 ring-4 ring-white/40" : "hover:scale-125"}`}
             style={{
               left: `${pos.x}px`,
               top: `${pos.y}px`,
@@ -236,7 +251,8 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
         );
       })}
 
-      {/* Center MOVE handle */}
+      {/* Center MOVE handle — same visual language as corners but
+          larger and carries a move icon so its purpose is unambiguous. */}
       {(() => {
         const pos = screenPositions.center;
         const isActive = dragging === "center";
@@ -244,7 +260,7 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
           <div
             title="Drag to move the whole overlay"
             onMouseDown={startCenterDrag}
-            className={`fixed z-40 -ml-4 -mt-4 h-8 w-8 rounded-full bg-white/90 border-2 border-blue-500 shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing transition-transform ${isActive ? "scale-125 ring-4 ring-blue-400/60" : "hover:scale-110"}`}
+            className={`fixed z-40 -ml-4 -mt-4 h-8 w-8 rounded-full bg-white border-2 border-[#0f1a2e] shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing transition-transform ${isActive ? "scale-125 ring-4 ring-white/40" : "hover:scale-110"}`}
             style={{
               left: `${pos.x}px`,
               top: `${pos.y}px`,
@@ -252,7 +268,7 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
               pointerEvents: pos.visible ? "auto" : "none",
             }}
           >
-            <Move className="h-4 w-4 text-blue-600" />
+            <Move className="h-4 w-4 text-[#0f1a2e]" />
           </div>
         );
       })()}
