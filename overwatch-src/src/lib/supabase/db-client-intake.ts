@@ -86,13 +86,19 @@ export async function createIntakeToken(params: {
   return data;
 }
 
-export async function getIntakeTokens(companyId: string): Promise<IntakeTokenRow[]> {
+export async function getIntakeTokens(
+  companyId: string,
+  options?: { eventId?: string },
+): Promise<IntakeTokenRow[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("client_intake_tokens")
     .select("*")
-    .eq("company_id", companyId)
-    .order("created_at", { ascending: false });
+    .eq("company_id", companyId);
+  if (options?.eventId) {
+    query = query.eq("event_id", options.eventId);
+  }
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
 }

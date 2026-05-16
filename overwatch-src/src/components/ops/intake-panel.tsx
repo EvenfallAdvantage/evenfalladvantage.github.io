@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { FileText, Loader2, Check, X, Pencil, Save, Upload, MapPin, Trash2, Navigation, Share2, Copy, ExternalLink } from "lucide-react";
+import { FileText, Loader2, Check, X, Pencil, Save, Upload, MapPin, Trash2, Navigation, Share2 } from "lucide-react";
 import { IntakeSectionHeader, OpsChips } from "./ops-shared";
 import AddressAutocomplete, { type AddressSelection } from "@/components/address-autocomplete";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,8 @@ import {
 } from "@/lib/supabase/db-documents";
 import { createClient } from "@/lib/supabase/client";
 import type { IntakeData, OperationDocument } from "@/types/operations";
-import { createIntakeShare, getEventShares, type IntakeShare } from "@/lib/supabase/db-intake-shares";
-import { toast } from "sonner";
-import { logger } from "@/lib/logger";
+import { useAuthStore } from "@/stores/auth-store";
+import { ClientIntakeShareModal } from "./client-intake-share-modal";
 
 /* ── Chip option lists ──────────────────────────────── */
 
@@ -129,10 +128,12 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
   const [locationDirty, setLocationDirty] = useState(false);
   const [savingLocation, setSavingLocation] = useState(false);
 
-  // Share with client state
+  // Share with client state — modal is now the unified
+  // ClientIntakeShareModal which handles the full token lifecycle
+  // (generate, copy, QR, revoke, status). Pass eventId so it operates
+  // in event-scoped mode and only shows tokens for this operation.
   const [showShareModal, setShowShareModal] = useState(false);
-  const [shares, setShares] = useState<IntakeShare[]>([]);
-  const [creatingShare, setCreatingShare] = useState(false);
+  const internalUserId = useAuthStore((s) => s.user?.id ?? null);
 
   useEffect(() => { setLocationText(eventLocation ?? ""); }, [eventLocation]);
 
@@ -272,10 +273,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
           )}
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={async () => {
-            setShowShareModal(true);
-            try { setShares(await getEventShares(eventId)); } catch (e) { logger.swallow("intake-panel:load-shares", e, "warn"); }
-          }}>
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setShowShareModal(true)}>
             <Share2 className="h-3 w-3" /> Share
           </Button>
           <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={onClose}><X className="h-3.5 w-3.5" /></Button>
@@ -449,70 +447,18 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
         </div>
       )}
 
-      {/* Share with Client Modal */}
-      {showShareModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowShareModal(false)}>
-          <div className="w-full max-w-sm rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3 border-b border-border/40">
-              <div className="flex items-center gap-2">
-                <Share2 className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">Share with Client</span>
-              </div>
-              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setShowShareModal(false)}>
-                <X className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <div className="px-5 py-4 space-y-4">
-              <p className="text-xs text-muted-foreground">
-                Generate a link for the client to fill out their portion of the intake form for <strong>{eventName}</strong>.
-              </p>
-              <Button size="sm" className="w-full gap-2" disabled={creatingShare} onClick={async () => {
-                setCreatingShare(true);
-                try {
-                  const share = await createIntakeShare(eventId, companyId);
-                  setShares((prev) => [share, ...prev]);
-                  toast.success("Share link created!");
-                } catch { toast.error("Failed to create link"); }
-                setCreatingShare(false);
-              }}>
-                {creatingShare ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
-                Generate New Link
-              </Button>
-
-              {shares.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Active Links</p>
-                  {shares.map((s) => {
-                    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/overwatch/intake?t=${s.token}`;
-                    return (
-                      <div key={s.id} className="flex items-center gap-2 rounded-lg border border-border/30 px-3 py-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-mono text-muted-foreground truncate">{url}</p>
-                          {s.submitted_at ? (
-                            <p className="text-[9px] text-green-500 flex items-center gap-1 mt-0.5">
-                              <Check className="h-2.5 w-2.5" /> Submitted by {s.client_name ?? "client"}
-                            </p>
-                          ) : (
-                            <p className="text-[9px] text-muted-foreground/50 mt-0.5">Awaiting response</p>
-                          )}
-                        </div>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 shrink-0" onClick={() => {
-                          navigator.clipboard.writeText(url);
-                          toast.success("Link copied!");
-                        }}>
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 shrink-0" onClick={() => window.open(url, "_blank")}>
-                          <ExternalLink className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Share with Client Modal — unified flow via ClientIntakeShareModal.
+          Passing eventId puts the modal in event-scoped mode: tokens are
+          bound to this op and only this op's tokens appear in the list. */}
+      {internalUserId && (
+        <ClientIntakeShareModal
+          companyId={companyId}
+          userId={internalUserId}
+          eventId={eventId}
+          eventName={eventName}
+          open={showShareModal}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
     </div>
   );

@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import {
-  Plus, Zap, List, LayoutGrid, Upload,
+  Plus, Zap, List, LayoutGrid, Upload, Wand2, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   getEventShifts, deleteShift, assignShift, getConflictingShifts,
+  smartFillShifts,
 } from "@/lib/supabase/db";
 import { toast } from "sonner";
 import { type Shift, fmtTime } from "./shared";
@@ -17,7 +18,6 @@ import { CustomShiftForm } from "./shift-management/custom-shift-form";
 import { CsvImportPanel } from "./shift-management/csv-import-panel";
 import { ShiftCalendarView } from "./shift-management/shift-calendar-view";
 import { ShiftListView } from "./shift-management/shift-list-view";
-import { AutoSchedulePanel } from "./shift-management/auto-schedule-panel";
 
 /* ── Component ── */
 
@@ -42,6 +42,7 @@ export function ShiftManagement({
   const [shiftView, setShiftView] = useState<"list" | "calendar">("calendar");
   const [calendarDay, setCalendarDay] = useState<string | null>(null);
   const [deletingShift, setDeletingShift] = useState<string | null>(null);
+  const [autoAssigning, setAutoAssigning] = useState(false);
 
   /* ── Derived ── */
   const {
@@ -87,6 +88,45 @@ export function ShiftManagement({
     catch (err) { console.error(err); }
   }
 
+  /**
+   * Auto-assign open shifts to the best-fit staff. Considers availability,
+   * weekly hours / OT, min rest between shifts, and role preference.
+   * Surfaces a summary toast. The detailed per-shift reasoning is logged
+   * to the console for debugging; future enhancement: surface in a modal.
+   */
+  async function handleAutoAssign() {
+    const openCount = shifts.filter((s: Shift) => !s.assigned_user_id).length;
+    if (openCount === 0) {
+      toast.info("No open shifts to assign.");
+      return;
+    }
+    setAutoAssigning(true);
+    try {
+      const results = await smartFillShifts(eventId, companyId, { dryRun: false });
+      const assigned = results.filter((r) => r.assigned).length;
+      const unassigned = results.length - assigned;
+      if (assigned > 0) {
+        toast.success(
+          unassigned > 0
+            ? `Assigned ${assigned}/${results.length}. ${unassigned} unfilled (no eligible staff).`
+            : `Assigned all ${assigned} open shift${assigned === 1 ? "" : "s"}.`,
+        );
+        onShiftsChange(await getEventShifts(eventId));
+      } else {
+        toast.error("No shifts could be auto-assigned (no eligible staff).");
+      }
+      // Console-log the detailed reasoning for debugging — most users
+      // won't open devtools, but it's there if someone wants to audit
+      // why a particular shift went to a particular person.
+      console.log("[Auto-Assign] Detailed results:", results);
+    } catch (err) {
+      console.error("[Auto-Assign] Failed:", err);
+      toast.error("Auto-assign failed");
+    } finally {
+      setAutoAssigning(false);
+    }
+  }
+
   return (
     <>
       {/* Action Buttons */}
@@ -102,6 +142,17 @@ export function ShiftManagement({
         <Button size="sm" variant={showImport ? "default" : "outline"} className="h-7 gap-1.5 text-xs"
           onClick={() => { setShowImport(!showImport); setShowBuilder(false); setShowCustom(false); }}>
           <Upload className="h-3.5 w-3.5" /> Import Shifts
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5 text-xs"
+          onClick={handleAutoAssign}
+          disabled={autoAssigning}
+          title="Assign open shifts to best-fit staff (availability + OT + rest + role)"
+        >
+          {autoAssigning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+          Auto-Assign
         </Button>
         {/* View toggle */}
         <div className="flex rounded-lg border border-border/40 overflow-hidden ml-1">
@@ -149,17 +200,6 @@ export function ShiftManagement({
           onClose={() => setShowImport(false)}
         />
       )}
-
-      {/* Auto-Schedule Panel */}
-      <div className="px-3 sm:px-4 py-2">
-        <AutoSchedulePanel
-          eventId={eventId}
-          companyId={companyId}
-          startDate={startDate}
-          endDate={endDate}
-          onShiftsChanged={async () => { onShiftsChange(await getEventShifts(eventId)); }}
-        />
-      </div>
 
       {/* List View */}
       {shiftView === "list" && (

@@ -21,6 +21,18 @@ interface ClientIntakeShareModalProps {
   userId: string;
   open: boolean;
   onClose: () => void;
+  /**
+   * When provided, the modal operates in event-scoped mode:
+   *   - Generated tokens are bound to this event_id
+   *   - Listing only shows tokens for this event (not the whole company)
+   *   - Title says "Share intake with client" instead of "Request from client"
+   *
+   * When omitted, the modal is pre-operation: generates tokens with
+   * event_id = null for prospective-client requests.
+   */
+  eventId?: string;
+  /** Display name of the event, shown in the modal description. Optional. */
+  eventName?: string;
 }
 
 function buildShareUrl(token: string): string {
@@ -48,7 +60,7 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export function ClientIntakeShareModal({ companyId, userId, open, onClose }: ClientIntakeShareModalProps) {
+export function ClientIntakeShareModal({ companyId, userId, open, onClose, eventId, eventName }: ClientIntakeShareModalProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [tokens, setTokens] = useState<IntakeTokenRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -57,11 +69,15 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
   const [qrToken, setQrToken] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
+  // Event-scoped mode (operation-specific intake share) vs company-scoped
+  // mode (prospective-client request from OPS PLANNING header).
+  const isEventScoped = !!eventId;
+
   const reload = useCallback(async () => {
     if (!open) return;
     setLoading(true);
     try {
-      const data = await getIntakeTokens(companyId);
+      const data = await getIntakeTokens(companyId, eventId ? { eventId } : undefined);
       setTokens(data);
     } catch (e) {
       logger.swallow("ClientIntakeShareModal:getIntakeTokens", e, "warn");
@@ -69,7 +85,7 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
     } finally {
       setLoading(false);
     }
-  }, [companyId, open]);
+  }, [companyId, eventId, open]);
 
   useEffect(() => { void reload(); }, [reload]);
 
@@ -80,7 +96,7 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
       const expiresAt = days > 0
         ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
         : undefined;
-      const row = await createIntakeToken({ companyId, createdBy: userId, expiresAt });
+      const row = await createIntakeToken({ companyId, eventId, createdBy: userId, expiresAt });
       setTokens(prev => [row, ...prev]);
       toast.success("Intake link created");
       // Auto-copy on creation for fast workflow
@@ -170,7 +186,9 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
         <div className="flex items-center justify-between px-5 py-3 border-b border-border/40 shrink-0">
           <div className="flex items-center gap-2">
             <Send className="h-4 w-4 text-primary" />
-            <span id="client-intake-share-title" className="text-sm font-semibold">Request from Client</span>
+            <span id="client-intake-share-title" className="text-sm font-semibold">
+              {isEventScoped ? "Share Intake with Client" : "Request from Client"}
+            </span>
           </div>
           <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={onClose} aria-label="Close">
             <X className="h-3.5 w-3.5" />
@@ -180,9 +198,19 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose }: Cli
         {/* Body */}
         <div className="px-5 py-4 space-y-4 overflow-y-auto">
           <p className="text-xs text-muted-foreground">
-            Generate a secure link to send to a prospective client, or accept submissions from your own
-            website via the API (see <strong>HQ Config → API Sources</strong>). Submissions from any source
-            appear in the list below.
+            {isEventScoped ? (
+              <>
+                Generate a link for the client to fill out the intake form for
+                {eventName ? <> <strong>{eventName}</strong></> : " this operation"}.
+                Submissions are linked to this operation.
+              </>
+            ) : (
+              <>
+                Generate a secure link to send to a prospective client, or accept submissions from your own
+                website via the API (see <strong>HQ Config → API Sources</strong>). Submissions from any source
+                appear in the list below.
+              </>
+            )}
           </p>
 
           {/* Create row */}
