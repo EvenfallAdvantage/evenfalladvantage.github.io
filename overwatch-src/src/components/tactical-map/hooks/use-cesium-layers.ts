@@ -229,25 +229,32 @@ export function useCesiumLayers(params: {
       if (bounds) {
         try {
           if (bounds.quad) {
-            // Affine path: render as a textured polygon. Order matches the
-            // image-space corner naming so per-vertex UV coordinates align
-            // to the texture without skew, even for rotated/sheared maps.
-            //   c00 → (s=0, t=1)   image top-left  → texture top
-            //   c10 → (s=1, t=1)   image top-right
-            //   c11 → (s=1, t=0)   image bottom-right → texture bottom
-            //   c01 → (s=0, t=0)   image bottom-left
+            // Affine path: render as a textured polygon. Per-vertex UV
+            // coordinates map each image corner to the matching texture
+            // texel. Cesium does NOT set UNPACK_FLIP_Y_WEBGL when loading
+            // image materials, so texture-y direction matches image-y
+            // direction directly: image-top = t=0, image-bottom = t=1.
+            //   c00 → (s=0, t=0)   image top-left  → texture top-left
+            //   c10 → (s=1, t=0)   image top-right
+            //   c11 → (s=1, t=1)   image bottom-right
+            //   c01 → (s=0, t=1)   image bottom-left
+            // Vertex order is c00, c01, c11, c10 which traces CCW when
+            // viewed from above the globe (image top edge then left edge
+            // then bottom then right) — matches Cesium's expected polygon
+            // winding for an upward-facing surface, so the auto-winding
+            // detector doesn't reverse anything and break correspondence.
             const q = bounds.quad;
             const positions = Cesium.Cartesian3.fromDegreesArray([
               q.c00.lng, q.c00.lat,
-              q.c10.lng, q.c10.lat,
-              q.c11.lng, q.c11.lat,
               q.c01.lng, q.c01.lat,
+              q.c11.lng, q.c11.lat,
+              q.c10.lng, q.c10.lat,
             ]);
             const stCoords = new Cesium.PolygonHierarchy([
+              new Cesium.Cartesian2(0, 0),
               new Cesium.Cartesian2(0, 1),
               new Cesium.Cartesian2(1, 1),
               new Cesium.Cartesian2(1, 0),
-              new Cesium.Cartesian2(0, 0),
             ]);
             const geom = new Cesium.PolygonGeometry({
               polygonHierarchy: new Cesium.PolygonHierarchy(positions),
