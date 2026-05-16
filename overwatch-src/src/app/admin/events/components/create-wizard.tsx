@@ -119,6 +119,22 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
 
   async function handleCreate() {
     if (!name.trim() || !startDate || !endDate || !activeCompanyId) return;
+
+    // Geocoding guard. The Location input accepts free text, but lat/lng
+    // are only captured when the user picks from the autocomplete
+    // dropdown. If they typed an address and skipped the dropdown, the
+    // saved op has no coordinates and is silently filtered out of the
+    // tactical map (schedule/page.tsx:117). Confirm intent before saving.
+    if (location.trim() && (locationLat == null || locationLng == null)) {
+      const proceed = window.confirm(
+        `The address "${location.trim()}" wasn't geocoded — you typed it but didn't pick a suggestion from the dropdown. ` +
+        `This operation won't appear on the tactical map until coordinates are set.\n\n` +
+        `OK = create anyway (you can fix the address later)\n` +
+        `Cancel = go back and pick from the dropdown`,
+      );
+      if (!proceed) return;
+    }
+
     setCreating(true);
     try {
       const eventId = crypto.randomUUID();
@@ -215,7 +231,43 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
           <>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2"><Label htmlFor="operation-name" className="text-xs">Operation Name *</Label><Input id="operation-name" placeholder="e.g. Spring Festival Security" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" /></div>
-              <div className="sm:col-span-2"><Label className="text-xs">Location</Label><AddressAutocomplete value={location} onChange={setLocation} onSelect={(s: AddressSelection) => { setLocation(s.displayName); setLocationLat(s.lat); setLocationLng(s.lon); if (s.street && !guide.siteAddress) setGuide(g => ({ ...g, siteAddress: `${s.street}, ${s.city}, ${s.state} ${s.postcode}`.trim() })); }} onClear={() => { setLocationLat(null); setLocationLng(null); }} placeholder="e.g. 123 Main St, Los Angeles, CA" className="mt-1" /></div>
+              <div className="sm:col-span-2">
+                <Label className="text-xs">Location</Label>
+                <AddressAutocomplete
+                  value={location}
+                  onChange={(v) => {
+                    setLocation(v);
+                    // Typing after a selection invalidates the geocode —
+                    // require the user to pick from the dropdown again.
+                    if (locationLat != null || locationLng != null) {
+                      setLocationLat(null);
+                      setLocationLng(null);
+                    }
+                  }}
+                  onSelect={(s: AddressSelection) => {
+                    setLocation(s.displayName);
+                    setLocationLat(s.lat);
+                    setLocationLng(s.lon);
+                    if (s.street && !guide.siteAddress) setGuide(g => ({ ...g, siteAddress: `${s.street}, ${s.city}, ${s.state} ${s.postcode}`.trim() }));
+                  }}
+                  onClear={() => { setLocationLat(null); setLocationLng(null); }}
+                  placeholder="e.g. 123 Main St, Los Angeles, CA"
+                  className="mt-1"
+                />
+                {location.trim() && (locationLat == null || locationLng == null) ? (
+                  <p className="mt-1 flex items-start gap-1 text-[11px] text-amber-600 leading-snug">
+                    <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span>
+                      Pick an address from the dropdown to set coordinates. Without them, this operation won&apos;t appear on the tactical map.
+                    </span>
+                  </p>
+                ) : locationLat != null && locationLng != null ? (
+                  <p className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600">
+                    <MapPin className="h-3 w-3" />
+                    <span>Coordinates captured: {locationLat.toFixed(4)}, {locationLng.toFixed(4)}</span>
+                  </p>
+                ) : null}
+              </div>
               <div><Label htmlFor="event-start-date" className="text-xs">Start Date & Time *</Label><Input id="event-start-date" type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1" /></div>
               <div><Label htmlFor="event-end-date" className="text-xs">End Date & Time *</Label><Input id="event-end-date" type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1" /></div>
               <div>
