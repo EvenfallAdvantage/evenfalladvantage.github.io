@@ -9,12 +9,6 @@ interface SiteMapAdjusterProps {
   bounds: SiteMapBounds;
   onSave: (bounds: SiteMapBounds) => void;
   onCancel: () => void;
-  /**
-   * Called on every intermediate change so the parent can update the
-   * rendered overlay live (without committing to the DB). Lets the
-   * user see where they're dragging the corners to in real time.
-   */
-  onPreview?: (bounds: SiteMapBounds) => void;
 }
 
 /**
@@ -51,7 +45,7 @@ const INITIAL_SCREEN_POSITIONS: ScreenPositions = {
   center: HIDDEN_POS,
 };
 
-export function SiteMapAdjuster({ bounds, onSave, onCancel, onPreview }: SiteMapAdjusterProps) {
+export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterProps) {
   // Seed the four image-space corners from the incoming bounds. If a
   // quad is present, use it directly. Otherwise build a north-up quad
   // from the legacy w/s/e/n rectangle: image top-left = NW = (north, west).
@@ -80,19 +74,6 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel, onPreview }: SiteMap
       quad: { c00: corners.c00, c10: corners.c10, c11: corners.c11, c01: corners.c01 },
     };
   }, [corners]);
-
-  // Live preview — push the current quad to the parent on every change
-  // so the rendered overlay tracks the drag in real time. The first run
-  // is suppressed (no change from the initial bounds yet) to avoid
-  // bouncing the parent's state on mount.
-  const isFirstRunRef = useRef(true);
-  useEffect(() => {
-    if (isFirstRunRef.current) {
-      isFirstRunRef.current = false;
-      return;
-    }
-    onPreview?.(toBounds());
-  }, [toBounds, onPreview]);
 
   // Centroid of the quad — used for the MOVE handle's anchor lat/lng.
   const center: GeoPoint = {

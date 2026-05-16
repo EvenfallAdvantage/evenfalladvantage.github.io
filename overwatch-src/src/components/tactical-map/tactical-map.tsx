@@ -472,23 +472,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       {adjustingOp && (
         <SiteMapAdjuster
           bounds={adjustingOp.bounds}
-          onPreview={(newBounds) => {
-            // Live re-render of the overlay primitive while the user
-            // drags. No DB write — committed only on Save.
-            setSavedBounds((prev) => ({ ...prev, [adjustingOp.id]: newBounds }));
-          }}
           onSave={(newBounds) => {
             setSavedBounds((prev) => ({ ...prev, [adjustingOp.id]: newBounds }));
             saveSiteMapBounds(adjustingOp.id, newBounds, companyId);
             setAdjustingOp(null);
             toast.success("Site map position updated");
           }}
-          onCancel={() => {
-            // Restore the pre-adjust bounds (the user may have nudged
-            // corners via onPreview before clicking Cancel).
-            setSavedBounds((prev) => ({ ...prev, [adjustingOp.id]: adjustingOp.bounds }));
-            setAdjustingOp(null);
-          }}
+          onCancel={() => setAdjustingOp(null)}
         />
       )}
     </div>

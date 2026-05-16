@@ -292,6 +292,11 @@ export function useCesiumLayers(params: {
             const buildPrimitive = (heights: [number, number, number, number]) => {
               const tokens = entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol> | undefined;
               if (tokens?.get(op.id) !== sampleToken) return; // superseded
+              // Viewer can be destroyed (component unmount, page navigation)
+              // between the async terrain sample starting and resolving.
+              // Guard against `viewer.scene.primitives.add()` on a torn-down
+              // viewer, which throws `Cannot read 'scene' of undefined`.
+              if (!viewerRef.current || viewerRef.current.isDestroyed?.()) return;
 
               const positions = [
                 Cesium.Cartesian3.fromDegrees(q.c00.lng, q.c00.lat, heights[0] + 0.5),
