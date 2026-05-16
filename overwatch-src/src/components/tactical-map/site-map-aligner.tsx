@@ -1,23 +1,27 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { logger } from "@/lib/logger";
 import { X, Check, RotateCcw, MapPin, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { SiteMapBounds, SiteMapQuad } from "@/lib/supabase/db-site-bounds";
 
 /**
  * 3-Point Site Map Alignment Tool
  *
  * The user picks 3 reference points on the site map image, then
- * picks the corresponding 3 points on the Cesium globe. An affine
- * transformation matrix is computed to warp the image onto the globe.
+ * picks the corresponding 3 points on the Cesium globe. A full 2D
+ * affine transformation is solved from the 3 point pairs and used
+ * to extrapolate the four image corners onto the globe. The result
+ * is a quadrilateral that correctly handles rotation, non-uniform
+ * scale, and shear — fixing the prior north-up-only assumption.
  *
  * Steps:
  * 1. Show site map image full-screen
  * 2. User clicks 3 reference points on the image (red dots)
  * 3. Switch to globe view
  * 4. User clicks 3 corresponding points on the globe (blue dots)
- * 5. Compute affine transform and drape the image
+ * 5. Solve affine and drape the image as a quad
  */
 
 interface ImagePoint { x: number; y: number } // 0-1 normalized
@@ -26,8 +30,85 @@ interface GeoPoint { lat: number; lng: number }
 interface SiteMapAlignerProps {
   imageUrl: string;
   operationName: string;
-  onAlign: (bounds: { west: number; south: number; east: number; north: number }) => void;
+  onAlign: (bounds: SiteMapBounds) => void;
   onCancel: () => void;
+}
+
+/**
+ * Solve a 3x3 linear system `M · x = b` by Cramer's rule. Returns
+ * null if the matrix is (near-)singular — typically when the 3 image
+ * points are collinear, in which case the affine transform is
+ * under-determined.
+ */
+function solve3x3(
+  m: [[number, number, number], [number, number, number], [number, number, number]],
+  b: [number, number, number],
+): [number, number, number] | null {
+  const det = (
+    m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+    - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+    + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0])
+  );
+  if (Math.abs(det) < 1e-12) return null;
+
+  function detReplaceCol(col: number): number {
+    const a: number[][] = m.map(row => [...row]);
+    for (let i = 0; i < 3; i++) a[i][col] = b[i];
+    return (
+      a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1])
+      - a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0])
+      + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0])
+    );
+  }
+
+  return [detReplaceCol(0) / det, detReplaceCol(1) / det, detReplaceCol(2) / det];
+}
+
+/**
+ * Solve the 2D affine transform `geo = A · image + t` from 3 (image, geo)
+ * pairs. Returns the 6 coefficients (a, b, c, d, e, f) such that:
+ *   lng = a*x + b*y + c
+ *   lat = d*x + e*y + f
+ * Returns null if the image points are collinear.
+ */
+function solveAffine(
+  imagePoints: ImagePoint[],
+  geoPoints: GeoPoint[],
+): { a: number; b: number; c: number; d: number; e: number; f: number } | null {
+  const M: [[number, number, number], [number, number, number], [number, number, number]] = [
+    [imagePoints[0].x, imagePoints[0].y, 1],
+    [imagePoints[1].x, imagePoints[1].y, 1],
+    [imagePoints[2].x, imagePoints[2].y, 1],
+  ];
+  const lng: [number, number, number] = [geoPoints[0].lng, geoPoints[1].lng, geoPoints[2].lng];
+  const lat: [number, number, number] = [geoPoints[0].lat, geoPoints[1].lat, geoPoints[2].lat];
+
+  const lngCoef = solve3x3(M, lng);
+  const latCoef = solve3x3(M, lat);
+  if (!lngCoef || !latCoef) return null;
+
+  return { a: lngCoef[0], b: lngCoef[1], c: lngCoef[2], d: latCoef[0], e: latCoef[1], f: latCoef[2] };
+}
+
+/**
+ * Apply the affine transform to image (0..1) coordinates to produce a
+ * full quadrilateral covering the source image. Corners are named in
+ * image space (c00 = top-left, c10 = top-right, c11 = bottom-right,
+ * c01 = bottom-left). For a north-up image these correspond to NW/NE/
+ * SE/SW respectively; for a rotated image the same image-space corners
+ * may land at arbitrary compass positions.
+ */
+function buildQuadFromAffine(t: { a: number; b: number; c: number; d: number; e: number; f: number }): SiteMapQuad {
+  const at = (x: number, y: number): GeoPoint => ({
+    lng: t.a * x + t.b * y + t.c,
+    lat: t.d * x + t.e * y + t.f,
+  });
+  return {
+    c00: at(0, 0),
+    c10: at(1, 0),
+    c11: at(1, 1),
+    c01: at(0, 1),
+  };
 }
 
 type Step = "pick-image" | "pick-globe" | "done";
@@ -37,6 +118,7 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
   const [imagePoints, setImagePoints] = useState<ImagePoint[]>([]);
   const [globePoints, setGlobePoints] = useState<GeoPoint[]>([]);
   const imageRef = useRef<HTMLDivElement>(null);
+  const alignedRef = useRef(false);
 
   const handleImageClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (imagePoints.length >= 3) return;
@@ -62,44 +144,45 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
   const isDone = globePoints.length === 3 && imagePoints.length === 3;
   const effectiveStep: Step = isDone ? "done" : step;
 
-  // When globe points are complete, compute bounds and notify parent
-  const alignedRef = useRef(false);
-  useEffect(() => {
-    if (!isDone || alignedRef.current) return;
-    alignedRef.current = true;
-
-    // Compute the bounding rectangle from the 3 geo points
-    const lats = globePoints.map(p => p.lat);
-    const lngs = globePoints.map(p => p.lng);
-
-    const latSpread = Math.max(...lats) - Math.min(...lats);
-    const lngSpread = Math.max(...lngs) - Math.min(...lngs);
-
-    const imgXs = imagePoints.map(p => p.x);
-    const imgYs = imagePoints.map(p => p.y);
-    const imgXSpread = Math.max(...imgXs) - Math.min(...imgXs);
-    const imgYSpread = Math.max(...imgYs) - Math.min(...imgYs);
-
-    const fullLngSpread = imgXSpread > 0.01 ? lngSpread / imgXSpread : lngSpread * 3;
-    const fullLatSpread = imgYSpread > 0.01 ? latSpread / imgYSpread : latSpread * 3;
-
-    const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-
-    const avgImgX = (Math.min(...imgXs) + Math.max(...imgXs)) / 2;
-    const avgImgY = (Math.min(...imgYs) + Math.max(...imgYs)) / 2;
-    const offsetLng = centerLng - (avgImgX - 0.5) * fullLngSpread;
-    const offsetLat = centerLat + (avgImgY - 0.5) * fullLatSpread;
-
-    const bounds = {
-      west: offsetLng - fullLngSpread / 2,
-      east: offsetLng + fullLngSpread / 2,
-      south: offsetLat - fullLatSpread / 2,
-      north: offsetLat + fullLatSpread / 2,
+  // Solve the affine transform from the 3 (image, geo) pairs at render
+  // time. Result is null until we have 3 of each, or if the points are
+  // collinear (under-determined system). The error message is derived,
+  // not stored — no setState-in-effect needed.
+  const alignResult = useMemo<
+    | { kind: "incomplete" }
+    | { kind: "collinear" }
+    | { kind: "ok"; bounds: SiteMapBounds }
+  >(() => {
+    if (!isDone) return { kind: "incomplete" };
+    const affine = solveAffine(imagePoints, globePoints);
+    if (!affine) return { kind: "collinear" };
+    const quad = buildQuadFromAffine(affine);
+    const lats = [quad.c00.lat, quad.c10.lat, quad.c11.lat, quad.c01.lat];
+    const lngs = [quad.c00.lng, quad.c10.lng, quad.c11.lng, quad.c01.lng];
+    return {
+      kind: "ok",
+      bounds: {
+        west: Math.min(...lngs),
+        east: Math.max(...lngs),
+        south: Math.min(...lats),
+        north: Math.max(...lats),
+        quad,
+      },
     };
+  }, [isDone, imagePoints, globePoints]);
 
-    onAlign(bounds);
-  }, [isDone, globePoints, imagePoints, onAlign]);
+  const solveError = alignResult.kind === "collinear"
+    ? "The 3 image points are collinear. Pick 3 points that form a triangle (not on a line) and try again."
+    : null;
+
+  // Notify the parent exactly once when a valid alignment becomes
+  // available. The ref guards against React 19 strict-mode double-effect.
+  useEffect(() => {
+    if (alignResult.kind === "ok" && !alignedRef.current) {
+      alignedRef.current = true;
+      onAlign(alignResult.bounds);
+    }
+  }, [alignResult, onAlign]);
 
   // Expose a method for the parent to feed globe clicks.
   // Uses a ref-backed approach so the window function is always current.
@@ -213,10 +296,20 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
 
       {/* Globe picking overlay (just the instruction banner — globe is visible underneath) */}
       {effectiveStep === "pick-globe" && (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 rounded-xl bg-cyan-500/10 border border-cyan-500/30 px-4 py-2">
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-20 rounded-xl bg-cyan-500/10 border border-cyan-500/30 px-4 py-2 pointer-events-auto">
           <p className="text-xs text-cyan-400 font-mono">
             Now click the same 3 points on the globe ({globePoints.length}/3)
           </p>
+        </div>
+      )}
+
+      {/* Solve error (e.g. collinear image points) */}
+      {solveError && (
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 max-w-md rounded-xl bg-red-500/15 border border-red-500/40 px-4 py-2 pointer-events-auto">
+          <p className="text-xs text-red-300 font-mono leading-snug">{solveError}</p>
+          <Button size="sm" variant="ghost" className="mt-1 h-6 gap-1 text-[10px]" onClick={handleReset}>
+            <RotateCcw className="h-3 w-3" /> Reset and try again
+          </Button>
         </div>
       )}
     </div>

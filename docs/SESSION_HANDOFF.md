@@ -260,6 +260,7 @@ etc.) — safe to re-run.
 | `sql/add_site_map_bounds.sql` | `site_map_bounds` table for company-wide rubber-sheet visibility; tightens operation-maps storage bucket policies | Tactical map site overlays |
 | `sql/drop_event_pay_rate.sql` | Drops the redundant `events.pay_rate` column (pay rates are now strictly per-employee) | Pay rate cascade fix |
 | `sql/add_client_role.sql` | Adds `client` to the `CompanyRole` enum + updates the `update_member_role` RPC | Client Portal section in HQ Config |
+| `sql/add_site_map_quad.sql` | Adds 8 quad-corner columns to `site_map_bounds` so rotated/sheared site maps drape correctly (was axis-aligned only — west-up site plans skewed) | Site map alignment for any non-north-up source image |
 
 #### Deployment-side
 | Action | Required if you use... |

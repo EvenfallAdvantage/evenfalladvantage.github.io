@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { getSiteMapBounds, getSiteMapBoundsByCompany, migrateLegacyLocalStorageBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
+import { imageToGeo } from "@/lib/supabase/db-site-bounds";
 import { getRecentGeofenceAlerts, type GeofenceAlert } from "../env-intel";
 import { addSentinel1Layer, addSentinel2Layer } from "../sentinel-layer";
 import { FLIR_SHADER, CRT_SHADER, applyShader, removeShader } from "../shaders";
@@ -193,9 +194,21 @@ export function useCesiumLayers(params: {
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
-    // Remove old site overlay layers
-    (entityGroupsRef.current.siteOverlays ?? []).forEach((layer: { layerRef: unknown; eventId: string }) => {
-      try { viewer.imageryLayers.remove(layer.layerRef, false); } catch (e) { logger.swallow("cesium-layers:remove-site-overlay", e); }
+    // Remove old site overlay layers. Each entry is either an axis-aligned
+    // imagery layer (legacy north-up bounds) or a textured quad primitive
+    // (new affine path). We dispatch on the `kind` discriminator.
+    (entityGroupsRef.current.siteOverlays ?? []).forEach((entry: {
+      kind?: "imagery" | "primitive";
+      layerRef: unknown;
+      eventId: string;
+    }) => {
+      try {
+        if (entry.kind === "primitive") {
+          viewer.scene.primitives.remove(entry.layerRef);
+        } else {
+          viewer.imageryLayers.remove(entry.layerRef, false);
+        }
+      } catch (e) { logger.swallow("cesium-layers:remove-site-overlay", e); }
     });
     entityGroupsRef.current.siteOverlays = [];
 
@@ -215,13 +228,60 @@ export function useCesiumLayers(params: {
       // If we have saved bounds (local or from DB), drape immediately
       if (bounds) {
         try {
-          const provider = new Cesium.SingleTileImageryProvider({
-            url: op.siteMapUrl,
-            rectangle: Cesium.Rectangle.fromDegrees(bounds.west, bounds.south, bounds.east, bounds.north),
-          });
-          const layer = viewer.imageryLayers.addImageryProvider(provider);
-          layer.alpha = layers.siteOverlayOpacity;
-          entityGroupsRef.current.siteOverlays.push({ layerRef: layer, eventId: op.id });
+          if (bounds.quad) {
+            // Affine path: render as a textured polygon. Order matches the
+            // image-space corner naming so per-vertex UV coordinates align
+            // to the texture without skew, even for rotated/sheared maps.
+            //   c00 → (s=0, t=1)   image top-left  → texture top
+            //   c10 → (s=1, t=1)   image top-right
+            //   c11 → (s=1, t=0)   image bottom-right → texture bottom
+            //   c01 → (s=0, t=0)   image bottom-left
+            const q = bounds.quad;
+            const positions = Cesium.Cartesian3.fromDegreesArray([
+              q.c00.lng, q.c00.lat,
+              q.c10.lng, q.c10.lat,
+              q.c11.lng, q.c11.lat,
+              q.c01.lng, q.c01.lat,
+            ]);
+            const stCoords = new Cesium.PolygonHierarchy([
+              new Cesium.Cartesian2(0, 1),
+              new Cesium.Cartesian2(1, 1),
+              new Cesium.Cartesian2(1, 0),
+              new Cesium.Cartesian2(0, 0),
+            ]);
+            const geom = new Cesium.PolygonGeometry({
+              polygonHierarchy: new Cesium.PolygonHierarchy(positions),
+              textureCoordinates: stCoords,
+              perPositionHeight: false,
+              vertexFormat: Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat,
+            });
+            const instance = new Cesium.GeometryInstance({ geometry: geom });
+            const primitive = new Cesium.Primitive({
+              geometryInstances: instance,
+              appearance: new Cesium.MaterialAppearance({
+                materialSupport: Cesium.MaterialAppearance.MaterialSupport.TEXTURED,
+                material: Cesium.Material.fromType("Image", {
+                  image: op.siteMapUrl,
+                  // Modulate via color alpha to honor the opacity slider.
+                  color: new Cesium.Color(1, 1, 1, layers.siteOverlayOpacity),
+                  transparent: true,
+                }),
+                translucent: true,
+              }),
+              asynchronous: false, // ensure the primitive is ready by the next frame
+            });
+            viewer.scene.primitives.add(primitive);
+            entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
+          } else {
+            // Legacy axis-aligned path (north-up bounds only).
+            const provider = new Cesium.SingleTileImageryProvider({
+              url: op.siteMapUrl,
+              rectangle: Cesium.Rectangle.fromDegrees(bounds.west, bounds.south, bounds.east, bounds.north),
+            });
+            const layer = viewer.imageryLayers.addImageryProvider(provider);
+            layer.alpha = layers.siteOverlayOpacity;
+            entityGroupsRef.current.siteOverlays.push({ kind: "imagery", layerRef: layer, eventId: op.id });
+          }
         } catch (err) {
           console.warn("[TacticalMap] Failed to load aligned site overlay for", op.name, err);
         }
@@ -284,12 +344,11 @@ export function useCesiumLayers(params: {
           }
         });
 
-        const lngSpan = bounds.east - bounds.west;
-        const latSpan = bounds.north - bounds.south;
-
         storyboard.pins.forEach((pin: { id: string; x: number; y: number; label: string; description?: string; icon?: string; color?: string }, idx: number) => {
-          const lng = bounds.west + pin.x * lngSpan;
-          const lat = bounds.north - pin.y * latSpan;
+          // Use imageToGeo so the pin position respects the full quad
+          // (including rotation/shear). Falls back to axis-aligned bbox
+          // math for legacy bounds rows without a quad.
+          const { lat, lng } = imageToGeo(bounds, pin.x, pin.y);
 
           const pinColor = pin.color || "#22c55e";
 
