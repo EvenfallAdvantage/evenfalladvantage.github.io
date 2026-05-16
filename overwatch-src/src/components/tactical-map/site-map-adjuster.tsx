@@ -14,10 +14,10 @@ interface SiteMapAdjusterProps {
 /**
  * Interactive site map overlay adjuster.
  *
- * Renders 4 draggable corner handles over the Cesium viewer that let
- * the user stretch, skew, rotate, and reposition the site map overlay
- * by dragging corners on the globe. Changes are saved as a full
- * `SiteMapQuad` so rotation/shear are preserved (not axis-aligned).
+ * Renders 4 direct-drag corner handles + a center MOVE handle directly
+ * over the Cesium viewer. The user grabs a handle and drags it across
+ * the globe to reposition that corner; corners support full rotation,
+ * shear, and non-uniform scale (the result is a SiteMapQuad).
  *
  * Corners are named in IMAGE space (matching SiteMapQuad):
  *   c00 = image (0, 0) top-left
@@ -27,8 +27,23 @@ interface SiteMapAdjusterProps {
  *
  * Legacy axis-aligned bounds passed in are seeded as a north-up
  * rectangle so existing site maps keep their initial placement.
+ *
+ * The handles are HTML elements positioned via
+ * `Cesium.SceneTransforms.worldToWindowCoordinates`, refreshed every
+ * animation frame so they stay glued to the overlay as the camera
+ * moves, rotates, or zooms.
  */
 type CornerKey = "c00" | "c10" | "c11" | "c01";
+type HandleKey = CornerKey | "center";
+
+interface ScreenPos { x: number; y: number; visible: boolean }
+type ScreenPositions = Record<HandleKey, ScreenPos>;
+
+const HIDDEN_POS: ScreenPos = { x: 0, y: 0, visible: false };
+const INITIAL_SCREEN_POSITIONS: ScreenPositions = {
+  c00: HIDDEN_POS, c10: HIDDEN_POS, c11: HIDDEN_POS, c01: HIDDEN_POS,
+  center: HIDDEN_POS,
+};
 
 export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterProps) {
   // Seed the four image-space corners from the incoming bounds. If a
@@ -41,8 +56,9 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
     c01: { lat: bounds.south, lng: bounds.west }, // bottom-left = SW
   };
   const [corners, setCorners] = useState<Record<CornerKey, GeoPoint>>(seed);
-  const [dragging, setDragging] = useState<CornerKey | "center" | null>(null);
+  const [dragging, setDragging] = useState<HandleKey | null>(null);
   const [dragStart, setDragStart] = useState<GeoPoint | null>(null);
+  const [screenPositions, setScreenPositions] = useState<ScreenPositions>(INITIAL_SCREEN_POSITIONS);
   const originalCorners = useRef(corners);
 
   // Convert the four corners back to a SiteMapBounds. The bbox is
@@ -59,41 +75,91 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
     };
   }, [corners]);
 
-  // Handle globe clicks to move dragged corner
+  // Centroid of the quad — used for the MOVE handle's anchor lat/lng.
+  const center: GeoPoint = {
+    lat: (corners.c00.lat + corners.c10.lat + corners.c11.lat + corners.c01.lat) / 4,
+    lng: (corners.c00.lng + corners.c10.lng + corners.c11.lng + corners.c01.lng) / 4,
+  };
+
+  // ─── Drive screen-space handle positions ────────────────────
+  // Project the 4 corner lat/lngs + the centroid to canvas pixels every
+  // animation frame so handles stay glued to the overlay as the camera
+  // moves/zooms/rotates. We use requestAnimationFrame instead of
+  // Cesium's preRender event so the React tree drives the loop.
+  useEffect(() => {
+    const viewer = window.__tacticalMapViewer;
+    const Cesium = window.Cesium;
+    if (!viewer || !Cesium) return;
+
+    let frameId: number;
+    let cancelled = false;
+
+    const project = (lat: number, lng: number): ScreenPos => {
+      try {
+        const cartesian = Cesium.Cartesian3.fromDegrees(lng, lat);
+        const win = Cesium.SceneTransforms.worldToWindowCoordinates(viewer.scene, cartesian);
+        if (!win || !Number.isFinite(win.x) || !Number.isFinite(win.y)) return HIDDEN_POS;
+        // Convert canvas-relative pixels to viewport-relative (for fixed positioning)
+        const rect = (viewer.scene.canvas as HTMLCanvasElement).getBoundingClientRect();
+        return { x: win.x + rect.left, y: win.y + rect.top, visible: true };
+      } catch {
+        return HIDDEN_POS;
+      }
+    };
+
+    const tick = () => {
+      if (cancelled) return;
+      setScreenPositions({
+        c00: project(corners.c00.lat, corners.c00.lng),
+        c10: project(corners.c10.lat, corners.c10.lng),
+        c11: project(corners.c11.lat, corners.c11.lng),
+        c01: project(corners.c01.lat, corners.c01.lng),
+        center: project(center.lat, center.lng),
+      });
+      frameId = requestAnimationFrame(tick);
+    };
+    frameId = requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+    };
+  }, [corners, center.lat, center.lng]);
+
+  // ─── Drag handler ───────────────────────────────────────────
   useEffect(() => {
     if (!dragging) return;
+    // Capture the dragged handle into a local — narrows the type for
+    // the closure and protects against `dragging` becoming null
+    // mid-flight (the effect cleanup re-runs in that case anyway).
+    const activeHandle: HandleKey = dragging;
 
     function handleMouseMove(e: MouseEvent) {
-      // Access Cesium viewer via window global
       const viewer = window.__tacticalMapViewer;
       const Cesium = window.Cesium;
       if (!viewer || !Cesium) return;
 
-      const cartesian = viewer.scene.pickPosition({ x: e.clientX, y: e.clientY });
+      // Convert viewport → canvas-relative for Cesium picking
+      const rect = (viewer.scene.canvas as HTMLCanvasElement).getBoundingClientRect();
+      const canvasX = e.clientX - rect.left;
+      const canvasY = e.clientY - rect.top;
+
+      // Prefer pickPosition (uses depth buffer — accurate over terrain
+      // and 3D buildings). Fall back to globe ray-pick if depth pick
+      // misses (e.g. mouse over sky).
+      let cartesian = viewer.scene.pickPosition({ x: canvasX, y: canvasY });
       if (!cartesian) {
-        // Fallback: ray-pick the globe
-        const ray = viewer.camera.getPickRay({ x: e.clientX, y: e.clientY });
+        const ray = viewer.camera.getPickRay({ x: canvasX, y: canvasY });
         if (!ray) return;
-        const globePos = viewer.scene.globe.pick(ray, viewer.scene);
-        if (!globePos) return;
-        const carto = Cesium.Cartographic.fromCartesian(globePos);
-        updateCorner(
-          Cesium.Math.toDegrees(carto.latitude),
-          Cesium.Math.toDegrees(carto.longitude)
-        );
-        return;
+        cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+        if (!cartesian) return;
       }
 
       const carto = Cesium.Cartographic.fromCartesian(cartesian);
-      updateCorner(
-        Cesium.Math.toDegrees(carto.latitude),
-        Cesium.Math.toDegrees(carto.longitude)
-      );
-    }
+      const lat = Cesium.Math.toDegrees(carto.latitude);
+      const lng = Cesium.Math.toDegrees(carto.longitude);
 
-    function updateCorner(lat: number, lng: number) {
-      if (dragging === "center" && dragStart) {
-        // Move all corners by the delta
+      if (activeHandle === "center" && dragStart) {
         const dlat = lat - dragStart.lat;
         const dlng = lng - dragStart.lng;
         setCorners(prev => ({
@@ -103,8 +169,8 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
           c01: { lat: prev.c01.lat + dlat, lng: prev.c01.lng + dlng },
         }));
         setDragStart({ lat, lng });
-      } else if (dragging && dragging !== "center") {
-        setCorners(prev => ({ ...prev, [dragging]: { lat, lng } }));
+      } else if (activeHandle !== "center") {
+        setCorners(prev => ({ ...prev, [activeHandle]: { lat, lng } }));
       }
     }
 
@@ -125,88 +191,104 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
     setCorners(originalCorners.current);
   }
 
-  // Calculate center position for the move handle (centroid of the quad)
-  const center: GeoPoint = {
-    lat: (corners.c00.lat + corners.c10.lat + corners.c11.lat + corners.c01.lat) / 4,
-    lng: (corners.c00.lng + corners.c10.lng + corners.c11.lng + corners.c01.lng) / 4,
+  function startCornerDrag(e: React.MouseEvent, key: CornerKey) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging(key);
+  }
+
+  function startCenterDrag(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragging("center");
+    setDragStart(center);
+  }
+
+  // Corner handle visual config. Slightly bigger, color-coded by
+  // image-space corner so the user can match handle ↔ source-image edge.
+  const CORNER_STYLE: Record<CornerKey, { color: string; ring: string; hint: string }> = {
+    c00: { color: "bg-amber-400",   ring: "ring-amber-300",   hint: "Top-left (image origin)" },
+    c10: { color: "bg-cyan-400",    ring: "ring-cyan-300",    hint: "Top-right" },
+    c01: { color: "bg-emerald-400", ring: "ring-emerald-300", hint: "Bottom-left" },
+    c11: { color: "bg-fuchsia-400", ring: "ring-fuchsia-300", hint: "Bottom-right" },
   };
 
-  // Human-readable corner labels — image-space names paired with a
-  // compass hint for the north-up case. Order shown matches reading
-  // order on a paper plan (top-left, top-right, bottom-left, bottom-right).
-  const CORNER_LABELS: Array<{ key: CornerKey; label: string; hint: string }> = [
-    { key: "c00", label: "TL", hint: "top-left" },
-    { key: "c10", label: "TR", hint: "top-right" },
-    { key: "c01", label: "BL", hint: "bottom-left" },
-    { key: "c11", label: "BR", hint: "bottom-right" },
-  ];
-
   return (
-    <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
-      <div
-        className="flex items-center gap-2 rounded-xl backdrop-blur-md border border-white/10 px-4 py-2.5"
-        style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 92%, transparent)" }}
-      >
-        <Move className="h-4 w-4 text-amber-400" />
-        <span className="text-xs font-mono text-white/70">Drag corners to adjust site map</span>
-
-        <div className="flex gap-1.5 ml-3">
-          {/* Corner drag buttons (image-space; TL/TR/BL/BR = image corners) */}
-          {CORNER_LABELS.map(({ key, label, hint }) => (
-            <button
-              key={key}
-              title={`Drag ${hint} image corner`}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                setDragging(key);
-              }}
-              className={`px-2 py-1 rounded text-[9px] font-mono font-bold border transition-colors cursor-grab active:cursor-grabbing ${
-                dragging === key
-                  ? "border-amber-400 bg-amber-400/20 text-amber-400"
-                  : "border-white/20 text-white/50 hover:text-white hover:border-white/40"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-          <button
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setDragging("center");
-              setDragStart(center);
+    <>
+      {/* Direct-drag handles, projected onto the canvas every frame */}
+      {(Object.keys(CORNER_STYLE) as CornerKey[]).map((key) => {
+        const pos = screenPositions[key];
+        const cfg = CORNER_STYLE[key];
+        const isActive = dragging === key;
+        return (
+          <div
+            key={key}
+            title={cfg.hint}
+            onMouseDown={(e) => startCornerDrag(e, key)}
+            className={`fixed z-40 -ml-3 -mt-3 h-6 w-6 rounded-full border-2 border-white shadow-lg cursor-grab active:cursor-grabbing transition-transform ${cfg.color} ${isActive ? `scale-125 ring-4 ${cfg.ring}/60` : "hover:scale-110"}`}
+            style={{
+              left: `${pos.x}px`,
+              top: `${pos.y}px`,
+              display: pos.visible ? "block" : "none",
+              pointerEvents: pos.visible ? "auto" : "none",
             }}
-            className={`px-2 py-1 rounded text-[9px] font-mono font-bold border transition-colors cursor-grab active:cursor-grabbing ${
-              dragging === "center"
-                ? "border-blue-400 bg-blue-400/20 text-blue-400"
-                : "border-white/20 text-white/50 hover:text-white hover:border-white/40"
-            }`}
+          />
+        );
+      })}
+
+      {/* Center MOVE handle */}
+      {(() => {
+        const pos = screenPositions.center;
+        const isActive = dragging === "center";
+        return (
+          <div
+            title="Drag to move the whole overlay"
+            onMouseDown={startCenterDrag}
+            className={`fixed z-40 -ml-4 -mt-4 h-8 w-8 rounded-full bg-white/90 border-2 border-blue-500 shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing transition-transform ${isActive ? "scale-125 ring-4 ring-blue-400/60" : "hover:scale-110"}`}
+            style={{
+              left: `${pos.x}px`,
+              top: `${pos.y}px`,
+              display: pos.visible ? "flex" : "none",
+              pointerEvents: pos.visible ? "auto" : "none",
+            }}
           >
-            MOVE
-          </button>
+            <Move className="h-4 w-4 text-blue-600" />
+          </div>
+        );
+      })()}
+
+      {/* Toolbar — just Reset / Cancel / Save now */}
+      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+        <div
+          className="flex items-center gap-2 rounded-xl backdrop-blur-md border border-white/10 px-4 py-2.5"
+          style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 92%, transparent)" }}
+        >
+          <Move className="h-4 w-4 text-amber-400" />
+          <span className="text-xs font-mono text-white/70">Drag the colored handles to fine-tune</span>
+
+          <div className="flex gap-1 ml-3">
+            <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs text-white/50" onClick={handleReset}>
+              <RotateCcw className="h-3 w-3" /> Reset
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs text-red-400" onClick={onCancel}>
+              <X className="h-3 w-3" /> Cancel
+            </Button>
+            <Button size="sm" className="h-7 gap-1 text-xs" onClick={() => onSave(toBounds())}>
+              <Check className="h-3 w-3" /> Save
+            </Button>
+          </div>
         </div>
 
-        <div className="flex gap-1 ml-2">
-          <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs text-white/50" onClick={handleReset}>
-            <RotateCcw className="h-3 w-3" /> Reset
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs text-red-400" onClick={onCancel}>
-            <X className="h-3 w-3" /> Cancel
-          </Button>
-          <Button size="sm" className="h-7 gap-1 text-xs" onClick={() => onSave(toBounds())}>
-            <Check className="h-3 w-3" /> Save
-          </Button>
+        {/* Info: axis-aligned bbox of the quad */}
+        <div className="text-center mt-1">
+          <span className="text-[8px] font-mono text-white/30">
+            N:{Math.max(corners.c00.lat, corners.c10.lat, corners.c11.lat, corners.c01.lat).toFixed(4)}
+            {" "}S:{Math.min(corners.c00.lat, corners.c10.lat, corners.c11.lat, corners.c01.lat).toFixed(4)}
+            {" "}E:{Math.max(corners.c00.lng, corners.c10.lng, corners.c11.lng, corners.c01.lng).toFixed(4)}
+            {" "}W:{Math.min(corners.c00.lng, corners.c10.lng, corners.c11.lng, corners.c01.lng).toFixed(4)}
+          </span>
         </div>
       </div>
-
-      {/* Info: current bounds (axis-aligned bbox of the quad) */}
-      <div className="text-center mt-1">
-        <span className="text-[8px] font-mono text-white/30">
-          N:{Math.max(corners.c00.lat, corners.c10.lat, corners.c11.lat, corners.c01.lat).toFixed(4)}
-          {" "}S:{Math.min(corners.c00.lat, corners.c10.lat, corners.c11.lat, corners.c01.lat).toFixed(4)}
-          {" "}E:{Math.max(corners.c00.lng, corners.c10.lng, corners.c11.lng, corners.c01.lng).toFixed(4)}
-          {" "}W:{Math.min(corners.c00.lng, corners.c10.lng, corners.c11.lng, corners.c01.lng).toFixed(4)}
-        </span>
-      </div>
-    </div>
+    </>
   );
 }
