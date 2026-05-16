@@ -3,10 +3,15 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Move, Check, X, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import type { SiteMapBounds, GeoPoint } from "@/lib/supabase/db-operations";
 
 interface SiteMapAdjusterProps {
   bounds: SiteMapBounds;
+  /** Site map image URL — used to texture the live preview primitive. */
+  imageUrl: string;
+  /** Current site-overlay opacity (0..1) — matches the main render. */
+  opacity: number;
   onSave: (bounds: SiteMapBounds) => void;
   onCancel: () => void;
 }
@@ -45,7 +50,7 @@ const INITIAL_SCREEN_POSITIONS: ScreenPositions = {
   center: HIDDEN_POS,
 };
 
-export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterProps) {
+export function SiteMapAdjuster({ bounds, imageUrl, opacity, onSave, onCancel }: SiteMapAdjusterProps) {
   // Seed the four image-space corners from the incoming bounds. If a
   // quad is present, use it directly. Otherwise build a north-up quad
   // from the legacy w/s/e/n rectangle: image top-left = NW = (north, west).
@@ -80,6 +85,164 @@ export function SiteMapAdjuster({ bounds, onSave, onCancel }: SiteMapAdjusterPro
     lat: (corners.c00.lat + corners.c10.lat + corners.c11.lat + corners.c01.lat) / 4,
     lng: (corners.c00.lng + corners.c10.lng + corners.c11.lng + corners.c01.lng) / 4,
   };
+
+  // ─── Live preview primitive ──────────────────────────────────
+  //
+  // The main overlay primitive (rendered by useCesiumLayers) is hidden
+  // while this adjuster is mounted (see adjustingOpId in the hook). The
+  // adjuster owns its own preview primitive: a textured Cesium polygon
+  // that gets rebuilt as the user drags corners. Rebuild is coalesced
+  // via requestAnimationFrame so 60 mousemove events become at most one
+  // primitive rebuild per frame.
+  //
+  // Terrain heights are sampled ONCE at mount (using the original
+  // corner positions) and cached. Small adjustments stay flush to the
+  // ground; larger moves accept some height drift in the preview, which
+  // the post-Save main render fixes by re-sampling. This avoids racing
+  // terrain samples against drag updates.
+  const previewPrimitiveRef = useRef<unknown>(null);
+  const sampledHeightsRef = useRef<[number, number, number, number] | null>(null);
+  const cornersRef = useRef(corners);
+  useEffect(() => { cornersRef.current = corners; }, [corners]);
+
+  // Step 1: sample terrain once on mount.
+  useEffect(() => {
+    const viewer = window.__tacticalMapViewer;
+    const Cesium = window.Cesium;
+    if (!viewer || !Cesium) return;
+    let cancelled = false;
+
+    const c = corners; // closure over the seed (we run once)
+    const cornerCartos = [
+      Cesium.Cartographic.fromDegrees(c.c00.lng, c.c00.lat),
+      Cesium.Cartographic.fromDegrees(c.c01.lng, c.c01.lat),
+      Cesium.Cartographic.fromDegrees(c.c11.lng, c.c11.lat),
+      Cesium.Cartographic.fromDegrees(c.c10.lng, c.c10.lat),
+    ];
+
+    const setHeights = (h: [number, number, number, number]) => {
+      if (cancelled) return;
+      sampledHeightsRef.current = h;
+    };
+
+    const terrainProvider = viewer.terrainProvider;
+    const isEllipsoid = terrainProvider instanceof Cesium.EllipsoidTerrainProvider;
+    if (isEllipsoid) {
+      setHeights([0, 0, 0, 0]);
+    } else {
+      Cesium.sampleTerrainMostDetailed(terrainProvider, cornerCartos)
+        .then((sampled: Array<{ height: number }>) => {
+          setHeights([
+            sampled[0]?.height ?? 0,
+            sampled[1]?.height ?? 0,
+            sampled[2]?.height ?? 0,
+            sampled[3]?.height ?? 0,
+          ]);
+        })
+        .catch((err: unknown) => {
+          logger.swallow("site-map-adjuster:terrain-sample", err, "warn");
+          setHeights([0, 0, 0, 0]);
+        });
+    }
+
+    return () => { cancelled = true; };
+    // Intentionally [] — sample only at mount. Subsequent corner moves
+    // reuse the cached heights to avoid restarting the terrain fetch
+    // on every drag tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Step 2: rebuild the preview primitive when corners change.
+  // Coalesced via requestAnimationFrame so rapid setCorners during a
+  // drag batch into one rebuild per frame.
+  useEffect(() => {
+    const viewer = window.__tacticalMapViewer;
+    const Cesium = window.Cesium;
+    if (!viewer || !Cesium) return;
+
+    let rafId: number | null = null;
+    let cancelled = false;
+
+    const rebuild = () => {
+      rafId = null;
+      if (cancelled) return;
+      // Viewer torn down between scheduling and running — bail.
+      if (viewer.isDestroyed?.()) return;
+      const heights = sampledHeightsRef.current;
+      if (!heights) {
+        // Terrain sample hasn't resolved yet — try again next frame.
+        rafId = requestAnimationFrame(rebuild);
+        return;
+      }
+      const c = cornersRef.current;
+      try {
+        const positions = [
+          Cesium.Cartesian3.fromDegrees(c.c00.lng, c.c00.lat, heights[0] + 0.5),
+          Cesium.Cartesian3.fromDegrees(c.c01.lng, c.c01.lat, heights[1] + 0.5),
+          Cesium.Cartesian3.fromDegrees(c.c11.lng, c.c11.lat, heights[2] + 0.5),
+          Cesium.Cartesian3.fromDegrees(c.c10.lng, c.c10.lat, heights[3] + 0.5),
+        ];
+        const stCoords = new Cesium.PolygonHierarchy([
+          new Cesium.Cartesian2(0, 1), // c00
+          new Cesium.Cartesian2(0, 0), // c01
+          new Cesium.Cartesian2(1, 0), // c11
+          new Cesium.Cartesian2(1, 1), // c10
+        ]);
+        const geom = new Cesium.PolygonGeometry({
+          polygonHierarchy: new Cesium.PolygonHierarchy(positions),
+          textureCoordinates: stCoords,
+          perPositionHeight: true,
+          vertexFormat: Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat,
+        });
+        const instance = new Cesium.GeometryInstance({ geometry: geom });
+        const primitive = new Cesium.Primitive({
+          geometryInstances: instance,
+          appearance: new Cesium.MaterialAppearance({
+            materialSupport: Cesium.MaterialAppearance.MaterialSupport.TEXTURED,
+            material: Cesium.Material.fromType("Image", {
+              image: imageUrl,
+              color: new Cesium.Color(1, 1, 1, opacity),
+              transparent: true,
+            }),
+            translucent: true,
+          }),
+          asynchronous: false,
+        });
+
+        // Add the new primitive BEFORE removing the old one — minimizes
+        // the visible gap (no flicker). Then drop the stale ref.
+        viewer.scene.primitives.add(primitive);
+        const oldPrim = previewPrimitiveRef.current;
+        previewPrimitiveRef.current = primitive;
+        if (oldPrim) {
+          try { viewer.scene.primitives.remove(oldPrim); }
+          catch (e) { logger.swallow("site-map-adjuster:remove-old-preview", e); }
+        }
+      } catch (e) {
+        logger.swallow("site-map-adjuster:rebuild-preview", e, "warn");
+      }
+    };
+
+    rafId = requestAnimationFrame(rebuild);
+
+    return () => {
+      cancelled = true;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, [corners, imageUrl, opacity]);
+
+  // Step 3: dispose the preview primitive on unmount (Save/Cancel).
+  useEffect(() => {
+    return () => {
+      const viewer = window.__tacticalMapViewer;
+      const prim = previewPrimitiveRef.current;
+      if (viewer && prim && !viewer.isDestroyed?.()) {
+        try { viewer.scene.primitives.remove(prim); }
+        catch (e) { logger.swallow("site-map-adjuster:dispose-preview", e); }
+      }
+      previewPrimitiveRef.current = null;
+    };
+  }, []);
 
   // ─── Drive screen-space handle positions ────────────────────
   // Project the 4 corner lat/lngs + the centroid to canvas pixels every

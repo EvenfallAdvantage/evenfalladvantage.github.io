@@ -42,6 +42,10 @@ export function useCesiumLayers(params: {
   annotations: MapAnnotation[];
   debouncedReplayTime: number;
   timeMachineOpen: boolean;
+  /** Op currently being adjusted via the SiteMapAdjuster. Its overlay
+   *  is suppressed here so the adjuster's preview primitive can take
+   *  over without visual conflict. */
+  adjustingOpId?: string | null;
 }) {
   const {
     viewerRef,
@@ -58,6 +62,7 @@ export function useCesiumLayers(params: {
     annotations,
     debouncedReplayTime,
     timeMachineOpen,
+    adjustingOpId,
   } = params;
 
   // Site overlay / storyboard state remains here — shared between the
@@ -225,6 +230,10 @@ export function useCesiumLayers(params: {
     // member sees it automatically, without having to toggle anything.
     operations.forEach((op) => {
       if (!op.siteMapUrl || !op.lat || !op.lng) return;
+      // While the SiteMapAdjuster is open for this op, it owns the
+      // preview primitive. Suppress the main overlay so we don't render
+      // two stacked overlays during fine-tune.
+      if (adjustingOpId === op.id) return;
       const userPref = layers.siteOverlays[op.id];
       const bounds = savedBounds[op.id];
       const effectiveOn = userPref === undefined ? !!bounds : userPref;
@@ -377,7 +386,7 @@ export function useCesiumLayers(params: {
         setAligningOp(op);
       }
     });
-  }, [operations, layers.siteOverlays, layers.siteOverlayOpacity, loading, savedBounds, aligningOp, isAdmin, boundsLoaded, boundsLoading, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [operations, layers.siteOverlays, layers.siteOverlayOpacity, loading, savedBounds, aligningOp, isAdmin, boundsLoaded, boundsLoading, viewerRef, cesiumRef, entityGroupsRef, adjustingOpId]);
 
   // ─── Storyboard Pins on Site Map Overlays ────────────
   // When a site map is active with saved bounds, load its storyboard pins
@@ -399,6 +408,10 @@ export function useCesiumLayers(params: {
     // default for every company member).
     const activeOps = operations.filter(op => {
       if (!savedBounds[op.id] || !op.siteMapUrl) return false;
+      // Skip the op currently being adjusted — its pins would point at
+      // stale positions while the user drags. They'll re-render with
+      // the new bounds after Save.
+      if (adjustingOpId === op.id) return false;
       const pref = layers.siteOverlays[op.id];
       return pref === undefined ? true : pref;
     });
@@ -491,7 +504,7 @@ export function useCesiumLayers(params: {
       // Here we could plot incidents that only have site-map-relative positions.
       // For now, the incident layer handles this.
     });
-  }, [operations, layers.siteOverlays, savedBounds, loading, incidents, viewerRef, cesiumRef, entityGroupsRef, companyId]);
+  }, [operations, layers.siteOverlays, savedBounds, loading, incidents, viewerRef, cesiumRef, entityGroupsRef, companyId, adjustingOpId]);
 
   // ─── Satellite Imagery Toggle ───────────────────────
   useEffect(() => {

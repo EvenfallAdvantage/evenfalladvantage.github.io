@@ -76,7 +76,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [_cameraPitch, setCameraPitch] = useState(-0.5);
   const [containerWidth, setContainerWidth] = useState(800);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [adjustingOp, setAdjustingOp] = useState<{ id: string; name: string; bounds: import("@/lib/supabase/db-operations").SiteMapBounds } | null>(null);
+  const [adjustingOp, setAdjustingOp] = useState<{ id: string; name: string; imageUrl: string; bounds: import("@/lib/supabase/db-operations").SiteMapBounds } | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const entityGroupsRef = useRef<Record<string, any>>({});
@@ -119,6 +119,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     annotations: effectiveAnnotations,
     debouncedReplayTime,
     timeMachineOpen,
+    // While the adjuster is active for an op, suppress the main overlay
+    // for that op so the adjuster's own preview primitive can take over
+    // without visual conflict (double overlay or flicker).
+    adjustingOpId: adjustingOp?.id ?? null,
   });
 
   // Ref to hold setSelectedEntity — declared before the init effect but
@@ -402,8 +406,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       }} onAdjustSiteMap={(op) => {
         // Open the fine-tune adjuster with current saved bounds
         const currentBounds = savedBounds[op.id];
-        if (currentBounds) {
-          setAdjustingOp({ id: op.id, name: op.name, bounds: currentBounds });
+        if (currentBounds && op.siteMapUrl) {
+          setAdjustingOp({ id: op.id, name: op.name, imageUrl: op.siteMapUrl, bounds: currentBounds });
         } else {
           toast("No saved bounds to adjust. Use the ↻ button to align first.");
         }
@@ -472,6 +476,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       {adjustingOp && (
         <SiteMapAdjuster
           bounds={adjustingOp.bounds}
+          imageUrl={adjustingOp.imageUrl}
+          opacity={layers.siteOverlayOpacity}
           onSave={(newBounds) => {
             setSavedBounds((prev) => ({ ...prev, [adjustingOp.id]: newBounds }));
             saveSiteMapBounds(adjustingOp.id, newBounds, companyId);

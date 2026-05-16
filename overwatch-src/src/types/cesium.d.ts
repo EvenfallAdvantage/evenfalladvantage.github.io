@@ -11,6 +11,7 @@ declare namespace Cesium {
   const Cartesian3: { fromDegrees: (lng: number, lat: number, height?: number) => any };
   const Cartesian2: new (x: number, y: number) => any;
   const Color: {
+    new (r: number, g: number, b: number, a?: number): any;
     LIME: any; DODGERBLUE: any; GRAY: any; BLACK: any; WHITE: any; CYAN: any;
     fromCssColorString: (css: string) => any;
   };
@@ -25,7 +26,10 @@ declare namespace Cesium {
   class OpenStreetMapImageryProvider { constructor(opts: any); }
   class UrlTemplateImageryProvider { constructor(opts: any); }
   const Rectangle: { fromDegrees: (west: number, south: number, east: number, north: number) => any };
-  const Cartographic: { fromCartesian: (cartesian: any) => { latitude: number; longitude: number; height: number } };
+  const Cartographic: {
+    fromCartesian: (cartesian: any) => { latitude: number; longitude: number; height: number };
+    fromDegrees: (lng: number, lat: number, height?: number) => any;
+  };
   const Math: { toDegrees: (radians: number) => number; toRadians: (degrees: number) => number };
   class PostProcessStage { constructor(opts: { fragmentShader: string }); }
   class Cesium3DTileStyle { constructor(opts: any); }
@@ -33,6 +37,26 @@ declare namespace Cesium {
   const SceneTransforms: { worldToWindowCoordinates: (scene: any, position: any) => { x: number; y: number } | undefined };
   function createOsmBuildingsAsync(): Promise<any>;
   function defined(value: any): boolean;
+  // Additional symbols used by the affine site-map preview path.
+  // Types kept loose (any) — full type defs live in @cesium/engine but
+  // we load Cesium from CDN, not bundled.
+  function sampleTerrainMostDetailed(terrainProvider: any, positions: any[]): Promise<Array<{ height: number }>>;
+  class PolygonHierarchy { constructor(positions: any[], holes?: any[]); }
+  class PolygonGeometry { constructor(opts: any); }
+  class GeometryInstance { constructor(opts: any); }
+  class Primitive { constructor(opts: any); [key: string]: any; }
+  const MaterialAppearance: {
+    new (opts: any): any;
+    MaterialSupport: {
+      TEXTURED: { vertexFormat: any };
+      ALL: { vertexFormat: any };
+      BASIC: { vertexFormat: any };
+    };
+  };
+  const Material: {
+    fromType: (type: string, uniforms?: any) => any;
+  };
+  class EllipsoidTerrainProvider { constructor(opts?: any); }
 }
 
 declare interface Window {
