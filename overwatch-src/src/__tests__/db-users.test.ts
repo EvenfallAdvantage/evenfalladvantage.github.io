@@ -956,7 +956,7 @@ describe("uploadAvatar()", () => {
     expect(storageBucket.upload).toHaveBeenCalledWith(
       expect.stringContaining("auth-123/avatar-"),
       file,
-      { cacheControl: "3600", upsert: true }
+      { cacheControl: "3600", upsert: true, contentType: "image/jpeg" }
     );
     expect(result).toBe("https://storage.example.com/avatars/auth-123/avatar.jpg");
   });
@@ -992,7 +992,34 @@ describe("uploadAvatar()", () => {
       error: { message: "upload failed" },
     });
 
-    await expect(uploadAvatar(file)).rejects.toEqual({ message: "upload failed" });
+    // Generic errors fall through and surface the underlying message
+    await expect(uploadAvatar(file)).rejects.toThrow("upload failed");
+  });
+
+  it("translates 'bucket not found' to actionable admin instructions", async () => {
+    mockGetAuthUserId.mockResolvedValueOnce("auth-123");
+    const file = createMockFile("image/jpeg", 1024);
+
+    const storageBucket = mockClient.storage.from("avatars");
+    storageBucket.upload.mockResolvedValueOnce({
+      data: null,
+      error: { message: "Bucket not found", statusCode: "404" },
+    });
+
+    await expect(uploadAvatar(file)).rejects.toThrow(/add-avatar-storage\.sql/);
+  });
+
+  it("translates RLS violation to actionable admin instructions", async () => {
+    mockGetAuthUserId.mockResolvedValueOnce("auth-123");
+    const file = createMockFile("image/jpeg", 1024);
+
+    const storageBucket = mockClient.storage.from("avatars");
+    storageBucket.upload.mockResolvedValueOnce({
+      data: null,
+      error: { message: "new row violates row-level security policy", statusCode: "403" },
+    });
+
+    await expect(uploadAvatar(file)).rejects.toThrow(/Permission denied/);
   });
 });
 

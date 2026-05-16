@@ -32,8 +32,11 @@ export function ProfileAvatarSection({ user, role, isOnboarding, onAvatarUpdated
       onAvatarUpdated(url);
       toast.success("Avatar updated");
     } catch (err) {
-      setAvatarError(err instanceof Error ? err.message : "Upload failed");
-      toast.error("Avatar upload failed");
+      const message = err instanceof Error ? err.message : "Upload failed";
+      setAvatarError(message);
+      // Include the real reason in the toast so it's visible even
+      // without scrolling to the error line under the avatar.
+      toast.error(message);
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -41,30 +44,36 @@ export function ProfileAvatarSection({ user, role, isOnboarding, onAvatarUpdated
   }
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="relative group">
-        <Avatar className="h-16 w-16 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-          <AvatarImage src={user?.avatarUrl ?? undefined} />
-          <AvatarFallback className="bg-primary/20 text-lg font-semibold text-primary">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploadingAvatar}
-          className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          {uploadingAvatar ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleAvatarUpload} />
-        {avatarError && <p className="absolute -bottom-5 left-0 text-[10px] text-red-500 whitespace-nowrap">{avatarError}</p>}
+    <div className="space-y-2">
+      <div className="flex items-center gap-4">
+        <div className="relative group">
+          <Avatar className="h-16 w-16 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <AvatarImage src={user?.avatarUrl ?? undefined} />
+            <AvatarFallback className="bg-primary/20 text-lg font-semibold text-primary">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            {uploadingAvatar ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleAvatarUpload} />
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="text-xs capitalize">
+            {role}
+          </Badge>
+          {isOnboarding && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Onboarding</Badge>}
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="text-xs capitalize">
-          {role}
-        </Badge>
-        {isOnboarding && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Onboarding</Badge>}
-      </div>
+      {avatarError && (
+        <p className="text-xs text-red-500 leading-snug break-words max-w-md">
+          {avatarError}
+        </p>
+      )}
     </div>
   );
 }

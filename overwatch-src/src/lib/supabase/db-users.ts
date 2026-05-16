@@ -398,8 +398,36 @@ export async function uploadAvatar(file: File): Promise<string> {
   // Upload to storage
   const { error: uploadError } = await supabase.storage
     .from("avatars")
-    .upload(path, file, { cacheControl: "3600", upsert: true });
-  if (uploadError) throw uploadError;
+    .upload(path, file, { cacheControl: "3600", upsert: true, contentType: file.type });
+  if (uploadError) {
+    // Translate common Supabase Storage failure modes to actionable
+    // messages. The raw error from the SDK varies: it can be a
+    // StorageApiError (with .statusCode and .message) or a plain
+    // Error. Log the full object for diagnosis, then re-throw with a
+    // user-friendly message.
+    console.error("[uploadAvatar] Supabase Storage rejected upload", uploadError);
+    const msg = uploadError.message || "";
+    const status = (uploadError as { statusCode?: string | number }).statusCode;
+    const lower = msg.toLowerCase();
+    if (lower.includes("bucket not found") || lower.includes("not_found") || status === 404 || status === "404") {
+      throw new Error(
+        "Avatar storage bucket is missing on the server. An admin needs to run overwatch-src/prisma/add-avatar-storage.sql in Supabase.",
+      );
+    }
+    if (lower.includes("row-level security") || lower.includes("violates") || status === 403 || status === "403") {
+      throw new Error(
+        "Permission denied. Avatar storage policies are not set up correctly — an admin needs to run overwatch-src/prisma/add-avatar-storage.sql.",
+      );
+    }
+    if (lower.includes("mime") || lower.includes("type")) {
+      throw new Error(`Image type not allowed: ${file.type}. Try a JPEG, PNG, WebP, or GIF.`);
+    }
+    if (lower.includes("payload") || lower.includes("too large") || lower.includes("size")) {
+      throw new Error("Image is too large (max 5MB).");
+    }
+    // Generic fallback — surface the real message so it's not a black box
+    throw new Error(msg || "Avatar upload failed");
+  }
 
   // Get public URL
   const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
