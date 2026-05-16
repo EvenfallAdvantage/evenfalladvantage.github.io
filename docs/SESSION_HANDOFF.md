@@ -239,22 +239,51 @@ $token = gh auth token; git push "https://x-access-token:${token}@github.com/Eve
 - **Bug fixes** — shift swap PostgREST query rewrite, patrols header, Reports nav label restored, db-error message extraction
 
 ### SQL Migrations To Run
+
+**As of May 15, 2026 — pending migrations grouped by feature.** Run each
+file in the Supabase SQL Editor (Overwatch DB, `nneueuvyeohwnspbwfub`).
+All migrations are idempotent (`IF NOT EXISTS`, `DROP POLICY IF EXISTS`,
+etc.) — safe to re-run.
+
+#### Pre-April migrations (legacy reference)
 | File | Purpose | Status |
 |------|---------|--------|
 | `sql/run_all_new_migrations.sql` | Invoices + Panic Alerts + Shift Swap Requests | Run |
 | `sql/add_broadcasts_breaks_media.sql` | Broadcasts + Timesheet Breaks + Incident Media | Run |
-| `sql/add_shift_templates.sql` | Shift Templates for auto-scheduling | Pending |
+| `sql/add_shift_templates.sql` | Was for the now-removed Auto-Schedule feature | **Skip — Auto-Schedule removed May 15** |
+
+#### May 2026 migrations
+| File | Purpose | Required if you use... |
+|------|---------|-------------------------|
+| `sql/add_client_intake_tokens.sql` | Backs the `ClientIntakeShareModal` (Request from Client + Share Intake) | Any client-share link feature |
+| `sql/add_intake_api_keys.sql` | API Sources tab in HQ Config (api_keys, intake_field_mappings, api_request_log tables; extends client_intake_tokens with source/api_key_id columns) | The intake-ingest Edge Function endpoint |
+| `sql/add_site_map_bounds.sql` | `site_map_bounds` table for company-wide rubber-sheet visibility; tightens operation-maps storage bucket policies | Tactical map site overlays |
+| `sql/drop_event_pay_rate.sql` | Drops the redundant `events.pay_rate` column (pay rates are now strictly per-employee) | Pay rate cascade fix |
+| `sql/add_client_role.sql` | Adds `client` to the `CompanyRole` enum + updates the `update_member_role` RPC | Client Portal section in HQ Config |
+
+#### Deployment-side
+| Action | Required if you use... |
+|--------|-------------------------|
+| `npx supabase functions deploy intake-ingest --no-verify-jwt` | API Sources / external website forwarding |
+| Run `overwatch-src/prisma/add-company-logos-storage.sql` (if not already applied) | Company logo upload (Issue diagnosed May 15) |
+
+#### Detection in the UI
+The HQ Config sections now detect missing migrations and show a clear
+"Database setup required" banner with the exact filename to run, instead
+of a generic red toast. So you can land on the page, see the banner,
+run the migration, and reload. Sections covered:
+- **API Sources** (detects missing `api_keys` / `intake_field_mappings`)
+- **Client Portal** (detects missing `client` value in `CompanyRole` enum)
 
 ---
 
 ## Recommended Next Steps
 
-1. **Run shift templates migration** — `sql/add_shift_templates.sql`
+1. **Apply pending May 2026 migrations** — see the table above. Run each `.sql` file in the Supabase SQL Editor.
 2. **Deploy OAuth refresh Edge Function** — `supabase functions deploy oauth-refresh --no-verify-jwt` + cron trigger
-3. **Wire auto-scheduling UI** — add template management + smart-fill button to shift management
-4. **Fix instructor scan permissions** — add 'instructor' to `is_company_manager()` RLS function
-5. **Migrate integration service calls to Edge Functions** — prevent API key exposure in browser
-6. **Persist offline scan queue** — move from useState to localStorage/IndexedDB
-7. **Visitor management** — guard-post kiosk mode with sign-in log
-8. **Full offline support** — IndexedDB outbox for all mutations + background sync
-9. **Upgrade eslint-plugin-react-hooks** to v7 — fix ~100 setState-in-effect patterns
+3. **Fix instructor scan permissions** — add 'instructor' to `is_company_manager()` RLS function
+4. **Migrate integration service calls to Edge Functions** — prevent API key exposure in browser
+5. **Persist offline scan queue** — move from useState to localStorage/IndexedDB
+6. **Visitor management** — guard-post kiosk mode with sign-in log
+7. **Full offline support** — IndexedDB outbox for all mutations + background sync
+8. **Upgrade eslint-plugin-react-hooks** to v7 — fix ~100 setState-in-effect patterns

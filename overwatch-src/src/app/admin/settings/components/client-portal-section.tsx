@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Users, Plus, Trash2, Loader2, Mail, Copy, ExternalLink } from "lucide-react";
+import { Users, Plus, Trash2, Loader2, Mail, Copy, ExternalLink, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { getClientMembers, addClientMember, removeClientMember, type ClientMember } from "@/lib/supabase/db";
+import { getClientMembers, addClientMember, removeClientMember, isClientRoleSupported, type ClientMember } from "@/lib/supabase/db";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 interface ClientPortalSectionProps {
@@ -21,9 +21,22 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
   const [email, setEmail] = useState("");
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  /** When the 'client' enum value hasn't been added to CompanyRole yet
+   * (i.e. add_client_role.sql hasn't been run), we show a setup banner
+   * instead of letting the user click Add and hit an opaque error. */
+  const [migrationMissing, setMigrationMissing] = useState(false);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const load = useCallback(async () => {
+    setLoading(true);
+    const supported = await isClientRoleSupported();
+    if (!supported) {
+      setMigrationMissing(true);
+      setClients([]);
+      setLoading(false);
+      return;
+    }
+    setMigrationMissing(false);
     const data = await getClientMembers(companyId);
     setClients(data);
     setLoading(false);
@@ -81,6 +94,29 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
             </p>
           </div>
 
+          {/* Migration not yet run — show a friendly banner instead of
+              letting Add Client fail with an opaque "invalid input value
+              for enum" error. */}
+          {migrationMissing && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-xs font-semibold">Database setup required</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    The Client Portal requires the <code className="font-mono">client</code> value to be added
+                    to the <code className="font-mono">CompanyRole</code> enum. Run the migration{" "}
+                    <code className="font-mono">sql/add_client_role.sql</code> in the Supabase SQL Editor
+                    (it&apos;s idempotent — safe to re-run).
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/70">
+                    After running the migration, reload this page to start inviting clients.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Portal link */}
           <div className="rounded-lg border border-border/40 bg-muted/30 p-3 flex items-center gap-3">
             <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -102,11 +138,12 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                disabled={migrationMissing}
                 className="mt-1"
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleAdd} disabled={adding || !email.trim()} className="gap-1.5">
+              <Button onClick={handleAdd} disabled={adding || !email.trim() || migrationMissing} className="gap-1.5">
                 {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                 Add Client
               </Button>

@@ -51,6 +51,22 @@ function relativeTime(iso: string | null): string {
   return new Date(iso).toLocaleDateString();
 }
 
+/**
+ * Detect whether a thrown error is "the table doesn't exist" — i.e.
+ * the migration hasn't been run. PostgREST surfaces these as HTTP 404
+ * with a JSON body whose `code` is `42P01` (Postgres SQLSTATE for
+ * "undefined_table"). We also catch the message text as a fallback
+ * since some PostgREST versions format the response differently.
+ */
+function isMigrationMissingError(e: unknown): boolean {
+  if (!e || typeof e !== "object") return false;
+  const err = e as { code?: string; message?: string; status?: number };
+  if (err.code === "42P01" || err.code === "PGRST205") return true;
+  if (err.status === 404) return true;
+  if (typeof err.message === "string" && /relation .* does not exist|not exist in schema/i.test(err.message)) return true;
+  return false;
+}
+
 export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSectionProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
@@ -58,6 +74,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
   const [mappings, setMappings] = useState<IntakeFieldMapping[]>([]);
   const [usageByKey, setUsageByKey] = useState<Record<string, ApiKeyUsage>>({});
   const [loading, setLoading] = useState(true);
+  const [migrationMissing, setMigrationMissing] = useState(false);
   const [creatingKey, setCreatingKey] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
 
@@ -79,6 +96,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
   /* ── Load ── */
   const load = useCallback(async () => {
     setLoading(true);
+    setMigrationMissing(false);
     try {
       const [k, m] = await Promise.all([listApiKeys(companyId), listMappings(companyId)]);
       setKeys(k);
@@ -101,8 +119,16 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
       }
       setUsageByKey(usageMap);
     } catch (e) {
-      logger.swallow("ApiSourcesSection:load", e, "warn");
-      toast.error("Failed to load API sources");
+      // Distinguish "migration not yet run" from a real error so we
+      // show a friendly banner instead of a generic red toast on every
+      // page load. The migration is `sql/add_intake_api_keys.sql`.
+      if (isMigrationMissingError(e)) {
+        setMigrationMissing(true);
+        logger.swallow("ApiSourcesSection:migration-missing", e, "debug");
+      } else {
+        logger.swallow("ApiSourcesSection:load", e, "warn");
+        toast.error("Failed to load API sources");
+      }
     } finally {
       setLoading(false);
     }
@@ -255,6 +281,30 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
               {activeKeyCount} active key{activeKeyCount !== 1 ? "s" : ""}
             </Badge>
           </div>
+
+          {/* Migration not run — show a clear pending-setup banner instead
+              of leaving the user to interpret an opaque red toast. The
+              two tables (api_keys, intake_field_mappings) live in the
+              same migration file. */}
+          {migrationMissing && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-xs font-semibold">Database setup required</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    The API Sources feature uses two tables (<code className="font-mono">api_keys</code>,{" "}
+                    <code className="font-mono">intake_field_mappings</code>) that haven&apos;t been created yet.
+                    Run the migration <code className="font-mono">sql/add_intake_api_keys.sql</code>{" "}
+                    in the Supabase SQL Editor (it&apos;s idempotent — safe to re-run).
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/70">
+                    After running the migration, reload this page to start using API Sources.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* One-time key reveal */}
           {revealedKey && (

@@ -14,7 +14,12 @@ export type CompanySettings = {
   hiddenTabs?: string[];
 };
 
-export type CompanyRole = "owner" | "admin" | "instructor" | "manager" | "lead" | "breaker" | "staff";
+// Single source of truth for CompanyRole lives in @/lib/permissions to
+// avoid drift between this types file and the permissions module. We
+// import + re-export here so existing imports of `CompanyRole from "@/types"`
+// continue to work, AND so the type is in scope for use within this file.
+import type { CompanyRole } from "@/lib/permissions";
+export type { CompanyRole };
 
 export type CompanyContext = {
   companyId: string;
