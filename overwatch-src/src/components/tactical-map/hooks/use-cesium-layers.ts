@@ -211,6 +211,11 @@ export function useCesiumLayers(params: {
       } catch (e) { logger.swallow("cesium-layers:remove-site-overlay", e); }
     });
     entityGroupsRef.current.siteOverlays = [];
+    // Invalidate any in-flight terrain samples — their primitives will
+    // detect the missing/changed token and skip the add().
+    if (entityGroupsRef.current.siteOverlaysSampleTokens) {
+      (entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol>).clear();
+    }
 
     // Check each toggled-on site map. We treat the visibility as:
     //   - `false` (user explicitly hid it)   → hide
@@ -250,42 +255,98 @@ export function useCesiumLayers(params: {
             // polygon winding for an upward-facing surface, so the
             // auto-winding detector doesn't reverse anything and break
             // correspondence between positions and texcoords.
+            //
+            // Terrain handling: regular Primitive renders at ellipsoid
+            // height by default — with 3D terrain enabled the overlay
+            // floats hundreds of meters above the ground. GroundPrimitive
+            // would clamp, but it ignores textureCoordinates so we'd lose
+            // the affine UV mapping. The solution is to sample terrain
+            // height at each of the four corners and build the polygon
+            // with `perPositionHeight: true`, putting the overlay flat
+            // on the ground. A small (+0.5 m) lift prevents z-fighting
+            // with the ground texture.
             const q = bounds.quad;
-            const positions = Cesium.Cartesian3.fromDegreesArray([
-              q.c00.lng, q.c00.lat,
-              q.c01.lng, q.c01.lat,
-              q.c11.lng, q.c11.lat,
-              q.c10.lng, q.c10.lat,
-            ]);
+            const cornerCartos = [
+              Cesium.Cartographic.fromDegrees(q.c00.lng, q.c00.lat),
+              Cesium.Cartographic.fromDegrees(q.c01.lng, q.c01.lat),
+              Cesium.Cartographic.fromDegrees(q.c11.lng, q.c11.lat),
+              Cesium.Cartographic.fromDegrees(q.c10.lng, q.c10.lat),
+            ];
             const stCoords = new Cesium.PolygonHierarchy([
               new Cesium.Cartesian2(0, 1), // c00 → image top-left
               new Cesium.Cartesian2(0, 0), // c01 → image bottom-left
               new Cesium.Cartesian2(1, 0), // c11 → image bottom-right
               new Cesium.Cartesian2(1, 1), // c10 → image top-right
             ]);
-            const geom = new Cesium.PolygonGeometry({
-              polygonHierarchy: new Cesium.PolygonHierarchy(positions),
-              textureCoordinates: stCoords,
-              perPositionHeight: false,
-              vertexFormat: Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat,
-            });
-            const instance = new Cesium.GeometryInstance({ geometry: geom });
-            const primitive = new Cesium.Primitive({
-              geometryInstances: instance,
-              appearance: new Cesium.MaterialAppearance({
-                materialSupport: Cesium.MaterialAppearance.MaterialSupport.TEXTURED,
-                material: Cesium.Material.fromType("Image", {
-                  image: op.siteMapUrl,
-                  // Modulate via color alpha to honor the opacity slider.
-                  color: new Cesium.Color(1, 1, 1, layers.siteOverlayOpacity),
-                  transparent: true,
+
+            // Track this terrain-sample request via a token stamped on
+            // the entityGroupsRef. If a later effect run clears the
+            // siteOverlays array, the token won't match anymore and we
+            // skip the late-arriving primitive add (avoids zombie
+            // overlays from stale async samples).
+            const sampleToken = Symbol(`site-overlay-sample-${op.id}`);
+            entityGroupsRef.current.siteOverlaysSampleTokens =
+              entityGroupsRef.current.siteOverlaysSampleTokens ?? new Map<string, symbol>();
+            (entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol>).set(op.id, sampleToken);
+
+            const buildPrimitive = (heights: [number, number, number, number]) => {
+              const tokens = entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol> | undefined;
+              if (tokens?.get(op.id) !== sampleToken) return; // superseded
+
+              const positions = [
+                Cesium.Cartesian3.fromDegrees(q.c00.lng, q.c00.lat, heights[0] + 0.5),
+                Cesium.Cartesian3.fromDegrees(q.c01.lng, q.c01.lat, heights[1] + 0.5),
+                Cesium.Cartesian3.fromDegrees(q.c11.lng, q.c11.lat, heights[2] + 0.5),
+                Cesium.Cartesian3.fromDegrees(q.c10.lng, q.c10.lat, heights[3] + 0.5),
+              ];
+              const geom = new Cesium.PolygonGeometry({
+                polygonHierarchy: new Cesium.PolygonHierarchy(positions),
+                textureCoordinates: stCoords,
+                perPositionHeight: true,
+                vertexFormat: Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat,
+              });
+              const instance = new Cesium.GeometryInstance({ geometry: geom });
+              const primitive = new Cesium.Primitive({
+                geometryInstances: instance,
+                appearance: new Cesium.MaterialAppearance({
+                  materialSupport: Cesium.MaterialAppearance.MaterialSupport.TEXTURED,
+                  material: Cesium.Material.fromType("Image", {
+                    image: op.siteMapUrl,
+                    color: new Cesium.Color(1, 1, 1, layers.siteOverlayOpacity),
+                    transparent: true,
+                  }),
+                  translucent: true,
                 }),
-                translucent: true,
-              }),
-              asynchronous: false, // ensure the primitive is ready by the next frame
-            });
-            viewer.scene.primitives.add(primitive);
-            entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
+                asynchronous: false,
+              });
+              viewer.scene.primitives.add(primitive);
+              entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
+            };
+
+            const terrainProvider = viewer.terrainProvider;
+            const isEllipsoid = terrainProvider instanceof Cesium.EllipsoidTerrainProvider;
+            if (isEllipsoid) {
+              // No real terrain — height is 0 everywhere. Skip the async
+              // sample entirely.
+              buildPrimitive([0, 0, 0, 0]);
+            } else {
+              Cesium.sampleTerrainMostDetailed(terrainProvider, cornerCartos)
+                .then((sampled: Array<{ height: number }>) => {
+                  const heights: [number, number, number, number] = [
+                    sampled[0]?.height ?? 0,
+                    sampled[1]?.height ?? 0,
+                    sampled[2]?.height ?? 0,
+                    sampled[3]?.height ?? 0,
+                  ];
+                  buildPrimitive(heights);
+                })
+                .catch((err: unknown) => {
+                  // Fall back to ellipsoid height — better to show the
+                  // overlay floating than not at all.
+                  logger.swallow("cesium-layers:terrain-sample", err, "warn");
+                  buildPrimitive([0, 0, 0, 0]);
+                });
+            }
           } else {
             // Legacy axis-aligned path (north-up bounds only).
             const provider = new Cesium.SingleTileImageryProvider({
