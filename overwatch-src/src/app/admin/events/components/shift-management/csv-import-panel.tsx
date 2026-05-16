@@ -85,12 +85,35 @@ export function CsvImportPanel({
         }
       }
 
-      const shiftData = csvPreview.valid.map((r) => {
-        // Parse date + time → local datetime string → UTC
+      // Build shift rows. validateShiftRows() already enforces strict
+      // ISO date + 24h time format, so by this point each row's date/time
+      // combination is guaranteed to be parseable. The try/catch below
+      // is defense-in-depth: any future regression in upstream validation
+      // surfaces as a clear toast instead of a raw "Invalid time value"
+      // RangeError in the console.
+      const shiftData: Array<{
+        start_time: string;
+        end_time: string;
+        role: string | undefined;
+        assigned_user_id: string | null;
+        notes: string | undefined;
+      }> = [];
+
+      for (let i = 0; i < csvPreview.valid.length; i++) {
+        const r = csvPreview.valid[i];
         const startLocal = `${r.date}T${r.start_time}`;
         const endLocal = `${r.date}T${r.end_time}`;
-        const startUTC = eventTimezone ? localToUTC(startLocal, eventTimezone) : new Date(startLocal).toISOString();
-        const endUTC = eventTimezone ? localToUTC(endLocal, eventTimezone) : new Date(endLocal).toISOString();
+        let startUTC: string;
+        let endUTC: string;
+        try {
+          startUTC = eventTimezone ? localToUTC(startLocal, eventTimezone) : new Date(startLocal).toISOString();
+          endUTC = eventTimezone ? localToUTC(endLocal, eventTimezone) : new Date(endLocal).toISOString();
+        } catch (parseErr) {
+          // Should never reach here given validation, but be explicit if it does
+          console.error("[CSV Import] Date parse failure on row", i, r, parseErr);
+          toast.error(`Row ${i + 2}: could not parse "${r.date} ${r.start_time}" — please use YYYY-MM-DD and HH:MM (24-hour) format.`);
+          return; // abort the whole import; no partial inserts
+        }
 
         // Resolve staff email to user ID
         let assignedUserId: string | null = null;
@@ -98,14 +121,14 @@ export function CsvImportPanel({
           assignedUserId = emailToUserId.get(r.staff_email.toLowerCase()) ?? null;
         }
 
-        return {
+        shiftData.push({
           start_time: startUTC,
           end_time: endUTC,
           role: r.role,
           assigned_user_id: assignedUserId,
           notes: r.notes,
-        };
-      });
+        });
+      }
 
       const result = await bulkCreateShifts(eventId, companyId, shiftData);
       if (result.errors.length > 0) {
@@ -134,13 +157,29 @@ export function CsvImportPanel({
       <input type="file" accept=".csv,text/csv" ref={fileInputRef} onChange={handleCsvFile} className="hidden" />
 
       {csvStep === "upload" && (
-        <div className="text-center py-4">
-          <Upload className="h-6 w-6 mx-auto text-muted-foreground/40 mb-2" />
-          <p className="text-xs text-muted-foreground mb-2">Upload a CSV file with shift data</p>
-          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => fileInputRef.current?.click()}>
-            Choose CSV File
-          </Button>
-          <p className="text-[10px] text-muted-foreground/60 mt-2">Required columns: Date, Start Time, End Time</p>
+        <div className="py-4 space-y-3">
+          <div className="text-center">
+            <Upload className="h-6 w-6 mx-auto text-muted-foreground/40 mb-2" />
+            <p className="text-xs text-muted-foreground mb-2">Upload a CSV file with shift data</p>
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => fileInputRef.current?.click()}>
+              Choose CSV File
+            </Button>
+          </div>
+          <div className="mx-auto max-w-md rounded-md border border-border/40 bg-background/40 p-2.5 text-[10px] text-muted-foreground/80 space-y-1.5">
+            <p className="font-semibold text-muted-foreground">Required format</p>
+            <ul className="list-disc list-inside space-y-0.5">
+              <li>
+                <span className="font-medium">Date</span>: <code className="font-mono">YYYY-MM-DD</code> (e.g. <code className="font-mono">2026-05-21</code>)
+              </li>
+              <li>
+                <span className="font-medium">Start / End Time</span>: 24-hour <code className="font-mono">HH:MM</code> or <code className="font-mono">HH:MM:SS</code> (e.g. <code className="font-mono">09:30</code>, <code className="font-mono">21:00</code>)
+              </li>
+              <li>Required columns: Date, Start Time, End Time</li>
+            </ul>
+            <p className="text-muted-foreground/60">
+              Tip: Excel often exports <code className="font-mono">5/21</code> and <code className="font-mono">9:30 AM</code> — reformat the cells to <code className="font-mono">yyyy-mm-dd</code> and <code className="font-mono">hh:mm</code> before exporting.
+            </p>
+          </div>
         </div>
       )}
 
@@ -189,9 +228,11 @@ export function CsvImportPanel({
             </div>
           </div>
           {csvPreview.errors.length > 0 && (
-            <div className="rounded border border-red-500/20 bg-red-500/[0.04] p-2 space-y-0.5 max-h-24 overflow-y-auto">
+            <div className="rounded border border-red-500/20 bg-red-500/[0.04] p-2 space-y-1 max-h-40 overflow-y-auto">
               {csvPreview.errors.slice(0, 10).map((e, i) => (
-                <p key={i} className="text-[10px] text-red-500">Line {e.line}: {e.message}</p>
+                <p key={i} className="text-[10px] text-red-500 leading-snug break-words">
+                  <span className="font-semibold">Line {e.line}:</span> {e.message}
+                </p>
               ))}
               {csvPreview.errors.length > 10 && <p className="text-[10px] text-red-500/60">...and {csvPreview.errors.length - 10} more</p>}
             </div>

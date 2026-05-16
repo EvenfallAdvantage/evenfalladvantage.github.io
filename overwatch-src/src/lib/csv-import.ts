@@ -336,6 +336,23 @@ export function applyShiftMapping(
   });
 }
 
+/** Matches "YYYY-MM-DD" with semantically sane year/month/day ranges.
+ *  Doesn't validate calendar correctness (e.g. Feb 30 passes) — the
+ *  Date constructor's downstream check catches those. */
+const ISO_DATE_RE = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
+/** Matches "HH:MM" or "HH:MM:SS" in 24-hour format. */
+const ISO_TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
+
+/**
+ * Verify that a date+time pair produces a real Date object (catches
+ * invalid combos like 2026-02-30 that regex would let through).
+ */
+function isValidDateTime(date: string, time: string): boolean {
+  const d = new Date(`${date}T${time}`);
+  return !isNaN(d.getTime());
+}
+
 export function validateShiftRows(rows: ShiftImportRow[]): {
   valid: ShiftImportRow[];
   errors: { line: number; message: string }[];
@@ -343,9 +360,49 @@ export function validateShiftRows(rows: ShiftImportRow[]): {
   const valid: ShiftImportRow[] = [];
   const errors: { line: number; message: string }[] = [];
   rows.forEach((r, i) => {
-    if (!r.date) { errors.push({ line: i + 2, message: "Missing date" }); return; }
-    if (!r.start_time) { errors.push({ line: i + 2, message: "Missing start time" }); return; }
-    if (!r.end_time) { errors.push({ line: i + 2, message: "Missing end time" }); return; }
+    const line = i + 2; // +2 = header row + 1-indexed
+    if (!r.date) { errors.push({ line, message: "Missing date" }); return; }
+    if (!r.start_time) { errors.push({ line, message: "Missing start time" }); return; }
+    if (!r.end_time) { errors.push({ line, message: "Missing end time" }); return; }
+
+    // Strict ISO format validation. Common Excel exports use "5/21"
+    // (no year, ambiguous M/D vs D/M) and "9:30:00 AM" (12-hour with
+    // AM/PM). Neither is parseable as a Date in a portable way, so we
+    // require the unambiguous ISO format and tell the user exactly what
+    // to fix.
+    if (!ISO_DATE_RE.test(r.date)) {
+      errors.push({
+        line,
+        message: `Date must be YYYY-MM-DD format (got "${r.date}"). Reformat your CSV — e.g. 2026-05-21, not 5/21.`,
+      });
+      return;
+    }
+    if (!ISO_TIME_RE.test(r.start_time)) {
+      errors.push({
+        line,
+        message: `Start time must be HH:MM or HH:MM:SS in 24-hour format (got "${r.start_time}"). Reformat your CSV — e.g. 09:30 or 21:30, not 9:30 AM.`,
+      });
+      return;
+    }
+    if (!ISO_TIME_RE.test(r.end_time)) {
+      errors.push({
+        line,
+        message: `End time must be HH:MM or HH:MM:SS in 24-hour format (got "${r.end_time}"). Reformat your CSV — e.g. 17:00, not 5:00 PM.`,
+      });
+      return;
+    }
+
+    // Final sanity check — catches things like 2026-02-30 that pass regex
+    // but produce Invalid Date when constructed.
+    if (!isValidDateTime(r.date, r.start_time)) {
+      errors.push({ line, message: `Invalid start datetime: ${r.date} ${r.start_time}` });
+      return;
+    }
+    if (!isValidDateTime(r.date, r.end_time)) {
+      errors.push({ line, message: `Invalid end datetime: ${r.date} ${r.end_time}` });
+      return;
+    }
+
     valid.push(r);
   });
   return { valid, errors };

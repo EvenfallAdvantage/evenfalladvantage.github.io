@@ -266,6 +266,7 @@ etc.) — safe to re-run.
 |--------|-------------------------|
 | `npx supabase functions deploy intake-ingest --no-verify-jwt` | API Sources / external website forwarding |
 | Run `overwatch-src/prisma/add-company-logos-storage.sql` (if not already applied) | Company logo upload (Issue diagnosed May 15) |
+| Run `overwatch-src/prisma/add-avatar-storage.sql` (if not already applied) | **User avatar upload** — without this, profile picture upload fails with `new row violates row-level security policy` (Tony reported May 15) |
 
 #### Detection in the UI
 The HQ Config sections now detect missing migrations and show a clear
