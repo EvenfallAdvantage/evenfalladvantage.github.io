@@ -369,14 +369,19 @@ interface ParsedYMD { year: number; month: number; day: number }
 
 /**
  * Try to parse a date string. Returns a partial result that signals
- * either a concrete year/month/day OR a numeric triple that is still
- * ambiguous between M/D/Y and D/M/Y. The caller (parseDateRows) does
- * a second pass to resolve the ambiguity using context from other rows.
+ * either a concrete year/month/day OR a numeric pair/triple that is
+ * still ambiguous between M/D and D/M. When the year is omitted
+ * ("5/21" or "May 21"), `year` is undefined and the caller infers it
+ * (current year if the date hasn't passed yet, next year if it has).
  */
 type ParseAttempt =
   | { kind: "ok"; value: ParsedYMD }
-  | { kind: "ambiguous_numeric"; a: number; b: number; year: number } // a/b/year — could be M/D or D/M
-  | { kind: "year_first_numeric"; year: number; a: number; b: number } // year/a/b — unambiguous (a=month)
+  // a/b — could be M/D or D/M. year undefined → infer.
+  | { kind: "ambiguous_numeric"; a: number; b: number; year: number | undefined }
+  // year/a/b — unambiguous (a=month, b=day)
+  | { kind: "year_first_numeric"; year: number; a: number; b: number }
+  // text-month forms with optional year
+  | { kind: "month_day"; month: number; day: number; year: number | undefined }
   | { kind: "invalid"; reason: string };
 
 function tryParseDate(raw: string): ParseAttempt {
@@ -393,41 +398,92 @@ function tryParseDate(raw: string): ParseAttempt {
   }
 
   // Numeric M/D/Y or D/M/Y with any separator. Year may be 2 or 4 digits.
-  const numeric = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
-  if (numeric) {
-    const a = parseInt(numeric[1], 10);
-    const b = parseInt(numeric[2], 10);
-    const year = expandYear(parseInt(numeric[3], 10));
+  const numericFull = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
+  if (numericFull) {
+    const a = parseInt(numericFull[1], 10);
+    const b = parseInt(numericFull[2], 10);
+    const year = expandYear(parseInt(numericFull[3], 10));
     return { kind: "ambiguous_numeric", a, b, year };
   }
 
-  // Text month forms: "May 21, 2026" / "May 21 2026" / "21 May 2026"
-  // / "21-May-2026" / "21 May, 2026". Order is determined by where
-  // the month name appears.
-  // Month-first: "Mon D[,] YYYY"
-  const monthFirst = s.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{2,4})$/);
-  if (monthFirst) {
-    const month = MONTH_NAMES[monthFirst[1].toLowerCase()];
+  // Numeric M/D or D/M with NO year. Excel sometimes drops the year
+  // when the cell is formatted as "5/21" instead of "5/21/2026".
+  // We accept it and infer the year later.
+  const numericNoYear = s.match(/^(\d{1,2})[-/.](\d{1,2})$/);
+  if (numericNoYear) {
+    const a = parseInt(numericNoYear[1], 10);
+    const b = parseInt(numericNoYear[2], 10);
+    return { kind: "ambiguous_numeric", a, b, year: undefined };
+  }
+
+  // Text month forms with year: "May 21, 2026" / "May 21 2026" /
+  // "21 May 2026" / "21-May-2026" / "21 May, 2026".
+  const monthFirstWithYear = s.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{2,4})$/);
+  if (monthFirstWithYear) {
+    const month = MONTH_NAMES[monthFirstWithYear[1].toLowerCase()];
     if (month) {
       return {
         kind: "ok",
-        value: { year: expandYear(parseInt(monthFirst[3], 10)), month, day: parseInt(monthFirst[2], 10) },
+        value: { year: expandYear(parseInt(monthFirstWithYear[3], 10)), month, day: parseInt(monthFirstWithYear[2], 10) },
       };
     }
   }
-  // Day-first: "D Mon YYYY" or "D-Mon-YYYY"
-  const dayFirst = s.match(/^(\d{1,2})[\s-]+([A-Za-z]+)[\s,-]+(\d{2,4})$/);
-  if (dayFirst) {
-    const month = MONTH_NAMES[dayFirst[2].toLowerCase()];
+  const dayFirstWithYear = s.match(/^(\d{1,2})[\s-]+([A-Za-z]+)[\s,-]+(\d{2,4})$/);
+  if (dayFirstWithYear) {
+    const month = MONTH_NAMES[dayFirstWithYear[2].toLowerCase()];
     if (month) {
       return {
         kind: "ok",
-        value: { year: expandYear(parseInt(dayFirst[3], 10)), month, day: parseInt(dayFirst[1], 10) },
+        value: { year: expandYear(parseInt(dayFirstWithYear[3], 10)), month, day: parseInt(dayFirstWithYear[1], 10) },
+      };
+    }
+  }
+
+  // Text month forms WITHOUT year: "May 21" / "21 May" / "21-May".
+  // Year is inferred.
+  const monthFirstNoYear = s.match(/^([A-Za-z]+)\s+(\d{1,2})$/);
+  if (monthFirstNoYear) {
+    const month = MONTH_NAMES[monthFirstNoYear[1].toLowerCase()];
+    if (month) {
+      return {
+        kind: "month_day",
+        month,
+        day: parseInt(monthFirstNoYear[2], 10),
+        year: undefined,
+      };
+    }
+  }
+  const dayFirstNoYear = s.match(/^(\d{1,2})[\s-]+([A-Za-z]+)$/);
+  if (dayFirstNoYear) {
+    const month = MONTH_NAMES[dayFirstNoYear[2].toLowerCase()];
+    if (month) {
+      return {
+        kind: "month_day",
+        month,
+        day: parseInt(dayFirstNoYear[1], 10),
+        year: undefined,
       };
     }
   }
 
   return { kind: "invalid", reason: `unrecognized date format` };
+}
+
+/**
+ * Infer the year for a (month, day) pair when the user omitted it.
+ * Shifts are forward-looking, so:
+ *   - if the month/day is today or later this year → current year
+ *   - if the month/day has already passed this year → next year
+ * Reference date defaults to "now" but can be injected for testing.
+ */
+export function inferYear(month: number, day: number, today: Date = new Date()): number {
+  const ty = today.getFullYear();
+  const tm = today.getMonth() + 1; // JS months are 0-indexed
+  const td = today.getDate();
+  // If (month, day) >= (today.month, today.day), use current year.
+  // Strictly less, use next year.
+  if (month > tm || (month === tm && day >= td)) return ty;
+  return ty + 1;
 }
 
 /** Render a {y,m,d} as zero-padded ISO YYYY-MM-DD. */
@@ -537,7 +593,7 @@ export function validateShiftRows(rows: ShiftImportRow[]): ValidateShiftRowsResu
       return {
         line,
         raw: r,
-        error: `Date "${r.date}" — unrecognized format. Try YYYY-MM-DD (e.g. 2026-05-21), M/D/YYYY (5/21/2026), or "May 21, 2026".`,
+        error: `Date "${r.date}" — unrecognized format. Try YYYY-MM-DD (e.g. 2026-05-21), M/D/YYYY (5/21/2026), "May 21, 2026", or just M/D / "May 21" (year inferred).`,
       };
     }
 
@@ -606,6 +662,10 @@ export function validateShiftRows(rows: ShiftImportRow[]): ValidateShiftRowsResu
   }
 
   // ─── Pass 2: finalize each row using the resolved convention ──
+  // Reference date for year inference. Captured ONCE here so all rows
+  // in the CSV use a consistent "today" (avoids edge cases where two
+  // rows near midnight could disagree).
+  const today = new Date();
   for (const p of parses) {
     if (p.error) {
       errors.push({ line: p.line, message: p.error });
@@ -620,10 +680,17 @@ export function validateShiftRows(rows: ShiftImportRow[]): ValidateShiftRowsResu
       // ISO-shape: year/month/day
       ymd = { year: p.date.year, month: p.date.a, day: p.date.b };
     } else if (p.date.kind === "ambiguous_numeric") {
-      // Apply the CSV-wide resolved convention
+      // Apply the CSV-wide resolved convention to pick month vs day.
       const { a, b, year } = p.date;
-      if (convention === "MDY") ymd = { year, month: a, day: b };
-      else ymd = { year, month: b, day: a };
+      const month = convention === "MDY" ? a : b;
+      const day = convention === "MDY" ? b : a;
+      // If no year was supplied (e.g. "5/21"), infer it: current year
+      // if the date hasn't passed yet, next year if it has.
+      ymd = { year: year ?? inferYear(month, day, today), month, day };
+    } else if (p.date.kind === "month_day") {
+      // Text-month no-year ("May 21" / "21 May"). Month/day already
+      // resolved during parse; just infer year.
+      ymd = { year: p.date.year ?? inferYear(p.date.month, p.date.day, today), month: p.date.month, day: p.date.day };
     } else {
       // "invalid" — already pushed to errors in pass 1, but the
       // exhaustiveness check keeps TS happy.

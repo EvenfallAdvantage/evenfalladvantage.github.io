@@ -9,8 +9,8 @@
  * user provided.
  */
 
-import { describe, it, expect } from "vitest";
-import { validateShiftRows } from "@/lib/csv-import";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { validateShiftRows, inferYear } from "@/lib/csv-import";
 
 function row(date: string, start: string, end: string) {
   return { date, start_time: start, end_time: end };
@@ -244,5 +244,134 @@ describe("validateShiftRows — combined real-world cases", () => {
       staff_email: "a@b.com",
       notes: "Test",
     });
+  });
+});
+
+describe("inferYear — pure year inference logic", () => {
+  it("uses current year when date is today", () => {
+    // Reference: May 21, 2026
+    const today = new Date(2026, 4, 21); // month is 0-indexed in JS
+    expect(inferYear(5, 21, today)).toBe(2026);
+  });
+
+  it("uses current year when date is later this year", () => {
+    const today = new Date(2026, 4, 21);
+    expect(inferYear(5, 22, today)).toBe(2026); // tomorrow
+    expect(inferYear(6, 1, today)).toBe(2026); // next month
+    expect(inferYear(12, 31, today)).toBe(2026); // end of year
+  });
+
+  it("uses NEXT year when date has already passed this year", () => {
+    const today = new Date(2026, 4, 21);
+    expect(inferYear(5, 20, today)).toBe(2027); // yesterday
+    expect(inferYear(4, 30, today)).toBe(2027); // last month
+    expect(inferYear(1, 1, today)).toBe(2027); // start of year
+  });
+
+  it("handles year-boundary case: Dec 31 today + Jan 1 input → next year", () => {
+    const today = new Date(2026, 11, 31); // Dec 31, 2026
+    expect(inferYear(1, 1, today)).toBe(2027);
+  });
+
+  it("handles year-boundary case: Jan 1 today + Dec 31 input → still 2027", () => {
+    // Jan 1 today, user enters "12/31". 12/31 hasn't passed (it's
+    // later this year), so → 2026.
+    const today = new Date(2026, 0, 1);
+    expect(inferYear(12, 31, today)).toBe(2026);
+  });
+});
+
+describe("validateShiftRows — year inference", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("infers current year for upcoming M/D dates", () => {
+    vi.setSystemTime(new Date(2026, 4, 1)); // May 1, 2026
+    const { valid, errors } = validateShiftRows([
+      row("5/21", "09:00", "17:00"),
+    ]);
+    expect(errors).toEqual([]);
+    expect(valid[0].date).toBe("2026-05-21");
+  });
+
+  it("infers next year for already-passed M/D dates", () => {
+    vi.setSystemTime(new Date(2026, 6, 15)); // Jul 15, 2026
+    const { valid, errors } = validateShiftRows([
+      row("5/21", "09:00", "17:00"),
+    ]);
+    expect(errors).toEqual([]);
+    expect(valid[0].date).toBe("2027-05-21");
+  });
+
+  it("infers year for text-month no-year ('May 21')", () => {
+    vi.setSystemTime(new Date(2026, 0, 1));
+    const { valid, errors } = validateShiftRows([
+      row("May 21", "09:00", "17:00"),
+    ]);
+    expect(errors).toEqual([]);
+    expect(valid[0].date).toBe("2026-05-21");
+  });
+
+  it("infers year for day-first text no-year ('21 May')", () => {
+    vi.setSystemTime(new Date(2026, 0, 1));
+    const { valid, errors } = validateShiftRows([
+      row("21 May", "09:00", "17:00"),
+    ]);
+    expect(errors).toEqual([]);
+    expect(valid[0].date).toBe("2026-05-21");
+  });
+
+  it("mixed CSV: some rows have year, some don't — all use the same M/D convention", () => {
+    vi.setSystemTime(new Date(2026, 0, 1)); // Jan 1, 2026
+    const { valid, errors, dateConvention } = validateShiftRows([
+      row("5/21/2026", "09:00", "17:00"), // pins MDY (21 > 12)
+      row("6/15", "10:00", "18:00"),       // no year — infer 2026
+    ]);
+    expect(errors).toEqual([]);
+    expect(dateConvention).toBe("MDY");
+    expect(valid[0].date).toBe("2026-05-21");
+    expect(valid[1].date).toBe("2026-06-15"); // 6/15 → June 15
+  });
+
+  it("a no-year row can ALSO pin the convention if its first field > 12", () => {
+    // "21/5" alone — 21 can't be a month → must be D/M → May 21.
+    vi.setSystemTime(new Date(2026, 0, 1));
+    const { valid, errors, dateConvention } = validateShiftRows([
+      row("21/5", "09:00", "17:00"),
+    ]);
+    expect(errors).toEqual([]);
+    expect(dateConvention).toBe("DMY");
+    expect(valid[0].date).toBe("2026-05-21");
+  });
+
+  it("rejects no-year date when inferred year makes the calendar invalid (Feb 29 in non-leap year)", () => {
+    // Mar 1, 2026 → Feb 29 has passed → infer 2027 → Feb 29 2027 is
+    // not a real date (2027 isn't a leap year). Reject with clear error.
+    vi.setSystemTime(new Date(2026, 2, 1));
+    const { errors, valid } = validateShiftRows([
+      row("2/29", "09:00", "17:00"),
+    ]);
+    expect(valid).toEqual([]);
+    expect(errors.length).toBe(1);
+    expect(errors[0].message).toContain("not a real calendar date");
+  });
+
+  it("handles year-boundary CSV correctly (Dec rows + Jan rows in same sheet, late Dec)", () => {
+    vi.setSystemTime(new Date(2026, 11, 28)); // Dec 28, 2026
+    const { valid, errors } = validateShiftRows([
+      row("12/30", "09:00", "17:00"), // 12/30 hasn't passed → 2026
+      row("12/31", "09:00", "17:00"), // 12/31 hasn't passed → 2026
+      row("1/2", "09:00", "17:00"),   // 1/2 has passed (in 2026 frame) → 2027
+      row("1/5", "09:00", "17:00"),   // same
+    ]);
+    expect(errors).toEqual([]);
+    expect(valid[0].date).toBe("2026-12-30");
+    expect(valid[1].date).toBe("2026-12-31");
+    expect(valid[2].date).toBe("2027-01-02");
+    expect(valid[3].date).toBe("2027-01-05");
   });
 });

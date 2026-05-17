@@ -177,7 +177,8 @@ export function CsvImportPanel({
               <li>
                 <span className="font-medium">Date</span>: most common formats —{" "}
                 <code className="font-mono">2026-05-21</code>, <code className="font-mono">5/21/2026</code>,{" "}
-                <code className="font-mono">May 21, 2026</code>, etc. Year is required.
+                <code className="font-mono">May 21, 2026</code>, or just <code className="font-mono">5/21</code>{" "}
+                / <code className="font-mono">May 21</code> (year inferred — current year if upcoming, next year if it&apos;s already passed).
               </li>
               <li>
                 <span className="font-medium">Time</span>: 24-hour (<code className="font-mono">09:30</code>, <code className="font-mono">21:00</code>) or 12-hour AM/PM (<code className="font-mono">9:30 AM</code>, <code className="font-mono">9:30 PM</code>).
