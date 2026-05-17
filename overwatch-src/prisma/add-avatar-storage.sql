@@ -41,13 +41,15 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
--- Policy: anyone can view avatars (public bucket)
-DO $$ BEGIN
-  CREATE POLICY "Public avatar access"
-    ON storage.objects FOR SELECT TO public
-    USING (bucket_id = 'avatars');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+-- Note: NO public SELECT policy on the avatars bucket. Public URLs
+-- (returned by storage.from('avatars').getPublicUrl(path)) work via
+-- Supabase's CDN endpoint when bucket.public = true, which BYPASSES
+-- RLS entirely. A "FOR SELECT TO public" policy on storage.objects
+-- would only add the ability for any client to LIST every file in
+-- the bucket via /storage/v1/object/list/avatars — which is a data
+-- enumeration vector we don't want. If you need an authenticated
+-- listing for an admin UI, add a SCOPED policy (e.g. only members
+-- of the avatar owner's company) instead of a public one.
 
 -- ============================================================================
 -- ✅ Done! Avatars bucket created with RLS policies.

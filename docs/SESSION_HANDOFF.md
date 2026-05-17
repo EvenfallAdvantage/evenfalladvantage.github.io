@@ -261,6 +261,7 @@ etc.) — safe to re-run.
 | `sql/drop_event_pay_rate.sql` | Drops the redundant `events.pay_rate` column (pay rates are now strictly per-employee) | Pay rate cascade fix |
 | `sql/add_client_role.sql` | Adds `client` to the `CompanyRole` enum + updates the `update_member_role` RPC | Client Portal section in HQ Config |
 | `sql/add_site_map_quad.sql` | Adds 8 quad-corner columns to `site_map_bounds` so rotated/sheared site maps drape correctly (was axis-aligned only — west-up site plans skewed) | Site map alignment for any non-north-up source image |
+| `sql/fix_supabase_linter_warnings.sql` | One-shot cleanup of the Supabase Database Linter warnings: pins `search_path` on `operation_maps_company_for_object`, drops file-enumeration policies on `avatars` + `company-logos` buckets, revokes `EXECUTE` from `anon` (and from `authenticated` for cron/trigger helpers) on SECURITY DEFINER functions that shouldn't be publicly callable. Verified safe — every `supabase.rpc()` call site was grepped first. **Also requires:** dashboard toggle at Authentication → Policies → "Prevent use of leaked passwords" (no SQL). | Recommended for any Supabase project — drops ~32 linter warnings to ~6-8 expected ones |
 
 #### Deployment-side
 | Action | Required if you use... |

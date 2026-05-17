@@ -121,10 +121,13 @@ DROP POLICY IF EXISTS "Authenticated users can delete operation maps" ON storage
 
 -- Helper: given an object name like "<company_id>/<event_id>/foo.png",
 -- parse the leading segment as a UUID. NULL if the path doesn't have one.
+-- `SET search_path = ''` is a Postgres security best-practice: pins the
+-- schema resolution so a malicious schema can't shadow `split_part`.
 CREATE OR REPLACE FUNCTION public.operation_maps_company_for_object(object_name TEXT)
 RETURNS UUID
 LANGUAGE sql
 IMMUTABLE
+SET search_path = ''
 AS $$
   SELECT NULLIF(split_part(object_name, '/', 1), '')::uuid
 $$;

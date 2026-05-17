@@ -68,13 +68,11 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
--- Policy: anyone can view logos (public bucket)
-DO $$ BEGIN
-  CREATE POLICY "Public company logo access"
-    ON storage.objects FOR SELECT TO public
-    USING (bucket_id = 'company-logos');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
+-- Note: NO public SELECT policy on the company-logos bucket. Public
+-- URLs work via the CDN endpoint (bucket.public = true bypasses RLS).
+-- A broad SELECT-to-public policy would only enable file enumeration
+-- via /storage/v1/object/list — which we don't need. See the matching
+-- comment in add-avatar-storage.sql for the full reasoning.
 
 -- ============================================================================
 -- ✅ Done! company-logos bucket created with RLS policies.
