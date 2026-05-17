@@ -100,9 +100,24 @@ export async function deleteShift(shiftId: string) {
 
 // ─── Bulk Shift Creation ─────────────────────────────
 
+/**
+ * Bulk-insert shifts for the given event. RLS confines the write to
+ * members of the event's owning company (the `shifts.event_id → events`
+ * FK enforces this via the `shifts_insert` policy: see
+ * overwatch-src/prisma/enable-rls.sql).
+ *
+ * NOTE: the `shifts` table has no `company_id` column — company scope
+ * is derived through the event. An earlier version of this function
+ * incorrectly sent `company_id` in the insert payload, causing every
+ * bulk import to fail with a 400 from PostgREST.
+ *
+ * `companyId` is still accepted as a parameter for symmetry with other
+ * bulk APIs and forward-compatibility (if we ever denormalize company
+ * onto shifts for query speed). For now it's intentionally unused.
+ */
 export async function bulkCreateShifts(
   eventId: string,
-  companyId: string,
+  _companyId: string,
   shifts: {
     start_time: string; // UTC ISO
     end_time: string;   // UTC ISO
@@ -119,12 +134,12 @@ export async function bulkCreateShifts(
     const batch = shifts.slice(i, i + 25).map((s) => ({
       id: crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       event_id: eventId,
-      company_id: companyId,
       start_time: s.start_time,
       end_time: s.end_time,
       role: s.role ?? "Guard",
       status: s.assigned_user_id ? "confirmed" : "open",
       assigned_user_id: s.assigned_user_id ?? null,
+      notes: s.notes ?? null,
       ...ts(),
     }));
     const { error } = await supabase.from("shifts").insert(batch);

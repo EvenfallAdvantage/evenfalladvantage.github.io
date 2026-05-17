@@ -138,7 +138,17 @@ export function CsvImportPanel({
 
       const result = await bulkCreateShifts(eventId, companyId, shiftData);
       if (result.errors.length > 0) {
-        toast.error(`Imported ${result.created} shifts with ${result.errors.length} error(s)`);
+        // Surface the first error verbatim — Supabase's message tells
+        // the admin exactly what's wrong (missing column, RLS denial,
+        // constraint violation, etc.) instead of a generic count.
+        const detail = result.errors[0];
+        console.error("[CSV Import] bulkCreateShifts errors:", result.errors);
+        toast.error(
+          result.created > 0
+            ? `Imported ${result.created} shifts. ${result.errors.length} batch(es) failed: ${detail}`
+            : `Import failed: ${detail}`,
+          { duration: 10_000 },
+        );
       } else {
         toast.success(`Successfully imported ${result.created} shift${result.created !== 1 ? "s" : ""}`);
       }
