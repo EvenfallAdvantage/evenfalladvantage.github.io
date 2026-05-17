@@ -39,7 +39,12 @@ export function CsvImportPanel({
   const [csvRows, setCsvRows] = useState<string[][]>([]);
   const [csvMapping, setCsvMapping] = useState<Record<string, string | null>>({});
   const [csvStep, setCsvStep] = useState<"upload" | "map" | "preview">("upload");
-  const [csvPreview, setCsvPreview] = useState<{ valid: ShiftImportRow[]; errors: { line: number; message: string }[] } | null>(null);
+  const [csvPreview, setCsvPreview] = useState<{
+    valid: ShiftImportRow[];
+    errors: { line: number; message: string }[];
+    dateConvention: "MDY" | "DMY" | "iso";
+    conventionWasGuessed: boolean;
+  } | null>(null);
   const [csvImporting, setCsvImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -85,12 +90,13 @@ export function CsvImportPanel({
         }
       }
 
-      // Build shift rows. validateShiftRows() already enforces strict
-      // ISO date + 24h time format, so by this point each row's date/time
-      // combination is guaranteed to be parseable. The try/catch below
-      // is defense-in-depth: any future regression in upstream validation
-      // surfaces as a clear toast instead of a raw "Invalid time value"
-      // RangeError in the console.
+      // Build shift rows. validateShiftRows() normalizes whatever input
+      // format the user provided (US M/D/Y, EU D/M/Y, ISO, "May 21,
+      // 2026", 12-hour AM/PM, etc.) into strict ISO YYYY-MM-DD +
+      // HH:MM:SS, so by this point each row's date/time combination is
+      // guaranteed to be parseable. The try/catch below is defense-in-
+      // depth: any future regression in upstream validation surfaces as
+      // a clear toast instead of a raw "Invalid time value" RangeError.
       const shiftData: Array<{
         start_time: string;
         end_time: string;
@@ -166,18 +172,21 @@ export function CsvImportPanel({
             </Button>
           </div>
           <div className="mx-auto max-w-md rounded-md border border-border/40 bg-background/40 p-2.5 text-[10px] text-muted-foreground/80 space-y-1.5">
-            <p className="font-semibold text-muted-foreground">Required format</p>
+            <p className="font-semibold text-muted-foreground">Accepted formats</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>
-                <span className="font-medium">Date</span>: <code className="font-mono">YYYY-MM-DD</code> (e.g. <code className="font-mono">2026-05-21</code>)
+                <span className="font-medium">Date</span>: most common formats —{" "}
+                <code className="font-mono">2026-05-21</code>, <code className="font-mono">5/21/2026</code>,{" "}
+                <code className="font-mono">May 21, 2026</code>, etc. Year is required.
               </li>
               <li>
-                <span className="font-medium">Start / End Time</span>: 24-hour <code className="font-mono">HH:MM</code> or <code className="font-mono">HH:MM:SS</code> (e.g. <code className="font-mono">09:30</code>, <code className="font-mono">21:00</code>)
+                <span className="font-medium">Time</span>: 24-hour (<code className="font-mono">09:30</code>, <code className="font-mono">21:00</code>) or 12-hour AM/PM (<code className="font-mono">9:30 AM</code>, <code className="font-mono">9:30 PM</code>).
               </li>
-              <li>Required columns: Date, Start Time, End Time</li>
+              <li>Required columns: Date, Start Time, End Time.</li>
             </ul>
             <p className="text-muted-foreground/60">
-              Tip: Excel often exports <code className="font-mono">5/21</code> and <code className="font-mono">9:30 AM</code> — reformat the cells to <code className="font-mono">yyyy-mm-dd</code> and <code className="font-mono">hh:mm</code> before exporting.
+              Tip: ambiguous dates like <code className="font-mono">5/6/2026</code> are interpreted as M/D/Y (US) by default.
+              If at least one date has day &gt; 12 (like <code className="font-mono">5/21/2026</code>), we&apos;ll auto-detect M/D vs D/M from the whole sheet.
             </p>
           </div>
         </div>
@@ -227,6 +236,24 @@ export function CsvImportPanel({
               {csvPreview.errors.length > 0 && <Badge variant="destructive" className="text-[10px]">{csvPreview.errors.length} error{csvPreview.errors.length !== 1 ? "s" : ""}</Badge>}
             </div>
           </div>
+
+          {/* Date-convention notice. Only shown when ambiguity in the
+              CSV forced the parser to guess a convention (e.g. every row
+              had day ≤ 12 like "5/6/2026"). The user can sanity-check
+              the parsed dates in the preview table below. */}
+          {csvPreview.conventionWasGuessed && (
+            <div className="rounded border border-amber-500/30 bg-amber-500/[0.06] p-2 text-[10px] text-amber-600 leading-snug">
+              <span className="font-semibold">Heads up:</span>{" "}
+              Dates like <code className="font-mono">5/6/2026</code> are ambiguous (May 6 vs June 5).
+              We&apos;ve interpreted them as{" "}
+              <span className="font-semibold">
+                {csvPreview.dateConvention === "MDY" ? "M/D/Y (US)" : "D/M/Y (EU)"}
+              </span>
+              . If that&apos;s wrong, edit your CSV to use{" "}
+              <code className="font-mono">YYYY-MM-DD</code> format and re-upload.
+            </div>
+          )}
+
           {csvPreview.errors.length > 0 && (
             <div className="rounded border border-red-500/20 bg-red-500/[0.04] p-2 space-y-1 max-h-40 overflow-y-auto">
               {csvPreview.errors.slice(0, 10).map((e, i) => (

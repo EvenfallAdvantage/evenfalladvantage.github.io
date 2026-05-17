@@ -336,74 +336,326 @@ export function applyShiftMapping(
   });
 }
 
-/** Matches "YYYY-MM-DD" with semantically sane year/month/day ranges.
- *  Doesn't validate calendar correctness (e.g. Feb 30 passes) — the
- *  Date constructor's downstream check catches those. */
-const ISO_DATE_RE = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+// ─── Date / time parsing ────────────────────────────────────────
+// Permissive multi-format parser. Goal: accept whatever Excel coughed
+// up without making the user reformat the sheet. Output is always the
+// strict ISO form (YYYY-MM-DD and HH:MM:SS) so downstream code is
+// unchanged.
 
-/** Matches "HH:MM" or "HH:MM:SS" in 24-hour format. */
-const ISO_TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/;
+const MONTH_NAMES: Record<string, number> = {
+  jan: 1, january: 1,
+  feb: 2, february: 2,
+  mar: 3, march: 3,
+  apr: 4, april: 4,
+  may: 5,
+  jun: 6, june: 6,
+  jul: 7, july: 7,
+  aug: 8, august: 8,
+  sep: 9, sept: 9, september: 9,
+  oct: 10, october: 10,
+  nov: 11, november: 11,
+  dec: 12, december: 12,
+};
 
-/**
- * Verify that a date+time pair produces a real Date object (catches
- * invalid combos like 2026-02-30 that regex would let through).
- */
-function isValidDateTime(date: string, time: string): boolean {
-  const d = new Date(`${date}T${time}`);
-  return !isNaN(d.getTime());
+/** Two-digit year → 4-digit. Shifts are scheduled in this century. */
+function expandYear(y: number): number {
+  if (y >= 100) return y;
+  // 0-99 → 2000-2099. (No edge case for 1990s — security companies
+  // aren't scheduling shifts in the past century.)
+  return 2000 + y;
 }
 
-export function validateShiftRows(rows: ShiftImportRow[]): {
+interface ParsedYMD { year: number; month: number; day: number }
+
+/**
+ * Try to parse a date string. Returns a partial result that signals
+ * either a concrete year/month/day OR a numeric triple that is still
+ * ambiguous between M/D/Y and D/M/Y. The caller (parseDateRows) does
+ * a second pass to resolve the ambiguity using context from other rows.
+ */
+type ParseAttempt =
+  | { kind: "ok"; value: ParsedYMD }
+  | { kind: "ambiguous_numeric"; a: number; b: number; year: number } // a/b/year — could be M/D or D/M
+  | { kind: "year_first_numeric"; year: number; a: number; b: number } // year/a/b — unambiguous (a=month)
+  | { kind: "invalid"; reason: string };
+
+function tryParseDate(raw: string): ParseAttempt {
+  const s = raw.trim();
+  if (!s) return { kind: "invalid", reason: "empty" };
+
+  // ISO "YYYY-MM-DD" or "YYYY-M-D" or "YYYY/MM/DD" or "YYYY.MM.DD"
+  const iso = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (iso) {
+    const year = parseInt(iso[1], 10);
+    const month = parseInt(iso[2], 10);
+    const day = parseInt(iso[3], 10);
+    return { kind: "year_first_numeric", year, a: month, b: day };
+  }
+
+  // Numeric M/D/Y or D/M/Y with any separator. Year may be 2 or 4 digits.
+  const numeric = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
+  if (numeric) {
+    const a = parseInt(numeric[1], 10);
+    const b = parseInt(numeric[2], 10);
+    const year = expandYear(parseInt(numeric[3], 10));
+    return { kind: "ambiguous_numeric", a, b, year };
+  }
+
+  // Text month forms: "May 21, 2026" / "May 21 2026" / "21 May 2026"
+  // / "21-May-2026" / "21 May, 2026". Order is determined by where
+  // the month name appears.
+  // Month-first: "Mon D[,] YYYY"
+  const monthFirst = s.match(/^([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{2,4})$/);
+  if (monthFirst) {
+    const month = MONTH_NAMES[monthFirst[1].toLowerCase()];
+    if (month) {
+      return {
+        kind: "ok",
+        value: { year: expandYear(parseInt(monthFirst[3], 10)), month, day: parseInt(monthFirst[2], 10) },
+      };
+    }
+  }
+  // Day-first: "D Mon YYYY" or "D-Mon-YYYY"
+  const dayFirst = s.match(/^(\d{1,2})[\s-]+([A-Za-z]+)[\s,-]+(\d{2,4})$/);
+  if (dayFirst) {
+    const month = MONTH_NAMES[dayFirst[2].toLowerCase()];
+    if (month) {
+      return {
+        kind: "ok",
+        value: { year: expandYear(parseInt(dayFirst[3], 10)), month, day: parseInt(dayFirst[1], 10) },
+      };
+    }
+  }
+
+  return { kind: "invalid", reason: `unrecognized date format` };
+}
+
+/** Render a {y,m,d} as zero-padded ISO YYYY-MM-DD. */
+function formatISODate(p: ParsedYMD): string {
+  const mm = String(p.month).padStart(2, "0");
+  const dd = String(p.day).padStart(2, "0");
+  return `${p.year}-${mm}-${dd}`;
+}
+
+/** Calendar validity check (catches Feb 30 et al). */
+function isValidYMD(p: ParsedYMD): boolean {
+  if (p.month < 1 || p.month > 12) return false;
+  if (p.day < 1 || p.day > 31) return false;
+  const d = new Date(Date.UTC(p.year, p.month - 1, p.day));
+  return d.getUTCFullYear() === p.year && d.getUTCMonth() === p.month - 1 && d.getUTCDate() === p.day;
+}
+
+/**
+ * Parse a time string. Accepts:
+ *   "HH:MM"             24h         "09:30", "21:00"
+ *   "HH:MM:SS"          24h+sec     "09:30:00"
+ *   "H:MM"              24h         "9:30"  → 09:30
+ *   "h:mm AM/PM"        12h         "9:30 AM"
+ *   "h:mm:ss AM/PM"     12h+sec     "9:30:00 PM"
+ *   "h AM/PM"           12h, no min "9 AM" → 09:00:00
+ * Returns "HH:MM:SS" or null if unrecognized.
+ */
+function tryParseTime(raw: string): string | null {
+  const s = raw.trim();
+  if (!s) return null;
+
+  // 12-hour with explicit AM/PM
+  const ampm = s.match(/^(\d{1,2})(?::(\d{1,2}))?(?::(\d{1,2}))?\s*(am|pm|a\.m\.|p\.m\.)$/i);
+  if (ampm) {
+    let h = parseInt(ampm[1], 10);
+    const m = ampm[2] ? parseInt(ampm[2], 10) : 0;
+    const sec = ampm[3] ? parseInt(ampm[3], 10) : 0;
+    const isPm = /^p/i.test(ampm[4]);
+    if (h < 1 || h > 12 || m < 0 || m > 59 || sec < 0 || sec > 59) return null;
+    if (h === 12) h = 0;
+    if (isPm) h += 12;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+
+  // 24-hour
+  const h24 = s.match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if (h24) {
+    const h = parseInt(h24[1], 10);
+    const m = parseInt(h24[2], 10);
+    const sec = h24[3] ? parseInt(h24[3], 10) : 0;
+    if (h < 0 || h > 23 || m < 0 || m > 59 || sec < 0 || sec > 59) return null;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+
+  return null;
+}
+
+export type DateConvention = "MDY" | "DMY" | "iso";
+
+export interface ValidateShiftRowsResult {
   valid: ShiftImportRow[];
   errors: { line: number; message: string }[];
-} {
+  /**
+   * Which interpretation the parser chose for ambiguous numeric dates
+   * like "5/6/2026". `"iso"` means every row was already unambiguous.
+   * The caller can show a banner so the user can sanity-check.
+   */
+  dateConvention: DateConvention;
+  /** True if the dateConvention was guessed from a default rather than
+   *  pinned by an unambiguous row (e.g. all rows like "5/6"). The UI
+   *  should show a confirmation banner in this case. */
+  conventionWasGuessed: boolean;
+}
+
+/**
+ * Validate + normalize shift rows. Dates and times are returned in
+ * strict ISO form (`YYYY-MM-DD`, `HH:MM:SS`) so downstream import code
+ * doesn't need to know which input format the user provided.
+ *
+ * Ambiguity policy: if any unambiguous numeric date in the CSV pins
+ * the convention (e.g. "5/21/2026" — must be M/D because 21 > 12),
+ * apply that convention to the whole CSV. If every numeric date is
+ * ambiguous (every D ≤ 12), default to M/D (US) and set
+ * `conventionWasGuessed = true` so the UI can warn the user.
+ */
+export function validateShiftRows(rows: ShiftImportRow[]): ValidateShiftRowsResult {
   const valid: ShiftImportRow[] = [];
   const errors: { line: number; message: string }[] = [];
-  rows.forEach((r, i) => {
+
+  // ─── Pass 1: parse, gather format hints ─────────────────────
+  type RowParse = {
+    line: number;
+    raw: ShiftImportRow;
+    date?: ParseAttempt;
+    startTime?: string;
+    endTime?: string;
+    error?: string;
+  };
+  const parses: RowParse[] = rows.map((r, i) => {
     const line = i + 2; // +2 = header row + 1-indexed
-    if (!r.date) { errors.push({ line, message: "Missing date" }); return; }
-    if (!r.start_time) { errors.push({ line, message: "Missing start time" }); return; }
-    if (!r.end_time) { errors.push({ line, message: "Missing end time" }); return; }
+    if (!r.date) return { line, raw: r, error: "Missing date" };
+    if (!r.start_time) return { line, raw: r, error: "Missing start time" };
+    if (!r.end_time) return { line, raw: r, error: "Missing end time" };
 
-    // Strict ISO format validation. Common Excel exports use "5/21"
-    // (no year, ambiguous M/D vs D/M) and "9:30:00 AM" (12-hour with
-    // AM/PM). Neither is parseable as a Date in a portable way, so we
-    // require the unambiguous ISO format and tell the user exactly what
-    // to fix.
-    if (!ISO_DATE_RE.test(r.date)) {
-      errors.push({
+    const date = tryParseDate(r.date);
+    if (date.kind === "invalid") {
+      return {
         line,
-        message: `Date must be YYYY-MM-DD format (got "${r.date}"). Reformat your CSV — e.g. 2026-05-21, not 5/21.`,
-      });
-      return;
-    }
-    if (!ISO_TIME_RE.test(r.start_time)) {
-      errors.push({
-        line,
-        message: `Start time must be HH:MM or HH:MM:SS in 24-hour format (got "${r.start_time}"). Reformat your CSV — e.g. 09:30 or 21:30, not 9:30 AM.`,
-      });
-      return;
-    }
-    if (!ISO_TIME_RE.test(r.end_time)) {
-      errors.push({
-        line,
-        message: `End time must be HH:MM or HH:MM:SS in 24-hour format (got "${r.end_time}"). Reformat your CSV — e.g. 17:00, not 5:00 PM.`,
-      });
-      return;
+        raw: r,
+        error: `Date "${r.date}" — unrecognized format. Try YYYY-MM-DD (e.g. 2026-05-21), M/D/YYYY (5/21/2026), or "May 21, 2026".`,
+      };
     }
 
-    // Final sanity check — catches things like 2026-02-30 that pass regex
-    // but produce Invalid Date when constructed.
-    if (!isValidDateTime(r.date, r.start_time)) {
-      errors.push({ line, message: `Invalid start datetime: ${r.date} ${r.start_time}` });
-      return;
-    }
-    if (!isValidDateTime(r.date, r.end_time)) {
-      errors.push({ line, message: `Invalid end datetime: ${r.date} ${r.end_time}` });
-      return;
+    const startTime = tryParseTime(r.start_time);
+    if (!startTime) {
+      return {
+        line,
+        raw: r,
+        error: `Start time "${r.start_time}" — unrecognized format. Try HH:MM (24-hour like 09:30 or 21:00) or h:mm AM/PM (like 9:30 AM).`,
+      };
     }
 
-    valid.push(r);
+    const endTime = tryParseTime(r.end_time);
+    if (!endTime) {
+      return {
+        line,
+        raw: r,
+        error: `End time "${r.end_time}" — unrecognized format. Try HH:MM (24-hour like 17:00) or h:mm AM/PM (like 5:00 PM).`,
+      };
+    }
+
+    return { line, raw: r, date, startTime, endTime };
   });
-  return { valid, errors };
+
+  // ─── Resolve the date convention from the parsed rows ──────
+  // - "year_first_numeric" rows (ISO) are unambiguous → contribute nothing.
+  // - "ambiguous_numeric" rows: if a > 12 → must be D/M; if b > 12 → must be M/D.
+  //   If both ≤ 12, the row alone is ambiguous.
+  let convention: DateConvention | null = null;
+  let conventionPinnedByLine: number | null = null;
+  for (const p of parses) {
+    if (!p.date) continue;
+    if (p.date.kind !== "ambiguous_numeric") continue;
+    const { a, b } = p.date;
+    if (a > 12 && b <= 12) {
+      // first field can't be a month → must be D/M/Y
+      if (convention === "MDY") {
+        errors.push({
+          line: p.line,
+          message: `Date "${p.raw.date}" conflicts with row ${conventionPinnedByLine} which forced M/D/Y. Use YYYY-MM-DD for clarity.`,
+        });
+      } else if (convention === null) {
+        convention = "DMY";
+        conventionPinnedByLine = p.line;
+      }
+    } else if (b > 12 && a <= 12) {
+      // second field can't be a month → must be M/D/Y
+      if (convention === "DMY") {
+        errors.push({
+          line: p.line,
+          message: `Date "${p.raw.date}" conflicts with row ${conventionPinnedByLine} which forced D/M/Y. Use YYYY-MM-DD for clarity.`,
+        });
+      } else if (convention === null) {
+        convention = "MDY";
+        conventionPinnedByLine = p.line;
+      }
+    }
+  }
+  let conventionWasGuessed = false;
+  if (convention === null) {
+    // Could be all-ISO (no ambiguous_numeric rows at all) or all-ambiguous.
+    // Only call it "guessed" if there were ambiguous rows that needed it.
+    const anyAmbiguous = parses.some(p => p.date?.kind === "ambiguous_numeric");
+    convention = "MDY"; // US default
+    conventionWasGuessed = anyAmbiguous;
+  }
+
+  // ─── Pass 2: finalize each row using the resolved convention ──
+  for (const p of parses) {
+    if (p.error) {
+      errors.push({ line: p.line, message: p.error });
+      continue;
+    }
+    if (!p.date || !p.startTime || !p.endTime) continue;
+
+    let ymd: ParsedYMD;
+    if (p.date.kind === "ok") {
+      ymd = p.date.value;
+    } else if (p.date.kind === "year_first_numeric") {
+      // ISO-shape: year/month/day
+      ymd = { year: p.date.year, month: p.date.a, day: p.date.b };
+    } else if (p.date.kind === "ambiguous_numeric") {
+      // Apply the CSV-wide resolved convention
+      const { a, b, year } = p.date;
+      if (convention === "MDY") ymd = { year, month: a, day: b };
+      else ymd = { year, month: b, day: a };
+    } else {
+      // "invalid" — already pushed to errors in pass 1, but the
+      // exhaustiveness check keeps TS happy.
+      continue;
+    }
+
+    if (!isValidYMD(ymd)) {
+      errors.push({
+        line: p.line,
+        message: `Date "${p.raw.date}" is not a real calendar date (got year ${ymd.year} month ${ymd.month} day ${ymd.day}).`,
+      });
+      continue;
+    }
+
+    const normDate = formatISODate(ymd);
+    // Final sanity: combined date+time produces a real Date instance.
+    if (isNaN(new Date(`${normDate}T${p.startTime}`).getTime())) {
+      errors.push({ line: p.line, message: `Invalid start datetime: ${normDate} ${p.startTime}` });
+      continue;
+    }
+    if (isNaN(new Date(`${normDate}T${p.endTime}`).getTime())) {
+      errors.push({ line: p.line, message: `Invalid end datetime: ${normDate} ${p.endTime}` });
+      continue;
+    }
+
+    valid.push({
+      ...p.raw,
+      date: normDate,
+      start_time: p.startTime,
+      end_time: p.endTime,
+    });
+  }
+
+  return { valid, errors, dateConvention: convention, conventionWasGuessed };
 }
