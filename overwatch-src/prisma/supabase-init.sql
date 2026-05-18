@@ -509,11 +509,15 @@ CREATE INDEX "timesheets_user_id_idx" ON "timesheets"("user_id");
 -- CreateIndex
 CREATE INDEX "timesheets_clock_in_idx" ON "timesheets"("clock_in");
 
--- CreateIndex
-CREATE INDEX "time_off_policies_company_id_idx" ON "time_off_policies"("company_id");
+-- CreateIndex — DROPPED in sql/fix_perf_phase1_duplicate_indexes.sql.
+-- Duplicates idx_time_off_policies_company in supabase-setup.sql.
+-- If Prisma regenerates supabase-init.sql, re-run the phase 1 migration.
+-- CREATE INDEX "time_off_policies_company_id_idx" ON "time_off_policies"("company_id");
 
--- CreateIndex
-CREATE INDEX "time_off_requests_user_id_idx" ON "time_off_requests"("user_id");
+-- CreateIndex — DROPPED in sql/fix_perf_phase1_duplicate_indexes.sql.
+-- Duplicates idx_time_off_user in supabase-setup.sql.
+-- If Prisma regenerates supabase-init.sql, re-run the phase 1 migration.
+-- CREATE INDEX "time_off_requests_user_id_idx" ON "time_off_requests"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "assets_qr_code_key" ON "assets"("qr_code");
