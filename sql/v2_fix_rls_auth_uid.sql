@@ -31,6 +31,11 @@ AS $$
   );
 $$;
 
+-- Lock down EXECUTE: revoke the Postgres default (PUBLIC) then grant
+-- only to authenticated. Called from RLS USING/CHECK clauses.
+REVOKE EXECUTE ON FUNCTION public.is_company_manager(uuid) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.is_company_manager(uuid) TO authenticated;
+
 -- ── Fix READ policies (SELECT) ───────────────────────────────────
 -- These all used: company_id IN (SELECT company_id FROM company_memberships WHERE user_id = auth.uid())
 -- Fixed to:       company_id IN (SELECT cm.company_id FROM company_memberships cm JOIN users u ON u.id = cm.user_id WHERE u.supabase_id = auth.uid()::text)

@@ -26,6 +26,11 @@ AS $$
   );
 $$;
 
+-- Lock down EXECUTE: revoke the Postgres default (PUBLIC) then grant
+-- only to authenticated. Called from RLS USING/CHECK clauses.
+REVOKE EXECUTE ON FUNCTION public.is_company_manager(uuid) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.is_company_manager(uuid) TO authenticated;
+
 -- ── 1. Site Assessments ──────────────────────────────────────────
 
 -- Drop existing permissive policy

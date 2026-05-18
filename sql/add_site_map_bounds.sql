@@ -57,6 +57,9 @@ BEGIN
 END;
 $$;
 
+-- Lock down EXECUTE: trigger-only function, not callable via PostgREST.
+REVOKE EXECUTE ON FUNCTION public.site_map_bounds_touch_updated_at() FROM PUBLIC;
+
 DROP TRIGGER IF EXISTS trg_site_map_bounds_updated_at ON public.site_map_bounds;
 CREATE TRIGGER trg_site_map_bounds_updated_at
   BEFORE UPDATE ON public.site_map_bounds

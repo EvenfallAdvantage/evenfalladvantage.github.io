@@ -89,3 +89,8 @@ BEGIN
   RETURN jsonb_build_object('user_id', v_user_id, 'existing', v_existing_user_id IS NOT NULL);
 END;
 $$;
+
+-- Lock down EXECUTE: revoke the Postgres default (which grants to PUBLIC,
+-- letting anon execute the function) then grant only to authenticated.
+REVOKE EXECUTE ON FUNCTION public.convert_applicant_to_roster(uuid, uuid) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.convert_applicant_to_roster(uuid, uuid) TO authenticated;

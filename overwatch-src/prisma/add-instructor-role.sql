@@ -89,7 +89,10 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.update_member_role TO authenticated;
+-- Lock down EXECUTE: revoke the Postgres default (PUBLIC) then grant
+-- only to authenticated. Anon must not be able to call this RPC.
+REVOKE EXECUTE ON FUNCTION public.update_member_role(UUID, TEXT) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.update_member_role(UUID, TEXT) TO authenticated;
 
 -- Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';

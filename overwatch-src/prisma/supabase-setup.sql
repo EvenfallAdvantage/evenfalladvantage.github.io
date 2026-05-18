@@ -550,6 +550,16 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
+-- Lock down EXECUTE on the RLS helpers: revoke the Postgres default
+-- (PUBLIC, which lets anon inherit EXECUTE) and grant only to
+-- authenticated. The helpers are called from RLS USING/CHECK clauses
+-- that always run in the authenticated role context.
+REVOKE EXECUTE ON FUNCTION public.is_company_member(UUID) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.is_company_member(UUID) TO authenticated;
+
+REVOKE EXECUTE ON FUNCTION public.is_company_admin(UUID) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.is_company_admin(UUID) TO authenticated;
+
 -- Timesheets: users can manage their own
 CREATE POLICY "timesheets_select" ON timesheets FOR SELECT TO authenticated
   USING (user_id IN (SELECT id FROM users WHERE supabase_id = auth.uid()::text));

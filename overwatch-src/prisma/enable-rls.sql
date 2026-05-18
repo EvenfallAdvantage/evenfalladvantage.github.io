@@ -51,6 +51,16 @@ RETURNS UUID AS $$
   SELECT id FROM users WHERE supabase_id = auth.uid()::text LIMIT 1;
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
+-- Lock down EXECUTE on the RLS helpers: revoke the Postgres default
+-- (PUBLIC, which lets anon inherit EXECUTE) and grant only to
+-- authenticated. The helpers are called from RLS USING/CHECK clauses
+-- that always run in the authenticated role context.
+REVOKE EXECUTE ON FUNCTION public.is_company_member(UUID) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.is_company_member(UUID) TO authenticated;
+
+REVOKE EXECUTE ON FUNCTION public.get_my_user_id() FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.get_my_user_id() TO authenticated;
+
 -- ─── 3. Drop ALL existing policies (safe re-run) ─────────
 DO $$
 DECLARE

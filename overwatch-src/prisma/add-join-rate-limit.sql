@@ -153,6 +153,13 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.join_company_by_code TO authenticated;
+-- Lock down EXECUTE: revoke the Postgres default (PUBLIC) then grant
+-- only to authenticated. Anon must not be able to call this RPC.
+REVOKE EXECUTE ON FUNCTION public.join_company_by_code(
+  TEXT, TEXT, TEXT, TEXT, TEXT, TEXT
+) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.join_company_by_code(
+  TEXT, TEXT, TEXT, TEXT, TEXT, TEXT
+) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';

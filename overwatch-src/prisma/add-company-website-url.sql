@@ -23,7 +23,12 @@ AS $$
   ORDER BY c.created_at ASC;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.get_partner_companies() TO anon, authenticated;
+-- Revoke the Postgres default (PUBLIC) then explicitly grant to
+-- anon + authenticated. The explicit grants document that public
+-- (unauthenticated) access is intentional: this powers the landing
+-- page partner-logo carousel and exposes only marketing data.
+REVOKE EXECUTE ON FUNCTION public.get_partner_companies() FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.get_partner_companies() TO anon, authenticated;
 
 -- Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';

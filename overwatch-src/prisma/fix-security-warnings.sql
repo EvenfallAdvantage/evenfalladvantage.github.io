@@ -32,6 +32,20 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = '';
 
+-- ─── 3a. Lock down EXECUTE on the RLS helpers ──────────────
+-- Revoke the Postgres default (PUBLIC, which lets anon inherit
+-- EXECUTE) and grant only to authenticated. The helpers are called
+-- from inside RLS policy USING/CHECK clauses, which always run in
+-- the authenticated role context.
+REVOKE EXECUTE ON FUNCTION public.is_company_member(UUID) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.is_company_member(UUID) TO authenticated;
+
+REVOKE EXECUTE ON FUNCTION public.get_my_user_id() FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.get_my_user_id() TO authenticated;
+
+REVOKE EXECUTE ON FUNCTION public.is_company_admin(UUID) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.is_company_admin(UUID) TO authenticated;
+
 -- ─── 4. Tighten incident_updates INSERT policy ─────────────
 -- Only allow inserts if user belongs to the same company as the incident
 DROP POLICY IF EXISTS incident_updates_insert ON public.incident_updates;

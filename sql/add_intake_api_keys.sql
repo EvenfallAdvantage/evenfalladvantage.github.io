@@ -177,6 +177,9 @@ BEGIN
 END;
 $$;
 
+-- Lock down EXECUTE: cron-only function, not callable via PostgREST.
+REVOKE EXECUTE ON FUNCTION public.api_request_log_cleanup() FROM PUBLIC;
+
 -- ─── 4. Extend client_intake_tokens ────────────────────────────────
 
 ALTER TABLE public.client_intake_tokens

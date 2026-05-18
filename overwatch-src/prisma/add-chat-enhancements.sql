@@ -64,4 +64,8 @@ RETURNS VOID AS $$
   ON CONFLICT (channel_id, user_id) DO NOTHING;
 $$ LANGUAGE sql SECURITY DEFINER SET search_path = '';
 
+-- Lock down EXECUTE: presumed trigger-only; no app caller. Adjust if a
+-- direct supabase.rpc('ensure_chat_member', ...) call is added later.
+REVOKE EXECUTE ON FUNCTION public.ensure_chat_member(UUID, UUID) FROM PUBLIC;
+
 -- ─── Done ───────────────────────────────────────────────────

@@ -15,6 +15,12 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
+-- Lock down EXECUTE: revoke the Postgres default (PUBLIC) then grant
+-- only to authenticated. RLS helpers run inside policy USING/CHECK
+-- clauses in the authenticated role context.
+REVOKE EXECUTE ON FUNCTION public.is_company_admin(UUID) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.is_company_admin(UUID) TO authenticated;
+
 -- ─── DELETE policies for company-scoped tables ─────────────
 -- Admins (owner/admin/manager) can delete records in their company
 

@@ -35,6 +35,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- Lock down EXECUTE: cron-only function, not callable via PostgREST.
+REVOKE EXECUTE ON FUNCTION public.cleanup_old_audit_logs() FROM PUBLIC;
+
 -- ============================================================================
 -- ✅ Done! Security columns added to audit_logs.
 -- ============================================================================

@@ -32,6 +32,12 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
+-- Lock down EXECUTE: revoke the Postgres default (PUBLIC) then grant
+-- only to authenticated. RLS helpers run inside policy USING/CHECK
+-- clauses in the authenticated role context.
+REVOKE EXECUTE ON FUNCTION public.is_company_member(UUID) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.is_company_member(UUID) TO authenticated;
+
 -- Company-scoped tables (all have company_id column)
 DO $$
 DECLARE

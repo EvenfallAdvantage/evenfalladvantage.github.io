@@ -147,8 +147,14 @@ BEGIN
 END;
 $$;
 
--- Grant execute to authenticated users
-GRANT EXECUTE ON FUNCTION public.create_company_with_owner TO authenticated;
+-- Lock down EXECUTE: revoke the Postgres default (which grants to PUBLIC,
+-- letting anon execute the function) then grant only to authenticated.
+REVOKE EXECUTE ON FUNCTION public.create_company_with_owner(
+  TEXT, TEXT, TEXT, TEXT, TEXT, TEXT
+) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.create_company_with_owner(
+  TEXT, TEXT, TEXT, TEXT, TEXT, TEXT
+) TO authenticated;
 
 -- Reload PostgREST schema cache
 NOTIFY pgrst, 'reload schema';
