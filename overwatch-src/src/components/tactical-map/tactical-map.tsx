@@ -29,6 +29,8 @@ import { useCesiumLayers } from "./hooks/use-cesium-layers";
 import { useCesiumClickHandler } from "./hooks/use-click-handler";
 import { QuickDMModal } from "./quick-dm-modal";
 import { IntelDrawer } from "@/components/intel/intel-drawer";
+import { LiveFeedViewer } from "@/components/intel/live-feed-viewer";
+import { CctvViewer } from "@/components/intel/cctv-viewer";
 
 export type { StaffPin, OperationPin, IncidentPin } from "./types";
 
@@ -101,6 +103,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Intel drawer (RECON + alerts + sources) — Osiris integration
   const [intelDrawerOpen, setIntelDrawerOpen] = useState(false);
 
+  // Modals launched from Intel map layers
+  const [activeLiveFeed, setActiveLiveFeed] = useState<import("@/lib/intel-types").IntelLiveNewsFeed | null>(null);
+  const [activeCctvCamera, setActiveCctvCamera] = useState<import("@/lib/intel-types").CctvCamera | null>(null);
+
   // Operation documents for pin popups
   const { eventDocs, eventDocsRef, viewingDoc, setViewingDoc } = useEventDocuments(operations);
 
@@ -127,6 +133,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     // for that op so the adjuster's own preview primitive can take over
     // without visual conflict (double overlay or flicker).
     adjustingOpId: adjustingOp?.id ?? null,
+    onOpenLiveFeed: setActiveLiveFeed,
+    onOpenCctvCamera: setActiveCctvCamera,
   });
 
   // Ref to hold setSelectedEntity — declared before the init effect but
@@ -396,6 +404,23 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         onClose={() => setIntelDrawerOpen(false)}
         onLocate={handleFlyToCoords}
       />
+
+      {/* Live broadcaster feed viewer — opens from live-news map pins */}
+      {activeLiveFeed && (
+        <LiveFeedViewer
+          feed={activeLiveFeed}
+          onClose={() => setActiveLiveFeed(null)}
+        />
+      )}
+
+      {/* CCTV camera viewer — opens from CCTV map pins */}
+      {activeCctvCamera && (
+        <CctvViewer
+          camera={activeCctvCamera}
+          onClose={() => setActiveCctvCamera(null)}
+        />
+      )}
+
 
 
       {/* Custom entity popup — floating near selected point */}

@@ -30,6 +30,11 @@ import { useFiresLayer } from "./use-fires-layer";
 import { useEonetWeatherLayer } from "./use-eonet-weather-layer";
 import { useNuclearInfrastructureLayer } from "./use-nuclear-infrastructure-layer";
 import { useGdeltLayer } from "./use-gdelt-layer";
+import { useLiveNewsLayer } from "./use-live-news-layer";
+import { useSigintNewsLayer } from "./use-sigint-news-layer";
+import { useMaritimeLayer } from "./use-maritime-layer";
+import { useCctvLayer } from "./use-cctv-layer";
+import type { IntelLiveNewsFeed, CctvCamera } from "@/lib/intel-types";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -52,6 +57,10 @@ export function useCesiumLayers(params: {
    *  is suppressed here so the adjuster's preview primitive can take
    *  over without visual conflict. */
   adjustingOpId?: string | null;
+  /** Click-handler for the live-news broadcaster pins. */
+  onOpenLiveFeed?: (feed: IntelLiveNewsFeed) => void;
+  /** Click-handler for CCTV camera pins. */
+  onOpenCctvCamera?: (cam: CctvCamera) => void;
 }) {
   const {
     viewerRef,
@@ -69,6 +78,8 @@ export function useCesiumLayers(params: {
     debouncedReplayTime,
     timeMachineOpen,
     adjustingOpId,
+    onOpenLiveFeed,
+    onOpenCctvCamera,
   } = params;
 
   // Site overlay / storyboard state remains here — shared between the
@@ -156,6 +167,27 @@ export function useCesiumLayers(params: {
   useGdeltLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
     debouncedReplayTime, timeMachineOpen,
+  });
+
+  // ─── Sub-hook: Live news broadcaster dots (static + click → feed viewer) ───
+  useLiveNewsLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    onOpenFeed: onOpenLiveFeed ?? (() => {}),
+  });
+
+  // ─── Sub-hook: SIGINT RSS news (geo-mapped by keyword, deterministic risk) ──
+  useSigintNewsLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    debouncedReplayTime, timeMachineOpen,
+  });
+
+  // ─── Sub-hook: Maritime static (ports + chokepoints; AIS gated) ──────────
+  useMaritimeLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
+
+  // ─── Sub-hook: CCTV cameras (gated; click → viewer modal) ────────────────
+  useCctvLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    onOpenCamera: onOpenCctvCamera ?? (() => {}),
   });
 
   // ─── 3D Terrain & Buildings Toggle (combined) ────────

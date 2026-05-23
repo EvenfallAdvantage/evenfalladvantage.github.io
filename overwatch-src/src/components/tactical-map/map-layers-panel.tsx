@@ -5,7 +5,7 @@ import {
   Layers, Users, CloudRain, Mountain,
   Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
-  Activity, Flame, Swords, Wind, Atom, Newspaper,
+  Activity, Flame, Swords, Wind, Atom, Newspaper, Tv, Rss, Ship, Camera,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
@@ -41,6 +41,10 @@ export interface LayerVisibility {
   eonetWeather: boolean;
   nuclearInfrastructure: boolean;
   gdelt: boolean;
+  liveNews: boolean;
+  sigintNews: boolean;
+  maritime: boolean;
+  cctv: boolean;
   // Site maps
   siteOverlays: Record<string, boolean>;
   siteOverlayOpacity: number;
@@ -73,6 +77,10 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   eonetWeather: false,
   nuclearInfrastructure: false,
   gdelt: false,
+  liveNews: false,
+  sigintNews: false,
+  maritime: false,
+  cctv: false,
   siteOverlays: {},
   siteOverlayOpacity: 0.75,
 };
@@ -112,6 +120,10 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "eonetWeather", label: "Severe Weather (EONET)", icon: <Wind className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
   { key: "nuclearInfrastructure", label: "Nuclear Facilities", icon: <Atom className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
   { key: "gdelt", label: "Global Incidents", icon: <Newspaper className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
+  { key: "liveNews", label: "Live Broadcasters", icon: <Tv className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
+  { key: "sigintNews", label: "SIGINT News (RSS)", icon: <Rss className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
+  { key: "maritime", label: "Ports & Chokepoints", icon: <Ship className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
+  { key: "cctv", label: "CCTV (gated)", icon: <Camera className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
   // Visual effects
   { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "EFFECTS" },
