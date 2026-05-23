@@ -163,7 +163,6 @@ export function useMaritimeLayer(params: {
             billboard: {
               image: buildPortIcon(color),
               scale: 1.0,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             },
             label: {
@@ -174,7 +173,6 @@ export function useMaritimeLayer(params: {
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               pixelOffset: new Cesium.Cartesian2(0, -14),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 8_000_000),
             },
             description: buildPortPopup(p),
@@ -193,7 +191,6 @@ export function useMaritimeLayer(params: {
             billboard: {
               image: buildChokepointIcon(color),
               scale: 1.0,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             },
             label: {
@@ -204,7 +201,6 @@ export function useMaritimeLayer(params: {
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               pixelOffset: new Cesium.Cartesian2(0, -18),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 15_000_000),
             },
             description: buildChokePopup(c),

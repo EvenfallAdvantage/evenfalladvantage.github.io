@@ -125,7 +125,6 @@ export function useLiveNewsLayer(params: {
             billboard: {
               image: buildIcon(categoryColor(f.category)),
               scale: 1.0,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             },
             description: buildPopup(f),

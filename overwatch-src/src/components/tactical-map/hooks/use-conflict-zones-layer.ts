@@ -123,7 +123,6 @@ export function useConflictZonesLayer(params: {
             billboard: {
               image: buildIcon(z.severity),
               scale: 1.0,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             },
             label: {
@@ -134,7 +133,6 @@ export function useConflictZonesLayer(params: {
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               pixelOffset: new Cesium.Cartesian2(0, -22),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 20_000_000),
             },
             description: buildPopup(z),

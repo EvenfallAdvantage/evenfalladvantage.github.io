@@ -118,7 +118,6 @@ export function useNuclearInfrastructureLayer(params: {
             billboard: {
               image: buildIcon(color),
               scale: 1.0,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             },
             label: {
@@ -129,7 +128,6 @@ export function useNuclearInfrastructureLayer(params: {
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               pixelOffset: new Cesium.Cartesian2(0, -16),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               // Only show label once the camera is zoomed in enough.
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 5_000_000),
             },

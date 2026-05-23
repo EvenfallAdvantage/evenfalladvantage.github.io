@@ -122,7 +122,6 @@ export function useSigintNewsLayer(params: {
             billboard: {
               image: buildIcon(),
               scale: 1.0,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             },
             description: buildPopup(item),

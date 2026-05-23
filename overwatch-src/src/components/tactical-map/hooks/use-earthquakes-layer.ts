@@ -143,7 +143,6 @@ export function useEarthquakesLayer(params: {
             billboard: {
               image: buildQuakeIcon(q.magnitude),
               scale: 0.9,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             },
             description: buildPopup(q),
