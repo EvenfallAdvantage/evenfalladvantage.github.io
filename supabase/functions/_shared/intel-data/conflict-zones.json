@@ -1,0 +1,15 @@
+[
+  { "id": "cz-ukraine",     "name": "Ukraine",          "lat":  49.000, "lng":  32.000, "severity": "active_war",   "tags": ["ru-ua-conflict"] },
+  { "id": "cz-gaza",        "name": "Gaza",             "lat":  31.400, "lng":  34.350, "severity": "active_war",   "tags": ["humanitarian-crisis"] },
+  { "id": "cz-sudan",       "name": "Sudan",            "lat":  12.860, "lng":  30.220, "severity": "active_war",   "tags": ["civil-war", "humanitarian-crisis"] },
+  { "id": "cz-myanmar",     "name": "Myanmar",          "lat":  21.916, "lng":  95.956, "severity": "active_war",   "tags": ["civil-war"] },
+  { "id": "cz-drc",         "name": "DRC (East)",       "lat":  -1.500, "lng":  29.300, "severity": "active_war",   "tags": ["m23", "ethnic-conflict"] },
+  { "id": "cz-yemen",       "name": "Yemen",            "lat":  15.552, "lng":  48.516, "severity": "active_war",   "tags": ["houthi", "humanitarian-crisis"] },
+  { "id": "cz-syria",       "name": "Syria",            "lat":  35.000, "lng":  38.000, "severity": "high_tension", "tags": ["post-conflict", "fragmented"] },
+  { "id": "cz-lebanon",     "name": "Lebanon",          "lat":  33.854, "lng":  35.862, "severity": "high_tension", "tags": ["regional-instability"] },
+  { "id": "cz-sahel",       "name": "Sahel",            "lat":  15.000, "lng":   0.000, "severity": "high_tension", "tags": ["jihadist-insurgency"] },
+  { "id": "cz-somalia",     "name": "Somalia",          "lat":   5.150, "lng":  46.200, "severity": "high_tension", "tags": ["al-shabaab"] },
+  { "id": "cz-red-sea",     "name": "Red Sea",          "lat":  20.000, "lng":  38.500, "severity": "high_tension", "tags": ["maritime-attacks"] },
+  { "id": "cz-taiwan-str",  "name": "Taiwan Strait",    "lat":  24.000, "lng": 119.000, "severity": "elevated",     "tags": ["cross-strait-tension"] },
+  { "id": "cz-korean-dmz",  "name": "Korean DMZ",       "lat":  38.000, "lng": 127.000, "severity": "elevated",     "tags": ["dprk-rok"] }
+]

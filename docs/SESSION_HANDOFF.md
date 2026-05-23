@@ -271,6 +271,25 @@ etc.) — safe to re-run.
 | `npx supabase functions deploy intake-ingest --no-verify-jwt` | API Sources / external website forwarding |
 | Run `overwatch-src/prisma/add-company-logos-storage.sql` (if not already applied) | Company logo upload (Issue diagnosed May 15) |
 | Run `overwatch-src/prisma/add-avatar-storage.sql` (if not already applied) | **User avatar upload** — without this, profile picture upload fails with `new row violates row-level security policy` (Tony reported May 15) |
+| `npx supabase functions deploy intel-earthquakes intel-fires intel-eonet-weather intel-space-weather intel-news intel-gdelt intel-live-news intel-infrastructure intel-conflict-zones intel-maritime intel-country-risk intel-cyber-threats intel-region-dossier intel-cctv intel-osint-dns intel-osint-whois intel-osint-ip intel-osint-cve intel-osint-threats intel-osint-bgp intel-osint-certs intel-osint-sweep --no-verify-jwt` | **Intel features (Phase A backend lift)** — 22 Edge Functions ported from the Osiris OSS project (MIT). Required before any client-side Intel UI is wired. All keyless and free; `intel-cctv` is feature-flag-gated until legal review per `THIRD-PARTY-NOTICES.md`. |
+
+### Intel feature flags (`overwatch-src/src/lib/intel-feature-flags.ts`)
+
+Phase A wired 22 Supabase Edge Functions that proxy free public OSINT data
+(earthquakes, fires, EONET, space weather, news, GDELT, live broadcasters,
+nuclear infrastructure, conflict zones, maritime ports/chokepoints, country
+risk, CISA KEV, region dossier, CCTV, plus 8 RECON tools: DNS, WHOIS, IP,
+CVE, threats, BGP, certs, sweep). Each layer has a feature flag controlling
+whether the corresponding UI toggle is enabled. Two are off by default:
+
+- `cctv` — gated by legal review (TfL, state DOT terms vary)
+- `maritime_ais` — needs aisstream.io API key + long-lived worker (Phase E)
+
+Update the flag's `enabled: true` only after the corresponding gate clears.
+Required attribution strings are listed per-flag and surfaced by the
+`getRequiredAttributions()` helper.
+
+See `docs/THIRD-PARTY-NOTICES.md` for the full attribution list.
 
 #### Detection in the UI
 The HQ Config sections now detect missing migrations and show a clear
