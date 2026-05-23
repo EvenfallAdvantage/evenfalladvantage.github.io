@@ -27,6 +27,9 @@ import { useHeatmapLayer } from "./use-heatmap-layer";
 import { useEarthquakesLayer } from "./use-earthquakes-layer";
 import { useConflictZonesLayer } from "./use-conflict-zones-layer";
 import { useFiresLayer } from "./use-fires-layer";
+import { useEonetWeatherLayer } from "./use-eonet-weather-layer";
+import { useNuclearInfrastructureLayer } from "./use-nuclear-infrastructure-layer";
+import { useGdeltLayer } from "./use-gdelt-layer";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -136,6 +139,21 @@ export function useCesiumLayers(params: {
   // ─── Sub-hook: Active fires (NASA FIRMS + EONET volcanoes) ─────
   // Live-only; FIRMS provides 24h rolling window.
   useFiresLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    debouncedReplayTime, timeMachineOpen,
+  });
+
+  // ─── Sub-hook: EONET severe weather (storms / volcanoes / sea ice) ─────
+  useEonetWeatherLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    debouncedReplayTime, timeMachineOpen,
+  });
+
+  // ─── Sub-hook: Nuclear infrastructure (curated static, ~56 NPPs) ─────
+  useNuclearInfrastructureLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
+
+  // ─── Sub-hook: GDELT global incidents (RSS keyword-geomap) ─────
+  useGdeltLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
     debouncedReplayTime, timeMachineOpen,
   });

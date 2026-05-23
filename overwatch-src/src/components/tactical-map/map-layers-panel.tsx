@@ -5,7 +5,7 @@ import {
   Layers, Users, CloudRain, Mountain,
   Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
-  Activity, Flame, Swords,
+  Activity, Flame, Swords, Wind, Atom, Newspaper,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
@@ -38,6 +38,9 @@ export interface LayerVisibility {
   earthquakes: boolean;
   conflictZones: boolean;
   fires: boolean;
+  eonetWeather: boolean;
+  nuclearInfrastructure: boolean;
+  gdelt: boolean;
   // Site maps
   siteOverlays: Record<string, boolean>;
   siteOverlayOpacity: number;
@@ -67,6 +70,9 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   earthquakes: false,
   conflictZones: false,
   fires: false,
+  eonetWeather: false,
+  nuclearInfrastructure: false,
+  gdelt: false,
   siteOverlays: {},
   siteOverlayOpacity: 0.75,
 };
@@ -103,6 +109,9 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "earthquakes", label: "Earthquakes (M2.5+)", icon: <Activity className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
   { key: "conflictZones", label: "Conflict Zones", icon: <Swords className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
   { key: "fires", label: "Active Fires (FIRMS)", icon: <Flame className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
+  { key: "eonetWeather", label: "Severe Weather (EONET)", icon: <Wind className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
+  { key: "nuclearInfrastructure", label: "Nuclear Facilities", icon: <Atom className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
+  { key: "gdelt", label: "Global Incidents", icon: <Newspaper className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
   // Visual effects
   { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "EFFECTS" },
