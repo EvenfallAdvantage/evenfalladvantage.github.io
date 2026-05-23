@@ -78,3 +78,125 @@ verify_jwt = false
 # No JWT possible — third-party sites can't carry Supabase auth.
 import_map = "./functions/intake-ingest/deno.json"
 entrypoint = "./functions/intake-ingest/index.ts"
+
+# ─── Intel (Osiris-derived OSINT) ─────────────────────────────────
+# All public OSINT proxies. JWT verification disabled because:
+#   1. The browser preflight OPTIONS request has no Authorization header
+#      and would be rejected by the platform gateway before reaching the
+#      function (causing the "preflight does not have HTTP ok status" CORS
+#      error the user hit in production).
+#   2. The functions only proxy publicly-available data (USGS, NASA, NOAA,
+#      CISA KEV, ip-api.com, dns.google, crt.sh, etc.) — there is no
+#      sensitive user data to protect.
+#   3. Per-function rate limits + SSRF guards (in _shared/ssrf-guard.ts)
+#      provide the actual abuse protection.
+
+[functions.intel-earthquakes]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-earthquakes/index.ts"
+
+[functions.intel-fires]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-fires/index.ts"
+
+[functions.intel-eonet-weather]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-eonet-weather/index.ts"
+
+[functions.intel-space-weather]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-space-weather/index.ts"
+
+[functions.intel-news]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-news/index.ts"
+
+[functions.intel-gdelt]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-gdelt/index.ts"
+
+[functions.intel-live-news]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-live-news/index.ts"
+
+[functions.intel-infrastructure]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-infrastructure/index.ts"
+
+[functions.intel-conflict-zones]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-conflict-zones/index.ts"
+
+[functions.intel-maritime]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-maritime/index.ts"
+
+[functions.intel-country-risk]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-country-risk/index.ts"
+
+[functions.intel-cyber-threats]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-cyber-threats/index.ts"
+
+[functions.intel-region-dossier]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-region-dossier/index.ts"
+
+[functions.intel-cctv]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-cctv/index.ts"
+
+[functions.intel-osint-dns]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-osint-dns/index.ts"
+
+[functions.intel-osint-whois]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-osint-whois/index.ts"
+
+[functions.intel-osint-ip]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-osint-ip/index.ts"
+
+[functions.intel-osint-cve]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-osint-cve/index.ts"
+
+[functions.intel-osint-threats]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-osint-threats/index.ts"
+
+[functions.intel-osint-bgp]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-osint-bgp/index.ts"
+
+[functions.intel-osint-certs]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-osint-certs/index.ts"
+
+[functions.intel-osint-sweep]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-osint-sweep/index.ts"
