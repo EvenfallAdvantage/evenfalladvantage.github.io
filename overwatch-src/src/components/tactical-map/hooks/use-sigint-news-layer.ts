@@ -8,6 +8,7 @@
 
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
+import { escapeHtml, safeHttpUrl } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelNews } from "@/lib/intel-client";
 import type { IntelNewsItem } from "@/lib/intel-types";
@@ -44,15 +45,6 @@ function buildIcon(): HTMLCanvasElement {
   return canvas;
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function riskColor(score: number): string {
   if (score >= 8) return "#ef4444";
   if (score >= 6) return "#f97316";
@@ -60,11 +52,12 @@ function riskColor(score: number): string {
 }
 
 function buildPopup(item: IntelNewsItem): string {
+  const safeLink = safeHttpUrl(item.link);
   return `<div style="font-family:monospace;font-size:11px;line-height:1.7;max-width:300px">
     <b style="color:${riskColor(item.risk_score)}">${escapeHtml(item.source)} · risk ${item.risk_score}</b>
     <div style="margin-top:4px">${escapeHtml(item.title)}</div>
     ${item.published ? `<div style="color:#94a3b8;margin-top:4px">${escapeHtml(item.published)}</div>` : ""}
-    ${item.link ? `<div style="margin-top:4px"><a href="${escapeHtml(item.link)}" target="_blank" rel="noopener" style="color:#7dd3fc">Read article →</a></div>` : ""}
+    ${safeLink ? `<div style="margin-top:4px"><a href="${escapeHtml(safeLink)}" target="_blank" rel="noopener" style="color:#7dd3fc">Read article →</a></div>` : ""}
   </div>`;
 }
 

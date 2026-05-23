@@ -15,6 +15,7 @@
 
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
+import { escapeHtml, safeHttpUrl } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelEarthquakes } from "@/lib/intel-client";
 import type { IntelEarthquake } from "@/lib/intel-types";
@@ -68,6 +69,7 @@ function buildPopup(q: IntelEarthquake): string {
   const tsunamiLine = q.tsunami
     ? `<div style="color:#fca5a5"><b>TSUNAMI ALERT</b></div>`
     : "";
+  const safeUrl = safeHttpUrl(q.url);
   return `<div style="font-family:monospace;font-size:11px;line-height:1.7">
     <b>M${q.magnitude.toFixed(1)} — ${escapeHtml(q.place || "Unknown location")}</b>
     <div>Depth: ${q.depth.toFixed(1)} km</div>
@@ -75,17 +77,8 @@ function buildPopup(q: IntelEarthquake): string {
     ${q.felt != null ? `<div>Felt reports: ${q.felt}</div>` : ""}
     ${q.alert ? `<div>PAGER alert: ${escapeHtml(q.alert)}</div>` : ""}
     ${tsunamiLine}
-    ${q.url ? `<div style="margin-top:4px"><a href="${escapeHtml(q.url)}" target="_blank" rel="noopener" style="color:#7dd3fc">USGS event page →</a></div>` : ""}
+    ${safeUrl ? `<div style="margin-top:4px"><a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener" style="color:#7dd3fc">USGS event page →</a></div>` : ""}
   </div>`;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 const REFRESH_INTERVAL_MS = 15 * 60_000; // 15 min

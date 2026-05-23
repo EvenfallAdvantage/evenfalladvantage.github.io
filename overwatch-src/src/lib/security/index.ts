@@ -191,6 +191,31 @@ export function escapeHtml(str: string): string {
   return str.replace(/[&<>"'`/]/g, (char) => HTML_ENTITIES[char] || char);
 }
 
+/**
+ * Return `url` if it parses to an http:/https: URL, otherwise return null.
+ *
+ * Use this before interpolating any external URL into an `href` or `src`
+ * attribute when the URL came from an untrusted source (e.g. RSS feeds,
+ * upstream OSINT proxies). Plain `escapeHtml` is not enough — it lets
+ * `javascript:` URIs through as attribute values.
+ *
+ * Returns null for `javascript:`, `data:`, `vbscript:`, relative URLs, and
+ * anything that fails URL parsing. Callers should treat the return value
+ * as the source of truth; if null, the surrounding link / iframe / image
+ * should be omitted entirely.
+ */
+export function safeHttpUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+  return parsed.toString();
+}
+
 /** Strip all HTML tags */
 export function stripTags(str: string): string {
   return str.replace(/<[^>]*>/g, "");

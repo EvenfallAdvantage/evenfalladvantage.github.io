@@ -15,6 +15,7 @@
 
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
+import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelCctv } from "@/lib/intel-client";
 import { INTEL_LAYER_FLAGS } from "@/lib/intel-feature-flags";
@@ -50,15 +51,6 @@ function buildIcon(): HTMLCanvasElement {
 
   iconCacheValue = canvas;
   return canvas;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function buildPopup(cam: CctvCamera): string {

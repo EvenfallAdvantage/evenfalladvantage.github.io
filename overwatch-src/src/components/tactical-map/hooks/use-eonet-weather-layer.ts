@@ -11,6 +11,7 @@
 
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
+import { escapeHtml, safeHttpUrl } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelEonetWeather } from "@/lib/intel-client";
 import type { IntelEonetEvent } from "@/lib/intel-types";
@@ -87,21 +88,13 @@ function buildIcon(event: IntelEonetEvent): HTMLCanvasElement {
   return canvas;
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function buildPopup(e: IntelEonetEvent): string {
+  const safeSource = safeHttpUrl(e.source);
   return `<div style="font-family:monospace;font-size:11px;line-height:1.7">
     <b style="color:${iconColor(e.icon)}">${escapeHtml(e.type)}</b>
     <div>${escapeHtml(e.title)}</div>
     ${e.date ? `<div style="color:#94a3b8">${escapeHtml(e.date.split("T")[0])}</div>` : ""}
-    ${e.source ? `<div style="margin-top:4px"><a href="${escapeHtml(e.source)}" target="_blank" rel="noopener" style="color:#7dd3fc">Source →</a></div>` : ""}
+    ${safeSource ? `<div style="margin-top:4px"><a href="${escapeHtml(safeSource)}" target="_blank" rel="noopener" style="color:#7dd3fc">Source →</a></div>` : ""}
   </div>`;
 }
 

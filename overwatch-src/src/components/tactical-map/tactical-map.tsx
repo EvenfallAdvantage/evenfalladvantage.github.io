@@ -34,6 +34,7 @@ import { CctvViewer } from "@/components/intel/cctv-viewer";
 import { RegionDossierModal } from "@/components/intel/region-dossier-modal";
 import { GlobalStatusBar } from "@/components/intel/global-status-bar";
 import { KeyboardShortcutsModal } from "@/components/intel/keyboard-shortcuts-modal";
+import { AttributionModal } from "@/components/intel/attribution-modal";
 
 export type { StaffPin, OperationPin, IncidentPin } from "./types";
 
@@ -115,6 +116,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
   // Keyboard shortcuts overlay (toggle with ?)
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Attribution modal launched from the global status bar Info button.
+  const [attributionOpen, setAttributionOpen] = useState(false);
 
   // One-shot tab switch for the Intel drawer driven by keyboard shortcuts.
   const [forcedIntelTab, setForcedIntelTab] = useState<"recon" | "alerts" | "sources" | null>(null);
@@ -407,8 +411,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         return;
       }
       if (e.key === "Escape") {
-        // Top-down close priority: shortcuts modal → dossier → cctv → live feed → drawer.
+        // Top-down close priority: shortcuts → attribution → dossier → cctv → live feed → drawer.
         if (shortcutsOpen) { setShortcutsOpen(false); return; }
+        if (attributionOpen) { setAttributionOpen(false); return; }
         if (regionDossier) { setRegionDossier(null); return; }
         if (activeCctvCamera) { setActiveCctvCamera(null); return; }
         if (activeLiveFeed) { setActiveLiveFeed(null); return; }
@@ -455,6 +460,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     return () => window.removeEventListener("keydown", onKey);
   }, [
     shortcutsOpen,
+    attributionOpen,
     regionDossier,
     activeCctvCamera,
     activeLiveFeed,
@@ -522,7 +528,17 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       />
 
       {/* Global status bar — bottom-center; admin-only by convention */}
-      {isAdmin && <GlobalStatusBar enabled={!loading && !error} />}
+      {isAdmin && (
+        <GlobalStatusBar
+          enabled={!loading && !error}
+          onOpenAttribution={() => setAttributionOpen(true)}
+        />
+      )}
+
+      {/* Attribution modal — launched from the status bar's info button */}
+      {attributionOpen && (
+        <AttributionModal onClose={() => setAttributionOpen(false)} />
+      )}
 
       {/* Keyboard shortcuts modal — `?` to open */}
       {shortcutsOpen && (

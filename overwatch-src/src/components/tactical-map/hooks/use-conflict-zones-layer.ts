@@ -8,6 +8,7 @@
 
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
+import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelConflictZones } from "@/lib/intel-client";
 import type { IntelConflictZone } from "@/lib/intel-types";
@@ -66,15 +67,6 @@ function buildIcon(severity: IntelConflictZone["severity"]): HTMLCanvasElement {
 
   iconCache.set(key, canvas);
   return canvas;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function buildPopup(z: IntelConflictZone): string {

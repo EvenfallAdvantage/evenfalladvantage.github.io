@@ -8,6 +8,7 @@
 
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
+import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelInfrastructure } from "@/lib/intel-client";
 import type { IntelNuclearFacility } from "@/lib/intel-types";
@@ -64,15 +65,6 @@ function buildIcon(color: string): HTMLCanvasElement {
 
   iconCache.set(color, canvas);
   return canvas;
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function buildPopup(f: IntelNuclearFacility): string {

@@ -9,6 +9,7 @@
 
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
+import { escapeHtml, safeHttpUrl } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelGdelt } from "@/lib/intel-client";
 import type { IntelGdeltEvent } from "@/lib/intel-types";
@@ -45,20 +46,12 @@ function buildIcon(): HTMLCanvasElement {
   return canvas;
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function buildPopup(e: IntelGdeltEvent): string {
+  const safeUrl = safeHttpUrl(e.url);
   return `<div style="font-family:monospace;font-size:11px;line-height:1.7">
     <b style="color:#e11d48">${escapeHtml(e.source)}</b>
     <div>${escapeHtml(e.title)}</div>
-    ${e.url ? `<div style="margin-top:4px"><a href="${escapeHtml(e.url)}" target="_blank" rel="noopener" style="color:#7dd3fc">Read article →</a></div>` : ""}
+    ${safeUrl ? `<div style="margin-top:4px"><a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener" style="color:#7dd3fc">Read article →</a></div>` : ""}
   </div>`;
 }
 
