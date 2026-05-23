@@ -123,7 +123,7 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "liveNews", label: "Live Broadcasters", icon: <Tv className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
   { key: "sigintNews", label: "SIGINT News (RSS)", icon: <Rss className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
   { key: "maritime", label: "Ports & Chokepoints", icon: <Ship className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
-  { key: "cctv", label: "CCTV (gated)", icon: <Camera className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
+  { key: "cctv", label: "CCTV Cameras", icon: <Camera className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
   // Visual effects
   { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "EFFECTS" },

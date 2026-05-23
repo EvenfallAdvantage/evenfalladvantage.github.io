@@ -31,6 +31,9 @@ import { QuickDMModal } from "./quick-dm-modal";
 import { IntelDrawer } from "@/components/intel/intel-drawer";
 import { LiveFeedViewer } from "@/components/intel/live-feed-viewer";
 import { CctvViewer } from "@/components/intel/cctv-viewer";
+import { RegionDossierModal } from "@/components/intel/region-dossier-modal";
+import { GlobalStatusBar } from "@/components/intel/global-status-bar";
+import { KeyboardShortcutsModal } from "@/components/intel/keyboard-shortcuts-modal";
 
 export type { StaffPin, OperationPin, IncidentPin } from "./types";
 
@@ -106,6 +109,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Modals launched from Intel map layers
   const [activeLiveFeed, setActiveLiveFeed] = useState<import("@/lib/intel-types").IntelLiveNewsFeed | null>(null);
   const [activeCctvCamera, setActiveCctvCamera] = useState<import("@/lib/intel-types").CctvCamera | null>(null);
+
+  // Region dossier — opened on right-click anywhere on the globe.
+  const [regionDossier, setRegionDossier] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Keyboard shortcuts overlay (toggle with ?)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // One-shot tab switch for the Intel drawer driven by keyboard shortcuts.
+  const [forcedIntelTab, setForcedIntelTab] = useState<"recon" | "alerts" | "sources" | null>(null);
 
   // Operation documents for pin popups
   const { eventDocs, eventDocsRef, viewingDoc, setViewingDoc } = useEventDocuments(operations);
@@ -293,6 +305,32 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   });
   useEffect(() => { setSelectedEntityRef.current = setSelectedEntity; });
 
+  // Right-click → open Region Dossier modal at the picked coordinates.
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading) return;
+
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    handler.setInputAction((click: { position: { x: number; y: number } }) => {
+      // Pick the surface coordinate under the cursor.
+      const ray = viewer.camera.getPickRay(click.position);
+      if (!ray) return;
+      const cartesian = viewer.scene.globe.pick(ray, viewer.scene);
+      if (!cartesian) return;
+      const carto = Cesium.Cartographic.fromCartesian(cartesian);
+      const lat = Cesium.Math.toDegrees(carto.latitude);
+      const lng = Cesium.Math.toDegrees(carto.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      setRegionDossier({ lat, lng });
+    }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+
+    return () => {
+      try { handler.destroy(); }
+      catch (err) { logger.swallow("tactical-map:right-click-handler", err); }
+    };
+  }, [loading]);
+
   // Track container width for popup positioning (avoids ref access during render)
   useEffect(() => {
     const el = containerRef.current;
@@ -350,6 +388,83 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
+  // Global keyboard shortcuts. Ignores keys when focus is in an input.
+  useEffect(() => {
+    function isEditable(target: EventTarget | null): boolean {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      return target.isContentEditable;
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isEditable(e.target)) return;
+
+      // `?` opens the keyboard shortcuts help. `Shift+/` on US keyboards.
+      if (e.key === "?") {
+        e.preventDefault();
+        setShortcutsOpen((o) => !o);
+        return;
+      }
+      if (e.key === "Escape") {
+        // Top-down close priority: shortcuts modal → dossier → cctv → live feed → drawer.
+        if (shortcutsOpen) { setShortcutsOpen(false); return; }
+        if (regionDossier) { setRegionDossier(null); return; }
+        if (activeCctvCamera) { setActiveCctvCamera(null); return; }
+        if (activeLiveFeed) { setActiveLiveFeed(null); return; }
+        if (intelDrawerOpen) { setIntelDrawerOpen(false); return; }
+        return;
+      }
+
+      const k = e.key.toLowerCase();
+      switch (k) {
+        case "i":
+          setIntelDrawerOpen((o) => !o);
+          break;
+        case "a":
+          setIntelDrawerOpen(true);
+          setForcedIntelTab("alerts");
+          // Reset the one-shot so subsequent presses re-trigger the effect.
+          setTimeout(() => setForcedIntelTab(null), 0);
+          break;
+        case "r":
+          setIntelDrawerOpen(true);
+          setForcedIntelTab("recon");
+          setTimeout(() => setForcedIntelTab(null), 0);
+          break;
+        case "s":
+          setIntelDrawerOpen(true);
+          setForcedIntelTab("sources");
+          setTimeout(() => setForcedIntelTab(null), 0);
+          break;
+        case "f":
+          handleFullscreen();
+          break;
+        case "n":
+          handleResetNorth();
+          break;
+        case "t":
+          setTimeMachineOpen(!timeMachineOpen);
+          break;
+        default:
+          return;
+      }
+      e.preventDefault();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [
+    shortcutsOpen,
+    regionDossier,
+    activeCctvCamera,
+    activeLiveFeed,
+    intelDrawerOpen,
+    timeMachineOpen,
+    handleFullscreen,
+    handleResetNorth,
+    setTimeMachineOpen,
+  ]);
+
   const handleFlyToAll = useCallback(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
@@ -403,7 +518,16 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         open={intelDrawerOpen}
         onClose={() => setIntelDrawerOpen(false)}
         onLocate={handleFlyToCoords}
+        forceTab={forcedIntelTab}
       />
+
+      {/* Global status bar — bottom-center; admin-only by convention */}
+      {isAdmin && <GlobalStatusBar enabled={!loading && !error} />}
+
+      {/* Keyboard shortcuts modal — `?` to open */}
+      {shortcutsOpen && (
+        <KeyboardShortcutsModal onClose={() => setShortcutsOpen(false)} />
+      )}
 
       {/* Live broadcaster feed viewer — opens from live-news map pins */}
       {activeLiveFeed && (
@@ -418,6 +542,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         <CctvViewer
           camera={activeCctvCamera}
           onClose={() => setActiveCctvCamera(null)}
+        />
+      )}
+
+      {/* Region dossier — opens on right-click anywhere on the globe */}
+      {regionDossier && (
+        <RegionDossierModal
+          lat={regionDossier.lat}
+          lng={regionDossier.lng}
+          onClose={() => setRegionDossier(null)}
         />
       )}
 

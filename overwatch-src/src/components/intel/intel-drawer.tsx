@@ -23,20 +23,36 @@ import { CertsTab } from "./recon-tabs/certs-tab";
 import { SweepTab } from "./recon-tabs/sweep-tab";
 import { LiveAlertsTab } from "./live-alerts-tab";
 
+type TopTab = "recon" | "alerts" | "sources";
+type ReconTab = "dns" | "whois" | "ip" | "cve" | "threats" | "bgp" | "certs" | "sweep";
+
 interface IntelDrawerProps {
   open: boolean;
   onClose: () => void;
   /** Optional camera-flyto callback for ticker rows. */
   onLocate?: (lat: number, lng: number) => void;
+  /** When set, switches the drawer to this tab on next render. The parent
+   * is responsible for clearing it after handling (one-shot pattern). */
+  forceTab?: TopTab | null;
 }
 
-type TopTab = "recon" | "alerts" | "sources";
-type ReconTab = "dns" | "whois" | "ip" | "cve" | "threats" | "bgp" | "certs" | "sweep";
-
-export function IntelDrawer({ open, onClose, onLocate }: IntelDrawerProps) {
+export function IntelDrawer({ open, onClose, onLocate, forceTab }: IntelDrawerProps) {
   const [tab, setTab] = useState<TopTab>("recon");
   const [reconTab, setReconTab] = useState<ReconTab>("dns");
   const [showAttribution, setShowAttribution] = useState(false);
+
+  // React-idiomatic "honor a parent-driven prop change" pattern: store the
+  // last seen value of `forceTab` in state and compare during render. When
+  // a new non-null forceTab arrives, mirror it into `tab`. Allowed by the
+  // React Compiler purity rules because both setState calls happen within
+  // the conditional in the render body (the "Adjusting state based on
+  // props" pattern documented at react.dev/learn/you-might-not-need-an-effect).
+  const [lastForceTab, setLastForceTab] = useState<TopTab | null>(null);
+  const incomingForceTab: TopTab | null = forceTab ?? null;
+  if (incomingForceTab !== lastForceTab) {
+    setLastForceTab(incomingForceTab);
+    if (incomingForceTab) setTab(incomingForceTab);
+  }
 
   if (!open) return null;
 

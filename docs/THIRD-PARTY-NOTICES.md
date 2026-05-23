@@ -58,14 +58,28 @@ sources are currently enabled and any gating reasons.
 | NASA EONET imagery | EONET events layer | "NASA EONET" |
 | CelesTrak TLE catalog | Satellite orbits | "CelesTrak" |
 | OpenSky Network / adsb.lol | Flight tracking layer | "OpenSky Network" |
+| LTA Singapore (data.gov.sg) | CCTV layer — Singapore | "LTA Singapore" |
+| Florida DOT (FL-511) | CCTV layer — Florida | "FL-511" |
+| Caltrans (cwwp2.dot.ca.gov) | CCTV layer — California | "Caltrans" |
 
-### Restricted — legal review pending before enable
+### Available for future activation — per-region legal review required
+
+The upstream Osiris CCTV aggregator supports additional sources whose ToS
+need per-jurisdiction review before the regions are wired into `intel-cctv`:
+
+| Source | Restriction |
+|---|---|
+| TfL JamCams (London) | Free for non-commercial; commercial use requires TfL registration |
+| WSDOT, NYC DOT, etc. | Open data with varying terms; check per-jurisdiction |
+| ASFINAG (Austria) | Free with attribution; check ToS |
+| 511 Ontario / Alberta (Canada) | Open data |
+| Netherlands NDW (RWS) | Open data |
+| Bulgaria / Greece / Serbia / Macedonia / Romania / Turkey | Varies; some require source attribution |
+
+### Restricted — still gated
 
 | Source | Used for | Restriction |
 |---|---|---|
-| TfL JamCams | CCTV layer (London) | Free for non-commercial; commercial use requires TfL registration |
-| WSDOT, Caltrans, NYC DOT, etc. | CCTV layer (regional) | Open data with varying terms; check per-jurisdiction |
-| ASFINAG (Austria) | CCTV layer | Free with attribution; check ToS |
 | aisstream.io | Live AIS ship tracking | Free for non-commercial / requires registered API key for production traffic |
 
 Layers with restrictions are toggled OFF in `INTEL_LAYER_FLAGS` until legal

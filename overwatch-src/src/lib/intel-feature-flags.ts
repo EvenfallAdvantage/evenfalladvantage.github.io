@@ -96,11 +96,16 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
     attribution: "Public RSS (BBC, AlJazeera, NPR, GDACS, NHK)",
   },
 
-  // ─── Surveillance: gated pending legal review ─────────────────────
+  // ─── Surveillance: legal review cleared (May 2026) ────────────────
+  // Initial enabled scope: Singapore LTA traffic-images, FL-511 (Florida DOT),
+  // Caltrans California districts. All are public open-data sources cleared
+  // for the Overwatch user base. Additional regions (TfL JamCams, WSDOT, NYC
+  // DOT, ASFINAG, Bulgaria, Greece, Serbia, Macedonia, Romania, Turkey) are
+  // available in the upstream Osiris implementation and can be added per
+  // region as their individual ToS are reviewed.
   cctv: {
-    enabled: false,
-    gatedBy: "Legal review pending (TfL JamCams + state DOT terms vary)",
-    attribution: "TfL, WSDOT, Caltrans, NYC DOT, ASFINAG, et al.",
+    enabled: true,
+    attribution: "LTA Singapore, FL-511, Caltrans (initial scope)",
     attributionRequired: true,
   },
 
