@@ -57,6 +57,19 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     signal: AbortSignal.timeout(20_000),
     ...init,
   });
+  // Edge function gateway returns 401 with a non-JSON body if verify_jwt is
+  // enabled on a function that's meant to be public. Detect non-JSON before
+  // calling .json() so callers get a clean Error instead of a parse stack
+  // trace polluting Sentry.
+  if (!res.ok) {
+    const ct = res.headers.get("content-type") ?? "";
+    if (!ct.includes("application/json")) {
+      throw new Error(
+        `Intel function ${path} returned ${res.status} (${ct || "no content-type"}) — ` +
+        `likely verify_jwt=true on the function; redeploy with --no-verify-jwt`,
+      );
+    }
+  }
   return (await res.json()) as T;
 }
 
