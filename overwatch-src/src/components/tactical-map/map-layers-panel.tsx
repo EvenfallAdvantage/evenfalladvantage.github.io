@@ -5,6 +5,7 @@ import {
   Layers, Users, CloudRain, Mountain,
   Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
+  Activity,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
@@ -33,6 +34,8 @@ export interface LayerVisibility {
   satelliteOrbits: boolean;
   // S2 Underground Intel
   s2Intel: boolean;
+  // Global Intel layers (Phase C — Osiris integration)
+  earthquakes: boolean;
   // Site maps
   siteOverlays: Record<string, boolean>;
   siteOverlayOpacity: number;
@@ -59,6 +62,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   aircraft: false,
   satelliteOrbits: false,
   s2Intel: false,
+  earthquakes: false,
   siteOverlays: {},
   siteOverlayOpacity: 0.75,
 };
@@ -91,6 +95,8 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "s2Intel", label: "S2 Underground CIP", icon: <Shield className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  // Global Intel (Osiris-derived)
+  { key: "earthquakes", label: "Earthquakes (M2.5+)", icon: <Activity className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
   // Visual effects
   { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "EFFECTS" },

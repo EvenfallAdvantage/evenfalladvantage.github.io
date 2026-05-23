@@ -1,17 +1,19 @@
 "use client";
 
-import { Maximize2, Minimize2, Loader2 } from "lucide-react";
+import { Maximize2, Minimize2, Loader2, Radar } from "lucide-react";
 
 interface MapControlButtonsProps {
   cameraHeading: number;
   isFullscreen: boolean;
   timeMachineOpen: boolean;
   dronePlannerOpen: boolean;
+  intelDrawerOpen: boolean;
   isAdmin?: boolean;
   onResetNorth: () => void;
   onToggleFullscreen: () => void;
   onToggleTimeMachine: () => void;
   onToggleDronePlanner: () => void;
+  onToggleIntelDrawer: () => void;
 }
 
 const btnBase = "w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center transition-colors";
@@ -19,8 +21,8 @@ const btnBg = "color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent
 const btnBgActive = "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, color-mix(in srgb, var(--brand-primary, #0f1a2e) 85%, transparent))";
 
 export function MapControlButtons({
-  cameraHeading, isFullscreen, timeMachineOpen, dronePlannerOpen, isAdmin,
-  onResetNorth, onToggleFullscreen, onToggleTimeMachine, onToggleDronePlanner,
+  cameraHeading, isFullscreen, timeMachineOpen, dronePlannerOpen, intelDrawerOpen, isAdmin,
+  onResetNorth, onToggleFullscreen, onToggleTimeMachine, onToggleDronePlanner, onToggleIntelDrawer,
 }: MapControlButtonsProps) {
   return (
     <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
@@ -59,6 +61,13 @@ export function MapControlButtons({
           <Loader2 className="h-4 w-4" style={{ animation: "none", transform: "rotate(45deg)" }} />
         </button>
       )}
+
+      {/* Intel drawer (RECON + alerts + sources) */}
+      <button onClick={onToggleIntelDrawer} title="Intel — recon, alerts, sources"
+        className={`${btnBase} ${intelDrawerOpen ? "text-white border-white/30" : "text-white/60 hover:text-white hover:border-white/30"}`}
+        style={{ backgroundColor: intelDrawerOpen ? btnBgActive : btnBg }}>
+        <Radar className="h-4 w-4" />
+      </button>
     </div>
   );
 }

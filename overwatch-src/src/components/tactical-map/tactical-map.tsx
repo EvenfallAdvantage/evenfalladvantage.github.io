@@ -28,6 +28,7 @@ import { useAnnotations } from "./hooks/use-annotations";
 import { useCesiumLayers } from "./hooks/use-cesium-layers";
 import { useCesiumClickHandler } from "./hooks/use-click-handler";
 import { QuickDMModal } from "./quick-dm-modal";
+import { IntelDrawer } from "@/components/intel/intel-drawer";
 
 export type { StaffPin, OperationPin, IncidentPin } from "./types";
 
@@ -96,6 +97,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
   // Drone Planner
   const { dronePlannerOpen, setDronePlannerOpen, droneWaypoints, setDroneWaypoints } = useDronePlanner();
+
+  // Intel drawer (RECON + alerts + sources) — Osiris integration
+  const [intelDrawerOpen, setIntelDrawerOpen] = useState(false);
 
   // Operation documents for pin popups
   const { eventDocs, eventDocsRef, viewingDoc, setViewingDoc } = useEventDocuments(operations);
@@ -292,6 +296,17 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   }, []);
 
   // Reset to north-up top-down view
+  const handleFlyToCoords = useCallback((lat: number, lng: number) => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium) return;
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(lng, lat, 1_500_000),
+      orientation: { heading: 0, pitch: -Math.PI / 2, roll: 0 },
+      duration: 1.2,
+    });
+  }, []);
+
   const handleResetNorth = useCallback(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
@@ -358,20 +373,30 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       )}
       <div ref={containerRef} className="w-full h-full" />
 
-      {/* Compass + Fullscreen + Time Machine + Drone — top left */}
+      {/* Compass + Fullscreen + Time Machine + Drone + Intel — top left */}
       {!loading && !error && (
         <MapControlButtons
           cameraHeading={cameraHeading}
           isFullscreen={isFullscreen}
           timeMachineOpen={timeMachineOpen}
           dronePlannerOpen={dronePlannerOpen}
+          intelDrawerOpen={intelDrawerOpen}
           isAdmin={isAdmin}
           onResetNorth={handleResetNorth}
           onToggleFullscreen={handleFullscreen}
           onToggleTimeMachine={() => setTimeMachineOpen(!timeMachineOpen)}
           onToggleDronePlanner={() => setDronePlannerOpen(!dronePlannerOpen)}
+          onToggleIntelDrawer={() => setIntelDrawerOpen((o) => !o)}
         />
       )}
+
+      {/* Intel drawer (RECON + alerts + sources) */}
+      <IntelDrawer
+        open={intelDrawerOpen}
+        onClose={() => setIntelDrawerOpen(false)}
+        onLocate={handleFlyToCoords}
+      />
+
 
       {/* Custom entity popup — floating near selected point */}
       {selectedEntity && (

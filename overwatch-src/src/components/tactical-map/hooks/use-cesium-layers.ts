@@ -24,6 +24,7 @@ import { useAnnotationsLayer } from "./use-annotations-layer";
 import { usePoiLayer } from "./use-poi-layer";
 import { useS2IntelLayer } from "./use-s2-intel-layer";
 import { useHeatmapLayer } from "./use-heatmap-layer";
+import { useEarthquakesLayer } from "./use-earthquakes-layer";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -119,6 +120,13 @@ export function useCesiumLayers(params: {
 
   // ─── Sub-hook: Incident Heatmap ────────────────────
   useHeatmapLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, incidents });
+
+  // ─── Sub-hook: Earthquakes (USGS, M2.5+, last 24h) ─────
+  // Live-only; hidden during Time Machine replay (no historical data).
+  useEarthquakesLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    debouncedReplayTime, timeMachineOpen,
+  });
 
   // ─── 3D Terrain & Buildings Toggle (combined) ────────
   useEffect(() => {
