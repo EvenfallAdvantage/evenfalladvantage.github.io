@@ -5,7 +5,7 @@ import {
   Layers, Users, CloudRain, Mountain,
   Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
-  Activity,
+  Activity, Flame, Swords,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
@@ -36,6 +36,8 @@ export interface LayerVisibility {
   s2Intel: boolean;
   // Global Intel layers (Phase C — Osiris integration)
   earthquakes: boolean;
+  conflictZones: boolean;
+  fires: boolean;
   // Site maps
   siteOverlays: Record<string, boolean>;
   siteOverlayOpacity: number;
@@ -63,6 +65,8 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   satelliteOrbits: false,
   s2Intel: false,
   earthquakes: false,
+  conflictZones: false,
+  fires: false,
   siteOverlays: {},
   siteOverlayOpacity: 0.75,
 };
@@ -97,6 +101,8 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "s2Intel", label: "S2 Underground CIP", icon: <Shield className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   // Global Intel (Osiris-derived)
   { key: "earthquakes", label: "Earthquakes (M2.5+)", icon: <Activity className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
+  { key: "conflictZones", label: "Conflict Zones", icon: <Swords className="h-3.5 w-3.5" />, group: "GLOBAL INTEL" },
+  { key: "fires", label: "Active Fires (FIRMS)", icon: <Flame className="h-3.5 w-3.5" />, group: "GLOBAL INTEL", liveOnly: true },
   // Visual effects
   { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "EFFECTS" },

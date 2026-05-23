@@ -25,6 +25,8 @@ import { usePoiLayer } from "./use-poi-layer";
 import { useS2IntelLayer } from "./use-s2-intel-layer";
 import { useHeatmapLayer } from "./use-heatmap-layer";
 import { useEarthquakesLayer } from "./use-earthquakes-layer";
+import { useConflictZonesLayer } from "./use-conflict-zones-layer";
+import { useFiresLayer } from "./use-fires-layer";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -124,6 +126,16 @@ export function useCesiumLayers(params: {
   // ─── Sub-hook: Earthquakes (USGS, M2.5+, last 24h) ─────
   // Live-only; hidden during Time Machine replay (no historical data).
   useEarthquakesLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    debouncedReplayTime, timeMachineOpen,
+  });
+
+  // ─── Sub-hook: Conflict zones (curated static, 13 regions) ─────
+  useConflictZonesLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
+
+  // ─── Sub-hook: Active fires (NASA FIRMS + EONET volcanoes) ─────
+  // Live-only; FIRMS provides 24h rolling window.
+  useFiresLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
     debouncedReplayTime, timeMachineOpen,
   });

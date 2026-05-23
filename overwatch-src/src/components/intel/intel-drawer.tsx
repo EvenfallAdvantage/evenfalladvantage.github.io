@@ -17,6 +17,10 @@ import { DnsTab } from "./recon-tabs/dns-tab";
 import { IpTab } from "./recon-tabs/ip-tab";
 import { CveTab } from "./recon-tabs/cve-tab";
 import { ThreatsTab } from "./recon-tabs/threats-tab";
+import { WhoisTab } from "./recon-tabs/whois-tab";
+import { BgpTab } from "./recon-tabs/bgp-tab";
+import { CertsTab } from "./recon-tabs/certs-tab";
+import { SweepTab } from "./recon-tabs/sweep-tab";
 import { LiveAlertsTab } from "./live-alerts-tab";
 
 interface IntelDrawerProps {
@@ -27,7 +31,7 @@ interface IntelDrawerProps {
 }
 
 type TopTab = "recon" | "alerts" | "sources";
-type ReconTab = "dns" | "ip" | "cve" | "threats";
+type ReconTab = "dns" | "whois" | "ip" | "cve" | "threats" | "bgp" | "certs" | "sweep";
 
 export function IntelDrawer({ open, onClose, onLocate }: IntelDrawerProps) {
   const [tab, setTab] = useState<TopTab>("recon");
@@ -98,32 +102,24 @@ export function IntelDrawer({ open, onClose, onLocate }: IntelDrawerProps) {
           {tab === "recon" && (
             <div className="space-y-3">
               <div className="flex gap-1 flex-wrap">
-                <ReconTabButton
-                  active={reconTab === "dns"}
-                  onClick={() => setReconTab("dns")}
-                  label="DNS"
-                />
-                <ReconTabButton
-                  active={reconTab === "ip"}
-                  onClick={() => setReconTab("ip")}
-                  label="IP"
-                />
-                <ReconTabButton
-                  active={reconTab === "cve"}
-                  onClick={() => setReconTab("cve")}
-                  label="CVE"
-                />
-                <ReconTabButton
-                  active={reconTab === "threats"}
-                  onClick={() => setReconTab("threats")}
-                  label="Threats"
-                />
+                <ReconTabButton active={reconTab === "dns"} onClick={() => setReconTab("dns")} label="DNS" />
+                <ReconTabButton active={reconTab === "whois"} onClick={() => setReconTab("whois")} label="WHOIS" />
+                <ReconTabButton active={reconTab === "ip"} onClick={() => setReconTab("ip")} label="IP" />
+                <ReconTabButton active={reconTab === "cve"} onClick={() => setReconTab("cve")} label="CVE" />
+                <ReconTabButton active={reconTab === "threats"} onClick={() => setReconTab("threats")} label="Threats" />
+                <ReconTabButton active={reconTab === "bgp"} onClick={() => setReconTab("bgp")} label="BGP" />
+                <ReconTabButton active={reconTab === "certs"} onClick={() => setReconTab("certs")} label="Certs" />
+                <ReconTabButton active={reconTab === "sweep"} onClick={() => setReconTab("sweep")} label="Sweep" />
               </div>
               <div className="border-t border-white/5 pt-3">
                 {reconTab === "dns" && <DnsTab />}
+                {reconTab === "whois" && <WhoisTab />}
                 {reconTab === "ip" && <IpTab />}
                 {reconTab === "cve" && <CveTab />}
                 {reconTab === "threats" && <ThreatsTab />}
+                {reconTab === "bgp" && <BgpTab />}
+                {reconTab === "certs" && <CertsTab />}
+                {reconTab === "sweep" && <SweepTab onLocate={onLocate} />}
               </div>
             </div>
           )}
