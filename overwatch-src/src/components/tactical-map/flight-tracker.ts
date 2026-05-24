@@ -5,7 +5,16 @@
  * Returns all aircraft positions within a bounding box.
  *
  * Docs: https://openskynetwork.github.io/opensky-api/rest.html
+ *
+ * IMPORTANT: OpenSky does NOT send CORS headers for arbitrary origins —
+ * the response includes Access-Control-Allow-Origin set to opensky-network.org
+ * itself, which is invalid from a browser's perspective. Calling the API
+ * directly from the browser always fails CORS. We always route through the
+ * `opensky-proxy` Supabase Edge Function, which adds proper CORS, caches
+ * for 15 s, and limits bounding-box size to prevent abuse.
  */
+
+import { logger } from "@/lib/logger";
 
 export interface Aircraft {
   icao24: string;
@@ -20,13 +29,6 @@ export interface Aircraft {
   lastContact: number; // unix timestamp
 }
 
-/**
- * Fetch live aircraft positions within a bounding box.
- * Box is defined by [south, north, west, east] in degrees.
- */
-let useProxy = false;
-
-// Build the proxy URL from the Supabase project URL
 function getProxyUrl(south: number, north: number, west: number, east: number): string {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   return `${supabaseUrl}/functions/v1/opensky-proxy?lamin=${south}&lamax=${north}&lomin=${west}&lomax=${east}`;
@@ -50,37 +52,24 @@ function parseStates(data: { states?: (string | number | boolean | null)[][] }):
     }));
 }
 
+/**
+ * Fetch live aircraft positions within a bounding box via the Supabase
+ * `opensky-proxy` Edge Function. Box is [south, north, west, east] in degrees.
+ *
+ * Bounding boxes larger than 10 degrees per axis are rejected by the proxy
+ * (returns 400) to keep OpenSky rate-limit quota under control.
+ */
 export async function getAircraft(
   south: number, north: number, west: number, east: number
 ): Promise<Aircraft[]> {
-  const params = `lamin=${south}&lamax=${north}&lomin=${west}&lomax=${east}`;
-
-  // Try direct first; fall back to Edge Function proxy on CORS failure
-  if (!useProxy) {
-    try {
-      const res = await fetch(
-        `https://opensky-network.org/api/states/all?${params}`,
-        { signal: AbortSignal.timeout(6000), mode: "cors" }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        return parseStates(data);
-      }
-    } catch {
-      useProxy = true;
-      console.info("[FlightTracker] CORS blocked — switching to Edge Function proxy");
-    }
-  }
-
-  // Use Edge Function proxy
   try {
     const proxyUrl = getProxyUrl(south, north, west, east);
-    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) return [];
     const data = await res.json();
     return parseStates(data);
   } catch (err) {
-    console.warn("[FlightTracker] Proxy fetch failed:", err);
+    logger.swallow("flight-tracker:proxy", err, "debug");
     return [];
   }
 }
