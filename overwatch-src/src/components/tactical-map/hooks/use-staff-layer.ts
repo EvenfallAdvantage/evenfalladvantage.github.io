@@ -38,7 +38,10 @@ export function useStaffLayer(params: {
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.6,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          // Always render through buildings at venue scale (camera < 500 km).
+          // Beyond that, depth-test against the globe so far-side pins are
+          // hidden when viewing the whole earth.
+          disableDepthTestDistance: 500_000,
         },
         label: {
           text: s.name,
@@ -50,7 +53,10 @@ export function useStaffLayer(params: {
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           pixelOffset: new Cesium.Cartesian2(0, -36),
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          // Always render through buildings at venue scale (camera < 500 km).
+          // Beyond that, depth-test against the globe so far-side pins are
+          // hidden when viewing the whole earth.
+          disableDepthTestDistance: 500_000,
           distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
         },
         description: `<div style="font-family:monospace;font-size:12px;padding:8px">

@@ -88,7 +88,10 @@ export function useAnnotationsLayer(params: {
             outlineWidth: 3,
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            // Always render through buildings at venue scale (camera < 500 km).
+            // Beyond that, depth-test against the globe so far-side annotations
+            // are hidden when viewing the whole earth.
+            disableDepthTestDistance: 500_000,
           },
         });
         entityGroupsRef.current.annotations.push(entity);

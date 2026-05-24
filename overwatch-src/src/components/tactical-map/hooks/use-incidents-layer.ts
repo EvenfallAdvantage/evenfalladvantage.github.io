@@ -42,7 +42,10 @@ export function useIncidentsLayer(params: {
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.55,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          // Always render through buildings at venue scale (camera < 500 km).
+          // Beyond that, depth-test against the globe so far-side pins are
+          // hidden when viewing the whole earth.
+          disableDepthTestDistance: 500_000,
         },
         description: (() => {
           const narrative = parseIncidentNarrative(inc.description ?? "");

@@ -152,7 +152,10 @@ export function usePoiLayer(params: {
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             scale: 0.45,
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            // Always render through buildings at venue scale (camera < 500 km).
+            // Beyond that, depth-test against the globe so far-side pins are
+            // hidden when viewing the whole earth.
+            disableDepthTestDistance: 500_000,
           },
           label: {
             text: poi.name,
@@ -164,7 +167,10 @@ export function usePoiLayer(params: {
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             pixelOffset: new Cesium.Cartesian2(0, -28),
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            // Always render through buildings at venue scale (camera < 500 km).
+            // Beyond that, depth-test against the globe so far-side pins are
+            // hidden when viewing the whole earth.
+            disableDepthTestDistance: 500_000,
             scale: 0.8,
             distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
           },

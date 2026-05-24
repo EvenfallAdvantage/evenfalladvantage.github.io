@@ -45,7 +45,10 @@ export function useOperationsLayer(params: {
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.7,
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          // Always render through buildings at venue scale (camera < 500 km).
+          // Beyond that, depth-test against the globe so far-side pins are
+          // hidden when viewing the whole earth.
+          disableDepthTestDistance: 500_000,
         },
         label: {
           text: op.name,
@@ -57,7 +60,10 @@ export function useOperationsLayer(params: {
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           pixelOffset: new Cesium.Cartesian2(0, -40),
           heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          // Always render through buildings at venue scale (camera < 500 km).
+          // Beyond that, depth-test against the globe so far-side pins are
+          // hidden when viewing the whole earth.
+          disableDepthTestDistance: 500_000,
           // Operations labels always visible — key info at any zoom level
         },
         description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">
