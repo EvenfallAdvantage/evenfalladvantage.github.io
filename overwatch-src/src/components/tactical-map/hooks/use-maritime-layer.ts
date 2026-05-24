@@ -164,6 +164,7 @@ export function useMaritimeLayer(params: {
               image: buildPortIcon(color),
               scale: 1.0,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             label: {
               text: p.name,
@@ -192,6 +193,7 @@ export function useMaritimeLayer(params: {
               image: buildChokepointIcon(color),
               scale: 1.0,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             label: {
               text: c.name,

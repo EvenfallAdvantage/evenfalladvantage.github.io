@@ -95,40 +95,38 @@ interface LayerToggle {
 }
 
 const LAYER_TOGGLES: LayerToggle[] = [
-  // Map view controls
+  // ─── MAP — how the basemap renders (basemap + imagery overlays) ──
   { key: "satellite", label: "Satellite View", icon: <Satellite className="h-3.5 w-3.5" />, group: "MAP" },
   { key: "terrain", label: "3D Terrain & Buildings", icon: <Mountain className="h-3.5 w-3.5" />, group: "MAP" },
-  // Operations data
+  { key: "sentinel1", label: "SAR Imagery", icon: <Scan className="h-3.5 w-3.5" />, group: "MAP", liveOnly: true },
+  { key: "sentinel2", label: "Satellite Photos", icon: <Layers className="h-3.5 w-3.5" />, group: "MAP", liveOnly: true },
+  // ─── OPERATIONS — your company's data ──────────────────
   { key: "operations", label: "Operations", icon: <MapPin className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "staff", label: "Staff", icon: <Users className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "breadcrumbs", label: "Patrol Trails", icon: <Radar className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "incidents", label: "Incidents", icon: <AlertTriangle className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "annotations", label: "Drawings", icon: <PenTool className="h-3.5 w-3.5" />, group: "OPERATIONS" },
-  // ─── Weather & atmospherics ─────────────────────────────
+  { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  // ─── INTELLIGENCE — external data feeds ────────────────
+  // Hazards (natural disasters first — most operationally relevant)
+  { key: "earthquakes", label: "Earthquakes", icon: <Activity className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
+  { key: "fires", label: "Active Fires", icon: <Flame className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
+  { key: "eonetWeather", label: "Severe Weather", icon: <Wind className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "weather", label: "Weather Radar (US)", icon: <CloudRain className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "eonetWeather", label: "Severe Weather (global)", icon: <Wind className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  // ─── Imagery & overhead ─────────────────────────────────
-  { key: "sentinel1", label: "SAR Imagery", icon: <Scan className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "sentinel2", label: "Satellite Photos", icon: <Layers className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  // ─── Hazards (global) ───────────────────────────────────
-  // Note: S2 Underground also exposes a US-only seismic + wildfire sub-feed,
-  // toggled separately inside the s2Intel container below.
-  { key: "earthquakes", label: "Earthquakes (global)", icon: <Activity className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "fires", label: "Active Fires (global)", icon: <Flame className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "nuclearInfrastructure", label: "Nuclear Facilities", icon: <Atom className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  // ─── Threat & incident feeds ────────────────────────────
+  // Threats
   { key: "conflictZones", label: "Conflict Zones", icon: <Swords className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "gdelt", label: "Global Incidents", icon: <Newspaper className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "sigintNews", label: "SIGINT News", icon: <Rss className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "liveNews", label: "Live Broadcasters", icon: <Tv className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  // ─── Surveillance & infrastructure ──────────────────────
+  { key: "nuclearInfrastructure", label: "Nuclear Facilities", icon: <Atom className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  // Surveillance feeds
   { key: "cctv", label: "CCTV Cameras", icon: <Camera className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  { key: "liveNews", label: "Live Broadcasters", icon: <Tv className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
+  // Air & maritime tracking
+  { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
+  { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "maritime", label: "Ports & Chokepoints", icon: <Ship className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  // ─── S2 Underground Common Intel Picture (US-focused sub-feeds) ──
+  // S2 Underground Common Intel Picture (US-focused sub-feeds nested below)
   { key: "s2Intel", label: "S2 Underground CIP", icon: <Shield className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   // Visual effects
   { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },

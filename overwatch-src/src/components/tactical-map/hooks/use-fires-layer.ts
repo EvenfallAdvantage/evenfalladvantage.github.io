@@ -132,6 +132,7 @@ export function useFiresLayer(params: {
               image: buildFireIcon(f.type),
               scale: 1.0,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             description: buildPopup(f),
           });

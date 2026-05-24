@@ -119,6 +119,7 @@ export function useNuclearInfrastructureLayer(params: {
               image: buildIcon(color),
               scale: 1.0,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             label: {
               text: f.name,

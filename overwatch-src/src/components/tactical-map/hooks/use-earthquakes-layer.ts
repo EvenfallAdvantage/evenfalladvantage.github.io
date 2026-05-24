@@ -144,6 +144,7 @@ export function useEarthquakesLayer(params: {
               image: buildQuakeIcon(q.magnitude),
               scale: 0.9,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             description: buildPopup(q),
           });

@@ -124,6 +124,7 @@ export function useConflictZonesLayer(params: {
               image: buildIcon(z.severity),
               scale: 1.0,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             label: {
               text: z.name,

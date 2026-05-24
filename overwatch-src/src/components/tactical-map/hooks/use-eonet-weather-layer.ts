@@ -156,6 +156,7 @@ export function useEonetWeatherLayer(params: {
               image: buildIcon(e),
               scale: 1.0,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             description: buildPopup(e),
           });
