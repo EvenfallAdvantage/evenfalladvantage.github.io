@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Loader2, Check, Plug, Mail, Eye, EyeOff, ChevronDown } from "lucide-react";
+import Link from "next/link";
+import { Save, Loader2, Check, Plug, Mail, Eye, EyeOff, ChevronDown, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,22 @@ import { toast } from "sonner";
 import { getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
 
 type IntField = { key: string; label: string; type: string; placeholder?: string; options?: string[] };
-type IntDef = { provider: string; label: string; logo: string | null; desc: string; fields: IntField[] };
+/**
+ * Integration definition.
+ *   - Normal integrations: have `fields` and render an inline credentials form.
+ *   - `redirectTo` integrations: render a link card pointing to a dedicated
+ *     configuration page (used for email, which moved to /admin/settings/email
+ *     once it grew its own Vault-backed credential storage + verification
+ *     flow). For redirect tiles, `fields` is empty.
+ */
+type IntDef = {
+  provider: string;
+  label: string;
+  logo: string | null;
+  desc: string;
+  fields: IntField[];
+  redirectTo?: string;
+};
 type IntGroup = { id: string; label: string; desc: string; items: IntDef[] };
 
 type IntConfig = Record<string, unknown> & {
@@ -38,12 +54,19 @@ const INTEGRATION_GROUPS: IntGroup[] = [
       { key: "from_number", label: "From Number", type: "text", placeholder: "+15551234567" },
       { key: "messaging_service_sid", label: "Messaging Service SID (optional)", type: "text", placeholder: "MG..." },
     ]},
-    { provider: "email", label: "Email (Postmark / Resend)", logo: null, desc: "Auto-send onboarding emails when applicants are hired", fields: [
-      { key: "provider", label: "Provider", type: "select", options: ["postmark", "resend"] },
-      { key: "api_key", label: "API Key", type: "password", placeholder: "pm_..." },
-      { key: "from_email", label: "From Email", type: "email", placeholder: "noreply@yourcompany.com" },
-      { key: "from_name", label: "From Name", type: "text", placeholder: "TGT Security" },
-    ]},
+    // Email config moved to its own page (/admin/settings/email) — it has
+    // a verification flow, Vault-backed credential storage, recent-sends
+    // log, and per-message audit that don't fit the generic integrations
+    // form. We keep a redirect tile here so admins can still discover it
+    // from HQ Config.
+    {
+      provider: "email",
+      label: "Email Sending",
+      logo: null,
+      desc: "Configure per-company SMTP or Resend for invitations and broadcasts",
+      fields: [],
+      redirectTo: "/admin/settings/email",
+    },
     { provider: "onesignal", label: "OneSignal", logo: "/images/integrations/onesignal.jpeg", desc: "Push notifications for shift alerts, incident updates, and company announcements", fields: [
       { key: "app_id", label: "App ID", type: "text", placeholder: "your_onesignal_app_id" },
       { key: "rest_api_key", label: "REST API Key", type: "password", placeholder: "your_rest_api_key" },
@@ -206,6 +229,45 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                     const form = intForms[def.provider];
                     const existing = integrations.find((i: IntConfig) => i.provider === def.provider);
                     const isConfigured = !!existing;
+
+                    // Redirect tile: render a link to the dedicated config
+                    // page and skip the inline credential form entirely.
+                    // The integrations_config row's verification status is
+                    // surfaced via a "Verified" badge if present.
+                    if (def.redirectTo) {
+                      const existingRow = existing as
+                        | (IntConfig & { verified_at?: string | null; delivery_method?: string | null })
+                        | undefined;
+                      const verified = Boolean(existingRow?.verified_at);
+                      const method = existingRow?.delivery_method;
+                      return (
+                        <Link
+                          key={def.provider}
+                          href={def.redirectTo}
+                          className="block rounded-lg border border-border/40 p-4 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-semibold">{def.label}</span>
+                              {verified && (
+                                <Badge className="text-[9px] bg-green-500/15 text-green-500">
+                                  Verified{method ? ` · ${method}` : ""}
+                                </Badge>
+                              )}
+                              {isConfigured && !verified && (
+                                <Badge variant="outline" className="text-[9px] text-amber-500">
+                                  Unverified
+                                </Badge>
+                              )}
+                            </div>
+                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1">{def.desc}</p>
+                          <p className="text-[10px] text-primary mt-2">Open Email Config →</p>
+                        </Link>
+                      );
+                    }
 
                     return (
                       <div key={def.provider} className={`rounded-lg border p-4 space-y-3 ${
