@@ -308,7 +308,12 @@ export type SecurityEventType =
   | "data.delete"
   | "admin.role.changed"
   | "admin.user.invited"
+  | "admin.user.invitation_accepted"
   | "admin.user.removed"
   | "admin.settings.changed"
+  | "admin.email.sent_bulk"
+  | "admin.email.config_changed"
+  | "admin.email.config_verified"
+  | "admin.email.config_test_failed"
   | "security.lockout"
   | "security.suspicious_activity";

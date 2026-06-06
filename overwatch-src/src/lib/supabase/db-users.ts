@@ -366,7 +366,7 @@ export async function getCompanyMembers(companyId: string) {
       `
       id, role, nickname, status, title, hide_contact_roster, pay_rate_override,
       users (
-        id, first_name, last_name, email, phone, avatar_url
+        id, first_name, last_name, email, phone, avatar_url, supabase_id
       )
     `
     )

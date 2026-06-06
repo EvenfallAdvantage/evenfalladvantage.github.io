@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Users, Search, Loader2, Trash2, ChevronDown,
   Eye, ShieldCheck, AlertOctagon, QrCode,
-  UserPlus, X, Upload, Download, Check,
+  UserPlus, X, Upload, Download, Check, MailPlus, Mail, RotateCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   updateMemberRole, removeMember, getMemberProfileById, getCompanyReadiness,
 } from "@/lib/supabase/db";
+import { createClient } from "@/lib/supabase/client";
+import RosterBulkEmailModal from "@/components/roster/roster-bulk-email-modal";
 import { updateMemberPayRate } from "@/lib/supabase/db-pay";
 import { exportCSV, MEMBER_COLUMNS } from "@/lib/csv-export";
 import { parseCSVRaw, applyMapping, validateStaffRows, type StaffImportRow } from "@/lib/csv-import";
@@ -39,8 +41,25 @@ type Member = Record<string, unknown> & {
     last_name?: string;
     email?: string;
     avatar_url?: string;
+    /** Auth account link. NULL = no Supabase Auth user yet (unlinked). */
+    supabase_id?: string | null;
   };
 };
+
+/** Row from public.roster_invitations, keyed by membership_id. */
+type InvitationRow = {
+  membership_id: string;
+  sent_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+  resend_count: number;
+};
+
+function getSupabaseFunctionsBaseUrl(): string | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return url ? `${url.replace(/\/+$/, "")}/functions/v1` : null;
+}
 
 type ReadinessEntry = { profileMissing: string[]; readingMissing: { id: string; title: string }[] };
 
@@ -100,6 +119,12 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
   const [bulkProgress, setBulkProgress] = useState("");
   const [bulkDownloading, setBulkDownloading] = useState(false);
 
+  // Roster invitations + bulk email
+  const [invitations, setInvitations] = useState<Record<string, InvitationRow>>({});
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [bulkInviting, setBulkInviting] = useState(false);
+  const [showBulkEmail, setShowBulkEmail] = useState(false);
+
   // Load badges and readiness
   const loadInternalData = useCallback(async () => {
     if (!activeCompanyId) return;
@@ -112,7 +137,136 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
     try {
       setReadiness(await getCompanyReadiness(activeCompanyId));
     } catch (e) { logger.swallow("roster:load-readiness", e, "debug"); }
+    // Roster invitations — only admins/managers see this table per RLS.
+    try {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("roster_invitations")
+        .select(
+          "membership_id, sent_at, expires_at, accepted_at, revoked_at, resend_count",
+        )
+        .eq("company_id", activeCompanyId);
+      const map: Record<string, InvitationRow> = {};
+      for (const row of (data ?? []) as InvitationRow[]) {
+        map[row.membership_id] = row;
+      }
+      setInvitations(map);
+    } catch (e) { logger.swallow("roster:load-invitations", e, "debug"); }
   }, [activeCompanyId]);
+
+  /** Membership rows that need an invitation = no supabase_id linked AND no open accepted invite. */
+  const unlinkedMembers = members.filter((m) => {
+    if (!m.users?.email) return false;
+    if (m.users?.supabase_id) return false;
+    return true;
+  });
+
+  /** Linked count (members who already have an auth account). */
+  const linkedMembers = members.filter((m) => Boolean(m.users?.supabase_id));
+
+  /** Helper: status of the current invitation for a given membership. */
+  function invitationStatus(membershipId: string):
+    | { kind: "none" }
+    | { kind: "pending"; sent_at: string }
+    | { kind: "expired"; sent_at: string }
+    | { kind: "accepted" }
+  {
+    const inv = invitations[membershipId];
+    if (!inv) return { kind: "none" };
+    if (inv.accepted_at) return { kind: "accepted" };
+    if (inv.revoked_at) return { kind: "none" };
+    if (new Date(inv.expires_at).getTime() < Date.now()) {
+      return { kind: "expired", sent_at: inv.sent_at };
+    }
+    return { kind: "pending", sent_at: inv.sent_at };
+  }
+
+  async function callRosterInvite(membershipIds: string[]): Promise<void> {
+    const base = getSupabaseFunctionsBaseUrl();
+    if (!base) {
+      toast.error("Invitation endpoint not configured.");
+      return;
+    }
+    const supabase = createClient();
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) {
+      toast.error("Please re-authenticate and try again.");
+      return;
+    }
+    const res = await fetch(`${base}/roster-invite`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        company_id: activeCompanyId,
+        membership_ids: membershipIds,
+        resend: false,
+      }),
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      results?: Array<{
+        membership_id: string;
+        status: string;
+        reason?: string;
+      }>;
+    };
+    if (!res.ok) {
+      toast.error(json.error ?? `HTTP ${res.status}`);
+      return;
+    }
+    const results = json.results ?? [];
+    const sent = results.filter((r) => r.status === "sent").length;
+    const resent = results.filter((r) => r.status === "resent").length;
+    const errors = results.filter((r) => r.status === "error");
+    if (errors.length === 0) {
+      toast.success(
+        sent + resent === 1
+          ? "Invitation sent."
+          : `Invitations sent to ${sent + resent} members.`,
+      );
+    } else {
+      toast.message(
+        `Sent ${sent + resent} of ${results.length} invitations. ${errors.length} failed.`,
+        { description: errors[0]?.reason },
+      );
+    }
+    void loadInternalData();
+  }
+
+  async function handleInviteOne(membershipId: string) {
+    setInvitingId(membershipId);
+    try {
+      await callRosterInvite([membershipId]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send invite");
+    } finally {
+      setInvitingId(null);
+    }
+  }
+
+  async function handleInviteAllUnlinked() {
+    if (unlinkedMembers.length === 0) {
+      toast.message("No unlinked members on the roster.");
+      return;
+    }
+    if (!await confirm({
+      title: "Invite all unlinked members",
+      description: `Send invitations to ${unlinkedMembers.length} member${unlinkedMembers.length === 1 ? "" : "s"} who don't yet have an account?`,
+      confirmLabel: `Invite ${unlinkedMembers.length}`,
+    })) return;
+    setBulkInviting(true);
+    try {
+      await callRosterInvite(unlinkedMembers.map((m) => m.id));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send invites");
+    } finally {
+      setBulkInviting(false);
+    }
+  }
 
   useEffect(() => { loadInternalData(); }, [loadInternalData]);
 
@@ -308,6 +462,32 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
             <Upload className="h-3.5 w-3.5" /> Import CSV
           </Button>
           <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVFile} />
+          {canManage && unlinkedMembers.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs shrink-0"
+              onClick={handleInviteAllUnlinked}
+              disabled={bulkInviting}
+              title="Send Overwatch sign-in invitations to all roster members without accounts"
+            >
+              {bulkInviting
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <MailPlus className="h-3.5 w-3.5" />}
+              Invite Unlinked ({unlinkedMembers.length})
+            </Button>
+          )}
+          {canManage && members.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs shrink-0"
+              onClick={() => setShowBulkEmail(true)}
+              title="Send a one-off broadcast to the whole roster"
+            >
+              <Mail className="h-3.5 w-3.5" /> Email Roster
+            </Button>
+          )}
           {canManage && (
             <>
               <Button size="sm" variant="outline" className="gap-1.5 text-xs shrink-0" onClick={handleGenerateAllBadges} disabled={bulkGenerating || bulkDownloading}>
@@ -488,7 +668,53 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                 {/* Row 2: Status + Actions */}
                 <div className="flex items-center gap-2 ml-[52px]">
                   <Badge variant={m.status === "active" ? "default" : "outline"} className="text-[10px] capitalize">{m.status}</Badge>
+                  {(() => {
+                    // Show invite-state badge only when relevant.
+                    if (m.users?.supabase_id) return null;
+                    const inv = invitationStatus(m.id);
+                    if (inv.kind === "pending") {
+                      const days = Math.max(
+                        0,
+                        Math.floor((Date.now() - new Date(inv.sent_at).getTime()) / 86400000),
+                      );
+                      return (
+                        <Badge variant="outline" className="text-[10px] gap-1" title={`Invite sent ${days === 0 ? "today" : `${days}d ago`}`}>
+                          <Mail className="h-2.5 w-2.5" /> Invite sent
+                        </Badge>
+                      );
+                    }
+                    if (inv.kind === "expired") {
+                      return (
+                        <Badge variant="outline" className="text-[10px] text-amber-500" title="Invite expired — resend">
+                          Invite expired
+                        </Badge>
+                      );
+                    }
+                    return (
+                      <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                        No account
+                      </Badge>
+                    );
+                  })()}
                   <div className="flex items-center gap-1 ml-auto">
+                    {canManage && !m.users?.supabase_id && m.users?.email && (() => {
+                      const inv = invitationStatus(m.id);
+                      const isResend = inv.kind === "pending" || inv.kind === "expired";
+                      return (
+                        <button
+                          onClick={() => handleInviteOne(m.id)}
+                          disabled={invitingId === m.id || bulkInviting}
+                          className="rounded p-1.5 text-muted-foreground/40 hover:text-primary hover:bg-primary/10"
+                          title={isResend ? "Resend invitation" : "Send invitation"}
+                        >
+                          {invitingId === m.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : isResend
+                            ? <RotateCw className="h-3.5 w-3.5" />
+                            : <MailPlus className="h-3.5 w-3.5" />}
+                        </button>
+                      );
+                    })()}
                     {canManage && (
                       <button onClick={() => openProfile(m.id)} disabled={loadingProfile === m.id}
                         className="rounded p-1.5 text-muted-foreground/40 hover:text-primary hover:bg-primary/10" title="View profile">
@@ -576,6 +802,15 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
           onClose={() => setBadgePreview(null)}
         />
       )}
+
+      {/* ── Bulk Email Modal ── */}
+      <RosterBulkEmailModal
+        companyId={activeCompanyId}
+        rosterCount={members.length}
+        linkedCount={linkedMembers.length}
+        open={showBulkEmail}
+        onClose={() => setShowBulkEmail(false)}
+      />
     </>
   );
 }

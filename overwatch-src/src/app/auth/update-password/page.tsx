@@ -1,10 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Lock, Loader2, CheckCircle2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import Image from "next/image";
+import { toast } from "sonner";
+
+/**
+ * Possible return shapes from public.accept_roster_invitation() RPC.
+ * Matches the action variants defined in sql/add_accept_roster_invitation_rpc.sql.
+ */
+type AcceptInviteResult =
+  | { action: "linked_existing"; user_id: string }
+  | { action: "cross_company_added"; user_id: string; company_id: string; membership_id: string }
+  | { action: "no_invitation" }
+  | { action: "no_session" }
+  | { action: "no_email" };
 
 function checkPasswordStrength(pw: string): { score: number; label: string; color: string } {
   let score = 0;
@@ -19,8 +31,30 @@ function checkPasswordStrength(pw: string): { score: number; label: string; colo
   return { score, label: "Strong", color: "bg-green-500" };
 }
 
-export default function UpdatePasswordPage() {
+/**
+ * Wrapper that provides the Suspense boundary required by useSearchParams()
+ * for static export. The inner component is exported as the default; the
+ * wrapper is what Next renders.
+ */
+export default function UpdatePasswordPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-[#0b1422]">
+        <Loader2 className="h-6 w-6 animate-spin text-[#dd8c33]" />
+      </div>
+    }>
+      <UpdatePasswordPage />
+    </Suspense>
+  );
+}
+
+function UpdatePasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // When an admin invites a roster member, roster-invite Edge Function appends
+  // ?invite=1 to the redirect so this page can show invite-specific copy
+  // ("Welcome to the team") rather than generic password-reset copy.
+  const isInviteFlow = searchParams?.get("invite") === "1";
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -69,6 +103,26 @@ export default function UpdatePasswordPage() {
       const supabase = createClient();
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
+
+      // Best-effort: if this session belongs to a roster invitee, link the
+      // unlinked `public.users` row (case 1) or attach a cross-company
+      // membership (case 2). Failures here MUST NOT block the password-set
+      // confirmation — the user can still sign in either way.
+      try {
+        const { data: acceptData } = await supabase.rpc(
+          "accept_roster_invitation",
+        );
+        const result = acceptData as AcceptInviteResult | null;
+        if (result?.action === "linked_existing") {
+          toast.success("Welcome! Your account is ready.");
+        } else if (result?.action === "cross_company_added") {
+          toast.success("You've been added to a new team on Overwatch.");
+        }
+      } catch (rpcErr) {
+        // Silent — this is a convenience step, not a hard requirement.
+        console.warn("[update-password] accept_roster_invitation skipped:", rpcErr);
+      }
+
       setDone(true);
       setTimeout(() => router.replace("/feed"), 2500);
     } catch (err) {
@@ -84,8 +138,15 @@ export default function UpdatePasswordPage() {
         <div className="flex flex-col items-center mb-5">
           <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
           <h2 className="mt-2 text-lg font-bold font-mono text-white">
-            {done ? "PASSWORD UPDATED" : "NEW PASSWORD"}
+            {done
+              ? (isInviteFlow ? "WELCOME ABOARD" : "PASSWORD UPDATED")
+              : (isInviteFlow ? "SET YOUR PASSWORD" : "NEW PASSWORD")}
           </h2>
+          {!done && isInviteFlow && (
+            <p className="mt-1 text-[11px] text-white/40 text-center">
+              Choose a password to finish joining your team.
+            </p>
+          )}
         </div>
 
         {done ? (
