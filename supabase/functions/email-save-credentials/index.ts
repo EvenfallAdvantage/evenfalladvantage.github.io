@@ -148,14 +148,31 @@ Deno.serve(async (req) => {
     });
 
     // RBAC: caller must be owner/admin in the target company.
-    const { data: roleRows } = await admin
-      .from("company_memberships")
-      .select("role, users:users!company_memberships_user_id_fkey(id)")
-      .eq("company_id", body.company_id)
-      .eq("users.supabase_id", caller.id);
-    const callerMembership = (roleRows ?? [])[0] as
+    // Two-step lookup (NOT a filtered embed — PostgREST filters on embeds
+    // don't constrain the parent row, so .eq("users.supabase_id", ...)
+    // would return whoever's first membership instead of the caller's).
+    const { data: callerUserRow } = await admin
+      .from("users")
+      .select("id")
+      .eq("supabase_id", caller.id)
+      .maybeSingle();
+    let callerMembership:
       | { role: string; users: { id: string } | null }
       | undefined;
+    if (callerUserRow) {
+      const { data: memRow } = await admin
+        .from("company_memberships")
+        .select("role")
+        .eq("company_id", body.company_id)
+        .eq("user_id", (callerUserRow as { id: string }).id)
+        .maybeSingle();
+      if (memRow) {
+        callerMembership = {
+          role: (memRow as { role: string }).role,
+          users: callerUserRow as { id: string },
+        };
+      }
+    }
     if (
       !callerMembership ||
       !["owner", "admin"].includes(callerMembership.role)

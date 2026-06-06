@@ -83,14 +83,19 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Provider config is owner/admin-gated. is_company_admin includes
-    // manager too, so we do an explicit role check here.
-    const { data: roleRows } = await admin
-      .from("company_memberships")
-      .select("role, users:users!company_memberships_user_id_fkey(id, email, first_name, last_name)")
-      .eq("company_id", body.company_id)
-      .eq("users.supabase_id", caller.id);
-    const callerMembership = (roleRows ?? [])[0] as
+    // Provider config is owner/admin-gated. is_company_admin (the RPC)
+    // includes manager too, so we do an explicit two-step lookup:
+    //   1. Find the internal users row whose supabase_id matches the caller.
+    //   2. Look up that user_id's membership row in the target company.
+    // (We don't filter via .eq("users.supabase_id", ...) inside the embed —
+    // PostgREST treats that as a filter on the EMBED, not the parent, so
+    // it'd return whoever's first membership instead of the caller's.)
+    const { data: callerUserRow } = await admin
+      .from("users")
+      .select("id, email, first_name, last_name")
+      .eq("supabase_id", caller.id)
+      .maybeSingle();
+    let callerMembership:
       | {
         role: string;
         users: {
@@ -101,6 +106,25 @@ Deno.serve(async (req) => {
         } | null;
       }
       | undefined;
+    if (callerUserRow) {
+      const { data: memRow } = await admin
+        .from("company_memberships")
+        .select("role")
+        .eq("company_id", body.company_id)
+        .eq("user_id", callerUserRow.id)
+        .maybeSingle();
+      if (memRow) {
+        callerMembership = {
+          role: (memRow as { role: string }).role,
+          users: callerUserRow as {
+            id: string;
+            email: string;
+            first_name: string;
+            last_name: string;
+          },
+        };
+      }
+    }
     if (
       !callerMembership ||
       !["owner", "admin"].includes(callerMembership.role)

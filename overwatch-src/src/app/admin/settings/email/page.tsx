@@ -453,6 +453,19 @@ export default function EmailConfigPage() {
         {/* Credentials */}
         <Card>
           <CardContent className="pt-6 space-y-3">
+            {/*
+              Wrap credentials in a <form> so the browser doesn't warn about
+              "Password field is not contained in a form." Suppresses the
+              DOM warning AND lets the user press Enter to submit.
+            */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSaveCredentials();
+              }}
+              autoComplete="off"
+              className="space-y-3"
+            >
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <Key className="h-4 w-4" />
@@ -468,9 +481,9 @@ export default function EmailConfigPage() {
                 )}
               </h3>
               <Button
+                type="submit"
                 size="sm"
                 className="gap-1.5 text-xs"
-                onClick={handleSaveCredentials}
                 disabled={savingCreds || !row?.delivery_method}
               >
                 {savingCreds
@@ -581,6 +594,7 @@ export default function EmailConfigPage() {
                 </div>
               </div>
             )}
+            </form>
           </CardContent>
         </Card>
 
