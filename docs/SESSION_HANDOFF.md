@@ -281,7 +281,7 @@ etc.) — safe to re-run.
 | Action | Required if you use... |
 |--------|-------------------------|
 | `npx supabase functions deploy email-send` | Internal mail dispatcher. `verify_jwt = false` — service-role-only. Resolves company → provider via factory → sends → logs to `email_send_log`. |
-| `npx supabase functions deploy roster-invite roster-bulk-email email-test-send` | User-callable (admin/manager/owner). `verify_jwt = true` (default). |
+| `npx supabase functions deploy roster-invite roster-bulk-email email-test-send email-save-credentials` | User-callable (admin/manager/owner — `email-save-credentials` and `email-test-send` are owner/admin only). `verify_jwt = true` (default). |
 | Supabase Dashboard → Authentication → URL Configuration → Redirect URLs | Add `https://www.evenfalladvantage.com/overwatch/auth/update-password/` and `https://evenfalladvantage.github.io/overwatch/auth/update-password/` so invite/recovery links don't get rejected. |
 | Supabase Dashboard → Edge Functions → Secrets | Set `RESEND_API_KEY` (platform fallback) and optionally `PLATFORM_FROM_EMAIL` (default `invite@evenfalladvantage.com`). `SITE_URL` defaults to `https://www.evenfalladvantage.com` but can be overridden. |
 

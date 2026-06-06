@@ -228,3 +228,10 @@ entrypoint = "./functions/roster-bulk-email/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/email-test-send/index.ts"
+
+# User-callable (owner/admin only). Writes SMTP password / Resend api_key to
+# Supabase Vault and links it via integrations_config.vault_secret_id.
+[functions.email-save-credentials]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/email-save-credentials/index.ts"

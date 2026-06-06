@@ -4,27 +4,33 @@
  * /admin/settings/email — per-company email-sending configuration.
  *
  * Lets an owner/admin pick SMTP or Resend as the delivery method, save
- * credentials (encrypted in Supabase Vault by the save RPC + Edge Function),
- * trigger a real test send, and view the recent-send log + verification
- * status. Until the configuration is verified via a successful test send,
- * the platform fallback ("via Overwatch") is used for outbound mail.
+ * credentials (encrypted in Supabase Vault by the email-save-credentials
+ * Edge Function), trigger a real test send, and view the recent-send log
+ * plus verification status. Until the configuration is verified via a
+ * successful test send, the platform fallback ("via Overwatch") is used
+ * for outbound mail.
  *
- * Saving credentials is a two-step flow:
- *   1. Client writes the integrations_config row (delivery_method,
- *      from_email, from_name, reply_to) via PostgREST RLS (admin/owner).
- *   2. Client calls the `save_email_provider_credentials` RPC (Vault-backed)
- *      to upsert the vault secret + link the vault_secret_id. The RPC is
- *      service-role-only-callable via PostgREST, so we route this step
- *      through the email-send Edge Function's sibling endpoint... NOPE —
- *      simpler: we POST the creds to email-test-send which does NOT save
- *      them; saving lives in a tiny new RPC. (See note below — the save RPC
- *      is intentionally deferred to a follow-up commit; for now we
- *      instruct users to set the row + paste the vault_secret_id manually
- *      via the dashboard. The test-send + verified status work today.)
+ * Save flow:
+ *   1. Client upserts the non-secret integrations_config row (delivery
+ *      method, from name/email, reply-to) directly via PostgREST.
+ *   2. If the admin entered credentials, the client POSTs them to the
+ *      email-save-credentials Edge Function which:
+ *        a. RBAC-checks owner/admin.
+ *        b. Writes the JSON payload to Supabase Vault via vault_create_secret
+ *           / vault_update_secret.
+ *        c. Patches vault_secret_id on integrations_config and NULLs
+ *           verified_at so the admin must re-verify with a test send.
+ *
+ * The credential inputs are write-only — already-saved creds are never
+ * returned to the client. The form shows whether creds are linked via a
+ * green checkmark next to the credential input.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Mail, Loader2, Save, Check, AlertTriangle, Send, ShieldCheck } from "lucide-react";
+import {
+  Mail, Loader2, Save, Check, AlertTriangle, Send, ShieldCheck,
+  Eye, EyeOff, Key,
+} from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,6 +51,7 @@ interface EmailConfigRow {
   reply_to: string | null;
   verified_at: string | null;
   test_sent_to: string | null;
+  vault_secret_id: string | null;
   is_active: boolean;
 }
 
@@ -82,6 +89,18 @@ export default function EmailConfigPage() {
   const [replyTo, setReplyTo] = useState("");
   const [testTo, setTestTo] = useState("");
 
+  // Write-only credential fields. We never read back the existing values;
+  // the `hasStoredCreds` flag below tells the UI whether to show "Stored ✓"
+  // or "Required" next to the credential block.
+  const [resendApiKey, setResendApiKey] = useState("");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState<number>(587);
+  const [smtpUsername, setSmtpUsername] = useState("");
+  const [smtpPassword, setSmtpPassword] = useState("");
+  const [smtpSecure, setSmtpSecure] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+  const [savingCreds, setSavingCreds] = useState(false);
+
   // Recent sends.
   const [recentSends, setRecentSends] = useState<RecentSend[]>([]);
 
@@ -94,7 +113,7 @@ export default function EmailConfigPage() {
     const { data: cfg } = await supabase
       .from("integrations_config")
       .select(
-        "id, delivery_method, from_email, from_name, reply_to, verified_at, test_sent_to, is_active",
+        "id, delivery_method, from_email, from_name, reply_to, verified_at, test_sent_to, vault_secret_id, is_active",
       )
       .eq("company_id", activeCompanyId)
       .eq("provider", "email")
@@ -167,6 +186,86 @@ export default function EmailConfigPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveCredentials() {
+    if (!activeCompanyId) return;
+    if (!row?.delivery_method) {
+      toast.error("Save the non-secret email settings first.");
+      return;
+    }
+    // Reuse the most-recently-picked delivery method on screen. The save
+    // function will update integrations_config.delivery_method if it
+    // differs from what's stored.
+    const method = deliveryMethod;
+
+    // Pre-flight: require the field for the selected method.
+    if (method === "resend" && !resendApiKey.trim()) {
+      toast.error("Enter a Resend API key.");
+      return;
+    }
+    if (method === "smtp") {
+      if (!smtpHost.trim() || !smtpUsername.trim() || !smtpPassword.trim()) {
+        toast.error("SMTP host, username, and password are required.");
+        return;
+      }
+    }
+
+    const base = getSupabaseFunctionsBaseUrl();
+    if (!base) {
+      toast.error("Credential save endpoint not configured.");
+      return;
+    }
+
+    setSavingCreds(true);
+    try {
+      const supabase = createClient();
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess?.session?.access_token;
+      if (!token) {
+        toast.error("Please re-authenticate and try again.");
+        return;
+      }
+      const payload: Record<string, unknown> = {
+        company_id: activeCompanyId,
+        delivery_method: method,
+      };
+      if (method === "resend") {
+        payload.resend = { api_key: resendApiKey.trim() };
+      } else {
+        payload.smtp = {
+          host: smtpHost.trim(),
+          port: smtpPort,
+          username: smtpUsername.trim(),
+          password: smtpPassword,
+          secure: smtpSecure,
+        };
+      }
+      const res = await fetch(`${base}/email-save-credentials`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(json.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      toast.success("Credentials stored in Vault. Run a test send to verify.");
+      // Clear the inputs so they aren't lingering in the DOM.
+      setResendApiKey("");
+      setSmtpPassword("");
+      await load();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save credentials",
+      );
+    } finally {
+      setSavingCreds(false);
     }
   }
 
@@ -348,18 +447,140 @@ export default function EmailConfigPage() {
               </div>
             </div>
 
-            <div className="rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-xs">
-              <p className="font-medium text-amber-700 dark:text-amber-300">Credentials</p>
-              <p className="mt-1 text-muted-foreground">
-                Your Resend API key or SMTP password is stored encrypted in
-                Supabase Vault. Today, paste the credentials into the Supabase
-                Dashboard under <code className="bg-background px-1 rounded">Database → Vault</code>,
-                then put the resulting secret UUID into the{" "}
-                <code className="bg-background px-1 rounded">vault_secret_id</code>{" "}
-                column of the <code className="bg-background px-1 rounded">integrations_config</code>{" "}
-                row for this company. A guided UI for this step is coming in a follow-up release.
-              </p>
+          </CardContent>
+        </Card>
+
+        {/* Credentials */}
+        <Card>
+          <CardContent className="pt-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Credentials
+                {row?.vault_secret_id ? (
+                  <Badge variant="default" className="text-[10px]">
+                    Stored
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] text-amber-500">
+                    Required
+                  </Badge>
+                )}
+              </h3>
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs"
+                onClick={handleSaveCredentials}
+                disabled={savingCreds || !row?.delivery_method}
+              >
+                {savingCreds
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <Save className="h-3 w-3" />}
+                Save credentials
+              </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              {row?.vault_secret_id
+                ? "Credentials are stored encrypted in Supabase Vault. Submit a new value to rotate; leave blank to keep what's stored."
+                : "Your password / API key never leaves this form. We encrypt it in Supabase Vault before storing."}
+            </p>
+
+            {deliveryMethod === "resend" ? (
+              <div className="space-y-1">
+                <Label htmlFor="resend-api-key" className="text-xs">Resend API key</Label>
+                <div className="relative">
+                  <Input
+                    id="resend-api-key"
+                    type={showSecret ? "text" : "password"}
+                    value={resendApiKey}
+                    onChange={(e) => setResendApiKey(e.target.value)}
+                    placeholder={row?.vault_secret_id ? "Stored — type to replace" : "re_..."}
+                    autoComplete="off"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecret(!showSecret)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground"
+                    aria-label={showSecret ? "Hide" : "Show"}
+                  >
+                    {showSecret
+                      ? <EyeOff className="h-3.5 w-3.5" />
+                      : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1 sm:col-span-2">
+                  <Label htmlFor="smtp-host" className="text-xs">SMTP host</Label>
+                  <Input
+                    id="smtp-host"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                    placeholder="smtp.example.com"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="smtp-port" className="text-xs">Port</Label>
+                  <Input
+                    id="smtp-port"
+                    type="number"
+                    min={1}
+                    max={65535}
+                    value={smtpPort}
+                    onChange={(e) => setSmtpPort(Number(e.target.value) || 587)}
+                    placeholder="587"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="smtp-secure" className="text-xs">Connection</Label>
+                  <select
+                    id="smtp-secure"
+                    value={smtpSecure ? "tls" : "starttls"}
+                    onChange={(e) => setSmtpSecure(e.target.value === "tls")}
+                    className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="starttls">STARTTLS (port 587)</option>
+                    <option value="tls">TLS on connect (port 465)</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="smtp-username" className="text-xs">Username</Label>
+                  <Input
+                    id="smtp-username"
+                    value={smtpUsername}
+                    onChange={(e) => setSmtpUsername(e.target.value)}
+                    placeholder="apikey or full email"
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="smtp-password" className="text-xs">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="smtp-password"
+                      type={showSecret ? "text" : "password"}
+                      value={smtpPassword}
+                      onChange={(e) => setSmtpPassword(e.target.value)}
+                      placeholder={row?.vault_secret_id ? "Stored — type to replace" : ""}
+                      autoComplete="off"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground"
+                      aria-label={showSecret ? "Hide" : "Show"}
+                    >
+                      {showSecret
+                        ? <EyeOff className="h-3.5 w-3.5" />
+                        : <Eye className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
