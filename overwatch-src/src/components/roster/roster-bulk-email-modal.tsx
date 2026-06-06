@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import {
   X,
   Loader2,
@@ -279,9 +280,9 @@ export default function RosterBulkEmailModal({
                 <p className="font-medium">Email provider not verified</p>
                 <p className="text-muted-foreground">
                   Configure and verify your sending provider in{" "}
-                  <a href="/admin/settings/email" className="text-primary hover:underline">
+                  <Link href="/admin/settings/email" className="text-primary hover:underline">
                     Email Config
-                  </a>
+                  </Link>
                   {" "}before sending broadcasts.
                 </p>
               </div>
