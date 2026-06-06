@@ -117,6 +117,19 @@ Deno.serve(async (req) => {
           { status: 400, headers: jsonHeaders },
         );
       }
+      // Supabase Edge Functions block outbound TCP to ports 25 and 587.
+      // We reject these up-front so the user gets actionable guidance
+      // rather than a mysterious "Failed to fetch" timeout.
+      if (s.port === 25 || s.port === 587) {
+        return new Response(
+          JSON.stringify({
+            error:
+              `Port ${s.port} is blocked by the platform. Use port 465 ` +
+              `(TLS on connect) — most providers support both 587 and 465.`,
+          }),
+          { status: 400, headers: jsonHeaders },
+        );
+      }
       secretPayload = {
         host: s.host.trim(),
         port: Math.floor(s.port),

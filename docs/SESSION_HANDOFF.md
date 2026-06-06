@@ -282,6 +282,17 @@ etc.) — safe to re-run.
 |--------|-------------------------|
 | `npx supabase functions deploy email-send` | Internal mail dispatcher. `verify_jwt = false` — service-role-only. Resolves company → provider via factory → sends → logs to `email_send_log`. |
 | `npx supabase functions deploy roster-invite roster-bulk-email email-test-send email-save-credentials` | User-callable (admin/manager/owner — `email-save-credentials` and `email-test-send` are owner/admin only). `verify_jwt = true` (default). |
+
+#### Supabase Edge Function SMTP port limitations
+**Important:** Supabase Edge Functions block outbound TCP connections to ports **25** and **587**. Symptoms when this is hit: the function silently hangs until the platform terminates it, the browser sees the connection close with no `Access-Control-Allow-Origin` header, and the user gets a CORS error / "Failed to fetch" instead of a proper SMTP error.
+
+Mitigations now in place:
+- `smtp-provider.ts` checks the port BEFORE attempting a connection and returns a clear error message for blocked ports.
+- `smtp-provider.ts` wraps `send()` and `testConnection()` in a 15-second `Promise.race` deadline so the function ALWAYS returns a CORS-decorated response.
+- `email-save-credentials` rejects ports 25 and 587 at the API layer with an actionable error message.
+- The Email Config page defaults to **port 465 with TLS-on-connect** and shows a red warning banner if the user manually types 587 (or 25). The Connection dropdown also annotates 587 as "blocked by platform."
+
+If a user reports email send failures, first check the port — `465` is the only universally-working SMTP port for Edge Functions. Major providers that support port 465 with TLS-on-connect: Gmail, Microsoft 365, Brevo, Mailgun, SendGrid, Postmark, AWS SES, Mailtrap. Providers that ONLY support 587 (rare) won't work — use their HTTP API instead.
 | Supabase Dashboard → Authentication → URL Configuration → Redirect URLs | Add `https://www.evenfalladvantage.com/overwatch/auth/update-password/` and `https://evenfalladvantage.github.io/overwatch/auth/update-password/` so invite/recovery links don't get rejected. |
 | Supabase Dashboard → Edge Functions → Secrets | Set `RESEND_API_KEY` (platform fallback) and optionally `PLATFORM_FROM_EMAIL` (default `invite@evenfalladvantage.com`). `SITE_URL` defaults to `https://www.evenfalladvantage.com` but can be overridden. |
 

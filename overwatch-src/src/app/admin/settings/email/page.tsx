@@ -94,10 +94,14 @@ export default function EmailConfigPage() {
   // or "Required" next to the credential block.
   const [resendApiKey, setResendApiKey] = useState("");
   const [smtpHost, setSmtpHost] = useState("");
-  const [smtpPort, setSmtpPort] = useState<number>(587);
+  // Default to port 465 (TLS-on-connect). Supabase blocks 587 outbound, so
+  // 465 is the only working SMTP port for most major providers.
+  const [smtpPort, setSmtpPort] = useState<number>(465);
   const [smtpUsername, setSmtpUsername] = useState("");
   const [smtpPassword, setSmtpPassword] = useState("");
-  const [smtpSecure, setSmtpSecure] = useState(false);
+  // Pair with port 465 above. Provider's STARTTLS path is unreachable
+  // anyway from Edge Functions (port 587 blocked).
+  const [smtpSecure, setSmtpSecure] = useState(true);
   const [showSecret, setShowSecret] = useState(false);
   const [savingCreds, setSavingCreds] = useState(false);
 
@@ -524,7 +528,32 @@ export default function EmailConfigPage() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <>
+                {/*
+                  Supabase Edge Functions block outbound TCP to ports 25 and
+                  587. The SMTP relay therefore HAS to use port 465 with
+                  TLS-on-connect (or a non-standard port like 2525). Without
+                  this banner, users default to 587 and watch the test send
+                  hang for 15s before timing out.
+                  See https://supabase.com/docs/guides/functions/limits
+                */}
+                {(smtpPort === 25 || smtpPort === 587) && (
+                  <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3 flex items-start gap-2 text-xs">
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-medium text-red-500">
+                        Port {smtpPort} is blocked
+                      </p>
+                      <p className="text-muted-foreground mt-1">
+                        Supabase Edge Functions block outbound ports 25 and 587.
+                        Switch to <strong>port 465</strong> and pick{" "}
+                        <strong>TLS on connect</strong> below — most providers
+                        (Gmail, Brevo, Mailgun, M365) support both 587 and 465.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1 sm:col-span-2">
                   <Label htmlFor="smtp-host" className="text-xs">SMTP host</Label>
                   <Input
@@ -542,8 +571,16 @@ export default function EmailConfigPage() {
                     min={1}
                     max={65535}
                     value={smtpPort}
-                    onChange={(e) => setSmtpPort(Number(e.target.value) || 587)}
-                    placeholder="587"
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 465;
+                      setSmtpPort(v);
+                      // Auto-pick TLS-on-connect for 465, STARTTLS otherwise.
+                      // (This isn't strictly required but it nudges users
+                      // toward the working combination.)
+                      if (v === 465) setSmtpSecure(true);
+                      if (v === 587 || v === 25) setSmtpSecure(false);
+                    }}
+                    placeholder="465"
                   />
                 </div>
                 <div className="space-y-1">
@@ -554,8 +591,8 @@ export default function EmailConfigPage() {
                     onChange={(e) => setSmtpSecure(e.target.value === "tls")}
                     className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
                   >
-                    <option value="starttls">STARTTLS (port 587)</option>
-                    <option value="tls">TLS on connect (port 465)</option>
+                    <option value="tls">TLS on connect (port 465) — recommended</option>
+                    <option value="starttls">STARTTLS (port 587) — blocked by platform</option>
                   </select>
                 </div>
                 <div className="space-y-1">
@@ -593,6 +630,7 @@ export default function EmailConfigPage() {
                   </div>
                 </div>
               </div>
+              </>
             )}
             </form>
           </CardContent>
