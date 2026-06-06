@@ -200,3 +200,31 @@ entrypoint = "./functions/intel-osint-certs/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/intel-osint-sweep/index.ts"
+
+# ── Email + Roster Invitations ──
+# Service-role-only; called from other Edge Functions, never from the client.
+[functions.email-send]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/email-send/index.ts"
+
+# User-callable (admin/manager/owner). Generates Supabase Auth invite link
+# and dispatches the invitation email via email-send.
+[functions.roster-invite]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/roster-invite/index.ts"
+
+# User-callable (admin/manager/owner). Broadcast email + optional in-app
+# notification fan-out to the whole roster (or a filtered subset).
+[functions.roster-bulk-email]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/roster-bulk-email/index.ts"
+
+# User-callable (owner/admin only). Sends a real test message through the
+# company's configured provider and stamps verified_at on success.
+[functions.email-test-send]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/email-test-send/index.ts"

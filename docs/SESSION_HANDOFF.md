@@ -265,6 +265,26 @@ etc.) — safe to re-run.
 | `sql/fix_perf_phase1_duplicate_indexes.sql` | Drops duplicate indexes `time_off_policies_company_id_idx` and `time_off_requests_user_id_idx` (the Prisma-generated copies of `idx_time_off_policies_company` and `idx_time_off_user`). Two indexes covering the same columns serve no purpose and slow down writes. Also commented out the duplicate `CREATE INDEX` entries in `overwatch-src/prisma/supabase-init.sql` so re-running that file won't re-introduce them. | Performance linter cleanup |
 | `sql/fix_perf_phase2_rls_initplan.sql` | **Run this LAST after any DB setup script.** Iterates over every policy in `public.*` and wraps bare `auth.uid()` / `auth.role()` / `auth.jwt()` calls in `(SELECT ...)`, which lets PostgreSQL evaluate them once per query (InitPlan) instead of once per row. ~94 policies rewritten in the Overwatch DB. Idempotent — re-running finds nothing to change because the rewrite normalizes double-wrapping. Includes a `DRY_RUN` flag at the top (default `false`) for preview-only mode. Source-file patches were intentionally NOT made: ~70 SQL files contain bare `auth.uid()` and bulk regex replacement risks edge cases; the canonical fix is to always re-run this script after any setup script. | Required after `supabase-setup.sql`, `add-delete-policies.sql`, `enable-rls.sql`, etc. — drops ~95 performance linter warnings to 0 |
 
+#### June 2026 migrations — Roster Invitations + Mass Email
+**Pre-flight first.** Run `sql/check_supabase_vault.sql` and confirm the `supabase_vault` extension shows up. If empty, enable Vault via Dashboard → Database → Extensions → search "vault" → Enable. The migrations below require Vault.
+
+| File | Purpose | Required if you use... |
+|------|---------|-------------------------|
+| `sql/check_supabase_vault.sql` | Diagnostic — does NOT alter anything. Confirms `supabase_vault` extension is installed and `vault.decrypted_secrets` is readable. | Run first |
+| `sql/add_vault_rpc_wrappers.sql` | Public-schema SECURITY DEFINER wrappers (`vault_read_secret`, `vault_create_secret`, `vault_update_secret`, `vault_delete_secret`) for the Vault primitives. Locked to `service_role` only. supabase-js `.rpc()` can only call public-schema functions, so the Edge Functions use these wrappers to read/write encrypted email-provider credentials. | Roster invitations / mass email |
+| `sql/extend_integrations_config_email.sql` | Adds columns to existing `integrations_config` for per-company email sending: `delivery_method` (smtp/resend/platform), `from_email`, `from_name`, `reply_to`, `verified_at`, `test_sent_to`, `vault_secret_id`. Legacy `config.{provider,api_key}` rows are ignored by the new code path — admins re-save through the new UI to migrate. | Roster invitations / mass email |
+| `sql/add_roster_invitations.sql` | Creates `roster_invitations` (per-membership shadow of Supabase Auth invitations: sent_at, expires_at, accepted_at, resend_count, etc.) + RLS (SELECT for `is_company_admin`, writes service-role only) + the `upsert_roster_invitation` RPC for atomic insert-or-bump-resend-count. | Roster invitations |
+| `sql/add_email_send_log.sql` | Creates `email_send_log` for per-message audit: company_id, delivery_method, to_email, subject, purpose, status, provider_id, error_message. RLS SELECT for `is_company_admin`. Indexes on (company_id, sent_at DESC) and to_email. | Roster invitations / mass email |
+| `sql/add_accept_roster_invitation_rpc.sql` | `public.accept_roster_invitation()` SECURITY DEFINER RPC called from `/auth/update-password` after a session is established. Three cases: (1) link existing unlinked roster `users` row to caller's `supabase_id`, (2) cross-company invite — attach a `company_memberships` row to the caller's existing user, (3) no-op for plain password resets. Locked to `authenticated`. | Roster invitations |
+
+#### Edge Function deployment for the email feature
+| Action | Required if you use... |
+|--------|-------------------------|
+| `npx supabase functions deploy email-send` | Internal mail dispatcher. `verify_jwt = false` — service-role-only. Resolves company → provider via factory → sends → logs to `email_send_log`. |
+| `npx supabase functions deploy roster-invite roster-bulk-email email-test-send` | User-callable (admin/manager/owner). `verify_jwt = true` (default). |
+| Supabase Dashboard → Authentication → URL Configuration → Redirect URLs | Add `https://www.evenfalladvantage.com/overwatch/auth/update-password/` and `https://evenfalladvantage.github.io/overwatch/auth/update-password/` so invite/recovery links don't get rejected. |
+| Supabase Dashboard → Edge Functions → Secrets | Set `RESEND_API_KEY` (platform fallback) and optionally `PLATFORM_FROM_EMAIL` (default `invite@evenfalladvantage.com`). `SITE_URL` defaults to `https://www.evenfalladvantage.com` but can be overridden. |
+
 #### Deployment-side
 | Action | Required if you use... |
 |--------|-------------------------|
