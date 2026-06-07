@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Users, Search, Loader2, Trash2, ChevronDown,
   Eye, ShieldCheck, AlertOctagon, QrCode,
-  UserPlus, X, Upload, Download, Check, MailPlus, Mail, RotateCw,
+  UserPlus, Plus, X, Upload, Download, Check, MailPlus, Mail, RotateCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   updateMemberRole, removeMember, getMemberProfileById, getCompanyReadiness,
 } from "@/lib/supabase/db";
+import { createRosterMember } from "@/lib/supabase/db-users";
 import { createClient } from "@/lib/supabase/client";
 import RosterBulkEmailModal from "@/components/roster/roster-bulk-email-modal";
 import { updateMemberPayRate } from "@/lib/supabase/db-pay";
@@ -124,6 +125,25 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [bulkInviting, setBulkInviting] = useState(false);
   const [showBulkEmail, setShowBulkEmail] = useState(false);
+
+  // Single-member add form
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [addingMember, setAddingMember] = useState(false);
+  const [addForm, setAddForm] = useState<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    role: "staff" | "manager" | "admin" | "lead" | "breaker";
+    sendInvite: boolean;
+  }>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    role: "staff",
+    sendInvite: true,
+  });
 
   // Load badges and readiness
   const loadInternalData = useCallback(async () => {
@@ -245,6 +265,66 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
       toast.error(err instanceof Error ? err.message : "Failed to send invite");
     } finally {
       setInvitingId(null);
+    }
+  }
+
+  async function handleAddMember() {
+    if (!addForm.firstName.trim() || !addForm.email.trim()) {
+      toast.error("First name and email are required.");
+      return;
+    }
+    // Light client-side email shape check; the RPC re-validates.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addForm.email.trim())) {
+      toast.error("Enter a valid email address.");
+      return;
+    }
+    setAddingMember(true);
+    try {
+      const result = await createRosterMember(activeCompanyId, {
+        firstName: addForm.firstName,
+        lastName: addForm.lastName,
+        email: addForm.email,
+        phone: addForm.phone || undefined,
+        role: addForm.role,
+      });
+      if (result.existing_user) {
+        toast.success(
+          "Added to roster (this email already had an Overwatch account).",
+        );
+      } else {
+        toast.success("Roster member added.");
+      }
+
+      // Fire the invitation if requested. We do this AFTER toast so the
+      // user sees the add succeeded even if the email send hiccups.
+      if (addForm.sendInvite) {
+        try {
+          await callRosterInvite([result.membership_id]);
+        } catch (inviteErr) {
+          toast.message(
+            "Member added but invitation email failed.",
+            { description: inviteErr instanceof Error ? inviteErr.message : undefined },
+          );
+        }
+      }
+
+      // Reset form + close + refresh roster.
+      setAddForm({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        role: "staff",
+        sendInvite: true,
+      });
+      setShowAddMember(false);
+      onReload();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to add roster member",
+      );
+    } finally {
+      setAddingMember(false);
     }
   }
 
@@ -453,9 +533,23 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
           <Input placeholder="Search personnel..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="flex items-center gap-2">
+          {canManageRoles && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs shrink-0"
+              onClick={() => setShowAddMember((v) => !v)}
+              title={showAddMember ? "Cancel" : "Add a single roster member"}
+            >
+              {showAddMember
+                ? <X className="h-3.5 w-3.5" />
+                : <Plus className="h-3.5 w-3.5" />}
+              {showAddMember ? "Cancel" : "Add Member"}
+            </Button>
+          )}
           {members.length > 0 && (
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => exportCSV(members, MEMBER_COLUMNS, `roster-${new Date().toISOString().slice(0,10)}`)}>
-              <Download className="h-3.5 w-3.5" /> Export
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => exportCSV(members, MEMBER_COLUMNS, `roster-${new Date().toISOString().slice(0,10)}`)} title="Download roster as CSV (data backup, payroll handoff, etc.)">
+              <Download className="h-3.5 w-3.5" /> Export CSV
             </Button>
           )}
           <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => csvInputRef.current?.click()}>
@@ -504,6 +598,121 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
           )}
         </div>
       </div>
+
+      {/* Single-member add form (inline expansion, not a Dialog) */}
+      {showAddMember && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleAddMember();
+          }}
+          autoComplete="off"
+          className="rounded-xl border border-primary/30 bg-card p-4 space-y-3"
+        >
+          <p className="text-sm font-medium flex items-center gap-2">
+            <UserPlus className="h-4 w-4" /> Add Roster Member
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">First name *</label>
+              <Input
+                placeholder="Jane"
+                value={addForm.firstName}
+                onChange={(e) =>
+                  setAddForm((p) => ({ ...p, firstName: e.target.value }))}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Last name</label>
+              <Input
+                placeholder="Doe"
+                value={addForm.lastName}
+                onChange={(e) =>
+                  setAddForm((p) => ({ ...p, lastName: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Email *</label>
+              <Input
+                type="email"
+                placeholder="jane@example.com"
+                value={addForm.email}
+                onChange={(e) =>
+                  setAddForm((p) => ({ ...p, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Phone (optional)</label>
+              <Input
+                type="tel"
+                placeholder="+1 555 555 5555"
+                value={addForm.phone}
+                onChange={(e) =>
+                  setAddForm((p) => ({ ...p, phone: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Role</label>
+              <select
+                value={addForm.role}
+                onChange={(e) =>
+                  setAddForm((p) => ({
+                    ...p,
+                    role: e.target.value as typeof p.role,
+                  }))}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+              >
+                <option value="staff">Staff</option>
+                <option value="lead">Lead</option>
+                <option value="breaker">Breaker</option>
+                {/* Only owners can promote to admin/manager via the add UI;
+                    we don't gate the SELECT here because the RPC re-checks. */}
+                {myRole === "owner" && <option value="manager">Manager</option>}
+                {myRole === "owner" && <option value="admin">Admin</option>}
+              </select>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={addForm.sendInvite}
+              onChange={(e) =>
+                setAddForm((p) => ({ ...p, sendInvite: e.target.checked }))}
+              className="h-3.5 w-3.5"
+            />
+            <span>
+              Email an invitation to set their password
+              {addForm.sendInvite
+                ? ""
+                : " (you can send it later from the roster)"}
+            </span>
+          </label>
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs"
+              onClick={() => setShowAddMember(false)}
+              disabled={addingMember}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              disabled={addingMember}
+            >
+              {addingMember
+                ? <Loader2 className="h-3 w-3 animate-spin" />
+                : <UserPlus className="h-3 w-3" />}
+              Add member{addForm.sendInvite ? " & send invite" : ""}
+            </Button>
+          </div>
+        </form>
+      )}
 
       {/* CSV Column Mapping Step */}
       {showColumnMapper && (

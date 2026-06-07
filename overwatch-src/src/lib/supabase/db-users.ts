@@ -290,6 +290,53 @@ export async function createMembership(data: {
   return membership;
 }
 
+// ─── Single-shot roster add (used by the Personnel Roster tab "+" button) ──
+
+export interface CreateRosterMemberInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  role?: "owner" | "admin" | "manager" | "lead" | "breaker" | "staff" | "client";
+}
+
+export interface CreateRosterMemberResult {
+  user_id: string;
+  membership_id: string;
+  existing_user: boolean;
+}
+
+/**
+ * Atomically creates an unlinked `public.users` row plus a
+ * `company_memberships` row via the create_roster_member SECURITY DEFINER
+ * RPC. Owner/admin/manager-gated server-side.
+ *
+ * If a `public.users` row already exists for this email (case-insensitive),
+ * we REUSE it and just add a new membership in the target company. The
+ * `existing_user` flag in the return value is true in that case so the
+ * caller can show appropriate UI ("user already had an account elsewhere").
+ *
+ * This function does NOT send the invitation email — call the roster-invite
+ * Edge Function with the returned membership_id to do that.
+ */
+export async function createRosterMember(
+  companyId: string,
+  input: CreateRosterMemberInput,
+): Promise<CreateRosterMemberResult> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("create_roster_member", {
+    p_company_id: companyId,
+    p_first_name: input.firstName.trim(),
+    p_last_name: (input.lastName ?? "").trim(),
+    p_email: input.email.trim(),
+    p_phone: input.phone?.trim() || null,
+    p_role: input.role ?? "staff",
+  });
+  if (error) throw error;
+  if (!data) throw new Error("create_roster_member returned no payload");
+  return data as CreateRosterMemberResult;
+}
+
 // ─── Create company via RPC (atomic, bypasses RLS) ──────
 
 export async function createCompanyWithOwner(params: {
