@@ -241,16 +241,36 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
     const results = json.results ?? [];
     const sent = results.filter((r) => r.status === "sent").length;
     const resent = results.filter((r) => r.status === "resent").length;
+    // Cross-company-add: user already has an Overwatch account, so they
+    // got a notification email (no password-set link). Count them in the
+    // "delivered" bucket but call it out differently in single-recipient
+    // toasts so the manager understands what happened.
+    const notified = results.filter((r) => r.status === "notified").length;
     const errors = results.filter((r) => r.status === "error");
+    const delivered = sent + resent + notified;
     if (errors.length === 0) {
-      toast.success(
-        sent + resent === 1
-          ? "Invitation sent."
-          : `Invitations sent to ${sent + resent} members.`,
-      );
+      if (delivered === 1) {
+        if (notified === 1) {
+          toast.success(
+            "Notification sent (they already have an Overwatch account).",
+          );
+        } else {
+          toast.success("Invitation sent.");
+        }
+      } else if (notified > 0 && (sent + resent) > 0) {
+        toast.success(
+          `${sent + resent} invitation${sent + resent === 1 ? "" : "s"} and ${notified} notification${notified === 1 ? "" : "s"} sent.`,
+        );
+      } else if (notified > 0) {
+        toast.success(
+          `${notified} notification${notified === 1 ? "" : "s"} sent (existing accounts).`,
+        );
+      } else {
+        toast.success(`Invitations sent to ${delivered} members.`);
+      }
     } else {
       toast.message(
-        `Sent ${sent + resent} of ${results.length} invitations. ${errors.length} failed.`,
+        `Delivered ${delivered} of ${results.length}. ${errors.length} failed.`,
         { description: errors[0]?.reason },
       );
     }

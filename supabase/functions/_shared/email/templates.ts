@@ -158,3 +158,65 @@ export function buildTestSendEmail(params: TestSendTemplateParams): {
 
   return { subject, html, text };
 }
+
+export interface CrossCompanyAddTemplateParams {
+  firstName: string;
+  companyName: string;
+  inviterName?: string;
+  signInUrl: string;
+}
+
+/**
+ * Notification email for the cross-company-add case: the recipient ALREADY
+ * has an Overwatch account (in another company), so they don't need to set
+ * a password. Just tell them they've been added and link them to sign in.
+ *
+ * The inviting company's verified email provider (or platform fallback)
+ * delivers this just like a regular invitation; only the body content
+ * differs from buildInvitationEmail.
+ */
+export function buildCrossCompanyAddEmail(params: CrossCompanyAddTemplateParams): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const firstName = escapeHtml(params.firstName || "there");
+  const companyName = escapeHtml(params.companyName);
+  const inviterName = params.inviterName
+    ? escapeHtml(params.inviterName)
+    : null;
+  const signInUrlHtml = escapeHtml(params.signInUrl);
+
+  const subject = `You've been added to ${params.companyName} on Overwatch`;
+
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:560px;margin:0 auto;padding:32px 24px;color:#1a1a1a;">
+      <h1 style="font-size:22px;margin-bottom:4px;">You've been added to ${companyName}</h1>
+      <p style="color:#666;font-size:14px;">${inviterName ? `${inviterName} added you to the roster.` : "You've been added to the roster."}</p>
+      <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;" />
+      <p style="font-size:14px;line-height:1.6;">Hi ${firstName},</p>
+      <p style="font-size:14px;line-height:1.6;">You've been added to <strong>${companyName}</strong> on Overwatch. Since you already have an Overwatch account, there's nothing to set up — just sign in and you'll see ${companyName} in your company switcher.</p>
+      <p style="text-align:center;margin:32px 0;">
+        <a href="${signInUrlHtml}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Sign in to Overwatch</a>
+      </p>
+      <p style="font-size:12px;color:#888;line-height:1.6;">If the button doesn't work, copy and paste this URL into your browser:</p>
+      <p style="font-size:12px;color:#2563eb;word-break:break-all;">${signInUrlHtml}</p>
+      <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;" />
+      <p style="font-size:12px;color:#999;">If you weren't expecting to be added to ${companyName}, contact ${inviterName ?? "your team admin"} or reply to this email.</p>
+    </div>
+  `;
+
+  const text = [
+    `You've been added to ${params.companyName} on Overwatch.`,
+    "",
+    `Hi ${params.firstName || "there"},`,
+    "",
+    `You've been added to ${params.companyName}. Since you already have an Overwatch account, there's nothing to set up — just sign in and you'll see ${params.companyName} in your company switcher.`,
+    "",
+    `Sign in: ${params.signInUrl}`,
+    "",
+    `If you weren't expecting this, reply to this email or contact your team admin.`,
+  ].join("\n");
+
+  return { subject, html, text };
+}

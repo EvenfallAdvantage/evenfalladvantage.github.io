@@ -36,7 +36,10 @@ import {
   getCallerUserAgent,
   logAudit,
 } from "../_shared/audit.ts";
-import { buildInvitationEmail } from "../_shared/email/templates.ts";
+import {
+  buildCrossCompanyAddEmail,
+  buildInvitationEmail,
+} from "../_shared/email/templates.ts";
 
 interface InviteRequest {
   company_id: string;
@@ -46,7 +49,17 @@ interface InviteRequest {
 
 interface PerMemberResult {
   membership_id: string;
-  status: "sent" | "resent" | "skipped" | "error";
+  /**
+   * - "sent" / "resent": invitation email with password-set link delivered.
+   * - "notified": user already has an Overwatch account (in another company);
+   *   we sent a "you've been added" notification instead, with NO password
+   *   reset link. The membership_id is marked accepted immediately.
+   * - "skipped": user already linked to this exact company's membership;
+   *   nothing to do (e.g. resending invite to a member who already finished
+   *   accepting it).
+   * - "error": something failed; see `reason`.
+   */
+  status: "sent" | "resent" | "notified" | "skipped" | "error";
   reason?: string;
 }
 
@@ -205,62 +218,160 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // If already linked, no invite needed.
+      // If this company's membership is already linked to a Supabase auth
+      // user, there's nothing to do — they already accepted.
       if (u.supabase_id) {
         results.push({
           membership_id: m.id,
           status: "skipped",
-          reason: "User already has an account",
+          reason: "User already has an account in this company",
         });
         continue;
       }
 
       try {
-        // Generate the Supabase auth action link. Try `invite` first: if the
-        // auth.users row doesn't exist, this creates it and we get a link
-        // that signs the user in + opens the update-password page. If the
-        // auth row already exists (the invitee has an Overwatch account in
-        // another company), `invite` will fail with "user already
-        // registered" — fall back to a `recovery` link which still drops
-        // them onto update-password where accept_roster_invitation() can
-        // attach the new company_memberships row.
-        let actionLink: string | null = null;
-        let linkErrMsg: string | null = null;
-
-        const tryInvite = await admin.auth.admin.generateLink({
-          type: "invite",
-          email: u.email,
-          options: { redirectTo },
-        });
-        if (tryInvite.error) {
-          const msg = tryInvite.error.message ?? "";
-          if (/already.*registered|already.*exists|registered/i.test(msg)) {
-            const tryRecovery = await admin.auth.admin.generateLink({
-              type: "recovery",
-              email: u.email,
-              options: { redirectTo },
-            });
-            if (tryRecovery.error || !tryRecovery.data?.properties?.action_link) {
-              linkErrMsg = tryRecovery.error?.message ??
-                "Recovery link generation failed";
-            } else {
-              actionLink = tryRecovery.data.properties.action_link;
-            }
-          } else {
-            linkErrMsg = msg;
-          }
-        } else if (tryInvite.data?.properties?.action_link) {
-          actionLink = tryInvite.data.properties.action_link;
+        // ── Determine which path this invitee is on ──
+        // Look up auth.users by email. If a row exists, this email already
+        // belongs to an Overwatch account (in a different company, since
+        // the public.users.supabase_id check above proved it's not linked
+        // in THIS company). We send the cross-company notification email
+        // instead of a password-reset link.
+        //
+        // listUsers with a `filter` parameter is the documented way; we
+        // page-1 with a single email filter so this is O(1).
+        let authUserExists = false;
+        try {
+          const { data: authList } = await admin.auth.admin.listUsers({
+            page: 1,
+            perPage: 1,
+            // @ts-expect-error: GoTrue admin API supports email filter,
+            // but the supabase-js types don't surface it yet.
+            email: u.email,
+          });
+          authUserExists = Boolean(
+            authList?.users?.find?.((au: { email?: string | null }) =>
+              au.email && au.email.toLowerCase() === u.email.toLowerCase()
+            ),
+          );
+        } catch (_listErr) {
+          // If listUsers fails for any reason, fall through and let the
+          // generateLink path decide via its "already registered" error.
+          authUserExists = false;
         }
 
-        if (!actionLink) {
+        if (authUserExists) {
+          // ── Cross-company notification path ──
+          // The user already has an Overwatch account elsewhere. Don't
+          // generate a password-reset link — that would confuse them with
+          // a "set your password" prompt they don't need. Send a plain
+          // "you've been added" email instead.
+          const signInUrl = `${siteUrl}/overwatch/login`;
+          const { subject, html, text } = buildCrossCompanyAddEmail({
+            firstName: u.first_name ?? "",
+            companyName,
+            inviterName,
+            signInUrl,
+          });
+
+          const emailRes = await fetch(
+            `${supabaseUrl}/functions/v1/email-send`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${serviceKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                company_id: body.company_id,
+                to: [{
+                  email: u.email,
+                  name: [u.first_name, u.last_name].filter(Boolean).join(" "),
+                }],
+                subject,
+                html,
+                text,
+                reply_to: callerRow?.email
+                  ? { email: callerRow.email, name: inviterName }
+                  : undefined,
+                // Reuse "invitation" purpose — same semantic event,
+                // different body. (Adding a new purpose value would also
+                // require an email_send_log CHECK constraint change.)
+                purpose: "invitation",
+                idempotency_key: `xcompany-${m.id}-${Date.now()}`,
+              }),
+            },
+          );
+          const emailJson = await emailRes.json().catch(() => ({}));
+          if (!emailRes.ok || (emailJson.rejected?.length ?? 0) > 0) {
+            results.push({
+              membership_id: m.id,
+              status: "error",
+              reason: emailJson.error ??
+                emailJson.rejected?.[0]?.reason ??
+                `email-send HTTP ${emailRes.status}`,
+            });
+            continue;
+          }
+
+          // Mark the invitation accepted immediately — there's nothing for
+          // the user to do, the membership row already exists and they can
+          // sign in to see it. Without this the row would sit in
+          // "pending" forever and pollute the "Invite Unlinked" count.
+          const { error: rpcErr } = await admin.rpc(
+            "upsert_roster_invitation",
+            {
+              p_company_id: body.company_id,
+              p_membership_id: m.id,
+              p_invitee_email: u.email,
+              p_invited_by: inviterUserId,
+              p_metadata: {
+                used_fallback: emailJson.used_fallback === true,
+                delivery_method: emailJson.delivery_method,
+                cross_company: true,
+              },
+            },
+          );
+          if (rpcErr) {
+            results.push({
+              membership_id: m.id,
+              status: "error",
+              reason: `Log write failed: ${rpcErr.message}`,
+            });
+            continue;
+          }
+          // Stamp accepted_at so the UI shows "Active" not "Pending invite"
+          // for this membership.
+          await admin
+            .from("roster_invitations")
+            .update({ accepted_at: new Date().toISOString() })
+            .eq("membership_id", m.id);
+
+          results.push({ membership_id: m.id, status: "notified" });
+          continue;
+        }
+
+        // ── Standard invite path: no auth.users row yet ──
+        // generateLink({type:'invite'}) creates the auth.users row and
+        // returns an action_link that signs the user in + opens the
+        // update-password page. We don't fall back to recovery anymore —
+        // the cross-company case is handled above by an explicit existence
+        // check rather than catching the "already registered" error.
+        const { data: linkData, error: linkErr } = await admin.auth.admin
+          .generateLink({
+            type: "invite",
+            email: u.email,
+            options: { redirectTo },
+          });
+
+        if (linkErr || !linkData?.properties?.action_link) {
           results.push({
             membership_id: m.id,
             status: "error",
-            reason: linkErrMsg ?? "No action_link returned",
+            reason: linkErr?.message ?? "No action_link returned",
           });
           continue;
         }
+        const actionLink = linkData.properties.action_link;
 
         const { subject, html, text } = buildInvitationEmail({
           firstName: u.first_name ?? "",
@@ -270,7 +381,6 @@ Deno.serve(async (req) => {
           expiresInDays: 7,
         });
 
-        // Call email-send with service-role auth.
         const emailRes = await fetch(`${supabaseUrl}/functions/v1/email-send`, {
           method: "POST",
           headers: {
@@ -305,10 +415,9 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // UPSERT via the atomic SECURITY DEFINER RPC. On conflict it bumps
-        // resend_count atomically; on first insert it leaves resend_count
-        // at 0. The "resent" status is determined by reading the returned
-        // resend_count.
+        // Atomic upsert: insert fresh on first send, bump resend_count on
+        // subsequent sends. The returned resend_count distinguishes the
+        // two outcomes for the per-row result status.
         const { data: invRow, error: rpcErr } = await admin.rpc(
           "upsert_roster_invitation",
           {
@@ -358,6 +467,7 @@ Deno.serve(async (req) => {
         count: body.membership_ids.length,
         sent: results.filter((r) => r.status === "sent").length,
         resent: results.filter((r) => r.status === "resent").length,
+        notified: results.filter((r) => r.status === "notified").length,
         skipped: results.filter((r) => r.status === "skipped").length,
         errors: results.filter((r) => r.status === "error").length,
       },
