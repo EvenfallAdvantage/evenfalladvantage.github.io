@@ -48,6 +48,13 @@ DECLARE
   v_existing_user      boolean := false;
   v_membership_id      uuid;
   v_email_norm         text;
+  -- Resolved name as actually stored in public.users after this RPC runs.
+  -- For new users this matches what the manager typed; for existing users
+  -- (cross-company adds) it's the name already on file. Returned to the
+  -- client so the success toast can say "Added Jane Smith" with the real
+  -- identity, not what the manager guessed.
+  v_resolved_first     text;
+  v_resolved_last      text;
 BEGIN
   -- ── Auth ──
   v_caller_supabase_id := auth.uid()::text;
@@ -96,7 +103,15 @@ BEGIN
   -- Match case-insensitively. If a row exists, we reuse it (cross-company
   -- add) regardless of whether it's linked to an auth user — the invite
   -- flow handles both linked and unlinked downstream.
-  SELECT id INTO v_user_id
+  --
+  -- IMPORTANT: when a row already exists, we DO NOT overwrite first_name /
+  -- last_name with what the caller typed. public.users is shared across
+  -- every tenant the user belongs to; letting one company rewrite the
+  -- display name would silently corrupt the name shown to other companies.
+  -- The client surfaces the actual stored name in the success toast so
+  -- the manager knows what they really added.
+  SELECT id, first_name, last_name
+    INTO v_user_id, v_resolved_first, v_resolved_last
   FROM public.users
   WHERE lower(email) = v_email_norm
   LIMIT 1;
@@ -105,14 +120,16 @@ BEGIN
     v_existing_user := true;
   ELSE
     v_user_id := gen_random_uuid();
+    v_resolved_first := trim(p_first_name);
+    v_resolved_last  := COALESCE(trim(p_last_name), '');
     INSERT INTO public.users (
       id, email, first_name, last_name, phone,
       supabase_id, created_at, updated_at
     ) VALUES (
       v_user_id,
       v_email_norm,
-      trim(p_first_name),
-      COALESCE(trim(p_last_name), ''),
+      v_resolved_first,
+      v_resolved_last,
       NULLIF(trim(p_phone), ''),
       NULL,
       now(), now()
@@ -149,7 +166,9 @@ BEGIN
   RETURN jsonb_build_object(
     'user_id',        v_user_id,
     'membership_id',  v_membership_id,
-    'existing_user',  v_existing_user
+    'existing_user',  v_existing_user,
+    'first_name',     v_resolved_first,
+    'last_name',      v_resolved_last
   );
 END;
 $$;

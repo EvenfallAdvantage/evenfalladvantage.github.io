@@ -288,8 +288,31 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
         role: addForm.role,
       });
       if (result.existing_user) {
+        // Cross-company add — surface the REAL stored name. The manager
+        // may have typed a different name (e.g. used a maiden name or
+        // nickname) but public.users is shared across tenants, so the
+        // existing name wins. Showing it in the toast prevents the
+        // manager from thinking they added the wrong person.
+        const realName =
+          [result.first_name, result.last_name].filter(Boolean).join(" ") ||
+            addForm.email.trim();
+        const typedName = [addForm.firstName, addForm.lastName]
+          .map((s) => s.trim()).filter(Boolean).join(" ");
+        const nameDiffers =
+          typedName.length > 0 &&
+          typedName.toLowerCase() !== realName.toLowerCase();
         toast.success(
-          "Added to roster (this email already had an Overwatch account).",
+          `Added ${realName} to your roster.`,
+          nameDiffers
+            ? {
+              description:
+                `This email already has an Overwatch account; we used the ` +
+                `name on file ("${realName}") instead of "${typedName}".`,
+            }
+            : {
+              description:
+                "This email already had an Overwatch account.",
+            },
         );
       } else {
         toast.success("Roster member added.");

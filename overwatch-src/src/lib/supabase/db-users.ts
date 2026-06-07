@@ -304,6 +304,15 @@ export interface CreateRosterMemberResult {
   user_id: string;
   membership_id: string;
   existing_user: boolean;
+  /**
+   * Name as actually stored on `public.users` after the RPC ran. For NEW
+   * users this matches what the caller passed; for cross-company adds
+   * (where the user already existed in another tenant) it's the previously
+   * stored name — the caller should display this in any success toast so
+   * the manager knows the real identity they're adding.
+   */
+  first_name: string;
+  last_name: string;
 }
 
 /**
