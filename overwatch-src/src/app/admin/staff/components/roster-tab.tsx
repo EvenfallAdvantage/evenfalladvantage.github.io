@@ -537,14 +537,14 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 text-xs shrink-0"
+              className="h-9 w-9 p-0 shrink-0"
               onClick={() => setShowAddMember((v) => !v)}
-              title={showAddMember ? "Cancel" : "Add a single roster member"}
+              title={showAddMember ? "Cancel" : "Add a roster member"}
+              aria-label={showAddMember ? "Cancel" : "Add a roster member"}
             >
               {showAddMember
                 ? <X className="h-3.5 w-3.5" />
                 : <Plus className="h-3.5 w-3.5" />}
-              {showAddMember ? "Cancel" : "Add Member"}
             </Button>
           )}
           {members.length > 0 && (

@@ -81,7 +81,12 @@ BEGIN
   IF p_email !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' THEN
     RAISE EXCEPTION 'email is not a valid address' USING ERRCODE = '22023';
   END IF;
-  IF p_role NOT IN ('owner', 'admin', 'manager', 'lead', 'breaker', 'staff', 'client') THEN
+  -- Must match the "CompanyRole" enum in the live DB exactly. Prisma's
+  -- supabase-init.sql is the source of truth for this enum, not the older
+  -- supabase-setup.sql which declares it as plain text.
+  IF p_role NOT IN (
+    'owner', 'admin', 'instructor', 'manager', 'lead', 'breaker', 'staff', 'client'
+  ) THEN
     RAISE EXCEPTION 'invalid role: %', p_role USING ERRCODE = '22023';
   END IF;
 
@@ -118,12 +123,20 @@ BEGIN
   -- Tolerate duplicate (user already a member of this company) by no-oping
   -- and returning the existing membership_id so the caller can still kick
   -- off a re-invite.
+  --
+  -- Note: company_memberships.role is the "CompanyRole" Postgres enum (NOT
+  -- plain text) — Prisma defines it with quoted PascalCase, so the cast
+  -- has to use exact quoted casing. Without this cast Postgres rejects
+  -- the insert with "column role is of type CompanyRole but expression is
+  -- of type text", surfacing as a 400 to the client.
   INSERT INTO public.company_memberships (
     id, user_id, company_id, role, status,
     work_preferences, notification_days,
     created_at, updated_at
   ) VALUES (
-    gen_random_uuid(), v_user_id, p_company_id, p_role, 'active',
+    gen_random_uuid(), v_user_id, p_company_id,
+    p_role::public."CompanyRole",
+    'active',
     ARRAY[]::text[],
     ARRAY['Mon','Tue','Wed','Thu','Fri','Sat','Sun']::text[],
     now(), now()
