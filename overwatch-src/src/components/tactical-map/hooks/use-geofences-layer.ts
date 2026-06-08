@@ -1,5 +1,5 @@
 /**
- * Geofences layer (Phase 7 / HaloLocate).
+ * Geofences layer (Phase 7).
  *
  * Plots per-company geofence polygons stored as GeoJSON in the `geofences`
  * table. Each fence is a Cesium polygon entity with configurable fill +

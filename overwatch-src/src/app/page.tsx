@@ -11,6 +11,7 @@ import {
   ChevronRight, Zap, Lock, Globe,
   X, Phone, Mail, ArrowRight, Loader2,
   UserPlus, QrCode, Crosshair, AlertTriangle, FileText, Award, Eye, EyeOff,
+  Map, Satellite, Hexagon, Wifi,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { TOSModal } from "@/components/terms-of-service";
@@ -31,22 +32,26 @@ import { logSecurityEvent, checkLoginAttempts, recordFailedAttempt, clearLoginAt
 import { logger } from "@/lib/logger";
 
 const FEATURES = [
-  { icon: Crosshair, title: "Patrol Operations", desc: "QR checkpoint scanning, geofenced patrol routes, GPS-verified activity logs, real-time officer tracking, and daily activity report generation" },
-  { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out, mass badge scanning, break tracking (CA compliant), geofence enforcement, and multi-provider payroll sync" },
-  { icon: AlertTriangle, title: "Incident Command", desc: "Real-time incident reporting with severity tiers, photo/video evidence with SHA-256 chain-of-custody, and SOS panic alerts" },
-  { icon: Radio, title: "Encrypted Comms", desc: "AES-256 encrypted team channels with WhatsApp & Signal bridging, broadcast alerts with acknowledgment tracking, and read receipts" },
+  { icon: Crosshair, title: "Patrol Operations", desc: "QR checkpoint scanning, geofenced patrol routes, GPS-verified activity logs, real-time officer tracking, and auto-generated daily activity reports" },
+  { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out, mass badge scanning, CA-compliant break tracking, geofence enforcement, and multi-provider payroll sync" },
+  { icon: AlertTriangle, title: "Incident Command", desc: "Real-time incident reporting with severity tiers, photo/video SHA-256 chain-of-custody, SOS panic alerts, and broadcast acknowledgment tracking" },
+  { icon: Radio, title: "Encrypted Comms", desc: "AES-256 encrypted team channels with WhatsApp/Signal bridging, direct messaging, broadcast alerts with read receipts, and location sharing" },
   { icon: GraduationCap, title: "Academy LMS", desc: "Interactive slideshow courses, timed quizzes with question banks, certification tracking with expiry alerts, and compliance dashboards" },
-  { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with real-time emotional tension meters, performance scoring, and scenario outcome tracking" },
+  { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with emotional tension meters, performance scoring, and multi-outcome tracking" },
   { icon: Shield, title: "Site Assessment", desc: "7-section security evaluations with risk matrix scoring, auto-generated recommendations, multi-page PDF reports, and CSV exports" },
   { icon: MapPin, title: "Geo-Risk Intel", desc: "FBI UCR crime data for any US location with composite risk scoring, threat heat mapping, and historical trend analysis" },
-  { icon: UserPlus, title: "Hire-to-Deploy Pipeline", desc: "Public apply form, CSV bulk import, Checkr background checks, DocuSign e-sign, Airtable sync, and auto-onboarding checklists" },
-  { icon: Users, title: "Smart Scheduling", desc: "Shift templates with recurrence, auto-fill with availability + cert + OT constraints, shift swap marketplace, and overtime detection" },
+  { icon: UserPlus, title: "Hire-to-Deploy Pipeline", desc: "Public apply form, CSV bulk import, Checkr background checks, DocuSign e-sign, Airtable sync, applicant-to-roster conversion, and auto-onboarding" },
+  { icon: Users, title: "Smart Scheduling", desc: "Shift templates with recurrence, auto-fill with availability/cert/OT constraints, shift swap marketplace, overtime detection, and automated schedule generation" },
   { icon: QrCode, title: "Asset & Equipment", desc: "QR-coded asset tracking with checkout/checkin logs, assignment history, and batch management across multiple sites" },
   { icon: Globe, title: "State Laws DB", desc: "All 50 states — licensing, training hours, use-of-force doctrine, citizen's arrest, weapons regs, statutes, and regulatory agency links" },
-  { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, compliance tracking, overtime alerts, incident analytics, weekly trends, and auto-generated daily activity reports" },
+  { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, compliance tracking, overtime alerts, incident analytics, weekly trends, auto-generated DARs, and PDF/CSV export" },
   { icon: FileText, title: "Invoicing System", desc: "Persistent invoicing with bill rates, timesheet-to-invoice generation, status tracking, and client portal for payment visibility" },
-  { icon: BookOpen, title: "Client Portal", desc: "Authenticated read-only portal for clients — view operations, incidents, invoices, and daily activity reports with one-click access" },
+  { icon: BookOpen, title: "Client Portal", desc: "Authenticated read-only portal for clients — view operations, incidents, invoices, and DARs with one-click access" },
   { icon: Award, title: "Certifications Hub", desc: "Guard card and license tracking with expiry alerts, compliance dashboard, shift qualification gating, and auto-generated PDF certificates" },
+  { icon: Map, title: "Tactical Map", desc: "Cesium 3D globe with venue site map overlays, geo-fenced boundaries, Time Machine replay, entity clustering, real-time tracking, and storyboard pin planning" },
+  { icon: Satellite, title: "Global Intelligence", desc: "22 real-time OSINT feeds: satellite imagery, aircraft/ADS-B, maritime AIS, CCTV, weather radar, SIGINT, conflict zones, and disaster monitoring" },
+  { icon: Hexagon, title: "Geofences & Venues", desc: "Draw geo-fenced venue boundaries on the 3D globe, 3-point rubber-sheet site map alignment, GPS geolocation enforcement for clock-in and patrol verification" },
+  { icon: Wifi, title: "Offline PWA", desc: "Full offline support with service worker caching, IndexedDB mutation queue, background sync engine, and optimistic UI — no connectivity required" },
 ];
 
 const STATS = [

@@ -1,5 +1,5 @@
 /**
- * Analytics PDF report (Phase 5 / HaloInsights).
+ * Analytics PDF report (Phase 5).
  *
  * Generates a single-page (or auto-paginated) executive summary of a
  * date-range cut of incident + task analytics for a company. White-labeled

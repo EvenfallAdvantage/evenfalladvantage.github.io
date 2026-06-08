@@ -5,7 +5,6 @@
  * dashboard shell. Guards on `'serviceWorker' in navigator` so it's a
  * no-op in browsers without SW support.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * Why a client component: SW registration MUST run in the browser, not at
  * build time. We use a useEffect so registration happens once per mount,

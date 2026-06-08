@@ -1,5 +1,5 @@
 /**
- * Shared types for the SMS provider abstraction (Phase 4 / HaloEngage).
+ * Shared types for the SMS provider abstraction (Phase 4).
  *
  * Two providers implement SmsProvider:
  *  - TwilioProvider — per-company Twilio account (Account SID + Auth Token in Vault).

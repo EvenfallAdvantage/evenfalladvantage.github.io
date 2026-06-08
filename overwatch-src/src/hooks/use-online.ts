@@ -3,7 +3,6 @@
 /**
  * useOnline - reactive online/offline status.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * Subscribes to the browser's online/offline events and reports the
  * current state. SSR-safe: returns `true` on the server (we assume an

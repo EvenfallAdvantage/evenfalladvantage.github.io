@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * /admin/settings/sms - per-company SMS sending configuration (Phase 4 / HaloEngage).
+ * /admin/settings/sms - per-company SMS sending configuration (Phase 4).
  *
  * Lets an owner/admin configure Twilio credentials (encrypted in Supabase
  * Vault by sms-save-credentials), trigger a real test send, and view recent

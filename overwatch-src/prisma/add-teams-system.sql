@@ -40,7 +40,7 @@ CREATE POLICY teams_delete ON teams
   FOR DELETE TO authenticated
   USING (public.is_company_admin(company_id));
 
-COMMENT ON TABLE teams IS 'Teams within a company for multi-team coordination (HaloFusion).';
+COMMENT ON TABLE teams IS 'Teams within a company for multi-team coordination.';
 
 -- ─── 2. Team Members Join Table ──────────────────────────────
 CREATE TABLE IF NOT EXISTS team_members (

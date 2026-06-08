@@ -1,5 +1,5 @@
 /**
- * Tasks System (Phase 2 / HaloTaskManager parity)
+ * Tasks System (Phase 2)
  *
  * General task system: tasks with subtasks, recurrence, watchers, checklist,
  * comments timeline. Tasks may link to incidents (cross-link) or to a parent
@@ -355,7 +355,7 @@ export async function linkTaskToIncident(
 }
 
 /**
- * Hand off a task from one team to another (HaloFusion). Writes a
+ * Hand off a task from one team to another. Writes a
  * `task_comments` row of type `transfer` with the optional note.
  *
  * Pass `toTeamId=null` to release the task from any team.

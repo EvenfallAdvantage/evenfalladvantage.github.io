@@ -4,7 +4,6 @@
  * SyncIndicator - small floating chip showing offline / pending / errored
  * status. Hidden when fully online with nothing to sync.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * Mount once near the top of the dashboard shell. Drives auto-drain via
  * `useSync()`.

@@ -101,7 +101,7 @@ export function useCesiumLayers(params: {
   // ─── Sub-hook: Incident pins ─────────────────────────
   useIncidentsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, incidents });
 
-  // ─── Sub-hook: Geofences (Phase 7 / HaloLocate) ──────
+  // ─── Sub-hook: Geofences (Phase 7) ──────
   const geofencesLayer = useGeofencesLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, companyId });
 
   // ─── Sub-hook: Weather radar ─────────────────────────

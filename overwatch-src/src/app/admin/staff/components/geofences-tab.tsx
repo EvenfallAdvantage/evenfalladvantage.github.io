@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Geofences admin tab (Phase 7 / HaloLocate).
+ * Geofences admin tab (Phase 7).
  *
  * Lists existing geofences with name, team, status. Admins can create new
  * ones by pasting GeoJSON Polygon or by entering a sequence of lat/lng

@@ -1,7 +1,6 @@
 /**
  * Optimistic write wrappers - try live first, queue on offline failure.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * Each helper attempts the live `db-*` write. On `TypeError: Failed to
  * fetch` (typical Chromium offline signature) OR when `navigator.onLine`

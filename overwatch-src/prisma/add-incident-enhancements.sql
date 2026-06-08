@@ -1,4 +1,4 @@
--- Incident Enhancements (HaloControl parity)
+-- Incident Enhancements (Incident Management)
 -- Extend existing incidents system with teams, custom types/statuses, auto-numbering
 
 -- ─────────────────────────────────────────────────────────────────────────────

@@ -4,7 +4,6 @@
  * SyncIssuesPanel - lists mutations that failed enough times to be marked
  * `error` by the sync engine. Lets the user retry or dismiss each one.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * Mounts inside the Security Center (per-company audit viewer). Hidden
  * when there are no errored rows.

@@ -1,7 +1,7 @@
 /**
  * Teams System
  *
- * Multi-team coordination within a company (HaloFusion).
+ * Multi-team coordination within a company.
  * Teams can be assigned incidents and tasks, have custom dashboards,
  * and support multi-agency operations.
  *

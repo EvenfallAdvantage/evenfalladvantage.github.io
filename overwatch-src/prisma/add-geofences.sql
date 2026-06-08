@@ -1,5 +1,5 @@
 -- ============================================================
--- OVERWATCH - Geofences (Phase 7 / HaloLocate)
+-- OVERWATCH - Geofences (Phase 7 / Geofences)
 -- Run this in: Supabase Dashboard -> SQL Editor -> New Query
 -- Adds: geofences table for venue boundaries and zone overlays.
 --
@@ -53,5 +53,5 @@ CREATE POLICY geofences_delete ON geofences
   FOR DELETE TO authenticated
   USING (public.is_company_admin(company_id));
 
-COMMENT ON TABLE geofences IS 'Venue geospatial boundaries (Phase 7 / HaloLocate). Stored as GeoJSON polygons; plotted via Cesium client-side. Members read; admins manage.';
+COMMENT ON TABLE geofences IS 'Venue geospatial boundaries (Phase 7). Stored as GeoJSON polygons; plotted via Cesium client-side. Members read; admins manage.';
 COMMENT ON COLUMN geofences.geometry IS 'GeoJSON Polygon or MultiPolygon as JSONB. Coordinates are [lng, lat] pairs per RFC 7946.';

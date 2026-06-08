@@ -126,7 +126,7 @@ export async function deleteIncident(incidentId: string) {
   if (error) throw error;
 }
 
-// ─── Incident Enhancements (HaloControl parity) ─────────
+// ─── Incident Enhancements ─────────
 
 export async function createIncidentEnhanced(
   companyId: string,
@@ -182,7 +182,7 @@ export async function assignIncidentToTeam(incidentId: string, teamId: string) {
 }
 
 /**
- * Hand off an incident from one team to another (HaloFusion). Writes an
+ * Hand off an incident from one team to another. Writes an
  * `incident_updates` row of type `transfer` with the optional note and a
  * canonical "Transferred from X to Y" message so the activity log preserves
  * the chain of custody.

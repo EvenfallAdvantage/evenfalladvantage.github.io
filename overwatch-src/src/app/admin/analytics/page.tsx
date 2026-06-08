@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * /admin/analytics - HaloInsights parity dashboard.
+ * /admin/analytics - Analytics dashboard.
  *
  * Manager+ gated. Three view tabs: Incidents, Tasks, Combined.
  * Each shows KPI tiles, time-series chart, distribution charts, and a

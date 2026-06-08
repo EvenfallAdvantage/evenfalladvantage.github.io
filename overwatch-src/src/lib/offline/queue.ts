@@ -1,7 +1,6 @@
 /**
  * Offline mutation queue - public API.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * Thin functional layer over `openOfflineDb()` for the optimistic write
  * wrappers and the sync engine.

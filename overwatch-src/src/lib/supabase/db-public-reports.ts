@@ -1,5 +1,5 @@
 /**
- * Public Incident Reports (Phase 4 / HaloEngage)
+ * Public Incident Reports (Phase 4)
  *
  * - Anonymous users submit reports via a per-company "link" identified by a
  *   slug. The slug acts as the share-link security token (printable on a QR).

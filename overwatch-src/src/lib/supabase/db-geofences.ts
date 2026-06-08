@@ -1,5 +1,5 @@
 /**
- * Geofences (Phase 7 / HaloLocate)
+ * Geofences (Phase 7)
  *
  * Venue boundaries stored as GeoJSON Polygon (lng/lat per RFC 7946).
  * Plotted by `use-geofences-layer.ts` on the Cesium tactical map.

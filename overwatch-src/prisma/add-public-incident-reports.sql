@@ -1,5 +1,5 @@
 -- ============================================================
--- OVERWATCH - Public Incident Reports (Phase 4 / HaloEngage)
+-- OVERWATCH - Public Incident Reports (Phase 4 / Engagement)
 -- Run this in: Supabase Dashboard -> SQL Editor -> New Query
 -- Adds: public_report_links + public_report_submissions tables.
 --
@@ -59,7 +59,7 @@ CREATE POLICY public_report_links_delete ON public_report_links
   FOR DELETE TO authenticated
   USING (public.is_company_admin(company_id));
 
-COMMENT ON TABLE public_report_links IS 'Per-company QR/share-link tokens for the public report intake (Phase 4 / HaloEngage). Slug is the security token; treat as semi-secret.';
+COMMENT ON TABLE public_report_links IS 'Per-company QR/share-link tokens for the public report intake (Phase 4). Slug is the security token; treat as semi-secret.';
 
 -- =================================================================
 -- 2. Public Report Submissions

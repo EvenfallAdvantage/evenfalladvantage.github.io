@@ -236,7 +236,7 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/email-save-credentials/index.ts"
 
-# --- SMS (Phase 4 / HaloEngage) -------------------------------------
+# --- SMS (Phase 4) -------------------------------------
 # Service-role-only generic SMS dispatcher. Called by other functions and the
 # admin UI via wrapper functions; never user-facing.
 [functions.sms-send]

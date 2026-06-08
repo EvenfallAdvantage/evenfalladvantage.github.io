@@ -1,6 +1,5 @@
 # Offline queue - manual testing checklist
 
-Phase 8 / HALO_PARITY_PLAN.md
 
 This document walks through verifying the offline queue end-to-end in a
 real browser. The automated test suite (`offline-queue.test.ts`,

@@ -1,7 +1,6 @@
 /**
  * Offline mutation queue - IndexedDB schema + open helper.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * One object store `mutations` keyed by `id`. Each row is a
  * `QueuedMutation` describing one offline write that the sync engine will

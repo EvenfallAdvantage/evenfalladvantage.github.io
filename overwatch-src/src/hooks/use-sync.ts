@@ -3,7 +3,6 @@
 /**
  * useSync - auto-drain pending offline mutations on reconnect / focus.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * Mounts a small effect that calls `drainQueue()` whenever:
  *   1. The browser fires the `online` event (was offline -> now online).

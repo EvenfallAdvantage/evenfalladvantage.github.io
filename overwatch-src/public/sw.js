@@ -1,7 +1,6 @@
 /**
  * Overwatch service worker.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * App-shell cache only. Network-first for HTML, stale-while-revalidate for
  * static assets, never cache /api/ or supabase calls.

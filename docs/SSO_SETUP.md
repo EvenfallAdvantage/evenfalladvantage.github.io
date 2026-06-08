@@ -1,6 +1,6 @@
 # Enterprise SSO (Single Sign-On)
 
-Phase 6.1 / HALO_PARITY_PLAN.md — Enterprise Single Sign-On with SAML 2.0.
+Phase 6.1 — Enterprise Single Sign-On with SAML 2.0.
 
 ## TL;DR
 

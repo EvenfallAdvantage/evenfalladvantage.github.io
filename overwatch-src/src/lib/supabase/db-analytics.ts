@@ -433,7 +433,7 @@ export async function getOwnerIntel(companyId: string) {
   };
 }
 
-// ─── Team metrics (Phase 3 / HaloFusion) ────────────────
+// ─── Team metrics ────────────────
 
 export interface TeamMetrics {
   teamId: string;
@@ -550,7 +550,7 @@ export async function getAllTeamMetrics(companyId: string): Promise<TeamMetrics[
   return Promise.all(teamIds.map((id: string) => getTeamMetrics(companyId, id)));
 }
 
-// ─── Time-series analytics (Phase 5 / HaloInsights) ────────
+// ─── Time-series analytics ────────
 
 export type TimeBucket = "day" | "week" | "month";
 

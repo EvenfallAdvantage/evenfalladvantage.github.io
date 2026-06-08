@@ -1,5 +1,5 @@
 -- ============================================================
--- OVERWATCH - Tasks System Migration (Phase 2 / HaloTaskManager parity)
+-- OVERWATCH - Tasks System Migration (Phase 2 / Task Management)
 -- Run this in: Supabase Dashboard -> SQL Editor -> New Query
 -- Adds: general task system (separate from onboarding checklists)
 -- Tables: tasks, task_watchers, task_checklist_items, task_comments
@@ -59,7 +59,7 @@ CREATE POLICY tasks_delete ON tasks
   FOR DELETE TO authenticated
   USING (public.is_company_admin(company_id));
 
-COMMENT ON TABLE tasks IS 'General task system (Phase 2 / HaloTaskManager). Separate from onboarding checklists. Supports subtasks, recurrence, incident linkage.';
+COMMENT ON TABLE tasks IS 'General task system (Phase 2). Separate from onboarding checklists. Supports subtasks, recurrence, incident linkage.';
 
 -- =================================================================
 -- 2. Task Watchers

@@ -1,7 +1,6 @@
 /**
  * Offline sync engine - drain pending mutations.
  *
- * Phase 8 / HALO_PARITY_PLAN.md
  *
  * On reconnect (or app focus) call `drainQueue()`. It walks pending
  * mutations in `createdAt` order, dispatches each by `kind` to the
