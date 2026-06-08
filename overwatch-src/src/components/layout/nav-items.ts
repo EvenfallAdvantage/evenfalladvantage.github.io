@@ -96,7 +96,7 @@ export const NAV_SECTIONS: NavSection[] = [
         title: "Security",
         href: "/admin/security",
         icon: "ShieldAlert",
-        superAdminOnly: true,
+        roles: ["owner", "admin"],
       },
       {
         title: "System Health",

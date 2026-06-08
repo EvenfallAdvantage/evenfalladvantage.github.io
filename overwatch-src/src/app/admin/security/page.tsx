@@ -16,10 +16,13 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { getAuditLogs, getSecurityStats } from "@/lib/security/audit";
 import { isSuperAdmin } from "@/lib/security/super-admin";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Shield, Lock, AlertTriangle, Eye, CheckCircle2, XCircle,
   Clock, Activity, ShieldCheck, Key, RefreshCw, ShieldOff,
+  Database,
 } from "lucide-react";
+import { PrivacyControls } from "./components/privacy-controls";
 
 interface AuditLog {
   id: string;
@@ -42,10 +45,19 @@ const EVENT_LABELS: Record<string, { label: string; icon: typeof Shield; color: 
   "auth.password.changed": { label: "Password Changed", icon: Key, color: "text-blue-500" },
   "security.lockout": { label: "Account Lockout", icon: AlertTriangle, color: "text-red-600" },
   "security.suspicious_activity": { label: "Suspicious Activity", icon: AlertTriangle, color: "text-red-600" },
-  "data.export": { label: "Data Export", icon: Activity, color: "text-blue-400" },
   "admin.role.changed": { label: "Role Changed", icon: ShieldCheck, color: "text-purple-500" },
   "admin.user.invited": { label: "User Invited", icon: CheckCircle2, color: "text-green-400" },
   "admin.user.removed": { label: "User Removed", icon: XCircle, color: "text-red-400" },
+  "admin.sms.sent": { label: "SMS Sent", icon: Activity, color: "text-cyan-500" },
+  "admin.sms.config_changed": { label: "SMS Config Changed", icon: Key, color: "text-purple-500" },
+  "admin.sms.config_verified": { label: "SMS Config Verified", icon: ShieldCheck, color: "text-green-500" },
+  "admin.email.sent_bulk": { label: "Bulk Email Sent", icon: Activity, color: "text-cyan-500" },
+  "admin.email.config_changed": { label: "Email Config Changed", icon: Key, color: "text-purple-500" },
+  "admin.email.config_verified": { label: "Email Config Verified", icon: ShieldCheck, color: "text-green-500" },
+  "data.export": { label: "Data Export", icon: Database, color: "text-blue-400" },
+  "data.delete": { label: "Data Deletion", icon: XCircle, color: "text-red-500" },
+  "public.report.submitted": { label: "Public Report Submitted", icon: Activity, color: "text-amber-400" },
+  "public.report.promoted": { label: "Report Promoted to Incident", icon: CheckCircle2, color: "text-green-400" },
 };
 
 const SECURITY_CONTROLS = [
@@ -65,13 +77,19 @@ const SECURITY_CONTROLS = [
 
 export default function SecurityDashboardPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const activeCompanyId = user?.companies?.[0]?.companyId;
+  const { user, activeCompanyId: activeCompanyIdFromStore } = useAuthStore();
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const activeCompanyId = activeCompanyIdFromStore ?? user?.companies?.[0]?.companyId;
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [stats, setStats] = useState({ events24h: 0, failedLogins7d: 0, lockouts7d: 0 });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const superAdmin = isSuperAdmin(user?.email);
+  // Per-company owner/admin can view their own audit log; manager+ can read
+  // basic stats. Super-admin sees everything plus the platform controls panel.
+  const isCompanyAdmin =
+    !!activeCompany && hasMinRole(activeCompany.role as CompanyRole, "admin");
+  const canView = superAdmin || isCompanyAdmin;
 
   const load = useCallback(async () => {
     if (!activeCompanyId) return;
@@ -92,14 +110,14 @@ export default function SecurityDashboardPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  if (user && !superAdmin) {
+  if (user && !canView) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center space-y-4 max-w-sm">
           <ShieldOff className="h-16 w-16 text-red-500/50 mx-auto" />
           <h1 className="text-xl font-bold font-mono text-red-500">ACCESS DENIED</h1>
           <p className="text-sm text-muted-foreground">
-            The Security Center is restricted to platform administrators.
+            The Security Center is restricted to company owners, admins, and platform administrators.
           </p>
           <button
             onClick={() => router.push("/feed")}
@@ -123,7 +141,11 @@ export default function SecurityDashboardPage() {
           <Shield className="h-7 w-7 text-amber-500" />
           <div>
             <h1 className="text-xl font-bold font-mono">SECURITY CENTER</h1>
-            <p className="text-xs text-muted-foreground">NIST 800-171 / CMMC Level 2 Compliance Dashboard</p>
+            <p className="text-xs text-muted-foreground">
+              {superAdmin
+                ? "Platform-wide audit log + NIST 800-171 / CMMC Level 2 controls"
+                : `Audit log for ${activeCompany?.companyName ?? "your company"}`}
+            </p>
           </div>
         </div>
         <button onClick={load} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
@@ -159,9 +181,10 @@ export default function SecurityDashboardPage() {
         </div>
       </div>
 
-      {/* Two Column: Controls + Event Log */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Security Controls */}
+      {/* Two Column: Controls + Event Log (controls super-admin only) */}
+      <div className={`grid grid-cols-1 gap-6 ${superAdmin ? "lg:grid-cols-5" : ""}`}>
+        {/* Security Controls — super-admin only */}
+        {superAdmin && (
         <div className="lg:col-span-2 rounded-xl border border-border/50 bg-card">
           <div className="border-b border-border/50 px-4 py-3">
             <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -183,9 +206,10 @@ export default function SecurityDashboardPage() {
             ))}
           </div>
         </div>
+        )}
 
         {/* Audit Event Log */}
-        <div className="lg:col-span-3 rounded-xl border border-border/50 bg-card">
+        <div className={`rounded-xl border border-border/50 bg-card ${superAdmin ? "lg:col-span-3" : ""}`}>
           <div className="border-b border-border/50 px-4 py-3 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -252,18 +276,25 @@ export default function SecurityDashboardPage() {
         </div>
       </div>
 
-      {/* Compliance Badge */}
-      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-center gap-4">
-        <Shield className="h-10 w-10 text-amber-500 shrink-0" />
-        <div>
-          <p className="text-sm font-bold font-mono text-amber-500">MILITARY-GRADE SECURITY ACTIVE</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            This platform implements AES-256-GCM encryption (FIPS 140-2), NIST 800-63B password policy,
-            NIST 800-171 session controls, Content Security Policy, brute-force protection, and comprehensive
-            audit logging. All security controls are continuously enforced.
-          </p>
+      {/* Privacy / GDPR controls — available to any authenticated user
+          (self-service); admin actions are gated inside the component to
+          owner role only. */}
+      <PrivacyControls />
+
+      {/* Compliance Badge — super-admin only */}
+      {superAdmin && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-center gap-4">
+          <Shield className="h-10 w-10 text-amber-500 shrink-0" />
+          <div>
+            <p className="text-sm font-bold font-mono text-amber-500">MILITARY-GRADE SECURITY ACTIVE</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              This platform implements AES-256-GCM encryption (FIPS 140-2), NIST 800-63B password policy,
+              NIST 800-171 session controls, Content Security Policy, brute-force protection, and comprehensive
+              audit logging. All security controls are continuously enforced.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

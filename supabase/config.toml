@@ -263,3 +263,17 @@ entrypoint = "./functions/sms-test-send/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/sms-save-credentials/index.ts"
+
+# --- GDPR (Phase 6 / Enterprise compliance) --------------------------
+# User-callable. Self-export always allowed; admin-export gated to owner role.
+[functions.data-export]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/data-export/index.ts"
+
+# User-callable. Self-delete always allowed; admin-delete gated to owner.
+# Requires confirm_email parameter that matches subject's email.
+[functions.data-delete]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/data-delete/index.ts"
