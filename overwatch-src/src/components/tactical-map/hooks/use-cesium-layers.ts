@@ -34,6 +34,7 @@ import { useLiveNewsLayer } from "./use-live-news-layer";
 import { useSigintNewsLayer } from "./use-sigint-news-layer";
 import { useMaritimeLayer } from "./use-maritime-layer";
 import { useCctvLayer } from "./use-cctv-layer";
+import { useGeofencesLayer } from "./use-geofences-layer";
 import type { IntelLiveNewsFeed, CctvCamera } from "@/lib/intel-types";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -99,6 +100,9 @@ export function useCesiumLayers(params: {
 
   // ─── Sub-hook: Incident pins ─────────────────────────
   useIncidentsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, incidents });
+
+  // ─── Sub-hook: Geofences (Phase 7 / HaloLocate) ──────
+  const geofencesLayer = useGeofencesLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, companyId });
 
   // ─── Sub-hook: Weather radar ─────────────────────────
   // NEXRAD MRMS only serves current radar; layer hides itself during replay.
@@ -692,5 +696,7 @@ export function useCesiumLayers(params: {
     aligningOp, setAligningOp,
     savedBounds, setSavedBounds,
     s2Intel,
+    geofences: geofencesLayer.geofences,
+    refreshGeofences: geofencesLayer.refresh,
   };
 }

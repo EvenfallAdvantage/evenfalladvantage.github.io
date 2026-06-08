@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   UsersRound,
   QrCode,
+  Target,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
@@ -30,6 +31,7 @@ import { ApplicantsTab } from "./components/applicants-tab";
 import { RosterTab } from "./components/roster-tab";
 import { TeamsTab } from "./components/teams-tab";
 import { PublicReportsTab } from "./components/public-reports-tab";
+import { GeofencesTab } from "./components/geofences-tab";
 import { getCompanyPostings } from "@/lib/supabase/db-postings";
 import { logger } from "@/lib/logger";
 
@@ -39,7 +41,7 @@ type Member = Record<string, unknown> & {
   users?: { id?: string };
 };
 
-type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "postings" | "teams" | "public-reports";
+type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "postings" | "teams" | "public-reports" | "geofences";
 
 /* ── Badge count state (lightweight — only counts, no full records) ── */
 interface TabCounts {
@@ -174,6 +176,7 @@ export default function AdminStaffPage() {
             { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
             { key: "teams" as Tab, label: "Teams", badge: 0, icon: UsersRound },
             { key: "public-reports" as Tab, label: "Public Reports", badge: 0, icon: QrCode },
+            { key: "geofences" as Tab, label: "Geofences", badge: 0, icon: Target },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
@@ -239,6 +242,10 @@ export default function AdminStaffPage() {
 
         {tab === "public-reports" && activeCompanyId && (
           <PublicReportsTab activeCompanyId={activeCompanyId} canManage={canManage} />
+        )}
+
+        {tab === "geofences" && activeCompanyId && (
+          <GeofencesTab activeCompanyId={activeCompanyId} canManage={canManage} />
         )}
       </div>
     </>
