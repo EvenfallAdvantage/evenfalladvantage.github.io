@@ -71,8 +71,8 @@ export async function getDashboardMetrics(companyId: string) {
       .eq("company_id", companyId).in("status", ["open", "investigating"]),
     supabase.from("patrol_logs").select("id", { count: "exact", head: true })
       .eq("company_id", companyId).gte("scanned_at", todayISO),
-    supabase.from("form_submissions").select("id", { count: "exact", head: true })
-      .eq("status", "submitted"),
+    supabase.from("form_submissions").select("id, forms!inner(company_id)", { count: "exact", head: true })
+      .eq("forms.company_id", companyId).eq("status", "submitted"),
     supabase.from("company_memberships").select("id", { count: "exact", head: true })
       .eq("company_id", companyId).eq("status", "active"),
     supabase.from("shifts").select("id, events!inner(company_id)", { count: "exact", head: true })
@@ -135,8 +135,8 @@ export async function getDashboardTrends(companyId: string): Promise<DashboardTr
       .limit(2000),
     supabase
       .from("form_submissions")
-      .select("created_at")
-      .eq("company_id", companyId)
+      .select("created_at, forms!inner(company_id)")
+      .eq("forms.company_id", companyId)
       .gte("created_at", fromIso)
       .limit(2000),
   ]);
@@ -823,11 +823,11 @@ export async function getMultiLogReport(
   // Patrols: no team_id column. Skip team filter for patrols.
   const [patQ, tmsQ] = await Promise.all([
     supabase
-      .from("patrols")
-      .select("id, started_at")
+      .from("patrol_logs")
+      .select("id, scanned_at")
       .eq("company_id", companyId)
-      .gte("started_at", params.from)
-      .lte("started_at", params.to),
+      .gte("scanned_at", params.from)
+      .lte("scanned_at", params.to),
     supabase
       .from("timesheets")
       .select("id, clock_in")
@@ -851,7 +851,7 @@ export async function getMultiLogReport(
 
   for (const r of (incQ.data ?? []) as Array<{ created_at: string }>) bump("incidents", r.created_at);
   for (const r of (tskQ.data ?? []) as Array<{ created_at: string }>) bump("tasks", r.created_at);
-  for (const r of (patQ.data ?? []) as Array<{ started_at: string }>) bump("patrols", r.started_at);
+  for (const r of (patQ.data ?? []) as Array<{ scanned_at: string }>) bump("patrols", r.scanned_at);
   for (const r of (tmsQ.data ?? []) as Array<{ clock_in: string }>) bump("timesheets", r.clock_in);
 
   return {

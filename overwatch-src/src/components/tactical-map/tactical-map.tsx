@@ -170,7 +170,6 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         cesiumRef.current = Cesium;
 
         const viewer = new Cesium.Viewer(containerRef.current!, {
-          terrain: Cesium.Terrain.fromWorldTerrain({ requestVertexNormals: true, requestWaterMask: true }),
           baseLayerPicker: false,
           geocoder: false,
           homeButton: false,
@@ -184,6 +183,19 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           infoBox: false,
           creditContainer: document.createElement("div"),
         });
+
+        // Set terrain after construction: Terrain.fromWorldTerrain() returns a
+        // Promise in Cesium 1.104+, so it cannot be passed inline to the Viewer
+        // constructor.  We apply it asynchronously here.
+        try {
+          const terrainProvider = await Cesium.Terrain.fromWorldTerrain({
+            requestVertexNormals: true,
+            requestWaterMask: true,
+          });
+          if (!destroyed) viewer.terrainProvider = terrainProvider;
+        } catch (terrainErr) {
+          logger.swallow("tactical-map:terrain", terrainErr, "debug");
+        }
 
         if (destroyed) { viewer.destroy(); return; }
         viewerRef.current = viewer;

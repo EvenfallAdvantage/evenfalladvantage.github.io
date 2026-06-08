@@ -182,7 +182,7 @@ describe("getMultiLogReport()", () => {
     const datasets = [
       [{ created_at: "2026-01-10T00:00:00Z" }, { created_at: "2026-01-10T01:00:00Z" }], // incidents (2 on 1/10)
       [{ created_at: "2026-01-10T00:00:00Z" }, { created_at: "2026-01-11T00:00:00Z" }], // tasks (1 each)
-      [{ started_at: "2026-01-11T00:00:00Z" }], // patrols
+      [{ scanned_at: "2026-01-11T00:00:00Z" }], // patrols
       [{ clock_in: "2026-01-12T00:00:00Z" }], // timesheets
     ];
     let call = 0;
