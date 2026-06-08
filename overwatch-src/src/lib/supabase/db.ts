@@ -27,3 +27,4 @@ export * from "./db-client-portal";
 export * from "./db-scheduling";
 export * from "./db-api-keys";
 export * from "./db-intake-mappings";
+export * from "./db-teams";

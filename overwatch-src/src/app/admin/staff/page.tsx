@@ -7,6 +7,7 @@ import {
   UserPlus,
   BookOpenCheck, CalendarClock, FileEdit, FileText, Megaphone,
   CheckCircle2,
+  UsersRound,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
@@ -26,6 +27,7 @@ import { TimesheetsTab } from "./components/timesheets-tab";
 import { ReportsTab } from "./components/reports-tab";
 import { ApplicantsTab } from "./components/applicants-tab";
 import { RosterTab } from "./components/roster-tab";
+import { TeamsTab } from "./components/teams-tab";
 import { getCompanyPostings } from "@/lib/supabase/db-postings";
 import { logger } from "@/lib/logger";
 
@@ -35,7 +37,7 @@ type Member = Record<string, unknown> & {
   users?: { id?: string };
 };
 
-type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "postings";
+type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "postings" | "teams";
 
 /* ── Badge count state (lightweight — only counts, no full records) ── */
 interface TabCounts {
@@ -78,6 +80,7 @@ export default function AdminStaffPage() {
       postings: <Megaphone className="h-5 w-5" />,
       applicants: <UserPlus className="h-5 w-5" />,
       onboarding: <BookOpenCheck className="h-5 w-5" />,
+      teams: <UsersRound className="h-5 w-5" />,
     };
     setHeader(
       "PERSONNEL",
@@ -167,6 +170,7 @@ export default function AdminStaffPage() {
             { key: "postings" as Tab, label: "Postings", badge: counts.activePostings, icon: Megaphone },
             { key: "applicants" as Tab, label: "Applicants", badge: counts.newApplicants, icon: UserPlus },
             { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
+            { key: "teams" as Tab, label: "Teams", badge: 0, icon: UsersRound },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
@@ -224,6 +228,10 @@ export default function AdminStaffPage() {
 
         {tab === "onboarding" && activeCompanyId && (
           <OnboardingTab activeCompanyId={activeCompanyId} canManage={canManage} />
+        )}
+
+        {tab === "teams" && activeCompanyId && canManage && (
+          <TeamsTab activeCompanyId={activeCompanyId} canManage={canManage} />
         )}
       </div>
     </>
