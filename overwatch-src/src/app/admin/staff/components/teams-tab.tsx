@@ -14,7 +14,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { getTeams, createTeam, updateTeam, archiveTeam, deleteTeam, getTeamMembers, addTeamMember, removeTeamMember } from "@/lib/supabase/db";
+import { getTeams, createTeam, updateTeam, archiveTeam, deleteTeam, getTeamMembers, addTeamMember, removeTeamMember, getCompanyMembers } from "@/lib/supabase/db";
 import { logger } from "@/lib/logger";
 
 interface Team {
@@ -38,6 +38,15 @@ interface TeamMember {
   createdAt: string;
 }
 
+interface CompanyMember {
+  id: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
 interface TeamsTabProps {
   activeCompanyId: string;
   canManage: boolean;
@@ -53,7 +62,9 @@ export function TeamsTab({ activeCompanyId, canManage }: TeamsTabProps) {
   const [showDeleteModal, setShowDeleteModal] = useState<Team | null>(null);
   const [showMembersModal, setShowMembersModal] = useState<Team | null>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [newMemberId, setNewMemberId] = useState("");
+  const [companyMembers, setCompanyMembers] = useState<CompanyMember[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
+
 
   const loadTeams = useCallback(async () => {
     if (!activeCompanyId) { setLoading(false); return; }
@@ -146,12 +157,11 @@ export function TeamsTab({ activeCompanyId, canManage }: TeamsTabProps) {
     }
   };
 
-  const handleAddMember = async () => {
-    if (!showMembersModal || !newMemberId) return;
-    const result = await addTeamMember(showMembersModal.id, newMemberId);
+  const handleAddMember = async (member: CompanyMember) => {
+    if (!showMembersModal) return;
+    const result = await addTeamMember(showMembersModal.id, member.userId);
     if (result) {
-      toast.success("Member added to team");
-      setNewMemberId("");
+      toast.success(`${member.firstName} ${member.lastName} added to team`);
       loadTeamMembers(showMembersModal.id);
     } else {
       toast.error("Failed to add member");
@@ -180,8 +190,22 @@ export function TeamsTab({ activeCompanyId, canManage }: TeamsTabProps) {
 
   const handleOpenMembers = async (team: Team) => {
     setTeamMembers([]);
+    setMemberSearch("");
     setShowMembersModal(team);
     await loadTeamMembers(team.id);
+    if (canManage) {
+      const members = await getCompanyMembers(activeCompanyId);
+      setCompanyMembers(
+        members.map((m: Record<string, unknown>) => ({
+          id: m.id as string,
+          userId: (m.users as Record<string, unknown>).id as string,
+          firstName: (m.users as Record<string, unknown>).first_name as string,
+          lastName: (m.users as Record<string, unknown>).last_name as string,
+          email: (m.users as Record<string, unknown>).email as string,
+          role: m.role as string,
+        }))
+      );
+    }
   };
 
   const filteredTeams = teams.filter(t =>
@@ -365,32 +389,57 @@ export function TeamsTab({ activeCompanyId, canManage }: TeamsTabProps) {
               <p className="text-sm text-muted-foreground text-center py-4">No members yet</p>
             ) : (
               <div className="space-y-2">
-                {teamMembers.map(tm => (
-                  <div key={tm.id} className="flex items-center justify-between p-2 rounded-md border">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Member</span>
-                      {tm.role === "lead" && <Badge variant="secondary" className="text-[10px]">Lead</Badge>}
+                {teamMembers.map(tm => {
+                  const cm = companyMembers.find(m => m.userId === tm.userId);
+                  return (
+                    <div key={tm.id} className="flex items-center justify-between p-2 rounded-md border">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">
+                          {cm ? `${cm.firstName} ${cm.lastName}` : "Member"}
+                        </span>
+                        {tm.role === "lead" && <Badge variant="secondary" className="text-[10px]">Lead</Badge>}
+                      </div>
+                      {canManage && (
+                        <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(tm.userId)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    {canManage && (
-                      <Button variant="ghost" size="sm" onClick={() => handleRemoveMember(tm.userId)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             {canManage && (
-              <div className="flex gap-2">
+              <div className="space-y-2">
                 <Input
-                  placeholder="User ID"
-                  value={newMemberId}
-                  onChange={(e) => setNewMemberId(e.target.value)}
+                  placeholder="Search members..."
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
                 />
-                <Button onClick={handleAddMember}>
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-1">
+                  {companyMembers
+                    .filter(m => {
+                      const q = memberSearch.toLowerCase();
+                      return !q || `${m.firstName} ${m.lastName} ${m.email}`.toLowerCase().includes(q);
+                    })
+                    .map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-muted transition-colors"
+                        onClick={() => handleAddMember(m)}
+                      >
+                        <span className="font-medium">{m.firstName} {m.lastName}</span>
+                        <span className="text-muted-foreground ml-2">({m.role})</span>
+                      </button>
+                    ))}
+                  {memberSearch && companyMembers.filter(m =>
+                    `${m.firstName} ${m.lastName} ${m.email}`.toLowerCase().includes(memberSearch.toLowerCase())
+                  ).length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-2">No matching members</p>
+                  )}
+                </div>
               </div>
             )}
           </div>
