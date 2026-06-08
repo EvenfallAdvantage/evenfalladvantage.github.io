@@ -251,6 +251,7 @@ export async function addTeamMember(
   const supabase = createClient();
   const id = crypto.randomUUID();
 
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from("team_members")
     .insert({
@@ -258,7 +259,7 @@ export async function addTeamMember(
       team_id: teamId,
       user_id: userId,
       role,
-      ...ts(),
+      created_at: now,
     });
 
   if (error) {
