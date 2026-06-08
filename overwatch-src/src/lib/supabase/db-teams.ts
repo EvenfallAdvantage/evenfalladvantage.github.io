@@ -48,8 +48,18 @@ export async function getTeams(companyId: string): Promise<Team[]> {
 
   if (error) { logDbReadError("teams", error); return []; }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((t: any) => ({
+  return (data ?? []).map((t: {
+    id: string;
+    company_id: string;
+    name: string;
+    description: string | null;
+    color: string;
+    icon: string | null;
+    is_archived: boolean;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+  }) => ({
     id: t.id,
     companyId: t.company_id,
     name: t.name,
@@ -215,8 +225,13 @@ export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
 
   if (error) { logDbReadError("team members", error); return []; }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((tm: any) => ({
+  return (data ?? []).map((tm: {
+    id: string;
+    team_id: string;
+    user_id: string;
+    role: string;
+    created_at: string;
+  }) => ({
     id: tm.id,
     teamId: tm.team_id,
     userId: tm.user_id,
@@ -313,5 +328,45 @@ export async function getUserTeams(companyId: string, userId: string): Promise<T
     createdById: t.created_by,
     createdAt: t.created_at,
     updatedAt: t.updated_at,
+  }));
+}
+
+/**
+ * Get teams with member count.
+ */
+export async function getTeamsWithMemberCount(companyId: string): Promise<Team[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("teams")
+    .select("*, team_members(count)")
+    .eq("company_id", companyId)
+    .order("name", { ascending: true });
+
+  if (error) { logDbReadError("teams with member count", error); return []; }
+
+  return (data ?? []).map((t: {
+    id: string;
+    company_id: string;
+    name: string;
+    description: string | null;
+    color: string;
+    icon: string | null;
+    is_archived: boolean;
+    created_by: string | null;
+    created_at: string;
+    updated_at: string;
+    team_members: Array<{ count: number }>;
+  }) => ({
+    id: t.id,
+    companyId: t.company_id,
+    name: t.name,
+    description: t.description,
+    color: t.color,
+    icon: t.icon,
+    isArchived: t.is_archived,
+    createdById: t.created_by,
+    createdAt: t.created_at,
+    updatedAt: t.updated_at,
+    memberCount: t.team_members?.[0]?.count ?? 0,
   }));
 }
