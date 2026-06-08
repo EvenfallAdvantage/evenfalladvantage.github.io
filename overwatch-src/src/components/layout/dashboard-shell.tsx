@@ -7,6 +7,7 @@ import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
 import { MobilePageAction } from "@/components/mobile-page-action";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { SyncIndicator } from "@/components/sync-indicator";
 
 const STORAGE_KEY = "overwatch-sidebar-collapsed";
 
@@ -59,6 +60,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <MobileNav />
+
+      {/* Offline sync indicator (only visible when there's something to show) */}
+      <SyncIndicator />
     </div>
   );
 }
