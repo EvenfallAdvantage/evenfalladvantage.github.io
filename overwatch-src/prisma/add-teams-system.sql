@@ -66,7 +66,7 @@ CREATE POLICY team_members_select ON team_members
       SELECT 1 FROM teams t
       JOIN company_memberships cm ON cm.company_id = t.company_id
       WHERE t.id = team_members.team_id
-      AND cm.user_id = auth.uid()::text
+      AND cm.user_id = auth.uid()::uuid
       AND cm.role IN ('owner','admin','manager')
     )
   );
@@ -78,7 +78,7 @@ CREATE POLICY team_members_insert ON team_members
       SELECT 1 FROM teams t
       JOIN company_memberships cm ON cm.company_id = t.company_id
       WHERE t.id = team_members.team_id
-      AND cm.user_id = auth.uid()::text
+      AND cm.user_id = auth.uid()::uuid
       AND cm.role IN ('owner','admin','manager')
     )
   );
@@ -90,7 +90,7 @@ CREATE POLICY team_members_delete ON team_members
       SELECT 1 FROM teams t
       JOIN company_memberships cm ON cm.company_id = t.company_id
       WHERE t.id = team_members.team_id
-      AND cm.user_id = auth.uid()::text
+      AND cm.user_id = auth.uid()::uuid
       AND cm.role IN ('owner','admin','manager')
     )
   );

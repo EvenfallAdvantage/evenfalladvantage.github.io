@@ -125,3 +125,114 @@ export async function deleteIncident(incidentId: string) {
   const { error } = await supabase.from("incidents").delete().eq("id", incidentId);
   if (error) throw error;
 }
+
+// ─── Incident Enhancements (HaloControl parity) ─────────
+
+export async function createIncidentEnhanced(
+  companyId: string,
+  params: {
+    title: string;
+    description?: string;
+    type?: string;
+    severity?: string;
+    priority?: string;
+    location?: string;
+    eventId?: string;
+    teamId?: string;
+    dueAt?: string;
+    customFields?: Record<string, unknown>;
+    source?: "internal" | "public" | "api";
+  }
+) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+  const { data, error } = await supabase.from("incidents").insert({
+    id: crypto.randomUUID(),
+    company_id: companyId,
+    reported_by: userId,
+    title: params.title,
+    description: params.description ?? null,
+    type: params.type ?? "general",
+    severity: params.severity ?? "low",
+    priority: params.priority ?? "medium",
+    status: "open",
+    location: params.location ?? null,
+    event_id: params.eventId ?? null,
+    team_id: params.teamId ?? null,
+    due_at: params.dueAt ?? null,
+    custom_fields: params.customFields ?? {},
+    source: params.source ?? "internal",
+    ...ts(),
+  }).select().maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function assignIncidentToTeam(incidentId: string, teamId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("incidents")
+    .update({ team_id: teamId, updated_at: new Date().toISOString() })
+    .eq("id", incidentId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function setIncidentStatus(incidentId: string, statusKey: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("incidents")
+    .update({ status: statusKey, updated_at: new Date().toISOString() })
+    .eq("id", incidentId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function getIncidentsByTeam(companyId: string, teamId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("incidents")
+    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name)")
+    .eq("company_id", companyId)
+    .eq("team_id", teamId)
+    .order("created_at", { ascending: false });
+  if (error) { logDbReadError("incidents by team", error); return []; }
+  return data ?? [];
+}
+
+export async function getIncidentsFiltered(
+  companyId: string,
+  filters: {
+    status?: string;
+    priority?: string;
+    teamId?: string;
+    type?: string;
+    assignedTo?: string;
+    from?: string;
+    to?: string;
+  }
+) {
+  const supabase = createClient();
+  let q = supabase
+    .from("incidents")
+    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name)")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+
+  if (filters.status) q = q.eq("status", filters.status);
+  if (filters.priority) q = q.eq("priority", filters.priority);
+  if (filters.teamId) q = q.eq("team_id", filters.teamId);
+  if (filters.type) q = q.eq("type", filters.type);
+  if (filters.assignedTo) q = q.eq("assigned_to", filters.assignedTo);
+  if (filters.from) q = q.gte("created_at", filters.from);
+  if (filters.to) q = q.lte("created_at", filters.to);
+
+  const { data, error } = await q;
+  if (error) { logDbReadError("incidents filtered", error); return []; }
+  return data ?? [];
+}
