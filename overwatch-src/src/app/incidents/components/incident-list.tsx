@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { timeAgo } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -9,6 +9,7 @@ import {
   Clock,
   MapPin,
   User,
+  Users,
   MessageSquare,
   Send,
   CircleDot,
@@ -32,7 +33,13 @@ import {
   deleteIncident,
   loadStoryboard,
   getEventSiteMapUrl,
+  assignIncidentToTeam,
+  setIncidentStatus,
+  getTeams,
+  getIncidentStatuses,
 } from "@/lib/supabase/db";
+import type { Team } from "@/lib/supabase/db-teams";
+import type { IncidentStatus } from "@/lib/supabase/db-incident-config";
 import type { StoryboardPin } from "@/components/storyboard-editor";
 import { SiteMapViewModal } from "./site-map-view-modal";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -64,11 +71,32 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
   const [editingIncidentId, setEditingIncidentId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
 
+  // Teams + dynamic statuses
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [statusDefs, setStatusDefs] = useState<IncidentStatus[]>([]);
+
   // Storyboard — incident detail (view on map)
   const [viewMapIncidentId, setViewMapIncidentId] = useState<string | null>(null);
   const [viewMapUrl, setViewMapUrl] = useState<string | null>(null);
   const [viewMapPins, setViewMapPins] = useState<StoryboardPin[]>([]);
   const [viewMapLoading, setViewMapLoading] = useState(false);
+
+  useEffect(() => {
+    if (!activeCompanyId) return;
+    const loadConfig = async () => {
+      try {
+        const [t, s] = await Promise.all([
+          getTeams(activeCompanyId),
+          getIncidentStatuses(activeCompanyId),
+        ]);
+        setTeams(t);
+        setStatusDefs(s);
+      } catch {
+        // Non-fatal: list still works with fallback constants.
+      }
+    };
+    void loadConfig();
+  }, [activeCompanyId]);
 
   const filtered = incidents.filter((i: Incident) =>
     !search || i.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -91,16 +119,44 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
     setNewComment("");
   }
 
+  async function refreshUpdates(incidentId: string) {
+    const u = await getIncidentUpdates(incidentId);
+    setUpdates(prev => ({ ...prev, [incidentId]: u }));
+  }
+
   async function handleStatusChange(incidentId: string, status: string) {
-    await updateIncident(incidentId, { status });
-    if (status === "resolved") {
-      await addIncidentUpdate(incidentId, `Status changed to ${status}`, "status_change");
-    }
+    await setIncidentStatus(incidentId, status);
+    await addIncidentUpdate(incidentId, `Status changed to ${status}`, "status_change");
+    await refreshUpdates(incidentId);
     await onReload();
   }
 
   async function handleAssign(incidentId: string, userId: string) {
     await updateIncident(incidentId, { assigned_to: userId || null });
+    const member = members.find((m: Member) => m.users?.id === userId);
+    const name = member?.users ? `${member.users.first_name ?? ""} ${member.users.last_name ?? ""}`.trim() : "";
+    await addIncidentUpdate(
+      incidentId,
+      userId ? `Assigned to ${name || "user"}` : "Assignment cleared",
+      "update"
+    );
+    await refreshUpdates(incidentId);
+    await onReload();
+  }
+
+  async function handleAssignTeam(incidentId: string, teamId: string) {
+    if (!teamId) {
+      await updateIncident(incidentId, { team_id: null });
+    } else {
+      await assignIncidentToTeam(incidentId, teamId);
+    }
+    const teamName = teams.find((t) => t.id === teamId)?.name;
+    await addIncidentUpdate(
+      incidentId,
+      teamId ? `Assigned to team ${teamName ?? "(unknown)"}` : "Team assignment cleared",
+      "update"
+    );
+    await refreshUpdates(incidentId);
     await onReload();
   }
 
@@ -163,6 +219,9 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
+                    {inc.incident_number && (
+                      <span className="text-[10px] font-mono text-muted-foreground">#{inc.incident_number}</span>
+                    )}
                     <span className="font-semibold text-sm truncate">{inc.title}</span>
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${stat.color}`}>
                       {stat.label}
@@ -170,6 +229,17 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                     <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">
                       {inc.type.replace(/_/g, " ")}
                     </span>
+                    {inc.team_id && (() => {
+                      const team = teams.find((t) => t.id === inc.team_id);
+                      return team ? (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          style={{ backgroundColor: `${team.color}20`, color: team.color }}
+                        >
+                          <Users className="h-3 w-3" /> {team.name}
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
                     <span className="flex items-center gap-1">
@@ -292,6 +362,23 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                     );
                   })()}
 
+                  {/* Custom fields */}
+                  {inc.custom_fields && typeof inc.custom_fields === "object" && Object.keys(inc.custom_fields).length > 0 && (
+                    <div className="rounded-lg border border-border/40 bg-background/50 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Custom Fields</p>
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                        {Object.entries(inc.custom_fields as Record<string, unknown>).map(([k, v]) => (
+                          <div key={k} className="flex gap-2">
+                            <dt className="font-medium text-muted-foreground capitalize">{k.replace(/_/g, " ")}:</dt>
+                            <dd className="text-foreground/90 break-words">
+                              {typeof v === "boolean" ? (v ? "Yes" : "No") : String(v ?? "")}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  )}
+
                   {/* View on Map button (if incident has storyboard pin) */}
                   {inc.storyboard_pin_id && inc.event_id && (
                     <div>
@@ -338,7 +425,9 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                           value={inc.status}
                           onChange={e => handleStatusChange(inc.id, e.target.value)}
                         >
-                          {STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                          {statusDefs.length > 0
+                            ? statusDefs.map(s => <option key={s.id} value={s.key}>{s.label}</option>)
+                            : STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                         </select>
                       </div>
                       <div>
@@ -357,6 +446,22 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                           ))}
                         </select>
                       </div>
+                      {teams.length > 0 && (
+                        <div>
+                          <label htmlFor={`incident-team-${inc.id}`} className="text-xs text-muted-foreground">Team</label>
+                          <select
+                            id={`incident-team-${inc.id}`}
+                            className="ml-2 rounded border border-input bg-background px-2 py-1 text-xs"
+                            value={inc.team_id ?? ""}
+                            onChange={e => handleAssignTeam(inc.id, e.target.value)}
+                          >
+                            <option value="">Unassigned</option>
+                            {teams.map((t) => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                       {inc.assigned_to && inc.assigned_user && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <User className="h-3 w-3" /> Assigned: {inc.assigned_user.first_name} {inc.assigned_user.last_name}
@@ -380,25 +485,37 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                       {(updates[inc.id] ?? []).length === 0 ? (
                         <p className="text-xs text-muted-foreground italic">No updates yet</p>
                       ) : (
-                        (updates[inc.id] ?? []).map((u: IncidentUpdate) => (
-                          <div key={u.id} className={`flex items-start gap-2 text-sm ${u.type === "status_change" ? "text-amber-600" : ""}`}>
-                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary mt-0.5">
-                              {u.users?.first_name?.[0]}{u.users?.last_name?.[0]}
+                        (updates[inc.id] ?? []).map((u: IncidentUpdate) => {
+                          const isSystem = u.type === "status_change" || u.type === "update";
+                          const tone =
+                            u.type === "status_change" ? "text-amber-600" :
+                            u.type === "update" ? "text-blue-600" : "";
+                          return (
+                            <div key={u.id} className={`flex items-start gap-2 text-sm ${tone}`}>
+                              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold mt-0.5 ${isSystem ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
+                                {isSystem
+                                  ? "·"
+                                  : `${u.users?.first_name?.[0] ?? ""}${u.users?.last_name?.[0] ?? ""}`}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="font-medium text-xs">
+                                  {isSystem ? "System" : `${u.users?.first_name ?? ""} ${u.users?.last_name ?? ""}`.trim()}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground ml-2">{timeAgo(u.created_at)}</span>
+                                {isSystem ? (
+                                  <p className="text-xs italic flex items-center gap-1 mt-0.5">
+                                    {u.type === "status_change" && u.content.includes("resolved")
+                                      ? <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                      : <CircleDot className="h-3 w-3" />}
+                                    {u.content}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs mt-0.5 text-foreground/80">{u.content}</p>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <span className="font-medium text-xs">{u.users?.first_name} {u.users?.last_name}</span>
-                              <span className="text-[10px] text-muted-foreground ml-2">{timeAgo(u.created_at)}</span>
-                              {u.type === "status_change" ? (
-                                <p className="text-xs italic flex items-center gap-1 mt-0.5">
-                                  {u.content.includes("resolved") ? <CheckCircle2 className="h-3 w-3 text-green-500" /> : <CircleDot className="h-3 w-3" />}
-                                  {u.content}
-                                </p>
-                              ) : (
-                                <p className="text-xs mt-0.5 text-foreground/80">{u.content}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                     <div className="flex gap-2 mt-3">
