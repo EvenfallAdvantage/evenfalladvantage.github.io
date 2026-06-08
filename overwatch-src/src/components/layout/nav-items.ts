@@ -56,6 +56,12 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Command",
     items: [
       {
+        title: "Teams",
+        href: "/teams",
+        icon: "Users",
+        roles: ["owner", "admin", "manager"],
+      },
+      {
         title: "Ops Planning",
         href: "/admin/events",
         icon: "Flag",

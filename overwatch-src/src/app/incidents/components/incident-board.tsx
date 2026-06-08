@@ -37,15 +37,17 @@ interface Incident {
 
 interface IncidentBoardProps {
   activeCompanyId: string;
+  initialTeamFilter?: string;
+  onTeamFilterChange?: (teamId: string) => void;
 }
 
-export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
+export function IncidentBoard({ activeCompanyId, initialTeamFilter, onTeamFilterChange }: IncidentBoardProps) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [statuses, setStatuses] = useState<IncidentStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterTeam, setFilterTeam] = useState<string>("all");
+  const [filterTeam, setFilterTeam] = useState<string>(initialTeamFilter ?? "all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [supabase] = useState(() => createClient());
@@ -248,7 +250,14 @@ export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
           </div>
           <div className="flex items-center gap-2">
             <Label htmlFor="filter-team" className="text-xs font-medium">Team</Label>
-            <Select value={filterTeam} onValueChange={(v) => setFilterTeam(v || "all")}>
+            <Select
+              value={filterTeam}
+              onValueChange={(v) => {
+                const next = v || "all";
+                setFilterTeam(next);
+                onTeamFilterChange?.(next);
+              }}
+            >
               <SelectTrigger id="filter-team" className="w-32 h-8 text-xs">
                 <SelectValue placeholder="All" />
               </SelectTrigger>

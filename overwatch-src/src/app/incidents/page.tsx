@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { AlertTriangle, Plus } from "lucide-react";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/supabase/db";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 import { usePageHeader } from "@/stores/page-header-store";
+import { useActiveTeam } from "@/hooks/use-active-team";
 
 import { IncidentCreateForm } from "./components/incident-create-form";
 import { IncidentFilters } from "./components/incident-filters";
@@ -31,6 +33,20 @@ export default function IncidentsPage() {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
+
+  const searchParams = useSearchParams();
+  const [persistedTeam, setPersistedTeam] = useActiveTeam(activeCompanyId);
+  const urlTeam = searchParams.get("team");
+  const initialBoardTeam = urlTeam ?? persistedTeam ?? "all";
+
+  // If URL has ?team, sync it to localStorage
+  useEffect(() => {
+    if (urlTeam) {
+      setPersistedTeam(urlTeam);
+      setViewMode("board");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlTeam]);
 
   const { data: incidents = [], isLoading: incLoading, refetch: refetchIncidents } = useCompanyQuery<Incident[]>(
     "incidents", (cid) => getIncidents(cid, filter), { extraKeys: [filter] }
@@ -129,7 +145,11 @@ export default function IncidentsPage() {
       )}
 
       {viewMode === "board" && isAdmin && activeCompanyId ? (
-        <IncidentBoard activeCompanyId={activeCompanyId} />
+        <IncidentBoard
+          activeCompanyId={activeCompanyId}
+          initialTeamFilter={initialBoardTeam}
+          onTeamFilterChange={(teamId) => setPersistedTeam(teamId === "all" ? null : teamId)}
+        />
       ) : (
         <>
           {/* Filters + Stats */}

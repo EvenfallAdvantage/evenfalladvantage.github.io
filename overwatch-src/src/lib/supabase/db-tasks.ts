@@ -354,6 +354,49 @@ export async function linkTaskToIncident(
   return updateTask(taskId, { incidentId });
 }
 
+/**
+ * Hand off a task from one team to another (HaloFusion). Writes a
+ * `task_comments` row of type `transfer` with the optional note.
+ *
+ * Pass `toTeamId=null` to release the task from any team.
+ */
+export async function transferTask(
+  taskId: string,
+  toTeamId: string | null,
+  options?: { fromTeamName?: string | null; toTeamName?: string | null; note?: string }
+): Promise<Task | null> {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("tasks")
+    .update({ team_id: toTeamId, updated_at: new Date().toISOString() })
+    .eq("id", taskId)
+    .select(TASK_SELECT)
+    .maybeSingle();
+  if (error) throw error;
+
+  const from = options?.fromTeamName ?? "(unassigned)";
+  const to = options?.toTeamName ?? (toTeamId ? "(team)" : "(unassigned)");
+  const summary = `Transferred from ${from} to ${to}`;
+  const content = options?.note ? `${summary} - ${options.note}` : summary;
+
+  const { error: logError } = await supabase.from("task_comments").insert({
+    id: crypto.randomUUID(),
+    task_id: taskId,
+    user_id: userId,
+    content,
+    type: "transfer",
+    created_at: new Date().toISOString(),
+  });
+  if (logError) {
+    console.error("[Tasks] transfer audit log failed:", logError.message);
+  }
+
+  return data ? mapTaskRow(data as TaskRow) : null;
+}
+
 // ─── Watchers ─────────────────────────────────────────────
 
 export async function getTaskWatchers(taskId: string): Promise<TaskWatcher[]> {

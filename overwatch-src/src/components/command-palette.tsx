@@ -56,6 +56,7 @@ const COMMANDS: CommandItem[] = [
   { label: "Profile", href: "/profile", icon: "User", keywords: "my profile account" },
   { label: "Notifications", href: "/notifications", icon: "Bell", keywords: "alerts updates" },
   // Command (manager+)
+  { label: "Teams", href: "/teams", icon: "Users", keywords: "teams squads multi-team dashboard fusion", roles: ["owner", "admin", "manager"] },
   { label: "Ops Planning", href: "/admin/events", icon: "Flag", keywords: "operations events planning", roles: ["owner", "admin", "manager"] },
   { label: "Personnel", href: "/admin/staff", icon: "UserCog", keywords: "staff management hr", roles: ["owner", "admin", "manager"] },
   { label: "Training Admin", href: "/admin/training", icon: "NotebookPen", keywords: "modules slides", roles: ["owner", "admin", "manager"] },

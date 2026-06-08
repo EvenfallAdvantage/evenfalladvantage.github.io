@@ -345,3 +345,122 @@ export async function getOwnerIntel(companyId: string) {
     notificationsSent: notifCount ?? 0,
   };
 }
+
+// ─── Team metrics (Phase 3 / HaloFusion) ────────────────
+
+export interface TeamMetrics {
+  teamId: string;
+  incidentsOpen: number;
+  incidentsTotal: number;
+  incidentsOverdue: number;
+  tasksOpen: number;
+  tasksTotal: number;
+  tasksOverdue: number;
+  recentTransfersIn: number;
+  recentTransfersOut: number;
+}
+
+/**
+ * Aggregate operational KPIs for a single team (open work + recent transfers).
+ * "Overdue" = due_at in the past AND status not terminal.
+ * "Recent" = last 7 days.
+ */
+export async function getTeamMetrics(
+  companyId: string,
+  teamId: string
+): Promise<TeamMetrics> {
+  const supabase = createClient();
+  const nowIso = new Date().toISOString();
+  const weekAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [
+    incidentsTotal,
+    incidentsOpen,
+    incidentsOverdue,
+    tasksTotal,
+    tasksOpen,
+    tasksOverdue,
+    transfersIn,
+  ] = await Promise.all([
+    supabase
+      .from("incidents")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("team_id", teamId),
+    supabase
+      .from("incidents")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("team_id", teamId)
+      .not("status", "in", "(resolved,closed)"),
+    supabase
+      .from("incidents")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("team_id", teamId)
+      .lt("due_at", nowIso)
+      .not("status", "in", "(resolved,closed)"),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("team_id", teamId),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("team_id", teamId)
+      .in("status", ["todo", "in_progress", "blocked"]),
+    supabase
+      .from("tasks")
+      .select("id", { count: "exact", head: true })
+      .eq("company_id", companyId)
+      .eq("team_id", teamId)
+      .lt("due_at", nowIso)
+      .in("status", ["todo", "in_progress", "blocked"]),
+    // Recent transfers INTO this team = incident_updates rows of type 'transfer'
+    // whose underlying incident currently has team_id=teamId, in last 7 days.
+    supabase
+      .from("incident_updates")
+      .select("id, incidents!inner(team_id, company_id)", { count: "exact", head: true })
+      .eq("type", "transfer")
+      .eq("incidents.team_id", teamId)
+      .eq("incidents.company_id", companyId)
+      .gte("created_at", weekAgoIso),
+  ]);
+
+  return {
+    teamId,
+    incidentsTotal: incidentsTotal.count ?? 0,
+    incidentsOpen: incidentsOpen.count ?? 0,
+    incidentsOverdue: incidentsOverdue.count ?? 0,
+    tasksTotal: tasksTotal.count ?? 0,
+    tasksOpen: tasksOpen.count ?? 0,
+    tasksOverdue: tasksOverdue.count ?? 0,
+    recentTransfersIn: transfersIn.count ?? 0,
+    // Transfers out are harder to attribute post-move without scanning content;
+    // we leave this as 0 unless/until we add a dedicated audit table.
+    recentTransfersOut: 0,
+  };
+}
+
+/**
+ * Aggregate metrics for every team in a company. Useful for the multi-team
+ * dashboard at /teams.
+ */
+export async function getAllTeamMetrics(companyId: string): Promise<TeamMetrics[]> {
+  const supabase = createClient();
+  const { data: teams, error } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("is_archived", false);
+  if (error) {
+    logDbReadError("team metrics teams list", error);
+    return [];
+  }
+  const teamIds = (teams ?? []).map((t: { id: string }) => t.id);
+  return Promise.all(teamIds.map((id: string) => getTeamMetrics(companyId, id)));
+}
+
+

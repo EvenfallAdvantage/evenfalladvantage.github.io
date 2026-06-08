@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { ListChecks, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { getTasks, getCompanyMembers, getTeams } from "@/lib/supabase/db";
 import type { Task } from "@/lib/supabase/db-tasks";
 import type { Team } from "@/lib/supabase/db-teams";
 import { logger } from "@/lib/logger";
+import { useActiveTeam } from "@/hooks/use-active-team";
 
 import { TaskCreateForm } from "./components/task-create-form";
 import { TaskList } from "./components/task-list";
@@ -40,8 +42,29 @@ export default function TasksPage() {
   const [scope, setScope] = useState<"mine" | "team" | "all">("mine");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [persistedTeam, setPersistedTeam] = useActiveTeam(activeCompanyId);
   const [teamFilter, setTeamFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+
+  const searchParams = useSearchParams();
+
+  // Hydrate teamFilter from URL ?team=... or from persisted localStorage value
+  useEffect(() => {
+    const urlTeam = searchParams.get("team");
+    if (urlTeam) {
+      setTeamFilter(urlTeam);
+      setPersistedTeam(urlTeam);
+    } else if (persistedTeam) {
+      setTeamFilter(persistedTeam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, persistedTeam]);
+
+  // Persist team selection
+  const handleTeamChange = (next: string) => {
+    setTeamFilter(next);
+    setPersistedTeam(next === "all" ? null : next);
+  };
 
   const load = useCallback(async () => {
     if (!activeCompanyId) return;
@@ -127,7 +150,7 @@ export default function TasksPage() {
         priorityFilter={priorityFilter}
         onPriorityChange={setPriorityFilter}
         teamFilter={teamFilter}
-        onTeamChange={setTeamFilter}
+        onTeamChange={handleTeamChange}
         search={search}
         onSearchChange={setSearch}
         teams={teams}

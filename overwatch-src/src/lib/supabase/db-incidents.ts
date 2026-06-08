@@ -181,6 +181,52 @@ export async function assignIncidentToTeam(incidentId: string, teamId: string) {
   return data;
 }
 
+/**
+ * Hand off an incident from one team to another (HaloFusion). Writes an
+ * `incident_updates` row of type `transfer` with the optional note and a
+ * canonical "Transferred from X to Y" message so the activity log preserves
+ * the chain of custody.
+ *
+ * Pass `toTeamId=null` to release the incident from any team.
+ */
+export async function transferIncident(
+  incidentId: string,
+  toTeamId: string | null,
+  options?: { fromTeamName?: string | null; toTeamName?: string | null; note?: string }
+) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("Not authenticated");
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("incidents")
+    .update({ team_id: toTeamId, updated_at: new Date().toISOString() })
+    .eq("id", incidentId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+
+  const from = options?.fromTeamName ?? "(unassigned)";
+  const to = options?.toTeamName ?? (toTeamId ? "(team)" : "(unassigned)");
+  const summary = `Transferred from ${from} to ${to}`;
+  const content = options?.note ? `${summary} - ${options.note}` : summary;
+
+  const { error: logError } = await supabase.from("incident_updates").insert({
+    id: crypto.randomUUID(),
+    incident_id: incidentId,
+    user_id: userId,
+    content,
+    type: "transfer",
+    created_at: new Date().toISOString(),
+  });
+  // Don't fail the transfer if logging fails; surface in console for ops triage.
+  if (logError) {
+    console.error("[Incidents] transfer audit log failed:", logError.message);
+  }
+
+  return data;
+}
+
 export async function setIncidentStatus(incidentId: string, statusKey: string) {
   const supabase = createClient();
   const { data, error } = await supabase
