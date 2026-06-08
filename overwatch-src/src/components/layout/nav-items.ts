@@ -62,6 +62,12 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: ["owner", "admin", "manager"],
       },
       {
+        title: "Analytics",
+        href: "/admin/analytics",
+        icon: "BarChart3",
+        roles: ["owner", "admin", "manager"],
+      },
+      {
         title: "Ops Planning",
         href: "/admin/events",
         icon: "Flag",

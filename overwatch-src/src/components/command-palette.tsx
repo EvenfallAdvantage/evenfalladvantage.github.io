@@ -8,7 +8,7 @@ import {
   School, BookOpen, MessageCircle, Scale, Video, Award,
   MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
   NotebookPen, GraduationCap, ShieldAlert, Activity, User,
-  Bell, Search, ScanLine, Settings, ListChecks,
+  Bell, Search, ScanLine, Settings, ListChecks, BarChart3,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuthStore } from "@/stores/auth-store";
@@ -19,7 +19,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   School, BookOpen, MessageCircle, Scale, Video, Award,
   MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
   NotebookPen, GraduationCap, ShieldAlert, Activity, User,
-  Bell, Search, ScanLine, Settings, ListChecks,
+  Bell, Search, ScanLine, Settings, ListChecks, BarChart3,
 };
 
 interface CommandItem {
@@ -57,6 +57,7 @@ const COMMANDS: CommandItem[] = [
   { label: "Notifications", href: "/notifications", icon: "Bell", keywords: "alerts updates" },
   // Command (manager+)
   { label: "Teams", href: "/teams", icon: "Users", keywords: "teams squads multi-team dashboard fusion", roles: ["owner", "admin", "manager"] },
+  { label: "Analytics", href: "/admin/analytics", icon: "BarChart3", keywords: "reports analytics charts insights kpi", roles: ["owner", "admin", "manager"] },
   { label: "Ops Planning", href: "/admin/events", icon: "Flag", keywords: "operations events planning", roles: ["owner", "admin", "manager"] },
   { label: "Personnel", href: "/admin/staff", icon: "UserCog", keywords: "staff management hr", roles: ["owner", "admin", "manager"] },
   { label: "Training Admin", href: "/admin/training", icon: "NotebookPen", keywords: "modules slides", roles: ["owner", "admin", "manager"] },

@@ -96,3 +96,20 @@ export const MEMBER_COLUMNS = [
   { key: "title", label: "Title" },
   { key: "guard_card_number", label: "Guard Card #" },
 ];
+
+export const TASK_COLUMNS = [
+  { key: "title", label: "Title" },
+  { key: "status", label: "Status" },
+  { key: "priority", label: "Priority" },
+  { key: "team_id", label: "Team ID" },
+  { key: "assigned_to", label: "Assignee" },
+  { key: "due_at", label: "Due" },
+  { key: "completed_at", label: "Completed" },
+  { key: "created_at", label: "Created" },
+  { key: "updated_at", label: "Updated" },
+];
+
+export const ANALYTICS_COLUMNS = [
+  { key: "bucket", label: "Bucket" },
+  { key: "count", label: "Count" },
+];
