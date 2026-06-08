@@ -8,7 +8,7 @@ import {
   School, BookOpen, MessageCircle, Scale, Video, Award,
   MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
   NotebookPen, GraduationCap, ShieldAlert, Activity, User,
-  Bell, Search, ScanLine, Settings,
+  Bell, Search, ScanLine, Settings, ListChecks,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuthStore } from "@/stores/auth-store";
@@ -19,7 +19,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   School, BookOpen, MessageCircle, Scale, Video, Award,
   MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
   NotebookPen, GraduationCap, ShieldAlert, Activity, User,
-  Bell, Search, ScanLine, Settings,
+  Bell, Search, ScanLine, Settings, ListChecks,
 };
 
 interface CommandItem {
@@ -37,6 +37,7 @@ const COMMANDS: CommandItem[] = [
   { label: "Directory", href: "/directory", icon: "Users", keywords: "roster staff contacts" },
   { label: "Watch Log", href: "/timeclock", icon: "Clock", keywords: "timeclock clock in out" },
   { label: "Incidents", href: "/incidents", icon: "AlertTriangle", keywords: "reports incidents" },
+  { label: "Tasks", href: "/tasks", icon: "ListChecks", keywords: "tasks todo work assignments" },
   { label: "Operations", href: "/schedule", icon: "CalendarDays", keywords: "schedule shifts" },
   // Readiness
   { label: "Academy Hub", href: "/academy", icon: "School", keywords: "training learning" },

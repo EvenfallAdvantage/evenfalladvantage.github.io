@@ -43,6 +43,7 @@ import type { Team } from "@/lib/supabase/db-teams";
 import type { IncidentStatus } from "@/lib/supabase/db-incident-config";
 import { useAuthStore } from "@/stores/auth-store";
 import { generateIncidentPDF } from "./incident-pdf";
+import { IncidentLinkedTasks } from "./incident-linked-tasks";
 import type { StoryboardPin } from "@/components/storyboard-editor";
 import { SiteMapViewModal } from "./site-map-view-modal";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -517,6 +518,14 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                       </Button>
                     </div>
                   )}
+
+                  {/* Linked Tasks */}
+                  <IncidentLinkedTasks
+                    incidentId={inc.id}
+                    companyId={activeCompanyId}
+                    defaultTeamId={inc.team_id ?? null}
+                    canCreate={isAdmin}
+                  />
 
                   {/* Evidence / Media */}
                   <IncidentMediaUpload incidentId={inc.id} companyId={activeCompanyId} readOnly={!isAdmin} />

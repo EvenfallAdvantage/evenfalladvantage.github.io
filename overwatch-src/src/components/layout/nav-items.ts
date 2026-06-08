@@ -19,6 +19,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: "Watch Log", href: "/timeclock", icon: "Clock" },
       { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
+      { title: "Tasks", href: "/tasks", icon: "ListChecks" },
       { title: "Operations", href: "/schedule", icon: "CalendarDays" },
     ],
   },
