@@ -29,3 +29,4 @@ export * from "./db-api-keys";
 export * from "./db-intake-mappings";
 export * from "./db-teams";
 export * from "./db-incident-config";
+export * from "./db-tasks";
