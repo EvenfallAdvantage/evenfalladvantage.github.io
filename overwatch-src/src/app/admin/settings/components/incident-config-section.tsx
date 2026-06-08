@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { AlertTriangle, CheckCircle2, Plus, Trash2, X } from "lucide-react";
-import { PageShell } from "@/components/layout/page-shell";
+import { useState, useCallback, useEffect } from "react";
+import { CheckCircle2, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -58,6 +57,8 @@ export default function IncidentConfigSection({ companyId }: { companyId: string
       setLoading(false);
     }
   }, [companyId, canManage]);
+
+  useEffect(() => { void load(); }, [load]);
 
   const showSuccess = (msg: string) => {
     setSuccess(msg);
@@ -255,28 +256,25 @@ export default function IncidentConfigSection({ companyId }: { companyId: string
     }
   };
 
-  if (!canManage) {
-    return (
-      <PageShell title="INCIDENT CONFIG" subtitle="Customize incident types, statuses, and fields" icon={<AlertTriangle className="h-5 w-5" />}>
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <AlertTriangle className="mb-3 h-10 w-10 text-muted-foreground/40" />
-          <p className="text-sm font-medium">Access Restricted</p>
-          <p className="mt-1 max-w-xs text-xs text-muted-foreground">Only managers and above can configure incident settings.</p>
-        </div>
-      </PageShell>
-    );
-  }
+  if (!canManage) return null;
 
   if (loading) {
     return (
-      <PageShell title="INCIDENT CONFIG" subtitle="Customize incident types, statuses, and fields" icon={<AlertTriangle className="h-5 w-5" />}>
-        <></>
-      </PageShell>
+      <Card>
+        <CardHeader>
+          <CardTitle>Incident Configuration</CardTitle>
+          <CardDescription>Loading...</CardDescription>
+        </CardHeader>
+      </Card>
     );
   }
 
   return (
-    <PageShell title="INCIDENT CONFIG" subtitle="Customize incident types, statuses, and fields" icon={<AlertTriangle className="h-5 w-5" />}>
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold">Incident Configuration</h2>
+        <p className="text-sm text-muted-foreground">Customize incident types, statuses, and fields for your company.</p>
+      </div>
       <div className="space-y-6">
         {success && (
           <div className="rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800">
@@ -434,6 +432,6 @@ export default function IncidentConfigSection({ companyId }: { companyId: string
           </CardContent>
         </Card>
       </div>
-    </PageShell>
+    </div>
   );
 }

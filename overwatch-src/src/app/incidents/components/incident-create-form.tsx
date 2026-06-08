@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  createIncident,
+  createIncidentEnhanced,
   updateIncident,
   loadStoryboard,
   saveStoryboard,
@@ -38,17 +38,17 @@ import {
 
 interface IncidentField {
   id: string;
-  company_id: string;
-  incident_type_key: string | null;
-  field_key: string;
+  companyId: string;
+  incidentTypeKey: string | null;
+  fieldKey: string;
   label: string;
-  field_type: string;
+  fieldType: "text" | "number" | "select" | "multiselect" | "date" | "checkbox" | "textarea";
   options: Record<string, unknown>;
   required: boolean;
-  sort_order: number;
-  conditional_on: Record<string, unknown> | null;
-  created_at: string;
-  updated_at: string;
+  sortOrder: number;
+  conditionalOn: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface IncidentCreateFormProps {
@@ -91,7 +91,7 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
 
   // Custom fields
   const [customFields, setCustomFields] = useState<Record<string, unknown>>({});
-  const [incidentFields, setIncidentFields] = useState<Record<string, unknown>[]>([]);
+  const [incidentFields, setIncidentFields] = useState<IncidentField[]>([]);
   const [loadingFields, setLoadingFields] = useState(false);
 
   // Storyboard — incident creation (location marking)
@@ -108,7 +108,7 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
       setLoadingFields(true);
       try {
         const fields = await getIncidentFields(activeCompanyId);
-        setIncidentFields(fields as unknown as Record<string, unknown>[]);
+        setIncidentFields(fields as IncidentField[]);
       } catch (e) { console.error("Failed to load incident fields:", e); }
       finally { setLoadingFields(false); }
     };
@@ -159,19 +159,15 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
         } catch (e) { console.error("Failed to save incident pin:", e); }
       }
 
-      const inc = await createIncident(activeCompanyId, {
-        title: newTitle, description: buildDescription(), type: newType,
-        severity: newSeverity, priority: newPriority, location: newLocation,
+      const inc = await createIncidentEnhanced(activeCompanyId, {
+        title: newTitle,
+        description: buildDescription(),
+        type: newType,
+        severity: newSeverity,
+        priority: newPriority,
+        location: newLocation,
         eventId: activeTimesheet?.event_id ?? undefined,
-      } as {
-        title: string;
-        description?: string;
-        type?: string;
-        severity?: string;
-        priority?: string;
-        location?: string;
-        eventId?: string;
-        customFields?: Record<string, unknown>;
+        customFields,
       });
 
       // Update incident with storyboard references if pin was saved
@@ -240,59 +236,61 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Additional Information</p>
               <div className="space-y-3">
-                {incidentFields.map((f) => {
-                  const field = f as unknown as IncidentField;
-                  const value = customFields[field.field_key] ?? "";
+                {incidentFields.map((field) => {
+                  const value = customFields[field.fieldKey] ?? "";
+                  const opts = Array.isArray(field.options?.choices)
+                    ? (field.options.choices as Array<{ value: string; label: string }>)
+                    : [];
                   return (
                     <div key={field.id} className="space-y-1">
-                      <label htmlFor={`custom-${field.field_key}`} className="text-xs font-medium text-muted-foreground">
+                      <label htmlFor={`custom-${field.fieldKey}`} className="text-xs font-medium text-muted-foreground">
                         {field.label} {field.required && <span className="text-red-500">*</span>}
                       </label>
-                      {field.field_type === "textarea" ? (
+                      {field.fieldType === "textarea" ? (
                         <textarea
-                          id={`custom-${field.field_key}`}
+                          id={`custom-${field.fieldKey}`}
                           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px]"
                           placeholder={field.label}
                           value={value as string}
-                          onChange={e => handleCustomFieldChange(field.field_key, e.target.value)}
+                          onChange={e => handleCustomFieldChange(field.fieldKey, e.target.value)}
                         />
-                      ) : field.field_type === "checkbox" ? (
+                      ) : field.fieldType === "checkbox" ? (
                         <label className="flex items-center gap-2 text-sm">
                           <input
                             type="checkbox"
                             checked={!!value}
-                            onChange={e => handleCustomFieldChange(field.field_key, e.target.checked)}
+                            onChange={e => handleCustomFieldChange(field.fieldKey, e.target.checked)}
                             className="rounded"
                           />
                           {field.label}
                         </label>
-                      ) : field.field_type === "select" || field.field_type === "multiselect" ? (
+                      ) : field.fieldType === "select" || field.fieldType === "multiselect" ? (
                         <select
-                          id={`custom-${field.field_key}`}
+                          id={`custom-${field.fieldKey}`}
                           className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
                           value={value as string}
-                          onChange={e => handleCustomFieldChange(field.field_key, e.target.value)}
+                          onChange={e => handleCustomFieldChange(field.fieldKey, e.target.value)}
                         >
                           <option value="">Select...</option>
-                          {(field.options as unknown as Record<string, string>[]).map((opt) => (
+                          {opts.map((opt) => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                           ))}
                         </select>
-                      ) : field.field_type === "date" ? (
+                      ) : field.fieldType === "date" ? (
                         <Input
-                          id={`custom-${field.field_key}`}
+                          id={`custom-${field.fieldKey}`}
                           type="date"
                           className="mt-1"
                           value={value as string}
-                          onChange={e => handleCustomFieldChange(field.field_key, e.target.value)}
+                          onChange={e => handleCustomFieldChange(field.fieldKey, e.target.value)}
                         />
                       ) : (
                         <Input
-                          id={`custom-${field.field_key}`}
+                          id={`custom-${field.fieldKey}`}
                           className="mt-1"
                           placeholder={field.label}
                           value={value as string}
-                          onChange={e => handleCustomFieldChange(field.field_key, e.target.value)}
+                          onChange={e => handleCustomFieldChange(field.fieldKey, e.target.value)}
                         />
                       )}
                     </div>

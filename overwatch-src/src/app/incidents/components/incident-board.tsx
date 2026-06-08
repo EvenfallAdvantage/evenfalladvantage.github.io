@@ -9,9 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-
 import { logger } from "@/lib/logger";
-import { getIncidentsByTeam, getIncidentsFiltered, setIncidentStatus, assignIncidentToTeam } from "@/lib/supabase/db";
+import {
+  getIncidentsByTeam,
+  getIncidentsFiltered,
+  setIncidentStatus,
+  assignIncidentToTeam,
+  getTeams,
+  getIncidentStatuses,
+} from "@/lib/supabase/db";
+import type { Team } from "@/lib/supabase/db-teams";
+import type { IncidentStatus } from "@/lib/supabase/db-incident-config";
 import { createClient } from "@/lib/supabase/client";
 
 interface Incident {
@@ -33,38 +41,45 @@ interface IncidentBoardProps {
 
 export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [statuses, setStatuses] = useState<IncidentStatus[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<string | null>("all");
-  const [filterTeam, setFilterTeam] = useState<string | null>("all");
-  const [filterPriority, setFilterPriority] = useState<string | null>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterTeam, setFilterTeam] = useState<string>("all");
+  const [filterPriority, setFilterPriority] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [supabase] = useState(() => createClient());
 
-  const handleFilterStatusChange = (value: string | null) => {
-    setFilterStatus(value || "all");
-  };
-
-  const handleFilterTeamChange = (value: string | null) => {
-    setFilterTeam(value || "all");
-  };
-
-  const handleFilterPriorityChange = (value: string | null) => {
-    setFilterPriority(value || "all");
-  };
+  // Load static config (teams, statuses)
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const [teamsData, statusesData] = await Promise.all([
+          getTeams(activeCompanyId),
+          getIncidentStatuses(activeCompanyId),
+        ]);
+        setTeams(teamsData);
+        setStatuses(statusesData);
+      } catch (e) {
+        logger.swallow("incident-board:load-config", e, "warn");
+      }
+    };
+    void loadConfig();
+  }, [activeCompanyId]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const filters: Record<string, string> = {};
-      if (filterStatus && filterStatus !== "all") filters.status = filterStatus;
-      if (filterTeam && filterTeam !== "all") filters.teamId = filterTeam;
-      if (filterPriority && filterPriority !== "all") filters.priority = filterPriority;
+      if (filterStatus !== "all") filters.status = filterStatus;
+      if (filterTeam !== "all") filters.teamId = filterTeam;
+      if (filterPriority !== "all") filters.priority = filterPriority;
 
       let data: Incident[];
-      if (filterTeam && filterTeam !== "all") {
-        data = await getIncidentsByTeam(activeCompanyId, filterTeam);
+      if (filterTeam !== "all") {
+        data = (await getIncidentsByTeam(activeCompanyId, filterTeam)) as Incident[];
       } else {
-        data = await getIncidentsFiltered(activeCompanyId, filters);
+        data = (await getIncidentsFiltered(activeCompanyId, filters)) as Incident[];
       }
 
       if (searchTerm) {
@@ -86,27 +101,44 @@ export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
     }
   }, [activeCompanyId, filterStatus, filterTeam, filterPriority, searchTerm]);
 
-  useEffect(() => { void load(); }, [load, filterStatus, filterTeam, filterPriority]);
-
   useEffect(() => {
-    const channel = supabase.channel("incidents_changes");
+    void load();
+  }, [load]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase.channel(`incidents-board-${activeCompanyId}`);
 
     channel
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "incidents" }, (payload: unknown) => {
-        setIncidents((prev) => [payload as Incident, ...prev]);
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "incidents" }, (payload: unknown) => {
-        setIncidents((prev) => prev.map((i) => (i.id === (payload as Incident).id ? (payload as Incident) : i)));
-      })
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "incidents" }, (payload: unknown) => {
-        setIncidents((prev) => prev.filter((i) => i.id !== (payload as Incident).id));
-      })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "incidents", filter: `company_id=eq.${activeCompanyId}` },
+        (payload: { new: Record<string, unknown> }) => {
+          setIncidents((prev) => [payload.new as unknown as Incident, ...prev]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "incidents", filter: `company_id=eq.${activeCompanyId}` },
+        (payload: { new: Record<string, unknown> }) => {
+          const next = payload.new as unknown as Incident;
+          setIncidents((prev) => prev.map((i) => (i.id === next.id ? next : i)));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "incidents", filter: `company_id=eq.${activeCompanyId}` },
+        (payload: { old: Record<string, unknown> }) => {
+          const old = payload.old as unknown as Incident;
+          setIncidents((prev) => prev.filter((i) => i.id !== old.id));
+        }
+      )
       .subscribe();
 
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, activeCompanyId]);
 
   const handleStatusChange = async (incidentId: string, newStatus: string | null) => {
     if (!newStatus) return;
@@ -124,7 +156,8 @@ export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
     }
   };
 
-  const _handleTeamChange = async (incidentId: string, teamId: string) => {
+  const handleTeamChange = async (incidentId: string, teamId: string | null) => {
+    if (!teamId) return;
     try {
       const result = await assignIncidentToTeam(incidentId, teamId);
       if (result) {
@@ -140,13 +173,23 @@ export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
   };
 
   const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
+    const found = statuses.find((s) => s.key === status);
+    if (found?.color) {
+      // Use inline-style hint for arbitrary hex colors
+      return "";
+    }
+    const fallback: Record<string, string> = {
       open: "bg-blue-500/15 text-blue-700 border-blue-500/30",
       in_progress: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
       resolved: "bg-green-500/15 text-green-700 border-green-500/30",
       closed: "bg-gray-500/15 text-gray-700 border-gray-500/30",
     };
-    return colors[status] || "bg-muted text-muted-foreground";
+    return fallback[status] || "bg-muted text-muted-foreground";
+  };
+
+  const getStatusLabel = (statusKey: string) => {
+    const found = statuses.find((s) => s.key === statusKey);
+    return found?.label || statusKey || "unknown";
   };
 
   const getPriorityColor = (priority: string) => {
@@ -162,7 +205,11 @@ export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
   if (loading) {
     return (
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" /> Live Incident Board</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" /> Live Incident Board
+          </CardTitle>
+        </CardHeader>
         <CardContent className="flex items-center justify-center py-12">
           <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
         </CardContent>
@@ -179,7 +226,7 @@ export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
             Live Incident Board
           </div>
           <Badge variant="outline" className="bg-primary/5 text-primary">
-            {incidents.length} active
+            {incidents.length} shown
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -187,33 +234,35 @@ export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
         <div className="flex flex-wrap gap-3 mb-4">
           <div className="flex items-center gap-2">
             <Label htmlFor="filter-status" className="text-xs font-medium">Status</Label>
-            <Select value={filterStatus || "all"} onValueChange={handleFilterStatusChange}>
+            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v || "all")}>
               <SelectTrigger id="filter-status" className="w-32 h-8 text-xs">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
+                {statuses.map((s) => (
+                  <SelectItem key={s.id} value={s.key}>{s.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center gap-2">
             <Label htmlFor="filter-team" className="text-xs font-medium">Team</Label>
-            <Select value={filterTeam || "all"} onValueChange={handleFilterTeamChange}>
+            <Select value={filterTeam} onValueChange={(v) => setFilterTeam(v || "all")}>
               <SelectTrigger id="filter-team" className="w-32 h-8 text-xs">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
+                {teams.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center gap-2">
             <Label htmlFor="filter-priority" className="text-xs font-medium">Priority</Label>
-            <Select value={filterPriority || "all"} onValueChange={handleFilterPriorityChange}>
+            <Select value={filterPriority} onValueChange={(v) => setFilterPriority(v || "all")}>
               <SelectTrigger id="filter-priority" className="w-32 h-8 text-xs">
                 <SelectValue placeholder="All" />
               </SelectTrigger>
@@ -247,63 +296,81 @@ export function IncidentBoard({ activeCompanyId }: IncidentBoardProps) {
               <p>No incidents found</p>
             </div>
           ) : (
-            incidents.map((incident) => (
-              <div key={incident.id} className="rounded-lg border bg-card p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline" className={getStatusColor(incident.status || "")}>
-                        {incident.status || "unknown"}
-                      </Badge>
-                      <Badge className={getPriorityColor(incident.priority || "")}>
-                        {incident.priority || "medium"}
-                      </Badge>
-                      {incident.incident_number && (
-                        <span className="text-xs text-muted-foreground">#{incident.incident_number}</span>
-                      )}
+            incidents.map((incident) => {
+              const statusKey = incident.status || "";
+              const team = teams.find((t) => t.id === incident.team_id);
+              return (
+                <div key={incident.id} className="rounded-lg border bg-card p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className={getStatusColor(statusKey)}>
+                          {getStatusLabel(statusKey)}
+                        </Badge>
+                        <Badge className={getPriorityColor(incident.priority || "")}>
+                          {incident.priority || "medium"}
+                        </Badge>
+                        {incident.incident_number && (
+                          <span className="text-xs text-muted-foreground">#{incident.incident_number}</span>
+                        )}
+                        {team && (
+                          <Badge variant="outline" style={{ backgroundColor: `${team.color}20`, borderColor: team.color, color: team.color }}>
+                            {team.name}
+                          </Badge>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-base mb-1">{incident.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{incident.description}</p>
                     </div>
-                    <h3 className="font-semibold text-base mb-1">{incident.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{incident.description}</p>
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <div className="text-xs text-muted-foreground text-right">
-                      {incident.created_at && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(incident.created_at).toLocaleDateString()}
-                        </div>
-                      )}
-                      {incident.location && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3" />
-                          {incident.location}
-                        </div>
-                      )}
+                    <div className="flex items-center gap-2 ml-4">
+                      <div className="text-xs text-muted-foreground text-right">
+                        {incident.created_at && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(incident.created_at).toLocaleDateString()}
+                          </div>
+                        )}
+                        {incident.location && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <MapPin className="h-3 w-3" />
+                            {incident.location}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <User className="h-3 w-3" />
-                    <span>Reported by: {incident.reported_user?.[0]?.first_name || "Unknown"}</span>
-                  </div>
-                  <div className="ml-auto flex items-center gap-2">
-                    <Select value={incident.status as string || "open"} onValueChange={(v) => handleStatusChange(incident.id, v)}>
-                      <SelectTrigger className="h-7 text-xs w-24">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="resolved">Resolved</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <User className="h-3 w-3" />
+                      <span>Reported by: {incident.reported_user?.[0]?.first_name || "Unknown"}</span>
+                    </div>
+                    <div className="ml-auto flex items-center gap-2">
+                      <Select value={incident.team_id || ""} onValueChange={(v) => handleTeamChange(incident.id, v)}>
+                        <SelectTrigger className="h-7 text-xs w-32">
+                          <SelectValue placeholder="Assign team..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {teams.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={statusKey} onValueChange={(v) => handleStatusChange(incident.id, v)}>
+                        <SelectTrigger className="h-7 text-xs w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statuses.map((s) => (
+                            <SelectItem key={s.id} value={s.key}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </CardContent>

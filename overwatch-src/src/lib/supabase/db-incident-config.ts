@@ -52,14 +52,14 @@ export interface IncidentField {
 
 // ─── Incident Types ───────────────────────────────────────
 
-export async function getIncidentTypes(companyId: string): Promise<IncidentType[]> {
+export async function getIncidentTypes(companyId: string, activeOnly = false): Promise<IncidentType[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  let q = supabase
     .from("incident_type_defs")
     .select("*")
-    .eq("company_id", companyId)
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
+    .eq("company_id", companyId);
+  if (activeOnly) q = q.eq("is_active", true);
+  const { data, error } = await q.order("sort_order", { ascending: true });
 
   if (error) { logDbReadError("incident types", error); return []; }
 
@@ -149,7 +149,7 @@ export async function createIncidentType(
 }
 
 export async function updateIncidentType(
-  typeKey: string,
+  id: string,
   updates: Partial<{ label: string; color: string; icon: string; sortOrder: number; isActive: boolean }>
 ): Promise<IncidentType | null> {
   const supabase = createClient();
@@ -163,7 +163,7 @@ export async function updateIncidentType(
   const { data, error } = await supabase
     .from("incident_type_defs")
     .update(update)
-    .eq("key", typeKey)
+    .eq("id", id)
     .select()
     .maybeSingle();
 
@@ -188,9 +188,9 @@ export async function updateIncidentType(
   };
 }
 
-export async function deleteIncidentType(typeKey: string): Promise<boolean> {
+export async function deleteIncidentType(id: string): Promise<boolean> {
   const supabase = createClient();
-  const { error } = await supabase.from("incident_type_defs").delete().eq("key", typeKey);
+  const { error } = await supabase.from("incident_type_defs").delete().eq("id", id);
   return !error;
 }
 
@@ -287,7 +287,7 @@ export async function createIncidentStatus(
 }
 
 export async function updateIncidentStatus(
-  statusKey: string,
+  id: string,
   updates: Partial<{ label: string; color: string; sortOrder: number; isTerminal: boolean }>
 ): Promise<IncidentStatus | null> {
   const supabase = createClient();
@@ -300,7 +300,7 @@ export async function updateIncidentStatus(
   const { data, error } = await supabase
     .from("incident_status_defs")
     .update(update)
-    .eq("key", statusKey)
+    .eq("id", id)
     .select()
     .maybeSingle();
 
@@ -324,9 +324,9 @@ export async function updateIncidentStatus(
   };
 }
 
-export async function deleteIncidentStatus(statusKey: string): Promise<boolean> {
+export async function deleteIncidentStatus(id: string): Promise<boolean> {
   const supabase = createClient();
-  const { error } = await supabase.from("incident_status_defs").delete().eq("key", statusKey);
+  const { error } = await supabase.from("incident_status_defs").delete().eq("id", id);
   return !error;
 }
 

@@ -19,6 +19,7 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { IncidentCreateForm } from "./components/incident-create-form";
 import { IncidentFilters } from "./components/incident-filters";
 import { IncidentList } from "./components/incident-list";
+import { IncidentBoard } from "./components/incident-board";
 import type { Incident, Member } from "./components/constants";
 
 export default function IncidentsPage() {
@@ -29,6 +30,7 @@ export default function IncidentsPage() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "board">("list");
 
   const { data: incidents = [], isLoading: incLoading, refetch: refetchIncidents } = useCompanyQuery<Incident[]>(
     "incidents", (cid) => getIncidents(cid, filter), { extraKeys: [filter] }
@@ -102,26 +104,56 @@ export default function IncidentsPage() {
         />
       )}
 
-      {/* Filters + Stats */}
-      <IncidentFilters
-        search={search}
-        onSearchChange={setSearch}
-        filter={filter}
-        onFilterChange={setFilter}
-        incidents={incidents}
-      />
+      {/* View mode toggle (managers only) */}
+      {isAdmin && (
+        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            List
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("board")}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              viewMode === "board" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Live Board
+          </button>
+        </div>
+      )}
 
-      {/* Incident List */}
-      {activeCompanyId && (
-        <IncidentList
-          incidents={incidents}
-          members={members}
-          loading={false}
-          search={search}
-          isAdmin={!!isAdmin}
-          activeCompanyId={activeCompanyId}
-          onReload={load}
-        />
+      {viewMode === "board" && isAdmin && activeCompanyId ? (
+        <IncidentBoard activeCompanyId={activeCompanyId} />
+      ) : (
+        <>
+          {/* Filters + Stats */}
+          <IncidentFilters
+            search={search}
+            onSearchChange={setSearch}
+            filter={filter}
+            onFilterChange={setFilter}
+            incidents={incidents}
+          />
+
+          {/* Incident List */}
+          {activeCompanyId && (
+            <IncidentList
+              incidents={incidents}
+              members={members}
+              loading={false}
+              search={search}
+              isAdmin={!!isAdmin}
+              activeCompanyId={activeCompanyId}
+              onReload={load}
+            />
+          )}
+        </>
       )}
     </div>
   );
