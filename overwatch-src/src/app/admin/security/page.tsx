@@ -23,6 +23,7 @@ import {
   Database,
 } from "lucide-react";
 import { PrivacyControls } from "./components/privacy-controls";
+import { SyncIssuesPanel } from "./components/sync-issues-panel";
 
 interface AuditLog {
   id: string;
@@ -275,6 +276,9 @@ export default function SecurityDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Sync issues - errored offline mutations (hidden when none). */}
+      <SyncIssuesPanel />
 
       {/* Privacy / GDPR controls — available to any authenticated user
           (self-service); admin actions are gated inside the component to
