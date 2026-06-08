@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { AuthGuard } from "@/components/auth-guard";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 
-const PUBLIC_ROUTES = ["/login", "/register", "/verify", "/join", "/auth/callback", "/apply", "/health", "/careers", "/intake", "/auth/reset", "/auth/update-password"];
+const PUBLIC_ROUTES = ["/login", "/register", "/verify", "/join", "/auth/callback", "/apply", "/health", "/careers", "/intake", "/report", "/auth/reset", "/auth/update-password"];
 
 function isPublicRoute(pathname: string): boolean {
   if (pathname === "/") return true;
