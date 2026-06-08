@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AlertTriangle,
   ChevronDown,
@@ -20,6 +20,7 @@ import {
   loadStoryboard,
   saveStoryboard,
   getEventSiteMapUrl,
+  getIncidentFields,
 } from "@/lib/supabase/db";
 import type { StoryboardPin } from "@/components/storyboard-editor";
 import { SiteMapMarkModal } from "./site-map-mark-modal";
@@ -34,6 +35,21 @@ import {
   INJURY_TYPES,
   PROPERTY_DAMAGE,
 } from "./constants";
+
+interface IncidentField {
+  id: string;
+  company_id: string;
+  incident_type_key: string | null;
+  field_key: string;
+  label: string;
+  field_type: string;
+  options: Record<string, unknown>;
+  required: boolean;
+  sort_order: number;
+  conditional_on: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
 
 interface IncidentCreateFormProps {
   activeCompanyId: string;
@@ -73,6 +89,11 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
   const [followUpNotes, setFollowUpNotes] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Custom fields
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>({});
+  const [incidentFields, setIncidentFields] = useState<Record<string, unknown>[]>([]);
+  const [loadingFields, setLoadingFields] = useState(false);
+
   // Storyboard — incident creation (location marking)
   const [showSiteMapModal, setShowSiteMapModal] = useState(false);
   const [incidentSiteMapUrl, setIncidentSiteMapUrl] = useState<string | null>(null);
@@ -80,6 +101,19 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
   const [incidentExistingPins, setIncidentExistingPins] = useState<StoryboardPin[]>([]);
   const [incidentLocationPin, setIncidentLocationPin] = useState<StoryboardPin | null>(null);
   const [siteMapLoading, setSiteMapLoading] = useState(false);
+
+  // Load custom fields on mount
+  useEffect(() => {
+    const loadFields = async () => {
+      setLoadingFields(true);
+      try {
+        const fields = await getIncidentFields(activeCompanyId);
+        setIncidentFields(fields as unknown as Record<string, unknown>[]);
+      } catch (e) { console.error("Failed to load incident fields:", e); }
+      finally { setLoadingFields(false); }
+    };
+    void loadFields();
+  }, [activeCompanyId]);
 
   function buildDescription() {
     const parts: string[] = [];
@@ -96,6 +130,10 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
     if (suspectDesc.trim()) parts.push(`\n--- Suspect Description ---\n${suspectDesc.trim()}`);
     if (followUp) parts.push(`\n--- Follow-Up Required ---\n${followUpNotes.trim() || "Yes — details pending"}`);
     return parts.join("\n");
+  }
+
+  function handleCustomFieldChange(fieldKey: string, value: unknown) {
+    setCustomFields(prev => ({ ...prev, [fieldKey]: value }));
   }
 
   async function handleCreate() {
@@ -125,6 +163,15 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
         title: newTitle, description: buildDescription(), type: newType,
         severity: newSeverity, priority: newPriority, location: newLocation,
         eventId: activeTimesheet?.event_id ?? undefined,
+      } as {
+        title: string;
+        description?: string;
+        type?: string;
+        severity?: string;
+        priority?: string;
+        location?: string;
+        eventId?: string;
+        customFields?: Record<string, unknown>;
       });
 
       // Update incident with storyboard references if pin was saved
@@ -187,6 +234,73 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
               </div>
             </div>
           </div>
+
+          {/* ── Section 1.5: Custom Fields ── */}
+          {!loadingFields && incidentFields.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Additional Information</p>
+              <div className="space-y-3">
+                {incidentFields.map((f) => {
+                  const field = f as unknown as IncidentField;
+                  const value = customFields[field.field_key] ?? "";
+                  return (
+                    <div key={field.id} className="space-y-1">
+                      <label htmlFor={`custom-${field.field_key}`} className="text-xs font-medium text-muted-foreground">
+                        {field.label} {field.required && <span className="text-red-500">*</span>}
+                      </label>
+                      {field.field_type === "textarea" ? (
+                        <textarea
+                          id={`custom-${field.field_key}`}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[60px]"
+                          placeholder={field.label}
+                          value={value as string}
+                          onChange={e => handleCustomFieldChange(field.field_key, e.target.value)}
+                        />
+                      ) : field.field_type === "checkbox" ? (
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={!!value}
+                            onChange={e => handleCustomFieldChange(field.field_key, e.target.checked)}
+                            className="rounded"
+                          />
+                          {field.label}
+                        </label>
+                      ) : field.field_type === "select" || field.field_type === "multiselect" ? (
+                        <select
+                          id={`custom-${field.field_key}`}
+                          className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+                          value={value as string}
+                          onChange={e => handleCustomFieldChange(field.field_key, e.target.value)}
+                        >
+                          <option value="">Select...</option>
+                          {(field.options as unknown as Record<string, string>[]).map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      ) : field.field_type === "date" ? (
+                        <Input
+                          id={`custom-${field.field_key}`}
+                          type="date"
+                          className="mt-1"
+                          value={value as string}
+                          onChange={e => handleCustomFieldChange(field.field_key, e.target.value)}
+                        />
+                      ) : (
+                        <Input
+                          id={`custom-${field.field_key}`}
+                          className="mt-1"
+                          placeholder={field.label}
+                          value={value as string}
+                          onChange={e => handleCustomFieldChange(field.field_key, e.target.value)}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ── Section 2: When & Conditions ── */}
           <div className="space-y-3">
