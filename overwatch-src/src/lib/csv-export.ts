@@ -66,13 +66,24 @@ export const TIMESHEET_COLUMNS = [
 ];
 
 export const INCIDENT_COLUMNS = [
+  { key: "incident_number", label: "Number" },
   { key: "title", label: "Title" },
   { key: "type", label: "Type" },
   { key: "severity", label: "Severity" },
+  { key: "priority", label: "Priority" },
   { key: "status", label: "Status" },
+  { key: "source", label: "Source" },
   { key: "location", label: "Location" },
+  { key: "reported_user.first_name", label: "Reported By (First)" },
+  { key: "reported_user.last_name", label: "Reported By (Last)" },
+  { key: "assigned_user.first_name", label: "Assigned (First)" },
+  { key: "assigned_user.last_name", label: "Assigned (Last)" },
+  { key: "team_id", label: "Team ID" },
   { key: "description", label: "Description" },
   { key: "created_at", label: "Reported At" },
+  { key: "due_at", label: "Due At" },
+  { key: "closed_at", label: "Closed At" },
+  { key: "updated_at", label: "Updated At" },
 ];
 
 export const MEMBER_COLUMNS = [

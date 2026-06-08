@@ -38,6 +38,10 @@ export interface IncidentPin {
   assignedTo?: string;
   location?: string;
   createdAt: string;
+  incidentNumber?: string | null;
+  teamId?: string | null;
+  teamName?: string | null;
+  teamColor?: string | null;
 }
 
 export interface TacticalMapProps {

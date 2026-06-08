@@ -19,6 +19,7 @@ import {
   X,
   Map,
   Pencil,
+  FileDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -40,6 +41,8 @@ import {
 } from "@/lib/supabase/db";
 import type { Team } from "@/lib/supabase/db-teams";
 import type { IncidentStatus } from "@/lib/supabase/db-incident-config";
+import { useAuthStore } from "@/stores/auth-store";
+import { generateIncidentPDF } from "./incident-pdf";
 import type { StoryboardPin } from "@/components/storyboard-editor";
 import { SiteMapViewModal } from "./site-map-view-modal";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -65,7 +68,9 @@ interface IncidentListProps {
 
 export function IncidentList({ incidents, members, loading, search, isAdmin, activeCompanyId, onReload }: IncidentListProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
   const [updates, setUpdates] = useState<Record<string, IncidentUpdate[]>>({});
   const [newComment, setNewComment] = useState("");
   const [editingIncidentId, setEditingIncidentId] = useState<string | null>(null);
@@ -158,6 +163,36 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
     );
     await refreshUpdates(incidentId);
     await onReload();
+  }
+
+  async function handleExportPdf(inc: Incident) {
+    if (!activeCompany) {
+      toast.error("Company context required to export");
+      return;
+    }
+    setExportingId(inc.id);
+    try {
+      // Ensure timeline is loaded (will be from cache if expanded)
+      const incUpdates = updates[inc.id] ?? (await getIncidentUpdates(inc.id));
+      if (!updates[inc.id]) {
+        setUpdates((prev) => ({ ...prev, [inc.id]: incUpdates }));
+      }
+      const team = teams.find((t) => t.id === inc.team_id) ?? null;
+      await generateIncidentPDF({
+        incident: inc,
+        updates: incUpdates,
+        teamName: team?.name ?? null,
+        companyName: activeCompany.companyName,
+        brandHex: activeCompany.brandColor || "#1d3451",
+        companyLogo: activeCompany.companyLogo,
+      });
+      toast.success("PDF exported");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      toast.error(`Export failed: ${msg}`);
+    } finally {
+      setExportingId(null);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -467,7 +502,17 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                           <User className="h-3 w-3" /> Assigned: {inc.assigned_user.first_name} {inc.assigned_user.last_name}
                         </span>
                       )}
-                      <Button variant="ghost" size="sm" className="text-red-500 ml-auto" onClick={() => handleDelete(inc.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-auto gap-1.5 text-xs"
+                        disabled={exportingId === inc.id}
+                        onClick={() => handleExportPdf(inc)}
+                      >
+                        {exportingId === inc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                        Export PDF
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(inc.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

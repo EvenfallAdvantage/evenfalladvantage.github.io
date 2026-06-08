@@ -19,7 +19,7 @@ import { DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
 import { getStaffLocations, subscribeStaffLocations } from "@/lib/supabase/db-location";
-import { getIncidents } from "@/lib/supabase/db";
+import { getIncidents, getTeams } from "@/lib/supabase/db";
 import type { OperationPin, StaffPin, IncidentPin } from "@/components/tactical-map/types";
 import { fmtDate, fmtTime, type Ev, type Shift, type Asset } from "./components/schedule-helpers";
 import { ScheduleTab } from "./components/schedule-tab";
@@ -124,9 +124,10 @@ export default function SchedulePage() {
         }));
       setMapOps(ops);
 
-      const [staffLocs, incidentsRaw] = await Promise.all([
+      const [staffLocs, incidentsRaw, teamsList] = await Promise.all([
         getStaffLocations(activeCompanyId),
         getIncidents(activeCompanyId, "all"),
+        getTeams(activeCompanyId),
       ]);
 
       setMapStaff(staffLocs.map((s: { userId: string; name: string; lat: number; lng: number; heading: number | null; speed: number | null; updatedAt: string }) => ({
@@ -136,19 +137,28 @@ export default function SchedulePage() {
         updatedAt: s.updatedAt,
       })));
 
+      const teamById = new Map(teamsList.map((t) => [t.id, t]));
+
       setMapIncidents(
         (incidentsRaw ?? [])
           .filter((inc: Ev) => inc.location_lat && inc.location_lng)
-          .map((inc: Ev) => ({
-            id: inc.id, title: inc.title ?? "Incident",
-            description: inc.description ?? undefined, type: inc.type ?? undefined,
-            priority: inc.priority ?? undefined,
-            lat: inc.location_lat, lng: inc.location_lng,
-            severity: inc.severity ?? "low", status: inc.status ?? "open",
-            reportedBy: inc.reported_user ? `${inc.reported_user.first_name ?? ""} ${inc.reported_user.last_name ?? ""}`.trim() : undefined,
-            assignedTo: inc.assigned_user ? `${inc.assigned_user.first_name ?? ""} ${inc.assigned_user.last_name ?? ""}`.trim() : undefined,
-            location: inc.location ?? undefined, createdAt: inc.created_at ?? "",
-          }))
+          .map((inc: Ev) => {
+            const team = inc.team_id ? teamById.get(inc.team_id) : null;
+            return {
+              id: inc.id, title: inc.title ?? "Incident",
+              description: inc.description ?? undefined, type: inc.type ?? undefined,
+              priority: inc.priority ?? undefined,
+              lat: inc.location_lat, lng: inc.location_lng,
+              severity: inc.severity ?? "low", status: inc.status ?? "open",
+              reportedBy: inc.reported_user ? `${inc.reported_user.first_name ?? ""} ${inc.reported_user.last_name ?? ""}`.trim() : undefined,
+              assignedTo: inc.assigned_user ? `${inc.assigned_user.first_name ?? ""} ${inc.assigned_user.last_name ?? ""}`.trim() : undefined,
+              location: inc.location ?? undefined, createdAt: inc.created_at ?? "",
+              incidentNumber: inc.incident_number ?? null,
+              teamId: inc.team_id ?? null,
+              teamName: team?.name ?? null,
+              teamColor: team?.color ?? null,
+            };
+          })
       );
     } catch (err) { console.error("[Map] Failed to load map data:", err); }
   }, [activeCompanyId, tab, events]);

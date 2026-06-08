@@ -49,9 +49,20 @@ export function useIncidentsLayer(params: {
         },
         description: (() => {
           const narrative = parseIncidentNarrative(inc.description ?? "");
+          const numberLine = inc.incidentNumber
+            ? `<div style="opacity:0.55;font-size:10px;font-weight:bold;margin-bottom:2px">${escapeHtml(inc.incidentNumber)}</div>`
+            : "";
+          const priorityChip = inc.priority
+            ? ` <span style="opacity:0.7;font-size:10px;padding:1px 4px;border-radius:3px;background:rgba(100,100,120,0.15)">PRIO: ${escapeHtml(inc.priority.toUpperCase())}</span>`
+            : "";
+          const teamLine = inc.teamName
+            ? `<div style="margin:4px 0"><span style="font-weight:bold;padding:1px 6px;border-radius:3px;background:${inc.teamColor || "#6366f1"}33;color:${inc.teamColor || "#6366f1"}">TEAM: ${escapeHtml(inc.teamName)}</span></div>`
+            : "";
           return `<div style="font-family:monospace;font-size:11px;line-height:1.7">
+            ${numberLine}
             <b>${escapeHtml(inc.title)}</b>
-            <div style="margin:4px 0"><span style="color:${color};font-weight:bold;padding:1px 6px;border-radius:3px;background:${color}22">${escapeHtml(inc.severity.toUpperCase())}</span> <span style="opacity:0.6">${escapeHtml(inc.status.toUpperCase())}</span></div>
+            <div style="margin:4px 0"><span style="color:${color};font-weight:bold;padding:1px 6px;border-radius:3px;background:${color}22">${escapeHtml(inc.severity.toUpperCase())}</span> <span style="opacity:0.6">${escapeHtml(inc.status.toUpperCase())}</span>${priorityChip}</div>
+            ${teamLine}
             ${narrative ? `<div style="opacity:0.85;margin:4px 0">${escapeHtml(narrative)}</div>` : ""}
             ${inc.location ? `<div style="opacity:0.5;font-size:10px">📍 ${escapeHtml(inc.location)}</div>` : ""}
             ${inc.reportedBy ? `<div style="opacity:0.5;font-size:10px">👤 ${escapeHtml(inc.reportedBy)}${inc.assignedTo ? ` → ${escapeHtml(inc.assignedTo)}` : ""}</div>` : ""}
