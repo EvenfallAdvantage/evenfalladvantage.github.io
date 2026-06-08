@@ -315,5 +315,13 @@ export type SecurityEventType =
   | "admin.email.config_changed"
   | "admin.email.config_verified"
   | "admin.email.config_test_failed"
+  | "admin.sms.sent"
+  | "admin.sms.config_changed"
+  | "admin.sms.config_verified"
+  | "admin.sms.config_test_failed"
+  | "admin.sms.config_save_forbidden"
+  | "admin.sms.config_save_failed"
+  | "public.report.submitted"
+  | "public.report.promoted"
   | "security.lockout"
   | "security.suspicious_activity";

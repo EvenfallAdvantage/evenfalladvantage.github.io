@@ -16,6 +16,8 @@ import {
   Loader2,
   ArrowUpRightFromSquare,
   X,
+  MessageSquare,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,13 +33,16 @@ import {
   updatePublicReportLink,
   deletePublicReportLink,
   getPublicReportSubmissions,
+  getPublicReportMessages,
   promotePublicReportToIncident,
   setPublicReportSubmissionStatus,
+  replyToReporterViaSms,
   getTeams,
 } from "@/lib/supabase/db";
 import type {
   PublicReportLink,
   PublicReportSubmission,
+  PublicReportMessage,
   SubmissionStatus,
 } from "@/lib/supabase/db-public-reports";
 import type { Team } from "@/lib/supabase/db-teams";
@@ -66,6 +71,12 @@ export function PublicReportsTab({ activeCompanyId, canManage }: PublicReportsTa
   const [qrLoading, setQrLoading] = useState(false);
 
   const [promotingId, setPromotingId] = useState<string | null>(null);
+
+  // Per-submission reply state.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Record<string, PublicReportMessage[]>>({});
+  const [replyBody, setReplyBody] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -203,6 +214,51 @@ export function PublicReportsTab({ activeCompanyId, canManage }: PublicReportsTa
       toast.error("Promotion failed");
     } finally {
       setPromotingId(null);
+    }
+  }
+
+  async function loadMessages(submissionId: string) {
+    try {
+      const m = await getPublicReportMessages(submissionId);
+      setMessages((prev) => ({ ...prev, [submissionId]: m }));
+    } catch (e) {
+      logger.swallow("public-reports-tab:load-messages", e, "warn");
+    }
+  }
+
+  async function handleToggleExpand(submission: PublicReportSubmission) {
+    if (expandedId === submission.id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(submission.id);
+    setReplyBody("");
+    if (!messages[submission.id]) {
+      await loadMessages(submission.id);
+    }
+  }
+
+  async function handleSendReply(submission: PublicReportSubmission) {
+    if (!replyBody.trim()) return;
+    if (!submission.reporterPhone) {
+      toast.error("Reporter did not leave a phone number");
+      return;
+    }
+    setSendingReply(true);
+    try {
+      const result = await replyToReporterViaSms(submission.id, replyBody.trim());
+      if (result.ok) {
+        toast.success("Reply sent");
+        setReplyBody("");
+        await loadMessages(submission.id);
+      } else {
+        toast.error(result.error ?? "Send failed");
+      }
+    } catch (e) {
+      logger.swallow("public-reports-tab:reply", e, "warn");
+      toast.error("Send failed");
+    } finally {
+      setSendingReply(false);
     }
   }
 
@@ -437,7 +493,7 @@ export function PublicReportsTab({ activeCompanyId, canManage }: PublicReportsTa
                     )}
 
                     {canManage && sub.status !== "promoted" && sub.status !== "dismissed" && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Button
                           size="sm"
                           variant="outline"
@@ -452,6 +508,17 @@ export function PublicReportsTab({ activeCompanyId, canManage }: PublicReportsTa
                           )}
                           Promote to incident
                         </Button>
+                        {sub.reporterPhone && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1.5"
+                            onClick={() => handleToggleExpand(sub)}
+                          >
+                            <MessageSquare className="h-3 w-3" />
+                            {expandedId === sub.id ? "Hide thread" : "Reply via SMS"}
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
@@ -460,6 +527,51 @@ export function PublicReportsTab({ activeCompanyId, canManage }: PublicReportsTa
                         >
                           Dismiss
                         </Button>
+                      </div>
+                    )}
+
+                    {expandedId === sub.id && sub.reporterPhone && (
+                      <div className="rounded-md border bg-muted/20 p-3 space-y-2 mt-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Conversation with {sub.reporterPhone}
+                        </p>
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                          {(messages[sub.id] ?? []).length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">No messages yet.</p>
+                          ) : (
+                            (messages[sub.id] ?? []).map((m) => (
+                              <div
+                                key={m.id}
+                                className={`text-xs rounded px-2 py-1.5 ${
+                                  m.direction === "outbound" ? "bg-primary/10 ml-6" : "bg-muted mr-6"
+                                }`}
+                              >
+                                <div className="text-[10px] text-muted-foreground mb-0.5">
+                                  {m.direction === "outbound" ? "You" : "Reporter"} ·{" "}
+                                  {timeAgo(m.createdAt)} · {m.channel}
+                                </div>
+                                {m.body}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <textarea
+                            value={replyBody}
+                            onChange={(e) => setReplyBody(e.target.value)}
+                            placeholder="Type a reply (SMS, max 1600 chars)..."
+                            rows={2}
+                            maxLength={1600}
+                            className="flex-1 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleSendReply(sub)}
+                            disabled={sendingReply || !replyBody.trim()}
+                          >
+                            {sendingReply ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                          </Button>
+                        </div>
                       </div>
                     )}
                     {sub.status === "dismissed" && (

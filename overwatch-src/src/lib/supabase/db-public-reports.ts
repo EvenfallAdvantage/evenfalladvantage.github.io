@@ -477,6 +477,37 @@ export async function addPublicReportNote(
 }
 
 /**
+ * Invoke the `sms-reply-to-reporter` Edge Function to send an SMS reply to
+ * the reporter and append it to the message thread. The Edge Function handles
+ * RBAC, rate limiting, audit logging, and the actual dispatch.
+ */
+export async function replyToReporterViaSms(
+  submissionId: string,
+  body: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { ok: false, error: "Not signed in" };
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!baseUrl) return { ok: false, error: "Supabase URL missing" };
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/+$/, "")}/functions/v1/sms-reply-to-reporter`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ submission_id: submissionId, body }),
+    });
+    const result = (await res.json()) as { ok?: boolean; error?: string };
+    if (!res.ok) return { ok: false, error: result.error ?? `HTTP ${res.status}` };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
  * Append a message row to the thread. This is called from the SMS edge
  * function after a successful send to keep the audit trail intact. The edge
  * function passes its service-role client; the client-side helper is provided

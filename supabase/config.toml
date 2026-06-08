@@ -235,3 +235,31 @@ entrypoint = "./functions/email-test-send/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/email-save-credentials/index.ts"
+
+# --- SMS (Phase 4 / HaloEngage) -------------------------------------
+# Service-role-only generic SMS dispatcher. Called by other functions and the
+# admin UI via wrapper functions; never user-facing.
+[functions.sms-send]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/sms-send/index.ts"
+
+# User-callable (manager+ in submission's company). Replies to a public report
+# submission's reporter_phone via the company's Twilio config.
+[functions.sms-reply-to-reporter]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/sms-reply-to-reporter/index.ts"
+
+# User-callable (owner/admin only). Sends a test SMS and stamps verified_at.
+[functions.sms-test-send]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/sms-test-send/index.ts"
+
+# User-callable (owner/admin only). Writes Twilio creds to Supabase Vault and
+# links via integrations_config.vault_secret_id.
+[functions.sms-save-credentials]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/sms-save-credentials/index.ts"
