@@ -86,7 +86,8 @@ describe("when online", () => {
   });
 
   it("createTaskOffline calls the live function and returns its result", async () => {
-    mocked.createTask.mockResolvedValueOnce({ id: "t-1" });
+    // We don't care about the full Task shape here; cast to bypass.
+    mocked.createTask.mockResolvedValueOnce({ id: "t-1" } as Awaited<ReturnType<typeof db.createTask>>);
     const res = await createTaskOffline("c1", { title: "patrol" });
     expect(mocked.createTask).toHaveBeenCalledWith("c1", { title: "patrol" });
     expect(res).toEqual({ id: "t-1" });

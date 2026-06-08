@@ -8,6 +8,7 @@ import { MobileNav } from "./mobile-nav";
 import { MobilePageAction } from "@/components/mobile-page-action";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SyncIndicator } from "@/components/sync-indicator";
+import { ServiceWorkerRegistration } from "@/components/sw-registration";
 
 const STORAGE_KEY = "overwatch-sidebar-collapsed";
 
@@ -63,6 +64,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* Offline sync indicator (only visible when there's something to show) */}
       <SyncIndicator />
+
+      {/* Service worker registration (mount-once, no UI). */}
+      <ServiceWorkerRegistration />
     </div>
   );
 }
