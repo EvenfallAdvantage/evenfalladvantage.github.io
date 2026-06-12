@@ -22,6 +22,8 @@ import { PayStubCard } from "./components/pay-stub-card";
 import CertificationsSection from "@/app/academy/components/certifications-section";
 import { getUserCertifications } from "@/lib/supabase/db";
 import { logger } from "@/lib/logger";
+import type { Cert } from "@/app/academy/components/certifications-section";
+import type { LegacyCertificate } from "@/lib/legacy-bridge";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -31,8 +33,8 @@ export default function ProfilePage() {
   const [mp, setMp] = useState<MemberProfile>(null);
   const [mpLoaded, setMpLoaded] = useState(false);
   const [onboardingProgress, setOnboardingProgress] = useState<OProgress[]>([]);
-  const [certs, setCerts] = useState<Record<string, unknown>[]>([]);
-  const [legacyCerts, setLegacyCerts] = useState<Record<string, unknown>[]>([]);
+  const [certs, setCerts] = useState<Cert[]>([]);
+  const [legacyCerts, setLegacyCerts] = useState<LegacyCertificate[]>([]);
 
   const isOnboarding = mp?.status === "onboarding" && !mp?.onboarding_complete;
 

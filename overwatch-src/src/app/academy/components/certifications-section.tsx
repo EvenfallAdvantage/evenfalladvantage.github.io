@@ -10,7 +10,7 @@ import { addCertification, deleteCertification, getUserCertifications } from "@/
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import type { LegacyCertificate } from "@/lib/legacy-bridge";
 
-type Cert = { id: string; cert_type: string; issue_date: string | null; expiry_date: string | null; status: string };
+export type Cert = { id: string; cert_type: string; issue_date: string | null; expiry_date: string | null; status: string };
 
 type UnifiedCert = {
   id: string; name: string; source: "manual" | "training" | "course";
