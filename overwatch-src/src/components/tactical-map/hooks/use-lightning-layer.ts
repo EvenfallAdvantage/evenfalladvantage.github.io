@@ -5,8 +5,8 @@ import { fetchIntelLightning } from "@/lib/intel-client";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 const POLL_MS = 15_000;
-const ROLLING_WINDOW_MS = 5 * 60_000;
-const REPLAY_WINDOW_MS = 10 * 60_000;
+const ROLLING_WINDOW_MS = 90_000;
+const REPLAY_WINDOW_MS = 5 * 60_000;
 const BLINK_DURATION_MS = 10_000;
 const BLINK_PERIOD_MS = 600;
 
