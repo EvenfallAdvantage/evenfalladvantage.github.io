@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, BarChart3 } from "lucide-react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
@@ -19,6 +19,7 @@ import { ComplianceWidget } from "./components/compliance-widget";
 import { OvertimeWidget } from "./components/overtime-widget";
 import { PanicAlertBanner } from "./components/panic-alert-banner";
 import { ProfessionalTools } from "./components/professional-tools";
+import { AnalyticsView } from "@/components/analytics/analytics-view";
 
 export default function FeedPage() {
   const { user, activeCompanyId, getActiveCompany } = useAuthStore();
@@ -96,6 +97,19 @@ export default function FeedPage() {
 
       {/* Professional Tools */}
       <ProfessionalTools hiddenTabs={hiddenTabs} />
+
+      {/* Analytics — leadership only */}
+      {isLeadership && (
+        <div id="analytics">
+          <div className="mb-3 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+              Analytics
+            </h2>
+          </div>
+          <AnalyticsView />
+        </div>
+      )}
     </div>
   );
 }

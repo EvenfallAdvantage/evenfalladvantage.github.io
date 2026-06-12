@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Users, Loader2,
   CalendarOff,
@@ -59,7 +60,8 @@ const ZERO_COUNTS: TabCounts = {
   openIncidents: 0, pendingCorrections: 0, newApplicants: 0, activePostings: 0,
 };
 
-export default function AdminStaffPage() {
+function AdminStaffPageInner() {
+  const searchParams = useSearchParams();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const user = useAuthStore((s) => s.user);
 
@@ -67,7 +69,8 @@ export default function AdminStaffPage() {
   const [joinCode, setJoinCode] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("roster");
+  const initialTab = (searchParams.get("tab") as Tab) || "roster";
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [hireResult, setHireResult] = useState<HireResult | null>(null);
   const [counts, setCounts] = useState<TabCounts>(ZERO_COUNTS);
 
@@ -85,6 +88,8 @@ export default function AdminStaffPage() {
       applicants: <UserPlus className="h-5 w-5" />,
       onboarding: <BookOpenCheck className="h-5 w-5" />,
       teams: <UsersRound className="h-5 w-5" />,
+      "public-reports": <QrCode className="h-5 w-5" />,
+      geofences: <Target className="h-5 w-5" />,
     };
     setHeader(
       "PERSONNEL",
@@ -167,16 +172,16 @@ export default function AdminStaffPage() {
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-1 scrollbar-hide">
           {([
             { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0, icon: Users },
+            { key: "teams" as Tab, label: "Teams", badge: 0, icon: UsersRound },
+            { key: "geofences" as Tab, label: "Geofences", badge: 0, icon: Target },
+            { key: "forms" as Tab, label: "Reports", badge: counts.pendingForms + counts.openIncidents, icon: FileText },
+            { key: "public-reports" as Tab, label: "Public Reports", badge: 0, icon: QrCode },
             { key: "timesheets" as Tab, label: "Timesheets", badge: counts.pendingTimesheets, icon: CalendarClock },
             { key: "corrections" as Tab, label: "Corrections", badge: counts.pendingCorrections, icon: FileEdit },
             { key: "leave" as Tab, label: "Leave", badge: counts.pendingLeave, icon: CalendarOff },
-            { key: "forms" as Tab, label: "Reports", badge: counts.pendingForms + counts.openIncidents, icon: FileText },
             { key: "postings" as Tab, label: "Postings", badge: counts.activePostings, icon: Megaphone },
             { key: "applicants" as Tab, label: "Applicants", badge: counts.newApplicants, icon: UserPlus },
             { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
-            { key: "teams" as Tab, label: "Teams", badge: 0, icon: UsersRound },
-            { key: "public-reports" as Tab, label: "Public Reports", badge: 0, icon: QrCode },
-            { key: "geofences" as Tab, label: "Geofences", badge: 0, icon: Target },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
@@ -249,5 +254,13 @@ export default function AdminStaffPage() {
         )}
       </div>
     </>
+  );
+}
+
+export default function AdminStaffPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+      <AdminStaffPageInner />
+    </Suspense>
   );
 }

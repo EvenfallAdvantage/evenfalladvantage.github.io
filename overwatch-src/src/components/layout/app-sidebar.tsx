@@ -69,6 +69,12 @@ import {
   School,
   ListChecks,
   UserSearch,
+  UsersRound,
+  CalendarClock,
+  FileEdit,
+  Megaphone,
+  UserPlus,
+  BookOpenCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -111,6 +117,12 @@ const ICON_MAP: Record<string, LucideIcon> = {
   School,
   ListChecks,
   UserSearch,
+  UsersRound,
+  CalendarClock,
+  FileEdit,
+  Megaphone,
+  UserPlus,
+  BookOpenCheck,
 };
 
 interface AppSidebarProps {

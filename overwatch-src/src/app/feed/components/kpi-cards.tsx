@@ -6,6 +6,7 @@ import {
   ChevronRight, BarChart3,
 } from "lucide-react";
 import Link from "next/link";
+import { useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getDashboardMetrics, getDashboardTrends } from "@/lib/supabase/db";
 import type { DashboardTrends } from "@/lib/supabase/db-analytics";
@@ -56,7 +57,7 @@ export function KpiCards({ activeCompanyId }: KpiCardsProps) {
       icon: AlertTriangle,
       color: metrics.openIncidents > 0 ? "text-red-500" : "text-muted-foreground",
       bg: metrics.openIncidents > 0 ? "bg-red-500/10" : "bg-muted",
-      href: "/admin/analytics",
+      href: "#analytics",
       trend: trends?.incidents,
       trendColor: "#ef4444",
     },
@@ -106,14 +107,14 @@ export function KpiCards({ activeCompanyId }: KpiCardsProps) {
         <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
           Operational Status
         </h2>
-        <Link
-          href="/admin/analytics"
+        <button
+          onClick={() => document.getElementById("analytics")?.scrollIntoView({ behavior: "smooth" })}
           className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
         >
           <BarChart3 className="h-3 w-3" />
           View analytics
           <ChevronRight className="h-3 w-3" />
-        </Link>
+        </button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map((kpi) => (

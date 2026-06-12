@@ -12,12 +12,6 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: "Dashboard", href: "/feed", icon: "LayoutDashboard" },
       { title: "Comms", href: "/chat", icon: "Radio" },
       { title: "Directory", href: "/directory", icon: "UserSearch" },
-      {
-        title: "Analytics",
-        href: "/admin/analytics",
-        icon: "BarChart3",
-        roles: ["owner", "admin", "manager"],
-      },
     ],
   },
   {
@@ -65,12 +59,19 @@ export const NAV_SECTIONS: NavSection[] = [
         href: "/admin/staff",
         icon: "UserCog",
         roles: ["owner", "admin", "manager"],
-      },
-      {
-        title: "Teams",
-        href: "/teams",
-        icon: "Users",
-        roles: ["owner", "admin", "manager"],
+        children: [
+          { title: "Roster", href: "/admin/staff?tab=roster", icon: "Users" },
+          { title: "Teams", href: "/admin/staff?tab=teams", icon: "UsersRound" },
+          { title: "Geofences", href: "/admin/staff?tab=geofences", icon: "Target" },
+          { title: "Reports", href: "/admin/staff?tab=forms", icon: "FileText" },
+          { title: "Public Reports", href: "/admin/staff?tab=public-reports", icon: "QrCode" },
+          { title: "Timesheets", href: "/admin/staff?tab=timesheets", icon: "CalendarClock" },
+          { title: "Corrections", href: "/admin/staff?tab=corrections", icon: "FileEdit" },
+          { title: "Leave", href: "/admin/staff?tab=leave", icon: "CalendarOff" },
+          { title: "Postings", href: "/admin/staff?tab=postings", icon: "Megaphone" },
+          { title: "Applicants", href: "/admin/staff?tab=applicants", icon: "UserPlus" },
+          { title: "Onboarding", href: "/admin/staff?tab=onboarding", icon: "BookOpenCheck" },
+        ],
       },
       {
         title: "Ops Planning",
