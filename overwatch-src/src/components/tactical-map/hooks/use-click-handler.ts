@@ -305,9 +305,9 @@ export function useCesiumClickHandler(params: {
           viewer.entities.removeById("los-click-1");
           viewer.entities.add({
             id: "los-click-1",
-            position: Cesium.Cartesian3.fromDegrees(lng, lat),
-            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-            label: { text: "A", font: "bold 10px monospace", fillColor: Cesium.Color.LIME, pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            position: Cesium.Cartesian3.fromDegrees(lng, lat, 2),
+            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            label: { text: "A", font: "bold 10px monospace", fillColor: Cesium.Color.LIME, pixelOffset: new Cesium.Cartesian2(0, -14), heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
           });
         } else {
           viewer.entities.removeById("los-click-1");
@@ -334,9 +334,9 @@ export function useCesiumClickHandler(params: {
           viewer.entities.removeById("elev-click-1");
           viewer.entities.add({
             id: "elev-click-1",
-            position: Cesium.Cartesian3.fromDegrees(lng, lat),
-            point: { pixelSize: 8, color: Cesium.Color.YELLOW, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-            label: { text: "START", font: "bold 9px monospace", fillColor: Cesium.Color.YELLOW, pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            position: Cesium.Cartesian3.fromDegrees(lng, lat, 2),
+            point: { pixelSize: 8, color: Cesium.Color.YELLOW, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            label: { text: "START", font: "bold 9px monospace", fillColor: Cesium.Color.YELLOW, pixelOffset: new Cesium.Cartesian2(0, -14), heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
           });
         } else {
           viewer.entities.removeById("elev-click-1");
