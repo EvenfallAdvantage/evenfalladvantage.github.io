@@ -30,71 +30,55 @@ interface RawsStation {
   noaaUrl: string;
 }
 
-let iconCache: HTMLCanvasElement | null = null;
+let arrowCache: HTMLCanvasElement | null = null;
 
-function buildTowerIcon(): HTMLCanvasElement {
-  if (iconCache) return iconCache;
-  const w = 18, h = 24;
+function buildArrowIcon(): HTMLCanvasElement {
+  if (arrowCache) return arrowCache;
+  const s = 22;
   const c = document.createElement("canvas");
-  c.width = w; c.height = h;
+  c.width = s; c.height = s;
   const ctx = c.getContext("2d");
   if (!ctx) return c;
-  const cx = w / 2;
-  const color = "#94a3b8";
+  const cx = s / 2;
 
-  const g = ctx.createRadialGradient(cx, 12, 0, cx, 12, 14);
-  g.addColorStop(0, "rgba(148,163,184,0.12)");
-  g.addColorStop(1, "rgba(148,163,184,0)");
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(cx, 12, 14, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = color;
-  ctx.fillStyle = color;
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "#fbbf24";
+  ctx.fillStyle = "#fbbf24";
+  ctx.lineWidth = 2;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
   ctx.beginPath();
-  ctx.moveTo(cx, 4);
-  ctx.lineTo(cx, 19);
-  ctx.stroke();
-
-  ctx.beginPath();
   ctx.moveTo(cx, 1);
-  ctx.lineTo(cx - 3, 5);
-  ctx.lineTo(cx + 3, 5);
+  ctx.lineTo(cx - 4, 7);
+  ctx.lineTo(cx + 4, 7);
   ctx.closePath();
   ctx.fill();
 
   ctx.beginPath();
-  ctx.moveTo(cx - 6, 8);
-  ctx.lineTo(cx + 6, 8);
+  ctx.moveTo(cx, 7);
+  ctx.lineTo(cx, s - 2);
   ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx - 6, 8, 1.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx + 6, 8, 1.5, 0, Math.PI * 2);
-  ctx.fill();
 
-  ctx.beginPath();
-  ctx.moveTo(cx - 5, 13);
-  ctx.lineTo(cx + 5, 13);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx - 5, 13, 1.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx + 5, 13, 1.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillRect(cx - 4, 18, 8, 4);
-  ctx.strokeRect(cx - 4, 18, 8, 4);
-
-  iconCache = c;
+  arrowCache = c;
   return c;
+}
+
+function parseWindSpeed(speed: string): number {
+  const m = speed.match(/^([\d.]+)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+function parseWindDir(dir: string): number {
+  const m = dir.match(/^([\d.]+)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+function windScale(speed: number): number {
+  if (speed <= 0) return 0;
+  if (speed < 5) return 0.35 + speed * 0.03;
+  if (speed < 15) return 0.5 + (speed - 5) * 0.07;
+  if (speed < 30) return 1.2 + (speed - 15) * 0.04;
+  return 1.8 + Math.min(speed - 30, 40) * 0.02;
 }
 
 function buildPopup(station: RawsStation): string {
@@ -182,15 +166,25 @@ export function useRawsLayer(params: {
 
       for (const station of visible) {
         const entityId = `raws-${station.id}`;
+        const speed = parseWindSpeed(station.windSpeed);
+        const scale = windScale(speed);
+        if (scale <= 0) continue;
+
+        const fromDeg = parseWindDir(station.windDir);
+        const towardDeg = (fromDeg + 180) % 360;
+        const rotation = -towardDeg * (Math.PI / 180);
+
         const entity = viewer.entities.add({
           id: entityId,
           name: station.name,
           position: Cesium.Cartesian3.fromDegrees(station.lng, station.lat, 5),
           billboard: {
-            image: buildTowerIcon(),
-            scale: 0.9,
+            image: buildArrowIcon(),
+            scale,
+            rotation,
+            alignedAxis: Cesium.Cartesian3.UNIT_Z,
             heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            verticalOrigin: Cesium.VerticalOrigin.CENTER,
           },
           description: buildPopup(station),
         });
