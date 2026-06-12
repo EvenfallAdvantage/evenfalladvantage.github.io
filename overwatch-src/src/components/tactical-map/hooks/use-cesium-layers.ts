@@ -405,19 +405,31 @@ export function useCesiumLayers(params: {
               if (!viewerRef.current || viewerRef.current.isDestroyed?.()) return;
 
               // Build a custom geometry with per-vertex positions (ECEF),
-              // texture coordinates, and triangle indices.
+              // texture coordinates, per-vertex normals (geodetic up-vector),
+              // and triangle indices.  Normals are required by
+              // MaterialAppearance with MaterialSupport.TEXTURED — without
+              // them Cesium's rendering pipeline fails at bounding-sphere
+              // computation during Primitive.update().
               const vertexCount = GRID * GRID;
               const triCount = (GRID - 1) * (GRID - 1) * 2;
               const posArr = new Float64Array(vertexCount * 3);
+              const normalArr = new Float32Array(vertexCount * 3);
               const stArr = new Float32Array(vertexCount * 2);
               const idxArr = new Uint16Array(triCount * 3);
 
               for (let i = 0; i < vertexCount; i++) {
                 const g = gridCartos[i];
                 const cart = Cesium.Cartesian3.fromDegrees(g.lng, g.lat, (heights[i] ?? 0) + 0.5);
+                if (!cart) continue;
                 posArr[i * 3] = cart.x;
                 posArr[i * 3 + 1] = cart.y;
                 posArr[i * 3 + 2] = cart.z;
+                // Geodetic surface normal: normalized position vector.
+                // Close enough to true terrain normal for a drape overlay.
+                const n = Cesium.Cartesian3.normalize(cart, new Cesium.Cartesian3());
+                normalArr[i * 3] = n.x;
+                normalArr[i * 3 + 1] = n.y;
+                normalArr[i * 3 + 2] = n.z;
                 stArr[i * 2] = g.u;
                 stArr[i * 2 + 1] = 1 - g.v;
               }
@@ -441,6 +453,11 @@ export function useCesiumLayers(params: {
                     componentsPerAttribute: 3,
                     values: posArr,
                   }),
+                  normal: new Cesium.GeometryAttribute({
+                    componentDatatype: Cesium.ComponentDatatype.FLOAT,
+                    componentsPerAttribute: 3,
+                    values: normalArr,
+                  }),
                   st: new Cesium.GeometryAttribute({
                     componentDatatype: Cesium.ComponentDatatype.FLOAT,
                     componentsPerAttribute: 2,
@@ -456,6 +473,7 @@ export function useCesiumLayers(params: {
                 geometryInstances: instance,
                 appearance: new Cesium.MaterialAppearance({
                   materialSupport: Cesium.MaterialAppearance.MaterialSupport.TEXTURED,
+                  vertexFormat: Cesium.VertexFormat.POSITION_NORMAL_AND_ST,
                   material: Cesium.Material.fromType("Image", {
                     image: op.siteMapUrl,
                     color: new Cesium.Color(1, 1, 1, layers.siteOverlayOpacity),
@@ -469,9 +487,17 @@ export function useCesiumLayers(params: {
               entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
             };
 
+            // Defensively check terrain provider availability.
+            // `instanceof Cesium.EllipsoidTerrainProvider` returns false when
+            // `terrainProvider` is undefined (e.g. during terrain-swap window),
+            // which would send `undefined` to `sampleTerrainMostDetailed` and
+            // crash with "Cannot read properties of undefined (reading
+            // 'availability')".
             const terrainProvider = viewer.terrainProvider;
-            const isEllipsoid = terrainProvider instanceof Cesium.EllipsoidTerrainProvider;
-            if (isEllipsoid) {
+            const canSample = terrainProvider
+              && !(terrainProvider instanceof Cesium.EllipsoidTerrainProvider)
+              && terrainProvider.availability;
+            if (!canSample) {
               buildGridPrimitive(gridCartos.map(() => 0));
             } else {
               const cartosList = gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat));
