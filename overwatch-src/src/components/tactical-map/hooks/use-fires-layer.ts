@@ -5,8 +5,8 @@
  * the client doesn't choke. We refresh every hour while the layer is on.
  *
  * Volcanoes are rendered with the same dot but a distinct color and label.
- * Hidden during Time Machine replay because FIRMS only returns the most
- * recent 24h.
+ * During Time Machine replay, fires are filtered to those detected within
+ * the replay window (±2 h) since FIRMS only covers the most recent 24 h.
  */
 
 import { useEffect } from "react";
@@ -16,6 +16,8 @@ import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelFires } from "@/lib/intel-client";
 import type { IntelFire } from "@/lib/intel-types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+
+const REPLAY_WINDOW_MS = 2 * 3_600_000;
 
 const iconCache = new Map<string, HTMLCanvasElement>();
 
@@ -62,11 +64,19 @@ function buildPopup(f: IntelFire): string {
   </div>`;
 }
 
-const REFRESH_INTERVAL_MS = 60 * 60_000; // 1 hour
+const REFRESH_INTERVAL_MS = 60 * 60_000;
 
-/** Wrapper so the react-compiler doesn't flag Date.now() as an inline impure call. */
 function currentTimestamp() {
   return Date.now();
+}
+
+function parseFireTime(f: IntelFire): number {
+  if (!f.date) return 0;
+  try {
+    return new Date(f.date + "T" + (f.time ?? "00:00") + ":00Z").getTime();
+  } catch {
+    return 0;
+  }
 }
 
 export function useFiresLayer(params: {
@@ -79,7 +89,6 @@ export function useFiresLayer(params: {
   timeMachineOpen: boolean;
 }) {
   const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen } = params;
-
   const isReplaying = timeMachineOpen && debouncedReplayTime < currentTimestamp() - 5_000;
 
   useEffect(() => {
@@ -89,15 +98,11 @@ export function useFiresLayer(params: {
 
     const existing = (entityGroupsRef.current.fires ?? []) as Array<{ id: string }>;
     existing.forEach((e) => {
-      try {
-        viewer.entities.removeById(e.id);
-      } catch (err) {
-        logger.swallow("cesium-layers:remove-fire", err);
-      }
+      try { viewer.entities.removeById(e.id); } catch { /* ok */ }
     });
     entityGroupsRef.current.fires = [];
 
-    if (!layers.fires || isReplaying) return;
+    if (!layers.fires) return;
 
     let cancelled = false;
 
@@ -106,14 +111,9 @@ export function useFiresLayer(params: {
         const data = await fetchIntelFires();
         if (cancelled || !viewer || !Cesium) return;
 
-        // Clear current entities (full-refresh; FIRMS sample shifts per fetch).
         const stale = (entityGroupsRef.current.fires ?? []) as Array<{ id: string }>;
         stale.forEach((e) => {
-          try {
-            viewer.entities.removeById(e.id);
-          } catch (err) {
-            logger.swallow("cesium-layers:remove-fire-stale", err);
-          }
+          try { viewer.entities.removeById(e.id); } catch { /* ok */ }
         });
         entityGroupsRef.current.fires = [];
 
@@ -121,8 +121,13 @@ export function useFiresLayer(params: {
         for (let i = 0; i < fires.length; i++) {
           const f = fires[i];
           if (!Number.isFinite(f.lat) || !Number.isFinite(f.lng)) continue;
-          // FIRMS rows don't carry a stable id; index-based is fine since we
-          // wipe and re-add the whole set on each refresh.
+
+          if (isReplaying) {
+            const fireTime = parseFireTime(f);
+            const diff = Math.abs(fireTime - debouncedReplayTime);
+            if (isNaN(diff) || diff > REPLAY_WINDOW_MS) continue;
+          }
+
           const entityId = `fire-${i}-${f.lat.toFixed(3)}-${f.lng.toFixed(3)}-${f.type}`;
           const entity = viewer.entities.add({
             id: entityId,
@@ -149,5 +154,5 @@ export function useFiresLayer(params: {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [layers.fires, loading, isReplaying, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.fires, loading, isReplaying, debouncedReplayTime, viewerRef, cesiumRef, entityGroupsRef]);
 }

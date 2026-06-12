@@ -12,7 +12,7 @@
 export interface IntelLightningStrike {
   type: "Feature";
   geometry: { type: "Point"; coordinates: [number, number] };
-  properties: { time: number; amplitude: number };
+  properties: { time: number; id: number; src: number };
 }
 export interface IntelLightningResponse {
   type: "FeatureCollection";

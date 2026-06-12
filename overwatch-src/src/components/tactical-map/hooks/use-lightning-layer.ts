@@ -5,7 +5,8 @@ import { fetchIntelLightning } from "@/lib/intel-client";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 const POLL_MS = 15_000;
-const STALE_MS = 60_000;
+const ROLLING_WINDOW_MS = 5 * 60_000;
+const REPLAY_WINDOW_MS = 10 * 60_000;
 
 let iconCache: HTMLCanvasElement | null = null;
 
@@ -44,7 +45,8 @@ export function useLightningLayer(params: {
   const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen } = params;
   const isReplaying = timeMachineOpen && debouncedReplayTime < currentTimestamp() - 5_000;
 
-  const readyRef = useRef(false);
+  const knownIdsRef = useRef(new Set<number>());
+  const timesRef = useRef(new Map<string, number>());
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -56,33 +58,40 @@ export function useLightningLayer(params: {
       try { viewer.entities.removeById(e.id); } catch { /* ok */ }
     });
     entityGroupsRef.current.lightning = [];
+    knownIdsRef.current.clear();
+    timesRef.current.clear();
 
-    if (!layers.eonetWeather || isReplaying) return;
+    if (!layers.eonetWeather) return;
 
     let cancelled = false;
-    readyRef.current = true;
 
     async function fetchAndRender() {
       try {
         const data = await fetchIntelLightning();
-        if (cancelled || !viewer || !Cesium || !readyRef.current) return;
+        if (cancelled || !viewer || !Cesium) return;
 
         const now = currentTimestamp();
-        const cutoff = (now - STALE_MS) / 1000;
-
-        const stale = (entityGroupsRef.current.lightning ?? []) as Array<{ id: string }>;
-        stale.forEach((e) => {
-          try { viewer.entities.removeById(e.id); } catch { /* ok */ }
-        });
-        entityGroupsRef.current.lightning = [];
+        const replayTime = isReplaying ? debouncedReplayTime : now;
 
         for (const f of data.features ?? []) {
+          const strikeId = f.properties.id;
+          if (strikeId !== undefined) {
+            if (knownIdsRef.current.has(strikeId)) continue;
+            knownIdsRef.current.add(strikeId);
+          }
+
           const [lon, lat] = f.geometry.coordinates;
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-          if (f.properties.time < cutoff) continue;
+
+          const timeMs = f.properties.time * 1000;
+          const diff = Math.abs(timeMs - replayTime);
+
+          if (isNaN(diff)) continue;
+          const maxWindow = isReplaying ? REPLAY_WINDOW_MS : ROLLING_WINDOW_MS;
+          if (diff > maxWindow) continue;
 
           const entity = viewer.entities.add({
-            id: `lightning-${lat.toFixed(4)}-${lon.toFixed(4)}-${f.properties.time}`,
+            id: `lightning-${f.properties.id}`,
             position: Cesium.Cartesian3.fromDegrees(lon, lat, 0),
             point: {
               pixelSize: 6,
@@ -100,8 +109,25 @@ export function useLightningLayer(params: {
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
           });
+          timesRef.current.set(entity.id, timeMs);
           (entityGroupsRef.current.lightning as Array<{ id: string }>).push(entity);
         }
+
+        const list = (entityGroupsRef.current.lightning ?? []) as Array<{ id: string }>;
+        const keep: Array<{ id: string }> = [];
+        for (const e of list) {
+          const timeMs = timesRef.current.get(e.id);
+          if (timeMs == null) { keep.push(e); continue; }
+          const diff = Math.abs(timeMs - replayTime);
+          const maxWindow = isReplaying ? REPLAY_WINDOW_MS : ROLLING_WINDOW_MS;
+          if (diff > maxWindow) {
+            timesRef.current.delete(e.id);
+            try { viewer.entities.removeById(e.id); } catch { /* ok */ }
+          } else {
+            keep.push(e);
+          }
+        }
+        entityGroupsRef.current.lightning = keep;
       } catch (err) {
         logger.swallow("cesium-layers:lightning-fetch", err, "warn");
       }
@@ -109,11 +135,9 @@ export function useLightningLayer(params: {
 
     fetchAndRender();
     const interval = setInterval(fetchAndRender, POLL_MS);
-
     return () => {
       cancelled = true;
-      readyRef.current = false;
       clearInterval(interval);
     };
-  }, [layers.eonetWeather, loading, viewerRef, cesiumRef, entityGroupsRef, isReplaying]);
+  }, [layers.eonetWeather, loading, viewerRef, cesiumRef, entityGroupsRef, isReplaying, debouncedReplayTime]);
 }
