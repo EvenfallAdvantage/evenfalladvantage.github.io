@@ -1,10 +1,12 @@
 import { getCorsHeaders } from "../_shared/cors.ts";
 
-interface Strike {
-  time: number;
+// Timestamps from lightningmaps.org are in epoch-ms.
+interface Stroke {
+  id: number;
+  time: number; // epoch ms
   lat: number;
   lon: number;
-  amp: number;
+  src: number;
 }
 
 Deno.serve(async (req: Request) => {
@@ -16,15 +18,15 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const strikes = await collectStrikes(4_000);
+    const strokes = await collectStrokes(4_000);
 
     return new Response(
       JSON.stringify({
         type: "FeatureCollection",
-        features: strikes.map((s) => ({
+        features: strokes.map((s) => ({
           type: "Feature",
           geometry: { type: "Point", coordinates: [s.lon, s.lat] },
-          properties: { time: s.time, amplitude: s.amp },
+          properties: { time: s.time / 1000, id: s.id, src: s.src },
         })),
       }),
       {
@@ -43,9 +45,10 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-async function collectStrikes(durationMs: number): Promise<Strike[]> {
+async function collectStrokes(durationMs: number): Promise<Stroke[]> {
   return new Promise((resolve, reject) => {
-    const strikes: Strike[] = [];
+    const strokes: Stroke[] = [];
+    const seen = new Set<number>();
     let ws: WebSocket;
     let settled = false;
 
@@ -55,36 +58,50 @@ async function collectStrikes(durationMs: number): Promise<Strike[]> {
       clearTimeout(timer);
       try {
         ws?.close();
-      } catch {
-        /* ok */
-      }
-      resolve(strikes);
+      } catch { /* ok */ }
+      resolve(strokes);
     };
 
     const timer = setTimeout(finish, durationMs);
 
     try {
-      ws = new WebSocket("ws://ws.blitzortung.org:3000");
+      ws = new WebSocket("wss://live.lightningmaps.org");
       ws.binaryType = "arraybuffer";
 
       ws.onopen = () => {
-        // connected — strikes will start flowing immediately
+        ws.send(JSON.stringify({
+          v: 24,
+          i: {},
+          s: true,
+          x: 0,
+          w: 0,
+          tx: 0,
+          tw: 0,
+          a: 4,
+          z: 5,
+          b: true,
+          h: "",
+          l: 0,
+          t: 0,
+          from_lightningmaps_org: true,
+          p: [90, 180, -90, -180],
+          r: "feed",
+        }));
       };
 
       ws.onmessage = (event: MessageEvent) => {
-        const buf = event.data as ArrayBuffer;
-        if (!buf || buf.byteLength < 18) return;
-        const view = new DataView(buf);
-        for (let i = 0; i + 18 <= buf.byteLength; i += 18) {
-          const time = view.getUint32(i, true);
-          const micro = view.getUint32(i + 4, true);
-          const lat = view.getInt32(i + 8, true) / 10_000_000;
-          const lon = view.getInt32(i + 12, true) / 10_000_000;
-          const amp = view.getUint16(i + 16, true);
-          if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-            strikes.push({ time: time + micro / 1_000_000, lat, lon, amp });
+        try {
+          const text = typeof event.data === "string" ? event.data : new TextDecoder().decode(event.data as ArrayBuffer);
+          const msg = JSON.parse(text);
+          const list = msg?.strokes ?? [];
+          for (const s of list) {
+            if (!s.id || seen.has(s.id)) continue;
+            seen.add(s.id);
+            if (Number.isFinite(s.lat) && Number.isFinite(s.lon)) {
+              strokes.push({ id: s.id, time: s.time, lat: s.lat, lon: s.lon, src: s.src ?? 0 });
+            }
           }
-        }
+        } catch { /* skip unparseable messages */ }
       };
 
       ws.onerror = () => {
