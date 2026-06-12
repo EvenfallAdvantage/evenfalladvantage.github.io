@@ -509,26 +509,40 @@ export function useCesiumLayers(params: {
             };
 
             // Sample terrain at grid vertices AND cell centres.
-            // Fall back to height 0 if ellipsoid terrain or sampling fails.
-            const terrainProvider = viewer.terrainProvider;
-            const canSample = terrainProvider
-              && !(terrainProvider instanceof Cesium.EllipsoidTerrainProvider)
-              && terrainProvider.availability;
-            if (!canSample) {
-              buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
-            } else {
-              const cartoList = [
-                ...gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat)),
-                ...centerCartos.map(c => Cesium.Cartographic.fromDegrees(c.lng, c.lat)),
-              ];
-              Cesium.sampleTerrainMostDetailed(terrainProvider, cartoList)
-                .then((sampled: Array<{ height: number }>) => {
-                  buildGridPrimitive(sampled.map(s => s.height ?? 0));
-                })
-                .catch((err: unknown) => {
-                  logger.swallow("cesium-layers:terrain-sample", err, "warn");
-                  buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
-                });
+            // If the terrain provider isn't ready yet (first page load),
+            // show a flat overlay immediately and retry sampling every
+            // 500 ms until the provider is available.
+            const doSample = () => {
+              const tp = viewer.terrainProvider;
+              if (tp && !(tp instanceof Cesium.EllipsoidTerrainProvider) && tp.availability) {
+                const cartoList = [
+                  ...gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat)),
+                  ...centerCartos.map(c => Cesium.Cartographic.fromDegrees(c.lng, c.lat)),
+                ];
+                Cesium.sampleTerrainMostDetailed(tp, cartoList)
+                  .then((sampled: Array<{ height: number }>) => {
+                    buildGridPrimitive(sampled.map(s => s.height ?? 0));
+                  })
+                  .catch((err: unknown) => {
+                    logger.swallow("cesium-layers:terrain-sample", err, "warn");
+                    buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
+                  });
+                return true;
+              }
+              return false;
+            };
+
+            // Show flat overlay immediately so user sees SOMETHING.
+            buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
+            // If terrain IS ready now, replace with real heights.
+            if (!doSample()) {
+              // Terrain not ready — keep polling until it is.
+              let pollAttempts = 0;
+              const poll = () => {
+                if (pollAttempts++ >= 10) return;
+                if (!doSample()) setTimeout(poll, 500);
+              };
+              setTimeout(poll, 500);
             }
 
           } else {
