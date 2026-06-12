@@ -360,7 +360,7 @@ export function useCesiumLayers(params: {
             // the affine UV mapping. The solution is to sample terrain
             // height at each of the four corners and build the polygon
             // with `perPositionHeight: true`, putting the overlay flat
-            // on the ground. A small (+0.5 m) lift prevents z-fighting
+             // on the ground. A small (+5 m) lift prevents z-fighting
             // with the ground texture.
             const q = bounds.quad;
 
@@ -368,7 +368,7 @@ export function useCesiumLayers(params: {
             // grid vertex so the overlay conforms to 3D terrain instead of
             // being a flat 4-corner polygon that cuts into hills or floats
             // over valleys.
-            const GRID = 7; // 7×7 = 49 sample points, 36 quads, 72 triangles
+            const GRID = 11; // 11×11 = 121 sample points, 100 quads, 200 triangles
             const gridCartos: Array<{ lng: number; lat: number; u: number; v: number }> = [];
             for (let iv = 0; iv < GRID; iv++) {
               const v = iv / (GRID - 1);
@@ -419,7 +419,7 @@ export function useCesiumLayers(params: {
 
               for (let i = 0; i < vertexCount; i++) {
                 const g = gridCartos[i];
-                const cart = Cesium.Cartesian3.fromDegrees(g.lng, g.lat, (heights[i] ?? 0) + 0.5);
+                const cart = Cesium.Cartesian3.fromDegrees(g.lng, g.lat, (heights[i] ?? 0) + 5);
                 if (!cart) continue;
                 posArr[i * 3] = cart.x;
                 posArr[i * 3 + 1] = cart.y;
