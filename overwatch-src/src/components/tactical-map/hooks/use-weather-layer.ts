@@ -3,7 +3,6 @@ import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef } from "./cesium-layer-types";
 
-/** Wrapper so the react-compiler does not flag `Date.now()` as an inline impure call */
 function currentTimestamp() { return Date.now(); }
 
 export function useWeatherLayer(params: {
@@ -11,7 +10,6 @@ export function useWeatherLayer(params: {
   cesiumRef: CesiumRef;
   loading: boolean;
   layers: LayerVisibility;
-  /** Time Machine replay timestamp; effective only when timeMachineOpen */
   debouncedReplayTime: number;
   timeMachineOpen: boolean;
 }) {
@@ -20,15 +18,12 @@ export function useWeatherLayer(params: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const weatherLayerRef = useRef<any>(null);
 
-  // NEXRAD MRMS only serves current radar; historical tiles would require
-  // a different endpoint and licensing. Hide the layer during replay.
   const isReplaying = timeMachineOpen && debouncedReplayTime < currentTimestamp() - 5000;
 
-  // ─── Weather Radar Layer (with auto-refresh every 5 min) ─────
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
-    if (!viewer || !Cesium || loading) return;
+    if (!viewer || !Cesium) return;
 
     if (weatherLayerRef.current) {
       viewer.imageryLayers.remove(weatherLayerRef.current, false);
@@ -41,7 +36,6 @@ export function useWeatherLayer(params: {
       const C = cesiumRef.current;
       if (!v || !C) return;
 
-      // Remove existing layer before re-adding
       if (weatherLayerRef.current) {
         v.imageryLayers.remove(weatherLayerRef.current, false);
         weatherLayerRef.current = null;
@@ -58,7 +52,6 @@ export function useWeatherLayer(params: {
         layer.alpha = 0.6;
         weatherLayerRef.current = layer;
       } catch {
-        // Fallback to NWS WMS
         try {
           const weatherProvider = new C.WebMapServiceImageryProvider({
             url: "https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/MapServer/WMSServer",
@@ -73,11 +66,13 @@ export function useWeatherLayer(params: {
       }
     }
 
-    // Initial load
-    addRadarLayer();
+    // Defer initial load so Cesium internals settle after loading state change
+    const initialTimer = setTimeout(addRadarLayer, 0);
 
-    // Auto-refresh every 5 minutes
     const interval = setInterval(addRadarLayer, 300000);
-    return () => clearInterval(interval);
-  }, [layers.weather, loading, viewerRef, cesiumRef, isReplaying]);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [layers.weather, viewerRef, cesiumRef, isReplaying, loading]);
 }
