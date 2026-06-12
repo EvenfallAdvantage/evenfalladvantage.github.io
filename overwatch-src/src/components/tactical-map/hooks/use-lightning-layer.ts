@@ -7,6 +7,8 @@ import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 const POLL_MS = 15_000;
 const ROLLING_WINDOW_MS = 5 * 60_000;
 const REPLAY_WINDOW_MS = 10 * 60_000;
+const BLINK_DURATION_MS = 10_000;
+const BLINK_PERIOD_MS = 600;
 
 let iconCache: HTMLCanvasElement | null = null;
 
@@ -90,12 +92,27 @@ export function useLightningLayer(params: {
           const maxWindow = isReplaying ? REPLAY_WINDOW_MS : ROLLING_WINDOW_MS;
           if (diff > maxWindow) continue;
 
+          const entityId = `lightning-${f.properties.id}`;
           const entity = viewer.entities.add({
-            id: `lightning-${f.properties.id}`,
+            id: entityId,
             position: Cesium.Cartesian3.fromDegrees(lon, lat, 0),
             point: {
-              pixelSize: 6,
-              color: Cesium.Color.fromCssColorString("#ffe44d"),
+              pixelSize: new Cesium.CallbackProperty(() => {
+                const strikeMs = timesRef.current.get(entityId);
+                if (!strikeMs) return 4;
+                const age = currentTimestamp() - strikeMs;
+                if (age > BLINK_DURATION_MS) return 4;
+                return (currentTimestamp() % BLINK_PERIOD_MS < BLINK_PERIOD_MS / 2) ? 10 : 4;
+              }, false),
+              color: new Cesium.CallbackProperty(() => {
+                const strikeMs = timesRef.current.get(entityId);
+                if (!strikeMs) return Cesium.Color.fromCssColorString("#ffe44d");
+                const age = currentTimestamp() - strikeMs;
+                if (age > BLINK_DURATION_MS) return Cesium.Color.fromCssColorString("#ffe44d");
+                return (currentTimestamp() % BLINK_PERIOD_MS < BLINK_PERIOD_MS / 2)
+                  ? Cesium.Color.WHITE
+                  : Cesium.Color.fromCssColorString("#ffe44d");
+              }, false),
               outlineColor: Cesium.Color.WHITE,
               outlineWidth: 1,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
@@ -109,7 +126,7 @@ export function useLightningLayer(params: {
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
           });
-          timesRef.current.set(entity.id, timeMs);
+          timesRef.current.set(entityId, timeMs);
           (entityGroupsRef.current.lightning as Array<{ id: string }>).push(entity);
         }
 
