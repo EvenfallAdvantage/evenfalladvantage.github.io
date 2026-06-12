@@ -370,9 +370,15 @@ export function useCesiumLayers(params: {
             // grid vertex so the overlay conforms to 3D terrain instead of
             // being a flat 4-corner polygon that cuts into hills or floats
             // over valleys.
-            const GRID = 11; // 11×11 = 121 grid vertices, 100 quad cells
+            // The quad spans BOTH grid vertices and interior points.
+            // Use a fine subdivision so each triangle is small enough
+            // that terrain features between sample points cause at most
+            // a few metres of clipping — no adaptive lift needed.
+            // A tiny 0.5 m z-fighting offset keeps the overlay above the
+            // ground texture without noticeable floating.
+            const ZFIGHT_OFFSET = 0.5;
+            const GRID = 31; // 31×31 = 961 grid vertices, 900 quad cells
             const gridCartos: Array<{ lng: number; lat: number; u: number; v: number }> = [];
-            const centerCartos: Array<{ lng: number; lat: number }> = [];
             for (let iv = 0; iv < GRID; iv++) {
               const v = iv / (GRID - 1);
               for (let iu = 0; iu < GRID; iu++) {
@@ -386,18 +392,6 @@ export function useCesiumLayers(params: {
                   lat: topLat + (botLat - topLat) * v,
                   u, v,
                 });
-                if (iv < GRID - 1 && iu < GRID - 1) {
-                  const cv = (iv + 0.5) / (GRID - 1);
-                  const cu = (iu + 0.5) / (GRID - 1);
-                  const cTopLat = q.c00.lat + (q.c10.lat - q.c00.lat) * cu;
-                  const cTopLng = q.c00.lng + (q.c10.lng - q.c00.lng) * cu;
-                  const cBotLat = q.c01.lat + (q.c11.lat - q.c01.lat) * cu;
-                  const cBotLng = q.c01.lng + (q.c11.lng - q.c01.lng) * cu;
-                  centerCartos.push({
-                    lng: cTopLng + (cBotLng - cTopLng) * cv,
-                    lat: cTopLat + (cBotLat - cTopLat) * cv,
-                  });
-                }
               }
             }
 
@@ -406,51 +400,15 @@ export function useCesiumLayers(params: {
               entityGroupsRef.current.siteOverlaysSampleTokens ?? new Map<string, symbol>();
             (entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol>).set(op.id, sampleToken);
 
-            const buildGridPrimitive = (allHeights: number[]) => {
+            const buildGridPrimitive = (gridHeights: number[]) => {
               const tokens = entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol> | undefined;
               if (tokens?.get(op.id) !== sampleToken) return;
               if (!viewerRef.current || viewerRef.current.isDestroyed?.()) return;
 
-              const gridH = allHeights.slice(0, gridCartos.length);
-              const centerH = allHeights.slice(gridCartos.length);
-
-              // Per-vertex adaptive lift using 3×3 grid neighbourhood + 4
-              // adjacent quad-centre sample points.
-              const liftArr = new Float64Array(GRID * GRID);
-              for (let iv = 0; iv < GRID; iv++) {
-                for (let iu = 0; iu < GRID; iu++) {
-                  const idx = iv * GRID + iu;
-                  let localMin = gridH[idx];
-                  let localMax = gridH[idx];
-                  for (let dv = -1; dv <= 1; dv++) {
-                    for (let du = -1; du <= 1; du++) {
-                      const nv = iv + dv;
-                      const nu = iu + du;
-                      if (nv < 0 || nv >= GRID || nu < 0 || nu >= GRID) continue;
-                      const h = gridH[nv * GRID + nu];
-                      if (h < localMin) localMin = h;
-                      if (h > localMax) localMax = h;
-                    }
-                  }
-                  for (let qdv = -1; qdv <= 0; qdv++) {
-                    for (let qdu = -1; qdu <= 0; qdu++) {
-                      const qv = iv + qdv;
-                      const qu = iu + qdu;
-                      if (qv < 0 || qv >= GRID - 1 || qu < 0 || qu >= GRID - 1) continue;
-                      const h = centerH[qv * (GRID - 1) + qu];
-                      if (h < localMin) localMin = h;
-                      if (h > localMax) localMax = h;
-                    }
-                  }
-                  liftArr[idx] = Math.max(5, (localMax - localMin) * 0.5);
-                }
-              }
-
-              // Build one PolygonGeometry per quad cell with custom texture
-              // coordinates and per-vertex lifted heights.  Cesium's built-in
-              // pipeline handles bounding spheres, normals, and terrain
-              // alignment correctly for each cell, avoiding the render-loop
-              // crashes that occur with manually-built Cesium.Geometry.
+              // Build one PolygonGeometry per quad cell: no adaptive lift,
+              // just exact terrain height + a tiny z-fighting offset.
+              // Cesium's built-in pipeline handles bounding spheres,
+              // normals, triangulation for each cell.
               const instances: Array<Cesium.GeometryInstance> = [];
               const vertexFormat = Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat;
               for (let iv = 0; iv < GRID - 1; iv++) {
@@ -460,14 +418,9 @@ export function useCesiumLayers(params: {
                   const i01 = (iv + 1) * GRID + iu;
                   const i11 = (iv + 1) * GRID + iu + 1;
                   const g = [gridCartos[i00], gridCartos[i01], gridCartos[i11], gridCartos[i10]];
-                  const h = [
-                    gridH[i00] + liftArr[i00],
-                    gridH[i01] + liftArr[i01],
-                    gridH[i11] + liftArr[i11],
-                    gridH[i10] + liftArr[i10],
-                  ];
+                  const heightsForCell = [gridHeights[i00], gridHeights[i01], gridHeights[i11], gridHeights[i10]];
                   const positions = g.map((p, j) =>
-                    Cesium.Cartesian3.fromDegrees(p.lng, p.lat, h[j]));
+                    Cesium.Cartesian3.fromDegrees(p.lng, p.lat, (heightsForCell[j] ?? 0) + ZFIGHT_OFFSET));
                   const uMin = iu / (GRID - 1);
                   const uMax = (iu + 1) / (GRID - 1);
                   const vMin = iv / (GRID - 1);
@@ -515,19 +468,16 @@ export function useCesiumLayers(params: {
               && !(terrainProvider instanceof Cesium.EllipsoidTerrainProvider)
               && terrainProvider.availability;
             if (!canSample) {
-              buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
+              buildGridPrimitive(gridCartos.map(() => 0));
             } else {
-              const allCartoList = [
-                ...gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat)),
-                ...centerCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat)),
-              ];
+              const allCartoList = gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat));
               Cesium.sampleTerrainMostDetailed(terrainProvider, allCartoList)
                 .then((sampled: Array<{ height: number }>) => {
                   buildGridPrimitive(sampled.map(s => s.height ?? 0));
                 })
                 .catch((err: unknown) => {
                   logger.swallow("cesium-layers:terrain-sample", err, "warn");
-                  buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
+                  buildGridPrimitive(gridCartos.map(() => 0));
                 });
             }
 
