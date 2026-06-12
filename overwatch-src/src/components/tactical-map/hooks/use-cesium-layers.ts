@@ -370,15 +370,13 @@ export function useCesiumLayers(params: {
             // grid vertex so the overlay conforms to 3D terrain instead of
             // being a flat 4-corner polygon that cuts into hills or floats
             // over valleys.
-            const GRID = 11; // 11×11 = 121 sample points, 100 quads, 200 triangles
+            const GRID = 15; // 15×15 = 225 grid vertices, 196 quad cells, 392 triangles
             const gridCartos: Array<{ lng: number; lat: number; u: number; v: number }> = [];
+            const centerCartos: Array<{ lng: number; lat: number }> = [];
             for (let iv = 0; iv < GRID; iv++) {
               const v = iv / (GRID - 1);
               for (let iu = 0; iu < GRID; iu++) {
                 const u = iu / (GRID - 1);
-                // Bilinear interpolation within the quad:
-                // top = lerp(c00, c10, u), bottom = lerp(c01, c11, u)
-                // point = lerp(top, bottom, v)
                 const topLat = q.c00.lat + (q.c10.lat - q.c00.lat) * u;
                 const topLng = q.c00.lng + (q.c10.lng - q.c00.lng) * u;
                 const botLat = q.c01.lat + (q.c11.lat - q.c01.lat) * u;
@@ -388,9 +386,22 @@ export function useCesiumLayers(params: {
                   lat: topLat + (botLat - topLat) * v,
                   u, v,
                 });
+                // Also record the center of each quad cell so we can detect
+                // terrain peaks that fall between grid vertices.
+                if (iv < GRID - 1 && iu < GRID - 1) {
+                  const cv = (iv + 0.5) / (GRID - 1);
+                  const cu = (iu + 0.5) / (GRID - 1);
+                  const cTopLat = q.c00.lat + (q.c10.lat - q.c00.lat) * cu;
+                  const cTopLng = q.c00.lng + (q.c10.lng - q.c00.lng) * cu;
+                  const cBotLat = q.c01.lat + (q.c11.lat - q.c01.lat) * cu;
+                  const cBotLng = q.c01.lng + (q.c11.lng - q.c01.lng) * cu;
+                  centerCartos.push({
+                    lng: cTopLng + (cBotLng - cTopLng) * cv,
+                    lat: cTopLat + (cBotLat - cTopLat) * cv,
+                  });
+                }
               }
             }
-
             // Track this terrain-sample request via a token stamped on
             // the entityGroupsRef. If a later effect run clears the
             // siteOverlays array, the token won't match anymore and we
@@ -401,17 +412,18 @@ export function useCesiumLayers(params: {
               entityGroupsRef.current.siteOverlaysSampleTokens ?? new Map<string, symbol>();
             (entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol>).set(op.id, sampleToken);
 
-            const buildGridPrimitive = (heights: number[]) => {
+            const buildGridPrimitive = (allHeights: number[]) => {
               const tokens = entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol> | undefined;
               if (tokens?.get(op.id) !== sampleToken) return;
               if (!viewerRef.current || viewerRef.current.isDestroyed?.()) return;
 
+              // Split heights into grid vertices and quad-center samples.
+              const gridH = allHeights.slice(0, gridCartos.length);
+              const centerH = allHeights.slice(gridCartos.length);
+
               // Build a custom geometry with per-vertex positions (ECEF),
               // texture coordinates, per-vertex normals (geodetic up-vector),
-              // and triangle indices.  Normals are required by
-              // MaterialAppearance with MaterialSupport.TEXTURED — without
-              // them Cesium's rendering pipeline fails at bounding-sphere
-              // computation during Primitive.update().
+              // and triangle indices.
               const vertexCount = GRID * GRID;
               const triCount = (GRID - 1) * (GRID - 1) * 2;
               const posArr = new Float64Array(vertexCount * 3);
@@ -419,23 +431,50 @@ export function useCesiumLayers(params: {
               const stArr = new Float32Array(vertexCount * 2);
               const idxArr = new Uint16Array(triCount * 3);
 
-              // Adaptive lift: proportional to the terrain height range so
-              // flat areas get a small offset and steep terrain (where
-              // peaks can fall between grid vertices) gets lifted enough
-              // to not punch through the overlay.
-              const minH = heights.reduce((a: number, b: number) => Math.min(a, b), Infinity);
-              const maxH = heights.reduce((a: number, b: number) => Math.max(a, b), -Infinity);
-              const lift = Math.max(5, (maxH - minH) * 0.25);
+              // Per-vertex adaptive lift using BOTH the 3x3 grid-vertex
+              // neighbourhood AND the 4 adjacent quad-centre sample points.
+              // This catches terrain peaks that fall exactly in the middle
+              // of a quad cell — the most common failure mode for uniform
+              // grid-based terrain sampling.
+              const liftArr = new Float64Array(vertexCount);
+              for (let iv = 0; iv < GRID; iv++) {
+                for (let iu = 0; iu < GRID; iu++) {
+                  const idx = iv * GRID + iu;
+                  let localMin = gridH[idx];
+                  let localMax = gridH[idx];
+                  // 3×3 grid-vertex neighbourhood
+                  for (let dv = -1; dv <= 1; dv++) {
+                    for (let du = -1; du <= 1; du++) {
+                      const nv = iv + dv;
+                      const nu = iu + du;
+                      if (nv < 0 || nv >= GRID || nu < 0 || nu >= GRID) continue;
+                      const h = gridH[nv * GRID + nu];
+                      if (h < localMin) localMin = h;
+                      if (h > localMax) localMax = h;
+                    }
+                  }
+                  // 4 adjacent quad-centre samples
+                  for (let qdv = -1; qdv <= 0; qdv++) {
+                    for (let qdu = -1; qdu <= 0; qdu++) {
+                      const qv = iv + qdv;
+                      const qu = iu + qdu;
+                      if (qv < 0 || qv >= GRID - 1 || qu < 0 || qu >= GRID - 1) continue;
+                      const h = centerH[qv * (GRID - 1) + qu];
+                      if (h < localMin) localMin = h;
+                      if (h > localMax) localMax = h;
+                    }
+                  }
+                  liftArr[idx] = Math.max(5, (localMax - localMin) * 0.5);
+                }
+              }
 
               for (let i = 0; i < vertexCount; i++) {
                 const g = gridCartos[i];
-                const cart = Cesium.Cartesian3.fromDegrees(g.lng, g.lat, (heights[i] ?? 0) + lift);
+                const cart = Cesium.Cartesian3.fromDegrees(g.lng, g.lat, (gridH[i] ?? 0) + liftArr[i]);
                 if (!cart) continue;
                 posArr[i * 3] = cart.x;
                 posArr[i * 3 + 1] = cart.y;
                 posArr[i * 3 + 2] = cart.z;
-                // Geodetic surface normal: normalized position vector.
-                // Close enough to true terrain normal for a drape overlay.
                 const n = Cesium.Cartesian3.normalize(cart, new Cesium.Cartesian3());
                 normalArr[i * 3] = n.x;
                 normalArr[i * 3 + 1] = n.y;
@@ -456,11 +495,6 @@ export function useCesiumLayers(params: {
                 }
               }
 
-              // Pre-compute bounding sphere so Cesium doesn't need to derive
-              // it from the position attribute during render — some geometry
-              // configurations (e.g. all vertices at identical or near-identical
-              // positions) can cause BoundingSphere.fromVertices to return a
-              // sphere whose center property is undefined.
               const boundingSphere = Cesium.BoundingSphere.fromVertices(posArr, undefined, 3);
               if (!boundingSphere?.center) {
                 logger.swallow("cesium-layers:build-grid", new Error(`Invalid bounding sphere for op ${op.id}`), "warn");
@@ -508,27 +542,24 @@ export function useCesiumLayers(params: {
               entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
             };
 
-            // Defensively check terrain provider availability.
-            // `instanceof Cesium.EllipsoidTerrainProvider` returns false when
-            // `terrainProvider` is undefined (e.g. during terrain-swap window),
-            // which would send `undefined` to `sampleTerrainMostDetailed` and
-            // crash with "Cannot read properties of undefined (reading
-            // 'availability')".
             const terrainProvider = viewer.terrainProvider;
             const canSample = terrainProvider
               && !(terrainProvider instanceof Cesium.EllipsoidTerrainProvider)
               && terrainProvider.availability;
             if (!canSample) {
-              buildGridPrimitive(gridCartos.map(() => 0));
+              buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
             } else {
-              const cartosList = gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat));
-              Cesium.sampleTerrainMostDetailed(terrainProvider, cartosList)
+              const allCartoList = [
+                ...gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat)),
+                ...centerCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat)),
+              ];
+              Cesium.sampleTerrainMostDetailed(terrainProvider, allCartoList)
                 .then((sampled: Array<{ height: number }>) => {
                   buildGridPrimitive(sampled.map(s => s.height ?? 0));
                 })
                 .catch((err: unknown) => {
                   logger.swallow("cesium-layers:terrain-sample", err, "warn");
-                  buildGridPrimitive(gridCartos.map(() => 0));
+                  buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
                 });
             }
 
