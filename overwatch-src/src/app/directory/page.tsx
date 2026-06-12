@@ -12,8 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { getQueryClient } from "@/lib/query-client";
 
-type MemberUser = { id: string; first_name: string; last_name: string; email: string | null; phone: string | null; avatar_url: string | null };
-type Member = { id: string; role: string; nickname: string | null; status: string; title: string | null; hide_contact_roster: boolean; dietary_restrictions: string[] | null; certifications: { id: string; cert_type: string; expiry_date: string | null; state_issued: string | null }[] | null; users: MemberUser | null };
+type MemberUser = { id: string; first_name: string; last_name: string; email: string | null; phone: string | null; avatar_url: string | null; certifications: { id: string; cert_type: string; expiry_date: string | null; state_issued: string | null }[] | null };
+type Member = { id: string; role: string; nickname: string | null; status: string; title: string | null; hide_contact_roster: boolean; dietary_restrictions: string[] | null; users: MemberUser | null };
 
 export default function DirectoryPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -172,11 +172,11 @@ export default function DirectoryPage() {
                      <p className="font-medium">{selected.nickname}</p>
                    </div>
                  )}
-                 {selected.certifications && selected.certifications.length > 0 && (
+                 {sel.certifications && sel.certifications.length > 0 && (
                    <div>
                      <span className="text-xs text-muted-foreground">Certifications</span>
                      <div className="flex flex-wrap gap-1 mt-0.5">
-                       {selected.certifications.map((c) => (
+                       {sel.certifications.map((c) => (
                          <Badge key={c.id} variant="secondary" className="text-[9px]">
                            {c.cert_type}
                            {c.expiry_date && <span className="ml-1 opacity-70">expires {new Date(c.expiry_date).toLocaleDateString()}</span>}
