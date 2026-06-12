@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, Suspense } from "react";
+import React, { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Users, Loader2,
@@ -71,6 +71,15 @@ function AdminStaffPageInner() {
   const [loading, setLoading] = useState(true);
   const initialTab = (searchParams.get("tab") as Tab) || "roster";
   const [tab, setTab] = useState<Tab>(initialTab);
+
+  // Sync tab state with URL query param changes (e.g. sidebar nav clicks)
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+  useEffect(() => {
+    const urlTab = searchParams.get("tab") as Tab | null;
+    if (urlTab && urlTab !== tabRef.current) setTab(urlTab);
+  }, [searchParams]);
+
   const [hireResult, setHireResult] = useState<HireResult | null>(null);
   const [counts, setCounts] = useState<TabCounts>(ZERO_COUNTS);
 
