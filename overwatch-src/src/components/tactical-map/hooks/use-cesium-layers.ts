@@ -363,18 +363,31 @@ export function useCesiumLayers(params: {
             // on the ground. A small (+0.5 m) lift prevents z-fighting
             // with the ground texture.
             const q = bounds.quad;
-            const cornerCartos = [
-              Cesium.Cartographic.fromDegrees(q.c00.lng, q.c00.lat),
-              Cesium.Cartographic.fromDegrees(q.c01.lng, q.c01.lat),
-              Cesium.Cartographic.fromDegrees(q.c11.lng, q.c11.lat),
-              Cesium.Cartographic.fromDegrees(q.c10.lng, q.c10.lat),
-            ];
-            const stCoords = new Cesium.PolygonHierarchy([
-              new Cesium.Cartesian2(0, 1), // c00 → image top-left
-              new Cesium.Cartesian2(0, 0), // c01 → image bottom-left
-              new Cesium.Cartesian2(1, 0), // c11 → image bottom-right
-              new Cesium.Cartesian2(1, 1), // c10 → image top-right
-            ]);
+
+            // Subdivide the quad into a grid and sample terrain at each
+            // grid vertex so the overlay conforms to 3D terrain instead of
+            // being a flat 4-corner polygon that cuts into hills or floats
+            // over valleys.
+            const GRID = 7; // 7×7 = 49 sample points, 36 quads, 72 triangles
+            const gridCartos: Array<{ lng: number; lat: number; u: number; v: number }> = [];
+            for (let iv = 0; iv < GRID; iv++) {
+              const v = iv / (GRID - 1);
+              for (let iu = 0; iu < GRID; iu++) {
+                const u = iu / (GRID - 1);
+                // Bilinear interpolation within the quad:
+                // top = lerp(c00, c10, u), bottom = lerp(c01, c11, u)
+                // point = lerp(top, bottom, v)
+                const topLat = q.c00.lat + (q.c10.lat - q.c00.lat) * u;
+                const topLng = q.c00.lng + (q.c10.lng - q.c00.lng) * u;
+                const botLat = q.c01.lat + (q.c11.lat - q.c01.lat) * u;
+                const botLng = q.c01.lng + (q.c11.lng - q.c01.lng) * u;
+                gridCartos.push({
+                  lng: topLng + (botLng - topLng) * v,
+                  lat: topLat + (botLat - topLat) * v,
+                  u, v,
+                });
+              }
+            }
 
             // Track this terrain-sample request via a token stamped on
             // the entityGroupsRef. If a later effect run clears the
@@ -386,28 +399,59 @@ export function useCesiumLayers(params: {
               entityGroupsRef.current.siteOverlaysSampleTokens ?? new Map<string, symbol>();
             (entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol>).set(op.id, sampleToken);
 
-            const buildPrimitive = (heights: [number, number, number, number]) => {
+            const buildGridPrimitive = (heights: number[]) => {
               const tokens = entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol> | undefined;
-              if (tokens?.get(op.id) !== sampleToken) return; // superseded
-              // Viewer can be destroyed (component unmount, page navigation)
-              // between the async terrain sample starting and resolving.
-              // Guard against `viewer.scene.primitives.add()` on a torn-down
-              // viewer, which throws `Cannot read 'scene' of undefined`.
+              if (tokens?.get(op.id) !== sampleToken) return;
               if (!viewerRef.current || viewerRef.current.isDestroyed?.()) return;
 
-              const positions = [
-                Cesium.Cartesian3.fromDegrees(q.c00.lng, q.c00.lat, heights[0] + 0.5),
-                Cesium.Cartesian3.fromDegrees(q.c01.lng, q.c01.lat, heights[1] + 0.5),
-                Cesium.Cartesian3.fromDegrees(q.c11.lng, q.c11.lat, heights[2] + 0.5),
-                Cesium.Cartesian3.fromDegrees(q.c10.lng, q.c10.lat, heights[3] + 0.5),
-              ];
-              const geom = new Cesium.PolygonGeometry({
-                polygonHierarchy: new Cesium.PolygonHierarchy(positions),
-                textureCoordinates: stCoords,
-                perPositionHeight: true,
-                vertexFormat: Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat,
+              // Build a custom geometry with per-vertex positions (ECEF),
+              // texture coordinates, and triangle indices.
+              const vertexCount = GRID * GRID;
+              const triCount = (GRID - 1) * (GRID - 1) * 2;
+              const posArr = new Float64Array(vertexCount * 3);
+              const stArr = new Float32Array(vertexCount * 2);
+              const idxArr = new Uint16Array(triCount * 3);
+
+              for (let i = 0; i < vertexCount; i++) {
+                const g = gridCartos[i];
+                const cart = Cesium.Cartesian3.fromDegrees(g.lng, g.lat, (heights[i] ?? 0) + 0.5);
+                posArr[i * 3] = cart.x;
+                posArr[i * 3 + 1] = cart.y;
+                posArr[i * 3 + 2] = cart.z;
+                stArr[i * 2] = g.u;
+                stArr[i * 2 + 1] = 1 - g.v;
+              }
+
+              let ii = 0;
+              for (let iv = 0; iv < GRID - 1; iv++) {
+                for (let iu = 0; iu < GRID - 1; iu++) {
+                  const i00 = iv * GRID + iu;
+                  const i10 = iv * GRID + iu + 1;
+                  const i01 = (iv + 1) * GRID + iu;
+                  const i11 = (iv + 1) * GRID + iu + 1;
+                  idxArr[ii++] = i00; idxArr[ii++] = i10; idxArr[ii++] = i11;
+                  idxArr[ii++] = i00; idxArr[ii++] = i11; idxArr[ii++] = i01;
+                }
+              }
+
+              const geometry = new Cesium.Geometry({
+                attributes: {
+                  position: new Cesium.GeometryAttribute({
+                    componentDatatype: Cesium.ComponentDatatype.DOUBLE,
+                    componentsPerAttribute: 3,
+                    values: posArr,
+                  }),
+                  st: new Cesium.GeometryAttribute({
+                    componentDatatype: Cesium.ComponentDatatype.FLOAT,
+                    componentsPerAttribute: 2,
+                    values: stArr,
+                  }),
+                },
+                indices: idxArr,
+                primitiveType: Cesium.PrimitiveType.TRIANGLES,
               });
-              const instance = new Cesium.GeometryInstance({ geometry: geom });
+
+              const instance = new Cesium.GeometryInstance({ geometry });
               const primitive = new Cesium.Primitive({
                 geometryInstances: instance,
                 appearance: new Cesium.MaterialAppearance({
@@ -428,27 +472,19 @@ export function useCesiumLayers(params: {
             const terrainProvider = viewer.terrainProvider;
             const isEllipsoid = terrainProvider instanceof Cesium.EllipsoidTerrainProvider;
             if (isEllipsoid) {
-              // No real terrain — height is 0 everywhere. Skip the async
-              // sample entirely.
-              buildPrimitive([0, 0, 0, 0]);
+              buildGridPrimitive(gridCartos.map(() => 0));
             } else {
-              Cesium.sampleTerrainMostDetailed(terrainProvider, cornerCartos)
+              const cartosList = gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat));
+              Cesium.sampleTerrainMostDetailed(terrainProvider, cartosList)
                 .then((sampled: Array<{ height: number }>) => {
-                  const heights: [number, number, number, number] = [
-                    sampled[0]?.height ?? 0,
-                    sampled[1]?.height ?? 0,
-                    sampled[2]?.height ?? 0,
-                    sampled[3]?.height ?? 0,
-                  ];
-                  buildPrimitive(heights);
+                  buildGridPrimitive(sampled.map(s => s.height ?? 0));
                 })
                 .catch((err: unknown) => {
-                  // Fall back to ellipsoid height — better to show the
-                  // overlay floating than not at all.
                   logger.swallow("cesium-layers:terrain-sample", err, "warn");
-                  buildPrimitive([0, 0, 0, 0]);
+                  buildGridPrimitive(gridCartos.map(() => 0));
                 });
             }
+
           } else {
             // Legacy axis-aligned path (north-up bounds only).
             const provider = new Cesium.SingleTileImageryProvider({
