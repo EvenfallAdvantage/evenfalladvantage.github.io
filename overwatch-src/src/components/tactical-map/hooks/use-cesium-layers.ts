@@ -357,9 +357,14 @@ export function useCesiumLayers(params: {
               MAX_GRID,
             );
             const ZFIGHT_OFFSET = 0.5;
+            const LIFT_PADDING = 0.5;
 
-            // Build the grid of cell descriptors with their corner
-            // geographic positions (at height 0 for sampling).
+            // Build grid vertices and cell-center coordinates.  We sample
+            // terrain at both so we can compute a targeted per-vertex lift:
+            // if a cell's centre is higher than the bilinear interpolation
+            // of its 4 corners, the corners are lifted just enough to clear
+            // it (plus a small padding).  This avoids uniform floating while
+            // still clearing extreme terrain features between vertices.
             const gridCartos: Array<{ lng: number; lat: number; u: number; v: number }> = [];
             for (let iv = 0; iv < GRID; iv++) {
               const v = iv / (GRID - 1);
@@ -376,18 +381,69 @@ export function useCesiumLayers(params: {
                 });
               }
             }
+            const centerCartos: Array<{ lng: number; lat: number }> = [];
+            for (let iv = 0; iv < GRID - 1; iv++) {
+              const cv = (iv + 0.5) / (GRID - 1);
+              for (let iu = 0; iu < GRID - 1; iu++) {
+                const cu = (iu + 0.5) / (GRID - 1);
+                const cTopLat = q.c00.lat + (q.c10.lat - q.c00.lat) * cu;
+                const cTopLng = q.c00.lng + (q.c10.lng - q.c00.lng) * cu;
+                const cBotLat = q.c01.lat + (q.c11.lat - q.c01.lat) * cu;
+                const cBotLng = q.c01.lng + (q.c11.lng - q.c01.lng) * cu;
+                centerCartos.push({
+                  lng: cTopLng + (cBotLng - cTopLng) * cv,
+                  lat: cTopLat + (cBotLat - cTopLat) * cv,
+                });
+              }
+            }
 
-            // Will be called after terrain sampling completes (or
-            // immediately if ellipsoid terrain).
             const sampleToken = Symbol(`site-overlay-sample-${op.id}`);
             entityGroupsRef.current.siteOverlaysSampleTokens =
               entityGroupsRef.current.siteOverlaysSampleTokens ?? new Map<string, symbol>();
             (entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol>).set(op.id, sampleToken);
 
-            const buildGridPrimitive = (heights: number[]) => {
+            const buildGridPrimitive = (allHeights: number[]) => {
               const tokens = entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol> | undefined;
               if (tokens?.get(op.id) !== sampleToken) return;
               if (!viewerRef.current || viewerRef.current.isDestroyed?.()) return;
+
+              const gridH = allHeights.slice(0, gridCartos.length);
+              const centerH = allHeights.slice(gridCartos.length);
+
+              // Targeted per-vertex lift: for each cell, compare the
+              // centre sample to the bilinear interpolation of its
+              // 4 corners.  Any excess (+ padding) must be lifted.
+              // Compute per-cell lifts first, then propagate the max
+              // to each shared vertex.
+              const cellLift: number[][] = [];
+              for (let iv = 0; iv < GRID - 1; iv++) {
+                cellLift[iv] = [];
+                for (let iu = 0; iu < GRID - 1; iu++) {
+                  const i00 = iv * GRID + iu;
+                  const i10 = iv * GRID + iu + 1;
+                  const i01 = (iv + 1) * GRID + iu;
+                  const i11 = (iv + 1) * GRID + iu + 1;
+                  const interp = (gridH[i00] + gridH[i10] + gridH[i01] + gridH[i11]) / 4;
+                  const excess = (centerH[iv * (GRID - 1) + iu] ?? 0) - interp;
+                  cellLift[iv][iu] = Math.max(0, excess + LIFT_PADDING);
+                }
+              }
+
+              const vertexLift: number[] = new Array(GRID * GRID).fill(0);
+              for (let iv = 0; iv < GRID; iv++) {
+                for (let iu = 0; iu < GRID; iu++) {
+                  let maxL = 0;
+                  for (let dv = -1; dv <= 0; dv++) {
+                    for (let du = -1; du <= 0; du++) {
+                      const cv = iv + dv;
+                      const cu = iu + du;
+                      if (cv < 0 || cv >= GRID - 1 || cu < 0 || cu >= GRID - 1) continue;
+                      if ((cellLift[cv]?.[cu] ?? 0) > maxL) maxL = cellLift[cv][cu];
+                    }
+                  }
+                  vertexLift[iv * GRID + iu] = maxL;
+                }
+              }
 
               const instances: Cesium.GeometryInstance[] = [];
               const vertexFormat = Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat;
@@ -398,9 +454,14 @@ export function useCesiumLayers(params: {
                   const i01 = (iv + 1) * GRID + iu;
                   const i11 = (iv + 1) * GRID + iu + 1;
                   const g = [gridCartos[i00], gridCartos[i01], gridCartos[i11], gridCartos[i10]];
-                  const h = [heights[i00], heights[i01], heights[i11], heights[i10]];
+                  const h = [
+                    gridH[i00] + vertexLift[i00] + ZFIGHT_OFFSET,
+                    gridH[i01] + vertexLift[i01] + ZFIGHT_OFFSET,
+                    gridH[i11] + vertexLift[i11] + ZFIGHT_OFFSET,
+                    gridH[i10] + vertexLift[i10] + ZFIGHT_OFFSET,
+                  ];
                   const positions = g.map((p, j) =>
-                    Cesium.Cartesian3.fromDegrees(p.lng, p.lat, h[j] + ZFIGHT_OFFSET));
+                    Cesium.Cartesian3.fromDegrees(p.lng, p.lat, h[j]));
                   const uMin = iu / (GRID - 1);
                   const uMax = (iu + 1) / (GRID - 1);
                   const vMin = iv / (GRID - 1);
@@ -443,23 +504,26 @@ export function useCesiumLayers(params: {
               }
             };
 
-            // Sample terrain at grid vertices.  Fall back to height 0 if
-            // ellipsoid terrain or sampling fails.
+            // Sample terrain at grid vertices AND cell centres.
+            // Fall back to height 0 if ellipsoid terrain or sampling fails.
             const terrainProvider = viewer.terrainProvider;
             const canSample = terrainProvider
               && !(terrainProvider instanceof Cesium.EllipsoidTerrainProvider)
               && terrainProvider.availability;
             if (!canSample) {
-              buildGridPrimitive(gridCartos.map(() => 0));
+              buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
             } else {
-              const cartoList = gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat));
+              const cartoList = [
+                ...gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat)),
+                ...centerCartos.map(c => Cesium.Cartographic.fromDegrees(c.lng, c.lat)),
+              ];
               Cesium.sampleTerrainMostDetailed(terrainProvider, cartoList)
                 .then((sampled: Array<{ height: number }>) => {
                   buildGridPrimitive(sampled.map(s => s.height ?? 0));
                 })
                 .catch((err: unknown) => {
                   logger.swallow("cesium-layers:terrain-sample", err, "warn");
-                  buildGridPrimitive(gridCartos.map(() => 0));
+                  buildGridPrimitive(gridCartos.map(() => 0).concat(centerCartos.map(() => 0)));
                 });
             }
 
