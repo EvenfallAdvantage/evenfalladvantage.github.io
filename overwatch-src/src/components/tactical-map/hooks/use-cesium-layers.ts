@@ -370,7 +370,7 @@ export function useCesiumLayers(params: {
             // grid vertex so the overlay conforms to 3D terrain instead of
             // being a flat 4-corner polygon that cuts into hills or floats
             // over valleys.
-            const GRID = 15; // 15×15 = 225 grid vertices, 196 quad cells, 392 triangles
+            const GRID = 11; // 11×11 = 121 grid vertices, 100 quad cells
             const gridCartos: Array<{ lng: number; lat: number; u: number; v: number }> = [];
             const centerCartos: Array<{ lng: number; lat: number }> = [];
             for (let iv = 0; iv < GRID; iv++) {
@@ -386,8 +386,6 @@ export function useCesiumLayers(params: {
                   lat: topLat + (botLat - topLat) * v,
                   u, v,
                 });
-                // Also record the center of each quad cell so we can detect
-                // terrain peaks that fall between grid vertices.
                 if (iv < GRID - 1 && iu < GRID - 1) {
                   const cv = (iv + 0.5) / (GRID - 1);
                   const cu = (iu + 0.5) / (GRID - 1);
@@ -402,11 +400,7 @@ export function useCesiumLayers(params: {
                 }
               }
             }
-            // Track this terrain-sample request via a token stamped on
-            // the entityGroupsRef. If a later effect run clears the
-            // siteOverlays array, the token won't match anymore and we
-            // skip the late-arriving primitive add (avoids zombie
-            // overlays from stale async samples).
+
             const sampleToken = Symbol(`site-overlay-sample-${op.id}`);
             entityGroupsRef.current.siteOverlaysSampleTokens =
               entityGroupsRef.current.siteOverlaysSampleTokens ?? new Map<string, symbol>();
@@ -417,32 +411,17 @@ export function useCesiumLayers(params: {
               if (tokens?.get(op.id) !== sampleToken) return;
               if (!viewerRef.current || viewerRef.current.isDestroyed?.()) return;
 
-              // Split heights into grid vertices and quad-center samples.
               const gridH = allHeights.slice(0, gridCartos.length);
               const centerH = allHeights.slice(gridCartos.length);
 
-              // Build a custom geometry with per-vertex positions (ECEF),
-              // texture coordinates, per-vertex normals (geodetic up-vector),
-              // and triangle indices.
-              const vertexCount = GRID * GRID;
-              const triCount = (GRID - 1) * (GRID - 1) * 2;
-              const posArr = new Float64Array(vertexCount * 3);
-              const normalArr = new Float32Array(vertexCount * 3);
-              const stArr = new Float32Array(vertexCount * 2);
-              const idxArr = new Uint16Array(triCount * 3);
-
-              // Per-vertex adaptive lift using BOTH the 3x3 grid-vertex
-              // neighbourhood AND the 4 adjacent quad-centre sample points.
-              // This catches terrain peaks that fall exactly in the middle
-              // of a quad cell — the most common failure mode for uniform
-              // grid-based terrain sampling.
-              const liftArr = new Float64Array(vertexCount);
+              // Per-vertex adaptive lift using 3×3 grid neighbourhood + 4
+              // adjacent quad-centre sample points.
+              const liftArr = new Float64Array(GRID * GRID);
               for (let iv = 0; iv < GRID; iv++) {
                 for (let iu = 0; iu < GRID; iu++) {
                   const idx = iv * GRID + iu;
                   let localMin = gridH[idx];
                   let localMax = gridH[idx];
-                  // 3×3 grid-vertex neighbourhood
                   for (let dv = -1; dv <= 1; dv++) {
                     for (let du = -1; du <= 1; du++) {
                       const nv = iv + dv;
@@ -453,7 +432,6 @@ export function useCesiumLayers(params: {
                       if (h > localMax) localMax = h;
                     }
                   }
-                  // 4 adjacent quad-centre samples
                   for (let qdv = -1; qdv <= 0; qdv++) {
                     for (let qdu = -1; qdu <= 0; qdu++) {
                       const qv = iv + qdv;
@@ -468,78 +446,68 @@ export function useCesiumLayers(params: {
                 }
               }
 
-              for (let i = 0; i < vertexCount; i++) {
-                const g = gridCartos[i];
-                const cart = Cesium.Cartesian3.fromDegrees(g.lng, g.lat, (gridH[i] ?? 0) + liftArr[i]);
-                if (!cart) continue;
-                posArr[i * 3] = cart.x;
-                posArr[i * 3 + 1] = cart.y;
-                posArr[i * 3 + 2] = cart.z;
-                const n = Cesium.Cartesian3.normalize(cart, new Cesium.Cartesian3());
-                normalArr[i * 3] = n.x;
-                normalArr[i * 3 + 1] = n.y;
-                normalArr[i * 3 + 2] = n.z;
-                stArr[i * 2] = g.u;
-                stArr[i * 2 + 1] = 1 - g.v;
-              }
-
-              let ii = 0;
+              // Build one PolygonGeometry per quad cell with custom texture
+              // coordinates and per-vertex lifted heights.  Cesium's built-in
+              // pipeline handles bounding spheres, normals, and terrain
+              // alignment correctly for each cell, avoiding the render-loop
+              // crashes that occur with manually-built Cesium.Geometry.
+              const instances: Array<Cesium.GeometryInstance> = [];
+              const vertexFormat = Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat;
               for (let iv = 0; iv < GRID - 1; iv++) {
                 for (let iu = 0; iu < GRID - 1; iu++) {
                   const i00 = iv * GRID + iu;
                   const i10 = iv * GRID + iu + 1;
                   const i01 = (iv + 1) * GRID + iu;
                   const i11 = (iv + 1) * GRID + iu + 1;
-                  idxArr[ii++] = i00; idxArr[ii++] = i10; idxArr[ii++] = i11;
-                  idxArr[ii++] = i00; idxArr[ii++] = i11; idxArr[ii++] = i01;
+                  const g = [gridCartos[i00], gridCartos[i01], gridCartos[i11], gridCartos[i10]];
+                  const h = [
+                    gridH[i00] + liftArr[i00],
+                    gridH[i01] + liftArr[i01],
+                    gridH[i11] + liftArr[i11],
+                    gridH[i10] + liftArr[i10],
+                  ];
+                  const positions = g.map((p, j) =>
+                    Cesium.Cartesian3.fromDegrees(p.lng, p.lat, h[j]));
+                  const uMin = iu / (GRID - 1);
+                  const uMax = (iu + 1) / (GRID - 1);
+                  const vMin = iv / (GRID - 1);
+                  const vMax = (iv + 1) / (GRID - 1);
+                  const texCoords = new Cesium.PolygonHierarchy([
+                    new Cesium.Cartesian2(uMin, 1 - vMin), // c00
+                    new Cesium.Cartesian2(uMin, 1 - vMax), // c01
+                    new Cesium.Cartesian2(uMax, 1 - vMax), // c11
+                    new Cesium.Cartesian2(uMax, 1 - vMin), // c10
+                  ]);
+                  const geom = new Cesium.PolygonGeometry({
+                    polygonHierarchy: new Cesium.PolygonHierarchy(positions),
+                    textureCoordinates: texCoords,
+                    perPositionHeight: true,
+                    vertexFormat,
+                  });
+                  instances.push(new Cesium.GeometryInstance({ geometry: geom }));
                 }
               }
 
-              const boundingSphere = Cesium.BoundingSphere.fromVertices(posArr, undefined, 3);
-              if (!boundingSphere?.center) {
-                logger.swallow("cesium-layers:build-grid", new Error(`Invalid bounding sphere for op ${op.id}`), "warn");
-                return;
+              try {
+                const primitive = new Cesium.Primitive({
+                  geometryInstances: instances,
+                  appearance: new Cesium.MaterialAppearance({
+                    materialSupport: Cesium.MaterialAppearance.MaterialSupport.TEXTURED,
+                    vertexFormat,
+                    material: Cesium.Material.fromType("Image", {
+                      image: op.siteMapUrl,
+                      color: new Cesium.Color(1, 1, 1, layers.siteOverlayOpacity),
+                      transparent: true,
+                    }),
+                    translucent: true,
+                  }),
+                  asynchronous: false,
+                });
+                viewer.scene.primitives.add(primitive);
+                entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
+              } catch (e) {
+                logger.swallow("cesium-layers:build-grid", e, "warn");
               }
-              const geometry = new Cesium.Geometry({
-                attributes: {
-                  position: new Cesium.GeometryAttribute({
-                    componentDatatype: Cesium.ComponentDatatype.DOUBLE,
-                    componentsPerAttribute: 3,
-                    values: posArr,
-                  }),
-                  normal: new Cesium.GeometryAttribute({
-                    componentDatatype: Cesium.ComponentDatatype.FLOAT,
-                    componentsPerAttribute: 3,
-                    values: normalArr,
-                  }),
-                  st: new Cesium.GeometryAttribute({
-                    componentDatatype: Cesium.ComponentDatatype.FLOAT,
-                    componentsPerAttribute: 2,
-                    values: stArr,
-                  }),
-                },
-                indices: idxArr,
-                primitiveType: Cesium.PrimitiveType.TRIANGLES,
-                boundingSphere,
-              });
-
-              const instance = new Cesium.GeometryInstance({ geometry });
-              const primitive = new Cesium.Primitive({
-                geometryInstances: instance,
-                appearance: new Cesium.MaterialAppearance({
-                  materialSupport: Cesium.MaterialAppearance.MaterialSupport.TEXTURED,
-                  vertexFormat: Cesium.VertexFormat.POSITION_NORMAL_AND_ST,
-                  material: Cesium.Material.fromType("Image", {
-                    image: op.siteMapUrl,
-                    color: new Cesium.Color(1, 1, 1, layers.siteOverlayOpacity),
-                    transparent: true,
-                  }),
-                  translucent: true,
-                }),
-                asynchronous: false,
-              });
-              viewer.scene.primitives.add(primitive);
-              entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
             };
 
             const terrainProvider = viewer.terrainProvider;
