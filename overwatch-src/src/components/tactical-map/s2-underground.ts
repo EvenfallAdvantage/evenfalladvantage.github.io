@@ -5,10 +5,9 @@
  * feature services and renders them as Cesium entities on the tactical map.
  *
  * Data categories:
- *   - Kinetic events (domestic incidents, last 7/30 days)
- *   - Wildfires (current perimeters + incidents)
- *   - Earthquakes (USGS seismic data)
- *   - Critical infrastructure (power plants, pipelines, submarine cables)
+ *   - Kinetic events (domestic incidents, last 30 days)
+ *   - Drone reports
+ *   - Tipline reports
  *
  * Source: https://s2underground.maps.arcgis.com
  * License: CC BY-NC-SA 4.0
@@ -21,7 +20,7 @@ import { logger } from "@/lib/logger";
 export interface S2Layer {
   id: string;
   label: string;
-  category: "kinetic" | "fire" | "earthquake" | "infrastructure" | "weather";
+  category: "kinetic";
   url: string;
   color: string;         // Cesium Color CSS string
   icon: string;          // Emoji or marker label
@@ -48,12 +47,7 @@ export interface S2Layer {
 export const S2_DEFAULT_MAX_AGE_HOURS = 168; // 7 days
 
 // Date-field candidate sets, ordered by likelihood per upstream feed.
-// Verified against actual popup output: the kinetic feed uses literal "Date"
-// (rendered as "Date: 3/29/2025 8:00:00 PM" in feature popups).
 const KINETIC_DATE_FIELDS = ["Date", "date", "EventDate", "event_date", "ReportDate", "report_date", "time", "Time"] as const;
-const WILDFIRE_DATE_FIELDS = ["FireDiscoveryDateTime", "IrwinModifiedDate", "ModifiedDate", "ModifiedOnDateTime_dt"] as const;
-const THERMAL_DATE_FIELDS = ["acq_date", "ACQ_DATE", "AcquisitionDate", "acquisition_date", "Date", "date"] as const;
-const EARTHQUAKE_DATE_FIELDS = ["time", "Time", "Date", "date", "eventTime", "OriginTime"] as const;
 const REPORT_DATE_FIELDS = ["ReportDate", "report_date", "Date", "date", "CreationDate", "EditDate"] as const;
 
 export const S2_LAYERS: S2Layer[] = [
@@ -68,64 +62,7 @@ export const S2_LAYERS: S2Layer[] = [
     refreshMinutes: 30,
     defaultOn: true,
     dateFields: KINETIC_DATE_FIELDS,
-    defaultAgeHours: 30 * 24, // 30 days — matches feed name
-  },
-  // Wildfires — perimeters can persist for weeks; show last 14 days of active.
-  // Default-off because the global "Active Fires (global)" layer (NASA FIRMS)
-  // already covers fires worldwide. This sub-feed adds US-only perimeter
-  // polygons; users who want them can opt in explicitly.
-  {
-    id: "s2-wildfires",
-    label: "Active Wildfires (US)",
-    category: "fire",
-    url: "https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/USA_Wildfires_v1/FeatureServer/0",
-    color: "#f97316",
-    icon: "F",
-    refreshMinutes: 60,
-    defaultOn: false,
-    dateFields: WILDFIRE_DATE_FIELDS,
-    defaultAgeHours: 14 * 24,
-  },
-  // Thermal hotspots — VIIRS data is fresh; 48h shows current heat signatures
-  {
-    id: "s2-thermal",
-    label: "Satellite Thermal Hotspots",
-    category: "fire",
-    url: "https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/Satellite_VIIRS_Thermal_Hotspots_and_Fire_Activity/FeatureServer/0",
-    color: "#fb923c",
-    icon: "T",
-    refreshMinutes: 60,
-    defaultOn: false,
-    dateFields: THERMAL_DATE_FIELDS,
-    defaultAgeHours: 48,
-  },
-  // Earthquakes — USGS feed via ArcGIS; M2.5+ in last 7 days.
-  // Default-off because the global "Earthquakes (global)" layer pulls the
-  // same USGS data directly with a tighter 24h window. This sub-feed offers
-  // a 7-day historical window for users who need it.
-  {
-    id: "s2-earthquakes",
-    label: "Earthquakes (7-day, USGS)",
-    category: "earthquake",
-    url: "https://services9.arcgis.com/RHVPKKiFTONKtxq3/arcgis/rest/services/USGS_Seismic_Data_v1/FeatureServer/0",
-    color: "#a855f7",
-    icon: "E",
-    refreshMinutes: 15,
-    defaultOn: false,
-    dateFields: EARTHQUAKE_DATE_FIELDS,
-    defaultAgeHours: 7 * 24,
-  },
-  // Power plants — static infrastructure, no age filter
-  {
-    id: "s2-power-plants",
-    label: "US Power Plants",
-    category: "infrastructure",
-    url: "https://services2.arcgis.com/FiaPA4ga0iQKduv3/arcgis/rest/services/Power_Plants_in_the_US/FeatureServer/0",
-    color: "#eab308",
-    icon: "P",
-    refreshMinutes: 1440, // daily
-    defaultOn: false,
-    // dateFields intentionally omitted — static infrastructure
+    defaultAgeHours: 30 * 24,
   },
   // Drone reports — sporadic; 7 days catches a reasonable window
   {
@@ -292,8 +229,7 @@ const TITLE_FIELDS = [
 // Fields that look like dates (format as date in popups).
 // Derived from the union of all per-layer dateFields plus a few common extras.
 const DATE_FIELDS = new Set<string>([
-  ...KINETIC_DATE_FIELDS, ...WILDFIRE_DATE_FIELDS, ...THERMAL_DATE_FIELDS,
-  ...EARTHQUAKE_DATE_FIELDS, ...REPORT_DATE_FIELDS,
+  ...KINETIC_DATE_FIELDS, ...REPORT_DATE_FIELDS,
   "StartDate", "start_date", "EndDate", "end_date",
 ]);
 

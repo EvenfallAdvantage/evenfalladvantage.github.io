@@ -28,6 +28,7 @@ import { useEarthquakesLayer } from "./use-earthquakes-layer";
 import { useConflictZonesLayer } from "./use-conflict-zones-layer";
 import { useFiresLayer } from "./use-fires-layer";
 import { useEonetWeatherLayer } from "./use-eonet-weather-layer";
+import { useLightningLayer } from "./use-lightning-layer";
 import { useNuclearInfrastructureLayer } from "./use-nuclear-infrastructure-layer";
 import { useGdeltLayer } from "./use-gdelt-layer";
 import { useLiveNewsLayer } from "./use-live-news-layer";
@@ -161,6 +162,12 @@ export function useCesiumLayers(params: {
   // ─── Sub-hook: EONET severe weather (storms / volcanoes / sea ice) ─────
   useEonetWeatherLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    debouncedReplayTime, timeMachineOpen,
+  });
+
+  // ─── Sub-hook: Real-time lightning (Blitzortung tiles, under Severe Weather toggle) ─────
+  useLightningLayer({
+    viewerRef, cesiumRef, loading, layers,
     debouncedReplayTime, timeMachineOpen,
   });
 
