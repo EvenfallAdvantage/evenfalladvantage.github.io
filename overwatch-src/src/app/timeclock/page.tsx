@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { Clock, Loader2, ScanLine, ListChecks } from "lucide-react";
+import { Clock, Loader2, ScanLine, ListChecks, Footprints } from "lucide-react";
 import {
   getActiveTimesheet,
   clockIn,
@@ -17,7 +17,6 @@ import { getUserShifts } from "@/lib/supabase/db-operations";
 import { parseUTC } from "@/lib/parse-utc";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
-import Link from "next/link";
 import { startLocationWatcher, isLocationSharingEnabled } from "@/lib/supabase/db-location";
 import { usePageHeader } from "@/stores/page-header-store";
 import dynamic from "next/dynamic";
@@ -34,6 +33,7 @@ import { logger } from "@/lib/logger";
 
 const ScanPage = dynamic(() => import("@/app/scan/page"), { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 const TasksPage = dynamic(() => import("@/app/tasks/page"), { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
+const PatrolsPage = dynamic(() => import("@/app/patrols/page"), { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
 function TimeClockInner() {
   const searchParams = useSearchParams();
@@ -42,8 +42,8 @@ function TimeClockInner() {
   const authUser = useAuthStore((s) => s.user);
   const companyId = activeCompany?.companyId ?? "";
 
-  const initialTab = searchParams.get("tab") === "mass-clock" ? "mass-clock" : searchParams.get("tab") === "tasks" ? "tasks" : "clock";
-  const [watchTab, setWatchTab] = useState<"clock" | "mass-clock" | "tasks">(initialTab as "clock" | "mass-clock" | "tasks");
+  const initialTab = searchParams.get("tab") === "mass-clock" ? "mass-clock" : searchParams.get("tab") === "tasks" ? "tasks" : searchParams.get("tab") === "patrols" ? "patrols" : "clock";
+  const [watchTab, setWatchTab] = useState<"clock" | "mass-clock" | "tasks" | "patrols">(initialTab as "clock" | "mass-clock" | "tasks" | "patrols");
   const isManager = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
 
   const setHeader = usePageHeader((s) => s.setHeader);
@@ -54,6 +54,7 @@ function TimeClockInner() {
       "clock": <Clock className="h-5 w-5" />,
       "mass-clock": <ScanLine className="h-5 w-5" />,
       "tasks": <ListChecks className="h-5 w-5" />,
+      "patrols": <Footprints className="h-5 w-5" />,
     };
     setHeader("WATCH LOG", "Clock in/out and track your duty hours", icons[watchTab] ?? <Clock className="h-5 w-5" />);
     return () => clearHeader();
@@ -249,10 +250,11 @@ function TimeClockInner() {
             {watchTab === "tasks" && <ListChecks className="h-3.5 w-3.5 text-primary" />}
             Tasks
           </button>
-          <Link href="/patrols"
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
+          <button onClick={() => setWatchTab("patrols")}
+            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${watchTab === "patrols" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+            {watchTab === "patrols" && <Footprints className="h-3.5 w-3.5 text-primary" />}
             Patrols
-          </Link>
+          </button>
         </div>
 
         {/* Clock Tab Content */}
@@ -276,6 +278,9 @@ function TimeClockInner() {
 
         {/* Tasks Tab Content */}
         {watchTab === "tasks" && <TasksPage />}
+
+        {/* Patrols Tab Content */}
+        {watchTab === "patrols" && <PatrolsPage />}
       </div>
 
       {selectedEntry && (
