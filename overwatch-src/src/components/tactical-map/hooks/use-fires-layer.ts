@@ -25,24 +25,35 @@ function buildFireIcon(kind: "fire" | "volcano"): HTMLCanvasElement {
   const cached = iconCache.get(kind);
   if (cached) return cached;
 
-  const size = kind === "volcano" ? 18 : 12;
-  const color = kind === "volcano" ? "#a855f7" : "#f97316";
-
+  const size = kind === "volcano" ? 20 : 16;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
-  const r = size / 2;
 
-  const grad = ctx.createRadialGradient(r, r, r * 0.2, r, r, r);
-  grad.addColorStop(0, kind === "volcano" ? "#fde047" : "#fbbf24");
-  grad.addColorStop(0.7, color);
-  grad.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(r, r, r - 0.5, 0, Math.PI * 2);
-  ctx.fill();
+  const cx = size / 2;
+  const cy = size * 0.55;
+  const s = size * 0.4;
+
+  function flame(w: number, h: number, indent: number, offsetY: number, fill: string) {
+    const c = ctx as CanvasRenderingContext2D;
+    c.beginPath();
+    c.moveTo(cx, cy - h + offsetY);
+    c.bezierCurveTo(cx + w, cy - h * 0.3 + offsetY, cx + w, cy + h * 0.5 + offsetY, cx + w * 0.7, cy + h * 0.7 + offsetY);
+    c.lineTo(cx + w * 0.8, cy + h * 0.85 + offsetY);
+    c.lineTo(cx + indent, cy + h * 0.75 + offsetY);
+    c.lineTo(cx - indent, cy + h * 0.75 + offsetY);
+    c.lineTo(cx - w * 0.8, cy + h * 0.85 + offsetY);
+    c.lineTo(cx - w * 0.7, cy + h * 0.7 + offsetY);
+    c.bezierCurveTo(cx - w, cy + h * 0.5 + offsetY, cx - w, cy - h * 0.3 + offsetY, cx, cy - h + offsetY);
+    c.closePath();
+    c.fillStyle = fill;
+    c.fill();
+  }
+
+  flame(s, s * 1.1, s * 0.15, 0, kind === "volcano" ? "#a855f7" : "#ef4444");
+  flame(s * 0.55, s * 0.75, s * 0.1, 2, kind === "volcano" ? "#fde047" : "#facc15");
 
   iconCache.set(kind, canvas);
   return canvas;
