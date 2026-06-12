@@ -41,8 +41,8 @@ function buildArrowIcon(): HTMLCanvasElement {
   if (!ctx) return c;
   const cx = s / 2;
 
-  ctx.strokeStyle = "#fbbf24";
-  ctx.fillStyle = "#fbbf24";
+  ctx.strokeStyle = "#ffffff";
+  ctx.fillStyle = "#ffffff";
   ctx.lineWidth = 2;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
