@@ -17,6 +17,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getAuditLogs, getSecurityStats } from "@/lib/security/audit";
 import { isSuperAdmin } from "@/lib/security/super-admin";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
+import { usePageHeader } from "@/stores/page-header-store";
 import {
   Shield, Lock, AlertTriangle, Eye, CheckCircle2, XCircle,
   Clock, Activity, ShieldCheck, Key, RefreshCw, ShieldOff,
@@ -92,6 +93,20 @@ export default function SecurityDashboardPage() {
     !!activeCompany && hasMinRole(activeCompany.role as CompanyRole, "admin");
   const canView = superAdmin || isCompanyAdmin;
 
+  const setHeader = usePageHeader((s) => s.setHeader);
+  const clearHeader = usePageHeader((s) => s.clearHeader);
+
+  useEffect(() => {
+    setHeader(
+      "SECURITY CENTER",
+      superAdmin
+        ? "Platform-wide audit log + NIST 800-171 / CMMC Level 2 controls"
+        : `Audit log for ${activeCompany?.companyName ?? "your company"}`,
+      <Shield className="h-5 w-5 text-amber-500" />,
+    );
+    return () => clearHeader();
+  }, [setHeader, clearHeader, superAdmin, activeCompany?.companyName]);
+
   const load = useCallback(async () => {
     if (!activeCompanyId) return;
     setLoading(true);
@@ -135,24 +150,10 @@ export default function SecurityDashboardPage() {
   const threatColor = threatLevel === "HIGH" ? "text-red-500" : threatLevel === "ELEVATED" ? "text-amber-500" : "text-green-500";
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 space-y-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Shield className="h-7 w-7 text-amber-500" />
-          <div>
-            <h1 className="text-xl font-bold font-mono">SECURITY CENTER</h1>
-            <p className="text-xs text-muted-foreground">
-              {superAdmin
-                ? "Platform-wide audit log + NIST 800-171 / CMMC Level 2 controls"
-                : `Audit log for ${activeCompany?.companyName ?? "your company"}`}
-            </p>
-          </div>
-        </div>
-        <button onClick={load} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </button>
-      </div>
+    <div className="space-y-6">
+      <button onClick={load} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+        <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
+      </button>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">

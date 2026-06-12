@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { Clock, Loader2, ScanLine } from "lucide-react";
+import { Clock, Loader2, ScanLine, ListChecks } from "lucide-react";
 import {
   getActiveTimesheet,
   clockIn,
@@ -245,6 +245,11 @@ function TimeClockInner() {
           <Link href="/patrols"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
             Patrols
+          </Link>
+          <Link href="/tasks"
+            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
+            <ListChecks className="h-3.5 w-3.5" />
+            Tasks
           </Link>
         </div>
 

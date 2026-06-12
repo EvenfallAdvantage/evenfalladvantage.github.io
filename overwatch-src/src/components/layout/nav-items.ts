@@ -12,15 +12,20 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: "Dashboard", href: "/feed", icon: "LayoutDashboard" },
       { title: "Comms", href: "/chat", icon: "Radio" },
       { title: "Directory", href: "/directory", icon: "Users" },
+      {
+        title: "Analytics",
+        href: "/admin/analytics",
+        icon: "BarChart3",
+        roles: ["owner", "admin", "manager"],
+      },
     ],
   },
   {
     label: "Field Ops",
     items: [
-      { title: "Watch Log", href: "/timeclock", icon: "Clock" },
+      { title: "Operations", href: "/schedule", icon: "Globe" },
+      { title: "Watch Clock", href: "/timeclock", icon: "Clock" },
       { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
-      { title: "Tasks", href: "/tasks", icon: "ListChecks" },
-      { title: "Operations", href: "/schedule", icon: "CalendarDays" },
     ],
   },
   {
@@ -56,15 +61,15 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Command",
     items: [
       {
-        title: "Teams",
-        href: "/teams",
-        icon: "Users",
+        title: "Personnel",
+        href: "/admin/staff",
+        icon: "UserCog",
         roles: ["owner", "admin", "manager"],
       },
       {
-        title: "Analytics",
-        href: "/admin/analytics",
-        icon: "BarChart3",
+        title: "Teams",
+        href: "/teams",
+        icon: "Users",
         roles: ["owner", "admin", "manager"],
       },
       {
@@ -85,12 +90,6 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: "GraduationCap",
         roles: ["owner", "admin", "instructor"],
         trainingProviderOnly: true,
-      },
-      {
-        title: "Personnel",
-        href: "/admin/staff",
-        icon: "UserCog",
-        roles: ["owner", "admin", "manager"],
       },
       {
         title: "Security",
