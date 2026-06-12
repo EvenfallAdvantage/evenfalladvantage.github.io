@@ -13,7 +13,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getQueryClient } from "@/lib/query-client";
 
 type MemberUser = { id: string; first_name: string; last_name: string; email: string | null; phone: string | null; avatar_url: string | null };
-type Member = { id: string; role: string; nickname: string | null; status: string; title: string | null; hide_contact_roster: boolean; users: MemberUser | null };
+type Member = { id: string; role: string; nickname: string | null; status: string; title: string | null; hide_contact_roster: boolean; dietary_restrictions: string[] | null; certifications: { id: string; cert_type: string; expiry_date: string | null; state_issued: string | null }[] | null; users: MemberUser | null };
 
 export default function DirectoryPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
@@ -140,39 +140,63 @@ export default function DirectoryPage() {
                   </div>
                 </div>
               </div>
-              <div className="grid gap-3 text-sm">
-                {selected.hide_contact_roster ? (
-                  <div className="flex items-center gap-2 text-muted-foreground/60 italic text-xs">
-                    <EyeOff className="h-4 w-4" />
-                    Contact info hidden by this member
-                  </div>
-                ) : (
-                  <>
-                    {sel.email && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="h-4 w-4" />
-                        <a href={`mailto:${sel.email}`} className="hover:text-foreground">
-                          {sel.email}
-                        </a>
-                      </div>
-                    )}
-                    {sel.phone && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="h-4 w-4" />
-                        <a href={`tel:${sel.phone}`} className="hover:text-foreground">
-                          {sel.phone}
-                        </a>
-                      </div>
-                    )}
-                  </>
-                )}
-                {selected.nickname && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">Callsign</span>
-                    <p className="font-medium">{selected.nickname}</p>
-                  </div>
-                )}
-              </div>
+               <div className="grid gap-3 text-sm">
+                 {selected.hide_contact_roster ? (
+                   <div className="flex items-center gap-2 text-muted-foreground/60 italic text-xs">
+                     <EyeOff className="h-4 w-4" />
+                     Contact info hidden by this member
+                   </div>
+                 ) : (
+                   <>
+                     {sel.email && (
+                       <div className="flex items-center gap-2 text-muted-foreground">
+                         <Mail className="h-4 w-4" />
+                         <a href={`mailto:${sel.email}`} className="hover:text-foreground">
+                           {sel.email}
+                         </a>
+                       </div>
+                     )}
+                     {sel.phone && (
+                       <div className="flex items-center gap-2 text-muted-foreground">
+                         <Phone className="h-4 w-4" />
+                         <a href={`tel:${sel.phone}`} className="hover:text-foreground">
+                           {sel.phone}
+                         </a>
+                       </div>
+                     )}
+                   </>
+                 )}
+                 {selected.nickname && (
+                   <div>
+                     <span className="text-xs text-muted-foreground">Callsign</span>
+                     <p className="font-medium">{selected.nickname}</p>
+                   </div>
+                 )}
+                 {selected.certifications && selected.certifications.length > 0 && (
+                   <div>
+                     <span className="text-xs text-muted-foreground">Certifications</span>
+                     <div className="flex flex-wrap gap-1 mt-0.5">
+                       {selected.certifications.map((c) => (
+                         <Badge key={c.id} variant="secondary" className="text-[9px]">
+                           {c.cert_type}
+                           {c.expiry_date && <span className="ml-1 opacity-70">expires {new Date(c.expiry_date).toLocaleDateString()}</span>}
+                           {c.state_issued && <span className="ml-1 opacity-70">({c.state_issued})</span>}
+                         </Badge>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+                 {selected.dietary_restrictions && selected.dietary_restrictions.length > 0 && (
+                   <div>
+                     <span className="text-xs text-muted-foreground">Dietary Restrictions</span>
+                     <div className="flex flex-wrap gap-1 mt-0.5">
+                       {selected.dietary_restrictions.map((d) => (
+                         <Badge key={d} variant="outline" className="text-[9px]">{d}</Badge>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+               </div>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
