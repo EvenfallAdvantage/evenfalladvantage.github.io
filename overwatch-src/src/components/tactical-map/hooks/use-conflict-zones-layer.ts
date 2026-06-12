@@ -133,6 +133,7 @@ export function useConflictZonesLayer(params: {
               outlineColor: Cesium.Color.BLACK,
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               pixelOffset: new Cesium.Cartesian2(0, -22),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 20_000_000),
             },

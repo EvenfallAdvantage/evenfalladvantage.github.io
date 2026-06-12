@@ -129,6 +129,7 @@ export function useNuclearInfrastructureLayer(params: {
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               pixelOffset: new Cesium.Cartesian2(0, -16),
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               // Only show label once the camera is zoomed in enough.
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 5_000_000),
             },
