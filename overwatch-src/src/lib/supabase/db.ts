@@ -32,3 +32,4 @@ export * from "./db-incident-config";
 export * from "./db-tasks";
 export * from "./db-public-reports";
 export * from "./db-geofences";
+export * from "./db-certifications";

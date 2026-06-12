@@ -20,6 +20,7 @@ interface ShiftCalendarViewProps {
   eventTimezone?: string;
   onDelete: (shiftId: string) => void;
   onAssign: (shiftId: string, userId: string) => void;
+  userCertifications?: Record<string, { hasAbcCert: boolean; abcState: string | null }>;
 }
 
 /* ── Calendar cell helpers ── */
@@ -38,6 +39,7 @@ export function ShiftCalendarView({
   eventTimezone,
   onDelete,
   onAssign,
+  userCertifications = {},
 }: ShiftCalendarViewProps) {
   if (shifts.length === 0) {
     return (
@@ -211,6 +213,7 @@ export function ShiftCalendarView({
                 eventTimezone={eventTimezone}
                 onDelete={onDelete}
                 onAssign={onAssign}
+                userCertifications={userCertifications}
               />
             ))}
           </div>

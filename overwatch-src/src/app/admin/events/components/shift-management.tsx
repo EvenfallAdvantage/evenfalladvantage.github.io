@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus, Zap, List, LayoutGrid, Upload, Wand2, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   getEventShifts, deleteShift, assignShift, getConflictingShifts,
-  smartFillShifts,
+  smartFillShifts, getEventUserCertifications,
 } from "@/lib/supabase/db";
 import { toast } from "sonner";
 import { type Shift, fmtTime } from "./shared";
@@ -43,11 +43,25 @@ export function ShiftManagement({
   const [calendarDay, setCalendarDay] = useState<string | null>(null);
   const [deletingShift, setDeletingShift] = useState<string | null>(null);
   const [autoAssigning, setAutoAssigning] = useState(false);
+  const [userCertifications, setUserCertifications] = useState<Record<string, { hasAbcCert: boolean; abcState: string | null }>>({});
 
   /* ── Derived ── */
   const {
     opDays, shiftsByDay, availByUser, sortedMembers, adminConflictIds,
   } = useShiftDerivedData(startDate, endDate, shifts, members, availability);
+
+  /* ── Fetch user certifications on mount ── */
+  useEffect(() => {
+    const fetchCertifications = async () => {
+      try {
+        const certs = await getEventUserCertifications(eventId);
+        setUserCertifications(certs);
+      } catch (err) {
+        console.error("[ShiftManagement] Failed to fetch user certifications:", err);
+      }
+    };
+    fetchCertifications();
+  }, [eventId]);
 
   /* ── Handlers ── */
 
@@ -213,6 +227,7 @@ export function ShiftManagement({
           eventTimezone={eventTimezone}
           onDelete={handleDeleteShift}
           onAssign={handleAssign}
+          userCertifications={userCertifications}
         />
       )}
 
@@ -233,6 +248,7 @@ export function ShiftManagement({
             eventTimezone={eventTimezone}
             onDelete={handleDeleteShift}
             onAssign={handleAssign}
+            userCertifications={userCertifications}
           />
         </div>
       )}

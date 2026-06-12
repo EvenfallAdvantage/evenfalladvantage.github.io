@@ -14,6 +14,7 @@ interface ShiftListViewProps {
   eventTimezone?: string;
   onDelete: (shiftId: string) => void;
   onAssign: (shiftId: string, userId: string) => void;
+  userCertifications?: Record<string, { hasAbcCert: boolean; abcState: string | null }>;
 }
 
 export function ShiftListView({
@@ -26,6 +27,7 @@ export function ShiftListView({
   eventTimezone,
   onDelete,
   onAssign,
+  userCertifications = {},
 }: ShiftListViewProps) {
   return (
     <div className="px-3 sm:px-4 py-3 space-y-4">
@@ -54,6 +56,7 @@ export function ShiftListView({
                   eventTimezone={eventTimezone}
                   onDelete={onDelete}
                   onAssign={onAssign}
+                  userCertifications={userCertifications}
                 />
               ))}
             </div>
