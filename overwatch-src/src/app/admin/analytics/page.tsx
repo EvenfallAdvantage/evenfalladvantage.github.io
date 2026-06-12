@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { BarChart3, Loader2 } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePageHeader } from "@/stores/page-header-store";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { AnalyticsView } from "@/components/analytics/analytics-view";
 
 export default function AnalyticsPage() {
-  const { activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const canView = activeCompany && hasMinRole(activeCompany.role as CompanyRole, "manager");
 

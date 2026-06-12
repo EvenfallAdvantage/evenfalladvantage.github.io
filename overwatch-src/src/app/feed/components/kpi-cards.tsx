@@ -6,7 +6,6 @@ import {
   ChevronRight, BarChart3,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getDashboardMetrics, getDashboardTrends } from "@/lib/supabase/db";
 import type { DashboardTrends } from "@/lib/supabase/db-analytics";

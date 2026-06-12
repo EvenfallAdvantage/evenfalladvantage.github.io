@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  BarChart3,
   AlertTriangle,
   ListChecks,
   Layers,
