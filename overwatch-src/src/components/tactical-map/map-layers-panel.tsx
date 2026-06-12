@@ -5,7 +5,7 @@ import {
   Layers, Users, CloudRain, Mountain,
   Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
-  Activity, Flame, Swords, Wind, Atom, Newspaper, Tv, Rss, Ship, Camera,
+  Activity, Flame, Swords, Wind, Atom, Newspaper, Tv, Rss, Ship, Camera, TowerControl,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
@@ -45,6 +45,7 @@ export interface LayerVisibility {
   sigintNews: boolean;
   maritime: boolean;
   cctv: boolean;
+  raws: boolean;
   // Site maps
   siteOverlays: Record<string, boolean>;
   siteOverlayOpacity: number;
@@ -81,6 +82,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   sigintNews: false,
   maritime: false,
   cctv: false,
+  raws: false,
   siteOverlays: {},
   siteOverlayOpacity: 0.75,
 };
@@ -108,12 +110,13 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "annotations", label: "Drawings", icon: <PenTool className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  // ─── ENVIRONMENT — natural phenomena & weather ─────────
+  { key: "weather", label: "Weather Radar (US)", icon: <CloudRain className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
+  { key: "raws", label: "Weather Stations", icon: <TowerControl className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
+  { key: "eonetWeather", label: "Severe Weather", icon: <Wind className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
+  { key: "fires", label: "Active Fires", icon: <Flame className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
+  { key: "earthquakes", label: "Earthquakes", icon: <Activity className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
   // ─── INTELLIGENCE — external data feeds ────────────────
-  // Hazards (natural disasters first — most operationally relevant)
-  { key: "earthquakes", label: "Earthquakes", icon: <Activity className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "fires", label: "Active Fires", icon: <Flame className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "eonetWeather", label: "Severe Weather", icon: <Wind className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "weather", label: "Weather Radar (US)", icon: <CloudRain className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   // Threats
   { key: "conflictZones", label: "Conflict Zones", icon: <Swords className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "gdelt", label: "Global Incidents", icon: <Newspaper className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },

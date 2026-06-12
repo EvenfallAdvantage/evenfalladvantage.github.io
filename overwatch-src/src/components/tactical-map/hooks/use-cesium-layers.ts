@@ -36,6 +36,7 @@ import { useSigintNewsLayer } from "./use-sigint-news-layer";
 import { useMaritimeLayer } from "./use-maritime-layer";
 import { useCctvLayer } from "./use-cctv-layer";
 import { useGeofencesLayer } from "./use-geofences-layer";
+import { useRawsLayer } from "./use-raws-layer";
 import type { IntelLiveNewsFeed, CctvCamera } from "@/lib/intel-types";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -199,6 +200,12 @@ export function useCesiumLayers(params: {
   useCctvLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
     onOpenCamera: onOpenCctvCamera ?? (() => {}),
+  });
+
+  // ─── Sub-hook: RAWS weather stations (ArcGIS, viewport-filtered) ──────
+  useRawsLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    debouncedReplayTime, timeMachineOpen,
   });
 
   // ─── 3D Terrain & Buildings Toggle (combined) ────────
