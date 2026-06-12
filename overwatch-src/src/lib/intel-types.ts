@@ -8,6 +8,18 @@
  * Functions are deployed at `${SUPABASE_FUNCTIONS_URL}/intel-<name>`.
  */
 
+// ─── Lightning (Blitzortung WebSocket → GeoJSON) ─────────────────
+export interface IntelLightningStrike {
+  type: "Feature";
+  geometry: { type: "Point"; coordinates: [number, number] };
+  properties: { time: number; amplitude: number };
+}
+export interface IntelLightningResponse {
+  type: "FeatureCollection";
+  features: IntelLightningStrike[];
+  error?: string;
+}
+
 // ─── Earthquakes ─────────────────────────────────────────────────
 export interface IntelEarthquake {
   id: string;

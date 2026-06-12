@@ -11,6 +11,7 @@
 import type {
   IntelEarthquakesResponse,
   IntelFiresResponse,
+  IntelLightningResponse,
   IntelEonetResponse,
   IntelSpaceWeatherResponse,
   IntelNewsResponse,
@@ -76,6 +77,9 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 // ─── Hazards & events ────────────────────────────────────────────
 export function fetchIntelEarthquakes() {
   return call<IntelEarthquakesResponse>("/intel-earthquakes");
+}
+export function fetchIntelLightning() {
+  return call<IntelLightningResponse>("/intel-lightning");
 }
 export function fetchIntelFires() {
   return call<IntelFiresResponse>("/intel-fires");

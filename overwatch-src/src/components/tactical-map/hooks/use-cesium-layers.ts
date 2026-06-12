@@ -165,9 +165,9 @@ export function useCesiumLayers(params: {
     debouncedReplayTime, timeMachineOpen,
   });
 
-  // ─── Sub-hook: Real-time lightning (Blitzortung tiles, under Severe Weather toggle) ─────
+  // ─── Sub-hook: Real-time lightning (Blitzortung WebSocket, under Severe Weather toggle) ─────
   useLightningLayer({
-    viewerRef, cesiumRef, loading, layers,
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
     debouncedReplayTime, timeMachineOpen,
   });
 
