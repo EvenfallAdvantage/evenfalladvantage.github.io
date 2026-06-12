@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelLightning } from "@/lib/intel-client";
-import type { IntelLightningStrike } from "@/lib/intel-types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 const POLL_MS = 15_000;
