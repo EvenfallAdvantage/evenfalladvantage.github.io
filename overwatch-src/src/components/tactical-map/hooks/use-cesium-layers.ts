@@ -446,6 +446,16 @@ export function useCesiumLayers(params: {
                 }
               }
 
+              // Pre-compute bounding sphere so Cesium doesn't need to derive
+              // it from the position attribute during render — some geometry
+              // configurations (e.g. all vertices at identical or near-identical
+              // positions) can cause BoundingSphere.fromVertices to return a
+              // sphere whose center property is undefined.
+              const boundingSphere = Cesium.BoundingSphere.fromVertices(posArr, undefined, 3);
+              if (!boundingSphere?.center) {
+                logger.swallow("cesium-layers:build-grid", new Error(`Invalid bounding sphere for op ${op.id}`), "warn");
+                return;
+              }
               const geometry = new Cesium.Geometry({
                 attributes: {
                   position: new Cesium.GeometryAttribute({
@@ -466,6 +476,7 @@ export function useCesiumLayers(params: {
                 },
                 indices: idxArr,
                 primitiveType: Cesium.PrimitiveType.TRIANGLES,
+                boundingSphere,
               });
 
               const instance = new Cesium.GeometryInstance({ geometry });
