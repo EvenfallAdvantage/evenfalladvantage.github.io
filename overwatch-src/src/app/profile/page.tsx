@@ -19,6 +19,8 @@ import { WorkHistoryCard } from "./components/work-history-card";
 import { ProfileActivityTabs } from "./components/profile-activity-tabs";
 import { ProfileBadgeCard } from "./components/profile-badge-card";
 import { PayStubCard } from "./components/pay-stub-card";
+import CertificationsSection from "@/app/academy/components/certifications-section";
+import { getUserCertifications } from "@/lib/supabase/db";
 import { logger } from "@/lib/logger";
 
 export default function ProfilePage() {
@@ -29,6 +31,8 @@ export default function ProfilePage() {
   const [mp, setMp] = useState<MemberProfile>(null);
   const [mpLoaded, setMpLoaded] = useState(false);
   const [onboardingProgress, setOnboardingProgress] = useState<OProgress[]>([]);
+  const [certs, setCerts] = useState<Record<string, unknown>[]>([]);
+  const [legacyCerts, setLegacyCerts] = useState<Record<string, unknown>[]>([]);
 
   const isOnboarding = mp?.status === "onboarding" && !mp?.onboarding_complete;
 
@@ -49,6 +53,17 @@ export default function ProfilePage() {
         setMp(profile);
       } catch (e) { logger.swallow("profile:load-member", e, "warn"); }
       try { setOnboardingProgress(await getMyOnboardingProgress(activeCompanyId)); } catch (e) { logger.swallow("profile:load-onboarding", e, "debug"); }
+      try {
+        const [owCerts, legacy] = await Promise.all([
+          getUserCertifications(),
+          (async () => {
+            const { getLegacyCertificates } = await import("@/lib/legacy-bridge");
+            return await getLegacyCertificates(activeCompanyId);
+          })()
+        ]);
+        setCerts(owCerts || []);
+        setLegacyCerts(legacy || []);
+      } catch (e) { logger.swallow("profile:load-certs", e, "debug"); }
       setMpLoaded(true);
     })();
   }, [activeCompanyId, mpLoaded]);
@@ -94,6 +109,14 @@ export default function ProfilePage() {
               mpLoaded={mpLoaded}
               activeCompanyId={activeCompanyId}
             />
+
+            {mpLoaded && mp && (
+              <CertificationsSection
+                owCerts={certs}
+                legacyCertificates={legacyCerts}
+                onCertsChange={setCerts}
+              />
+            )}
 
             {mpLoaded && mp && (
               <NotificationPreferencesCard
