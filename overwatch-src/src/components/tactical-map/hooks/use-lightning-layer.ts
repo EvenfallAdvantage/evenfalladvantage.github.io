@@ -32,7 +32,7 @@ export function useLightningLayer(params: {
 
     try {
       const boltProvider = new Cesium.UrlTemplateImageryProvider({
-        url: "https://tiles.blitzortung.org/Tiles/01/{z}/{x}/{y}.png",
+        url: "https://nneueuvyeohwnspbwfub.supabase.co/functions/v1/intel-lightning-tile/{z}/{x}/{y}",
         credit: "Blitzortung.org",
         minimumLevel: 0,
         maximumLevel: 18,

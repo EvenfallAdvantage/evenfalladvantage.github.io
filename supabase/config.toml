@@ -201,6 +201,14 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/intel-osint-sweep/index.ts"
 
+# Public tile proxy for Blitzortung lightning data. No JWT needed — tiles are
+# fully public. The function adds CORS headers so Cesium can load them as
+# imagery layers in the browser.
+[functions.intel-lightning-tile]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-lightning-tile/index.ts"
+
 # ── Email + Roster Invitations ──
 # Service-role-only; called from other Edge Functions, never from the client.
 [functions.email-send]
