@@ -30,6 +30,7 @@ export default function CertificationsSection({ owCerts, legacyCertificates, onC
   const [certType, setCertType] = useState("");
   const [certIssue, setCertIssue] = useState("");
   const [certExpiry, setCertExpiry] = useState("");
+  const [certState, setCertState] = useState("");
   const [addingCert, setAddingCert] = useState(false);
   const [deletingCert, setDeletingCert] = useState<string | null>(null);
   const { confirm, ConfirmDialog } = useConfirmDialog();
@@ -38,8 +39,13 @@ export default function CertificationsSection({ owCerts, legacyCertificates, onC
     if (!certType.trim()) return;
     setAddingCert(true);
     try {
-      await addCertification({ certType: certType.trim(), issueDate: certIssue || undefined, expiryDate: certExpiry || undefined });
-      setCertType(""); setCertIssue(""); setCertExpiry(""); setShowAddCert(false);
+      await addCertification({ 
+        certType: certType.trim(), 
+        issueDate: certIssue || undefined, 
+        expiryDate: certExpiry || undefined,
+        stateIssued: certState.trim() || undefined
+      });
+      setCertType(""); setCertIssue(""); setCertExpiry(""); setCertState(""); setShowAddCert(false);
       onCertsChange(await getUserCertifications() as Cert[]);
     } catch (err) { console.error(err); } finally { setAddingCert(false); }
   }
@@ -60,6 +66,7 @@ export default function CertificationsSection({ owCerts, legacyCertificates, onC
       issueDate: c.issue_date, expiryDate: c.expiry_date, status: c.status, canDelete: !isTraining,
       verificationCode: (c as Record<string, unknown>).verification_code as string | null,
       certNumber: (c as Record<string, unknown>).certificate_number as string | null,
+      extra: (c as Record<string, unknown>).state_issued ? `State: ${(c as Record<string, unknown>).state_issued}` : undefined,
     });
   }
   for (const lc of legacyCertificates) {
@@ -94,6 +101,64 @@ export default function CertificationsSection({ owCerts, legacyCertificates, onC
               <div className="flex-1"><label className="text-[10px] text-muted-foreground">Issue Date</label><Input type="date" value={certIssue} onChange={(e) => setCertIssue(e.target.value)} className="h-8 text-sm" /></div>
               <div className="flex-1"><label className="text-[10px] text-muted-foreground">Expiry Date</label><Input type="date" value={certExpiry} onChange={(e) => setCertExpiry(e.target.value)} className="h-8 text-sm" /></div>
             </div>
+            {(certType.toLowerCase().includes("state license") || certType.toLowerCase().includes("abc certification")) && (
+              <div className="flex-1">
+                <label className="text-[10px] text-muted-foreground">State</label>
+                <select value={certState} onChange={(e) => setCertState(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm">
+                  <option value="">Select state...</option>
+                  <option value="AL">Alabama</option>
+                  <option value="AK">Alaska</option>
+                  <option value="AZ">Arizona</option>
+                  <option value="AR">Arkansas</option>
+                  <option value="CA">California</option>
+                  <option value="CO">Colorado</option>
+                  <option value="CT">Connecticut</option>
+                  <option value="DE">Delaware</option>
+                  <option value="FL">Florida</option>
+                  <option value="GA">Georgia</option>
+                  <option value="HI">Hawaii</option>
+                  <option value="ID">Idaho</option>
+                  <option value="IL">Illinois</option>
+                  <option value="IN">Indiana</option>
+                  <option value="IA">Iowa</option>
+                  <option value="KS">Kansas</option>
+                  <option value="KY">Kentucky</option>
+                  <option value="LA">Louisiana</option>
+                  <option value="ME">Maine</option>
+                  <option value="MD">Maryland</option>
+                  <option value="MA">Massachusetts</option>
+                  <option value="MI">Michigan</option>
+                  <option value="MN">Minnesota</option>
+                  <option value="MS">Mississippi</option>
+                  <option value="MO">Missouri</option>
+                  <option value="MT">Montana</option>
+                  <option value="NE">Nebraska</option>
+                  <option value="NV">Nevada</option>
+                  <option value="NH">New Hampshire</option>
+                  <option value="NJ">New Jersey</option>
+                  <option value="NM">New Mexico</option>
+                  <option value="NY">New York</option>
+                  <option value="NC">North Carolina</option>
+                  <option value="ND">North Dakota</option>
+                  <option value="OH">Ohio</option>
+                  <option value="OK">Oklahoma</option>
+                  <option value="OR">Oregon</option>
+                  <option value="PA">Pennsylvania</option>
+                  <option value="RI">Rhode Island</option>
+                  <option value="SC">South Carolina</option>
+                  <option value="SD">South Dakota</option>
+                  <option value="TN">Tennessee</option>
+                  <option value="TX">Texas</option>
+                  <option value="UT">Utah</option>
+                  <option value="VT">Vermont</option>
+                  <option value="VA">Virginia</option>
+                  <option value="WA">Washington</option>
+                  <option value="WV">West Virginia</option>
+                  <option value="WI">Wisconsin</option>
+                  <option value="WY">Wyoming</option>
+                </select>
+              </div>
+            )}
             <div className="flex gap-2">
               <Button size="sm" onClick={handleAddCert} disabled={!certType.trim() || addingCert}>{addingCert ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save"}</Button>
               <Button size="sm" variant="ghost" onClick={() => setShowAddCert(false)}>Cancel</Button>

@@ -16,8 +16,22 @@ export async function getCheckpoints(companyId: string) {
   return data ?? [];
 }
 
+export async function getAbcCheckpoints(companyId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("checkpoints")
+    .select("*")
+    .eq("company_id", companyId)
+    .eq("is_abc_checkpoint", true)
+    .eq("is_active", true)
+    .order("name");
+  if (error) { logDbReadError("ABC checkpoints", error); return []; }
+  return data ?? [];
+}
+
 export async function createCheckpoint(companyId: string, params: {
   name: string; description?: string; location?: string; eventId?: string;
+  isAbcCheckpoint?: boolean; abcCertificationType?: string; requiredCertifications?: string[];
 }) {
   const supabase = createClient();
   const { data, error } = await supabase.from("checkpoints").insert({
@@ -29,6 +43,9 @@ export async function createCheckpoint(companyId: string, params: {
     event_id: params.eventId ?? null,
     qr_code: `CP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
     is_active: true,
+    is_abc_checkpoint: params.isAbcCheckpoint ?? false,
+    abc_certification_type: params.abcCertificationType ?? null,
+    required_certifications: params.requiredCertifications ?? [],
     created_at: new Date().toISOString(),
   }).select().maybeSingle();
   if (error) throw error;

@@ -152,6 +152,7 @@ export type CertificationRow = {
   company_id: string | null;
   module_id: string | null;
   quiz_id: string | null;
+  state_issued: string | null;
   status: string;
   created_at: string;
 };
@@ -520,4 +521,24 @@ export type AssessmentQuestion = {
   updated_at: string;
   // joined
   training_module?: { module_name: string; module_code: string } | null;
+};
+
+// ─── Checkpoints ─────────────────────────────────────
+
+export type CheckpointRow = {
+  id: string;
+  company_id: string;
+  event_id: string | null;
+  name: string;
+  description: string | null;
+  location: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  qr_code: string | null;
+  sort_order: number;
+  is_active: boolean;
+  is_abc_checkpoint: boolean;
+  abc_certification_type: string | null;
+  required_certifications: string[];
+  created_at: string;
 };

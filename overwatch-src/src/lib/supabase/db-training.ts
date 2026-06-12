@@ -535,6 +535,7 @@ export async function addCertification(params: {
   companyId?: string;
   moduleId?: string;
   quizId?: string;
+  stateIssued?: string;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
@@ -556,6 +557,7 @@ export async function addCertification(params: {
       company_id: params.companyId ?? null,
       module_id: params.moduleId ?? null,
       quiz_id: params.quizId ?? null,
+      state_issued: params.stateIssued ?? null,
       status: "active",
       created_at: new Date().toISOString(),
     })

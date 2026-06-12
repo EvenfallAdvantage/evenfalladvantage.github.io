@@ -48,6 +48,10 @@ CREATE TABLE IF NOT EXISTS checkpoints (
   qr_code       TEXT UNIQUE,
   sort_order    INT DEFAULT 0,
   is_active     BOOLEAN DEFAULT true,
+  -- ABC checkpoint fields
+  is_abc_checkpoint BOOLEAN DEFAULT false,
+  abc_certification_type TEXT,
+  required_certifications TEXT[] DEFAULT '{}',
   created_at    TIMESTAMPTZ DEFAULT now()
 );
 
