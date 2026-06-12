@@ -11,7 +11,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: "Dashboard", href: "/feed", icon: "LayoutDashboard" },
       { title: "Comms", href: "/chat", icon: "Radio" },
-      { title: "Directory", href: "/directory", icon: "Users" },
+      { title: "Directory", href: "/directory", icon: "UserSearch" },
       {
         title: "Analytics",
         href: "/admin/analytics",

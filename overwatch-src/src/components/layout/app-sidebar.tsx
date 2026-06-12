@@ -68,6 +68,7 @@ import {
   NotebookPen,
   School,
   ListChecks,
+  UserSearch,
   type LucideIcon,
 } from "lucide-react";
 
@@ -109,6 +110,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   NotebookPen,
   School,
   ListChecks,
+  UserSearch,
 };
 
 interface AppSidebarProps {
