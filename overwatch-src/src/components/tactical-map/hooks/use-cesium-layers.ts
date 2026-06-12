@@ -554,12 +554,12 @@ export function useCesiumLayers(params: {
           const entity = viewer.entities.add({
             id: `sboard-${op.id}-${pin.id || idx}`,
             name: pin.label || `Pin ${idx + 1}`,
-            position: Cesium.Cartesian3.fromDegrees(lng, lat),
+            position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
             billboard: {
               image: createPinCanvas(pinColor, linkedIncident ? "alert" : "flag"),
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               scale: linkedIncident ? 0.55 : 0.5,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
             label: {
@@ -571,7 +571,7 @@ export function useCesiumLayers(params: {
               fillColor: Cesium.Color.fromCssColorString(pinColor),
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               pixelOffset: new Cesium.Cartesian2(0, -32),
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 100000),
             },

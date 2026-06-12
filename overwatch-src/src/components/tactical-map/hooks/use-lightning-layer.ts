@@ -14,21 +14,40 @@ let iconCache: HTMLCanvasElement | null = null;
 
 function buildIcon(): HTMLCanvasElement {
   if (iconCache) return iconCache;
-  const s = 18;
+  const s = 22;
   const c = document.createElement("canvas");
   c.width = s; c.height = s;
   const ctx = c.getContext("2d");
   if (!ctx) return c;
   const cx = s / 2, cy = s / 2;
+
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, cx);
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.35, "rgba(255,230,100,1)");
-  g.addColorStop(0.7, "rgba(255,180,50,0.7)");
-  g.addColorStop(1, "rgba(255,180,50,0)");
+  g.addColorStop(0, "rgba(255,255,220,0.5)");
+  g.addColorStop(0.5, "rgba(255,200,50,0.2)");
+  g.addColorStop(1, "rgba(255,200,50,0)");
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.arc(cx, cy, cx - 0.5, 0, Math.PI * 2);
+  ctx.arc(cx, cy, cx, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.shadowColor = "#ffe44d";
+  ctx.shadowBlur = 4;
+  ctx.beginPath();
+  ctx.moveTo(11, 2.5);
+  ctx.lineTo(7, 11.5);
+  ctx.lineTo(10, 11.5);
+  ctx.lineTo(6, 19.5);
+  ctx.lineTo(14, 9);
+  ctx.lineTo(11.5, 9);
+  ctx.lineTo(15.5, 2.5);
+  ctx.closePath();
+  ctx.fillStyle = "#ffe44d";
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255,255,255,0.85)";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+
   iconCache = c;
   return c;
 }
@@ -95,35 +114,18 @@ export function useLightningLayer(params: {
           const entityId = `lightning-${f.properties.id}`;
           const entity = viewer.entities.add({
             id: entityId,
-            position: Cesium.Cartesian3.fromDegrees(lon, lat, 0),
-            point: {
-              pixelSize: new Cesium.CallbackProperty(() => {
-                const strikeMs = timesRef.current.get(entityId);
-                if (!strikeMs) return 4;
-                const age = currentTimestamp() - strikeMs;
-                if (age > BLINK_DURATION_MS) return 4;
-                return (currentTimestamp() % BLINK_PERIOD_MS < BLINK_PERIOD_MS / 2) ? 10 : 4;
-              }, false),
-              color: new Cesium.CallbackProperty(() => {
-                const strikeMs = timesRef.current.get(entityId);
-                if (!strikeMs) return Cesium.Color.fromCssColorString("#ffe44d");
-                const age = currentTimestamp() - strikeMs;
-                if (age > BLINK_DURATION_MS) return Cesium.Color.fromCssColorString("#ffe44d");
-                return (currentTimestamp() % BLINK_PERIOD_MS < BLINK_PERIOD_MS / 2)
-                  ? Cesium.Color.WHITE
-                  : Cesium.Color.fromCssColorString("#ffe44d");
-              }, false),
-              outlineColor: Cesium.Color.WHITE,
-              outlineWidth: 1,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
-            },
+            position: Cesium.Cartesian3.fromDegrees(lon, lat, 2),
             billboard: {
               image: buildIcon(),
-              scale: 0.7,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              scale: new Cesium.CallbackProperty(() => {
+                const strikeMs = timesRef.current.get(entityId);
+                if (!strikeMs) return 0.6;
+                const age = currentTimestamp() - strikeMs;
+                if (age > BLINK_DURATION_MS) return 0.6;
+                return (currentTimestamp() % BLINK_PERIOD_MS < BLINK_PERIOD_MS / 2) ? 1.0 : 0.6;
+              }, false),
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.CENTER,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
           });
           timesRef.current.set(entityId, timeMs);

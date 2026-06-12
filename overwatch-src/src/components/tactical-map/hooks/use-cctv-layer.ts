@@ -127,11 +127,11 @@ export function useCctvLayer(params: {
           const entity = viewer.entities.add({
             id: entityId,
             name: cam.name,
-            position: Cesium.Cartesian3.fromDegrees(cam.lng, cam.lat, 0),
+            position: Cesium.Cartesian3.fromDegrees(cam.lng, cam.lat, 5),
             billboard: {
               image: buildIcon(),
               scale: 1.0,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             description: buildPopup(cam),

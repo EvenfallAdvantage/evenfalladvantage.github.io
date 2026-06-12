@@ -196,7 +196,7 @@ export function useCesiumClickHandler(params: {
             color: Cesium.Color.fromCssColorString(drawColor),
             outlineColor: Cesium.Color.WHITE,
             outlineWidth: 1,
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
         });
@@ -215,7 +215,7 @@ export function useCesiumClickHandler(params: {
           viewer.entities.add({
             id: "measure-p1",
             position: Cesium.Cartesian3.fromDegrees(lng, lat),
-            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
           });
         } else {
           // Point 2 — compute distance
@@ -228,7 +228,7 @@ export function useCesiumClickHandler(params: {
           viewer.entities.add({
             id: "measure-p2",
             position: Cesium.Cartesian3.fromDegrees(lng, lat),
-            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
           });
           viewer.entities.add({
             id: "measure-line",
@@ -256,7 +256,7 @@ export function useCesiumClickHandler(params: {
         viewer.entities.add({
           id: "ring-center",
           position: Cesium.Cartesian3.fromDegrees(lng, lat),
-          point: { pixelSize: 8, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+          point: { pixelSize: 8, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
         });
 
         // Draw concentric rings
@@ -271,7 +271,7 @@ export function useCesiumClickHandler(params: {
               outline: true,
               outlineColor: Cesium.Color.CYAN.withAlpha(0.4),
               outlineWidth: 1,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
             },
           });
           // Label at the north edge of each ring
@@ -286,7 +286,7 @@ export function useCesiumClickHandler(params: {
               outlineColor: Cesium.Color.BLACK,
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             },
           });

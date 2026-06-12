@@ -55,7 +55,7 @@ export function useAnnotationsLayer(params: {
             outline: true,
             outlineColor: color,
             outlineWidth: 2,
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
           },
         });
         entityGroupsRef.current.annotations.push(entity);
@@ -63,7 +63,7 @@ export function useAnnotationsLayer(params: {
         const [lng, lat] = ann.geometry.positions[0];
         const entity = viewer.entities.add({
           id: `ann-${ann.id}`,
-          position: Cesium.Cartesian3.fromDegrees(lng, lat),
+          position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
           ellipse: {
             semiMajorAxis: ann.geometry.radius,
             semiMinorAxis: ann.geometry.radius,
@@ -71,7 +71,7 @@ export function useAnnotationsLayer(params: {
             outline: true,
             outlineColor: color,
             outlineWidth: 2,
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
           },
         });
         entityGroupsRef.current.annotations.push(entity);
@@ -79,7 +79,7 @@ export function useAnnotationsLayer(params: {
         const [lng, lat] = ann.geometry.positions[0];
         const entity = viewer.entities.add({
           id: `ann-${ann.id}`,
-          position: Cesium.Cartesian3.fromDegrees(lng, lat),
+          position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
           label: {
             text: ann.label,
             font: "bold 14px monospace",
@@ -87,7 +87,7 @@ export function useAnnotationsLayer(params: {
             outlineColor: Cesium.Color.BLACK,
             outlineWidth: 3,
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
             // Always render through buildings at venue scale (camera < 500 km).
             // Beyond that, depth-test against the globe so far-side annotations
             // are hidden when viewing the whole earth.

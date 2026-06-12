@@ -32,12 +32,12 @@ export function useStaffLayer(params: {
       const entity = viewer.entities.add({
         id: `staff-${s.userId}`,
         name: s.name,
-        position: Cesium.Cartesian3.fromDegrees(s.lng, s.lat),
+        position: Cesium.Cartesian3.fromDegrees(s.lng, s.lat, 5),
         billboard: {
           image: createPinCanvas("#22d3ee", "person"),
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.6,
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.
@@ -52,7 +52,7 @@ export function useStaffLayer(params: {
           fillColor: Cesium.Color.CYAN,
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           pixelOffset: new Cesium.Cartesian2(0, -36),
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.

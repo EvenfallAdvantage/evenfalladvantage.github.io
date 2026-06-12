@@ -36,12 +36,12 @@ export function useIncidentsLayer(params: {
       const entity = viewer.entities.add({
         id: `inc-${inc.id}`,
         name: inc.title,
-        position: Cesium.Cartesian3.fromDegrees(inc.lng, inc.lat),
+        position: Cesium.Cartesian3.fromDegrees(inc.lng, inc.lat, 5),
         billboard: {
           image: createPinCanvas(color, "alert"),
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.55,
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.

@@ -130,7 +130,7 @@ export function useGeofencesLayer(params: UseGeofencesLayerParams): {
               outlineWidth: g.strokeWidth,
               // Conform to the terrain so fences hug the ground.
               perPositionHeight: false,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               classificationType: Cesium.ClassificationType.TERRAIN,
             },
             description: buildPopup(g),

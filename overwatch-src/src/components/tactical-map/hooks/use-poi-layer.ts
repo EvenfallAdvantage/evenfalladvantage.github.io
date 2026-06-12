@@ -146,12 +146,12 @@ export function usePoiLayer(params: {
         const entity = viewer.entities.add({
           id: entityId,
           name: poi.name,
-          position: Cesium.Cartesian3.fromDegrees(poi.lng, poi.lat),
+          position: Cesium.Cartesian3.fromDegrees(poi.lng, poi.lat, 5),
           billboard: {
             image: createPinCanvas(color, "alert"),
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             scale: 0.45,
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
             // Always render through buildings at venue scale (camera < 500 km).
             // Beyond that, depth-test against the globe so far-side pins are
             // hidden when viewing the whole earth.
@@ -166,7 +166,7 @@ export function usePoiLayer(params: {
             fillColor: Cesium.Color.fromCssColorString(color),
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             pixelOffset: new Cesium.Cartesian2(0, -28),
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
             // Always render through buildings at venue scale (camera < 500 km).
             // Beyond that, depth-test against the globe so far-side pins are
             // hidden when viewing the whole earth.

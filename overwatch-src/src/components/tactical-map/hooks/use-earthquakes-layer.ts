@@ -139,11 +139,11 @@ export function useEarthquakesLayer(params: {
           const entity = viewer.entities.add({
             id: entityId,
             name: `M${q.magnitude.toFixed(1)} ${q.place || ""}`,
-            position: Cesium.Cartesian3.fromDegrees(q.lng, q.lat, 0),
+            position: Cesium.Cartesian3.fromDegrees(q.lng, q.lat, 5),
             billboard: {
               image: buildQuakeIcon(q.magnitude),
               scale: 0.9,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             description: buildPopup(q),

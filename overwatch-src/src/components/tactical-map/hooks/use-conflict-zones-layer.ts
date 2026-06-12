@@ -119,11 +119,11 @@ export function useConflictZonesLayer(params: {
           const entity = viewer.entities.add({
             id: entityId,
             name: z.name,
-            position: Cesium.Cartesian3.fromDegrees(z.lng, z.lat, 0),
+            position: Cesium.Cartesian3.fromDegrees(z.lng, z.lat, 5),
             billboard: {
               image: buildIcon(z.severity),
               scale: 1.0,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             label: {

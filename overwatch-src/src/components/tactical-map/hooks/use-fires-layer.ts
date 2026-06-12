@@ -132,11 +132,11 @@ export function useFiresLayer(params: {
           const entity = viewer.entities.add({
             id: entityId,
             name: f.title ?? (f.type === "volcano" ? "Volcano" : "Fire"),
-            position: Cesium.Cartesian3.fromDegrees(f.lng, f.lat, 0),
+            position: Cesium.Cartesian3.fromDegrees(f.lng, f.lat, 5),
             billboard: {
               image: buildFireIcon(f.type),
               scale: 1.0,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             description: buildPopup(f),

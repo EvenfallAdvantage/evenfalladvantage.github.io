@@ -217,7 +217,7 @@ export function useS2IntelLayer({
           const entityOpts: any = {
             id: entityId,
             name: `${layer.label} — ${featureName}`,
-            position: Cesium.Cartesian3.fromDegrees(feature.lng, feature.lat),
+            position: Cesium.Cartesian3.fromDegrees(feature.lng, feature.lat, 5),
             description: desc,
           };
 
@@ -226,7 +226,7 @@ export function useS2IntelLayer({
               image: symbolUrl,
               width: 28,
               height: 28,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             };
@@ -236,7 +236,7 @@ export function useS2IntelLayer({
               color: Cesium.Color.fromCssColorString(layer.color).withAlpha(0.9),
               outlineColor: Cesium.Color.BLACK,
               outlineWidth: 1.5,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               disableDepthTestDistance: Number.POSITIVE_INFINITY,
             };
           }

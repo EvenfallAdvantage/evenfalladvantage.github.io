@@ -159,11 +159,11 @@ export function useMaritimeLayer(params: {
           const entity = viewer.entities.add({
             id: `port-${p.name}`.replace(/\s+/g, "_"),
             name: p.name,
-            position: Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 0),
+            position: Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 5),
             billboard: {
               image: buildPortIcon(color),
               scale: 1.0,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             label: {
@@ -188,11 +188,11 @@ export function useMaritimeLayer(params: {
           const entity = viewer.entities.add({
             id: `choke-${c.name}`.replace(/\s+/g, "_"),
             name: c.name,
-            position: Cesium.Cartesian3.fromDegrees(c.lng, c.lat, 0),
+            position: Cesium.Cartesian3.fromDegrees(c.lng, c.lat, 5),
             billboard: {
               image: buildChokepointIcon(color),
               scale: 1.0,
-              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             label: {

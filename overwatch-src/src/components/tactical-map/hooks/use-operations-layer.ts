@@ -39,12 +39,12 @@ export function useOperationsLayer(params: {
       const entity = viewer.entities.add({
         id: `op-${op.id}`,
         name: op.name,
-        position: Cesium.Cartesian3.fromDegrees(op.lng, op.lat),
+        position: Cesium.Cartesian3.fromDegrees(op.lng, op.lat, 5),
         billboard: {
           image: createPinCanvas(color.toCssColorString(), "flag"),
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.7,
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.
@@ -59,7 +59,7 @@ export function useOperationsLayer(params: {
           fillColor: Cesium.Color.WHITE,
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           pixelOffset: new Cesium.Cartesian2(0, -40),
-          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+          heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.
@@ -89,7 +89,7 @@ export function useOperationsLayer(params: {
       if (op.geofenceRadius && op.geofenceRadius > 0 && layers.geofences) {
         const gfEntity = viewer.entities.add({
           id: `gf-${op.id}`,
-          position: Cesium.Cartesian3.fromDegrees(op.lng, op.lat),
+          position: Cesium.Cartesian3.fromDegrees(op.lng, op.lat, 5),
           ellipse: {
             semiMajorAxis: op.geofenceRadius,
             semiMinorAxis: op.geofenceRadius,
@@ -97,7 +97,7 @@ export function useOperationsLayer(params: {
             outline: true,
             outlineColor: color.withAlpha(0.5),
             outlineWidth: 2,
-            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
           },
         });
         entityGroupsRef.current.operations.push(gfEntity);
