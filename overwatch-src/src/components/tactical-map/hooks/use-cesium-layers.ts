@@ -360,7 +360,9 @@ export function useCesiumLayers(params: {
             // the affine UV mapping. The solution is to sample terrain
             // height at each of the four corners and build the polygon
             // with `perPositionHeight: true`, putting the overlay flat
-             // on the ground. A small (+5 m) lift prevents z-fighting
+             // on the ground. An adaptive lift (proportional to terrain
+             // height range) prevents z-fighting while clearing steep peaks
+             // that fall between grid vertices
             // with the ground texture.
             const q = bounds.quad;
 
@@ -417,9 +419,17 @@ export function useCesiumLayers(params: {
               const stArr = new Float32Array(vertexCount * 2);
               const idxArr = new Uint16Array(triCount * 3);
 
+              // Adaptive lift: proportional to the terrain height range so
+              // flat areas get a small offset and steep terrain (where
+              // peaks can fall between grid vertices) gets lifted enough
+              // to not punch through the overlay.
+              const minH = heights.reduce((a: number, b: number) => Math.min(a, b), Infinity);
+              const maxH = heights.reduce((a: number, b: number) => Math.max(a, b), -Infinity);
+              const lift = Math.max(5, (maxH - minH) * 0.25);
+
               for (let i = 0; i < vertexCount; i++) {
                 const g = gridCartos[i];
-                const cart = Cesium.Cartesian3.fromDegrees(g.lng, g.lat, (heights[i] ?? 0) + 5);
+                const cart = Cesium.Cartesian3.fromDegrees(g.lng, g.lat, (heights[i] ?? 0) + lift);
                 if (!cart) continue;
                 posArr[i * 3] = cart.x;
                 posArr[i * 3 + 1] = cart.y;
