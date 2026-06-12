@@ -370,115 +370,76 @@ export function useCesiumLayers(params: {
             // grid vertex so the overlay conforms to 3D terrain instead of
             // being a flat 4-corner polygon that cuts into hills or floats
             // over valleys.
-            // The quad spans BOTH grid vertices and interior points.
-            // Use a fine subdivision so each triangle is small enough
-            // that terrain features between sample points cause at most
-            // a few metres of clipping — no adaptive lift needed.
-            // A tiny 0.5 m z-fighting offset keeps the overlay above the
-            // ground texture without noticeable floating.
-            const ZFIGHT_OFFSET = 0.5;
-            const GRID = 31; // 31×31 = 961 grid vertices, 900 quad cells
-            const gridCartos: Array<{ lng: number; lat: number; u: number; v: number }> = [];
-            for (let iv = 0; iv < GRID; iv++) {
-              const v = iv / (GRID - 1);
-              for (let iu = 0; iu < GRID; iu++) {
-                const u = iu / (GRID - 1);
-                const topLat = q.c00.lat + (q.c10.lat - q.c00.lat) * u;
-                const topLng = q.c00.lng + (q.c10.lng - q.c00.lng) * u;
-                const botLat = q.c01.lat + (q.c11.lat - q.c01.lat) * u;
-                const botLng = q.c01.lng + (q.c11.lng - q.c01.lng) * u;
-                gridCartos.push({
-                  lng: topLng + (botLng - topLng) * v,
-                  lat: topLat + (botLat - topLat) * v,
-                  u, v,
+            // GroundPrimitive projects each PolygonGeometry onto the
+            // terrain surface at native tile resolution (same mechanism as
+            // SingleTileImageryProvider).  No terrain sampling, no lift,
+            // no z-fight offset — Cesium handles all the Z detail.
+            // The grid subdivision exists only so each cell's 2-triangle
+            // diagonal seam is small enough to be invisible.
+            const GRID = 31; // ~1/30 of quad width per cell
+            const texCells: {
+              positions: (typeof Cesium.Cartesian3)[];
+              uMin: number; uMax: number; vMin: number; vMax: number;
+            }[] = [];
+            for (let iv = 0; iv < GRID - 1; iv++) {
+              const v0 = iv / (GRID - 1);
+              const v1 = (iv + 1) / (GRID - 1);
+              for (let iu = 0; iu < GRID - 1; iu++) {
+                const u0 = iu / (GRID - 1);
+                const u1 = (iu + 1) / (GRID - 1);
+                const lerp = (u: number, v: number) => {
+                  const topLat = q.c00.lat + (q.c10.lat - q.c00.lat) * u;
+                  const topLng = q.c00.lng + (q.c10.lng - q.c00.lng) * u;
+                  const botLat = q.c01.lat + (q.c11.lat - q.c01.lat) * u;
+                  const botLng = q.c01.lng + (q.c11.lng - q.c01.lng) * u;
+                  return Cesium.Cartesian3.fromDegrees(
+                    topLng + (botLng - topLng) * v,
+                    topLat + (botLat - topLat) * v,
+                    0,
+                  );
+                };
+                texCells.push({
+                  positions: [
+                    lerp(u0, v0), lerp(u0, v1), lerp(u1, v1), lerp(u1, v0),
+                  ],
+                  uMin: u0, uMax: u1, vMin: v0, vMax: v1,
                 });
               }
             }
 
-            const sampleToken = Symbol(`site-overlay-sample-${op.id}`);
-            entityGroupsRef.current.siteOverlaysSampleTokens =
-              entityGroupsRef.current.siteOverlaysSampleTokens ?? new Map<string, symbol>();
-            (entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol>).set(op.id, sampleToken);
+            const instances: Cesium.GeometryInstance[] = [];
+            for (const cell of texCells) {
+              const { positions, uMin, uMax, vMin, vMax } = cell;
+              const texCoords = new Cesium.PolygonHierarchy([
+                new Cesium.Cartesian2(uMin, 1 - vMin),
+                new Cesium.Cartesian2(uMin, 1 - vMax),
+                new Cesium.Cartesian2(uMax, 1 - vMax),
+                new Cesium.Cartesian2(uMax, 1 - vMin),
+              ]);
+              const geom = new Cesium.PolygonGeometry({
+                polygonHierarchy: new Cesium.PolygonHierarchy(positions),
+                textureCoordinates: texCoords,
+              });
+              instances.push(new Cesium.GeometryInstance({ geometry: geom }));
+            }
 
-            const buildGridPrimitive = (gridHeights: number[]) => {
-              const tokens = entityGroupsRef.current.siteOverlaysSampleTokens as Map<string, symbol> | undefined;
-              if (tokens?.get(op.id) !== sampleToken) return;
-              if (!viewerRef.current || viewerRef.current.isDestroyed?.()) return;
-
-              // Build one PolygonGeometry per quad cell: no adaptive lift,
-              // just exact terrain height + a tiny z-fighting offset.
-              // Cesium's built-in pipeline handles bounding spheres,
-              // normals, triangulation for each cell.
-              const instances: Array<Cesium.GeometryInstance> = [];
-              const vertexFormat = Cesium.MaterialAppearance.MaterialSupport.TEXTURED.vertexFormat;
-              for (let iv = 0; iv < GRID - 1; iv++) {
-                for (let iu = 0; iu < GRID - 1; iu++) {
-                  const i00 = iv * GRID + iu;
-                  const i10 = iv * GRID + iu + 1;
-                  const i01 = (iv + 1) * GRID + iu;
-                  const i11 = (iv + 1) * GRID + iu + 1;
-                  const g = [gridCartos[i00], gridCartos[i01], gridCartos[i11], gridCartos[i10]];
-                  const heightsForCell = [gridHeights[i00], gridHeights[i01], gridHeights[i11], gridHeights[i10]];
-                  const positions = g.map((p, j) =>
-                    Cesium.Cartesian3.fromDegrees(p.lng, p.lat, (heightsForCell[j] ?? 0) + ZFIGHT_OFFSET));
-                  const uMin = iu / (GRID - 1);
-                  const uMax = (iu + 1) / (GRID - 1);
-                  const vMin = iv / (GRID - 1);
-                  const vMax = (iv + 1) / (GRID - 1);
-                  const texCoords = new Cesium.PolygonHierarchy([
-                    new Cesium.Cartesian2(uMin, 1 - vMin), // c00
-                    new Cesium.Cartesian2(uMin, 1 - vMax), // c01
-                    new Cesium.Cartesian2(uMax, 1 - vMax), // c11
-                    new Cesium.Cartesian2(uMax, 1 - vMin), // c10
-                  ]);
-                  const geom = new Cesium.PolygonGeometry({
-                    polygonHierarchy: new Cesium.PolygonHierarchy(positions),
-                    textureCoordinates: texCoords,
-                    perPositionHeight: true,
-                    vertexFormat,
-                  });
-                  instances.push(new Cesium.GeometryInstance({ geometry: geom }));
-                }
-              }
-
-              try {
-                const primitive = new Cesium.Primitive({
-                  geometryInstances: instances,
-                  appearance: new Cesium.MaterialAppearance({
-                    materialSupport: Cesium.MaterialAppearance.MaterialSupport.TEXTURED,
-                    vertexFormat,
-                    material: Cesium.Material.fromType("Image", {
-                      image: op.siteMapUrl,
-                      color: new Cesium.Color(1, 1, 1, layers.siteOverlayOpacity),
-                      transparent: true,
-                    }),
-                    translucent: true,
+            try {
+              const primitive = new Cesium.GroundPrimitive({
+                geometryInstances: instances,
+                appearance: new Cesium.EllipsoidSurfaceAppearance({
+                  material: Cesium.Material.fromType("Image", {
+                    image: op.siteMapUrl,
+                    color: new Cesium.Color(1, 1, 1, layers.siteOverlayOpacity),
+                    transparent: true,
                   }),
-                  asynchronous: false,
-                });
-                viewer.scene.primitives.add(primitive);
-                entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
-              } catch (e) {
-                logger.swallow("cesium-layers:build-grid", e, "warn");
-              }
-            };
-
-            const terrainProvider = viewer.terrainProvider;
-            const canSample = terrainProvider
-              && !(terrainProvider instanceof Cesium.EllipsoidTerrainProvider)
-              && terrainProvider.availability;
-            if (!canSample) {
-              buildGridPrimitive(gridCartos.map(() => 0));
-            } else {
-              const allCartoList = gridCartos.map(g => Cesium.Cartographic.fromDegrees(g.lng, g.lat));
-              Cesium.sampleTerrainMostDetailed(terrainProvider, allCartoList)
-                .then((sampled: Array<{ height: number }>) => {
-                  buildGridPrimitive(sampled.map(s => s.height ?? 0));
-                })
-                .catch((err: unknown) => {
-                  logger.swallow("cesium-layers:terrain-sample", err, "warn");
-                  buildGridPrimitive(gridCartos.map(() => 0));
-                });
+                  translucent: true,
+                }),
+                asynchronous: false,
+              });
+              viewer.scene.primitives.add(primitive);
+              entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
+            } catch (e) {
+              logger.swallow("cesium-layers:build-grid", e, "warn");
             }
 
           } else {
