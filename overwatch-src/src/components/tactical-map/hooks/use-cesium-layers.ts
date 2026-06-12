@@ -357,6 +357,10 @@ export function useCesiumLayers(params: {
               MAX_GRID,
             );
             const ZFIGHT_OFFSET = 0.5;
+            // Excess is multiplied by LIFT_FACTOR so that terrain features
+            // offset from the cell centre (not fully captured by a single
+            // centre sample) still clear the mesh.  No lift on flat cells.
+            const LIFT_FACTOR = 1.5;
             const LIFT_PADDING = 0.5;
 
             // Build grid vertices and cell-center coordinates.  We sample
@@ -425,7 +429,7 @@ export function useCesiumLayers(params: {
                   const i11 = (iv + 1) * GRID + iu + 1;
                   const interp = (gridH[i00] + gridH[i10] + gridH[i01] + gridH[i11]) / 4;
                   const excess = (centerH[iv * (GRID - 1) + iu] ?? 0) - interp;
-                  cellLift[iv][iu] = Math.max(0, excess + LIFT_PADDING);
+                  cellLift[iv][iu] = Math.max(0, excess * LIFT_FACTOR + LIFT_PADDING);
                 }
               }
 
