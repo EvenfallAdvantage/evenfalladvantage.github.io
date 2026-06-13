@@ -117,9 +117,15 @@ export function useSdr() {
     }
   }, [store]);
 
+  const gainTimer = useRef<ReturnType<typeof setTimeout>>();
   const setGain = useCallback(async (gain: number) => {
     store.setGain(gain);
-    if (session.current) await session.current.ctrl.setGain(gain);
+    if (session.current) {
+      clearTimeout(gainTimer.current);
+      gainTimer.current = setTimeout(() => {
+        session.current?.ctrl.setGain(gain);
+      }, 200);
+    }
   }, [store]);
 
   const setVolume = useCallback((vol: number) => {
@@ -127,9 +133,15 @@ export function useSdr() {
     if (session.current) session.current.ctrl.setVolume(vol);
   }, [store]);
 
+  const squelchTimer = useRef<ReturnType<typeof setTimeout>>();
   const setSquelch = useCallback(async (squelch: number) => {
     store.setSquelch(squelch);
-    if (session.current) await session.current.ctrl.setSquelch(squelch);
+    if (session.current) {
+      clearTimeout(squelchTimer.current);
+      squelchTimer.current = setTimeout(() => {
+        session.current?.ctrl.setSquelch(squelch);
+      }, 200);
+    }
   }, [store]);
   const setMode = useCallback((mode: DemodMode) => store.setMode(mode), [store]);
 

@@ -108,7 +108,6 @@ export class SdrBridge {
     if (!this.audioCtx) return;
     this.audioBuf = [];
     this.scriptNode = this.audioCtx.createScriptProcessor(4096, 1, 1);
-    const vol = () => this._volume;
     this.scriptNode.onaudioprocess = (e: AudioProcessingEvent) => {
       if (!this.active) return;
       const out = e.outputBuffer.getChannelData(0);
@@ -127,8 +126,7 @@ export class SdrBridge {
           written = out.length;
         }
       }
-      const v = vol();
-      if (v !== 1) { for (let i = 0; i < out.length; i++) out[i] *= v; }
+
       let s = 0;
       for (let i = 0; i < out.length; i++) s += out[i] * out[i];
       this.signalLevel = Math.sqrt(s / out.length);
