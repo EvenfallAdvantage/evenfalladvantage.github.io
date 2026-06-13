@@ -14,6 +14,7 @@ import { ChannelsTab } from "./components/channels-tab";
 import { ExternalTab } from "./components/external-tab";
 import { ScannerTab } from "./components/scanner-tab";
 import { RadioLogPanel } from "./components/radio-log-panel";
+import { SdrTuner } from "./components/sdr-tuner";
 
 type Tab = "channels" | "external" | "messages" | "scanner";
 
@@ -129,7 +130,7 @@ export default function ChatPage() {
 }
 
 function ScannerContent() {
-  const [scanTab, setScanTab] = useState<"frequencies" | "log">("frequencies");
+  const [scanTab, setScanTab] = useState<"frequencies" | "log" | "live">("frequencies");
 
   return (
     <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
@@ -142,8 +143,12 @@ function ScannerContent() {
           className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scanTab === "log" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
           Activity Log
         </button>
+        <button onClick={() => setScanTab("live")}
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scanTab === "live" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          Live
+        </button>
       </div>
-      {scanTab === "frequencies" ? <ScannerTab /> : <RadioLogPanel />}
+      {scanTab === "frequencies" ? <ScannerTab /> : scanTab === "log" ? <RadioLogPanel /> : <SdrTuner />}
     </div>
   );
 }
