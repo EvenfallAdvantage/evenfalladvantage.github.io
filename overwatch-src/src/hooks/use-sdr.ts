@@ -67,15 +67,16 @@ export function useSdr() {
           if (!data) continue;
 
           const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-          // Use WASM memory directly
-          const wasmMemory = new Uint8Array(wasm.memory.buffer);
+          // WASM linear memory layout:
+          //   0 .. BUFFER_SIZE-1   = I/Q samples (uint8)
+          //   BUFFER_SIZE .. *     = audio output (float32)
           const iqPtr = 0;
-          const audioPtr = iqPtr + BUFFER_SIZE;
-          wasmMemory.set(bytes, iqPtr);
+          const audioPtr = BUFFER_SIZE;
+          new Uint8Array(wasm.memory.buffer).set(bytes, iqPtr);
 
           const samplesOut = wasm.fm_demodulate(iqPtr, audioPtr, bytes.length / 2);
           if (samplesOut > 0) {
-            const audioBuf = new Float32Array(wasm.memory.buffer, audioPtr * 4, samplesOut);
+            const audioBuf = new Float32Array(wasm.memory.buffer, audioPtr, samplesOut);
             ctrl.feedAudio(new Float32Array(audioBuf));
           }
         }
