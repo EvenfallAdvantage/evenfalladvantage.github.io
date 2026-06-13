@@ -89,6 +89,7 @@ export class SdrController {
   async setFrequency(freqHz: number): Promise<void> {
     if (!this.vendorOk) return;
     this.currentFreqHz = freqHz;
+    this.audioBuf = [];
     if (!this.active || !this.device) return;
     await this.demodWrite(0x01, 0x11);
     await this.r820tSetFreq(freqHz);

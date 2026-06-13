@@ -15,6 +15,7 @@ export class SdrBridge {
   get sampleRate(): number { return this._sampleRate; }
 
   async connect(): Promise<void> {
+    this.setupAudio();
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`ws://localhost:${COMPANION_PORT}`);
       ws.binaryType = "arraybuffer";
@@ -33,8 +34,11 @@ export class SdrBridge {
               if (msg.sample_rate) this._sampleRate = msg.sample_rate;
               this.active = true;
               this.ws = ws;
-              this.setupAudio();
               resolve();
+            } else if (msg.type === "freq_set") {
+              this.audioBuf = [];
+            } else if (msg.type === "gain_set") {
+              // gain acknowledgement
             }
           } catch {}
         } else if (e.data instanceof ArrayBuffer) {
@@ -72,6 +76,7 @@ export class SdrBridge {
 
   async setFrequency(freqHz: number): Promise<void> {
     if (this.isConnected()) {
+      this.audioBuf = [];
       this.ws!.send(JSON.stringify({ cmd: "set_frequency", freq: freqHz }));
     }
   }

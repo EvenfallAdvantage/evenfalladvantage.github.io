@@ -35,10 +35,10 @@ export class SdrServer {
       ws.send(JSON.stringify({ type: "ready", sample_rate: SAMPLE_RATE }));
       console.log("SDR: client connected");
 
-      ws.on("message", (raw) => {
+      ws.on("message", async (raw) => {
         try {
           const msg = JSON.parse(raw.toString());
-          this.handleMessage(ws, msg);
+          await this.handleMessage(ws, msg);
         } catch {}
       });
 
@@ -58,19 +58,25 @@ export class SdrServer {
     this.wss?.close();
   }
 
-  private handleMessage(_ws: WsSocket, msg: Record<string, unknown>): void {
+  private async handleMessage(ws: WsSocket, msg: Record<string, unknown>): Promise<void> {
     switch (msg.cmd) {
       case "set_frequency":
         this.freqHz = msg.freq as number;
-        this.rtl.setFrequency(this.freqHz);
+        console.log(`SDR: changing freq to ${this.freqHz} Hz`);
+        await this.rtl.setFrequency(this.freqHz);
+        console.log(`SDR: freq set to ${this.freqHz} Hz`);
+        ws.send(JSON.stringify({ type: "freq_set", freq: this.freqHz }));
         break;
       case "set_gain":
         this.gainDb = msg.gain as number;
-        this.rtl.setGain(this.gainDb);
+        console.log(`SDR: changing gain to ${this.gainDb} dB`);
+        await this.rtl.setGain(this.gainDb);
+        ws.send(JSON.stringify({ type: "gain_set", gain: this.gainDb }));
         break;
       case "set_mode":
         this.mode = msg.mode as string;
-        this.rtl.setMode(this.mode);
+        console.log(`SDR: changing mode to ${this.mode}`);
+        await this.rtl.setMode(this.mode);
         break;
     }
   }

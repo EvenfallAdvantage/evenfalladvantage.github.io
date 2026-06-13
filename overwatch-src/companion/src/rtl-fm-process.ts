@@ -66,6 +66,8 @@ export class RtlFmProcess {
 
   private kill(): void {
     if (this.proc) {
+      this.proc.stdout?.removeAllListeners("data");
+      this.proc.stderr?.removeAllListeners("data");
       try { this.proc.kill(); } catch {}
       this.proc = null;
     }
