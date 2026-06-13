@@ -47,6 +47,7 @@ export class SdrController {
   private active = false;
   private audioBuf: Float32Array[] = [];
   private currentFreqHz = 0;
+  private useDataPhase = true; // auto-detected
 
   // ── Connect + RTL2832U Init ─────────────────────────
 
@@ -88,9 +89,23 @@ export class SdrController {
 
     this.device = device;
 
-    // ── RTL2832U Init (matching librtlsdr sequence) ──
+    // Verify vendor control access — if vendor requests stall, driver is wrong
+    const vendorOk = await this.testVendorAccess();
+    if (!vendorOk) {
+      throw new Error(
+        "RTL2832U driver rejects vendor control transfers.\n\n" +
+        "On Windows, install WinUSB via Zadig:\n" +
+        "1. Download https://zadig.akeo.ie/\n" +
+        "2. Plug in RTL-SDR\n" +
+        "3. Options > List All Devices\n" +
+        "4. Select 'Bulk-In, Interface (Interface 0)'\n" +
+        "5. Click arrow until 'WinUSB' is shown\n" +
+        "6. Replace Driver\n" +
+        "7. Unplug/replug and retry",
+      );
+    }
 
-    // Non-essential init steps — skip if device doesn't support them
+    // Non-essential — warn but continue on failure
     await this.tryStep("reset EP1", () => this.vendorCtrl(0x01, 0x0001, 0x0000));
     await this.tryStep("set EP1 packet size", () =>
       this.vendorCtrlW(0x81, 0x0002, 0x0000, new Uint8Array([0x00, 0x02])),
@@ -99,7 +114,7 @@ export class SdrController {
       this.vendorCtrlW(0x61, 0x0000, 0x0000, new Uint8Array([0x60, 0x00])),
     );
 
-    // 4. Init RTL2832U demod registers
+    // Init RTL2832U demod registers
     await this.step("demod reg 0x01", () => this.demodWrite(0x01, 0x01));
     await this.step("demod reg 0x06", () => this.demodWrite(0x06, 0x0f));
     await this.step("demod reg 0x15", () => this.demodWrite(0x15, 0x00));
@@ -111,16 +126,15 @@ export class SdrController {
     await this.step("demod reg 0x1b", () => this.demodWrite(0x1b, 0x00));
     await this.step("demod reg 0x1c", () => this.demodWrite(0x1c, 0x00));
 
-    // 5. Set sample rate
+    // Set sample rate
     await this.step("sample rate", () => this.setSampleRate(DEFAULT_SAMPLE_RATE));
 
-    // 6. Init R820T tuner via I2C
+    // Init R820T tuner via I2C
     await this.step("R820T init", () => this.r820tInit());
 
-    // 7. Set initial frequency
+    // Set initial frequency
     await this.step("tune init", () => this.r820tSetFreq(100_000_000));
 
-    // 8. Done — device is now streaming I/Q
     await this.sleep(20);
 
     // ── Audio pipeline ──
@@ -222,23 +236,35 @@ export class SdrController {
   // ── RTL2832U Demod Register Write ─────────────────────
 
   /**
-   * Write to a RTL2832U demodulator register.
-   *
-   * USB control transfer format (from librtlsdr):
-   *   bmRequestType = 0x40 (vendor | host-to-device)
-   *   bRequest      = 0x04
-   *   wValue        = register address (e.g. 0x01, 0x06, 0x9d…)
-   *   wIndex        = page (0 for main demod page)
-   *   Data          = 1-byte value
+   * Auto-detect register write format:
+   * 1. Try data-phase format (librtlsdr): wValue=addr, wIndex=page, data=[val]
+   * 2. On stall, fall back to wIndex format: wValue=addr, wIndex=val, no data
    */
   private async demodWrite(addr: number, val: number, page: number = 0): Promise<void> {
+    if (this.useDataPhase) {
+      try {
+        await this.device!.controlTransferOut({
+          requestType: "vendor",
+          recipient: "device",
+          request: 0x04,
+          value: addr,
+          index: page,
+        }, new Uint8Array([val]));
+        return;
+      } catch {
+        console.warn(`SDR init: switching to wIndex format after stall on 0x${addr.toString(16)}`);
+        this.useDataPhase = false;
+      }
+    }
+
+    // Fallback: value in wIndex, no data phase
     await this.device!.controlTransferOut({
       requestType: "vendor",
       recipient: "device",
       request: 0x04,
       value: addr,
-      index: page,
-    }, new Uint8Array([val]));
+      index: val,
+    });
   }
 
   private async demodRead(addr: number, page: number = 0): Promise<number> {
@@ -250,6 +276,37 @@ export class SdrController {
       index: page,
     }, 1);
     return result.data?.getUint8(0) ?? 0;
+  }
+
+  // ── Vendor Access Test ──────────────────────────────────
+
+  /** Probe device with a minimal vendor request to verify driver support */
+  private async testVendorAccess(): Promise<boolean> {
+    try {
+      // Try to read demod register 0x01 (harmless probe)
+      await this.device!.controlTransferIn({
+        requestType: "vendor",
+        recipient: "device",
+        request: 0x05,
+        value: 0x01,
+        index: 0x00,
+      }, 1);
+      return true;
+    } catch {
+      // Vendor requests may be in wIndex mode too — try write probe
+      try {
+        await this.device!.controlTransferOut({
+          requestType: "vendor",
+          recipient: "device",
+          request: 0x04,
+          value: 0x00,
+          index: 0x00,
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    }
   }
 
   // ── USB Vendor Control Transfers ─────────────────────
