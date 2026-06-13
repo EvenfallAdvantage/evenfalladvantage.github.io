@@ -59,6 +59,16 @@ export class SdrController {
     }
   }
 
+  /** Run a step; log warning on failure but don't throw */
+  private async tryStep(label: string, fn: () => Promise<void>): Promise<void> {
+    try {
+      await fn();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`SDR init: ${label} skipped (${msg})`);
+    }
+  }
+
   async connect(): Promise<void> {
     if (!navigator.usb) throw new Error("WebUSB not available");
 
@@ -80,16 +90,12 @@ export class SdrController {
 
     // ── RTL2832U Init (matching librtlsdr sequence) ──
 
-    // 1. Reset EP1 bulk-IN buffer
-    await this.step("reset EP1", () => this.vendorCtrl(0x01, 0x0001, 0x0000));
-
-    // 2. Set EP1 max packet size to 512 bytes
-    await this.step("set EP1 packet size", () =>
+    // Non-essential init steps — skip if device doesn't support them
+    await this.tryStep("reset EP1", () => this.vendorCtrl(0x01, 0x0001, 0x0000));
+    await this.tryStep("set EP1 packet size", () =>
       this.vendorCtrlW(0x81, 0x0002, 0x0000, new Uint8Array([0x00, 0x02])),
     );
-
-    // 3. Configure XTAL bypass + AGC
-    await this.step("XTAL bypass", () =>
+    await this.tryStep("XTAL bypass", () =>
       this.vendorCtrlW(0x61, 0x0000, 0x0000, new Uint8Array([0x60, 0x00])),
     );
 
