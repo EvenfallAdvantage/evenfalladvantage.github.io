@@ -81,6 +81,12 @@ export class SdrBridge {
     }
   }
 
+  async setSquelch(squelch: number): Promise<void> {
+    if (this.isConnected()) {
+      this.ws!.send(JSON.stringify({ cmd: "set_squelch", squelch }));
+    }
+  }
+
   async setGain(gainDb: number): Promise<void> {
     if (this.isConnected()) {
       this.ws!.send(JSON.stringify({ cmd: "set_gain", gain: gainDb }));

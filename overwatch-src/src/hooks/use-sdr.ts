@@ -127,7 +127,10 @@ export function useSdr() {
     if (session.current) session.current.ctrl.setVolume(vol);
   }, [store]);
 
-  const setSquelch = useCallback((squelch: number) => store.setSquelch(squelch), [store]);
+  const setSquelch = useCallback(async (squelch: number) => {
+    store.setSquelch(squelch);
+    if (session.current) await session.current.ctrl.setSquelch(squelch);
+  }, [store]);
   const setMode = useCallback((mode: DemodMode) => store.setMode(mode), [store]);
 
   return { ...store, connect, disconnect, tune, setGain, setSquelch, setVolume, setMode };

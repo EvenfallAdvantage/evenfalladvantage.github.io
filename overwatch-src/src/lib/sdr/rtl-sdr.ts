@@ -111,6 +111,10 @@ export class SdrController {
     if (this.gainNode) this.gainNode.gain.value = Math.max(0, Math.min(1, v));
   }
 
+  async setSquelch(_squelch: number): Promise<void> {
+    // squelch controlled by the RTL-SDR directly; NOP for WebUSB path
+  }
+
   resumeAudio(): void {
     this.audioCtx?.resume();
   }

@@ -55,6 +55,11 @@ export class RtlFmProcess {
     await this.restart();
   }
 
+  async setSquelch(squelch: number): Promise<void> {
+    this.params.squelch = squelch;
+    await this.restart();
+  }
+
   async setMode(mode: string): Promise<void> {
     this.params.mode = mode;
     await this.restart();

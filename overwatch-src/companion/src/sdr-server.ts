@@ -73,6 +73,10 @@ export class SdrServer {
         await this.rtl.setGain(this.gainDb);
         ws.send(JSON.stringify({ type: "gain_set", gain: this.gainDb }));
         break;
+      case "set_squelch":
+        console.log(`SDR: changing squelch to ${msg.squelch}`);
+        await this.rtl.setSquelch(msg.squelch as number);
+        break;
       case "set_mode":
         this.mode = msg.mode as string;
         console.log(`SDR: changing mode to ${this.mode}`);
