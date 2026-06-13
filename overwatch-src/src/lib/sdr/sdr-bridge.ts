@@ -24,7 +24,7 @@ export class SdrBridge {
       ws.binaryType = "arraybuffer";
       const timer = setTimeout(() => {
         ws.close();
-        reject(new Error("Companion service not found"));
+        reject(new Error("Companion service not found. Please install the SDR companion app from https://github.com/EvenfallAdvantage/evenfalladvantage.github.io"));
       }, CONNECT_TIMEOUT);
 
       ws.onopen = () => clearTimeout(timer);

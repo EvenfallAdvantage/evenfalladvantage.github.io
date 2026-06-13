@@ -83,6 +83,35 @@ export function SdrTuner() {
     );
   }
 
+  const platform = navigator.userAgent.toLowerCase().includes("windows") ? "windows" : "other";
+  if (platform === "windows" && !isConnecting && !isConnected && !isError) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <WifiOff className="h-4 w-4" />
+          <span>Companion app required</span>
+        </div>
+        <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+          <p className="mb-2">The SDR Companion app must be running to use the RTL-SDR dongle on Windows.</p>
+          <ol className="list-decimal ml-4 space-y-1">
+            <li>Download the companion app:</li>
+            <li className="ml-4">https://github.com/EvenfallAdvantage/evenfalladvantage.github.io</li>
+            <li>Run <code className="font-mono bg-muted/50 px-1 py-0.5 rounded">companion/start.cmd</code></li>
+            <li>Click &quot;Connect SDR&quot; below</li>
+          </ol>
+          <a
+            href="https://github.com/EvenfallAdvantage/evenfalladvantage.github.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Download Companion App
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 space-y-4">
 

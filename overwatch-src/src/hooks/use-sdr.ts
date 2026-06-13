@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useSdrStore } from "@/stores/sdr-store";
 import { loadWasm, getWasm, getSdrController, destroySdrController } from "@/lib/sdr/rtl-sdr";
 import { SdrBridge } from "@/lib/sdr/sdr-bridge";
+import { getPlatform, isDesktop } from "@/lib/sdr/platform";
 import { BUFFER_SIZE } from "@/lib/sdr/types";
 import type { DemodMode } from "@/lib/sdr/types";
 
@@ -117,7 +118,16 @@ export function useSdr() {
       readLoop();
     } catch (err) {
       store.setConnection("error");
-      store.setError(err instanceof Error ? err.message : "Connection failed");
+      const platform = getPlatform();
+      let errorMsg = err instanceof Error ? err.message : "Connection failed";
+      if (platform === "windows") {
+        errorMsg = "SDR Companion app not found.\n\nPlease download and run the SDR companion app for Windows:\nhttps://github.com/EvenfallAdvantage/evenfalladvantage.github.io\n\nOnce launched, click 'Connect SDR' again.";
+      } else if (isDesktop()) {
+        errorMsg = "SDR connection failed.\n\nDirect USB access requires Chrome/Edge and librtlsdr installed.\nTry the companion app instead: https://github.com/EvenfallAdvantage/evenfalladvantage.github.io";
+      } else {
+        errorMsg = "Live SDR tuning requires a desktop browser (Chrome/Edge) with WebUSB support.\nYour device or browser does not meet these requirements.";
+      }
+      store.setError(errorMsg);
     }
   }, [store]);
 
