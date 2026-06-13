@@ -60,15 +60,15 @@ export class SdrBridge {
   }
 
   disconnect(): void {
+    if (this.ws) {
+      try { this.ws.onmessage = null; this.ws.onerror = null; this.ws.onclose = null; this.ws.close(); } catch {}
+      this.ws = null;
+    }
     this.active = false;
     this.audioBuf = [];
     if (this.scriptNode) { try { this.scriptNode.disconnect(); } catch {} this.scriptNode = null; }
     if (this.gainNode) { try { this.gainNode.disconnect(); } catch {} this.gainNode = null; }
     if (this.audioCtx) { try { this.audioCtx.close(); } catch {} this.audioCtx = null; }
-    if (this.ws) {
-      try { this.ws.onmessage = null; this.ws.onerror = null; this.ws.onclose = null; this.ws.close(); } catch {}
-      this.ws = null;
-    }
   }
 
   isConnected(): boolean {
@@ -95,9 +95,7 @@ export class SdrBridge {
   }
 
   setVolume(v: number): void {
-    v = Math.max(0, Math.min(1, v));
-    this._volume = v;
-    if (this.gainNode) this.gainNode.gain.value = v;
+    this._volume = Math.max(0, Math.min(1, v));
   }
 
   resumeAudio(): void {
@@ -131,6 +129,9 @@ export class SdrBridge {
       for (let i = 0; i < out.length; i++) s += out[i] * out[i];
       this.signalLevel = Math.sqrt(s / out.length);
       onLevel(this.signalLevel);
+
+      const vol = this._volume;
+      if (vol !== 1) for (let i = 0; i < out.length; i++) out[i] *= vol;
     };
     this.scriptNode.connect(this.gainNode!);
   }
@@ -142,7 +143,7 @@ export class SdrBridge {
   private setupAudio(): void {
     this.audioCtx = new AudioContext({ sampleRate: AUDIO_SAMPLE_RATE });
     this.gainNode = this.audioCtx.createGain();
-    this.gainNode.gain.value = 0.7;
+    this.gainNode.gain.value = 1.0;
     this.gainNode.connect(this.audioCtx.destination);
   }
 
