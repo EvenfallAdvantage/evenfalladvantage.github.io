@@ -89,22 +89,6 @@ export class SdrController {
 
     this.device = device;
 
-    // Verify vendor control access — if vendor requests stall, driver is wrong
-    const vendorOk = await this.testVendorAccess();
-    if (!vendorOk) {
-      throw new Error(
-        "RTL2832U driver rejects vendor control transfers.\n\n" +
-        "On Windows, install WinUSB via Zadig:\n" +
-        "1. Download https://zadig.akeo.ie/\n" +
-        "2. Plug in RTL-SDR\n" +
-        "3. Options > List All Devices\n" +
-        "4. Select 'Bulk-In, Interface (Interface 0)'\n" +
-        "5. Click arrow until 'WinUSB' is shown\n" +
-        "6. Replace Driver\n" +
-        "7. Unplug/replug and retry",
-      );
-    }
-
     // Non-essential — warn but continue on failure
     await this.tryStep("reset EP1", () => this.vendorCtrl(0x01, 0x0001, 0x0000));
     await this.tryStep("set EP1 packet size", () =>
@@ -276,38 +260,6 @@ export class SdrController {
       index: page,
     }, 1);
     return result.data?.getUint8(0) ?? 0;
-  }
-
-  // ── Vendor Access Test ──────────────────────────────────
-
-  /** Probe device to verify vendor control transfers work */
-  private async testVendorAccess(): Promise<boolean> {
-    // Try data-phase format first (librtlsdr style)
-    try {
-      await this.device!.controlTransferOut({
-        requestType: "vendor",
-        recipient: "device",
-        request: 0x04,
-        value: 0x01,
-        index: 0x00,
-      }, new Uint8Array([0x01]));
-      return true;
-    } catch {
-      // Fall back to wIndex-encoded format (no data phase)
-      try {
-        await this.device!.controlTransferOut({
-          requestType: "vendor",
-          recipient: "device",
-          request: 0x04,
-          value: 0x01,
-          index: 0x01,
-        });
-        this.useDataPhase = false;
-        return true;
-      } catch {
-        return false;
-      }
-    }
   }
 
   // ── USB Vendor Control Transfers ─────────────────────
