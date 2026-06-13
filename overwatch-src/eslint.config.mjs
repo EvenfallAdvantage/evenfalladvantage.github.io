@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     "public/cesium/**",
     // Scripts folder — Node.js scripts not part of the app
     "scripts/**",
+    // Companion SEA bundle — auto-generated, not source code
+    "companion/dist/**",
   ]),
   {
     rules: {

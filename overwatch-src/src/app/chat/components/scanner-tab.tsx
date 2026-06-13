@@ -10,7 +10,6 @@ import {
   deleteRadioFrequency, getActiveRadioStates, logRadioActivity,
 } from "@/lib/supabase/db";
 import { useAuthStore } from "@/stores/auth-store";
-import { useSdrStore } from "@/stores/sdr-store";
 import { globalTune } from "@/hooks/use-sdr";
 import { STATE_LAWS } from "@/lib/state-laws-data";
 
