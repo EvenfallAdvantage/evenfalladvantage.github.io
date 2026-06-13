@@ -41,7 +41,6 @@ export class SdrController {
   private audioBuf: Float32Array[] = [];
   private currentFreqHz = 0;
   private vendorOk = false;
-  private fmtIndex = 0;
 
   // ── Connect ───────────────────────────────────────────
 
@@ -139,16 +138,19 @@ export class SdrController {
   // ── Vendor init (best-effort, non-fatal) ─────────────
 
   private async initVendor(): Promise<void> {
-    // Non-essential requests (may fail on composite/WinUSB)
+    // RTL2832U uses vendor control transfers with NO data phase (wLength=0).
+    // The register value is passed in wIndex, address in wValue.
+    // Including a data phase (wLength > 0) will cause the device to STALL.
     await this.tryCtrl("reset EP1", () =>
-      this.device!.controlTransferOut({ requestType: "vendor", recipient: "device", request: 0x01, value: 0x0001, index: 0x0000 }),
+      this.vendorCtrl(0x01, 0x0001, 0x0000),
     );
     await this.tryCtrl("set pkt size", () =>
-      this.device!.controlTransferOut({ requestType: "vendor", recipient: "device", request: 0x81, value: 0x0002, index: 0x0000 }, new Uint8Array([0x00, 0x02])),
+      this.vendorCtrl(0x81, 0x0002, 0x0000),
     );
     await this.tryCtrl("XTAL bypass", () =>
-      this.device!.controlTransferOut({ requestType: "vendor", recipient: "device", request: 0x61, value: 0x0000, index: 0x0000 }, new Uint8Array([0x60, 0x00])),
+      this.vendorCtrl(0x61, 0x0000, 0x0000),
     );
+    await this.sleep(5);
 
     // Essential: configure demod + tuner. If any register write fails, give up.
     try {
@@ -161,8 +163,6 @@ export class SdrController {
       await this.sleep(20);
       this.vendorOk = true;
     } catch (err) {
-      // Device powers up with I/Q streaming at ~1 MS/s and default LO.
-      // Audio may be off-frequency but bulk reads will produce data.
       console.warn("SDR: vendor init failed — using hardware defaults", err);
     }
   }
@@ -171,31 +171,35 @@ export class SdrController {
     try { await fn(); } catch { console.warn(`SDR: ${label} skipped`); }
   }
 
-  // ── Demod register write (auto-detect format) ────────
+  // ── Generic vendor control transfer (no data phase) ──────
 
-  private async demodWrite(addr: number, val: number, page = 0): Promise<void> {
-    const formats = [
-      { useData: true,  recipient: "device" as const, build: () => ({ value: addr, index: page, data: new Uint8Array([val]) }) },
-      { useData: false, recipient: "device" as const, build: () => ({ value: addr, index: val }) },
-      { useData: false, recipient: "interface" as const, build: () => ({ value: addr, index: val }) },
-    ];
+  private async vendorCtrl(request: number, value: number, index: number): Promise<void> {
+    await this.device!.controlTransferOut({ requestType: "vendor", recipient: "device", request, value, index });
+  }
 
-    const candidates = formats.slice(this.fmtIndex);
-    for (const f of candidates) {
+  // ── Demod register write ──────────────────────────────
+  //
+  // RTL2832U protocol: bmRequestType=0x40 (vendor/device/host-to-dev),
+  // bRequest=0x04, wValue=register_addr, wIndex=register_val, wLength=0.
+  // The correct format is therefore request=0x04, recipient="device",
+  // value=addr, index=val, NO data phase.
+  //
+  // We try this format first. If it stalls (unlikely on properly bound
+  // WinUSB), we try recipient="interface" as a last resort.
+
+  private async demodWrite(addr: number, val: number): Promise<void> {
+    const err: unknown[] = [];
+
+    for (const recipient of ["device" as const, "interface" as const]) {
       try {
-        const { value, index, data } = f.build() as any;
-        if (f.useData) {
-          await this.device!.controlTransferOut({ requestType: "vendor", recipient: f.recipient, request: 0x04, value, index }, data);
-        } else {
-          await this.device!.controlTransferOut({ requestType: "vendor", recipient: f.recipient, request: 0x04, value, index });
-        }
-        this.fmtIndex = formats.indexOf(f);
+        await this.device!.controlTransferOut({ requestType: "vendor", recipient, request: 0x04, value: addr, index: val });
         return;
-      } catch {
-        console.warn(`SDR: fmt ${f.useData ? "data" : "wIndex"}/${f.recipient} stalled @ 0x${addr.toString(16)}`);
+      } catch (e) {
+        err.push(e);
+        await this.sleep(10);
       }
     }
-    throw new Error(`demodWrite(0x${addr.toString(16)},${val}) stalled on all formats`);
+    throw new Error(`demodWrite(0x${addr.toString(16)},${val}) stalled: ${err.map((e) => String(e)).join(" | ")}`);
   }
 
   // ── I2C (tuner access through RTL2832U) ──────────────
