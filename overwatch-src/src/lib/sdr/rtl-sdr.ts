@@ -47,7 +47,6 @@ export class SdrController {
   private active = false;
   private audioBuf: Float32Array[] = [];
   private currentFreqHz = 0;
-  private useDataPhase = true; // auto-detected
 
   // ── Connect + RTL2832U Init ─────────────────────────
 
@@ -220,36 +219,46 @@ export class SdrController {
   // ── RTL2832U Demod Register Write ─────────────────────
 
   /**
-   * Auto-detect register write format:
-   * 1. Try data-phase format (librtlsdr): wValue=addr, wIndex=page, data=[val]
-   * 2. On stall, fall back to wIndex format: wValue=addr, wIndex=val, no data
+   * Try three register write formats in sequence until one works:
+   * 1. data-phase, device-level   (librtlsdr: wValue=addr, wIndex=page, [val])
+   * 2. wIndex, device-level        (alt firmware: wValue=addr, wIndex=val)
+   * 3. wIndex, interface-level     (WinUSB composite device: recipient=interface)
    */
   private async demodWrite(addr: number, val: number, page: number = 0): Promise<void> {
-    if (this.useDataPhase) {
+    const tryFormats = [
+      { recipient: "device" as const, useData: true as const, label: "data/device" },
+      { recipient: "device" as const, useData: false as const, label: "wIndex/device" },
+      { recipient: "interface" as const, useData: false as const, label: "wIndex/interface" },
+    ];
+
+    // Filter out already-failed formats based on a class-level preference
+    const candidates = tryFormats.slice(this._fmtIndex);
+
+    for (const fmt of candidates) {
       try {
-        await this.device!.controlTransferOut({
-          requestType: "vendor",
-          recipient: "device",
-          request: 0x04,
-          value: addr,
-          index: page,
-        }, new Uint8Array([val]));
+        if (fmt.useData) {
+          await this.device!.controlTransferOut({
+            requestType: "vendor", recipient: fmt.recipient,
+            request: 0x04, value: addr, index: page,
+          }, new Uint8Array([val]));
+        } else {
+          await this.device!.controlTransferOut({
+            requestType: "vendor", recipient: fmt.recipient,
+            request: 0x04, value: addr, index: val,
+          });
+        }
+        // Success — remember this format index for subsequent calls
+        this._fmtIndex = tryFormats.indexOf(fmt);
         return;
       } catch {
-        console.warn(`SDR init: switching to wIndex format after stall on 0x${addr.toString(16)}`);
-        this.useDataPhase = false;
+        console.warn(`SDR init: format ${fmt.label} stalled on 0x${addr.toString(16)}`);
       }
     }
 
-    // Fallback: value in wIndex, no data phase
-    await this.device!.controlTransferOut({
-      requestType: "vendor",
-      recipient: "device",
-      request: 0x04,
-      value: addr,
-      index: val,
-    });
+    throw new Error(`demodWrite(0x${addr.toString(16)}, ${val}) stalled on all 3 formats`);
   }
+
+  private _fmtIndex = 0; // tracks which format was last successful
 
   private async demodRead(addr: number, page: number = 0): Promise<number> {
     const result = await this.device!.controlTransferIn({
