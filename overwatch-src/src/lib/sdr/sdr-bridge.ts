@@ -57,9 +57,13 @@ export class SdrBridge {
   disconnect(): void {
     this.active = false;
     this.audioBuf = [];
-    if (this.scriptNode) { this.scriptNode.disconnect(); this.scriptNode = null; }
-    if (this.audioCtx) { this.audioCtx.close(); this.audioCtx = null; this.gainNode = null; }
-    if (this.ws) { this.ws.close(); this.ws = null; }
+    if (this.scriptNode) { try { this.scriptNode.disconnect(); } catch {} this.scriptNode = null; }
+    if (this.gainNode) { try { this.gainNode.disconnect(); } catch {} this.gainNode = null; }
+    if (this.audioCtx) { try { this.audioCtx.close(); } catch {} this.audioCtx = null; }
+    if (this.ws) {
+      try { this.ws.onmessage = null; this.ws.onerror = null; this.ws.onclose = null; this.ws.close(); } catch {}
+      this.ws = null;
+    }
   }
 
   isConnected(): boolean {
@@ -91,15 +95,27 @@ export class SdrBridge {
     this.audioBuf = [];
     this.scriptNode = this.audioCtx.createScriptProcessor(4096, 1, 1);
     this.scriptNode.onaudioprocess = (e: AudioProcessingEvent) => {
+      if (!this.active) return;
       const out = e.outputBuffer.getChannelData(0);
-      const buf = this.audioBuf.shift();
-      if (buf) {
-        out.set(buf.subarray(0, out.length));
-        let s = 0;
-        for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
-        this.signalLevel = buf.length > 0 ? Math.sqrt(s / buf.length) : 0;
-        onLevel(this.signalLevel);
+      const buf = this.audioBuf;
+      let written = 0;
+      while (written < out.length && buf.length > 0) {
+        const chunk = buf[0];
+        const needed = out.length - written;
+        if (chunk.length <= needed) {
+          out.set(chunk, written);
+          written += chunk.length;
+          buf.shift();
+        } else {
+          out.set(chunk.subarray(0, needed), written);
+          buf[0] = chunk.subarray(needed);
+          written = out.length;
+        }
       }
+      let s = 0;
+      for (let i = 0; i < out.length; i++) s += out[i] * out[i];
+      this.signalLevel = Math.sqrt(s / out.length);
+      onLevel(this.signalLevel);
     };
     this.scriptNode.connect(this.gainNode!);
   }
@@ -116,6 +132,7 @@ export class SdrBridge {
   }
 
   private handleAudio(data: ArrayBuffer): void {
+    if (!this.active) return;
     const audio = new Float32Array(data);
     this.audioBuf.push(audio);
   }
