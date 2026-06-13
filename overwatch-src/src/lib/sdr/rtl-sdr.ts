@@ -50,6 +50,15 @@ export class SdrController {
 
   // ── Connect + RTL2832U Init ─────────────────────────
 
+  private async step(label: string, fn: () => Promise<void>): Promise<void> {
+    try {
+      await fn();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`[${label}] ${msg}`);
+    }
+  }
+
   async connect(): Promise<void> {
     if (!navigator.usb) throw new Error("WebUSB not available");
 
@@ -72,36 +81,38 @@ export class SdrController {
     // ── RTL2832U Init (matching librtlsdr sequence) ──
 
     // 1. Reset EP1 bulk-IN buffer
-    await this.vendorCtrl(0x01, 0x0001, 0x0000);
+    await this.step("reset EP1", () => this.vendorCtrl(0x01, 0x0001, 0x0000));
 
     // 2. Set EP1 max packet size to 512 bytes
-    await this.vendorCtrlW(0x81, 0x0002, 0x0000, new Uint8Array([0x00, 0x02]));
+    await this.step("set EP1 packet size", () =>
+      this.vendorCtrlW(0x81, 0x0002, 0x0000, new Uint8Array([0x00, 0x02])),
+    );
 
     // 3. Configure XTAL bypass + AGC
-    await this.vendorCtrlW(0x61, 0x0000, 0x0000, new Uint8Array([0x60, 0x00]));
+    await this.step("XTAL bypass", () =>
+      this.vendorCtrlW(0x61, 0x0000, 0x0000, new Uint8Array([0x60, 0x00])),
+    );
 
     // 4. Init RTL2832U demod registers
-    //    Register write format (from librtlsdr):
-    //      controlTransferOut({ request: 0x04, value: addr, index: page }, [val])
-    await this.demodWrite(0x01, 0x01); // I/Q output enabled
-    await this.demodWrite(0x06, 0x0f); // decimation off, high-speed off
-    await this.demodWrite(0x15, 0x00); // DSP off
-    await this.demodWrite(0x16, 0x00); // AGC off (manual gain)
-    await this.demodWrite(0x17, 0x00);
-    await this.demodWrite(0x18, 0x00);
-    await this.demodWrite(0x19, 0x00); // I2C data
-    await this.demodWrite(0x1a, 0x00); // I2C clock
-    await this.demodWrite(0x1b, 0x00); // I2C reg addr
-    await this.demodWrite(0x1c, 0x00); // I2C control
+    await this.step("demod reg 0x01", () => this.demodWrite(0x01, 0x01));
+    await this.step("demod reg 0x06", () => this.demodWrite(0x06, 0x0f));
+    await this.step("demod reg 0x15", () => this.demodWrite(0x15, 0x00));
+    await this.step("demod reg 0x16", () => this.demodWrite(0x16, 0x00));
+    await this.step("demod reg 0x17", () => this.demodWrite(0x17, 0x00));
+    await this.step("demod reg 0x18", () => this.demodWrite(0x18, 0x00));
+    await this.step("demod reg 0x19", () => this.demodWrite(0x19, 0x00));
+    await this.step("demod reg 0x1a", () => this.demodWrite(0x1a, 0x00));
+    await this.step("demod reg 0x1b", () => this.demodWrite(0x1b, 0x00));
+    await this.step("demod reg 0x1c", () => this.demodWrite(0x1c, 0x00));
 
     // 5. Set sample rate
-    await this.setSampleRate(DEFAULT_SAMPLE_RATE);
+    await this.step("sample rate", () => this.setSampleRate(DEFAULT_SAMPLE_RATE));
 
     // 6. Init R820T tuner via I2C
-    await this.r820tInit();
+    await this.step("R820T init", () => this.r820tInit());
 
     // 7. Set initial frequency
-    await this.r820tSetFreq(100_000_000);
+    await this.step("tune init", () => this.r820tSetFreq(100_000_000));
 
     // 8. Done — device is now streaming I/Q
     await this.sleep(20);
