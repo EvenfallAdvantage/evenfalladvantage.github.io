@@ -11,6 +11,7 @@ import {
 } from "@/lib/supabase/db";
 import { useAuthStore } from "@/stores/auth-store";
 import { useSdrStore } from "@/stores/sdr-store";
+import { globalTune } from "@/hooks/use-sdr";
 import { STATE_LAWS } from "@/lib/state-laws-data";
 
 type Freq = {
@@ -275,8 +276,7 @@ export function ScannerTab() {
                 <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => {
-                      useSdrStore.getState().setFrequency(f.frequency * 1_000_000);
-                      useSdrStore.getState().setMode(f.mode.toLowerCase() === "nfm" ? "nfm" : "fm");
+                      globalTune(f.frequency * 1_000_000, f.mode.toLowerCase() === "nfm" ? "nfm" : "fm");
                     }}
                     className="rounded p-1 text-muted-foreground hover:text-primary"
                     title="Tune SDR to this frequency"

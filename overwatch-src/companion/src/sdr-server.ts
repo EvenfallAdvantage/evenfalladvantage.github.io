@@ -32,7 +32,7 @@ export class SdrServer {
     this.wss = new WebSocketServer({ server });
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
-      ws.send(JSON.stringify({ type: "ready", sample_rate: SAMPLE_RATE }));
+      ws.send(JSON.stringify({ type: "ready", sample_rate: SAMPLE_RATE, freq: this.freqHz }));
       console.log("SDR: client connected");
 
       ws.on("message", async (raw) => {

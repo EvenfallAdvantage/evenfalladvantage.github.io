@@ -12,6 +12,21 @@ type SdrSession = {
   ctrl: SdrBridge | ReturnType<typeof getSdrController>;
 };
 
+let globalSdrSession: SdrSession | null = null;
+
+export function globalTune(freqHz: number, mode?: DemodMode): void {
+  const { setFrequency, setMode } = useSdrStore.getState();
+  setFrequency(freqHz);
+  if (mode) setMode(mode);
+  if (globalSdrSession) {
+    globalSdrSession.ctrl.setFrequency(freqHz);
+    if (globalSdrSession.type === "webusb") {
+      const wasm = getWasm();
+      if (wasm) wasm.sdr_tune(freqHz);
+    }
+  }
+}
+
 export function useSdr() {
   const store = useSdrStore();
   const wasmLoading = useRef(false);
@@ -28,7 +43,7 @@ export function useSdr() {
         store.setWasmLoaded(false, err instanceof Error ? err.message : "Failed to load WASM");
       }
     })();
-    return () => { session.current = null; destroySdrController(); };
+    return () => { session.current = null; globalSdrSession = null; destroySdrController(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -41,8 +56,13 @@ export function useSdr() {
       await bridge.connect();
       bridge.resumeAudio();
       bridge.startStream((level) => store.setSignalLevel(level));
-      if (store.frequency > 0) bridge.setFrequency(store.frequency);
+      if (store.frequency > 0) {
+        bridge.setFrequency(store.frequency);
+      } else if (bridge.companionFreq) {
+        store.setFrequency(bridge.companionFreq);
+      }
       session.current = { type: "bridge", ctrl: bridge };
+      globalSdrSession = session.current;
       store.setConnection("connected", {
         vendorId: 0x0bda, productId: 0x2838,
         manufacturerName: "Realtek", productName: "RTL-SDR via Companion",
@@ -73,6 +93,7 @@ export function useSdr() {
         wasm.sdr_tune(store.frequency);
       }
       session.current = { type: "webusb", ctrl };
+      globalSdrSession = session.current;
       store.setConnection("connected", {
         vendorId: 0x0bda, productId: 0x2832,
         manufacturerName: "Realtek", productName: "RTL-SDR USB Dongle",
@@ -101,7 +122,7 @@ export function useSdr() {
   }, [store]);
 
   const disconnect = useCallback(() => {
-    if (session.current) { session.current.ctrl.disconnect(); session.current = null; }
+    if (session.current) { session.current.ctrl.disconnect(); session.current = null; globalSdrSession = null; }
     store.disconnect();
   }, [store]);
 

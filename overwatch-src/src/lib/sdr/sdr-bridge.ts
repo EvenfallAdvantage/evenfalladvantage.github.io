@@ -12,8 +12,10 @@ export class SdrBridge {
   private signalLevel = 0;
   private _sampleRate = AUDIO_SAMPLE_RATE;
   private _volume = 0.7;
+  private _companionFreq: number | null = null;
 
   get sampleRate(): number { return this._sampleRate; }
+  get companionFreq(): number | null { return this._companionFreq; }
 
   async connect(): Promise<void> {
     this.setupAudio();
@@ -33,6 +35,7 @@ export class SdrBridge {
             const msg = JSON.parse(e.data);
             if (msg.type === "ready") {
               if (msg.sample_rate) this._sampleRate = msg.sample_rate;
+              if (msg.freq) this._companionFreq = msg.freq;
               this.active = true;
               this.ws = ws;
               resolve();
