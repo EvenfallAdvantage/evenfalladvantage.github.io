@@ -17,6 +17,7 @@ export class SdrBridge {
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       const ws = new WebSocket(`ws://localhost:${COMPANION_PORT}`);
+      ws.binaryType = "arraybuffer";
       const timer = setTimeout(() => {
         ws.close();
         reject(new Error("Companion service not found"));

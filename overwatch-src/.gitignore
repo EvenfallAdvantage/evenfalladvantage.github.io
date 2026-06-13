@@ -41,3 +41,14 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# companion build artifacts
+companion/dist/
+companion/node_modules/
+companion/companion-debug.log
+companion/companion.pid
+companion/sea-config.json
+companion/stdout.log
+companion/stderr.log
+companion/test-e2e.mjs
+companion/test-e2e.ts

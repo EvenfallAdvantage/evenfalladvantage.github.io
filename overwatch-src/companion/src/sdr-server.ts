@@ -1,29 +1,32 @@
 import { WebSocketServer, WebSocket as WsSocket } from "ws";
 import { createServer } from "node:http";
-import { SdrDevice } from "./sdr-device.js";
-import { Demodulator } from "./demodulator.js";
+import { RtlFmProcess } from "./rtl-fm-process.js";
 
 const SAMPLE_RATE = 48_000;
 
 export class SdrServer {
   private wss: WebSocketServer | null = null;
-  private sdr: SdrDevice;
-  private demod: Demodulator;
+  private rtl: RtlFmProcess;
   private clients: Set<WsSocket> = new Set();
-  private freqHz = 100_000_000;
-  private gainDb = 30;
+  private freqHz = 162_550_000;
+  private gainDb = 40;
+  private mode = "fm";
 
   constructor() {
-    this.sdr = new SdrDevice();
-    this.demod = new Demodulator();
+    this.rtl = new RtlFmProcess();
   }
 
   async start(port = 8372): Promise<void> {
-    await this.demod.load();
+    await this.rtl.start();
 
-    await this.sdr.open();
-    this.sdr.onBulkData((buf) => this.onBulkData(buf));
-    console.log("SDR: device initialized");
+    this.rtl.onAudioData((audio) => {
+      for (const ws of this.clients) {
+        if (ws.readyState === ws.OPEN) {
+          const bin = Buffer.from(audio.buffer, audio.byteOffset, audio.byteLength);
+          try { ws.send(bin); } catch {}
+        }
+      }
+    });
 
     const server = createServer();
     this.wss = new WebSocketServer({ server });
@@ -43,8 +46,6 @@ export class SdrServer {
         this.clients.delete(ws);
         console.log("SDR: client disconnected");
       });
-
-      this.sdr.startStream();
     });
 
     server.listen(port, () => {
@@ -53,7 +54,7 @@ export class SdrServer {
   }
 
   stop(): void {
-    this.sdr.close();
+    this.rtl.close();
     this.wss?.close();
   }
 
@@ -61,37 +62,16 @@ export class SdrServer {
     switch (msg.cmd) {
       case "set_frequency":
         this.freqHz = msg.freq as number;
-        this.sdr.setFrequency(this.freqHz);
+        this.rtl.setFrequency(this.freqHz);
         break;
       case "set_gain":
         this.gainDb = msg.gain as number;
-        this.sdr.setGain(this.gainDb);
+        this.rtl.setGain(this.gainDb);
         break;
-    }
-  }
-
-  private iqBuffer = Buffer.alloc(0);
-
-  private onBulkData(buf: Buffer): void {
-    this.iqBuffer = Buffer.concat([this.iqBuffer, buf]);
-
-    // Process in 8192-sample chunks
-    const chunkBytes = 8192 * 2; // 8192 8-bit I/Q pairs = 16384 bytes
-    while (this.iqBuffer.length >= chunkBytes) {
-      const chunk = this.iqBuffer.subarray(0, chunkBytes);
-      this.iqBuffer = this.iqBuffer.subarray(chunkBytes);
-
-      const audio = this.demod.demodulate(chunk, SAMPLE_RATE, this.freqHz);
-      if (audio) this.broadcastAudio(audio);
-    }
-  }
-
-  private broadcastAudio(audio: Float32Array): void {
-    const bin = Buffer.from(audio.buffer, audio.byteOffset, audio.byteLength);
-    for (const ws of this.clients) {
-      if (ws.readyState === ws.OPEN) {
-        try { ws.send(bin); } catch {}
-      }
+      case "set_mode":
+        this.mode = msg.mode as string;
+        this.rtl.setMode(this.mode);
+        break;
     }
   }
 }

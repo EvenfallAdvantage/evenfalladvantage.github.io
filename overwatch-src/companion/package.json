@@ -9,7 +9,6 @@
     "build": "tsc"
   },
   "dependencies": {
-    "usb": "^2.14.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
