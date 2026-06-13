@@ -6,6 +6,7 @@ import {
   Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
   Activity, Flame, Swords, Wind, Atom, Newspaper, Tv, Rss, Ship, Camera, TowerControl,
+  Radio,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
@@ -22,6 +23,7 @@ export interface LayerVisibility {
   satellite: boolean;
   breadcrumbs: boolean;
   nearbyPOIs: boolean;
+  radioFrequencies: boolean;
   annotations: boolean;
   sunPosition: boolean;
   // Satellite intel
@@ -63,6 +65,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   satellite: true,
   breadcrumbs: false,
   nearbyPOIs: false,
+  radioFrequencies: false,
   annotations: false,
   sunPosition: false,
   sentinel1: false,
@@ -110,6 +113,7 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "annotations", label: "Drawings", icon: <PenTool className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  { key: "radioFrequencies", label: "Radio Frequencies", icon: <Radio className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   // ─── ENVIRONMENT — natural phenomena & weather ─────────
   { key: "weather", label: "Weather Radar (US)", icon: <CloudRain className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
   { key: "raws", label: "Weather Stations", icon: <TowerControl className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },

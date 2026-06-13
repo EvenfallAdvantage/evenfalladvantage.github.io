@@ -20,9 +20,15 @@ CREATE TABLE IF NOT EXISTS radio_frequencies (
   county          TEXT,
   priority        INT DEFAULT 5,
   is_reference    BOOLEAN DEFAULT false,
+  latitude        DOUBLE PRECISION,
+  longitude       DOUBLE PRECISION,
   sort_order      INT DEFAULT 0,
   created_at      TIMESTAMPTZ DEFAULT now()
 );
+
+-- Add lat/lon columns in case the table already existed without them
+ALTER TABLE radio_frequencies ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+ALTER TABLE radio_frequencies ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
 
 -- ─── RADIO NODES (mesh/LoRa devices — for future bridge) ──
 
@@ -80,6 +86,7 @@ CREATE INDEX IF NOT EXISTS idx_radio_freq_company ON radio_frequencies(company_i
 CREATE INDEX IF NOT EXISTS idx_radio_freq_category ON radio_frequencies(category);
 CREATE INDEX IF NOT EXISTS idx_radio_freq_state ON radio_frequencies(state);
 CREATE INDEX IF NOT EXISTS idx_radio_freq_frequency ON radio_frequencies(frequency);
+CREATE INDEX IF NOT EXISTS idx_radio_freq_coords ON radio_frequencies(latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_radio_nodes_company ON radio_nodes(company_id);
 CREATE INDEX IF NOT EXISTS idx_radio_nodes_user ON radio_nodes(user_id);
 CREATE INDEX IF NOT EXISTS idx_radio_nodes_online ON radio_nodes(is_online);
@@ -98,14 +105,19 @@ DECLARE tbl TEXT;
 BEGIN
   FOREACH tbl IN ARRAY ARRAY['radio_frequencies', 'radio_nodes', 'radio_logs']
   LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_select', tbl);
     EXECUTE format('CREATE POLICY %I ON %I FOR SELECT TO authenticated USING (is_company_member(company_id))', tbl || '_select', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_insert', tbl);
     EXECUTE format('CREATE POLICY %I ON %I FOR INSERT TO authenticated WITH CHECK (is_company_member(company_id))', tbl || '_insert', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_update', tbl);
     EXECUTE format('CREATE POLICY %I ON %I FOR UPDATE TO authenticated USING (is_company_member(company_id))', tbl || '_update', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', tbl || '_delete', tbl);
     EXECUTE format('CREATE POLICY %I ON %I FOR DELETE TO authenticated USING (is_company_admin(company_id))', tbl || '_delete', tbl);
   END LOOP;
 END $$;
 
 -- Reference frequencies are company-less — anyone can read
+DROP POLICY IF EXISTS "radio_frequencies_reference_select" ON radio_frequencies;
 CREATE POLICY "radio_frequencies_reference_select" ON radio_frequencies
   FOR SELECT TO authenticated
   USING (is_reference = true OR is_company_member(company_id));

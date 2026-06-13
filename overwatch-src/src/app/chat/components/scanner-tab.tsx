@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Search, Plus, Pencil, Trash2, Save, X, Activity, Loader2, Radio } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Save, X, Activity, Loader2, Radio, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from "@/stores/auth-store";
 import { globalTune } from "@/hooks/use-sdr";
 import { STATE_LAWS } from "@/lib/state-laws-data";
+import { geocodeAddress } from "@/lib/geo-risk-data";
 
 type Freq = {
   id: string;
@@ -24,6 +25,9 @@ type Freq = {
   category: string;
   state: string | null;
   city: string | null;
+  county: string | null;
+  latitude: number | null;
+  longitude: number | null;
   priority: number;
   is_reference: boolean;
 };
@@ -68,7 +72,7 @@ export function ScannerTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", frequency: "", mode: "FM", band: "", ctcss_dcs: "", description: "", category: "custom", state: "", city: "" });
+  const [form, setForm] = useState({ name: "", frequency: "", mode: "FM", band: "", ctcss_dcs: "", description: "", category: "custom", state: "", city: "", latitude: "", longitude: "" });
 
   useEffect(() => {
     if (!activeCompanyId) return;
@@ -112,6 +116,8 @@ export function ScannerTab() {
           category: form.category,
           state: form.state || null,
           city: form.city || null,
+          latitude: form.latitude ? parseFloat(form.latitude) : null,
+          longitude: form.longitude ? parseFloat(form.longitude) : null,
         });
       } else {
         await createRadioFrequency({
@@ -125,6 +131,8 @@ export function ScannerTab() {
           category: form.category,
           state: form.state || undefined,
           city: form.city || undefined,
+          latitude: form.latitude ? parseFloat(form.latitude) : undefined,
+          longitude: form.longitude ? parseFloat(form.longitude) : undefined,
         });
       }
       setShowAdd(false);
@@ -136,7 +144,7 @@ export function ScannerTab() {
   }
 
   function resetForm() {
-    setForm({ name: "", frequency: "", mode: "FM", band: "", ctcss_dcs: "", description: "", category: "custom", state: "", city: "" });
+    setForm({ name: "", frequency: "", mode: "FM", band: "", ctcss_dcs: "", description: "", category: "custom", state: "", city: "", latitude: "", longitude: "" });
   }
 
   function startEdit(f: Freq) {
@@ -152,6 +160,8 @@ export function ScannerTab() {
       category: f.category,
       state: f.state ?? "",
       city: f.city ?? "",
+      latitude: f.latitude?.toString() ?? "",
+      longitude: f.longitude?.toString() ?? "",
     });
     setShowAdd(true);
   }
@@ -378,6 +388,31 @@ export function ScannerTab() {
                 <label className="text-[10px] font-medium text-muted-foreground uppercase">City</label>
                 <Input className="h-8 text-xs mt-0.5" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="e.g. Los Angeles" />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground uppercase">Latitude</label>
+                  <Input className="h-8 text-xs mt-0.5" value={form.latitude} onChange={(e) => setForm({ ...form, latitude: e.target.value })} placeholder="e.g. 35.8781" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium text-muted-foreground uppercase">Longitude</label>
+                  <Input className="h-8 text-xs mt-0.5" value={form.longitude} onChange={(e) => setForm({ ...form, longitude: e.target.value })} placeholder="e.g. -83.8788" />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!form.city && !form.state) return;
+                  try {
+                    const result = await geocodeAddress("", form.city, form.state);
+                    if (result.lat && result.lon) {
+                      setForm({ ...form, latitude: result.lat.toFixed(4), longitude: result.lon.toFixed(4) });
+                    }
+                  } catch {}
+                }}
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors"
+              >
+                <MapPin className="h-3 w-3" /> Geocode from city/state
+              </button>
               <div>
                 <label className="text-[10px] font-medium text-muted-foreground uppercase">Description</label>
                 <Input className="h-8 text-xs mt-0.5" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Optional notes" />

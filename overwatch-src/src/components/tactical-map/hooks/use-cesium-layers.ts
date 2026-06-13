@@ -37,6 +37,7 @@ import { useMaritimeLayer } from "./use-maritime-layer";
 import { useCctvLayer } from "./use-cctv-layer";
 import { useGeofencesLayer } from "./use-geofences-layer";
 import { useRawsLayer } from "./use-raws-layer";
+import { useFrequencyLayer } from "./use-frequency-layer";
 import type { IntelLiveNewsFeed, CctvCamera } from "@/lib/intel-types";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -206,6 +207,12 @@ export function useCesiumLayers(params: {
   useRawsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
     debouncedReplayTime, timeMachineOpen,
+  });
+
+  // ─── Sub-hook: Radio Frequencies (from Supabase, lat/lon) ──────────
+  useFrequencyLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    companyId: companyId ?? "",
   });
 
   // ─── 3D Terrain & Buildings Toggle (combined) ────────

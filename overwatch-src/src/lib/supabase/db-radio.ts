@@ -37,6 +37,8 @@ export async function createRadioFrequency(params: {
   state?: string;
   city?: string;
   county?: string;
+  latitude?: number;
+  longitude?: number;
   priority?: number;
 }) {
   const supabase = createClient();
@@ -55,6 +57,8 @@ export async function createRadioFrequency(params: {
       state: params.state ?? null,
       city: params.city ?? null,
       county: params.county ?? null,
+      latitude: params.latitude ?? null,
+      longitude: params.longitude ?? null,
       priority: params.priority ?? 5,
       is_reference: false,
       created_at: new Date().toISOString(),
@@ -97,6 +101,20 @@ export async function searchFrequencies(companyId: string, query: string) {
     .order("priority", { ascending: true })
     .limit(50);
   if (error) { logErr("frequency search", error); return []; }
+  return data ?? [];
+}
+
+export async function getRadioFrequenciesWithLocation(companyId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("radio_frequencies")
+    .select("*")
+    .or(`company_id.eq.${companyId},is_reference.eq.true`)
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
+    .order("priority", { ascending: true })
+    .order("frequency", { ascending: true });
+  if (error) { logErr("radio frequencies with location", error); return []; }
   return data ?? [];
 }
 
