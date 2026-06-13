@@ -1,8 +1,6 @@
 import type { WasmSdrModule } from "./types";
 import { BUFFER_SIZE, AUDIO_SAMPLE_RATE, DEFAULT_SAMPLE_RATE, RTL_USB_PRODUCT_IDS, RTL_USB_VENDOR_ID } from "./types";
 
-// ─── WASM LOADER ──────────────────────────────────────────
-
 const WASM_URL = "/overwatch/wasm/rtl-sdr.wasm";
 
 let wasmModule: WasmSdrModule | null = null;
@@ -13,8 +11,8 @@ export async function loadWasm(): Promise<WasmSdrModule> {
   if (wasmLoadPromise) return wasmLoadPromise;
 
   wasmLoadPromise = (async () => {
-    const response = await fetch(WASM_URL);
-    const bytes = await response.arrayBuffer();
+    const r = await fetch(WASM_URL);
+    const bytes = await r.arrayBuffer();
     const result = await WebAssembly.instantiate(bytes, {
       env: { memory: new WebAssembly.Memory({ initial: 256, maximum: 512 }) },
     });
@@ -30,14 +28,9 @@ export function getWasm(): WasmSdrModule | null {
   return wasmModule;
 }
 
-// ─── RTL2832U USB CONSTANTS ───────────────────────────────
-
 const EP_BULK_IN = 1;
-
-// R820T tuner I2C address (7-bit)
-const R820T_I2C_ADDR = 0x34;
-
-// ─── SDR CONTROLLER ───────────────────────────────────────
+const R820T_I2C = 0x34;
+const RTL_XTAL = 28_800_000;
 
 export class SdrController {
   private device: USBDevice | null = null;
@@ -47,32 +40,15 @@ export class SdrController {
   private active = false;
   private audioBuf: Float32Array[] = [];
   private currentFreqHz = 0;
+  private vendorOk = false;
+  private fmtIndex = 0;
 
-  // ── Connect + RTL2832U Init ─────────────────────────
-
-  private async step(label: string, fn: () => Promise<void>): Promise<void> {
-    try {
-      await fn();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`[${label}] ${msg}`);
-    }
-  }
-
-  /** Run a step; log warning on failure but don't throw */
-  private async tryStep(label: string, fn: () => Promise<void>): Promise<void> {
-    try {
-      await fn();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`SDR init: ${label} skipped (${msg})`);
-    }
-  }
+  // ── Connect ───────────────────────────────────────────
 
   async connect(): Promise<void> {
     if (!navigator.usb) throw new Error("WebUSB not available");
 
-    const device = await navigator.usb.requestDevice({
+    const d = await navigator.usb.requestDevice({
       filters: [
         { vendorId: RTL_USB_VENDOR_ID, productId: RTL_USB_PRODUCT_IDS[0] },
         { vendorId: RTL_USB_VENDOR_ID, productId: RTL_USB_PRODUCT_IDS[1] },
@@ -82,98 +58,52 @@ export class SdrController {
       ],
     });
 
-    await device.open();
-    await device.selectConfiguration(1);
-    await device.claimInterface(0);
+    await d.open();
+    await d.selectConfiguration(1);
+    await d.claimInterface(0);
+    this.device = d;
 
-    this.device = device;
+    await this.initVendor();
 
-    // Non-essential — warn but continue on failure
-    await this.tryStep("reset EP1", () => this.vendorCtrl(0x01, 0x0001, 0x0000));
-    await this.tryStep("set EP1 packet size", () =>
-      this.vendorCtrlW(0x81, 0x0002, 0x0000, new Uint8Array([0x00, 0x02])),
-    );
-    await this.tryStep("XTAL bypass", () =>
-      this.vendorCtrlW(0x61, 0x0000, 0x0000, new Uint8Array([0x60, 0x00])),
-    );
-
-    // Init RTL2832U demod registers
-    await this.step("demod reg 0x01", () => this.demodWrite(0x01, 0x01));
-    await this.step("demod reg 0x06", () => this.demodWrite(0x06, 0x0f));
-    await this.step("demod reg 0x15", () => this.demodWrite(0x15, 0x00));
-    await this.step("demod reg 0x16", () => this.demodWrite(0x16, 0x00));
-    await this.step("demod reg 0x17", () => this.demodWrite(0x17, 0x00));
-    await this.step("demod reg 0x18", () => this.demodWrite(0x18, 0x00));
-    await this.step("demod reg 0x19", () => this.demodWrite(0x19, 0x00));
-    await this.step("demod reg 0x1a", () => this.demodWrite(0x1a, 0x00));
-    await this.step("demod reg 0x1b", () => this.demodWrite(0x1b, 0x00));
-    await this.step("demod reg 0x1c", () => this.demodWrite(0x1c, 0x00));
-
-    // Set sample rate
-    await this.step("sample rate", () => this.setSampleRate(DEFAULT_SAMPLE_RATE));
-
-    // Init R820T tuner via I2C
-    await this.step("R820T init", () => this.r820tInit());
-
-    // Set initial frequency
-    await this.step("tune init", () => this.r820tSetFreq(100_000_000));
-
-    await this.sleep(20);
-
-    // ── Audio pipeline ──
     this.audioCtx = new AudioContext({ sampleRate: AUDIO_SAMPLE_RATE });
     this.gainNode = this.audioCtx.createGain();
     this.gainNode.gain.value = 0.7;
     this.gainNode.connect(this.audioCtx.destination);
-
     this.active = true;
   }
 
   disconnect(): void {
     this.active = false;
     this.audioBuf = [];
-
-    if (this.scriptNode) {
-      this.scriptNode.disconnect();
-      this.scriptNode = null;
-    }
-    if (this.audioCtx) {
-      this.audioCtx.close();
-      this.audioCtx = null;
-      this.gainNode = null;
-    }
-    if (this.device) {
-      try { this.device.close(); } catch { /* ignore */ }
-      this.device = null;
-    }
+    if (this.scriptNode) { this.scriptNode.disconnect(); this.scriptNode = null; }
+    if (this.audioCtx) { this.audioCtx.close(); this.audioCtx = null; this.gainNode = null; }
+    if (this.device) { try { this.device.close(); } catch {} this.device = null; }
   }
 
   isConnected(): boolean {
-    return this.device !== null && this.active;
+    return this.active && this.device !== null;
   }
 
-  // ── Public Controls ─────────────────────────────────
+  // ── Public controls ──────────────────────────────────
 
   async setFrequency(freqHz: number): Promise<void> {
+    if (!this.vendorOk) return;
     this.currentFreqHz = freqHz;
-    if (!this.device || !this.active) return;
-
-    await this.demodWrite(0x01, 0x11); // I2C repeater on
+    if (!this.active || !this.device) return;
+    await this.demodWrite(0x01, 0x11);
     await this.r820tSetFreq(freqHz);
-    await this.demodWrite(0x01, 0x01); // I2C repeater off
+    await this.demodWrite(0x01, 0x01);
   }
 
   async setGain(gainDb: number): Promise<void> {
-    if (!this.device || !this.active) return;
-
+    if (!this.vendorOk || !this.active || !this.device) return;
     const idx = Math.max(0, Math.min(49, Math.round(gainDb)));
-    const lnaGain = Math.min(15, Math.floor(idx / 3));
-    const mixerGain = Math.min(15, idx % 3 === 0 ? 0 : (idx % 3) * 5 + 5);
-
-    await this.demodWrite(0x01, 0x11); // I2C repeater on
-    await this.i2cWrite(R820T_I2C_ADDR, 0x0d, (lnaGain << 4) | 0x00);
-    await this.i2cWrite(R820T_I2C_ADDR, 0x0c, 0x9f | (mixerGain << 4));
-    await this.demodWrite(0x01, 0x01); // I2C repeater off
+    const lna = Math.min(15, Math.floor(idx / 3));
+    const mix = Math.min(15, idx % 3 === 0 ? 0 : (idx % 3) * 5 + 5);
+    await this.demodWrite(0x01, 0x11);
+    await this.i2cWrite(0x0d, (lna << 4) | 0x00);
+    await this.i2cWrite(0x0c, 0x9f | (mix << 4));
+    await this.demodWrite(0x01, 0x01);
   }
 
   setVolume(v: number): void {
@@ -184,253 +114,164 @@ export class SdrController {
     this.audioCtx?.resume();
   }
 
-  // ── Streaming ───────────────────────────────────────
+  // ── Streaming ────────────────────────────────────────
 
-  startStream(onSignalLevel: (level: number) => void): void {
+  startStream(onLevel: (l: number) => void): void {
     if (!this.audioCtx) return;
     this.audioBuf = [];
-
     this.scriptNode = this.audioCtx.createScriptProcessor(4096, 0, 1);
     this.scriptNode.onaudioprocess = (e) => {
-      const output = e.outputBuffer.getChannelData(0);
+      const out = e.outputBuffer.getChannelData(0);
       const buf = this.audioBuf.shift();
-      if (buf) {
-        output.set(buf.subarray(0, output.length));
-        onSignalLevel(this.rms(buf));
-      }
+      if (buf) { out.set(buf.subarray(0, out.length)); onLevel(this.rms(buf)); }
     };
     this.scriptNode.connect(this.gainNode!);
   }
 
-  feedAudio(samples: Float32Array): void {
-    this.audioBuf.push(samples);
-  }
+  feedAudio(s: Float32Array): void { this.audioBuf.push(s); }
 
   async readBulk(): Promise<DataView | null> {
     if (!this.device) return null;
+    try { const r = await this.device.transferIn(EP_BULK_IN, BUFFER_SIZE); return r.data ?? null; }
+    catch { return null; }
+  }
+
+  // ── Vendor init (best-effort, non-fatal) ─────────────
+
+  private async initVendor(): Promise<void> {
+    // Non-essential requests (may fail on composite/WinUSB)
+    await this.tryCtrl("reset EP1", () =>
+      this.device!.controlTransferOut({ requestType: "vendor", recipient: "device", request: 0x01, value: 0x0001, index: 0x0000 }),
+    );
+    await this.tryCtrl("set pkt size", () =>
+      this.device!.controlTransferOut({ requestType: "vendor", recipient: "device", request: 0x81, value: 0x0002, index: 0x0000 }, new Uint8Array([0x00, 0x02])),
+    );
+    await this.tryCtrl("XTAL bypass", () =>
+      this.device!.controlTransferOut({ requestType: "vendor", recipient: "device", request: 0x61, value: 0x0000, index: 0x0000 }, new Uint8Array([0x60, 0x00])),
+    );
+
+    // Essential: configure demod + tuner. If any register write fails, give up.
     try {
-      const result = await this.device.transferIn(EP_BULK_IN, BUFFER_SIZE);
-      return result.data ?? null;
-    } catch {
-      return null;
+      await this.demodWrite(0x01, 0x01);
+      await this.demodWrite(0x06, 0x0f);
+      for (const r of [0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c]) await this.demodWrite(r, 0x00);
+      await this.setSampleRate(DEFAULT_SAMPLE_RATE);
+      await this.r820tInit();
+      await this.r820tSetFreq(100_000_000);
+      await this.sleep(20);
+      this.vendorOk = true;
+    } catch (err) {
+      // Device powers up with I/Q streaming at ~1 MS/s and default LO.
+      // Audio may be off-frequency but bulk reads will produce data.
+      console.warn("SDR: vendor init failed — using hardware defaults", err);
     }
   }
 
-  // ── RTL2832U Demod Register Write ─────────────────────
+  private async tryCtrl(label: string, fn: () => Promise<unknown>): Promise<void> {
+    try { await fn(); } catch { console.warn(`SDR: ${label} skipped`); }
+  }
 
-  /**
-   * Try three register write formats in sequence until one works:
-   * 1. data-phase, device-level   (librtlsdr: wValue=addr, wIndex=page, [val])
-   * 2. wIndex, device-level        (alt firmware: wValue=addr, wIndex=val)
-   * 3. wIndex, interface-level     (WinUSB composite device: recipient=interface)
-   */
-  private async demodWrite(addr: number, val: number, page: number = 0): Promise<void> {
-    const tryFormats = [
-      { recipient: "device" as const, useData: true as const, label: "data/device" },
-      { recipient: "device" as const, useData: false as const, label: "wIndex/device" },
-      { recipient: "interface" as const, useData: false as const, label: "wIndex/interface" },
+  // ── Demod register write (auto-detect format) ────────
+
+  private async demodWrite(addr: number, val: number, page = 0): Promise<void> {
+    const formats = [
+      { useData: true,  recipient: "device" as const, build: () => ({ value: addr, index: page, data: new Uint8Array([val]) }) },
+      { useData: false, recipient: "device" as const, build: () => ({ value: addr, index: val }) },
+      { useData: false, recipient: "interface" as const, build: () => ({ value: addr, index: val }) },
     ];
 
-    // Filter out already-failed formats based on a class-level preference
-    const candidates = tryFormats.slice(this._fmtIndex);
-
-    for (const fmt of candidates) {
+    const candidates = formats.slice(this.fmtIndex);
+    for (const f of candidates) {
       try {
-        if (fmt.useData) {
-          await this.device!.controlTransferOut({
-            requestType: "vendor", recipient: fmt.recipient,
-            request: 0x04, value: addr, index: page,
-          }, new Uint8Array([val]));
+        const { value, index, data } = f.build() as any;
+        if (f.useData) {
+          await this.device!.controlTransferOut({ requestType: "vendor", recipient: f.recipient, request: 0x04, value, index }, data);
         } else {
-          await this.device!.controlTransferOut({
-            requestType: "vendor", recipient: fmt.recipient,
-            request: 0x04, value: addr, index: val,
-          });
+          await this.device!.controlTransferOut({ requestType: "vendor", recipient: f.recipient, request: 0x04, value, index });
         }
-        // Success — remember this format index for subsequent calls
-        this._fmtIndex = tryFormats.indexOf(fmt);
+        this.fmtIndex = formats.indexOf(f);
         return;
       } catch {
-        console.warn(`SDR init: format ${fmt.label} stalled on 0x${addr.toString(16)}`);
+        console.warn(`SDR: fmt ${f.useData ? "data" : "wIndex"}/${f.recipient} stalled @ 0x${addr.toString(16)}`);
       }
     }
-
-    throw new Error(`demodWrite(0x${addr.toString(16)}, ${val}) stalled on all 3 formats`);
+    throw new Error(`demodWrite(0x${addr.toString(16)},${val}) stalled on all formats`);
   }
 
-  private _fmtIndex = 0; // tracks which format was last successful
+  // ── I2C (tuner access through RTL2832U) ──────────────
 
-  private async demodRead(addr: number, page: number = 0): Promise<number> {
-    const result = await this.device!.controlTransferIn({
-      requestType: "vendor",
-      recipient: "device",
-      request: 0x05,
-      value: addr,
-      index: page,
-    }, 1);
-    return result.data?.getUint8(0) ?? 0;
-  }
-
-  // ── USB Vendor Control Transfers ─────────────────────
-
-  /** OUT, no data phase */
-  private async vendorCtrl(request: number, value: number, index: number): Promise<void> {
-    await this.device!.controlTransferOut({
-      requestType: "vendor",
-      recipient: "device",
-      request,
-      value,
-      index,
-    });
-  }
-
-  /** OUT, with data buffer */
-  private async vendorCtrlW(request: number, value: number, index: number, data: Uint8Array): Promise<void> {
-    await this.device!.controlTransferOut({
-      requestType: "vendor",
-      recipient: "device",
-      request,
-      value,
-      index,
-    }, data as BufferSource);
-  }
-
-  // ── I2C Access (tuner communication) ─────────────────
-
-  /**
-   * Write to a tuner register via the RTL2832U I2C master.
-   *   reg 0x1b = tuner register address
-   *   reg 0x19 = data byte
-   *   reg 0x1c = control byte (addr << 1 | direction | start)
-   */
-  private async i2cWrite(i2cAddr: number, reg: number, val: number): Promise<void> {
+  private async i2cWrite(reg: number, val: number): Promise<void> {
     await this.demodWrite(0x1b, reg);
     await this.demodWrite(0x19, val);
-    await this.demodWrite(0x1c, (i2cAddr << 1) | 0x01);
+    await this.demodWrite(0x1c, (R820T_I2C << 1) | 0x01);
     await this.sleep(1);
   }
 
-  private async i2cRead(i2cAddr: number, reg: number): Promise<number> {
-    await this.demodWrite(0x1b, reg);
-    await this.demodWrite(0x1c, (i2cAddr << 1) | 0x01);
-    await this.sleep(1);
-    await this.demodWrite(0x1c, (i2cAddr << 1) | 0x11);
-    await this.sleep(1);
-    return this.demodRead(0x19);
-  }
+  // ── Sample rate ──────────────────────────────────────
 
-  // ── Sample Rate ────────────────────────────────────────
-
-  private async setSampleRate(sampleRate: number): Promise<void> {
-    // rsamp_ratio = floor(28.8 MHz / sampleRate)
-    // For 1.024 MHz: floor(28.8 / 1.024) = 28
-    const rtlXtal = 28_800_000;
-    const ratio = Math.floor(rtlXtal / sampleRate);
-
+  private async setSampleRate(sr: number): Promise<void> {
+    const ratio = Math.floor(RTL_XTAL / sr);
     await this.demodWrite(0x9f, (ratio >> 16) & 0x3f);
     await this.demodWrite(0x9e, (ratio >> 8) & 0xff);
     await this.demodWrite(0x9d, ratio & 0xff);
-
-    // High-speed ADC mode
-    await this.demodWrite(0x06, sampleRate > 2_400_000 ? 0x13 : 0x0f);
+    await this.demodWrite(0x06, sr > 2_400_000 ? 0x13 : 0x0f);
   }
 
-  // ── R820T Tuner Init ────────────────────────────────────
+  // ── R820T Tuner Init ─────────────────────────────────
 
   private async r820tInit(): Promise<void> {
-    await this.demodWrite(0x01, 0x11); // I2C repeater on
+    await this.demodWrite(0x01, 0x11);
 
-    // Init register table from librtlsdr
-    const initRegs: [number, number][] = [
-      [0x05, 0x00], [0x06, 0x00], [0x07, 0x00], [0x08, 0x40],
-      [0x09, 0x80], [0x0a, 0x00], [0x0b, 0x00], [0x0c, 0x9f],
-      [0x0d, 0x00], [0x0e, 0x40], [0x0f, 0x40], [0x10, 0x00],
-      [0x11, 0x00], [0x12, 0x00], [0x13, 0x00], [0x14, 0x00],
-      [0x15, 0x00], [0x16, 0x00], [0x17, 0x50], [0x18, 0x40],
-      [0x19, 0x00], [0x1a, 0x00], [0x1b, 0x00], [0x1c, 0x00],
-      [0x1d, 0x00], [0x1e, 0x00], [0x1f, 0x40], [0x20, 0x40],
-      [0x21, 0x00], [0x22, 0x00], [0x23, 0x00], [0x24, 0xc0],
-      [0x25, 0x00], [0x26, 0x00], [0x27, 0x30], [0x28, 0x00],
-      [0x29, 0x00], [0x2a, 0x00], [0x2b, 0x00], [0x2c, 0x00],
-      [0x2d, 0x00], [0x2e, 0x00], [0x2f, 0x00], [0x30, 0x00],
-      [0x31, 0x00], [0x32, 0x00], [0x33, 0x00], [0x34, 0x00],
-      [0x35, 0x00], [0x36, 0x00], [0x37, 0x00], [0x38, 0x00],
-      [0x39, 0x00], [0x3a, 0x00], [0x3b, 0x00], [0x3c, 0x00],
-      [0x3d, 0x00], [0x3e, 0x00], [0x3f, 0x80],
+    const tbl: [number, number][] = [
+      [0x05,0x00],[0x06,0x00],[0x07,0x00],[0x08,0x40],[0x09,0x80],[0x0a,0x00],[0x0b,0x00],[0x0c,0x9f],
+      [0x0d,0x00],[0x0e,0x40],[0x0f,0x40],[0x10,0x00],[0x11,0x00],[0x12,0x00],[0x13,0x00],[0x14,0x00],
+      [0x15,0x00],[0x16,0x00],[0x17,0x50],[0x18,0x40],[0x19,0x00],[0x1a,0x00],[0x1b,0x00],[0x1c,0x00],
+      [0x1d,0x00],[0x1e,0x00],[0x1f,0x40],[0x20,0x40],[0x21,0x00],[0x22,0x00],[0x23,0x00],[0x24,0xc0],
+      [0x25,0x00],[0x26,0x00],[0x27,0x30],[0x28,0x00],[0x29,0x00],[0x2a,0x00],[0x2b,0x00],[0x2c,0x00],
+      [0x2d,0x00],[0x2e,0x00],[0x2f,0x00],[0x30,0x00],[0x31,0x00],[0x32,0x00],[0x33,0x00],[0x34,0x00],
+      [0x35,0x00],[0x36,0x00],[0x37,0x00],[0x38,0x00],[0x39,0x00],[0x3a,0x00],[0x3b,0x00],[0x3c,0x00],
+      [0x3d,0x00],[0x3e,0x00],[0x3f,0x80],
     ];
-
-    for (const [reg, val] of initRegs) {
-      await this.i2cWrite(R820T_I2C_ADDR, reg, val);
-    }
-
+    for (const [r, v] of tbl) await this.i2cWrite(r, v);
     await this.sleep(10);
-
-    // Verify chip ID
-    const id = await this.i2cRead(R820T_I2C_ADDR, 0x00);
-    if ((id & 0xF0) !== 0x50) {
-      console.warn(`R820T chip ID mismatch: 0x${id.toString(16)} (expected 0x5x)`);
-    }
-
-    await this.demodWrite(0x01, 0x01); // I2C repeater off
+    await this.demodWrite(0x01, 0x01);
   }
 
-  // ── R820T Frequency Tuning ──────────────────────────────
+  // ── R820T Tune ───────────────────────────────────────
 
   private async r820tSetFreq(freqHz: number): Promise<void> {
-    // VCO divider selection — keep VCO in 1770–3630 MHz range
     let div = 1;
-    let vcoFreq = freqHz;
-    while (vcoFreq < 1_770_000_000 && div <= 64) {
-      div *= 2;
-      vcoFreq = freqHz * div;
-    }
-    if (vcoFreq > 3_630_000_000) {
-      div /= 2;
-      vcoFreq = freqHz * div;
-    }
+    let vco = freqHz;
+    while (vco < 1_770_000_000 && div <= 64) { div *= 2; vco = freqHz * div; }
+    if (vco > 3_630_000_000) { div /= 2; vco = freqHz * div; }
 
-    // Divider register mapping: bits 4-6 of reg 0x08
-    const divCode: Record<number, number> = { 1: 0, 2: 1, 4: 2, 8: 3, 16: 4, 32: 5, 64: 6 };
-    const code = divCode[div] ?? 2;
-
-    // Fractional-N PLL
+    const dc: Record<number,number> = { 1:0, 2:1, 4:2, 8:3, 16:4, 32:5, 64:6 };
+    const code = dc[div] ?? 2;
     const xtal = 16_000_000;
-    const nint = Math.floor(vcoFreq / xtal);
-    const frac = vcoFreq % xtal;
-    const fracBits = Math.round((frac / xtal) * 4096);
+    const nint = Math.floor(vco / xtal);
+    const frac = Math.round(((vco % xtal) / xtal) * 4096);
 
-    await this.i2cWrite(R820T_I2C_ADDR, 0x07, 0x00);
-    await this.i2cWrite(R820T_I2C_ADDR, 0x08, 0x40 | (code << 4));
-    await this.i2cWrite(R820T_I2C_ADDR, 0x09, nint & 0xff);
-    await this.i2cWrite(R820T_I2C_ADDR, 0x0a, ((nint >> 8) & 0x0f) | ((fracBits >> 4) & 0xf0));
-    await this.i2cWrite(R820T_I2C_ADDR, 0x0b, ((fracBits & 0x0f) << 4) | 0x08);
-
-    // Filter bandwidth
-    let filt = 0;
-    if (freqHz >= 900_000_000) filt = 0x60;
-    else if (freqHz >= 600_000_000) filt = 0x50;
-    else if (freqHz >= 400_000_000) filt = 0x40;
-    else if (freqHz >= 200_000_000) filt = 0x30;
-    else if (freqHz >= 100_000_000) filt = 0x20;
-    else if (freqHz >= 50_000_000) filt = 0x10;
-    await this.i2cWrite(R820T_I2C_ADDR, 0x0e, filt);
-    await this.i2cWrite(R820T_I2C_ADDR, 0x0f, filt);
-
-    // Calibration
-    await this.i2cWrite(R820T_I2C_ADDR, 0x13, 0x00);
+    await this.i2cWrite(0x07, 0x00);
+    await this.i2cWrite(0x08, 0x40 | (code << 4));
+    await this.i2cWrite(0x09, nint & 0xff);
+    await this.i2cWrite(0x0a, ((nint >> 8) & 0x0f) | ((frac >> 4) & 0xf0));
+    await this.i2cWrite(0x0b, ((frac & 0x0f) << 4) | 0x08);
+    const filt = freqHz >= 900_000_000 ? 0x60 : freqHz >= 600_000_000 ? 0x50 : freqHz >= 400_000_000 ? 0x40 : freqHz >= 200_000_000 ? 0x30 : freqHz >= 100_000_000 ? 0x20 : freqHz >= 50_000_000 ? 0x10 : 0x00;
+    await this.i2cWrite(0x0e, filt);
+    await this.i2cWrite(0x0f, filt);
+    await this.i2cWrite(0x13, 0x00);
     await this.sleep(5);
-    await this.i2cWrite(R820T_I2C_ADDR, 0x13, 0x40);
+    await this.i2cWrite(0x13, 0x40);
     await this.sleep(10);
-
     this.currentFreqHz = freqHz;
   }
 
-  // ── Utility ─────────────────────────────────────────
+  // ── Utility ──────────────────────────────────────────
 
   private rms(buf: Float32Array): number {
-    let sum = 0;
-    for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-    return Math.sqrt(sum / buf.length);
+    let s = 0;
+    for (let i = 0; i < buf.length; i++) s += buf[i] * buf[i];
+    return Math.sqrt(s / buf.length);
   }
 
   private sleep(ms: number): Promise<void> {
@@ -438,20 +279,15 @@ export class SdrController {
   }
 }
 
-// ─── FACTORY ──────────────────────────────────────────────
+// ── Factory ─────────────────────────────────────────────
 
-let controllerInstance: SdrController | null = null;
+let instance: SdrController | null = null;
 
 export function getSdrController(): SdrController {
-  if (!controllerInstance) {
-    controllerInstance = new SdrController();
-  }
-  return controllerInstance;
+  if (!instance) instance = new SdrController();
+  return instance;
 }
 
 export function destroySdrController(): void {
-  if (controllerInstance) {
-    controllerInstance.disconnect();
-    controllerInstance = null;
-  }
+  if (instance) { instance.disconnect(); instance = null; }
 }
