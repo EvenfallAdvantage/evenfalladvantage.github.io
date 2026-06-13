@@ -14,6 +14,7 @@ import ClientPortalSection from "./components/client-portal-section";
 import ApiSourcesSection from "./components/api-sources-section";
 import ErrorLogViewer from "./components/error-log-viewer";
 import IncidentConfigSection from "./components/incident-config-section";
+import RadioStateSection from "./components/radio-state-section";
 import { logger } from "@/lib/logger";
 
 type Policy = Record<string, unknown> & {
@@ -138,6 +139,8 @@ export default function AdminSettingsPage() {
         <ErrorLogViewer companyId={activeCompanyId!} />
 
         <IncidentConfigSection companyId={activeCompanyId!} />
+
+        <RadioStateSection companyId={activeCompanyId!} />
       </div>
     </PageShell>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { Hash, ExternalLink, Mail } from "lucide-react";
+import { Hash, ExternalLink, Mail, Radio } from "lucide-react";
 import { DirectMessages } from "@/components/direct-messages";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -12,8 +12,10 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { useChatChannels } from "./components/use-chat-channels";
 import { ChannelsTab } from "./components/channels-tab";
 import { ExternalTab } from "./components/external-tab";
+import { ScannerTab } from "./components/scanner-tab";
+import { RadioLogPanel } from "./components/radio-log-panel";
 
-type Tab = "channels" | "external" | "messages";
+type Tab = "channels" | "external" | "messages" | "scanner";
 
 export default function ChatPage() {
   const { activeCompanyId } = useAuthStore();
@@ -30,12 +32,16 @@ export default function ChatPage() {
     dmUserId ? "messages" :
     tabParam === "messages" ? "messages" :
     tabParam === "external" ? "external" :
+    tabParam === "scanner" ? "scanner" :
     "channels"
   );
 
   useEffect(() => {
-    setHeader("COMMS", "Team channels, direct messages, and external groups",
-      tab === "external" ? <ExternalLink className="h-5 w-5" /> : tab === "messages" ? <Mail className="h-5 w-5" /> : <Hash className="h-5 w-5" />);
+    setHeader("COMMS", "Team channels, direct messages, radio scanner, and external groups",
+      tab === "external" ? <ExternalLink className="h-5 w-5" /> :
+      tab === "messages" ? <Mail className="h-5 w-5" /> :
+      tab === "scanner" ? <Radio className="h-5 w-5" /> :
+      <Hash className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader, tab]);
 
@@ -65,6 +71,11 @@ export default function ChatPage() {
           {tab === "external" && <ExternalLink className="h-3.5 w-3.5 text-primary" />}
           External Groups
           {ch.external.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{ch.external.length}</Badge>}
+        </button>
+        <button onClick={() => setTab("scanner")}
+          className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === "scanner" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
+          {tab === "scanner" && <Radio className="h-3.5 w-3.5 text-primary" />}
+          Scanner
         </button>
       </div>
 
@@ -108,6 +119,31 @@ export default function ChatPage() {
           handleDeleteCh={ch.handleDeleteCh} loadChannels={ch.loadChannels}
         />
       )}
+
+      {/* ────────── SCANNER TAB ────────── */}
+      {tab === "scanner" && (
+        <ScannerContent />
+      )}
+    </div>
+  );
+}
+
+function ScannerContent() {
+  const [scanTab, setScanTab] = useState<"frequencies" | "log">("frequencies");
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+      <div className="flex gap-1 px-3 py-2 border-b border-border/20 bg-muted/20">
+        <button onClick={() => setScanTab("frequencies")}
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scanTab === "frequencies" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          Frequencies
+        </button>
+        <button onClick={() => setScanTab("log")}
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scanTab === "log" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          Activity Log
+        </button>
+      </div>
+      {scanTab === "frequencies" ? <ScannerTab /> : <RadioLogPanel />}
     </div>
   );
 }

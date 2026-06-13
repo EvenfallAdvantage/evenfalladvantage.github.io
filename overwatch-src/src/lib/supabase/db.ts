@@ -33,3 +33,4 @@ export * from "./db-tasks";
 export * from "./db-public-reports";
 export * from "./db-geofences";
 export * from "./db-certifications";
+export * from "./db-radio";
