@@ -1,4 +1,4 @@
-import { usb, Device, InEndpoint } from "usb";
+import * as usb from "usb";
 
 const RTL_USB_VID = 0x0bda;
 const RTL_USB_PIDS = [0x2832, 0x2838, 0x2830, 0x2820, 0x2812];
@@ -8,12 +8,10 @@ const RTL_XTAL = 28_800_000;
 const RTL_DEFAULT_SAMPLE_RATE = 1_024_000;
 
 export class SdrDevice {
-  private dev: Device | null = null;
-  private inEndpoint: InEndpoint | null = null;
+  private dev: usb.Device | null = null;
+  private inEndpoint: usb.InEndpoint | null = null;
   private streaming = false;
   private onData: ((buf: Buffer) => void) | null = null;
-
-  private currentFreqHz = 0;
 
   async open(): Promise<void> {
     for (const pid of RTL_USB_PIDS) {
@@ -23,17 +21,19 @@ export class SdrDevice {
     if (!this.dev) throw new Error("No RTL-SDR found");
 
     this.dev.open();
-    this.dev.selectConfiguration(1);
+    await this.setConfig(1);
     const iface = this.dev.interface(0);
     iface.claim();
 
-    const ep = iface.endpoints.find((e: { direction: string; transferType: number }) => e.direction === "in" && e.transferType === 2);
-    if (!ep) throw new Error("No bulk IN endpoint found");
-    this.inEndpoint = ep as InEndpoint;
+    const ep = iface.endpoint(0x81) as usb.InEndpoint;
+    if (!ep || ep.direction !== "in") throw new Error("No bulk IN endpoint found");
+    this.inEndpoint = ep;
 
-    await this.vendorCtrl(0x01, 0x0001, 0x0000);
-    await this.vendorCtrl(0x81, 0x0002, 0x0000);
-    await this.vendorCtrl(0x61, 0x0000, 0x0000);
+    for (const step of [
+      [0x01, 0x0001, 0x0000], // reset EP1
+      [0x81, 0x0002, 0x0000], // set pkt size
+      [0x61, 0x0000, 0x0000], // XTAL bypass
+    ]) await this.tryCtrl(`init ${step[0].toString(16)}`, () => this.vendorCtrl(step[0], step[1], step[2]));
     await this.sleep(5);
 
     await this.demodWrite(0x01, 0x01);
@@ -52,15 +52,12 @@ export class SdrDevice {
   isOpen(): boolean { return this.dev !== null; }
 
   async setFrequency(freqHz: number): Promise<void> {
-    if (!this.dev) return;
-    this.currentFreqHz = freqHz;
-    await this.demodWrite(0x01, 0x11);
+    this.demodWrite(0x01, 0x11);
     await this.r820tSetFreq(freqHz);
     await this.demodWrite(0x01, 0x01);
   }
 
   async setGain(gainDb: number): Promise<void> {
-    if (!this.dev) return;
     const idx = Math.max(0, Math.min(49, Math.round(gainDb)));
     const lna = Math.min(15, Math.floor(idx / 3));
     const mix = Math.min(15, idx % 3 === 0 ? 0 : (idx % 3) * 5 + 5);
@@ -89,14 +86,34 @@ export class SdrDevice {
     }
   }
 
-  // ── Private: RTL2832U control transfers ─────────────
+  // ── Private helpers ─────────────────────────────────
+
+  private ctrlOut(bmReqType: number, bReq: number, wVal: number, wIdx: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      this.dev!.controlTransfer(bmReqType, bReq, wVal, wIdx, Buffer.alloc(0), (err: unknown, len: number) => {
+        if (err) reject(err); else resolve(len);
+      });
+    });
+  }
+
+  private async setConfig(val: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.dev!.setConfiguration(val, (err: unknown) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+  }
+
+  private async tryCtrl(_label: string, fn: () => Promise<unknown>): Promise<void> {
+    try { await fn(); } catch (e: unknown) { console.warn(`SDR: ${_label} skipped (${String(e)})`); }
+  }
 
   private async vendorCtrl(request: number, value: number, index: number): Promise<void> {
-    await this.dev!.controlTransferOut(0x40, request, value, index);
+    await this.ctrlOut(0x40, request, value, index);
   }
 
   private async demodWrite(addr: number, val: number): Promise<void> {
-    await this.dev!.controlTransferOut(0x40, 0x04, addr, val);
+    await this.ctrlOut(0x40, 0x04, addr, val);
   }
 
   private async i2cWrite(reg: number, val: number): Promise<void> {
@@ -153,7 +170,6 @@ export class SdrDevice {
     await this.sleep(5);
     await this.i2cWrite(0x13, 0x40);
     await this.sleep(10);
-    this.currentFreqHz = freqHz;
   }
 
   private sleep(ms: number): Promise<void> {
