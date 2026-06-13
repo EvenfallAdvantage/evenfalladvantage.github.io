@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored Cesium library — do not lint third-party code
     "public/cesium/**",
+    // Scripts folder — Node.js scripts not part of the app
+    "scripts/**",
   ]),
   {
     rules: {
