@@ -19,7 +19,7 @@ export async function loadWasm(): Promise<WasmSdrModule> {
       env: { memory: new WebAssembly.Memory({ initial: 256, maximum: 512 }) },
     });
     wasmModule = result.instance.exports as unknown as WasmSdrModule;
-    wasmModule._sdr_init();
+    wasmModule.sdr_init();
     return wasmModule;
   })();
 

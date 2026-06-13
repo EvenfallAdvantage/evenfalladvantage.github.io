@@ -67,14 +67,15 @@ export function useSdr() {
           if (!data) continue;
 
           const bytes = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-          // Allocate WASM heap buffers
-          const iqPtr = wasm.HEAPU8.length > BUFFER_SIZE ? wasm._sdr_init() : 0;
+          // Use WASM memory directly
+          const wasmMemory = new Uint8Array(wasm.memory.buffer);
+          const iqPtr = 0;
           const audioPtr = iqPtr + BUFFER_SIZE;
-          wasm.HEAPU8.set(bytes, iqPtr);
+          wasmMemory.set(bytes, iqPtr);
 
-          const samplesOut = wasm._fm_demodulate(iqPtr, audioPtr, bytes.length / 2);
+          const samplesOut = wasm.fm_demodulate(iqPtr, audioPtr, bytes.length / 2);
           if (samplesOut > 0) {
-            const audioBuf = new Float32Array(wasm.HEAPF32.buffer, audioPtr * 4, samplesOut);
+            const audioBuf = new Float32Array(wasm.memory.buffer, audioPtr * 4, samplesOut);
             ctrl.feedAudio(new Float32Array(audioBuf));
           }
         }
@@ -99,7 +100,7 @@ export function useSdr() {
     if (mode) store.setMode(mode);
 
     const wasm = getWasm();
-    if (wasm) wasm._sdr_tune(freqHz);
+    if (wasm) wasm.sdr_tune(freqHz);
   }, [store]);
 
   // Gain

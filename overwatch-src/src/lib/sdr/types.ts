@@ -24,20 +24,13 @@ export interface SdrState {
 }
 
 export interface WasmSdrModule {
-  _sdr_init: () => number;
-  _sdr_tune: (freq_hz: number) => number;
-  _sdr_set_gain: (gain: number) => void;
-  _sdr_read_samples: (bufPtr: number, len: number) => number;
-  _fm_demodulate: (iqPtr: number, audioPtr: number, len: number) => number;
-  _get_signal_level: () => number;
-  HEAP8: Int8Array;
-  HEAP16: Int16Array;
-  HEAP32: Int32Array;
-  HEAPU8: Uint8Array;
-  HEAPU16: Uint16Array;
-  HEAPU32: Uint32Array;
-  HEAPF32: Float32Array;
-  HEAPF64: Float64Array;
+  memory: WebAssembly.Memory;
+  sdr_init: () => number;
+  sdr_tune: (freq_hz: number) => number;
+  sdr_set_gain: (gain: number) => void;
+  fm_demodulate: (iqPtr: number, audioPtr: number, len: number) => number;
+  get_signal_level: () => number;
+  set_signal_level: (level: number) => void;
 }
 
 export const RTL_USB_VENDOR_ID = 0x0bda;
