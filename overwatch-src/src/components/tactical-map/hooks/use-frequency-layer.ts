@@ -73,7 +73,7 @@ export function useFrequencyLayer(params: {
             ${f.ctcss_dcs ? `<div style="opacity:0.7;font-size:10px">Tone: ${escapeHtml(f.ctcss_dcs)}</div>` : ""}
             ${f.city ? `<div style="opacity:0.5;font-size:10px">${escapeHtml(f.city)}${f.state ? `, ${escapeHtml(f.state)}` : ""}</div>` : f.state ? `<div style="opacity:0.5;font-size:10px">${escapeHtml(f.state)}</div>` : ""}
             ${f.description ? `<div style="opacity:0.7;margin-top:4px">${escapeHtml(f.description)}</div>` : ""}
-            <div style="margin-top:6px;opacity:0.8;font-size:10px;color:#dd8c33">Double-click this pin to tune the SDR</div>
+            <div style="margin-top:6px"><a href="#" style="display:inline-block;padding:3px 8px;background:#dd8c33;color:#000;border-radius:3px;text-decoration:none;font-size:10px;font-weight:bold">Listen</a></div>
           </div>`;
 
           const entity = viewer.entities.add({
@@ -106,7 +106,7 @@ export function useFrequencyLayer(params: {
           (entityGroups.frequencies as { id: string }[]).push(entity);
         }
 
-        // Register double-click handler to tune SDR
+        // Register LEFT_CLICK handler to tune SDR when user clicks the frequency entity
         const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((click: { position: { x: number; y: number } }) => {
           if (cancelled) return;
@@ -117,7 +117,7 @@ export function useFrequencyLayer(params: {
           const data = (entityGroups.freqData as Map<string, { freqHz: number; mode: string }>).get(entityId);
           if (!data) return;
           import("@/hooks/use-sdr").then((m) => m.globalTune(data.freqHz, data.mode as "fm" | "nfm" | "am"));
-        }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
         entityGroups.freqClickHandler = handler;
       } catch (e) {
         logger.swallow("frequency-layer:fetch", e, "warn");
