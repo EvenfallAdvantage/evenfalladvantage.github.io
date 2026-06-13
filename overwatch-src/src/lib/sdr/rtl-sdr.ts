@@ -280,28 +280,29 @@ export class SdrController {
 
   // ── Vendor Access Test ──────────────────────────────────
 
-  /** Probe device with a minimal vendor request to verify driver support */
+  /** Probe device to verify vendor control transfers work */
   private async testVendorAccess(): Promise<boolean> {
+    // Try data-phase format first (librtlsdr style)
     try {
-      // Try to read demod register 0x01 (harmless probe)
-      await this.device!.controlTransferIn({
+      await this.device!.controlTransferOut({
         requestType: "vendor",
         recipient: "device",
-        request: 0x05,
+        request: 0x04,
         value: 0x01,
         index: 0x00,
-      }, 1);
+      }, new Uint8Array([0x01]));
       return true;
     } catch {
-      // Vendor requests may be in wIndex mode too — try write probe
+      // Fall back to wIndex-encoded format (no data phase)
       try {
         await this.device!.controlTransferOut({
           requestType: "vendor",
           recipient: "device",
           request: 0x04,
-          value: 0x00,
-          index: 0x00,
+          value: 0x01,
+          index: 0x01,
         });
+        this.useDataPhase = false;
         return true;
       } catch {
         return false;
