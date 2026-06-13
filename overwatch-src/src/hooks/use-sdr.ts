@@ -117,7 +117,7 @@ export function useSdr() {
     }
   }, [store]);
 
-  const gainTimer = useRef<ReturnType<typeof setTimeout>>();
+  const gainTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const setGain = useCallback(async (gain: number) => {
     store.setGain(gain);
     if (session.current) {
@@ -133,7 +133,7 @@ export function useSdr() {
     if (session.current) session.current.ctrl.setVolume(vol);
   }, [store]);
 
-  const squelchTimer = useRef<ReturnType<typeof setTimeout>>();
+  const squelchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const setSquelch = useCallback(async (squelch: number) => {
     store.setSquelch(squelch);
     if (session.current) {

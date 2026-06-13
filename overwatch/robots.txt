@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /feed
+Disallow: /chat
+Disallow: /profile
+Disallow: /settings
+Disallow: /notifications
+
+Sitemap: https://evenfalladvantage.github.io/sitemap.xml
