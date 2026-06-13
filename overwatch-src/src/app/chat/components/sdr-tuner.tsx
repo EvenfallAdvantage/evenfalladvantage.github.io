@@ -62,8 +62,26 @@ export function SdrTuner() {
 
   const isConnected = sdr.connection === "connected";
   const isConnecting = sdr.connection === "connecting";
+  const isError = sdr.connection === "error";
   const hasTune = sdr.frequency > 0;
   const band = hasTune ? getBandLabel(sdr.frequency) : null;
+
+  if (isError) {
+    return (
+      <div className="p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <WifiOff className="h-4 w-4 text-red-500" />
+          <span className="text-xs font-medium text-red-500">Connection Failed</span>
+        </div>
+        <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 p-3">
+          <p className="text-xs text-red-600 dark:text-red-400 font-mono whitespace-pre-wrap">{sdr.errorMessage || "Unknown error"}</p>
+        </div>
+        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={sdr.connect}>
+          Retry Connect
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-4">
