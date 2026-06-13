@@ -35,7 +35,7 @@ export class RtlFmProcess {
       gain: 30,
       mode: "fm",
       sampleRate: 48_000,
-      squelch: 50,
+      squelch: 0,
     };
   }
 
@@ -73,6 +73,8 @@ export class RtlFmProcess {
     if (this.proc) {
       this.proc.stdout?.removeAllListeners("data");
       this.proc.stderr?.removeAllListeners("data");
+      this.proc.removeAllListeners("exit");
+      this.proc.removeAllListeners("error");
       try { this.proc.kill(); } catch {}
       this.proc = null;
     }

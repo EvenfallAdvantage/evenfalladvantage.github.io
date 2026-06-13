@@ -41,6 +41,7 @@ export class SdrController {
   private audioBuf: Float32Array[] = [];
   private currentFreqHz = 0;
   private vendorOk = false;
+  private _volume = 0.7;
 
   // ── Connect ───────────────────────────────────────────
 
@@ -108,7 +109,9 @@ export class SdrController {
   }
 
   setVolume(v: number): void {
-    if (this.gainNode) this.gainNode.gain.value = Math.max(0, Math.min(1, v));
+    v = Math.max(0, Math.min(1, v));
+    this._volume = v;
+    if (this.gainNode) this.gainNode.gain.value = v;
   }
 
   async setSquelch(_squelch: number): Promise<void> {
@@ -125,6 +128,7 @@ export class SdrController {
     if (!this.audioCtx) return;
     this.audioBuf = [];
     this.scriptNode = this.audioCtx.createScriptProcessor(4096, 0, 1);
+    const vol = () => this._volume;
     this.scriptNode.onaudioprocess = (e) => {
       if (!this.active) return;
       const out = e.outputBuffer.getChannelData(0);
@@ -143,6 +147,8 @@ export class SdrController {
           written = out.length;
         }
       }
+      const v = vol();
+      if (v !== 1) { for (let i = 0; i < out.length; i++) out[i] *= v; }
       let s = 0;
       for (let i = 0; i < out.length; i++) s += out[i] * out[i];
       onLevel(Math.sqrt(s / out.length));

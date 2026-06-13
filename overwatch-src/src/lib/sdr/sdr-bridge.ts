@@ -11,6 +11,7 @@ export class SdrBridge {
   private audioBuf: Float32Array[] = [];
   private signalLevel = 0;
   private _sampleRate = AUDIO_SAMPLE_RATE;
+  private _volume = 0.7;
 
   get sampleRate(): number { return this._sampleRate; }
 
@@ -94,7 +95,9 @@ export class SdrBridge {
   }
 
   setVolume(v: number): void {
-    if (this.gainNode) this.gainNode.gain.value = Math.max(0, Math.min(1, v));
+    v = Math.max(0, Math.min(1, v));
+    this._volume = v;
+    if (this.gainNode) this.gainNode.gain.value = v;
   }
 
   resumeAudio(): void {
@@ -105,6 +108,7 @@ export class SdrBridge {
     if (!this.audioCtx) return;
     this.audioBuf = [];
     this.scriptNode = this.audioCtx.createScriptProcessor(4096, 1, 1);
+    const vol = () => this._volume;
     this.scriptNode.onaudioprocess = (e: AudioProcessingEvent) => {
       if (!this.active) return;
       const out = e.outputBuffer.getChannelData(0);
@@ -123,6 +127,8 @@ export class SdrBridge {
           written = out.length;
         }
       }
+      const v = vol();
+      if (v !== 1) { for (let i = 0; i < out.length; i++) out[i] *= v; }
       let s = 0;
       for (let i = 0; i < out.length; i++) s += out[i] * out[i];
       this.signalLevel = Math.sqrt(s / out.length);
