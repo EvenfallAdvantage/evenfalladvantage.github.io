@@ -1,4 +1,5 @@
 import { createClient } from "./client";
+import { ensureInternalUser } from "./db-helpers";
 
 function logErr(context: string, error: unknown) {
   console.error(`[DB] ${context}:`, error);
@@ -175,22 +176,28 @@ export async function setCompanyRadioState(companyId: string, state: string | nu
 }
 
 export async function getUserRadioStates(companyId: string) {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
   const supabase = createClient();
   const { data, error } = await supabase
     .from("company_memberships")
     .select("radio_states")
     .eq("company_id", companyId)
+    .eq("user_id", userId)
     .maybeSingle();
   if (error) { logErr("user radio states", error); return []; }
   return (data?.radio_states as string[]) ?? [];
 }
 
 export async function setUserRadioStates(companyId: string, states: string[]) {
+  const userId = await ensureInternalUser();
+  if (!userId) throw new Error("No authenticated user");
   const supabase = createClient();
   const { error } = await supabase
     .from("company_memberships")
     .update({ radio_states: states })
-    .eq("company_id", companyId);
+    .eq("company_id", companyId)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
