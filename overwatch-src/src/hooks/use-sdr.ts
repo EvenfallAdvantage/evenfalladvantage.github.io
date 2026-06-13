@@ -49,6 +49,16 @@ export function useSdr() {
       const ctrl = getSdrController();
       await ctrl.connect();
 
+      // Resume audio context (browser requires user gesture)
+      ctrl.resumeAudio();
+
+      // Tune to frequency already set in store (e.g. from "Tune" button)
+      if (store.frequency > 0) {
+        await ctrl.setFrequency(store.frequency);
+        const wasm = getWasm();
+        if (wasm) wasm.sdr_tune(store.frequency);
+      }
+
       store.setConnection("connected", {
         vendorId: 0x0bda,
         productId: 0x2832,
@@ -95,18 +105,27 @@ export function useSdr() {
     store.disconnect();
   }, [store]);
 
-  // Tune
+  // Tune — sends frequency to both WASM and hardware
   const tune = useCallback(async (freqHz: number, mode?: DemodMode) => {
     store.setFrequency(freqHz);
     if (mode) store.setMode(mode);
 
     const wasm = getWasm();
     if (wasm) wasm.sdr_tune(freqHz);
+
+    const ctrl = getSdrController();
+    if (ctrl.isConnected()) {
+      await ctrl.setFrequency(freqHz);
+    }
   }, [store]);
 
-  // Gain
-  const setGain = useCallback((gain: number) => {
+  // Gain — sends tuner gain to hardware
+  const setGain = useCallback(async (gain: number) => {
     store.setGain(gain);
+    const ctrl = getSdrController();
+    if (ctrl.isConnected()) {
+      await ctrl.setGain(gain);
+    }
   }, [store]);
 
   // Squelch
