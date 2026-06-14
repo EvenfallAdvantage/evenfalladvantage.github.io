@@ -14,7 +14,6 @@ type SdrSession = {
 };
 
 let globalSdrSession: SdrSession | null = null;
-let companionChecked = false;
 
 export function globalTune(freqHz: number, mode?: DemodMode): void {
   const { setFrequency, setMode } = useSdrStore.getState();
