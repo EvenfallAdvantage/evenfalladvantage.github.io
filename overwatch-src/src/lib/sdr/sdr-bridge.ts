@@ -1,4 +1,5 @@
 import { registerSdrWorklet } from "./sdr-worklet";
+import type { AdsbAircraftMap } from "./adsb-types";
 
 const COMPANION_PORT = 8372;
 const CONNECT_TIMEOUT = 2000;
@@ -6,6 +7,7 @@ const AUDIO_SAMPLE_RATE = 48000;
 
 export class SdrBridge {
   onAudio: ((chunk: Float32Array) => void) | null = null;
+  onAdsbData: ((aircraft: AdsbAircraftMap) => void) | null = null;
   analyserNode: AnalyserNode | null = null;
   private ws: WebSocket | null = null;
   private audioCtx: AudioContext | null = null;
@@ -44,6 +46,10 @@ export class SdrBridge {
               // frequency acknowledged — audio pipeline continues
             } else if (msg.type === "gain_set") {
               // gain acknowledgement
+            } else if (msg.type === "adsb_batch") {
+              this.onAdsbData?.(msg.aircraft);
+            } else if (msg.type === "adsb_status") {
+              // ADSB start/stop acknowledged by companion
             }
           } catch {}
         } else if (e.data instanceof ArrayBuffer) {
@@ -95,6 +101,41 @@ export class SdrBridge {
     if (this.isConnected()) {
       this.ws!.send(JSON.stringify({ cmd: "set_gain", gain: gainDb }));
     }
+  }
+
+  async adsbStart(deviceIndex = 1): Promise<void> {
+    if (this.isConnected()) {
+      this.ws!.send(JSON.stringify({ cmd: "adsb_start", device: deviceIndex }));
+    }
+  }
+
+  async adsbStop(): Promise<void> {
+    if (this.isConnected()) {
+      this.ws!.send(JSON.stringify({ cmd: "adsb_stop" }));
+    }
+  }
+
+  async enumerateDevices(): Promise<string[]> {
+    return new Promise((resolve) => {
+      if (!this.isConnected()) { resolve([]); return; }
+      const handler = (e: MessageEvent) => {
+        if (typeof e.data === "string") {
+          try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === "device_list") {
+              this.ws?.removeEventListener("message", handler);
+              resolve(msg.devices);
+            }
+          } catch { /* ignore */ }
+        }
+      };
+      this.ws!.addEventListener("message", handler);
+      this.ws!.send(JSON.stringify({ cmd: "enumerate_devices" }));
+      setTimeout(() => {
+        this.ws?.removeEventListener("message", handler);
+        resolve([]);
+      }, 5000);
+    });
   }
 
   setVolume(v: number): void {

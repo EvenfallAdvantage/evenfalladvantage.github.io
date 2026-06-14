@@ -8,6 +8,7 @@ import { getPlatform, isDesktop } from "@/lib/sdr/platform";
 import { BUFFER_SIZE } from "@/lib/sdr/types";
 import type { DemodMode } from "@/lib/sdr/types";
 import { RadioTranscriber } from "@/lib/sdr/radio-transcriber";
+import { setAdsbAircraft } from "@/lib/sdr/adsb-store";
 
 type SdrSession = {
   type: "bridge" | "webusb";
@@ -94,6 +95,7 @@ export function useSdr() {
     // Try companion service first
     try {
       const bridge = new SdrBridge();
+      bridge.onAdsbData = setAdsbAircraft;
       await bridge.connect();
       bridge.resumeAudio();
       await bridge.startStream((level) => store.setSignalLevel(level));
@@ -182,6 +184,7 @@ export function useSdr() {
       transcriberRef.current = null;
     }
     if (session.current) { session.current.ctrl.disconnect(); session.current = null; globalSdrSession = null; globalAnalyserNode = null; }
+    store.setAdsbRunning(false);
     store.disconnect();
   }, [store]);
 
@@ -240,8 +243,33 @@ export function useSdr() {
   }, [store]);
   const setMode = useCallback((mode: DemodMode) => store.setMode(mode), [store]);
 
+  const adsbStart = useCallback(async (deviceIndex = 1) => {
+    const s = session.current;
+    if (s?.type === "bridge") {
+      await (s.ctrl as SdrBridge).adsbStart(deviceIndex);
+      store.setAdsbRunning(true);
+    }
+  }, [store]);
+
+  const adsbStop = useCallback(async () => {
+    const s = session.current;
+    if (s?.type === "bridge") {
+      await (s.ctrl as SdrBridge).adsbStop();
+      store.setAdsbRunning(false);
+    }
+  }, [store]);
+
+  const enumerateDevices = useCallback(async (): Promise<string[]> => {
+    const s = session.current;
+    if (s?.type === "bridge") {
+      return (s.ctrl as SdrBridge).enumerateDevices();
+    }
+    return [];
+  }, []);
+
   return {
     ...store, connect, disconnect, tune, setGain, setSquelch, setVolume, setMode,
     setTranscriptionEnabled,
+    adsbStart, adsbStop, enumerateDevices,
   };
 }

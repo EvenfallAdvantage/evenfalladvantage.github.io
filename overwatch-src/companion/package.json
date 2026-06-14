@@ -10,6 +10,8 @@
     "build:sea": "build.cmd"
   },
   "dependencies": {
+    "mode-s-aircraft-store": "^1.0.1",
+    "mode-s-decoder": "^1.0.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {

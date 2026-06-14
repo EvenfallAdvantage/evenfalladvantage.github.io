@@ -22,6 +22,7 @@ interface SdrStoreState {
   companionAvailable: boolean;
   transcriptionEnabled: boolean;
   transcriptions: Transcription[];
+  adsbRunning: boolean;
 
   setConnection: (connection: ConnectionState, device?: SdrDeviceInfo | null) => void;
   setFrequency: (freq: number) => void;
@@ -36,6 +37,7 @@ interface SdrStoreState {
   setTranscriptionEnabled: (enabled: boolean) => void;
   addTranscription: (t: Transcription) => void;
   clearTranscriptions: () => void;
+  setAdsbRunning: (running: boolean) => void;
   disconnect: () => void;
 }
 
@@ -55,6 +57,7 @@ export const useSdrStore = create<SdrStoreState>()((set) => ({
   companionAvailable: false,
   transcriptionEnabled: false,
   transcriptions: [],
+  adsbRunning: false,
 
   setConnection: (connection, device) => set({ connection, device: device ?? null }),
   setFrequency: (frequency) => set({ frequency }),
@@ -69,6 +72,7 @@ export const useSdrStore = create<SdrStoreState>()((set) => ({
   setTranscriptionEnabled: (transcriptionEnabled) => set({ transcriptionEnabled }),
   addTranscription: (t) => set((s) => ({ transcriptions: [...s.transcriptions, t] })),
   clearTranscriptions: () => set({ transcriptions: [] }),
+  setAdsbRunning: (adsbRunning) => set({ adsbRunning }),
   disconnect: () => set({
     connection: "disconnected", device: null, frequency: 0, signalLevel: 0,
   }),

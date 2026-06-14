@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSdr } from "@/hooks/use-sdr";
-import { Radio, Loader2, Wifi, WifiOff, Signal, Ear, CheckCircle, XCircle, Clock, List, X } from "lucide-react";
+import { Radio, Loader2, Wifi, WifiOff, Signal, Ear, CheckCircle, XCircle, Clock, List, X, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Waterfall } from "@/components/waterfall";
 import { ScannerTab } from "./scanner-tab";
@@ -241,6 +241,28 @@ export function SdrTuner() {
                 {m}
               </button>
             ))}
+          </div>
+
+          {/* ADSB Controls */}
+          <div className="rounded-lg border border-border/30 bg-muted/10 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+                <Radar className="h-3 w-3" /> ADSB Tracking
+              </span>
+              <span className={`text-[8px] font-mono uppercase ${sdr.adsbRunning ? "text-green-500" : "text-muted-foreground/50"}`}>
+                {sdr.adsbRunning ? "Active" : "Inactive"}
+              </span>
+            </div>
+            <div className="flex gap-1.5">
+              <Button
+                size="sm"
+                variant={sdr.adsbRunning ? "destructive" : "outline"}
+                className="text-[10px] h-7 px-2 gap-1"
+                onClick={() => sdr.adsbRunning ? sdr.adsbStop() : sdr.adsbStart()}
+              >
+                {sdr.adsbRunning ? "Stop ADSB" : "Start ADSB"}
+              </Button>
+            </div>
           </div>
 
           {/* Transcription toggle */}
