@@ -100,7 +100,7 @@ export function SdrTuner() {
             <li>Click &quot;Connect SDR&quot; below</li>
           </ol>
           <a
-            href="https://github.com/EvenfallAdvantage/evenfalladvantage.github.io"
+            href="https://github.com/EvenfallAdvantage/evenfalladvantage.github.io/releases/latest"
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
