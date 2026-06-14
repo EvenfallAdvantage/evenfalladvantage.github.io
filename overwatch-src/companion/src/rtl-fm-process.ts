@@ -1,7 +1,19 @@
 import { spawn, ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { RTL_FM_EXE, LIBRTLSDR_DLL } from "./_embedded-bins";
+
+function extractEmbeddedBinaries(): string {
+  const tmpDir = resolve(tmpdir(), "sdr-companion-rtlsdr");
+  if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
+  const exePath = resolve(tmpDir, "rtl_fm.exe");
+  const dllPath = resolve(tmpDir, "librtlsdr.dll");
+  if (!existsSync(exePath)) writeFileSync(exePath, Buffer.from(RTL_FM_EXE, "base64"));
+  if (!existsSync(dllPath)) writeFileSync(dllPath, Buffer.from(LIBRTLSDR_DLL, "base64"));
+  return tmpDir;
+}
 
 function findRtlFm(): string {
   const candidates: string[] = [];
@@ -11,6 +23,9 @@ function findRtlFm(): string {
   for (const p of candidates) {
     if (existsSync(p)) return p;
   }
+  const tmpDir = extractEmbeddedBinaries();
+  const p = resolve(tmpDir, "rtl_fm.exe");
+  if (existsSync(p)) return p;
   return candidates[0];
 }
 const RTL_FM_PATH = findRtlFm();
@@ -28,10 +43,12 @@ export class RtlFmProcess {
   private params: RtlFmParams;
   private onAudio: ((buf: Float32Array) => void) | null = null;
   private buffer = Buffer.alloc(0);
+  private restartCount = 0;
+  private _closing = false;
 
-  constructor() {
+  constructor(initialFreq?: number) {
     this.params = {
-      freq: 100_000_000,
+      freq: initialFreq ?? 162_550_000,
       gain: 30,
       mode: "fm",
       sampleRate: 48_000,
@@ -47,35 +64,41 @@ export class RtlFmProcess {
 
   async setFrequency(freqHz: number): Promise<void> {
     this.params.freq = freqHz;
+    this.restartCount = 0;
     await this.restart();
   }
 
   async setGain(gainDb: number): Promise<void> {
     this.params.gain = gainDb;
+    this.restartCount = 0;
     await this.restart();
   }
 
   async setSquelch(squelch: number): Promise<void> {
     this.params.squelch = squelch;
+    this.restartCount = 0;
     await this.restart();
   }
 
   async setMode(mode: string): Promise<void> {
     this.params.mode = mode;
+    this.restartCount = 0;
     await this.restart();
   }
 
   close(): void {
+    this._closing = true;
     this.kill();
   }
 
   private kill(): void {
     if (this.proc) {
-      this.proc.stdout?.removeAllListeners("data");
-      this.proc.stderr?.removeAllListeners("data");
-      this.proc.removeAllListeners("exit");
-      this.proc.removeAllListeners("error");
-      try { this.proc.kill(); } catch {}
+      const old = this.proc;
+      old.stdout?.removeAllListeners("data");
+      old.stderr?.removeAllListeners("data");
+      old.removeAllListeners("exit");
+      old.removeAllListeners("error");
+      try { old.kill(); } catch {}
       this.proc = null;
     }
   }
@@ -83,17 +106,27 @@ export class RtlFmProcess {
   private async restart(): Promise<void> {
     this.buffer = Buffer.alloc(0);
     this.kill();
+    await delay(this.backoffDelay());
     await this.spawn();
   }
 
+  private backoffDelay(): number {
+    if (this.restartCount <= 1) return 500;
+    if (this.restartCount <= 3) return 1500;
+    if (this.restartCount <= 6) return 3000;
+    return 5000;
+  }
+
   private async spawn(): Promise<void> {
+    if (this._closing) return;
+
     const { freq, gain, mode, sampleRate, squelch } = this.params;
 
     const freqStr = freq >= 1_000_000_000 ? `${(freq / 1_000_000_000).toFixed(3)}G`
                   : freq >= 1_000_000 ? `${(freq / 1_000_000).toFixed(3)}M`
                   : `${freq}`;
 
-    this.proc = spawn(RTL_FM_PATH, [
+    const child = spawn(RTL_FM_PATH, [
       "-f", freqStr,
       "-M", mode === "nfm" ? "fm" : mode,
       "-s", String(sampleRate),
@@ -108,31 +141,52 @@ export class RtlFmProcess {
       windowsHide: true,
     });
 
-    this.proc.stdout!.on("data", (data: Buffer) => this.onStdout(data));
+    this.proc = child;
 
-    this.proc.stderr!.on("data", (data: Buffer) => {
+    child.stdout!.on("data", (data: Buffer) => this.onStdout(data));
+
+    child.stderr!.on("data", (data: Buffer) => {
       const msg = data.toString().trim();
       if (msg) console.error("rtl_fm:", msg);
     });
 
-    this.proc.on("error", (err) => {
+    child.on("error", (err) => {
       console.error("rtl_fm process error:", err.message);
-      this.proc = null;
+      if (this.proc === child) this.proc = null;
     });
 
-    this.proc.on("exit", (code) => {
-      if (code !== 0 && this.proc) {
-        console.warn(`rtl_fm exited with code ${code}, restarting...`);
-        setTimeout(() => this.restart(), 500);
-      }
+    child.on("exit", (code, signal) => {
+      if (this.proc !== child) return;
       this.proc = null;
+
+      if (this._closing) return;
+
+      if (code === 0) return;
+
+      if (signal !== null) {
+        console.error(`rtl_fm killed by signal ${signal} (likely SDR device contention)`);
+        this.restartCount++;
+        setTimeout(() => this.restart(), this.backoffDelay());
+        return;
+      }
+
+      if (code === null) {
+        console.error(`rtl_fm exited abnormally (null code), will retry`);
+        this.restartCount++;
+        setTimeout(() => this.restart(), this.backoffDelay());
+        return;
+      }
+
+      console.error(`rtl_fm exited with code ${code}, restarting...`);
+      this.restartCount++;
+      setTimeout(() => this.restart(), this.backoffDelay());
     });
   }
 
   private onStdout(data: Buffer): void {
     this.buffer = Buffer.concat([this.buffer, data]);
 
-    const sampleSize = 2; // 16-bit PCM
+    const sampleSize = 2;
     const frameSamples = 1024;
     const frameBytes = frameSamples * sampleSize;
 
@@ -147,4 +201,8 @@ export class RtlFmProcess {
       if (this.onAudio) this.onAudio(audio);
     }
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
 }

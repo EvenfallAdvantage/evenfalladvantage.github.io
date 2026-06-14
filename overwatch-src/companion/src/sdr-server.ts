@@ -13,7 +13,7 @@ export class SdrServer {
   private mode = "fm";
 
   constructor() {
-    this.rtl = new RtlFmProcess();
+    this.rtl = new RtlFmProcess(this.freqHz);
   }
 
   async start(port = 8372): Promise<void> {

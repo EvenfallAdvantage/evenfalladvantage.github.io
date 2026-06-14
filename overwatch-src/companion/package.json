@@ -6,7 +6,8 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "tsx src/index.ts",
-    "build": "tsc"
+    "build": "node scripts/embed-bins.mjs && tsc",
+    "build:sea": "build.cmd"
   },
   "dependencies": {
     "ws": "^8.18.0"

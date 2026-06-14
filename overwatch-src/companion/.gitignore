@@ -1,0 +1,4 @@
+dist/
+node_modules/
+src/_embedded-bins.ts
+sea-config.json

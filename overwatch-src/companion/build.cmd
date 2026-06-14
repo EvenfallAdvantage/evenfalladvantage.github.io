@@ -2,6 +2,11 @@
 cd /d "%~dp0"
 echo === Building SDR Companion SEA ===
 
+:: Embed rtlsdr binaries into source
+echo [0/3] Embedding rtlsdr binaries...
+call node scripts\embed-bins.mjs
+if %errorlevel% neq 0 exit /b %errorlevel%
+
 :: Bundle with esbuild
 echo [1/3] Bundling...
 call npx esbuild src/index.ts --bundle --platform=node --target=node20 --outfile=dist/bundle.cjs
