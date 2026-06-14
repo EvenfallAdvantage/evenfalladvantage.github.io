@@ -39,7 +39,6 @@ export function useSdr() {
   const store = useSdrStore();
   const wasmLoading = useRef(false);
   const session = useRef<SdrSession | null>(null);
-  const companionCheckRef = useRef<boolean>(false);
   const transcriberRef = useRef<RadioTranscriber | null>(null);
 
   useEffect(() => {
