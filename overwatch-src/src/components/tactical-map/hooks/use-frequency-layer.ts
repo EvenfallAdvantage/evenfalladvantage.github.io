@@ -73,7 +73,7 @@ export function useFrequencyLayer(params: {
             ${f.ctcss_dcs ? `<div style="opacity:0.7;font-size:10px">Tone: ${escapeHtml(f.ctcss_dcs)}</div>` : ""}
             ${f.city ? `<div style="opacity:0.5;font-size:10px">${escapeHtml(f.city)}${f.state ? `, ${escapeHtml(f.state)}` : ""}</div>` : f.state ? `<div style="opacity:0.5;font-size:10px">${escapeHtml(f.state)}</div>` : ""}
             ${f.description ? `<div style="opacity:0.7;margin-top:4px">${escapeHtml(f.description)}</div>` : ""}
-            <div style="margin-top:6px"><button type="button" style="display:inline-block;padding:3px 8px;background:#dd8c33;color:#000;border-radius:3px;text-decoration:none;font-size:10px;font-weight:bold;border:none;cursor:pointer" onclick="window.parent?.globalTune?.(${f.frequency * 1_000_000}, '${(f.mode || "FM").toLowerCase()}')">Listen</button></div>
+            <div style="margin-top:6px"><button type="button" style="display:inline-block;padding:3px 8px;background:#dd8c33;color:#000;border-radius:3px;text-decoration:none;font-size:10px;font-weight:bold;border:none;cursor:pointer" onclick="window.globalTune?.(${f.frequency * 1_000_000}, '${(f.mode || "FM").toLowerCase()}')">Listen</button></div>
           </div>`;
 
           const entity = viewer.entities.add({
