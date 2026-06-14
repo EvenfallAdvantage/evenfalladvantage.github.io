@@ -20,11 +20,11 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        working-directory: companion
+        working-directory: overwatch-src/companion
         run: npm ci
 
       - name: Build companion app
-        working-directory: companion
+        working-directory: overwatch-src/companion
         run: |
           npm run build
           npm run build:sea
@@ -32,7 +32,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: companion/dist/sdr-companion.exe
+          files: overwatch-src/companion/dist/sdr-companion.exe
           name: Release ${{ github.ref_name }}
           body: |
             ### SDR Companion App
@@ -45,7 +45,7 @@ jobs:
             
             ## Usage
             1. Plug in your RTL-SDR dongle
-            2. Run `sdr-companion.exe`
+            2. Run `overwatch-src/companion/start.cmd`
             3. Open https://evenfalladvantage.github.io/overwatch/
             4. Click "Connect SDR"
           draft: false

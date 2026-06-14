@@ -26,7 +26,7 @@ This creates `dist/sdr-companion.exe` (~87 MB) with Node.js SEA bundling librtls
 ## Usage
 
 1. Plug in your RTL-SDR dongle
-2. Run `dist/sdr-companion.exe` or `start.cmd`
+2. Run `start.cmd` from the companion folder
 3. Open https://evenfalladvantage.github.io/overwatch/
 4. Click "Connect SDR" in the SDR Tuner panel
 

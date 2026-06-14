@@ -14,6 +14,7 @@ type SdrSession = {
 };
 
 let globalSdrSession: SdrSession | null = null;
+let companionChecked = false;
 
 export function globalTune(freqHz: number, mode?: DemodMode): void {
   const { setFrequency, setMode } = useSdrStore.getState();
@@ -32,6 +33,7 @@ export function useSdr() {
   const store = useSdrStore();
   const wasmLoading = useRef(false);
   const session = useRef<SdrSession | null>(null);
+  const companionCheckRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (wasmLoading.current) return;
@@ -46,6 +48,26 @@ export function useSdr() {
     })();
     return () => { session.current = null; globalSdrSession = null; destroySdrController(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Check if companion is running on page load (Windows only)
+  useEffect(() => {
+    if (companionCheckRef.current) return;
+    const platform = getPlatform();
+    if (platform !== "windows") return;
+    
+    companionCheckRef.current = true;
+    
+    const checkCompanion = async () => {
+      try {
+        const bridge = new SdrBridge();
+        await bridge.connect();
+        bridge.disconnect();
+      } catch {
+        // Companion not running, that's OK - user will see download prompt
+      }
+    };
+    checkCompanion();
   }, []);
 
   const connect = useCallback(async () => {
