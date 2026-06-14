@@ -84,7 +84,7 @@ export function SdrTuner() {
   }
 
   const platform = navigator.userAgent.toLowerCase().includes("windows") ? "windows" : "other";
-  if (platform === "windows" && !isConnecting && !isConnected && !isError) {
+  if (platform === "windows" && !isConnecting && !isConnected && !isError && !sdr.companionAvailable) {
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">

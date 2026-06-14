@@ -18,6 +18,7 @@ interface SdrStoreState {
   errorMessage: string | null;
   wasmLoaded: boolean;
   wasmError: string | null;
+  companionAvailable: boolean;
 
   setConnection: (connection: ConnectionState, device?: SdrDeviceInfo | null) => void;
   setFrequency: (freq: number) => void;
@@ -28,6 +29,7 @@ interface SdrStoreState {
   setSignalLevel: (level: number) => void;
   setError: (msg: string | null) => void;
   setWasmLoaded: (loaded: boolean, error?: string | null) => void;
+  setCompanionAvailable: (available: boolean) => void;
   disconnect: () => void;
 }
 
@@ -44,6 +46,7 @@ export const useSdrStore = create<SdrStoreState>()((set) => ({
   errorMessage: null,
   wasmLoaded: false,
   wasmError: null,
+  companionAvailable: false,
 
   setConnection: (connection, device) => set({ connection, device: device ?? null }),
   setFrequency: (frequency) => set({ frequency }),
@@ -54,6 +57,7 @@ export const useSdrStore = create<SdrStoreState>()((set) => ({
   setSignalLevel: (signalLevel) => set({ signalLevel }),
   setError: (errorMessage) => set({ errorMessage }),
   setWasmLoaded: (wasmLoaded, wasmError) => set({ wasmLoaded, wasmError: wasmError ?? null }),
+  setCompanionAvailable: (companionAvailable) => set({ companionAvailable }),
   disconnect: () => set({
     connection: "disconnected", device: null, frequency: 0, signalLevel: 0,
   }),

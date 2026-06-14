@@ -62,12 +62,13 @@ export function useSdr() {
         const bridge = new SdrBridge();
         await bridge.connect();
         bridge.disconnect();
+        store.setCompanionAvailable(true);
       } catch {
         // Companion not running, that's OK - user will see download prompt
       }
     };
     checkCompanion();
-  }, []);
+  }, [store]);
 
   const connect = useCallback(async () => {
     store.setConnection("connecting");
