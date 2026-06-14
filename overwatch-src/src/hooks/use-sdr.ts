@@ -35,6 +35,10 @@ export function globalTune(freqHz: number, mode?: DemodMode): void {
   }
 }
 
+if (typeof globalThis !== "undefined" && typeof window !== "undefined") {
+  (window as unknown as { globalTune: typeof globalTune }).globalTune = globalTune;
+}
+
 export function useSdr() {
   const store = useSdrStore();
   const wasmLoading = useRef(false);
@@ -288,3 +292,4 @@ export function useSdr() {
     adsbStart, adsbStop, enumerateDevices, assignDevice,
   };
 }
+
