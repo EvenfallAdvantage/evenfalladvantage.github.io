@@ -12,7 +12,6 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { useChatChannels } from "./components/use-chat-channels";
 import { ChannelsTab } from "./components/channels-tab";
 import { ExternalTab } from "./components/external-tab";
-import { ScannerTab } from "./components/scanner-tab";
 import { RadioLogPanel } from "./components/radio-log-panel";
 import { SdrTuner } from "./components/sdr-tuner";
 
@@ -130,25 +129,21 @@ export default function ChatPage() {
 }
 
 function ScannerContent() {
-  const [scanTab, setScanTab] = useState<"frequencies" | "log" | "live">("frequencies");
+  const [scanTab, setScanTab] = useState<"live" | "log">("live");
 
   return (
     <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
       <div className="flex gap-1 px-3 py-2 border-b border-border/20 bg-muted/20">
-        <button onClick={() => setScanTab("frequencies")}
-          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scanTab === "frequencies" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-          Frequencies
+        <button onClick={() => setScanTab("live")}
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scanTab === "live" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+          Live
         </button>
         <button onClick={() => setScanTab("log")}
           className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scanTab === "log" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
           Activity Log
         </button>
-        <button onClick={() => setScanTab("live")}
-          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${scanTab === "live" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-          Live
-        </button>
       </div>
-      {scanTab === "frequencies" ? <ScannerTab /> : scanTab === "log" ? <RadioLogPanel /> : <SdrTuner />}
+      {scanTab === "live" ? <SdrTuner /> : <RadioLogPanel />}
     </div>
   );
 }

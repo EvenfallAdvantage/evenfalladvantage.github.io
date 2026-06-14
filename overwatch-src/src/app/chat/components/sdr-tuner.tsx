@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useSdr } from "@/hooks/use-sdr";
-import { Radio, Loader2, Wifi, WifiOff, Signal, Ear, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Radio, Loader2, Wifi, WifiOff, Signal, Ear, CheckCircle, XCircle, Clock, List, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Waterfall } from "@/components/waterfall";
+import { ScannerTab } from "./scanner-tab";
 
 const FM_BANDS = [
   { min: 25000000, max: 54000000, label: "VHF-Lo", color: "bg-red-500/10 text-red-600" },
@@ -28,6 +31,7 @@ function formatFreq(hz: number): string {
 
 export function SdrTuner() {
   const sdr = useSdr();
+  const [freqDrawer, setFreqDrawer] = useState(false);
 
   if (!sdr.wasmLoaded && !sdr.wasmError) {
     return (
@@ -113,9 +117,10 @@ export function SdrTuner() {
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="flex">
+      <div className="flex-1 min-w-0 p-4 space-y-4">
 
-      {/* Connection bar */}
+        {/* Connection bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isConnected ? (
@@ -127,15 +132,26 @@ export function SdrTuner() {
             {isConnecting ? "Connecting..." : isConnected ? "SDR Connected" : "Disconnected"}
           </span>
         </div>
-        <Button
-          size="sm"
-          variant={isConnected ? "destructive" : "default"}
-          className="gap-1.5 text-xs"
-          onClick={isConnected ? sdr.disconnect : sdr.connect}
-          disabled={isConnecting}
-        >
-          {isConnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : isConnected ? "Disconnect" : "Connect SDR"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant={isConnected ? "outline" : "default"}
+            className="gap-1.5 text-xs"
+            onClick={() => setFreqDrawer(!freqDrawer)}
+          >
+            {freqDrawer ? <X className="h-3 w-3" /> : <List className="h-3 w-3" />}
+            {freqDrawer ? "Close" : "Frequencies"}
+          </Button>
+          <Button
+            size="sm"
+            variant={isConnected ? "destructive" : "default"}
+            className="gap-1.5 text-xs"
+            onClick={isConnected ? sdr.disconnect : sdr.connect}
+            disabled={isConnecting}
+          >
+            {isConnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : isConnected ? "Disconnect" : "Connect SDR"}
+          </Button>
+        </div>
       </div>
 
       {isConnected && (
@@ -172,6 +188,9 @@ export function SdrTuner() {
               />
             </div>
           </div>
+
+          {/* Waterfall */}
+          <Waterfall height={120} />
 
           {/* Controls */}
           <div className="grid gap-3 sm:grid-cols-3">
@@ -272,6 +291,23 @@ export function SdrTuner() {
             <p className="text-[10px] text-red-500 text-center">{sdr.errorMessage}</p>
           )}
         </>
+      )}
+      </div>
+
+      {/* Frequency drawer */}
+      {freqDrawer && (
+        <div className="w-80 shrink-0 border-l border-border/50 bg-card overflow-y-auto max-h-[calc(100vh-12rem)] sticky top-0">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border/20 bg-muted/20">
+            <span className="text-xs font-medium">Frequencies</span>
+            <button
+              onClick={() => setFreqDrawer(false)}
+              className="rounded-md p-1 hover:bg-muted/50 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <ScannerTab />
+        </div>
       )}
     </div>
   );

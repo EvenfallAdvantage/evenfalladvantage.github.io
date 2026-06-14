@@ -15,6 +15,9 @@ type SdrSession = {
 };
 
 let globalSdrSession: SdrSession | null = null;
+let globalAnalyserNode: AnalyserNode | null = null;
+
+export function getGlobalAnalyserNode(): AnalyserNode | null { return globalAnalyserNode; }
 
 export function globalTune(freqHz: number, mode?: DemodMode): void {
   const { setFrequency, setMode } = useSdrStore.getState();
@@ -47,7 +50,7 @@ export function useSdr() {
         store.setWasmLoaded(false, err instanceof Error ? err.message : "Failed to load WASM");
       }
     })();
-    return () => { session.current = null; globalSdrSession = null; destroySdrController(); };
+    return () => { session.current = null; globalSdrSession = null; globalAnalyserNode = null; destroySdrController(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -101,6 +104,7 @@ export function useSdr() {
       }
       session.current = { type: "bridge", ctrl: bridge };
       globalSdrSession = session.current;
+      globalAnalyserNode = bridge.analyserNode;
       store.setConnection("connected", {
         vendorId: 0x0bda, productId: 0x2838,
         manufacturerName: "Realtek", productName: "RTL-SDR via Companion",
@@ -133,6 +137,7 @@ export function useSdr() {
       }
       session.current = { type: "webusb", ctrl };
       globalSdrSession = session.current;
+      globalAnalyserNode = ctrl.analyserNode;
       store.setConnection("connected", {
         vendorId: 0x0bda, productId: 0x2832,
         manufacturerName: "Realtek", productName: "RTL-SDR USB Dongle",
@@ -176,7 +181,7 @@ export function useSdr() {
       transcriberRef.current.stop();
       transcriberRef.current = null;
     }
-    if (session.current) { session.current.ctrl.disconnect(); session.current = null; globalSdrSession = null; }
+    if (session.current) { session.current.ctrl.disconnect(); session.current = null; globalSdrSession = null; globalAnalyserNode = null; }
     store.disconnect();
   }, [store]);
 

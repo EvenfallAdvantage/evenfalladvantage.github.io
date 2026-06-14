@@ -35,6 +35,7 @@ const RTL_XTAL = 28_800_000;
 
 export class SdrController {
   onAudio: ((chunk: Float32Array) => void) | null = null;
+  analyserNode: AnalyserNode | null = null;
   private device: USBDevice | null = null;
   private audioCtx: AudioContext | null = null;
   private workletNode: AudioWorkletNode | null = null;
@@ -75,6 +76,7 @@ export class SdrController {
   disconnect(): void {
     this.active = false;
     if (this.workletNode) { try { this.workletNode.disconnect(); } catch {} this.workletNode = null; }
+    this.analyserNode = null;
     if (this.gainNode) { try { this.gainNode.disconnect(); } catch {} this.gainNode = null; }
     if (this.audioCtx) { try { this.audioCtx.close(); } catch {} this.audioCtx = null; }
     if (this.device) { try { this.device.close(); } catch {} this.device = null; }
@@ -130,7 +132,10 @@ export class SdrController {
     this.workletNode.port.onmessage = (e) => {
       if (e.data.type === "signal") onLevel(e.data.level);
     };
-    this.workletNode.connect(this.gainNode!);
+    this.analyserNode = this.audioCtx.createAnalyser();
+    this.analyserNode.fftSize = 256;
+    this.workletNode.connect(this.analyserNode);
+    this.analyserNode.connect(this.gainNode!);
   }
 
   feedAudio(s: Float32Array): void {
