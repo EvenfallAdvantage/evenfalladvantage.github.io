@@ -10,8 +10,8 @@ function extractEmbeddedBinaries(): string {
   if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
   const exePath = resolve(tmpDir, "rtl_fm.exe");
   const dllPath = resolve(tmpDir, "librtlsdr.dll");
-  if (!existsSync(exePath)) writeFileSync(exePath, Buffer.from(RTL_FM_EXE, "base64"));
-  if (!existsSync(dllPath)) writeFileSync(dllPath, Buffer.from(LIBRTLSDR_DLL, "base64"));
+  writeFileSync(exePath, Buffer.from(RTL_FM_EXE, "base64"));
+  writeFileSync(dllPath, Buffer.from(LIBRTLSDR_DLL, "base64"));
   return tmpDir;
 }
 
@@ -29,6 +29,7 @@ function findRtlFm(): string {
   return candidates[0];
 }
 const RTL_FM_PATH = findRtlFm();
+console.log(`SDR: rtl_fm = ${RTL_FM_PATH} (exists=${existsSync(RTL_FM_PATH)})`);
 
 export interface RtlFmParams {
   freq: number;

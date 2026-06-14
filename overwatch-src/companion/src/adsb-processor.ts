@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { RTL_ADSB_EXE, LIBRTLSDR_DLL } from "./_embedded-bins";
+import { RTL_ADSB_EXE, RTL_SDR_EXE, LIBRTLSDR_DLL } from "./_embedded-bins";
 import Decoder from "mode-s-decoder";
 import AircraftStore from "mode-s-aircraft-store";
 
@@ -41,12 +41,15 @@ function extractEmbeddedAdsb(): string {
   if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
   const exePath = resolve(tmpDir, "rtl_adsb.exe");
   const dllPath = resolve(tmpDir, "librtlsdr.dll");
-  if (!existsSync(exePath)) writeFileSync(exePath, Buffer.from(RTL_ADSB_EXE, "base64"));
-  if (!existsSync(dllPath)) writeFileSync(dllPath, Buffer.from(LIBRTLSDR_DLL, "base64"));
+  writeFileSync(exePath, Buffer.from(RTL_ADSB_EXE, "base64"));
+  writeFileSync(dllPath, Buffer.from(LIBRTLSDR_DLL, "base64"));
   return tmpDir;
 }
 
 const RTL_ADSB_PATH = findRtlAdsb();
+const RTL_SDR_PATH = findRtlSdr();
+console.log(`SDR: rtl_adsb = ${RTL_ADSB_PATH} (exists=${existsSync(RTL_ADSB_PATH)})`);
+console.log(`SDR: rtl_sdr  = ${RTL_SDR_PATH} (exists=${existsSync(RTL_SDR_PATH)})`);
 
 export class AdsbProcessor {
   private proc: ChildProcess | null = null;
@@ -174,10 +177,9 @@ export class AdsbProcessor {
 export async function enumerateAdsbDevices(): Promise<string[]> {
   // Use rtl_sdr to list devices: rtl_sdr -d 9999 outputs device info then exits
   // We just look for "Found N device(s)" or parse serials
-  const rtlSdrPath = findRtlSdr();
   return new Promise((resolve_) => {
     const results: string[] = [];
-    const child = spawn(rtlSdrPath, ["-d", "9999"], {
+    const child = spawn(RTL_SDR_PATH, ["-d", "9999"], {
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
@@ -205,6 +207,16 @@ export async function enumerateAdsbDevices(): Promise<string[]> {
   });
 }
 
+function extractEmbeddedSdr(): string {
+  const tmpDir = resolve(tmpdir(), "sdr-companion-rtlsdr");
+  if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
+  const exePath = resolve(tmpDir, "rtl_sdr.exe");
+  const dllPath = resolve(tmpDir, "librtlsdr.dll");
+  writeFileSync(exePath, Buffer.from(RTL_SDR_EXE, "base64"));
+  writeFileSync(dllPath, Buffer.from(LIBRTLSDR_DLL, "base64"));
+  return tmpDir;
+}
+
 function findRtlSdr(): string {
   const candidates: string[] = [];
   candidates.push(resolve(dirname(process.execPath), "rtlsdr-bin", "rtl_sdr.exe"));
@@ -213,5 +225,8 @@ function findRtlSdr(): string {
   for (const p of candidates) {
     if (existsSync(p)) return p;
   }
+  const tmpDir = extractEmbeddedSdr();
+  const p = resolve(tmpDir, "rtl_sdr.exe");
+  if (existsSync(p)) return p;
   return candidates[0];
 }
