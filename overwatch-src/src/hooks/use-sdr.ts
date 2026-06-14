@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { useSdrStore } from "@/stores/sdr-store";
-import { loadWasm, getWasm, getSdrController, destroySdrController } from "@/lib/sdr/rtl-sdr";
+import { loadWasm, getWasm, getSdrController } from "@/lib/sdr/rtl-sdr";
 import { SdrBridge } from "@/lib/sdr/sdr-bridge";
 import { getPlatform, isDesktop } from "@/lib/sdr/platform";
 import { BUFFER_SIZE } from "@/lib/sdr/types";
@@ -47,11 +47,20 @@ export function useSdr() {
       try {
         await loadWasm();
         store.setWasmLoaded(true);
+        // Re-sync with existing session when navigating back to this page
+        if (globalSdrSession && !session.current) {
+          session.current = globalSdrSession;
+          globalSdrSession.ctrl.resumeAudio();
+        }
       } catch (err) {
         store.setWasmLoaded(false, err instanceof Error ? err.message : "Failed to load WASM");
       }
     })();
-    return () => { session.current = null; globalSdrSession = null; globalAnalyserNode = null; destroySdrController(); };
+    return () => {
+      // Don't destroy the session — it survives page navigation.
+      // Only disconnect via explicit user action (disconnect()).
+      session.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
