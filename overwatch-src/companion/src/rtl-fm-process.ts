@@ -45,6 +45,7 @@ export class RtlFmProcess {
   private buffer = Buffer.alloc(0);
   private restartCount = 0;
   private _closing = false;
+  private _restarting = false;
 
   constructor(initialFreq?: number) {
     this.params = {
@@ -59,6 +60,7 @@ export class RtlFmProcess {
   onAudioData(cb: (buf: Float32Array) => void): void { this.onAudio = cb; }
 
   async start(): Promise<void> {
+    this.restartCount = 0;
     await this.spawn();
   }
 
@@ -103,18 +105,44 @@ export class RtlFmProcess {
     }
   }
 
+  private async killAndWait(): Promise<void> {
+    if (!this.proc) return;
+    const old = this.proc;
+    old.stdout?.removeAllListeners("data");
+    old.stderr?.removeAllListeners("data");
+    old.removeAllListeners("exit");
+    old.removeAllListeners("error");
+
+    const exited = new Promise<void>((resolve) => {
+      old.once("exit", () => resolve());
+    });
+
+    try { old.kill(); } catch {}
+    this.proc = null;
+
+    await Promise.race([exited, delay(3000)]);
+  }
+
   private async restart(): Promise<void> {
-    this.buffer = Buffer.alloc(0);
-    this.kill();
-    await delay(this.backoffDelay());
-    await this.spawn();
+    if (this._restarting) return;
+    this._restarting = true;
+    try {
+      this.buffer = Buffer.alloc(0);
+      if (this.proc) {
+        await this.killAndWait();
+      }
+      await delay(this.backoffDelay());
+      await this.spawn();
+    } finally {
+      this._restarting = false;
+    }
   }
 
   private backoffDelay(): number {
-    if (this.restartCount <= 1) return 500;
-    if (this.restartCount <= 3) return 1500;
-    if (this.restartCount <= 6) return 3000;
-    return 5000;
+    if (this.restartCount <= 1) return 2000;
+    if (this.restartCount <= 3) return 3000;
+    if (this.restartCount <= 6) return 5000;
+    return 8000;
   }
 
   private async spawn(): Promise<void> {
@@ -163,15 +191,8 @@ export class RtlFmProcess {
 
       if (code === 0) return;
 
-      if (signal !== null) {
-        console.error(`rtl_fm killed by signal ${signal} (likely SDR device contention)`);
-        this.restartCount++;
-        setTimeout(() => this.restart(), this.backoffDelay());
-        return;
-      }
-
-      if (code === null) {
-        console.error(`rtl_fm exited abnormally (null code), will retry`);
+      if (signal !== null || code === null) {
+        console.error(`rtl_fm exited abnormally (code=${code}, signal=${signal}), retry #${this.restartCount + 1}`);
         this.restartCount++;
         setTimeout(() => this.restart(), this.backoffDelay());
         return;
