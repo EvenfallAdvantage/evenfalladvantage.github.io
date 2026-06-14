@@ -1,9 +1,9 @@
 :HL["/overwatch/_next/static/chunks/01vs7lgu-dwh..css","style"]
-:HL["/overwatch/_next/static/chunks/01mqm5iim6-ib.css","style"]
+:HL["/overwatch/_next/static/chunks/0pobv~bm42lgg.css","style"]
 :HL["/overwatch/_next/static/media/0595f7052377a1a2-s.p.0u0xtu5i3hze-.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/235a0ef330592118-s.p.0b723ysm_ve25.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/6ad1cda2f16975ee-s.p.0t8o_f0a-dk8w.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/6c98c9fb873995d2-s.p.0o4ax6vjjs2k3.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/a083361d37caf3d1-s.p.08pvxdps0wo-e.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/overwatch/_next/static/media/c6e2684784a55443-s.p.0v346keojskif.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"login","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"phVs15fXOFyW7OLI0Yn54"}
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"login","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"eaT4u056QhveB3mDZupAN"}
