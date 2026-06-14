@@ -52,7 +52,8 @@ export class SdrServer {
     this.wss = new WebSocketServer({ server });
     this.wss.on("connection", (ws) => {
       this.clients.add(ws);
-      ws.send(JSON.stringify({ type: "ready", sample_rate: SAMPLE_RATE, freq: this.freqHz }));
+      try { ws.send(JSON.stringify({ type: "ready", sample_rate: SAMPLE_RATE, freq: this.freqHz })); }
+      catch (e) { console.error("SDR: failed to send ready", (e as Error).message); }
       this.sendDeviceCatalog(ws);
       console.log("SDR: client connected");
 

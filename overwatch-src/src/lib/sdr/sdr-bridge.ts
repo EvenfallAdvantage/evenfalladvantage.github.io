@@ -44,10 +44,12 @@ export class SdrBridge {
           try {
             const msg = JSON.parse(e.data);
             if (msg.type === "ready") {
+              console.log("[SDR Bridge] Received ready message");
               if (msg.sample_rate) this._sampleRate = msg.sample_rate;
               if (msg.freq) this._companionFreq = msg.freq;
               this.active = true;
               this.ws = ws;
+              console.log("[SDR Bridge] Connection established, active=true");
               resolve();
             } else if (msg.type === "freq_set") {
               // frequency acknowledged
@@ -79,7 +81,12 @@ export class SdrBridge {
 
       ws.onclose = () => {
         clearTimeout(timer);
-        if (!this.active) reject(new Error("Connection closed"));
+        if (!this.active) {
+          console.log("[SDR Bridge] Connection closed before active, rejecting");
+          reject(new Error("Connection closed"));
+        } else {
+          console.log("[SDR Bridge] Connection closed after active");
+        }
       };
     });
   }

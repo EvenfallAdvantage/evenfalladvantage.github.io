@@ -73,13 +73,14 @@ export function useSdr() {
       try {
         const bridge = new SdrBridge();
         await bridge.connect();
-        bridge.disconnect();
         store.setCompanionAvailable(true);
+        setTimeout(() => bridge.disconnect(), 100);
       } catch {
       }
     };
     checkCompanion();
-  }, [store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startTranscriber = useCallback(() => {
     if (!store.transcriptionEnabled || !session.current) return;
