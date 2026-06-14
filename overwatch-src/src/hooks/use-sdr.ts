@@ -18,6 +18,7 @@ type SdrSession = {
 
 let globalSdrSession: SdrSession | null = null;
 let globalAnalyserNode: AnalyserNode | null = null;
+let companionCheckDone = false;
 
 export function getGlobalAnalyserNode(): AnalyserNode | null { return globalAnalyserNode; }
 
@@ -63,11 +64,11 @@ export function useSdr() {
   }, []);
 
   useEffect(() => {
-    if (companionCheckRef.current) return;
+    if (companionCheckDone) return;
     const platform = getPlatform();
     if (platform !== "windows") return;
     
-    companionCheckRef.current = true;
+    companionCheckDone = true;
     
     const checkCompanion = async () => {
       try {
