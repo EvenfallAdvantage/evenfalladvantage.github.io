@@ -71,6 +71,7 @@ export class AdsbProcessor {
   }
 
   get running(): boolean { return this._running; }
+  getDevIndex(): number { return this.deviceIndex; }
 
   async start(): Promise<void> {
     if (this._running) return;
@@ -175,8 +176,7 @@ export class AdsbProcessor {
 }
 
 export async function enumerateAdsbDevices(): Promise<string[]> {
-  // Use rtl_sdr to list devices: rtl_sdr -d 9999 outputs device info then exits
-  // We just look for "Found N device(s)" or parse serials
+  // rtl_sdr prints device info to stderr, not stdout
   return new Promise((resolve_) => {
     const results: string[] = [];
     const child = spawn(RTL_SDR_PATH, ["-d", "9999"], {
@@ -185,7 +185,7 @@ export async function enumerateAdsbDevices(): Promise<string[]> {
     });
     const timeout = setTimeout(() => { child.kill(); resolve_(results); }, 5000);
 
-    child.stdout!.on("data", (data: Buffer) => {
+    const parseOutput = (data: Buffer) => {
       const text = data.toString();
       // Parse lines like: "  0:  Realtek, RTL2838UHIDIR, SN: 00000001"
       const regex = /^\s*(\d+):\s*.+SN:\s*(\S+)/gm;
@@ -193,7 +193,10 @@ export async function enumerateAdsbDevices(): Promise<string[]> {
       while ((match = regex.exec(text)) !== null) {
         results.push(match[2]);
       }
-    });
+    };
+
+    child.stdout!.on("data", parseOutput);
+    child.stderr!.on("data", parseOutput);
 
     child.on("exit", () => {
       clearTimeout(timeout);

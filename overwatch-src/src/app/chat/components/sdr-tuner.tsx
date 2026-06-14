@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSdr } from "@/hooks/use-sdr";
-import { Radio, Loader2, Wifi, WifiOff, Signal, Ear, CheckCircle, XCircle, Clock, List, X, Radar } from "lucide-react";
+import { Radio, Loader2, Wifi, WifiOff, Signal, Ear, CheckCircle, XCircle, Clock, List, X, Radar, AlertTriangle, HardDrive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Waterfall } from "@/components/waterfall";
 import { ScannerTab } from "./scanner-tab";
@@ -243,25 +243,89 @@ export function SdrTuner() {
             ))}
           </div>
 
-          {/* ADSB Controls */}
-          <div className="rounded-lg border border-border/30 bg-muted/10 p-3 space-y-2">
-            <div className="flex items-center justify-between">
+          {/* Device Management */}
+          <div className="rounded-lg border border-border/30 bg-muted/10 p-3 space-y-3">
+            <span className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+              <HardDrive className="h-3 w-3" /> Devices
+            </span>
+
+            {sdr.deviceCatalog.length === 0 && (
+              <p className="text-[10px] text-muted-foreground/60 italic">No SDR devices detected</p>
+            )}
+
+            {sdr.deviceCatalog.length === 1 && (
+              <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-2.5 py-2">
+                <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                  Only 1 SDR detected. Radio and ADSB cannot run simultaneously. Assign the device to either feature.
+                </p>
+              </div>
+            )}
+
+            {/* Radio device selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-muted-foreground w-10 shrink-0">Radio</span>
+              <select
+                value={sdr.deviceAssignment.radio ?? ""}
+                onChange={(e) => sdr.assignDevice("radio", e.target.value ? Number(e.target.value) : null)}
+                className="flex-1 rounded-md border border-border/50 bg-background px-2 py-1 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">— None —</option>
+                {sdr.deviceCatalog.map((d) => (
+                  <option
+                    key={d.index}
+                    value={d.index}
+                    disabled={sdr.deviceAssignment.adsb === d.index}
+                  >
+                    {d.index}: {d.manufacturer} {d.product} (SN: {d.serial})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* ADSB device selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-muted-foreground w-10 shrink-0">ADSB</span>
+              <select
+                value={sdr.deviceAssignment.adsb ?? ""}
+                onChange={(e) => sdr.assignDevice("adsb", e.target.value ? Number(e.target.value) : null)}
+                className="flex-1 rounded-md border border-border/50 bg-background px-2 py-1 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="">— None —</option>
+                {sdr.deviceCatalog.map((d) => (
+                  <option
+                    key={d.index}
+                    value={d.index}
+                    disabled={sdr.deviceAssignment.radio === d.index}
+                  >
+                    {d.index}: {d.manufacturer} {d.product} (SN: {d.serial})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* ADSB start/stop */}
+            <div className="flex items-center justify-between pt-1 border-t border-border/20">
               <span className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
                 <Radar className="h-3 w-3" /> ADSB Tracking
               </span>
-              <span className={`text-[8px] font-mono uppercase ${sdr.adsbRunning ? "text-green-500" : "text-muted-foreground/50"}`}>
-                {sdr.adsbRunning ? "Active" : "Inactive"}
-              </span>
-            </div>
-            <div className="flex gap-1.5">
-              <Button
-                size="sm"
-                variant={sdr.adsbRunning ? "destructive" : "outline"}
-                className="text-[10px] h-7 px-2 gap-1"
-                onClick={() => sdr.adsbRunning ? sdr.adsbStop() : sdr.adsbStart()}
-              >
-                {sdr.adsbRunning ? "Stop ADSB" : "Start ADSB"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <span className={`text-[8px] font-mono uppercase ${sdr.adsbRunning ? "text-green-500" : "text-muted-foreground/50"}`}>
+                  {sdr.adsbRunning ? "Active" : "Inactive"}
+                </span>
+                {sdr.deviceAssignment.adsb !== null ? (
+                  <Button
+                    size="sm"
+                    variant={sdr.adsbRunning ? "destructive" : "outline"}
+                    className="text-[10px] h-7 px-2 gap-1"
+                    onClick={() => sdr.adsbRunning ? sdr.adsbStop() : sdr.adsbStart()}
+                  >
+                    {sdr.adsbRunning ? "Stop" : "Start"}
+                  </Button>
+                ) : (
+                  <span className="text-[9px] text-muted-foreground/50">No device assigned</span>
+                )}
+              </div>
             </div>
           </div>
 

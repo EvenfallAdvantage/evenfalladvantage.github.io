@@ -1,5 +1,6 @@
 import { registerSdrWorklet } from "./sdr-worklet";
 import type { AdsbAircraftMap } from "./adsb-types";
+import type { DeviceInfo, DeviceAssignment, SdrRoleKey } from "./device-types";
 
 const COMPANION_PORT = 8372;
 const CONNECT_TIMEOUT = 2000;
@@ -8,6 +9,8 @@ const AUDIO_SAMPLE_RATE = 48000;
 export class SdrBridge {
   onAudio: ((chunk: Float32Array) => void) | null = null;
   onAdsbData: ((aircraft: AdsbAircraftMap) => void) | null = null;
+  onDeviceCatalog: ((devices: DeviceInfo[], assignments: DeviceAssignment) => void) | null = null;
+  onDeviceAssignAck: ((success: boolean, role: string, device: number | null, error?: string) => void) | null = null;
   analyserNode: AnalyserNode | null = null;
   private ws: WebSocket | null = null;
   private audioCtx: AudioContext | null = null;
@@ -16,9 +19,13 @@ export class SdrBridge {
   private active = false;
   private _sampleRate = AUDIO_SAMPLE_RATE;
   private _companionFreq: number | null = null;
+  private _deviceCatalog: DeviceInfo[] = [];
+  private _deviceAssignment: DeviceAssignment = { radio: null, adsb: null };
 
   get sampleRate(): number { return this._sampleRate; }
   get companionFreq(): number | null { return this._companionFreq; }
+  get deviceCatalog(): DeviceInfo[] { return this._deviceCatalog; }
+  get deviceAssignment(): DeviceAssignment { return { ...this._deviceAssignment }; }
 
   async connect(): Promise<void> {
     this.setupAudio();
@@ -43,13 +50,21 @@ export class SdrBridge {
               this.ws = ws;
               resolve();
             } else if (msg.type === "freq_set") {
-              // frequency acknowledged — audio pipeline continues
+              // frequency acknowledged
             } else if (msg.type === "gain_set") {
-              // gain acknowledgement
+              // gain acknowledged
             } else if (msg.type === "adsb_batch") {
               this.onAdsbData?.(msg.aircraft);
             } else if (msg.type === "adsb_status") {
-              // ADSB start/stop acknowledged by companion
+              // ADSB start/stop acknowledged
+            } else if (msg.type === "device_catalog") {
+              this._deviceCatalog = msg.devices ?? [];
+              this._deviceAssignment = msg.assignments ?? { radio: null, adsb: null };
+              this.onDeviceCatalog?.(this._deviceCatalog, this._deviceAssignment);
+            } else if (msg.type === "device_assign_ack") {
+              this.onDeviceAssignAck?.(msg.success, msg.role, msg.device ?? null, msg.error);
+            } else if (msg.type === "radio_device_set") {
+              // backward compat — already handled via device_catalog
             }
           } catch {}
         } else if (e.data instanceof ArrayBuffer) {
@@ -79,6 +94,8 @@ export class SdrBridge {
     this.analyserNode = null;
     if (this.gainNode) { try { this.gainNode.disconnect(); } catch {} this.gainNode = null; }
     if (this.audioCtx) { try { this.audioCtx.close(); } catch {} this.audioCtx = null; }
+    this._deviceCatalog = [];
+    this._deviceAssignment = { radio: null, adsb: null };
   }
 
   isConnected(): boolean {
@@ -103,15 +120,28 @@ export class SdrBridge {
     }
   }
 
-  async adsbStart(deviceIndex = 1): Promise<void> {
+  async assignDevice(role: SdrRoleKey, deviceIndex: number | null): Promise<void> {
     if (this.isConnected()) {
-      this.ws!.send(JSON.stringify({ cmd: "adsb_start", device: deviceIndex }));
+      this.ws!.send(JSON.stringify({ cmd: "assign_device", role, device: deviceIndex }));
+    }
+  }
+
+  async adsbStart(): Promise<void> {
+    if (this.isConnected()) {
+      this.ws!.send(JSON.stringify({ cmd: "adsb_start" }));
     }
   }
 
   async adsbStop(): Promise<void> {
     if (this.isConnected()) {
       this.ws!.send(JSON.stringify({ cmd: "adsb_stop" }));
+    }
+  }
+
+  async radioSetDevice(deviceIndex: number): Promise<void> {
+    // Legacy — prefer assignDevice
+    if (this.isConnected()) {
+      this.ws!.send(JSON.stringify({ cmd: "radio_set_device", device: deviceIndex }));
     }
   }
 

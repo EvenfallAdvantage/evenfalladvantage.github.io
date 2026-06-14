@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { useShallow } from "zustand/shallow";
 import type { DemodMode, ConnectionState, SdrDeviceInfo } from "@/lib/sdr/types";
 import type { Transcription } from "@/lib/sdr/radio-transcriber";
+import type { DeviceInfo, DeviceAssignment } from "@/lib/sdr/device-types";
 import {
   DEFAULT_SAMPLE_RATE, DEFAULT_GAIN, DEFAULT_SQUELCH, DEFAULT_VOLUME,
 } from "@/lib/sdr/types";
@@ -23,6 +24,8 @@ interface SdrStoreState {
   transcriptionEnabled: boolean;
   transcriptions: Transcription[];
   adsbRunning: boolean;
+  deviceCatalog: DeviceInfo[];
+  deviceAssignment: DeviceAssignment;
 
   setConnection: (connection: ConnectionState, device?: SdrDeviceInfo | null) => void;
   setFrequency: (freq: number) => void;
@@ -38,6 +41,8 @@ interface SdrStoreState {
   addTranscription: (t: Transcription) => void;
   clearTranscriptions: () => void;
   setAdsbRunning: (running: boolean) => void;
+  setDeviceCatalog: (catalog: DeviceInfo[], assignment: DeviceAssignment) => void;
+  setDeviceAssignment: (assignment: DeviceAssignment) => void;
   disconnect: () => void;
 }
 
@@ -58,6 +63,8 @@ export const useSdrStore = create<SdrStoreState>()((set) => ({
   transcriptionEnabled: false,
   transcriptions: [],
   adsbRunning: false,
+  deviceCatalog: [],
+  deviceAssignment: { radio: null, adsb: null },
 
   setConnection: (connection, device) => set({ connection, device: device ?? null }),
   setFrequency: (frequency) => set({ frequency }),
@@ -73,8 +80,11 @@ export const useSdrStore = create<SdrStoreState>()((set) => ({
   addTranscription: (t) => set((s) => ({ transcriptions: [...s.transcriptions, t] })),
   clearTranscriptions: () => set({ transcriptions: [] }),
   setAdsbRunning: (adsbRunning) => set({ adsbRunning }),
+  setDeviceCatalog: (deviceCatalog, deviceAssignment) => set({ deviceCatalog, deviceAssignment }),
+  setDeviceAssignment: (deviceAssignment) => set({ deviceAssignment }),
   disconnect: () => set({
     connection: "disconnected", device: null, frequency: 0, signalLevel: 0,
+    deviceCatalog: [], deviceAssignment: { radio: null, adsb: null },
   }),
 }));
 

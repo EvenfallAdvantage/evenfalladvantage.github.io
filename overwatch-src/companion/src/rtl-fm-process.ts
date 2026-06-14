@@ -37,6 +37,7 @@ export interface RtlFmParams {
   mode: string;
   sampleRate: number;
   squelch: number;
+  deviceIndex: number;
 }
 
 export class RtlFmProcess {
@@ -48,13 +49,14 @@ export class RtlFmProcess {
   private _closing = false;
   private _restarting = false;
 
-  constructor(initialFreq?: number) {
+  constructor(initialFreq?: number, deviceIndex = 0) {
     this.params = {
       freq: initialFreq ?? 162_550_000,
       gain: 30,
       mode: "fm",
       sampleRate: 48_000,
       squelch: 0,
+      deviceIndex,
     };
   }
 
@@ -146,10 +148,16 @@ export class RtlFmProcess {
     return 8000;
   }
 
+  async setDevice(deviceIndex: number): Promise<void> {
+    this.params.deviceIndex = deviceIndex;
+    this.restartCount = 0;
+    await this.restart();
+  }
+
   private async spawn(): Promise<void> {
     if (this._closing) return;
 
-    const { freq, gain, mode, sampleRate, squelch } = this.params;
+    const { freq, gain, mode, sampleRate, squelch, deviceIndex } = this.params;
 
     const freqStr = freq >= 1_000_000_000 ? `${(freq / 1_000_000_000).toFixed(3)}G`
                   : freq >= 1_000_000 ? `${(freq / 1_000_000).toFixed(3)}M`
@@ -161,6 +169,7 @@ export class RtlFmProcess {
       "-s", String(sampleRate),
       "-g", String(gain),
       "-l", String(squelch),
+      "-d", String(deviceIndex),
       "-A", "fast",
       "-F", "9",
       "-E", "dc",

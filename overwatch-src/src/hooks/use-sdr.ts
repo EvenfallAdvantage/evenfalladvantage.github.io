@@ -7,6 +7,7 @@ import { SdrBridge } from "@/lib/sdr/sdr-bridge";
 import { getPlatform, isDesktop } from "@/lib/sdr/platform";
 import { BUFFER_SIZE } from "@/lib/sdr/types";
 import type { DemodMode } from "@/lib/sdr/types";
+import type { SdrRoleKey } from "@/lib/sdr/device-types";
 import { RadioTranscriber } from "@/lib/sdr/radio-transcriber";
 import { setAdsbAircraft } from "@/lib/sdr/adsb-store";
 
@@ -47,7 +48,6 @@ export function useSdr() {
       try {
         await loadWasm();
         store.setWasmLoaded(true);
-        // Re-sync with existing session when navigating back to this page
         if (globalSdrSession && !session.current) {
           session.current = globalSdrSession;
           globalSdrSession.ctrl.resumeAudio();
@@ -57,14 +57,11 @@ export function useSdr() {
       }
     })();
     return () => {
-      // Don't destroy the session — it survives page navigation.
-      // Only disconnect via explicit user action (disconnect()).
       session.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Check if companion is running on page load (Windows only)
   useEffect(() => {
     if (companionCheckRef.current) return;
     const platform = getPlatform();
@@ -79,7 +76,6 @@ export function useSdr() {
         bridge.disconnect();
         store.setCompanionAvailable(true);
       } catch {
-        // Companion not running, that's OK - user will see download prompt
       }
     };
     checkCompanion();
@@ -105,6 +101,9 @@ export function useSdr() {
     try {
       const bridge = new SdrBridge();
       bridge.onAdsbData = setAdsbAircraft;
+      bridge.onDeviceCatalog = (devices, assignment) => {
+        store.setDeviceCatalog(devices, assignment);
+      };
       await bridge.connect();
       bridge.resumeAudio();
       await bridge.startStream((level) => store.setSignalLevel(level));
@@ -123,7 +122,6 @@ export function useSdr() {
       startTranscriber();
       return;
     } catch {
-      // companion not available -> fall back to WebUSB
     }
 
     // WebUSB fallback
@@ -252,10 +250,10 @@ export function useSdr() {
   }, [store]);
   const setMode = useCallback((mode: DemodMode) => store.setMode(mode), [store]);
 
-  const adsbStart = useCallback(async (deviceIndex = 1) => {
+  const adsbStart = useCallback(async () => {
     const s = session.current;
     if (s?.type === "bridge") {
-      await (s.ctrl as SdrBridge).adsbStart(deviceIndex);
+      await (s.ctrl as SdrBridge).adsbStart();
       store.setAdsbRunning(true);
     }
   }, [store]);
@@ -276,9 +274,16 @@ export function useSdr() {
     return [];
   }, []);
 
+  const assignDevice = useCallback(async (role: SdrRoleKey, deviceIndex: number | null) => {
+    const s = session.current;
+    if (s?.type === "bridge") {
+      await (s.ctrl as SdrBridge).assignDevice(role, deviceIndex);
+    }
+  }, []);
+
   return {
     ...store, connect, disconnect, tune, setGain, setSquelch, setVolume, setMode,
     setTranscriptionEnabled,
-    adsbStart, adsbStop, enumerateDevices,
+    adsbStart, adsbStop, enumerateDevices, assignDevice,
   };
 }
