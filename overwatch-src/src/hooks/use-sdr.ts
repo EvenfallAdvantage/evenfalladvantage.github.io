@@ -166,7 +166,7 @@ export function useSdr() {
       const platform = getPlatform();
       let errorMsg = err instanceof Error ? err.message : "Connection failed";
       if (platform === "windows") {
-        errorMsg = "SDR Companion app not found.\n\nPlease download and run the SDR companion app for Windows:\nhttps://github.com/EvenfallAdvantage/evenfalladvantage.github.io\n\nOnce launched, click 'Connect SDR' again.";
+        errorMsg = "SDR Companion app not found.\n\nPlease download and run the SDR companion app for Windows:\nhttps://github.com/EvenfallAdvantage/evenfalladvantage.github.io/releases/latest\n\nOnce launched, click 'Connect SDR' again.";
       } else if (isDesktop()) {
         errorMsg = "SDR connection failed.\n\nDirect USB access requires Chrome/Edge and librtlsdr installed.\nTry the companion app instead: https://github.com/EvenfallAdvantage/evenfalladvantage.github.io";
       } else {

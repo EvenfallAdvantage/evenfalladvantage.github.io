@@ -99,7 +99,7 @@ export function SdrTuner() {
           <p className="mb-2">The SDR Companion app must be running to use the RTL-SDR dongle on Windows.</p>
           <ol className="list-decimal ml-4 space-y-1">
             <li>Download the companion app:</li>
-            <li className="ml-4">https://github.com/EvenfallAdvantage/evenfalladvantage.github.io</li>
+            <li className="ml-4">https://github.com/EvenfallAdvantage/evenfalladvantage.github.io/releases/latest</li>
             <li>Run <code className="font-mono bg-muted/50 px-1 py-0.5 rounded">companion/start.cmd</code></li>
             <li>Click &quot;Connect SDR&quot; below</li>
           </ol>

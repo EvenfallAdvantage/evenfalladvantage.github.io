@@ -20,8 +20,10 @@ echo [2/3] Generating SEA blob...
 call node --experimental-sea-config sea-config.json
 if %errorlevel% neq 0 exit /b %errorlevel%
 
-:: Copy node binary and inject
+:: Find node executable and inject
 echo [3/3] Injecting into executable...
+for /f "tokens=*" %%i in ('node -e "console.log(process.execPath)"') do set "NODE_EXE=%%i"
+if not defined NODE_EXE echo ERROR: could not find node.exe & exit /b 1
 copy /Y "%NODE_EXE%" "dist\sdr-companion.exe" >nul
 call npx postject dist/sdr-companion.exe NODE_SEA_BLOB dist/sea.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 --overwrite
 
