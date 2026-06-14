@@ -60,7 +60,7 @@ export class SdrServer {
         try {
           const msg = JSON.parse(raw.toString());
           await this.handleMessage(ws, msg);
-        } catch { /* ignore malformed */ }
+        } catch (e) { console.error("SDR: msg error", (e as Error).message); }
       });
 
       ws.on("close", () => {
@@ -222,6 +222,9 @@ export class SdrServer {
           ws.send(JSON.stringify({ type: "device_list", devices: devices.map((d) => d.serial) }));
         }
         break;
+      default:
+        console.error(`SDR: unknown cmd "${msg.cmd as string}"`);
+        ws.send(JSON.stringify({ type: "error", error: `Unknown command: ${msg.cmd as string}` }));
     }
   }
 }

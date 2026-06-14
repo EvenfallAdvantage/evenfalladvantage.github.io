@@ -108,11 +108,13 @@ export class DeviceManager {
 function enumerateRtlDevices(): Promise<DeviceInfo[]> {
   return new Promise((resolve_) => {
     const results: DeviceInfo[] = [];
+    let done = false;
+    const finish = () => { if (!done) { done = true; clearTimeout(timeout); resolve_(results); } };
     const child = spawn(RTL_SDR_PATH, ["-d", "9999"], {
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
-    const timeout = setTimeout(() => { child.kill(); resolve_(results); }, 5000);
+    const timeout = setTimeout(() => { child.kill(); finish(); }, 10000);
 
     const parseOutput = (data: Buffer) => {
       const text = data.toString();
@@ -132,14 +134,7 @@ function enumerateRtlDevices(): Promise<DeviceInfo[]> {
     child.stdout!.on("data", parseOutput);
     child.stderr!.on("data", parseOutput);
 
-    child.on("exit", () => {
-      clearTimeout(timeout);
-      resolve_(results);
-    });
-
-    child.on("error", () => {
-      clearTimeout(timeout);
-      resolve_(results);
-    });
+    child.on("close", () => finish());
+    child.on("error", () => finish());
   });
 }
