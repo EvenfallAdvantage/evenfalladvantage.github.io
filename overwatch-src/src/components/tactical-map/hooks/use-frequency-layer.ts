@@ -42,87 +42,89 @@ export function useFrequencyLayer(params: {
     const entityGroups = entityGroupsRef.current;
     let cancelled = false;
 
-    entityGroups.frequencies ??= [];
-    entityGroups.freqData ??= new Map<string, { freqHz: number; mode: string }>();
+    import("@/hooks/use-sdr").then((m) => {
+      entityGroups.frequencies ??= [];
+      entityGroups.freqData ??= new Map<string, { freqHz: number; mode: string }>();
 
-    (entityGroups.frequencies as { id: string }[]).forEach((e) => {
-      try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-freq-entity", e_); }
-    });
-    entityGroups.frequencies = [];
-    (entityGroups.freqData as Map<string, { freqHz: number; mode: string }>).clear();
+      (entityGroups.frequencies as { id: string }[]).forEach((e) => {
+        try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("cesium-layers:remove-freq-entity", e_); }
+      });
+      entityGroups.frequencies = [];
+      (entityGroups.freqData as Map<string, { freqHz: number; mode: string }>).clear();
 
-    if (!layers.radioFrequencies || !companyId) return;
+      if (!layers.radioFrequencies || !companyId) return;
 
-    (async () => {
-      try {
-        const freqs = await getRadioFrequenciesWithLocation(companyId);
-        if (cancelled) return;
-        for (const f of freqs) {
-          if (f.latitude == null || f.longitude == null) continue;
-          const color = getColor(f.category);
-          const freqMhz = f.frequency.toFixed(4);
-          const mode = (f.mode || "FM").toLowerCase();
-          const entityId = `freq-${f.id}`;
-
-          (entityGroups.freqData as Map<string, { freqHz: number; mode: string }>)
-            .set(entityId, { freqHz: f.frequency * 1_000_000, mode });
-
-          const description = `<div style="font-family:monospace;font-size:11px;line-height:1.7">
-            <b>${escapeHtml(f.name)}</b>
-            <div style="margin:4px 0"><span style="color:${color};font-weight:bold">${escapeHtml(freqMhz)} MHz</span> <span style="opacity:0.6">${escapeHtml(f.mode || "FM")}</span></div>
-            ${f.ctcss_dcs ? `<div style="opacity:0.7;font-size:10px">Tone: ${escapeHtml(f.ctcss_dcs)}</div>` : ""}
-            ${f.city ? `<div style="opacity:0.5;font-size:10px">${escapeHtml(f.city)}${f.state ? `, ${escapeHtml(f.state)}` : ""}</div>` : f.state ? `<div style="opacity:0.5;font-size:10px">${escapeHtml(f.state)}</div>` : ""}
-            ${f.description ? `<div style="opacity:0.7;margin-top:4px">${escapeHtml(f.description)}</div>` : ""}
-            <div style="margin-top:6px"><a href="#" style="display:inline-block;padding:3px 8px;background:#dd8c33;color:#000;border-radius:3px;text-decoration:none;font-size:10px;font-weight:bold">Listen</a></div>
-          </div>`;
-
-          const entity = viewer.entities.add({
-            id: entityId,
-            name: `${freqMhz} MHz — ${f.name}`,
-            position: Cesium.Cartesian3.fromDegrees(f.longitude, f.latitude, 5),
-            billboard: {
-              image: createPinCanvas(color, "alert"),
-              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-              scale: 0.5,
-              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-              disableDepthTestDistance: 500_000,
-            },
-            label: {
-              text: `${freqMhz} MHz`,
-              font: "9px monospace",
-              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-              outlineWidth: 2,
-              outlineColor: Cesium.Color.BLACK,
-              fillColor: Cesium.Color.fromCssColorString(color),
-              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-              pixelOffset: new Cesium.Cartesian2(0, -28),
-              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-              disableDepthTestDistance: 500_000,
-              scale: 0.8,
-              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
-            },
-            description,
-          });
-          (entityGroups.frequencies as { id: string }[]).push(entity);
-        }
-
-        // Register LEFT_CLICK handler to tune SDR when user clicks the frequency entity
-        const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-        handler.setInputAction((click: { position: { x: number; y: number } }) => {
+      (async () => {
+        try {
+          const freqs = await getRadioFrequenciesWithLocation(companyId);
           if (cancelled) return;
-          const picked = viewer.scene.pick(click.position);
-          if (!Cesium.defined(picked) || !picked.id?.id) return;
-          const entityId = picked.id.id as string;
-          if (!entityId.startsWith("freq-")) return;
-          const data = (entityGroups.freqData as Map<string, { freqHz: number; mode: string }>).get(entityId);
-          if (!data) return;
-          import("@/hooks/use-sdr").then((m) => m.globalTune(data.freqHz, data.mode as "fm" | "nfm" | "am"));
-        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-        entityGroups.freqClickHandler = handler;
-      } catch (e) {
-        logger.swallow("frequency-layer:fetch", e, "warn");
-      }
-    })();
+          for (const f of freqs) {
+            if (f.latitude == null || f.longitude == null) continue;
+            const color = getColor(f.category);
+            const freqMhz = f.frequency.toFixed(4);
+            const mode = (f.mode || "FM").toLowerCase();
+            const entityId = `freq-${f.id}`;
+
+            (entityGroups.freqData as Map<string, { freqHz: number; mode: string }>)
+              .set(entityId, { freqHz: f.frequency * 1_000_000, mode });
+
+            const description = `<div style="font-family:monospace;font-size:11px;line-height:1.7">
+              <b>${escapeHtml(f.name)}</b>
+              <div style="margin:4px 0"><span style="color:${color};font-weight:bold">${escapeHtml(freqMhz)} MHz</span> <span style="opacity:0.6">${escapeHtml(f.mode || "FM")}</span></div>
+              ${f.ctcss_dcs ? `<div style="opacity:0.7;font-size:10px">Tone: ${escapeHtml(f.ctcss_dcs)}</div>` : ""}
+              ${f.city ? `<div style="opacity:0.5;font-size:10px">${escapeHtml(f.city)}${f.state ? `, ${escapeHtml(f.state)}` : ""}</div>` : f.state ? `<div style="opacity:0.5;font-size:10px">${escapeHtml(f.state)}</div>` : ""}
+              ${f.description ? `<div style="opacity:0.7;margin-top:4px">${escapeHtml(f.description)}</div>` : ""}
+              <div style="margin-top:6px"><a href="#" style="display:inline-block;padding:3px 8px;background:#dd8c33;color:#000;border-radius:3px;text-decoration:none;font-size:10px;font-weight:bold">Listen</a></div>
+            </div>`;
+
+            const entity = viewer.entities.add({
+              id: entityId,
+              name: `${freqMhz} MHz — ${f.name}`,
+              position: Cesium.Cartesian3.fromDegrees(f.longitude, f.latitude, 5),
+              billboard: {
+                image: createPinCanvas(color, "alert"),
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                scale: 0.5,
+                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                disableDepthTestDistance: 500_000,
+              },
+              label: {
+                text: `${freqMhz} MHz`,
+                font: "9px monospace",
+                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+                outlineWidth: 2,
+                outlineColor: Cesium.Color.BLACK,
+                fillColor: Cesium.Color.fromCssColorString(color),
+                verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                pixelOffset: new Cesium.Cartesian2(0, -28),
+                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                disableDepthTestDistance: 500_000,
+                scale: 0.8,
+                distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
+              },
+              description,
+            });
+            (entityGroups.frequencies as { id: string }[]).push(entity);
+          }
+
+          // Register LEFT_CLICK handler to tune SDR when user clicks the frequency entity
+          const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+          handler.setInputAction((click: { position: { x: number; y: number } }) => {
+            if (cancelled) return;
+            const picked = viewer.scene.pick(click.position);
+            if (!Cesium.defined(picked) || !picked.id?.id) return;
+            const entityId = picked.id.id as string;
+            if (!entityId.startsWith("freq-")) return;
+            const data = (entityGroups.freqData as Map<string, { freqHz: number; mode: string }>).get(entityId);
+            if (!data) return;
+            m.globalTune(data.freqHz, data.mode as "fm" | "nfm" | "am");
+          }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+          entityGroups.freqClickHandler = handler;
+        } catch (e) {
+          logger.swallow("frequency-layer:fetch", e, "warn");
+        }
+      })();
+    });
 
     return () => {
       cancelled = true;
