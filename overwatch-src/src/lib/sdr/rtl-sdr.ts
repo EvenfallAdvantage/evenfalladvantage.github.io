@@ -1,5 +1,6 @@
 import type { WasmSdrModule } from "./types";
 import { BUFFER_SIZE, AUDIO_SAMPLE_RATE, DEFAULT_SAMPLE_RATE, RTL_USB_PRODUCT_IDS, RTL_USB_VENDOR_ID } from "./types";
+import { registerSdrWorklet } from "./sdr-worklet";
 
 const WASM_URL = "/overwatch/wasm/rtl-sdr.wasm";
 
@@ -33,15 +34,14 @@ const R820T_I2C = 0x34;
 const RTL_XTAL = 28_800_000;
 
 export class SdrController {
+  onAudio: ((chunk: Float32Array) => void) | null = null;
   private device: USBDevice | null = null;
   private audioCtx: AudioContext | null = null;
-  private scriptNode: ScriptProcessorNode | null = null;
+  private workletNode: AudioWorkletNode | null = null;
   private gainNode: GainNode | null = null;
   private active = false;
-  private audioBuf: Float32Array[] = [];
   private currentFreqHz = 0;
   private vendorOk = false;
-  private _volume = 0.7;
 
   // ── Connect ───────────────────────────────────────────
 
@@ -74,8 +74,7 @@ export class SdrController {
 
   disconnect(): void {
     this.active = false;
-    this.audioBuf = [];
-    if (this.scriptNode) { try { this.scriptNode.disconnect(); } catch {} this.scriptNode = null; }
+    if (this.workletNode) { try { this.workletNode.disconnect(); } catch {} this.workletNode = null; }
     if (this.gainNode) { try { this.gainNode.disconnect(); } catch {} this.gainNode = null; }
     if (this.audioCtx) { try { this.audioCtx.close(); } catch {} this.audioCtx = null; }
     if (this.device) { try { this.device.close(); } catch {} this.device = null; }
@@ -90,7 +89,6 @@ export class SdrController {
   async setFrequency(freqHz: number): Promise<void> {
     if (!this.vendorOk) return;
     this.currentFreqHz = freqHz;
-    this.audioBuf = [];
     if (!this.active || !this.device) return;
     await this.demodWrite(0x01, 0x11);
     await this.r820tSetFreq(freqHz);
@@ -110,7 +108,6 @@ export class SdrController {
 
   setVolume(v: number): void {
     v = Math.max(0, Math.min(1, v));
-    this._volume = v;
     if (this.gainNode) this.gainNode.gain.value = v;
   }
 
@@ -124,39 +121,24 @@ export class SdrController {
 
   // ── Streaming ────────────────────────────────────────
 
-  startStream(onLevel: (l: number) => void): void {
+  async startStream(onLevel: (l: number) => void): Promise<void> {
     if (!this.audioCtx) return;
-    this.audioBuf = [];
-    this.scriptNode = this.audioCtx.createScriptProcessor(4096, 0, 1);
-    const vol = () => this._volume;
-    this.scriptNode.onaudioprocess = (e) => {
-      if (!this.active) return;
-      const out = e.outputBuffer.getChannelData(0);
-      const buf = this.audioBuf;
-      let written = 0;
-      while (written < out.length && buf.length > 0) {
-        const chunk = buf[0];
-        const needed = out.length - written;
-        if (chunk.length <= needed) {
-          out.set(chunk, written);
-          written += chunk.length;
-          buf.shift();
-        } else {
-          out.set(chunk.subarray(0, needed), written);
-          buf[0] = chunk.subarray(needed);
-          written = out.length;
-        }
-      }
-      const v = vol();
-      if (v !== 1) { for (let i = 0; i < out.length; i++) out[i] *= v; }
-      let s = 0;
-      for (let i = 0; i < out.length; i++) s += out[i] * out[i];
-      onLevel(Math.sqrt(s / out.length));
+    await registerSdrWorklet(this.audioCtx);
+    this.workletNode = new AudioWorkletNode(this.audioCtx, "sdr-output-processor", {
+      outputChannelCount: [1],
+    });
+    this.workletNode.port.onmessage = (e) => {
+      if (e.data.type === "signal") onLevel(e.data.level);
     };
-    this.scriptNode.connect(this.gainNode!);
+    this.workletNode.connect(this.gainNode!);
   }
 
-  feedAudio(s: Float32Array): void { this.audioBuf.push(s); }
+  feedAudio(s: Float32Array): void {
+    this.onAudio?.(s);
+    if (this.workletNode) {
+      this.workletNode.port.postMessage({ type: "audio", data: s });
+    }
+  }
 
   async readBulk(): Promise<DataView | null> {
     if (!this.device) return null;

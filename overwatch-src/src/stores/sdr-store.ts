@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { useShallow } from "zustand/shallow";
 import type { DemodMode, ConnectionState, SdrDeviceInfo } from "@/lib/sdr/types";
+import type { Transcription } from "@/lib/sdr/radio-transcriber";
 import {
   DEFAULT_SAMPLE_RATE, DEFAULT_GAIN, DEFAULT_SQUELCH, DEFAULT_VOLUME,
 } from "@/lib/sdr/types";
@@ -19,6 +20,8 @@ interface SdrStoreState {
   wasmLoaded: boolean;
   wasmError: string | null;
   companionAvailable: boolean;
+  transcriptionEnabled: boolean;
+  transcriptions: Transcription[];
 
   setConnection: (connection: ConnectionState, device?: SdrDeviceInfo | null) => void;
   setFrequency: (freq: number) => void;
@@ -30,6 +33,9 @@ interface SdrStoreState {
   setError: (msg: string | null) => void;
   setWasmLoaded: (loaded: boolean, error?: string | null) => void;
   setCompanionAvailable: (available: boolean) => void;
+  setTranscriptionEnabled: (enabled: boolean) => void;
+  addTranscription: (t: Transcription) => void;
+  clearTranscriptions: () => void;
   disconnect: () => void;
 }
 
@@ -47,6 +53,8 @@ export const useSdrStore = create<SdrStoreState>()((set) => ({
   wasmLoaded: false,
   wasmError: null,
   companionAvailable: false,
+  transcriptionEnabled: false,
+  transcriptions: [],
 
   setConnection: (connection, device) => set({ connection, device: device ?? null }),
   setFrequency: (frequency) => set({ frequency }),
@@ -58,6 +66,9 @@ export const useSdrStore = create<SdrStoreState>()((set) => ({
   setError: (errorMessage) => set({ errorMessage }),
   setWasmLoaded: (wasmLoaded, wasmError) => set({ wasmLoaded, wasmError: wasmError ?? null }),
   setCompanionAvailable: (companionAvailable) => set({ companionAvailable }),
+  setTranscriptionEnabled: (transcriptionEnabled) => set({ transcriptionEnabled }),
+  addTranscription: (t) => set((s) => ({ transcriptions: [...s.transcriptions, t] })),
+  clearTranscriptions: () => set({ transcriptions: [] }),
   disconnect: () => set({
     connection: "disconnected", device: null, frequency: 0, signalLevel: 0,
   }),

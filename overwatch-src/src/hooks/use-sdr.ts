@@ -7,6 +7,7 @@ import { SdrBridge } from "@/lib/sdr/sdr-bridge";
 import { getPlatform, isDesktop } from "@/lib/sdr/platform";
 import { BUFFER_SIZE } from "@/lib/sdr/types";
 import type { DemodMode } from "@/lib/sdr/types";
+import { RadioTranscriber } from "@/lib/sdr/radio-transcriber";
 
 type SdrSession = {
   type: "bridge" | "webusb";
@@ -33,6 +34,7 @@ export function useSdr() {
   const wasmLoading = useRef(false);
   const session = useRef<SdrSession | null>(null);
   const companionCheckRef = useRef<boolean>(false);
+  const transcriberRef = useRef<RadioTranscriber | null>(null);
 
   useEffect(() => {
     if (wasmLoading.current) return;
@@ -70,6 +72,19 @@ export function useSdr() {
     checkCompanion();
   }, [store]);
 
+  const startTranscriber = useCallback(() => {
+    if (!store.transcriptionEnabled || !session.current) return;
+    if (transcriberRef.current) return;
+    const ctrl = session.current.ctrl;
+    const transcriber = new RadioTranscriber({
+      freqHz: store.frequency,
+      onTranscription: (t) => store.addTranscription(t),
+    });
+    ctrl.onAudio = (chunk) => transcriber.feed(chunk);
+    transcriber.start();
+    transcriberRef.current = transcriber;
+  }, [store]);
+
   const connect = useCallback(async () => {
     store.setConnection("connecting");
 
@@ -78,7 +93,7 @@ export function useSdr() {
       const bridge = new SdrBridge();
       await bridge.connect();
       bridge.resumeAudio();
-      bridge.startStream((level) => store.setSignalLevel(level));
+      await bridge.startStream((level) => store.setSignalLevel(level));
       if (store.frequency > 0) {
         bridge.setFrequency(store.frequency);
       } else if (bridge.companionFreq) {
@@ -90,6 +105,7 @@ export function useSdr() {
         vendorId: 0x0bda, productId: 0x2838,
         manufacturerName: "Realtek", productName: "RTL-SDR via Companion",
       });
+      startTranscriber();
       return;
     } catch {
       // companion not available -> fall back to WebUSB
@@ -121,8 +137,9 @@ export function useSdr() {
         vendorId: 0x0bda, productId: 0x2832,
         manufacturerName: "Realtek", productName: "RTL-SDR USB Dongle",
       });
+      startTranscriber();
 
-      ctrl.startStream((level) => store.setSignalLevel(level));
+      await ctrl.startStream((level) => store.setSignalLevel(level));
 
       const readLoop = async () => {
         while (ctrl.isConnected()) {
@@ -133,7 +150,8 @@ export function useSdr() {
           const samplesOut = wasm.fm_demodulate(0, BUFFER_SIZE, bytes.length / 2);
           if (samplesOut > 0) {
             const audioBuf = new Float32Array(wasm.memory.buffer, BUFFER_SIZE, samplesOut);
-            ctrl.feedAudio(new Float32Array(audioBuf));
+            const frame = new Float32Array(audioBuf);
+            ctrl.feedAudio(frame);
           }
         }
       };
@@ -151,9 +169,13 @@ export function useSdr() {
       }
       store.setError(errorMsg);
     }
-  }, [store]);
+  }, [store, startTranscriber]);
 
   const disconnect = useCallback(() => {
+    if (transcriberRef.current) {
+      transcriberRef.current.stop();
+      transcriberRef.current = null;
+    }
     if (session.current) { session.current.ctrl.disconnect(); session.current = null; globalSdrSession = null; }
     store.disconnect();
   }, [store]);
@@ -168,7 +190,22 @@ export function useSdr() {
         if (wasm) wasm.sdr_tune(freqHz);
       }
     }
+    if (transcriberRef.current) {
+      transcriberRef.current.setFrequency(freqHz);
+    }
   }, [store]);
+
+  const setTranscriptionEnabled = useCallback(async (enabled: boolean) => {
+    store.setTranscriptionEnabled(enabled);
+    if (enabled && !transcriberRef.current) {
+      startTranscriber();
+    } else if (!enabled && transcriberRef.current) {
+      const ctrl = session.current?.ctrl;
+      if (ctrl) ctrl.onAudio = null;
+      transcriberRef.current.stop();
+      transcriberRef.current = null;
+    }
+  }, [store, startTranscriber]);
 
   const gainTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const setGain = useCallback(async (gain: number) => {
@@ -198,5 +235,8 @@ export function useSdr() {
   }, [store]);
   const setMode = useCallback((mode: DemodMode) => store.setMode(mode), [store]);
 
-  return { ...store, connect, disconnect, tune, setGain, setSquelch, setVolume, setMode };
+  return {
+    ...store, connect, disconnect, tune, setGain, setSquelch, setVolume, setMode,
+    setTranscriptionEnabled,
+  };
 }

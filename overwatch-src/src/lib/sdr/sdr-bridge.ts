@@ -1,17 +1,17 @@
+import { registerSdrWorklet } from "./sdr-worklet";
+
 const COMPANION_PORT = 8372;
 const CONNECT_TIMEOUT = 2000;
 const AUDIO_SAMPLE_RATE = 48000;
 
 export class SdrBridge {
+  onAudio: ((chunk: Float32Array) => void) | null = null;
   private ws: WebSocket | null = null;
   private audioCtx: AudioContext | null = null;
-  private scriptNode: ScriptProcessorNode | null = null;
+  private workletNode: AudioWorkletNode | null = null;
   private gainNode: GainNode | null = null;
   private active = false;
-  private audioBuf: Float32Array[] = [];
-  private signalLevel = 0;
   private _sampleRate = AUDIO_SAMPLE_RATE;
-  private _volume = 0.7;
   private _companionFreq: number | null = null;
 
   get sampleRate(): number { return this._sampleRate; }
@@ -40,7 +40,7 @@ export class SdrBridge {
               this.ws = ws;
               resolve();
             } else if (msg.type === "freq_set") {
-              this.audioBuf = [];
+              // frequency acknowledged — audio pipeline continues
             } else if (msg.type === "gain_set") {
               // gain acknowledgement
             }
@@ -68,8 +68,7 @@ export class SdrBridge {
       this.ws = null;
     }
     this.active = false;
-    this.audioBuf = [];
-    if (this.scriptNode) { try { this.scriptNode.disconnect(); } catch {} this.scriptNode = null; }
+    if (this.workletNode) { try { this.workletNode.disconnect(); } catch {} this.workletNode = null; }
     if (this.gainNode) { try { this.gainNode.disconnect(); } catch {} this.gainNode = null; }
     if (this.audioCtx) { try { this.audioCtx.close(); } catch {} this.audioCtx = null; }
   }
@@ -80,7 +79,6 @@ export class SdrBridge {
 
   async setFrequency(freqHz: number): Promise<void> {
     if (this.isConnected()) {
-      this.audioBuf = [];
       this.ws!.send(JSON.stringify({ cmd: "set_frequency", freq: freqHz }));
     }
   }
@@ -98,45 +96,24 @@ export class SdrBridge {
   }
 
   setVolume(v: number): void {
-    this._volume = Math.max(0, Math.min(1, v));
+    v = Math.max(0, Math.min(1, v));
+    if (this.gainNode) this.gainNode.gain.value = v;
   }
 
   resumeAudio(): void {
     this.audioCtx?.resume();
   }
 
-  startStream(onLevel: (l: number) => void): void {
+  async startStream(onLevel: (l: number) => void): Promise<void> {
     if (!this.audioCtx) return;
-    this.audioBuf = [];
-    this.scriptNode = this.audioCtx.createScriptProcessor(4096, 1, 1);
-    this.scriptNode.onaudioprocess = (e: AudioProcessingEvent) => {
-      if (!this.active) return;
-      const out = e.outputBuffer.getChannelData(0);
-      const buf = this.audioBuf;
-      let written = 0;
-      while (written < out.length && buf.length > 0) {
-        const chunk = buf[0];
-        const needed = out.length - written;
-        if (chunk.length <= needed) {
-          out.set(chunk, written);
-          written += chunk.length;
-          buf.shift();
-        } else {
-          out.set(chunk.subarray(0, needed), written);
-          buf[0] = chunk.subarray(needed);
-          written = out.length;
-        }
-      }
-
-      let s = 0;
-      for (let i = 0; i < out.length; i++) s += out[i] * out[i];
-      this.signalLevel = Math.sqrt(s / out.length);
-      onLevel(this.signalLevel);
-
-      const vol = this._volume;
-      if (vol !== 1) for (let i = 0; i < out.length; i++) out[i] *= vol;
+    await registerSdrWorklet(this.audioCtx);
+    this.workletNode = new AudioWorkletNode(this.audioCtx, "sdr-output-processor", {
+      outputChannelCount: [1],
+    });
+    this.workletNode.port.onmessage = (e) => {
+      if (e.data.type === "signal") onLevel(e.data.level);
     };
-    this.scriptNode.connect(this.gainNode!);
+    this.workletNode.connect(this.gainNode!);
   }
 
   feedAudio(_s: Float32Array): void {} // NOP — audio comes via WebSocket
@@ -151,8 +128,9 @@ export class SdrBridge {
   }
 
   private handleAudio(data: ArrayBuffer): void {
-    if (!this.active) return;
+    if (!this.active || !this.workletNode) return;
     const audio = new Float32Array(data);
-    this.audioBuf.push(audio);
+    this.onAudio?.(audio);
+    this.workletNode.port.postMessage({ type: "audio", data: audio });
   }
 }
