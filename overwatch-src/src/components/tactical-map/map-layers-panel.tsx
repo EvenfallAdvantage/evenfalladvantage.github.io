@@ -33,7 +33,6 @@ export interface LayerVisibility {
   crtMode: boolean;
   // Live feeds
   aircraft: boolean;
-  adsbLocal: boolean;
   satelliteOrbits: boolean;
   // S2 Underground Intel
   s2Intel: boolean;
@@ -74,7 +73,6 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   flirThermal: false,
   crtMode: false,
   aircraft: false,
-  adsbLocal: false,
   satelliteOrbits: false,
   s2Intel: false,
   earthquakes: false,
@@ -132,8 +130,7 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "cctv", label: "CCTV Cameras", icon: <Camera className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "liveNews", label: "Live Broadcasters", icon: <Tv className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   // Air & maritime tracking
-  { key: "aircraft", label: "OpenSky Traffic", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
-  { key: "adsbLocal", label: "Local ADSB", icon: <Radar className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
+  { key: "aircraft", label: "Aircraft", icon: <Plane className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "satelliteOrbits", label: "Satellite Orbits", icon: <Orbit className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "maritime", label: "Ports & Chokepoints", icon: <Ship className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   // S2 Underground Common Intel Picture (US-focused sub-feeds nested below)

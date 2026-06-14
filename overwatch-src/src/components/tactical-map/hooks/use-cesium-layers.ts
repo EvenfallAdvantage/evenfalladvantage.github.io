@@ -18,7 +18,6 @@ import { useIncidentsLayer } from "./use-incidents-layer";
 import { useWeatherLayer } from "./use-weather-layer";
 import { useNightVision } from "./use-night-vision";
 import { useAircraftLayer } from "./use-aircraft-layer";
-import { useAdsbLayer } from "./use-adsb-layer";
 import { useOrbitLayer } from "./use-orbit-layer";
 import { useTrailsLayer } from "./use-trails-layer";
 import { useAnnotationsLayer } from "./use-annotations-layer";
@@ -119,10 +118,6 @@ export function useCesiumLayers(params: {
   // OpenSky has no free historical commercial API; aircraft are hidden in-hook
   // when the user is replaying past time.
   useAircraftLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, operations, debouncedReplayTime, timeMachineOpen });
-
-  // ─── Sub-hook: Local ADSB (SDR companion) ───────────
-  // Local ADSB data from companion (rtl_adsb + mode-s-decoder) — live only.
-  useAdsbLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
 
   // ─── Sub-hook: Satellite orbits ──────────────────────
   // Orbits are deterministic from TLE — propagation honors the replay time.
