@@ -35,7 +35,6 @@ export async function createEvent(params: {
   locationLng?: number;
   timezone?: string;
   postOrders?: string;
-  certificationRequirements?: string[];
 }) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,7 +58,6 @@ export async function createEvent(params: {
     site_map_url: params.siteMapUrl ?? null,
     timezone: params.timezone ?? null,
     post_orders: params.postOrders ?? null,
-    certification_requirements: params.certificationRequirements ?? [],
     ...ts(),
   };
   const { data, error } = await supabase
@@ -82,7 +80,6 @@ export async function updateEvent(eventId: string, updates: {
   opsGuide?: Record<string, any>;
   timezone?: string;
   postOrders?: string;
-  certificationRequirements?: string[];
 }) {
   const supabase = createClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,7 +93,6 @@ export async function updateEvent(eventId: string, updates: {
   if (updates.opsGuide !== undefined) row.ops_guide = updates.opsGuide;
   if (updates.timezone !== undefined) row.timezone = updates.timezone;
   if (updates.postOrders !== undefined) row.post_orders = updates.postOrders;
-  if (updates.certificationRequirements !== undefined) row.certification_requirements = updates.certificationRequirements;
   const { data, error } = await supabase
     .from("events")
     .update(row)

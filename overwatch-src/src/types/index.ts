@@ -220,7 +220,6 @@ export type EventRow = {
   end_date: string;
   status: string;
   notes: string | null;
-  certification_requirements: string[];
   created_at: string;
   updated_at: string;
   // joined
