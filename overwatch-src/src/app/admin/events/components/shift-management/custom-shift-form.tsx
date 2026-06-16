@@ -10,7 +10,7 @@ import {
 import type { ConflictWarningData } from "../conflict-warning-modal";
 import { type Shift, type Member, fmtTime } from "../shared";
 import { localToUTC, tzAbbrev } from "@/lib/timezone";
-import { renderMemberOptions } from "./use-shift-helpers";
+import { MemberSearchSelect } from "./member-search-select";
 
 interface CustomShiftFormProps {
   eventId: string;
@@ -87,10 +87,13 @@ export function CustomShiftForm({
         <div className="flex-1"><label className="text-[10px] text-muted-foreground">Start</label><Input type="datetime-local" value={cStart} onChange={(e) => setCStart(e.target.value)} className="h-8 text-sm" /></div>
         <div className="flex-1"><label className="text-[10px] text-muted-foreground">End</label><Input type="datetime-local" value={cEnd} onChange={(e) => setCEnd(e.target.value)} className="h-8 text-sm" /></div>
       </div>
-      <select value={cAssign} onChange={(e) => setCAssign(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm">
-        <option value="">Unassigned</option>
-        {renderMemberOptions(sortedMembers, availByUser)}
-      </select>
+      <MemberSearchSelect
+        value={cAssign}
+        onChange={setCAssign}
+        sortedMembers={sortedMembers}
+        availByUser={availByUser}
+        placeholder="Unassigned"
+      />
       <div>
         <label className="text-[10px] text-muted-foreground">Post Orders (optional, overrides event-level)</label>
         <textarea

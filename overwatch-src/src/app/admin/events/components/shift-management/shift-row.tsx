@@ -2,7 +2,7 @@
 
 import { Clock, Loader2, AlertTriangle, Trash2, ShieldAlert } from "lucide-react";
 import { type Shift, type Member, fmtTime } from "../shared";
-import { renderMemberOptions } from "./use-shift-helpers";
+import { MemberSearchSelect } from "./member-search-select";
 
 interface ShiftRowProps {
   sh: Shift;
@@ -52,11 +52,14 @@ export function ShiftRow({
         </button>
       </div>
       <div className="mt-1.5 ml-5.5 sm:ml-[26px]">
-        <select value={sh.assigned_user_id ?? ""} onChange={(e) => onAssign(sh.id, e.target.value)}
-          className={`h-6 w-full sm:w-auto sm:max-w-[180px] truncate rounded border bg-background px-1.5 text-[10px] font-medium cursor-pointer ${hasConflict ? "border-red-500/40 text-red-500" : filled ? "border-green-500/30 text-green-600" : "border-amber-500/30 text-amber-600"}`}>
-          <option value="">Open</option>
-          {renderMemberOptions(sortedMembers, availByUser)}
-        </select>
+        <MemberSearchSelect
+          value={sh.assigned_user_id ?? ""}
+          onChange={(userId) => onAssign(sh.id, userId)}
+          sortedMembers={sortedMembers}
+          availByUser={availByUser}
+          hasConflict={hasConflict}
+          filled={filled}
+        />
       </div>
     </div>
   );
