@@ -53,6 +53,16 @@ export function MemberSearchSelect({
           <CommandList>
             <CommandEmpty>No members found</CommandEmpty>
             <CommandGroup>
+              <CommandItem
+                value="none unassigned open clear"
+                onSelect={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
+              >
+                <Check className={cn("h-3 w-3", !value || value === "" ? "opacity-100" : "opacity-0")} />
+                <span className="text-muted-foreground">{placeholder}</span>
+              </CommandItem>
               {sortedMembers.map((m) => {
                 const status = availByUser.get(m.users?.id ?? "");
                 const tag = status === "available" ? "\u2713" : status === "tentative" ? "?" : status === "unavailable" ? "\u2717" : "";
