@@ -30,7 +30,7 @@ jobs:
           npm run build:sea
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           files: overwatch-src/companion/dist/sdr-companion.exe
           name: Release ${{ github.ref_name }}
