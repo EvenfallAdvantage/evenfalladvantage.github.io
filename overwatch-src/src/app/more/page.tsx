@@ -52,6 +52,15 @@ import {
   ShieldAlert,
   Activity,
   NotebookPen,
+  UserSearch,
+  Globe,
+  UsersRound,
+  CalendarClock,
+  FileEdit,
+  Megaphone,
+  UserPlus,
+  BookOpenCheck,
+  Menu,
   ArrowRightLeft,
   Check,
   X,
@@ -64,6 +73,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   MapPin, Shield, Scale, FileText, BarChart3, Settings, Bell, MessageCircle,
   Video, HelpCircle, AlertTriangle, Compass, Briefcase, ClipboardCheck,
   Flag, UserCog, ShieldAlert, Activity, NotebookPen, School,
+  UserSearch, Globe, UsersRound, CalendarClock, FileEdit, Megaphone, UserPlus,
+  BookOpenCheck, Menu,
 };
 
 export default function MorePage() {

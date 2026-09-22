@@ -1,3 +1,3 @@
 :HL["/overwatch/_next/static/chunks/01vs7lgu-dwh..css","style"]
-:HL["/overwatch/_next/static/chunks/0pobv~bm42lgg.css","style"]
-0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"/_not-found","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"eaT4u056QhveB3mDZupAN"}
+:HL["/overwatch/_next/static/chunks/10v10zuf8h9g_.css","style"]
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"/_not-found","param":null,"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}},"staleTime":300,"buildId":"ueljyL8AIhGL8XZ6OlsjW"}
