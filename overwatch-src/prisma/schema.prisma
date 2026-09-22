@@ -16,6 +16,7 @@ model User {
   phone         String?  @unique
   firstName     String   @map("first_name")
   lastName      String   @map("last_name")
+  callsign      String?  @map("callsign")
   avatarUrl     String?  @map("avatar_url")
   supabaseId    String?  @unique @map("supabase_id")
   isPlatformAdmin Boolean @default(false) @map("is_platform_admin")

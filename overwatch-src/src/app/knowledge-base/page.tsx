@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 import {
   BookOpen, FolderOpen, FileText, Plus, Loader2, Trash2,
   Upload, X, Download, CheckCircle2, Circle, Image as ImageIcon,
@@ -561,11 +562,11 @@ export default function KnowledgeBasePage() {
                         <Avatar className="h-7 w-7 shrink-0">
                           <AvatarImage src={u.avatar_url ?? undefined} />
                           <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
-                            {(u.first_name?.[0] ?? "")}{(u.last_name?.[0] ?? "")}
+                            {memberInitials(u)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{u.first_name} {u.last_name}</p>
+                          <p className="text-sm font-medium truncate">{formatMemberName(u)}</p>
                           {u.hasRead && u.readAt && (
                             <p className="text-[10px] text-muted-foreground">
                               Read {new Date(u.readAt).toLocaleDateString([], { month: "short", day: "numeric" })} at {new Date(u.readAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}

@@ -44,6 +44,7 @@ export type SessionUser = {
   phone: string | null;
   firstName: string;
   lastName: string;
+  callsign: string | null;
   avatarUrl: string | null;
   isPlatformAdmin: boolean;
   companies: CompanyContext[];
@@ -103,6 +104,7 @@ export type StudentModuleProgress = {
 export type UserProfilePayload = {
   first_name?: string;
   last_name?: string;
+  callsign?: string | null;
   phone?: string | null;
   avatar_url?: string;
 };

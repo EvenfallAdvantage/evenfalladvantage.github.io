@@ -127,7 +127,7 @@ export async function getDocumentAcks(docId: string): Promise<DocumentAck[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("document_acknowledgements")
-    .select("*, users(id, first_name, last_name, avatar_url)")
+    .select("*, users(id, first_name, last_name, callsign, avatar_url)")
     .eq("document_id", docId)
     .order("acknowledged_at", { ascending: true });
   if (error) throw error;
@@ -142,7 +142,7 @@ export async function acknowledgeDocument(docId: string, userId: string): Promis
       { document_id: docId, user_id: userId, acknowledged_at: new Date().toISOString() },
       { onConflict: "document_id,user_id" },
     )
-    .select("*, users(id, first_name, last_name, avatar_url)")
+    .select("*, users(id, first_name, last_name, callsign, avatar_url)")
     .single();
   if (error) throw error;
   return data as DocumentAck;

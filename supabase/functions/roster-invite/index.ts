@@ -14,14 +14,18 @@
  * For each membership:
  *   1. Load company_membership + linked users row.
  *   2. Skip if users.supabase_id is already set (already linked — no invite needed).
- *   3. If a different company_memberships row exists for this email in another
- *      company AND that user is already linked, we still generate a Supabase
- *      Auth recovery link (not invite) since the auth user already exists —
- *      they'll set/keep their password and the accept_roster_invitation RPC
- *      handles the cross-company membership attach.
- *   4. Otherwise call supabase.auth.admin.generateLink({type:'invite'}).
- *   5. Send through email-send Edge Function (purpose:"invitation").
- *   6. UPSERT roster_invitations row (idempotent via membership_id UNIQUE).
+ *   3. Probe auth.users for the email via listUsers({ filter }).
+ *   4. If an auth user exists AND is confirmed, send the cross-company
+ *      "you've been added" notification (they can sign in as-is); the
+ *      accept_roster_invitation RPC attaches the new membership on sign-in.
+ *   5. Otherwise (no auth user, or unconfirmed leftover from a previous
+ *      invite) call supabase.auth.admin.generateLink({type:'invite'}) to
+ *      issue/refresh the password-set link. If GoTrue rejects invite
+ *      generation for an existing account, fall back to
+ *      generateLink({type:'recovery'}) so a manager can always resend a
+ *      working link instead of seeing "email already registered".
+ *   6. Send through email-send Edge Function (purpose:"invitation").
+ *   7. UPSERT roster_invitations row (idempotent via membership_id UNIQUE).
  *
  * Returns: { results: Array<{ membership_id, status, reason? }> }
  *
@@ -231,35 +235,43 @@ Deno.serve(async (req) => {
 
       try {
         // ── Determine which path this invitee is on ──
-        // Look up auth.users by email. If a row exists, this email already
-        // belongs to an Overwatch account (in a different company, since
-        // the public.users.supabase_id check above proved it's not linked
-        // in THIS company). We send the cross-company notification email
-        // instead of a password-reset link.
+        // Look up auth.users by email. If a confirmed row exists, this
+        // email already belongs to an Overwatch account (in a different
+        // company, since the public.users.supabase_id check above proved
+        // it's not linked in THIS company). We send the cross-company
+        // notification email instead of a password-set link. An
+        // *unconfirmed* leftover (created by an earlier invite that was
+        // never accepted) should still receive a fresh invite link.
         //
-        // listUsers with a `filter` parameter is the documented way; we
-        // page-1 with a single email filter so this is O(1).
+        // listUsers supports an ILIKE `filter` search term (substring
+        // match on email); page-1 + perPage-1 keeps this O(1). Emails
+        // contain no wildcards, so a substring match against the full
+        // address is effectively exact. (Passing a bogus `email` param —
+        // which GoTrue ignores — is what previously made this probe a
+        // coin-flip and pushed existing users into the invite path, where
+        // generateLink errors with "email already registered".)
         let authUserExists = false;
+        let authUserConfirmed = false;
         try {
           const { data: authList } = await admin.auth.admin.listUsers({
             page: 1,
             perPage: 1,
-            // @ts-expect-error: GoTrue admin API supports email filter,
-            // but the supabase-js types don't surface it yet.
-            email: u.email,
+            filter: u.email,
           });
-          authUserExists = Boolean(
-            authList?.users?.find?.((au: { email?: string | null }) =>
-              au.email && au.email.toLowerCase() === u.email.toLowerCase()
-            ),
-          );
+          const au = authList?.users?.[0];
+          if (au && au.email && au.email.toLowerCase() === u.email.toLowerCase()) {
+            authUserExists = true;
+            authUserConfirmed = Boolean(au.confirmed_at);
+          }
         } catch (_listErr) {
-          // If listUsers fails for any reason, fall through and let the
-          // generateLink path decide via its "already registered" error.
+          // If listUsers fails, fall through and let the generateLink path
+          // decide; the recovery-link fallback below catches the
+          // "already registered" edge case so we never hard-fail.
           authUserExists = false;
+          authUserConfirmed = false;
         }
 
-        if (authUserExists) {
+        if (authUserExists && authUserConfirmed) {
           // ── Cross-company notification path ──
           // The user already has an Overwatch account elsewhere. Don't
           // generate a password-reset link — that would confuse them with
@@ -328,6 +340,8 @@ Deno.serve(async (req) => {
                 used_fallback: emailJson.used_fallback === true,
                 delivery_method: emailJson.delivery_method,
                 cross_company: true,
+                auth_user_confirmed: true,
+                resend: body.resend === true,
               },
             },
           );
@@ -350,18 +364,29 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // ── Standard invite path: no auth.users row yet ──
-        // generateLink({type:'invite'}) creates the auth.users row and
+        // ── Standard invite path: no confirmed auth.users row yet ──
+        // generateLink({type:'invite'}) creates the auth.users row (or
+        // issues a fresh invite token for an unconfirmed leftover) and
         // returns an action_link that signs the user in + opens the
-        // update-password page. We don't fall back to recovery anymore —
-        // the cross-company case is handled above by an explicit existence
-        // check rather than catching the "already registered" error.
-        const { data: linkData, error: linkErr } = await admin.auth.admin
-          .generateLink({
-            type: "invite",
+        // update-password page. If an existing account blocks the invite
+        // (GoTrue rejects duplicate-email invites), degrade to a
+        // recovery link so the manager can resend a working link instead
+        // of seeing "email already registered".
+        const generateSetupLink = async (linkType: "invite" | "recovery") =>
+          admin.auth.admin.generateLink({
+            type: linkType,
             email: u.email,
             options: { redirectTo },
           });
+
+        const primary = await generateSetupLink("invite");
+        const needsRecovery = Boolean(
+          primary.error &&
+          /already (been )?registered/i.test(primary.error.message),
+        );
+        const { data: linkData, error: linkErr } = needsRecovery
+          ? await generateSetupLink("recovery")
+          : primary;
 
         if (linkErr || !linkData?.properties?.action_link) {
           results.push({
@@ -428,6 +453,8 @@ Deno.serve(async (req) => {
             p_metadata: {
               used_fallback: emailJson.used_fallback === true,
               delivery_method: emailJson.delivery_method,
+              used_recovery_link: needsRecovery,
+              resend: body.resend === true,
             },
           },
         );

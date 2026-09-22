@@ -25,6 +25,7 @@ export function PersonalProfileCard({ user, onUserChange, mp, onMpChange, mpLoad
   const [editing, setEditing] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.lastName ?? "");
+  const [callsign, setCallsign] = useState(user?.callsign ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [saving, setSaving] = useState(false);
   const [editingCompany, setEditingCompany] = useState(false);
@@ -46,6 +47,7 @@ export function PersonalProfileCard({ user, onUserChange, mp, onMpChange, mpLoad
   function startEdit() {
     setFirstName(user?.firstName ?? "");
     setLastName(user?.lastName ?? "");
+    setCallsign(user?.callsign ?? "");
     setPhone(user?.phone ?? "");
     setCompForm({
       bio: mp?.bio ?? "", address: mp?.address ?? "",
@@ -64,8 +66,8 @@ export function PersonalProfileCard({ user, onUserChange, mp, onMpChange, mpLoad
   async function handleSave() {
     setSaving(true);
     try {
-      await updateUserProfile({ firstName, lastName, phone });
-      if (user) onUserChange({ ...user, firstName, lastName, phone });
+      await updateUserProfile({ firstName, lastName, callsign, phone });
+      if (user) onUserChange({ ...user, firstName, lastName, callsign: callsign.trim() || null, phone });
     } catch (err) { console.error("Save profile failed:", err); toast.error("Failed to save profile"); }
     finally { setSaving(false); }
   }
@@ -120,6 +122,10 @@ export function PersonalProfileCard({ user, onUserChange, mp, onMpChange, mpLoad
                 <span className="text-muted-foreground text-xs">Last name</span>
                 <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="mt-1 h-8 text-sm" />
               </div>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-xs">Callsign <span className="text-muted-foreground/50">(shown as &quot;Callsign LastName&quot; to your team)</span></span>
+              <Input value={callsign} onChange={(e) => setCallsign(e.target.value)} className="mt-1 h-8 text-sm" placeholder="e.g. Eagle" />
             </div>
             <div>
               <span className="text-muted-foreground text-xs flex items-center gap-1">Email <Lock className="h-2.5 w-2.5" /></span>
@@ -209,6 +215,9 @@ export function PersonalProfileCard({ user, onUserChange, mp, onMpChange, mpLoad
               <div><span className="text-muted-foreground text-xs">First name</span><p className="font-medium">{user?.firstName ?? "—"}</p></div>
               <div><span className="text-muted-foreground text-xs">Last name</span><p className="font-medium">{user?.lastName ?? "—"}</p></div>
             </div>
+            {user?.callsign && (
+              <div><span className="text-muted-foreground text-xs">Callsign</span><p className="font-medium">{user.callsign}</p></div>
+            )}
             <div>
               <span className="text-muted-foreground text-xs flex items-center gap-1">Email <Lock className="h-2.5 w-2.5" /></span>
               <p className="font-medium truncate">{user?.email ?? "—"}</p>

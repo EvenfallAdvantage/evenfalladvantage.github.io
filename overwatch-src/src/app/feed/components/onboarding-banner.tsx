@@ -91,6 +91,7 @@ export function OnboardingBanner({ user }: OnboardingBannerProps) {
           phone: profile.user.phone ?? authUser.phone ?? null,
           firstName: profile.user.first_name ?? "",
           lastName: profile.user.last_name ?? "",
+          callsign: profile.user.callsign ?? null,
           avatarUrl: profile.user.avatar_url ?? null,
           isPlatformAdmin: profile.user.is_platform_admin ?? false,
           companies,

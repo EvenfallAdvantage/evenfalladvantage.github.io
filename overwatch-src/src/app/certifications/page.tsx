@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUserCertifications, addCertification, deleteCertification, verifyCertificate } from "@/lib/supabase/db";
+import { formatMemberName } from "@/lib/format-names";
 import { createClient } from "@/lib/supabase/client";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import dynamic from "next/dynamic";
@@ -343,7 +344,7 @@ export default function CertificationsPage() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   <strong>{verifyResult.cert_type}</strong>
-                  {verifyResult.users && ` — ${verifyResult.users.first_name} ${verifyResult.users.last_name}`}
+                  {verifyResult.users && ` — ${formatMemberName(verifyResult.users)}`}
                   {verifyResult.issue_date && ` — Issued ${verifyResult.issue_date}`}
                   {verifyResult.issued_by && ` by ${verifyResult.issued_by}`}
                 </p>

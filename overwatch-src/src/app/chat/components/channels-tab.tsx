@@ -15,6 +15,7 @@ import {
   type Channel, type Message, type ExtMeta, type ChannelPermissions,
   QUICK_EMOJIS, ALL_ROLES, PLAT, getChannelPerms, timeAgo,
 } from "./chat-helpers";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 
 interface ChannelsTabProps {
   loading: boolean;
@@ -74,14 +75,14 @@ interface ChannelsTabProps {
 }
 
 // Group reactions by emoji for a message
-function groupReactions(reactions: { id: string; emoji: string; user_id: string; users: { first_name: string; last_name: string } }[] | null) {
+function groupReactions(reactions: { id: string; emoji: string; user_id: string; users: { first_name: string; last_name: string; callsign?: string | null } }[] | null) {
   if (!reactions?.length) return [];
   const map: Record<string, { emoji: string; count: number; userIds: string[]; names: string[] }> = {};
   for (const r of reactions) {
     if (!map[r.emoji]) map[r.emoji] = { emoji: r.emoji, count: 0, userIds: [], names: [] };
     map[r.emoji].count++;
     map[r.emoji].userIds.push(r.user_id);
-    map[r.emoji].names.push(`${r.users?.first_name ?? ""} ${r.users?.last_name ?? ""}`.trim());
+    map[r.emoji].names.push(formatMemberName(r.users ?? {}));
   }
   return Object.values(map);
 }
@@ -305,17 +306,17 @@ export function ChannelsTab({
                       <Avatar className="h-7 w-7 shrink-0 mt-1">
                         <AvatarImage src={author?.avatar_url ?? undefined} />
                         <AvatarFallback className="bg-primary/10 text-[9px] font-bold text-primary">
-                          {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
+                          {memberInitials(author ?? {})}
                         </AvatarFallback>
                       </Avatar>
                       <div className={`max-w-[70%] flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                         <div className={`flex items-center gap-2 mb-0.5 ${isMe ? "flex-row-reverse" : ""}`}>
-                          {!isMe && <span className="text-[10px] font-semibold text-muted-foreground">{author?.first_name} {author?.last_name}</span>}
+                          {!isMe && <span className="text-[10px] font-semibold text-muted-foreground">{formatMemberName(author ?? {})}</span>}
                           <span className="text-[9px] text-muted-foreground/50">{timeAgo(msg.created_at)}</span>
                         </div>
                         {replyData && (
                           <div className={`rounded-lg px-2.5 py-1 mb-1 text-[10px] border-l-2 border-primary/40 max-w-full ${isMe ? "bg-primary/20" : "bg-muted/70"}`}>
-                            <span className="font-semibold">{replyData.users?.first_name} {replyData.users?.last_name}</span>
+                            <span className="font-semibold">{formatMemberName(replyData.users ?? {})}</span>
                             <p className="truncate text-muted-foreground">{(replyData.content ?? "").slice(0, 80)}</p>
                           </div>
                         )}
@@ -388,7 +389,7 @@ export function ChannelsTab({
                 <div className="flex items-center gap-2 border-t border-border/50 bg-muted/30 px-4 py-2">
                   <Reply className="h-3.5 w-3.5 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[10px] font-semibold">{replyTo.users?.first_name} {replyTo.users?.last_name}</span>
+                    <span className="text-[10px] font-semibold">{formatMemberName(replyTo.users ?? {})}</span>
                     <p className="text-[10px] text-muted-foreground truncate">{(replyTo.content ?? "").slice(0, 80)}</p>
                   </div>
                   <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground shrink-0" aria-label="Close"><X className="h-3.5 w-3.5" /></button>

@@ -8,6 +8,7 @@
 import { createClient } from "./client";
 // ensureInternalUser available for future per-user compliance checks
 import { logDbReadError } from "./db-error";
+import { formatMemberName } from "@/lib/format-names";
 
 // ─── Expiry Alerts ────────────────────────────────────────
 
@@ -34,7 +35,7 @@ export async function getExpiringCertifications(
   // Get active members
   const { data: members, error: memErr } = await supabase
     .from("company_memberships")
-    .select("user_id, users(first_name, last_name)")
+    .select("user_id, users(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .eq("status", "active");
   if (memErr) { logDbReadError("compliance:members", memErr); return []; }
@@ -43,8 +44,8 @@ export async function getExpiringCertifications(
   const userIds = members.map((m: { user_id: string }) => m.user_id);
   const userMap: Record<string, string> = {};
   for (const m of members) {
-    const u = (m as unknown as { users: { first_name: string; last_name: string } | null }).users;
-    userMap[m.user_id] = u ? `${u.first_name} ${u.last_name}` : "Unknown";
+    const u = (m as unknown as { users: { first_name: string; last_name: string; callsign?: string | null } | null }).users;
+    userMap[m.user_id] = formatMemberName(u ?? {}) || "Unknown";
   }
 
   // Get certs with expiry dates

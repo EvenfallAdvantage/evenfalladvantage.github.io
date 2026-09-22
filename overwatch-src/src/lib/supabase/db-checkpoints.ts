@@ -119,7 +119,7 @@ export async function getPatrolLogs(companyId: string, limit = 50) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("patrol_logs")
-    .select("*, checkpoints(name, location), users(first_name, last_name)")
+    .select("*, checkpoints(name, location), users(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .order("scanned_at", { ascending: false })
     .limit(limit);

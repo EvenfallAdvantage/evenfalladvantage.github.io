@@ -31,7 +31,7 @@ export interface Shift {
   role?: string;
   assigned_user_id?: string | null;
   post_orders?: string | null;
-  users?: { id: string; first_name: string; last_name: string; email?: string } | null;
+  users?: { id: string; first_name: string; last_name: string; callsign?: string | null; email?: string } | null;
   events?: { name: string; timezone?: string } | null;
   [key: string]: unknown;
 }
@@ -43,7 +43,7 @@ export interface Member {
   status?: string;
   nickname?: string | null;
   pay_rate_override?: number | null;
-  users?: { id: string; first_name: string; last_name: string; email?: string; phone?: string | null; avatar_url?: string | null } | null;
+  users?: { id: string; first_name: string; last_name: string; callsign?: string | null; email?: string; phone?: string | null; avatar_url?: string | null } | null;
   [key: string]: unknown;
 }
 

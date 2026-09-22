@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClientShell } from "@/components/layout/client-shell";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 import { getIncidents } from "@/lib/supabase/db";
+import { formatMemberName } from "@/lib/format-names";
 import { PageLoader } from "@/components/page-loader";
 
 export default function ClientIncidentsPage() {
@@ -68,7 +69,7 @@ export default function ClientIncidentsPage() {
                     {inc.reported_user && (
                       <span className="flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        {inc.reported_user.first_name} {inc.reported_user.last_name}
+                        {formatMemberName(inc.reported_user)}
                       </span>
                     )}
                   </div>

@@ -12,6 +12,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { DictationRecorder } from "@/components/dictation-recorder";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { getIncidents, getForms, createForm, submitForm, getFormSubmissions } from "@/lib/supabase/db";
+import { formatMemberName } from "@/lib/format-names";
 import { parseInlineTranscript, type SpeakerTurn } from "@/lib/speech/diarize-align";
 
 type Incident = Record<string, unknown> & {
@@ -324,7 +325,7 @@ export default function DictatePage() {
                             {linkedInc && <Badge className="text-[9px] bg-amber-500/15 text-amber-600 gap-1"><Link2 className="h-2.5 w-2.5" /> {linkedInc.title}</Badge>}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground">
-                            <span className="flex items-center gap-1"><User className="h-3 w-3" />{s.users?.first_name} {s.users?.last_name}</span>
+                            <span className="flex items-center gap-1"><User className="h-3 w-3" />{formatMemberName(s.users ?? {})}</span>
                             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(data.recordedAt ?? s.created_at)}</span>
                           </div>
                         </div>

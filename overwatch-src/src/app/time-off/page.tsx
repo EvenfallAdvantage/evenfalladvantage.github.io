@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest, deleteTimeOffRequest, removeConflictingShifts, getCompanyMembers } from "@/lib/supabase/db";
+import { formatMemberName } from "@/lib/format-names";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 import { parseUTC } from "@/lib/parse-utc";
 import { toast } from "sonner";
@@ -237,7 +238,7 @@ export default function TimeOffPage() {
                   <p className="font-medium text-sm">
                     {r.time_off_policies?.name ?? "Leave Request"}
                     {tab === "team" && r.users && (
-                      <span className="text-muted-foreground font-normal"> — {r.users.first_name} {r.users.last_name}</span>
+                      <span className="text-muted-foreground font-normal"> — {formatMemberName(r.users ?? {})}</span>
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground">

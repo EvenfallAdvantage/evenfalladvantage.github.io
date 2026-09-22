@@ -8,7 +8,7 @@ export async function getIncidents(companyId: string, status?: string) {
   const supabase = createClient();
   let q = supabase
     .from("incidents")
-    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name)")
+    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name, callsign), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
   if (status && status !== "all") q = q.eq("status", status);
@@ -21,7 +21,7 @@ export async function getIncident(incidentId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("incidents")
-    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name)")
+    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name, callsign), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name, callsign)")
     .eq("id", incidentId)
     .maybeSingle();
   if (error) { logDbReadError("incident details", error); return null; }
@@ -69,7 +69,7 @@ export async function getIncidentUpdates(incidentId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("incident_updates")
-    .select("*, users(first_name, last_name)")
+    .select("*, users(first_name, last_name, callsign)")
     .eq("incident_id", incidentId)
     .order("created_at", { ascending: true });
   if (error) { logDbReadError("incident updates", error); return []; }
@@ -87,7 +87,7 @@ export async function addIncidentUpdate(incidentId: string, content: string, typ
     content,
     type,
     created_at: new Date().toISOString(),
-  }).select("*, users(first_name, last_name)").maybeSingle();
+  }).select("*, users(first_name, last_name, callsign)").maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -243,7 +243,7 @@ export async function getIncidentsByTeam(companyId: string, teamId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("incidents")
-    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name)")
+    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name, callsign), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .eq("team_id", teamId)
     .order("created_at", { ascending: false });
@@ -266,7 +266,7 @@ export async function getIncidentsFiltered(
   const supabase = createClient();
   let q = supabase
     .from("incidents")
-    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name)")
+    .select("*, reported_user:users!incidents_reported_by_fkey(first_name, last_name, callsign), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
 

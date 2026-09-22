@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone         TEXT UNIQUE,
   first_name    TEXT NOT NULL DEFAULT '',
   last_name     TEXT NOT NULL DEFAULT '',
+  callsign      TEXT,
   avatar_url    TEXT,
   supabase_id   TEXT UNIQUE,
   is_platform_admin BOOLEAN DEFAULT false,

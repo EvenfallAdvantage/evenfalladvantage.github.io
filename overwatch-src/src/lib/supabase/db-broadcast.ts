@@ -12,6 +12,7 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
+import { formatMemberName } from "@/lib/format-names";
 
 export type BroadcastUrgency = "normal" | "urgent" | "critical";
 export type BroadcastTarget = "all" | "on_duty" | "managers";
@@ -163,7 +164,7 @@ export async function getCompanyBroadcasts(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("broadcasts")
-    .select("*, users!broadcasts_sender_id_fkey(first_name, last_name)")
+    .select("*, users!broadcasts_sender_id_fkey(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -175,7 +176,7 @@ export async function getCompanyBroadcasts(
     id: b.id,
     companyId: b.company_id,
     senderId: b.sender_id,
-    senderName: b.users ? `${b.users.first_name} ${b.users.last_name}` : "Unknown",
+    senderName: formatMemberName(b.users ?? {}) || "Unknown",
     title: b.title,
     body: b.body,
     urgency: b.urgency,

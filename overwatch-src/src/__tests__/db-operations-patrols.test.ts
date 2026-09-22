@@ -352,7 +352,7 @@ describe("getPatrolLogs()", () => {
 
     expect(mockClient.from).toHaveBeenCalledWith("patrol_logs");
     expect(queryBuilder.select).toHaveBeenCalledWith(
-      "*, checkpoints(name, location), users(first_name, last_name)"
+      "*, checkpoints(name, location), users(first_name, last_name, callsign)"
     );
     expect(queryBuilder.eq).toHaveBeenCalledWith("company_id", "comp-1");
     expect(queryBuilder.order).toHaveBeenCalledWith("scanned_at", { ascending: false });

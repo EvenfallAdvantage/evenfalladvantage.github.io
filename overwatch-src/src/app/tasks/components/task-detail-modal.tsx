@@ -49,6 +49,7 @@ import type {
 } from "@/lib/supabase/db-tasks";
 import type { Team } from "@/lib/supabase/db-teams";
 import { useAuthStore } from "@/stores/auth-store";
+import { formatMemberName } from "@/lib/format-names";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -339,7 +340,7 @@ export function TaskDetailModal({
                 onChange={(e) => {
                   const uid = e.target.value || null;
                   const m = members.find((mm: Member) => mm.users?.id === uid);
-                  const name = m?.users ? `${m.users.first_name ?? ""} ${m.users.last_name ?? ""}`.trim() : "user";
+                  const name = formatMemberName(m?.users ?? {}) || "user";
                   void handleFieldChange({ assignedToId: uid }, uid ? `Assigned to ${name}` : "Assignment cleared");
                 }}
                 disabled={busy}
@@ -349,7 +350,7 @@ export function TaskDetailModal({
                 <option value="">Unassigned</option>
                 {members.map((m: Member) => (
                   <option key={m.users?.id} value={m.users?.id}>
-                    {m.users?.first_name} {m.users?.last_name}
+                    {formatMemberName(m.users ?? {})}
                   </option>
                 ))}
               </select>
@@ -405,7 +406,7 @@ export function TaskDetailModal({
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Assignee</p>
                   <div className="flex items-center gap-2 text-sm h-9">
                     <User className="h-3.5 w-3.5 text-muted-foreground" />
-                    {assignee.users.first_name} {assignee.users.last_name}
+                    {formatMemberName(assignee.users ?? {})}
                   </div>
                 </div>
               )}

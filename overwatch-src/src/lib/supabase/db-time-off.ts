@@ -108,7 +108,7 @@ export async function getAllTimeOffRequests(companyId: string) {
   // so we must disambiguate with !time_off_requests_user_id_fkey
   const { data, error } = await supabase
     .from("time_off_requests")
-    .select("*, time_off_policies!inner(name, type, company_id), users:user_id(first_name, last_name, avatar_url)")
+    .select("*, time_off_policies!inner(name, type, company_id), users:user_id(first_name, last_name, callsign, avatar_url)")
     .eq("time_off_policies.company_id", companyId)
     .order("created_at", { ascending: false });
   if (error) { logDbReadError("all time off requests", error); return []; }

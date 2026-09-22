@@ -5,6 +5,7 @@ import {
   type Shift, type Member,
   getDaysInRange, groupByDay,
 } from "../shared";
+import { formatMemberName } from "@/lib/format-names";
 
 /**
  * Custom hook that derives computed data from shift/member/availability inputs.
@@ -60,6 +61,6 @@ export function renderMemberOptions(
   return sortedMembers.map((m: Member) => {
     const s = availByUser.get(m.users?.id ?? "");
     const tag = s === "available" ? " \u2713" : s === "tentative" ? " ?" : s === "unavailable" ? " \u2717" : "";
-    return <option key={m.id} value={m.users?.id}>{m.users?.first_name} {m.users?.last_name}{tag}</option>;
+    return <option key={m.id} value={m.users?.id}>{formatMemberName(m.users ?? {})}{tag}</option>;
   });
 }

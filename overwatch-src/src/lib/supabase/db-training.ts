@@ -577,7 +577,7 @@ export async function verifyCertificate(verificationCode: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("certifications")
-    .select("*, users(first_name, last_name)")
+    .select("*, users(first_name, last_name, callsign)")
     .eq("verification_code", verificationCode)
     .maybeSingle();
   if (error) throw error;

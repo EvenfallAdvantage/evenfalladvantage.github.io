@@ -20,6 +20,7 @@
  */
 
 import { createClient } from "./client";
+import { formatMemberName } from "@/lib/format-names";
 
 // ─── Smart Fill (Auto-Assign) ─────────────────────────────
 
@@ -86,7 +87,7 @@ export async function smartFillShifts(
   // Get company members (exclude clients).
   const { data: members } = await supabase
     .from("company_memberships")
-    .select("user_id, role, users(first_name, last_name)")
+    .select("user_id, role, users(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .eq("status", "active")
     .not("role", "eq", "client");
@@ -152,13 +153,11 @@ export async function smartFillShifts(
     type MemberRow = {
       user_id: string;
       role: string;
-      users?: { first_name?: string; last_name?: string } | null;
+      users?: { first_name?: string; last_name?: string; callsign?: string | null } | null;
     };
     const candidates: FillCandidate[] = (members as MemberRow[]).map((m) => {
       const userId = m.user_id;
-      const userName = m.users
-        ? `${m.users.first_name ?? ""} ${m.users.last_name ?? ""}`.trim() || "Unknown"
-        : "Unknown";
+      const userName = formatMemberName(m.users ?? {}) || "Unknown";
       const reasons: string[] = [];
       let score = 50; // base score
 

@@ -8,7 +8,7 @@ export async function getAssets(companyId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("assets")
-    .select("*, users(first_name, last_name)")
+    .select("*, users(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .order("name", { ascending: true });
   if (error) { logDbReadError("assets", error); return []; }
@@ -48,7 +48,7 @@ export async function checkoutAsset(assetId: string) {
     .from("assets")
     .update({ status: "checked_out", current_holder_id: userId, updated_at: new Date().toISOString() })
     .eq("id", assetId)
-    .select("*, users(first_name, last_name)")
+    .select("*, users(first_name, last_name, callsign)")
     .maybeSingle();
   if (error) throw error;
   // Log the checkout
@@ -89,7 +89,7 @@ export async function getAssetByQrCode(companyId: string, scannedValue: string) 
   // Try matching the system-generated qr_code first
   const { data: byQr } = await supabase
     .from("assets")
-    .select("*, users(first_name, last_name)")
+    .select("*, users(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .eq("qr_code", scannedValue)
     .maybeSingle();
@@ -97,7 +97,7 @@ export async function getAssetByQrCode(companyId: string, scannedValue: string) 
   // Fall back to matching by serial_number (physical device QR codes encode this)
   const { data: bySerial } = await supabase
     .from("assets")
-    .select("*, users(first_name, last_name)")
+    .select("*, users(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .eq("serial_number", scannedValue)
     .maybeSingle();

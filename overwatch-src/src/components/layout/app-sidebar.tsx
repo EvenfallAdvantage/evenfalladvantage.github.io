@@ -10,6 +10,7 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { NAV_SECTIONS } from "./nav-items";
 import { useAuthStore } from "@/stores/auth-store";
 import { invalidateCompanyQueries } from "@/lib/query-client";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 import { isSuperAdmin } from "@/lib/security/super-admin";
 import type { NavItem } from "@/types";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -207,8 +208,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
   const userRole = activeCompany?.role ?? "staff";
   const isTrainingProvider = activeCompany?.isTrainingProvider ?? false;
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
-  const initials =
-    (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
+  const initials = memberInitials(user ?? {});
 
   return (
     <aside
@@ -465,7 +465,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
               <>
                 <div className="flex min-w-0 flex-1 flex-col text-left">
                   <span className="truncate text-sm font-medium">
-                    {user?.firstName} {user?.lastName}
+                    {formatMemberName(user ?? {})}
                   </span>
                   <span className="truncate text-xs text-muted-foreground">
                     {user?.email ?? user?.phone}
@@ -481,7 +481,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
             className="w-56"
           >
             <div className="px-2 py-1.5 text-sm font-medium">
-              {user?.firstName} {user?.lastName}
+              {formatMemberName(user ?? {})}
             </div>
             <DropdownMenuSeparator />
 

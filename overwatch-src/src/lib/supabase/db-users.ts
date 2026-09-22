@@ -422,7 +422,7 @@ export async function getCompanyMembers(companyId: string) {
       `
       id, role, nickname, status, title, hide_contact_roster, pay_rate_override, dietary_restrictions,
       users (
-        id, first_name, last_name, email, phone, avatar_url, supabase_id,
+        id, callsign, first_name, last_name, email, phone, avatar_url, supabase_id,
         certifications ( id, cert_type, issue_date, expiry_date, state_issued )
       )
     `
@@ -526,6 +526,7 @@ export async function uploadCompanyLogo(file: File, companyId: string): Promise<
 export async function updateUserProfile(updates: {
   firstName?: string;
   lastName?: string;
+  callsign?: string | null;
   phone?: string;
   avatarUrl?: string;
 }) {
@@ -538,6 +539,7 @@ export async function updateUserProfile(updates: {
   const payload: UserProfilePayload = {};
   if (updates.firstName !== undefined) payload.first_name = updates.firstName;
   if (updates.lastName !== undefined) payload.last_name = updates.lastName;
+  if (updates.callsign !== undefined) payload.callsign = updates.callsign?.trim() || null;
   if (updates.phone !== undefined) payload.phone = updates.phone?.trim() || null;
   if (updates.avatarUrl !== undefined) payload.avatar_url = updates.avatarUrl;
 
@@ -666,6 +668,23 @@ export async function updateMemberRole(membershipId: string, role: string) {
   });
   if (error) {
     throw new Error(error.message || "Failed to update role");
+  }
+  return data;
+}
+
+export async function updateMemberAdminProfile(
+  membershipId: string,
+  userFields: Record<string, string | null>,
+  membershipFields: Record<string, string | string[] | null>,
+) {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("update_member_admin_profile", {
+    p_membership_id: membershipId,
+    p_user_fields: userFields,
+    p_membership_fields: membershipFields,
+  });
+  if (error) {
+    throw new Error(error.message || "Failed to update profile");
   }
   return data;
 }

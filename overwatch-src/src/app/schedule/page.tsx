@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase/db";
 import type { OperationDocument } from "@/types/operations";
 import type { AvailabilityStatus, OperationAvailability } from "@/lib/supabase/db-availability";
+import { formatMemberName } from "@/lib/format-names";
 import { DocViewerModal } from "@/components/ops/staff-doc-viewer";
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
@@ -150,8 +151,8 @@ export default function SchedulePage() {
               priority: inc.priority ?? undefined,
               lat: inc.location_lat, lng: inc.location_lng,
               severity: inc.severity ?? "low", status: inc.status ?? "open",
-              reportedBy: inc.reported_user ? `${inc.reported_user.first_name ?? ""} ${inc.reported_user.last_name ?? ""}`.trim() : undefined,
-              assignedTo: inc.assigned_user ? `${inc.assigned_user.first_name ?? ""} ${inc.assigned_user.last_name ?? ""}`.trim() : undefined,
+              reportedBy: inc.reported_user ? formatMemberName(inc.reported_user) || undefined : undefined,
+              assignedTo: inc.assigned_user ? formatMemberName(inc.assigned_user) || undefined : undefined,
               location: inc.location ?? undefined, createdAt: inc.created_at ?? "",
               incidentNumber: inc.incident_number ?? null,
               teamId: inc.team_id ?? null,

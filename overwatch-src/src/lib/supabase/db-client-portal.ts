@@ -15,6 +15,7 @@ export interface ClientMember {
   email: string;
   firstName: string;
   lastName: string;
+  callsign: string | null;
   status: string;
   createdAt: string;
 }
@@ -50,7 +51,7 @@ export async function getClientMembers(companyId: string): Promise<ClientMember[
   const supabase = createClient();
   const { data, error } = await supabase
     .from("company_memberships")
-    .select("id, user_id, status, created_at, users(email, first_name, last_name)")
+    .select("id, user_id, status, created_at, users(email, first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .eq("role", "client")
     .order("created_at", { ascending: false });
@@ -72,6 +73,7 @@ export async function getClientMembers(companyId: string): Promise<ClientMember[
     email: m.users?.email ?? "",
     firstName: m.users?.first_name ?? "",
     lastName: m.users?.last_name ?? "",
+    callsign: m.users?.callsign ?? null,
     status: m.status,
     createdAt: m.created_at,
   }));

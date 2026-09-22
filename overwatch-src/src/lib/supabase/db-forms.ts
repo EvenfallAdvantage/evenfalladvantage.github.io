@@ -67,7 +67,7 @@ export async function getFormSubmissions(formId: string) {
   // was found" and drops the join silently.
   const { data, error } = await supabase
     .from("form_submissions")
-    .select("*, users!form_submissions_user_id_fkey(first_name, last_name)")
+    .select("*, users!form_submissions_user_id_fkey(first_name, last_name, callsign)")
     .eq("form_id", formId)
     .order("created_at", { ascending: false });
   if (error) { logDbReadError("form submissions", error); return []; }
@@ -119,7 +119,7 @@ export async function getAllFormSubmissions(companyId: string) {
   // Step 2: Get all submissions for those forms
   const { data, error: subsError } = await supabase
     .from("form_submissions")
-    .select("*, users!form_submissions_user_id_fkey(first_name, last_name, avatar_url), forms(name), events(id, name)")
+    .select("*, users!form_submissions_user_id_fkey(first_name, last_name, callsign, avatar_url), forms(name), events(id, name)")
     .in("form_id", formIds)
     .order("created_at", { ascending: false });
 
@@ -132,7 +132,7 @@ export async function getEventFormSubmissions(eventId: string) {
   // Disambiguate `users` join — see comment on getFormSubmissions above.
   const { data, error } = await supabase
     .from("form_submissions")
-    .select("*, users!form_submissions_user_id_fkey(first_name, last_name, avatar_url), forms(name)")
+    .select("*, users!form_submissions_user_id_fkey(first_name, last_name, callsign, avatar_url), forms(name)")
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
   if (error) { logDbReadError("event form submissions", error); return []; }

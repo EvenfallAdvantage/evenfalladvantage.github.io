@@ -20,6 +20,7 @@ import { OvertimeWidget } from "./components/overtime-widget";
 import { PanicAlertBanner } from "./components/panic-alert-banner";
 import { ProfessionalTools } from "./components/professional-tools";
 import { AnalyticsView } from "@/components/analytics/analytics-view";
+import { formatMemberName } from "@/lib/format-names";
 
 export default function FeedPage() {
   const { user, activeCompanyId, getActiveCompany } = useAuthStore();
@@ -32,13 +33,16 @@ export default function FeedPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
+    const greeting = user && (user.firstName || user.callsign || user.lastName)
+      ? formatMemberName(user)
+      : "Staff";
     setHeader(
-      `Welcome back, ${user?.firstName || "Staff"}`,
+      `Welcome back, ${greeting}`,
       new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }),
       <LayoutDashboard className="h-5 w-5" />
     );
     return () => clearHeader();
-  }, [setHeader, clearHeader, user?.firstName]);
+  }, [setHeader, clearHeader, user]);
 
   if (!user) {
     return <DashboardSkeleton />;

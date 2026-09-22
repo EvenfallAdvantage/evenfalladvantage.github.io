@@ -11,6 +11,7 @@ import {
   subscribeDMs, type DMConversation, type DirectMessage,
 } from "@/lib/supabase/db-messages";
 import { getCompanyMembers } from "@/lib/supabase/db";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 import { logger } from "@/lib/logger";
 
 interface DirectMessagesProps {
@@ -104,6 +105,7 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
         user_id: member.users?.id ?? "",
         first_name: member.users?.first_name ?? "",
         last_name: member.users?.last_name ?? "",
+        callsign: member.users?.callsign ?? null,
         avatar_url: member.users?.avatar_url ?? null,
         role: member.role,
       })).filter((m: { user_id: string }) => m.user_id && m.user_id !== user?.id));
@@ -117,11 +119,11 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
   }
 
   const selectedConv = conversations.find(c => c.userId === selectedUserId);
-  const selectedName = selectedConv ? `${selectedConv.firstName} ${selectedConv.lastName}`.trim() : "";
+  const selectedName = selectedConv ? formatMemberName(selectedConv) : "";
 
-  const filteredMembers = members.filter((m: { first_name?: string; last_name?: string; avatar_url?: string | null }) => {
+  const filteredMembers = members.filter((m: { first_name?: string; last_name?: string; callsign?: string | null; avatar_url?: string | null }) => {
     if (!searchQ) return true;
-    const name = `${m.first_name ?? ""} ${m.last_name ?? ""}`.toLowerCase();
+    const name = `${m.callsign ?? ""} ${m.first_name ?? ""} ${m.last_name ?? ""}`.toLowerCase();
     return name.includes(searchQ.toLowerCase());
   });
 
@@ -153,12 +155,12 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={conv.avatarUrl ?? undefined} />
                   <AvatarFallback className="text-[10px]">
-                    {conv.firstName[0]}{conv.lastName[0]}
+                    {memberInitials(conv)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium truncate">{conv.firstName} {conv.lastName}</span>
+                    <span className="text-xs font-medium truncate">{formatMemberName(conv)}</span>
                     {conv.unreadCount > 0 && (
                       <span className="bg-primary text-primary-foreground text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0">
                         {conv.unreadCount}
@@ -197,11 +199,11 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
                   <Avatar className="h-7 w-7">
                     <AvatarImage src={(m as { avatar_url?: string | null }).avatar_url ?? undefined} />
                     <AvatarFallback className="text-[9px]">
-                      {(m.first_name ?? "?")[0]}{(m.last_name ?? "?")[0]}
+                      {memberInitials(m)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <span className="text-xs font-medium">{m.first_name} {m.last_name}</span>
+                    <span className="text-xs font-medium">{formatMemberName(m)}</span>
                     {m.role && <span className="text-[10px] text-muted-foreground ml-1.5">{m.role}</span>}
                   </div>
                 </button>
@@ -216,7 +218,7 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
               <Avatar className="h-7 w-7">
                 <AvatarImage src={selectedConv?.avatarUrl ?? undefined} />
                 <AvatarFallback className="text-[9px]">
-                  {selectedConv?.firstName[0]}{selectedConv?.lastName[0]}
+                  {memberInitials(selectedConv ?? {})}
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm font-medium">{selectedName}</span>

@@ -48,8 +48,8 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   // Joined fields (optional)
-  createdByUser?: { first_name: string | null; last_name: string | null } | null;
-  assignedToUser?: { first_name: string | null; last_name: string | null } | null;
+  createdByUser?: { first_name: string | null; last_name: string | null; callsign?: string | null } | null;
+  assignedToUser?: { first_name: string | null; last_name: string | null; callsign?: string | null } | null;
 }
 
 export interface TaskWatcher {
@@ -76,7 +76,7 @@ export interface TaskComment {
   content: string;
   type: TaskCommentType;
   createdAt: string;
-  users?: { first_name: string | null; last_name: string | null } | null;
+  users?: { first_name: string | null; last_name: string | null; callsign?: string | null } | null;
 }
 
 // ─── Mapping helpers ───────────────────────────────────────
@@ -100,8 +100,8 @@ interface TaskRow {
   custom_fields: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
-  created_user?: { first_name: string | null; last_name: string | null } | null;
-  assigned_user?: { first_name: string | null; last_name: string | null } | null;
+  created_user?: { first_name: string | null; last_name: string | null; callsign?: string | null } | null;
+  assigned_user?: { first_name: string | null; last_name: string | null; callsign?: string | null } | null;
 }
 
 function mapTaskRow(t: TaskRow): Task {
@@ -130,7 +130,7 @@ function mapTaskRow(t: TaskRow): Task {
 }
 
 const TASK_SELECT =
-  "*, created_user:users!tasks_created_by_fkey(first_name, last_name), assigned_user:users!tasks_assigned_to_fkey(first_name, last_name)";
+  "*, created_user:users!tasks_created_by_fkey(first_name, last_name, callsign), assigned_user:users!tasks_assigned_to_fkey(first_name, last_name, callsign)";
 
 // ─── Tasks CRUD ────────────────────────────────────────────
 
@@ -558,7 +558,7 @@ export async function getTaskComments(taskId: string): Promise<TaskComment[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("task_comments")
-    .select("*, users(first_name, last_name)")
+    .select("*, users(first_name, last_name, callsign)")
     .eq("task_id", taskId)
     .order("created_at", { ascending: true });
   if (error) {
@@ -572,7 +572,7 @@ export async function getTaskComments(taskId: string): Promise<TaskComment[]> {
     content: string;
     type: TaskCommentType;
     created_at: string;
-    users?: { first_name: string | null; last_name: string | null } | null;
+    users?: { first_name: string | null; last_name: string | null; callsign?: string | null } | null;
   }) => ({
     id: c.id,
     taskId: c.task_id,
@@ -602,7 +602,7 @@ export async function addTaskComment(
       type,
       created_at: new Date().toISOString(),
     })
-    .select("*, users(first_name, last_name)")
+    .select("*, users(first_name, last_name, callsign)")
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;

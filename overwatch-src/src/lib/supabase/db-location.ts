@@ -12,6 +12,7 @@ import { createClient } from "./client";
 import { ensureInternalUser } from "./db-helpers";
 import { logger } from "@/lib/logger";
 import { logDbReadError } from "./db-error";
+import { formatMemberName } from "@/lib/format-names";
 
 /**
  * Check if the current user has location sharing enabled for this company.
@@ -184,7 +185,7 @@ export async function getStaffLocationsAt(
   // Get all distinct user_ids who had history entries before the timestamp
   const { data: history, error } = await supabase
     .from("staff_location_history")
-    .select("user_id, lat, lng, heading, speed, recorded_at, users(first_name, last_name)")
+    .select("user_id, lat, lng, heading, speed, recorded_at, users(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .lte("recorded_at", atTime)
     .gte("recorded_at", new Date(timestamp - lookbackHours * 60 * 60 * 1000).toISOString())
@@ -200,13 +201,13 @@ export async function getStaffLocationsAt(
     userId: string; name: string; lat: number; lng: number;
     heading: number | null; speed: number | null; updatedAt: string;
   }> = [];
-  for (const row of history as Array<Record<string, unknown> & { users?: { first_name?: string; last_name?: string } }>) {
+  for (const row of history as Array<Record<string, unknown> & { users?: { first_name?: string; last_name?: string; callsign?: string | null } }>) {
     const uid = row.user_id as string;
     if (seen.has(uid)) continue;
     seen.add(uid);
     results.push({
       userId: uid,
-      name: `${row.users?.first_name ?? ""} ${row.users?.last_name ?? ""}`.trim() || "Unknown",
+      name: formatMemberName(row.users ?? {}) || "Unknown",
       lat: row.lat as number,
       lng: row.lng as number,
       heading: row.heading as number | null,
@@ -264,7 +265,7 @@ export async function getStaffLocations(companyId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("staff_locations")
-    .select("*, users(first_name, last_name)")
+    .select("*, users(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .order("updated_at", { ascending: false });
 
@@ -273,9 +274,9 @@ export async function getStaffLocations(companyId: string) {
     return [];
   }
 
-  return (data ?? []).map((row: Record<string, unknown> & { users?: { first_name?: string; last_name?: string } }) => ({
+  return (data ?? []).map((row: Record<string, unknown> & { users?: { first_name?: string; last_name?: string; callsign?: string | null } }) => ({
     userId: row.user_id as string,
-    name: `${row.users?.first_name ?? ""} ${row.users?.last_name ?? ""}`.trim() || "Unknown",
+    name: formatMemberName(row.users ?? {}) || "Unknown",
     lat: row.lat as number,
     lng: row.lng as number,
     accuracy: row.accuracy as number | null,

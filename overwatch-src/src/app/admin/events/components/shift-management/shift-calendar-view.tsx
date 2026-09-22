@@ -4,6 +4,7 @@ import { Calendar, Check, X, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { type Shift, type Member, fmtDateLong } from "../shared";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 import { ShiftRow } from "./shift-row";
 
 interface ShiftCalendarViewProps {
@@ -64,8 +65,8 @@ export function ShiftCalendarView({
   }
   const opDaySet = new Set(opDays);
 
-  const memberMap = new Map<string, { fn: string; ln: string; role: string; avatar: string }>();
-  members.forEach((m: Member) => { if (m.users?.id) memberMap.set(m.users.id, { fn: m.users.first_name ?? "", ln: m.users.last_name ?? "", role: m.role ?? "member", avatar: m.users.avatar_url ?? "" }); });
+  const memberMap = new Map<string, { fn: string; ln: string; cs: string; role: string; avatar: string }>();
+  members.forEach((m: Member) => { if (m.users?.id) memberMap.set(m.users.id, { fn: m.users.first_name ?? "", ln: m.users.last_name ?? "", cs: m.users.callsign ?? "", role: m.role ?? "member", avatar: m.users.avatar_url ?? "" }); });
 
   return (
     <div>
@@ -91,7 +92,7 @@ export function ShiftCalendarView({
           const uniqueStaff = [...new Set(dayShifts.filter((s: Shift) => s.assigned_user_id).map((s: Shift) => s.assigned_user_id as string))];
           const staffData = uniqueStaff.slice(0, 3).map(uid => {
             const u = memberMap.get(uid);
-            return { uid, ini: u ? `${u.fn[0] ?? ""}${u.ln[0] ?? ""}` : "?", fn: u?.fn ?? "", ln: u?.ln ?? "", role: u?.role ?? "member", avatar: u?.avatar ?? "" };
+            return { uid, ini: u ? memberInitials({ first_name: u.fn, last_name: u.ln, callsign: u.cs }) : "?", fn: u?.fn ?? "", ln: u?.ln ?? "", cs: u?.cs ?? "", role: u?.role ?? "member", avatar: u?.avatar ?? "" };
           });
 
           return (
@@ -137,7 +138,7 @@ export function ShiftCalendarView({
                             <AvatarFallback className="text-[9px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="text-xs font-semibold leading-tight">{s.fn} {s.ln}</p>
+                            <p className="text-xs font-semibold leading-tight">{formatMemberName({ first_name: s.fn, last_name: s.ln, callsign: s.cs })}</p>
                             <p className="text-[10px] capitalize opacity-70">{s.role}</p>
                           </div>
                         </div>
@@ -147,7 +148,7 @@ export function ShiftCalendarView({
                   {uniqueStaff.length > 3 && (() => {
                     const overflow = uniqueStaff.slice(3).map(uid => {
                       const u = memberMap.get(uid);
-                      return { uid, ini: u ? `${u.fn[0] ?? ""}${u.ln[0] ?? ""}` : "?", fn: u?.fn ?? "", ln: u?.ln ?? "", role: u?.role ?? "member", avatar: u?.avatar ?? "" };
+                      return { uid, ini: u ? memberInitials({ first_name: u.fn, last_name: u.ln, callsign: u.cs }) : "?", fn: u?.fn ?? "", ln: u?.ln ?? "", cs: u?.cs ?? "", role: u?.role ?? "member", avatar: u?.avatar ?? "" };
                     });
                     return (
                       <Tooltip>
@@ -163,7 +164,7 @@ export function ShiftCalendarView({
                                   <AvatarFallback className="text-[8px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <p className="text-[11px] font-semibold leading-tight">{s.fn} {s.ln}</p>
+                                  <p className="text-[11px] font-semibold leading-tight">{formatMemberName({ first_name: s.fn, last_name: s.ln, callsign: s.cs })}</p>
                                   <p className="text-[9px] capitalize opacity-70">{s.role}</p>
                                 </div>
                               </div>

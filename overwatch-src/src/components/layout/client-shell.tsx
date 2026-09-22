@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { formatMemberName } from "@/lib/format-names";
 
 const CLIENT_NAV = [
   { title: "Overview", href: "/client", icon: LayoutDashboard },
@@ -57,7 +58,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-muted-foreground hidden sm:inline">{user?.firstName} {user?.lastName}</span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">{formatMemberName(user ?? {})}</span>
           <button onClick={handleSignOut} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
             <LogOut className="h-3.5 w-3.5" /> Sign Out
           </button>

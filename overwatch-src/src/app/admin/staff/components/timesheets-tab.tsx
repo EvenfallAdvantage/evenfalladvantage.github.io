@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { getCompanyTimesheets, approveTimesheet, unapproveTimesheet, deleteTimesheet } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
+import { formatMemberName } from "@/lib/format-names";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 
@@ -90,7 +91,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
 
   async function handleDelete(id: string) {
     const sheet = timesheets.find((t: Sheet) => t.id === id);
-    const name = sheet?.users ? `${sheet.users.first_name} ${sheet.users.last_name}` : "this entry";
+    const name = sheet?.users ? formatMemberName(sheet.users) : "this entry";
     const isApproved = sheet?.approved;
     const msg = isApproved
       ? `Delete APPROVED timesheet for ${name}? This is permanent and cannot be undone.`
@@ -161,7 +162,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                               {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
+                              <p className="font-medium text-sm">{formatMemberName(u ?? {})}</p>
                               <p className="text-xs text-muted-foreground">
                                 {parseUTC(t.clock_in).toLocaleDateString()} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </p>

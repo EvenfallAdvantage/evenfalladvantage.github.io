@@ -6,8 +6,18 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 
-const SUPABASE_URL = "https://nneueuvyeohwnspbwfub.supabase.co";
-const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZXVldXZ5ZW9od25zcGJ3ZnViIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzU0MDU0NSwiZXhwIjoyMDg5MTE2NTQ1fQ.geCqJyyGqgLhgO3VYvQXXZPalpxhKt4Hug5wTJKD168";
+const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://nneueuvyeohwnspbwfub.supabase.co";
+const API_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!API_KEY) {
+  console.error(
+    "Missing SUPABASE_SERVICE_ROLE_KEY environment variable.\n" +
+    "Run this script with a service_role key supplied via env, e.g.:\n" +
+    '  $env:SUPABASE_SERVICE_ROLE_KEY="sb_secret_..."; node scripts/geocode-frequencies.js\n' +
+    "Never hard-code the service_role key in this repository."
+  );
+  process.exit(1);
+}
 
 const STATE_CAPITALS = {
   AL: { city: "Montgomery", lat: 32.377716, lon: -86.300568 },

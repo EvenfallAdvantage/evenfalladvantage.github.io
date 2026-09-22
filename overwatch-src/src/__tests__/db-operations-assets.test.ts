@@ -64,7 +64,7 @@ describe("getAssets()", () => {
     const result = await getAssets("comp-1");
 
     expect(mockClient.from).toHaveBeenCalledWith("assets");
-    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name)");
+    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name, callsign)");
     expect(queryBuilder.eq).toHaveBeenCalledWith("company_id", "comp-1");
     expect(queryBuilder.order).toHaveBeenCalledWith("name", { ascending: true });
     expect(result).toEqual(assets);
@@ -183,7 +183,7 @@ describe("checkoutAsset()", () => {
       })
     );
     expect(queryBuilder.eq).toHaveBeenCalledWith("id", "a1");
-    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name)");
+    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name, callsign)");
     // Verify log insertion
     expect(mockClient.from).toHaveBeenCalledWith("asset_logs");
     expect(queryBuilder.insert).toHaveBeenCalledWith(
@@ -283,7 +283,7 @@ describe("getAssetByQrCode()", () => {
     const result = await getAssetByQrCode("comp-1", "ASSET-123");
 
     expect(mockClient.from).toHaveBeenCalledWith("assets");
-    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name)");
+    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name, callsign)");
     expect(queryBuilder.eq).toHaveBeenCalledWith("company_id", "comp-1");
     expect(queryBuilder.eq).toHaveBeenCalledWith("qr_code", "ASSET-123");
     expect(result).toEqual(asset);

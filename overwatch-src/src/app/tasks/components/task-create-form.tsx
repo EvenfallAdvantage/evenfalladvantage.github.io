@@ -10,6 +10,7 @@ import { createTask } from "@/lib/supabase/db";
 import { logger } from "@/lib/logger";
 import type { Team } from "@/lib/supabase/db-teams";
 import type { TaskStatus, TaskPriority, TaskRecurrenceRule } from "@/lib/supabase/db-tasks";
+import { formatMemberName } from "@/lib/format-names";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
@@ -183,7 +184,7 @@ export function TaskCreateForm({
               <option value="">Unassigned</option>
               {members.map((m: Member) => (
                 <option key={m.users?.id} value={m.users?.id}>
-                  {m.users?.first_name} {m.users?.last_name}
+                  {formatMemberName(m.users ?? {})}
                 </option>
               ))}
             </select>

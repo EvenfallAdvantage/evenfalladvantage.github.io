@@ -25,6 +25,7 @@ import { getOrCreateBadge, getCompanyBadges, type StaffBadge } from "@/lib/supab
 import { CSVColumnMapper } from "./csv-column-mapper";
 import { MemberProfileModal } from "./member-profile-modal";
 import { ReadinessModal } from "./readiness-modal";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 import { BadgePreviewModal } from "./badge-preview-modal";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
@@ -40,6 +41,7 @@ type Member = Record<string, unknown> & {
     id?: string;
     first_name?: string;
     last_name?: string;
+    callsign?: string | null;
     email?: string;
     avatar_url?: string;
     /** Auth account link. NULL = no Supabase Auth user yet (unlinked). */
@@ -73,9 +75,10 @@ interface RosterTabProps {
   myRole: string;
   companyName: string;
   userCompanies: { companyId: string; companyLogo?: string | null; brandColor?: string | null }[];
+  currentUserId?: string;
 }
 
-export function RosterTab({ activeCompanyId, canManage, canManageRoles, members, onReload, myRole, companyName, userCompanies }: RosterTabProps) {
+export function RosterTab({ activeCompanyId, canManage, canManageRoles, members, onReload, myRole, companyName, userCompanies, currentUserId }: RosterTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [search, setSearch] = useState("");
   const [changingRole, setChangingRole] = useState<string | null>(null);
@@ -214,6 +217,10 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
       toast.error("Please re-authenticate and try again.");
       return;
     }
+    // A single-member re-click on the Send/Resend button means "refresh the
+    // link"; mark it so the edge function can log/route it accurately.
+    const isResend =
+      membershipIds.length === 1 && invitationStatus(membershipIds[0]).kind !== "none";
     const res = await fetch(`${base}/roster-invite`, {
       method: "POST",
       headers: {
@@ -223,7 +230,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
       body: JSON.stringify({
         company_id: activeCompanyId,
         membership_ids: membershipIds,
-        resend: false,
+        resend: isResend,
       }),
     });
     const json = (await res.json().catch(() => ({}))) as {
@@ -314,8 +321,9 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
         // existing name wins. Showing it in the toast prevents the
         // manager from thinking they added the wrong person.
         const realName =
-          [result.first_name, result.last_name].filter(Boolean).join(" ") ||
-            addForm.email.trim();
+          result && (result.first_name || result.last_name)
+            ? formatMemberName(result)
+            : addForm.email.trim();
         const typedName = [addForm.firstName, addForm.lastName]
           .map((s) => s.trim()).filter(Boolean).join(" ");
         const nameDiffers =
@@ -490,7 +498,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
   }
 
   const filtered = members.filter((m: Member) => {
-    const name = `${m.users?.first_name ?? ""} ${m.users?.last_name ?? ""}`.toLowerCase();
+    const name = formatMemberName(m.users ?? {}).toLowerCase();
     return name.includes(search.toLowerCase());
   });
 
@@ -797,7 +805,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                   <tbody>
                     {importPreview.map((r, i) => (
                       <tr key={i} className="border-t border-border/30">
-                        <td className="px-2 py-1">{r.first_name} {r.last_name}</td>
+                        <td className="px-2 py-1">{formatMemberName(r)}</td>
                         <td className="px-2 py-1 text-muted-foreground">{r.email}</td>
                         <td className="px-2 py-1 text-muted-foreground">{r.phone ?? "—"}</td>
                         <td className="px-2 py-1"><Badge variant="outline" className="text-[9px]">{r.role ?? "staff"}</Badge></td>
@@ -850,11 +858,11 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                   <Avatar className="h-10 w-10 shrink-0">
                     <AvatarImage src={u?.avatar_url ?? undefined} />
                     <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
-                      {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
+                      {memberInitials(u ?? {})}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{u?.first_name} {u?.last_name}</p>
+                    <p className="font-medium text-sm truncate">{formatMemberName(u ?? {})}</p>
                     <p className="text-xs text-muted-foreground truncate">{u?.email}</p>
                   </div>
                   <div className="relative shrink-0">
@@ -1019,7 +1027,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                       );
                     })()}
                     {canManageRoles && m.role !== "owner" && (
-                      <button onClick={() => handleRemoveMember(m.id, `${u?.first_name} ${u?.last_name}`)} disabled={removingMember === m.id}
+                      <button onClick={() => handleRemoveMember(m.id, formatMemberName(u ?? {}))} disabled={removingMember === m.id}
                         className="rounded p-1.5 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Remove member">
                         {removingMember === m.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                       </button>
@@ -1034,7 +1042,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
 
       {/* ── Member Profile Modal ── */}
       {viewProfile && (
-        <MemberProfileModal profile={viewProfile} onClose={() => setViewProfile(null)} />
+        <MemberProfileModal profile={viewProfile} onClose={() => setViewProfile(null)} myRole={myRole} currentUserId={currentUserId} onSaved={onReload} />
       )}
 
       {/* ── Readiness Modal ── */}

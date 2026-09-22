@@ -10,6 +10,7 @@ import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   getAllTimeOffRequests, reviewTimeOffRequest, removeConflictingShifts,
 } from "@/lib/supabase/db";
+import { formatMemberName } from "@/lib/format-names";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 
 type LeaveReq = Record<string, unknown> & {
@@ -149,7 +150,7 @@ export function LeaveTab({ activeCompanyId, canManage, members }: LeaveTabProps)
                     {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
+                    <p className="font-medium text-sm">{formatMemberName(u ?? {})}</p>
                     <p className="text-xs text-muted-foreground">
                       {policy?.name ?? "Leave"} · {start} — {end} · <span className="font-mono">{days} day{days > 1 ? "s" : ""}</span>
                     </p>

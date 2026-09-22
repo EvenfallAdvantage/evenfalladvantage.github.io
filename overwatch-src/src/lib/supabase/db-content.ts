@@ -12,7 +12,7 @@ export async function getPosts(companyId: string, limit = 20) {
     .select(
       `
       id, type, title, content, image_url, link_url, is_pinned, created_at,
-      users (id, first_name, last_name, avatar_url)
+      users (id, first_name, last_name, callsign, avatar_url)
     `
     )
     .eq("company_id", companyId)
@@ -53,7 +53,7 @@ export async function createPost(data: {
     .select(
       `
       id, type, title, content, image_url, link_url, is_pinned, created_at,
-      users (id, first_name, last_name, avatar_url)
+      users (id, first_name, last_name, callsign, avatar_url)
     `
     )
     .maybeSingle();
@@ -86,7 +86,7 @@ export async function getPostComments(postId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("post_comments")
-    .select("*, users(id, first_name, last_name, avatar_url)")
+    .select("*, users(id, first_name, last_name, callsign, avatar_url)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
   if (error) { logDbReadError("post comments", error); return []; }
@@ -124,7 +124,7 @@ export async function getPostReactions(postId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("post_reactions")
-    .select("*, users(id, first_name, last_name)")
+    .select("*, users(id, first_name, last_name, callsign)")
     .eq("post_id", postId);
   if (error) { logDbReadError("post reactions", error); return []; }
   return data ?? [];
@@ -418,7 +418,7 @@ export async function getChatMessages(channelId: string, limit = 50) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("chat_messages")
-    .select("*, users(id, first_name, last_name, avatar_url), reply:chat_messages!reply_to_id(id, content, users(first_name, last_name)), chat_reactions(id, emoji, user_id, users(first_name, last_name))")
+    .select("*, users(id, first_name, last_name, callsign, avatar_url), reply:chat_messages!reply_to_id(id, content, users(first_name, last_name, callsign)), chat_reactions(id, emoji, user_id, users(first_name, last_name, callsign))")
     .eq("channel_id", channelId)
     .order("created_at", { ascending: false })
     .limit(limit);

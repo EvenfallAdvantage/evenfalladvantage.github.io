@@ -4,6 +4,7 @@ import { BookOpen, Users, CheckCircle2, XCircle, AlertOctagon } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 
 interface ReadinessData {
   member: {
@@ -11,6 +12,7 @@ interface ReadinessData {
       avatar_url?: string;
       first_name?: string;
       last_name?: string;
+      callsign?: string | null;
     };
   };
   data: {
@@ -33,11 +35,11 @@ export function ReadinessModal({ data, onClose }: ReadinessModalProps) {
           <Avatar className="h-10 w-10 shrink-0">
             <AvatarImage src={data.member.users?.avatar_url ?? undefined} />
             <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
-              {(data.member.users?.first_name?.[0] ?? "")}{(data.member.users?.last_name?.[0] ?? "")}
+              {memberInitials(data.member.users ?? {})}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate">{data.member.users?.first_name} {data.member.users?.last_name}</p>
+            <p className="font-semibold text-sm truncate">{formatMemberName(data.member.users ?? {})}</p>
             <p className="text-[11px] text-muted-foreground">Readiness Status</p>
           </div>
           {(() => {

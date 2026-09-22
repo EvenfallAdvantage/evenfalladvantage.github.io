@@ -10,6 +10,7 @@ import {
   updateTlpStep, getFragoCount, getDocumentAcks, acknowledgeDocument,
 } from "@/lib/supabase/db";
 import type { FragoData, OperationDocument, DocumentAck } from "@/types/operations";
+import { formatMemberName } from "@/lib/format-names";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const CHANGE_TYPES = ["Weather / Environment", "Crowd size / behavior", "Threat level", "Staffing change", "Client request", "Equipment / Logistics", "Schedule change"];
@@ -305,7 +306,7 @@ export default function FragoPanel({ eventId, companyId, eventName, currentUserI
                       {(a.users?.first_name?.[0] ?? "") + (a.users?.last_name?.[0] ?? "")}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-[10px] font-medium">{a.users?.first_name} {a.users?.last_name}</span>
+                  <span className="text-[10px] font-medium">{formatMemberName(a.users ?? {})}</span>
                   <span className="text-[8px] text-muted-foreground">{new Date(a.acknowledged_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
               ))}

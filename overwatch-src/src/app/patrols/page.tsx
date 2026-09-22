@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { timeAgo } from "@/lib/utils";
+import { formatMemberName } from "@/lib/format-names";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
   Footprints,
@@ -395,7 +396,7 @@ export default function PatrolsPage() {
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm">{log.checkpoints?.name}</div>
                           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                            <span className="flex items-center gap-1"><User className="h-3 w-3" />{log.users?.first_name} {log.users?.last_name}</span>
+                            <span className="flex items-center gap-1"><User className="h-3 w-3" />{formatMemberName(log.users ?? {})}</span>
                             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeAgo(log.scanned_at)}</span>
                             {log.checkpoints?.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{log.checkpoints.location}</span>}
                           </div>
@@ -574,7 +575,7 @@ export default function PatrolsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">{log.checkpoints?.name ?? "Unknown"}</div>
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{log.users?.first_name} {log.users?.last_name}</span>
+                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{formatMemberName(log.users ?? {})}</span>
                         <span>{new Date(log.scanned_at).toLocaleString()}</span>
                       </div>
                       {log.notes && <p className="text-xs text-muted-foreground mt-0.5 italic">{log.notes}</p>}

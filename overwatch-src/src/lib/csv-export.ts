@@ -87,6 +87,7 @@ export const INCIDENT_COLUMNS = [
 ];
 
 export const MEMBER_COLUMNS = [
+  { key: "users.callsign", label: "Callsign" },
   { key: "users.first_name", label: "First Name" },
   { key: "users.last_name", label: "Last Name" },
   { key: "users.email", label: "Email" },

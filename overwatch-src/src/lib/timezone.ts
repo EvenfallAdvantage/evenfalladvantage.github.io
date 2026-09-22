@@ -21,28 +21,71 @@ export const US_TIMEZONES = [
  * Convert a "YYYY-MM-DDTHH:mm" string (intended as local time in `timezone`)
  * to a UTC ISO string for storage.
  *
- * Strategy: treat the input as if it were UTC, then determine the target
- * timezone's offset at that instant and adjust accordingly.
+ * Strategy: read the wall-clock that `timezone` shows at a candidate UTC
+ * instant, then correct by the difference. Iterating twice converges even
+ * across DST transitions.
  *
  * Example: localToUTC("2026-04-18T09:00", "America/Los_Angeles")
  *   → "2026-04-18T16:00:00.000Z"  (9 AM PT = 4 PM UTC during PDT)
  */
 export function localToUTC(localDatetime: string, timezone: string): string {
-  // Parse the input as if it were UTC
-  const asUTC = new Date(localDatetime + "Z");
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(localDatetime);
+  if (!m) {
+    // Unknown format: keep legacy behaviour as a fallback.
+    const parsed = new Date(localDatetime + "Z");
+    return Number.isNaN(parsed.getTime()) ? "" : parsed.toISOString();
+  }
 
-  // Find what time it would be in the target timezone at this UTC instant
-  const inTZ = new Date(
-    asUTC.toLocaleString("en-US", { timeZone: timezone }),
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const hour = Number(m[4]);
+  const minute = Number(m[5]);
+
+  // Desired wall clock, expressed in UTC coordinates (i.e. "as if UTC").
+  const target = Date.UTC(year, month - 1, day, hour, minute);
+
+  // Find the UTC instant whose wall clock in `timezone` equals `target`.
+  // Two correction passes are enough: the only way an error remains after
+  // the first pass is at a DST boundary, where the second pass closes it.
+  let instant = target;
+  for (let i = 0; i < 2; i++) {
+    const wall = wallClockUtc(instant, timezone);
+    instant += target - wall;
+  }
+
+  return new Date(instant).toISOString();
+}
+
+const wallClockFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function wallClockUtc(instantMs: number, timezone: string): number {
+  let fmt = wallClockFormatters.get(timezone);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
+    wallClockFormatters.set(timezone, fmt);
+  }
+
+  const parts = fmt.formatToParts(new Date(instantMs));
+  const get = (type: string) =>
+    parts.find((p) => p.type === type)?.value ?? "0";
+  return Date.UTC(
+    Number(get("year")),
+    Number(get("month")) - 1,
+    Number(get("day")),
+    Number(get("hour")),
+    Number(get("minute")),
+    Number(get("second")),
   );
-
-  // The difference tells us the timezone offset at this moment
-  const offsetMs = inTZ.getTime() - asUTC.getTime();
-
-  // Subtract the offset to get the true UTC time
-  const utc = new Date(asUTC.getTime() - offsetMs);
-
-  return utc.toISOString();
 }
 
 /**

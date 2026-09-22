@@ -9,6 +9,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { invalidateCompanyQueries } from "@/lib/query-client";
 import { isSuperAdmin } from "@/lib/security/super-admin";
 import { NAV_SECTIONS } from "@/components/layout/nav-items";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
@@ -73,7 +74,7 @@ export default function MorePage() {
   const userRole = activeCompany?.role ?? "staff";
   const isTrainingProvider = activeCompany?.isTrainingProvider ?? false;
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
-  const initials = (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "");
+  const initials = memberInitials(user ?? {});
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ Academy: true, Tools: true });
   const [showSwitcher, setShowSwitcher] = useState(false);
   const hasMultipleCompanies = (user?.companies?.length ?? 0) > 1;
@@ -103,7 +104,7 @@ export default function MorePage() {
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="font-semibold truncate">
-              {user?.firstName ?? "Your"} {user?.lastName ?? "Name"}
+              {user ? formatMemberName(user) : "Your Name"}
             </p>
             <p className="text-xs text-muted-foreground">View profile</p>
           </div>

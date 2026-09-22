@@ -6,6 +6,7 @@ import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, Command
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Member } from "../shared";
+import { formatMemberName } from "@/lib/format-names";
 
 interface MemberSearchSelectProps {
   value: string;
@@ -30,7 +31,7 @@ export function MemberSearchSelect({
 
   const selected = sortedMembers.find((m) => m.users?.id === value);
   const displayName = selected
-    ? `${selected.users?.first_name} ${selected.users?.last_name}`
+    ? formatMemberName(selected.users ?? {})
     : placeholder;
 
   const borderColor = hasConflict
@@ -70,14 +71,14 @@ export function MemberSearchSelect({
                 return (
                   <CommandItem
                     key={m.id ?? m.user_id}
-                    value={`${m.users?.first_name ?? ""} ${m.users?.last_name ?? ""}`}
+                    value={`${formatMemberName(m.users ?? {})} ${m.user_id ?? ""}`}
                     onSelect={() => {
                       onChange(m.users?.id ?? "");
                       setOpen(false);
                     }}
                   >
                     <Check className={cn("h-3 w-3", isSelected ? "opacity-100" : "opacity-0")} />
-                    <span>{m.users?.first_name} {m.users?.last_name}</span>
+                    <span>{formatMemberName(m.users ?? {})}</span>
                     {tag && <span className="ml-auto text-[10px] opacity-60">{tag}</span>}
                   </CommandItem>
                 );

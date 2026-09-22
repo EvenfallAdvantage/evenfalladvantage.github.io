@@ -17,6 +17,7 @@
 import { createClient } from "./client";
 import { ts } from "./db-helpers";
 import { logDbReadError } from "./db-error";
+import { formatMemberName } from "@/lib/format-names";
 
 export type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -216,7 +217,7 @@ export async function generateInvoiceFromTimesheets(
   // Get approved timesheets for this event
   const { data: timesheets } = await supabase
     .from("timesheets")
-    .select("user_id, clock_in, clock_out, users!timesheets_user_id_fkey(first_name, last_name)")
+    .select("user_id, clock_in, clock_out, users!timesheets_user_id_fkey(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .eq("event_id", eventId)
     .eq("approved", true)
@@ -229,7 +230,7 @@ export async function generateInvoiceFromTimesheets(
   const lineItems: InvoiceLineItem[] = (timesheets as any[]).map((ts) => {
     const hours = (new Date(ts.clock_out).getTime() - new Date(ts.clock_in).getTime()) / 3600000;
     const roundedHours = Math.round(hours * 100) / 100;
-    const staffName = ts.users ? `${ts.users.first_name} ${ts.users.last_name}` : "Staff";
+    const staffName = formatMemberName(ts.users ?? {}) || "Staff";
     const date = new Date(ts.clock_in).toISOString().split("T")[0];
     return {
       description: `Security services — ${staffName}`,

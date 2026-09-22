@@ -11,8 +11,9 @@ import { useCompanyQuery } from "@/hooks/use-company-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 import { getQueryClient } from "@/lib/query-client";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 
-type MemberUser = { id: string; first_name: string; last_name: string; email: string | null; phone: string | null; avatar_url: string | null; certifications: { id: string; cert_type: string; expiry_date: string | null; state_issued: string | null }[] | null };
+type MemberUser = { id: string; first_name: string; last_name: string; callsign: string | null; email: string | null; phone: string | null; avatar_url: string | null; certifications: { id: string; cert_type: string; expiry_date: string | null; state_issued: string | null }[] | null };
 type Member = { id: string; role: string; nickname: string | null; status: string; title: string | null; hide_contact_roster: boolean; dietary_restrictions: string[] | null; users: MemberUser | null };
 
 export default function DirectoryPage() {
@@ -47,14 +48,12 @@ export default function DirectoryPage() {
   }, [activeCompanyId]);
 
   const filtered = members.filter((m) => {
-    const name = `${m.users?.first_name ?? ""} ${m.users?.last_name ?? ""}`.toLowerCase();
+    const name = formatMemberName(m.users ?? {}).toLowerCase();
     return name.includes(search.toLowerCase());
   });
 
   const sel = selected?.users;
-  const selInitials = sel
-    ? (sel.first_name?.[0] ?? "") + (sel.last_name?.[0] ?? "")
-    : "";
+  const selInitials = sel ? memberInitials(sel) : "";
 
   return (
     <PageShell title="DIRECTORY" subtitle="Personnel directory and contact info" icon={<Users className="h-5 w-5" />}>
@@ -76,8 +75,7 @@ export default function DirectoryPage() {
             <div className="space-y-0.5 max-h-[60vh] overflow-y-auto">
               {filtered.map((m) => {
                 const u = m.users;
-                const initials =
-                  (u?.first_name?.[0] ?? "") + (u?.last_name?.[0] ?? "");
+                const initials = memberInitials(u ?? {});
                 const isActive = selected?.id === m.id;
                 return (
                   <div
@@ -95,7 +93,7 @@ export default function DirectoryPage() {
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <span className="truncate block">
-                        {u?.first_name} {u?.last_name}
+                        {formatMemberName(u ?? {})}
                       </span>
                       <span className="text-[10px] text-muted-foreground capitalize">
                         {m.role}
@@ -125,7 +123,7 @@ export default function DirectoryPage() {
                 </Avatar>
                 <div>
                   <h2 className="text-lg font-semibold">
-                    {sel.first_name} {sel.last_name}
+                    {formatMemberName(sel)}
                   </h2>
                   <div className="flex gap-2 mt-1">
                     <Badge variant="secondary" className="text-xs capitalize">
@@ -166,10 +164,10 @@ export default function DirectoryPage() {
                      )}
                    </>
                  )}
-                 {selected.nickname && (
+                 {(sel.callsign || selected.nickname) && (
                    <div>
                      <span className="text-xs text-muted-foreground">Callsign</span>
-                     <p className="font-medium">{selected.nickname}</p>
+                     <p className="font-medium">{sel.callsign ?? selected.nickname}</p>
                    </div>
                  )}
                  {sel.certifications && sel.certifications.length > 0 && (

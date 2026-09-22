@@ -19,6 +19,7 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 import { timeAgo } from "@/lib/utils";
 import type { Task, TaskStatus, TaskPriority } from "@/lib/supabase/db-tasks";
+import { formatMemberName } from "@/lib/format-names";
 import type { Team } from "@/lib/supabase/db-teams";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -166,7 +167,7 @@ export function TaskList({
                     {assignee?.users && (
                       <span className="flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        {assignee.users.first_name} {assignee.users.last_name}
+                        {formatMemberName(assignee.users ?? {})}
                       </span>
                     )}
                     {t.dueAt && (

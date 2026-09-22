@@ -212,6 +212,7 @@ function AdminStaffPageInner() {
             myRole={myRole}
             companyName={companyName}
             userCompanies={userCompanies}
+            currentUserId={user?.id}
           />
         )}
 

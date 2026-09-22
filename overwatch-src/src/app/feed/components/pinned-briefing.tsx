@@ -11,6 +11,7 @@ import {
 } from "@/lib/supabase/db";
 import type { Post } from "./shared";
 import { logger } from "@/lib/logger";
+import { formatMemberName, memberInitials } from "@/lib/format-names";
 
 interface PinnedBriefingProps {
   activeCompanyId: string;
@@ -96,12 +97,12 @@ export function PinnedBriefing({ activeCompanyId, userId }: PinnedBriefingProps)
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={author?.avatar_url ?? undefined} />
                   <AvatarFallback className="bg-amber-500/15 text-[10px] font-bold text-amber-600">
-                    {(author?.first_name?.[0] ?? "")}{(author?.last_name?.[0] ?? "")}
+                    {memberInitials(author ?? {})}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{author?.first_name} {author?.last_name}</span>
+                    <span className="text-sm font-medium">{formatMemberName(author ?? {})}</span>
                     <span className="text-[10px] text-muted-foreground">{timeAgo(post.created_at)}</span>
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600">PINNED</span>
                   </div>
@@ -123,16 +124,16 @@ export function PinnedBriefing({ activeCompanyId, userId }: PinnedBriefingProps)
               </div>
               {expandedPostId === post.id && (
                 <div className="border-t border-amber-500/20 px-3 py-2 space-y-2">
-                  {cmts.map((cm: { id: string; content: string; created_at: string; users?: { first_name?: string; last_name?: string; avatar_url?: string } }) => (
+                  {cmts.map((cm: { id: string; content: string; created_at: string; users?: { first_name?: string; last_name?: string; callsign?: string | null; avatar_url?: string } }) => (
                     <div key={cm.id} className="flex items-start gap-2 text-xs">
                       <Avatar className="h-5 w-5 shrink-0">
                         <AvatarImage src={cm.users?.avatar_url ?? undefined} />
                         <AvatarFallback className="bg-primary/10 text-[8px] font-bold text-primary">
-                          {(cm.users?.first_name?.[0] ?? "")}{(cm.users?.last_name?.[0] ?? "")}
+                          {memberInitials(cm.users ?? {})}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <span className="font-medium">{cm.users?.first_name} {cm.users?.last_name}</span>
+                        <span className="font-medium">{formatMemberName(cm.users ?? {})}</span>
                         <span className="ml-1.5 text-muted-foreground">{cm.content}</span>
                       </div>
                     </div>

@@ -62,7 +62,7 @@ describe("getIncidents()", () => {
 
     expect(mockClient.from).toHaveBeenCalledWith("incidents");
     expect(queryBuilder.select).toHaveBeenCalledWith(
-      "*, reported_user:users!incidents_reported_by_fkey(first_name, last_name), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name)"
+      "*, reported_user:users!incidents_reported_by_fkey(first_name, last_name, callsign), assigned_user:users!incidents_assigned_to_fkey(first_name, last_name, callsign)"
     );
     expect(queryBuilder.eq).toHaveBeenCalledWith("company_id", "comp-1");
     expect(queryBuilder.eq).toHaveBeenCalledWith("status", "open");
@@ -264,7 +264,7 @@ describe("getIncidentUpdates()", () => {
     const result = await getIncidentUpdates("i1");
 
     expect(mockClient.from).toHaveBeenCalledWith("incident_updates");
-    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name)");
+    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name, callsign)");
     expect(queryBuilder.eq).toHaveBeenCalledWith("incident_id", "i1");
     expect(queryBuilder.order).toHaveBeenCalledWith("created_at", { ascending: true });
     expect(result).toEqual(updates);

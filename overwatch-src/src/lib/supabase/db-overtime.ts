@@ -10,6 +10,7 @@
 
 import { createClient } from "./client";
 import { logDbReadError } from "./db-error";
+import { formatMemberName } from "@/lib/format-names";
 
 // ─── Configuration ────────────────────────────────────────
 
@@ -80,7 +81,7 @@ export async function getWeeklyHoursReport(companyId: string): Promise<WeeklyHou
   // Get all timesheets for this week
   const { data: timesheets, error } = await supabase
     .from("timesheets")
-    .select("user_id, clock_in, clock_out, users!timesheets_user_id_fkey(first_name, last_name)")
+    .select("user_id, clock_in, clock_out, users!timesheets_user_id_fkey(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .not("clock_out", "is", null)
     .gte("clock_in", weekStart.toISOString())
@@ -98,7 +99,7 @@ export async function getWeeklyHoursReport(companyId: string): Promise<WeeklyHou
     const clockOut = new Date(ts.clock_out);
     const hours = (clockOut.getTime() - clockIn.getTime()) / 3600000;
     const u = ts.users;
-    const name = u ? `${u.first_name} ${u.last_name}` : "Unknown";
+    const name = formatMemberName(u ?? {}) || "Unknown";
 
     const existing = hoursByUser.get(userId) ?? { name, total: 0 };
     existing.total += hours;

@@ -656,7 +656,7 @@ describe("getTaskComments()", () => {
 
     const result = await getTaskComments("task-1");
 
-    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name)");
+    expect(queryBuilder.select).toHaveBeenCalledWith("*, users(first_name, last_name, callsign)");
     expect(queryBuilder.order).toHaveBeenCalledWith("created_at", { ascending: true });
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({

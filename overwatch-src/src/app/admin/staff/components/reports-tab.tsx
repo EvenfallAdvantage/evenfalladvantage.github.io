@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { formatMemberName } from "@/lib/format-names";
 import {
   getAllFormSubmissions, reviewFormSubmission, editFormSubmission, deleteFormSubmission,
   getIncidents, updateIncident, deleteIncident, addIncidentUpdate,
@@ -152,7 +153,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                             <Badge variant="outline" className={`text-[9px] capitalize ${sevColor}`}>{inc.severity}</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {inc.type} · {reporter ? `${reporter.first_name} ${reporter.last_name}` : "Unknown"} · {new Date(inc.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            {inc.type} · {reporter ? formatMemberName(reporter) : "Unknown"} · {new Date(inc.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                           </p>
                           {inc.location && <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3" />{inc.location}</p>}
                         </div>
@@ -311,7 +312,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm">{u?.first_name} {u?.last_name}</p>
+                            <p className="font-medium text-sm">{formatMemberName(u ?? {})}</p>
                             {isReviewed ? (
                               <Badge className="text-[10px] bg-green-500/15 text-green-600">Reviewed</Badge>
                             ) : (

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { assetStatusColor, type Asset } from "./schedule-helpers";
+import { formatMemberName } from "@/lib/format-names";
 
 const QrScanner = dynamic(() => import("@/components/qr-scanner"), { ssr: false });
 
@@ -137,7 +138,7 @@ export function ArmoryTab({
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                     {a.asset_type && <span className="text-xs text-muted-foreground">{a.asset_type}</span>}
                     {a.serial_number && <span className="text-xs text-muted-foreground">SN: {a.serial_number}</span>}
-                    {a.users && <span className="text-xs text-primary font-medium">→ {a.users.first_name} {a.users.last_name}</span>}
+                    {a.users && <span className="text-xs text-primary font-medium">→ {formatMemberName(a.users)}</span>}
                   </div>
                 </div>
               </div>

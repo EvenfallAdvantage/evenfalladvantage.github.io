@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCompanyTimeChangeRequests, reviewTimeChangeRequest } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
+import { formatMemberName } from "@/lib/format-names";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 
 type TCR = Record<string, unknown> & {
@@ -92,7 +93,7 @@ export function CorrectionsTab({ activeCompanyId, canManage }: CorrectionsTabPro
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500/10 text-xs font-bold text-orange-500">
                 {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
               </div>
-              <p className="font-medium text-sm flex-1 min-w-0 truncate">{u?.first_name} {u?.last_name}</p>
+              <p className="font-medium text-sm flex-1 min-w-0 truncate">{formatMemberName(u ?? {})}</p>
               <Badge className={`text-[10px] capitalize shrink-0 ${statusColor}`}>{r.status}</Badge>
             </div>
             {/* Row 2: Time details */}

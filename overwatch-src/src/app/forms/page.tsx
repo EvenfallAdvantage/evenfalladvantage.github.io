@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import { getForms, createForm, submitForm, getFormSubmissions, deleteForm, updateForm, getActiveTimesheet, getUserFormSubmissions } from "@/lib/supabase/db";
+import { formatMemberName } from "@/lib/format-names";
 import { toast } from "sonner";
 import { usePageHeader } from "@/stores/page-header-store";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -421,7 +422,7 @@ export default function FormsPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{s.users?.first_name} {s.users?.last_name}</span>
+                              <span className="text-sm font-medium">{s.users ? formatMemberName(s.users) : "Unknown"}</span>
                               <Badge variant="secondary" className="text-[10px] capitalize">{s.status}</Badge>
                             </div>
                             <span className="text-[10px] text-muted-foreground">

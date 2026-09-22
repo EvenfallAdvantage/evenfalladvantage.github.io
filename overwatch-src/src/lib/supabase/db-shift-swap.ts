@@ -14,6 +14,7 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
+import { formatMemberName } from "@/lib/format-names";
 
 export type SwapStatus = "open" | "claimed" | "approved" | "rejected" | "cancelled";
 
@@ -172,7 +173,7 @@ export async function getOpenSwapRequests(companyId: string): Promise<ShiftSwapR
   const shiftIds = [...new Set(data.map((r: { shift_id: string }) => r.shift_id))];
   const { data: shifts } = await supabase
     .from("shifts")
-    .select("id, date, start_time, end_time, role, event_id, events(name, company_id)")
+    .select("id, start_time, end_time, role, event_id, events(name, company_id)")
     .in("id", shiftIds);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -182,7 +183,7 @@ export async function getOpenSwapRequests(companyId: string): Promise<ShiftSwapR
   const requesterIds = [...new Set(data.map((r: { requester_id: string }) => r.requester_id))];
   const { data: users } = await supabase
     .from("users")
-    .select("id, first_name, last_name")
+    .select("id, first_name, last_name, callsign")
     .in("id", requesterIds);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userMap = new Map<string, any>((users ?? []).map((u: any) => [u.id, u]));
@@ -202,12 +203,12 @@ export async function getOpenSwapRequests(companyId: string): Promise<ShiftSwapR
         id: r.id,
         shiftId: r.shift_id,
         requesterId: r.requester_id,
-        requesterName: user ? `${user.first_name} ${user.last_name}` : "Unknown",
+        requesterName: formatMemberName(user ?? {}) || "Unknown",
         replacementId: r.replacement_id,
         replacementName: null,
         status: r.status,
         reason: r.reason ?? "",
-        shiftDate: shift?.date ?? "",
+        shiftDate: typeof shift?.start_time === "string" ? shift.start_time.slice(0, 10) : "",
         shiftStart: shift?.start_time ?? "",
         shiftEnd: shift?.end_time ?? "",
         shiftRole: shift?.role ?? "",
@@ -238,7 +239,7 @@ export async function getMySwapRequests(): Promise<ShiftSwapRequest[]> {
   const shiftIds = [...new Set(data.map((r: { shift_id: string }) => r.shift_id))];
   const { data: shifts } = await supabase
     .from("shifts")
-    .select("id, date, start_time, end_time, role, events(name)")
+    .select("id, start_time, end_time, role, events(name)")
     .in("id", shiftIds);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const shiftMap = new Map<string, any>((shifts ?? []).map((s: any) => [s.id, s]));
@@ -255,7 +256,7 @@ export async function getMySwapRequests(): Promise<ShiftSwapRequest[]> {
       replacementName: null,
       status: r.status,
       reason: r.reason ?? "",
-      shiftDate: shift?.date ?? "",
+      shiftDate: typeof shift?.start_time === "string" ? shift.start_time.slice(0, 10) : "",
       shiftStart: shift?.start_time ?? "",
       shiftEnd: shift?.end_time ?? "",
       shiftRole: shift?.role ?? "",
@@ -283,7 +284,7 @@ export async function getPendingSwapApprovals(companyId: string): Promise<ShiftS
   const shiftIds = [...new Set(data.map((r: { shift_id: string }) => r.shift_id))];
   const { data: shifts } = await supabase
     .from("shifts")
-    .select("id, date, start_time, end_time, role, events(name, company_id)")
+    .select("id, start_time, end_time, role, events(name, company_id)")
     .in("id", shiftIds);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const shiftMap = new Map<string, any>((shifts ?? []).map((s: any) => [s.id, s]));
@@ -295,7 +296,7 @@ export async function getPendingSwapApprovals(companyId: string): Promise<ShiftS
   ])];
   const { data: users } = await supabase
     .from("users")
-    .select("id, first_name, last_name")
+    .select("id, first_name, last_name, callsign")
     .in("id", allUserIds);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const userMap = new Map<string, any>((users ?? []).map((u: any) => [u.id, u]));
@@ -315,12 +316,12 @@ export async function getPendingSwapApprovals(companyId: string): Promise<ShiftS
         id: r.id,
         shiftId: r.shift_id,
         requesterId: r.requester_id,
-        requesterName: requester ? `${requester.first_name} ${requester.last_name}` : "Unknown",
+        requesterName: formatMemberName(requester ?? {}) || "Unknown",
         replacementId: r.replacement_id,
-        replacementName: replacement ? `${replacement.first_name} ${replacement.last_name}` : null,
+        replacementName: replacement ? formatMemberName(replacement ?? {}) : null,
         status: r.status,
         reason: r.reason ?? "",
-        shiftDate: shift?.date ?? "",
+        shiftDate: typeof shift?.start_time === "string" ? shift.start_time.slice(0, 10) : "",
         shiftStart: shift?.start_time ?? "",
         shiftEnd: shift?.end_time ?? "",
         shiftRole: shift?.role ?? "",

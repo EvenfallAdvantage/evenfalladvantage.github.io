@@ -39,6 +39,7 @@ import {
   getTeams,
   getIncidentStatuses,
 } from "@/lib/supabase/db";
+import { formatMemberName } from "@/lib/format-names";
 import type { Team } from "@/lib/supabase/db-teams";
 import type { IncidentStatus } from "@/lib/supabase/db-incident-config";
 import { useAuthStore } from "@/stores/auth-store";
@@ -140,7 +141,7 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
   async function handleAssign(incidentId: string, userId: string) {
     await updateIncident(incidentId, { assigned_to: userId || null });
     const member = members.find((m: Member) => m.users?.id === userId);
-    const name = member?.users ? `${member.users.first_name ?? ""} ${member.users.last_name ?? ""}`.trim() : "";
+    const name = member?.users ? formatMemberName(member.users) : "";
     await addIncidentUpdate(
       incidentId,
       userId ? `Assigned to ${name || "user"}` : "Assignment cleared",
@@ -280,7 +281,7 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                   <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
                     <span className="flex items-center gap-1">
                       <User className="h-3 w-3" />
-                      {inc.reported_user?.first_name} {inc.reported_user?.last_name}
+                      {inc.reported_user ? formatMemberName(inc.reported_user) : "Unknown"}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
@@ -477,7 +478,7 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                           <option value="">Unassigned</option>
                           {members.map((m: Member) => (
                             <option key={m.users?.id} value={m.users?.id}>
-                              {m.users?.first_name} {m.users?.last_name}
+                              {formatMemberName(m.users ?? {})}
                             </option>
                           ))}
                         </select>
@@ -500,7 +501,7 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                       )}
                       {inc.assigned_to && inc.assigned_user && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <User className="h-3 w-3" /> Assigned: {inc.assigned_user.first_name} {inc.assigned_user.last_name}
+                          <User className="h-3 w-3" /> Assigned: {formatMemberName(inc.assigned_user)}
                         </span>
                       )}
                       <Button

@@ -16,6 +16,7 @@
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
+import { formatMemberName } from "@/lib/format-names";
 
 export type AlertStatus = "active" | "acknowledged" | "resolved" | "false_alarm";
 
@@ -158,7 +159,7 @@ export async function getActivePanicAlerts(companyId: string): Promise<PanicAler
   const supabase = createClient();
   const { data, error } = await supabase
     .from("panic_alerts")
-    .select("*, users!panic_alerts_user_id_fkey(first_name, last_name)")
+    .select("*, users!panic_alerts_user_id_fkey(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .in("status", ["active", "acknowledged"])
     .order("created_at", { ascending: false });
@@ -169,7 +170,7 @@ export async function getActivePanicAlerts(companyId: string): Promise<PanicAler
   return (data ?? []).map((a: any) => ({
     id: a.id,
     userId: a.user_id,
-    userName: a.users ? `${a.users.first_name} ${a.users.last_name}` : "Unknown",
+    userName: formatMemberName(a.users ?? {}) || "Unknown",
     companyId: a.company_id,
     lat: a.lat,
     lng: a.lng,
@@ -189,7 +190,7 @@ export async function getPanicAlertHistory(companyId: string, limit = 50): Promi
   const supabase = createClient();
   const { data, error } = await supabase
     .from("panic_alerts")
-    .select("*, users!panic_alerts_user_id_fkey(first_name, last_name)")
+    .select("*, users!panic_alerts_user_id_fkey(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -200,7 +201,7 @@ export async function getPanicAlertHistory(companyId: string, limit = 50): Promi
   return (data ?? []).map((a: any) => ({
     id: a.id,
     userId: a.user_id,
-    userName: a.users ? `${a.users.first_name} ${a.users.last_name}` : "Unknown",
+    userName: formatMemberName(a.users ?? {}) || "Unknown",
     companyId: a.company_id,
     lat: a.lat,
     lng: a.lng,

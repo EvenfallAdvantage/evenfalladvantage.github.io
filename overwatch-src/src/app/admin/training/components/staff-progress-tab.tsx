@@ -7,6 +7,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getAllModuleProgress, getCompanyMembers, getQuizzes } from "@/lib/supabase/db";
+import { formatMemberName } from "@/lib/format-names";
 import type { TrainingModule } from "@/types";
 
 interface StaffProgressTabProps {
@@ -121,9 +122,9 @@ export function StaffProgressTab({ activeCompanyId, modules }: StaffProgressTabP
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5"><Users className="h-4 w-4" /> Staff Training Status</h3>
             <div className="space-y-1">
-              {staff.map((s: { id: string; users: { id: string; first_name: string; last_name: string; email: string } | null; role: string }) => {
+              {staff.map((s: { id: string; users: { id: string; first_name: string; last_name: string; callsign?: string | null; email: string } | null; role: string }) => {
                 const comp = getStaffCompletion(s.users?.id ?? "");
-                const name = s.users ? `${s.users.first_name ?? ""} ${s.users.last_name ?? ""}`.trim() : "Unknown";
+                const name = s.users ? formatMemberName(s.users) : "Unknown";
                 return (
                   <div key={s.id} className="flex items-center justify-between p-2 rounded-lg border border-border/30">
                     <div className="flex-1 min-w-0">

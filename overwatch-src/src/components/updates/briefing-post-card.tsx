@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { timeAgo } from "@/lib/utils";
 import { MediaEmbed, ContentWithEmbeds } from "./media-embed";
 import { getPostComments, getPostReactions, togglePostReaction, addPostComment, deletePostComment } from "@/lib/supabase/db";
+import { formatMemberName } from "@/lib/format-names";
 import { logger } from "@/lib/logger";
 
 const POST_TYPES = [
@@ -135,7 +136,7 @@ export function BriefingPostCard({
         </Avatar>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold">{author?.first_name} {author?.last_name}</span>
+            <span className="text-sm font-semibold">{formatMemberName(author ?? {})}</span>
             {post.type !== "update" && (
               <Badge className={`text-[9px] px-1.5 py-0 h-4 ${
                 post.type === "alert" ? "bg-amber-500/15 text-amber-600" : "bg-violet-500/15 text-violet-600"
@@ -235,7 +236,7 @@ export function BriefingPostCard({
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="rounded-lg bg-card border border-border/40 px-3 py-1.5">
-                  <span className="text-xs font-semibold">{c.users?.first_name} {c.users?.last_name}</span>
+                  <span className="text-xs font-semibold">{formatMemberName(c.users ?? {})}</span>
                   <span className="text-[10px] text-muted-foreground ml-2">{timeAgo(c.created_at)}</span>
                   <p className="text-xs text-foreground/90 mt-0.5">{c.content}</p>
                 </div>

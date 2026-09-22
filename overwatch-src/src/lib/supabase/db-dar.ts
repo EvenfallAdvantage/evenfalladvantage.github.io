@@ -13,6 +13,7 @@
 
 import { createClient } from "./client";
 import { logDbReadError } from "./db-error";
+import { formatMemberName } from "@/lib/format-names";
 
 export interface DAREntry {
   time: string;
@@ -46,7 +47,7 @@ export async function generateDAR(timesheetId: string): Promise<DailyActivityRep
     .from("timesheets")
     .select(`
       id, clock_in, clock_out, event_id, user_id, notes,
-      users!timesheets_user_id_fkey(first_name, last_name),
+      users!timesheets_user_id_fkey(first_name, last_name, callsign),
       events(name)
     `)
     .eq("id", timesheetId)
@@ -59,7 +60,7 @@ export async function generateDAR(timesheetId: string): Promise<DailyActivityRep
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ts = sheet as any;
-  const staffName = ts.users ? `${ts.users.first_name} ${ts.users.last_name}` : "Staff";
+  const staffName = formatMemberName(ts.users ?? {}) || "Staff";
   const eventName = ts.events?.name ?? "General";
   const clockIn = new Date(ts.clock_in);
   const clockOut = new Date(ts.clock_out);

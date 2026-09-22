@@ -16,14 +16,15 @@ export interface DirectMessage {
   readAt: string | null;
   createdAt: string;
   // Joined fields
-  fromUser?: { firstName: string; lastName: string; avatarUrl: string | null };
-  toUser?: { firstName: string; lastName: string; avatarUrl: string | null };
+  fromUser?: { firstName: string; lastName: string; callsign: string | null; avatarUrl: string | null };
+  toUser?: { firstName: string; lastName: string; callsign: string | null; avatarUrl: string | null };
 }
 
 export interface DMConversation {
   userId: string;
   firstName: string;
   lastName: string;
+  callsign: string | null;
   avatarUrl: string | null;
   lastMessage: string;
   lastMessageAt: string;
@@ -41,7 +42,7 @@ export async function getDMConversations(companyId: string): Promise<DMConversat
 
   const { data, error } = await supabase
     .from("direct_messages")
-    .select("*, from_user:users!direct_messages_from_user_id_fkey(id, first_name, last_name, avatar_url), to_user:users!direct_messages_to_user_id_fkey(id, first_name, last_name, avatar_url)")
+    .select("*, from_user:users!direct_messages_from_user_id_fkey(id, first_name, last_name, callsign, avatar_url), to_user:users!direct_messages_to_user_id_fkey(id, first_name, last_name, callsign, avatar_url)")
     .eq("company_id", companyId)
     .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`)
     .order("created_at", { ascending: false });
@@ -60,6 +61,7 @@ export async function getDMConversations(companyId: string): Promise<DMConversat
         userId: partnerId,
         firstName: partner?.first_name ?? "",
         lastName: partner?.last_name ?? "",
+        callsign: partner?.callsign ?? null,
         avatarUrl: partner?.avatar_url ?? null,
         lastMessage: msg.content,
         lastMessageAt: msg.created_at,
@@ -93,7 +95,7 @@ export async function getDMMessages(
 
   const { data, error } = await supabase
     .from("direct_messages")
-    .select("*, from_user:users!direct_messages_from_user_id_fkey(first_name, last_name, avatar_url), to_user:users!direct_messages_to_user_id_fkey(first_name, last_name, avatar_url)")
+    .select("*, from_user:users!direct_messages_from_user_id_fkey(first_name, last_name, callsign, avatar_url), to_user:users!direct_messages_to_user_id_fkey(first_name, last_name, callsign, avatar_url)")
     .eq("company_id", companyId)
     .or(`and(from_user_id.eq.${userId},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${userId})`)
     .order("created_at", { ascending: true })
@@ -110,8 +112,8 @@ export async function getDMMessages(
     fileUrl: m.file_url as string | null,
     readAt: m.read_at as string | null,
     createdAt: m.created_at as string,
-    fromUser: m.from_user ? { firstName: m.from_user.first_name ?? "", lastName: m.from_user.last_name ?? "", avatarUrl: m.from_user.avatar_url ?? null } : undefined,
-    toUser: m.to_user ? { firstName: m.to_user.first_name ?? "", lastName: m.to_user.last_name ?? "", avatarUrl: m.to_user.avatar_url ?? null } : undefined,
+    fromUser: m.from_user ? { firstName: m.from_user.first_name ?? "", lastName: m.from_user.last_name ?? "", callsign: m.from_user.callsign ?? null, avatarUrl: m.from_user.avatar_url ?? null } : undefined,
+    toUser: m.to_user ? { firstName: m.to_user.first_name ?? "", lastName: m.to_user.last_name ?? "", callsign: m.to_user.callsign ?? null, avatarUrl: m.to_user.avatar_url ?? null } : undefined,
   }));
 }
 
