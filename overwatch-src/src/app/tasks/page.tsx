@@ -22,7 +22,7 @@ import { TaskDetailModal } from "./components/task-detail-modal";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Member = any;
 
-export default function TasksPage() {
+export default function TasksPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = activeCompany && hasMinRole(activeCompany.role as CompanyRole, "manager");
@@ -88,6 +88,9 @@ export default function TasksPage() {
   useEffect(() => { void load(); }, [load]);
 
   useEffect(() => {
+    // When embedded inside the Watch Log host, the host owns the header —
+    // skip our own setHeader to avoid fighting the host's per-tab header.
+    if (embedded) return;
     setHeader(
       "TASKS",
       "Operational tasks and assignments",
@@ -97,7 +100,7 @@ export default function TasksPage() {
       </Button>
     );
     return () => clearHeader();
-  }, [setHeader, clearHeader, showCreate]);
+  }, [setHeader, clearHeader, showCreate, embedded]);
 
   // Apply scope + filters in-memory (data set is small per page; server-side
   // filtering is available via getTasks if performance becomes a concern).
