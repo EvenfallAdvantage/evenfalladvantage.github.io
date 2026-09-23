@@ -40,7 +40,7 @@ export function MapToolsBar({
   const panelBg = "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)";
 
   return (
-    <div className="absolute bottom-3 left-3 z-10 flex items-end gap-2">
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-end gap-2">
       {/* Tool buttons — single unified card */}
       <div className="flex items-center gap-px rounded-xl backdrop-blur-sm border border-white/10 p-1.5" style={{ backgroundColor: panelBg }}>
         {/* Measure tools */}
