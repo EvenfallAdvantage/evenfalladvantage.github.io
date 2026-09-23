@@ -32,7 +32,7 @@ const INCIDENT_COLORS: Record<string, string> = {
 };
 
 const LIGHT_TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_3umn_1_b4fff84fdc4118a7bc7c88af";
 
 function makeDot(color: string, size: number, symbol?: string): L.DivIcon {
   return L.divIcon({

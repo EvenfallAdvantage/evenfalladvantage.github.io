@@ -61,7 +61,7 @@ export function useNightVision(params: {
 
       // Add CartoDB Dark Matter tiles as the sole basemap
       const darkProvider = new Cesium.UrlTemplateImageryProvider({
-        url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png?key=cb1_3umn_1_b4fff84fdc4118a7bc7c88af",
         credit: "CartoDB Dark Matter",
         minimumLevel: 0,
         maximumLevel: 18,
