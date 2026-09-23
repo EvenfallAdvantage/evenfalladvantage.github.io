@@ -108,7 +108,15 @@ export function CsvImportPanel({
       for (let i = 0; i < csvPreview.valid.length; i++) {
         const r = csvPreview.valid[i];
         const startLocal = `${r.date}T${r.start_time}`;
-        const endLocal = `${r.date}T${r.end_time}`;
+        const endDay =
+          r.end_date && r.end_date.length
+            ? r.end_date
+            : r.end_time < r.start_time
+              ? new Date(`${r.date}T00:00:00`).getTime() + 86400000 > 0
+                ? new Date(new Date(`${r.date}T00:00:00`).getTime() + 86400000).toISOString().slice(0, 10)
+                : r.date
+              : r.date;
+        const endLocal = `${endDay}T${r.end_time}`;
         let startUTC: string;
         let endUTC: string;
         try {

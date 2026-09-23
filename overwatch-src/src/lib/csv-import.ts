@@ -262,6 +262,7 @@ export function validateStaffRows(
 
 export const SHIFT_FIELDS = [
   { key: "date", label: "Date", required: true },
+  { key: "end_date", label: "End Date (overnight)", required: false },
   { key: "start_time", label: "Start Time", required: true },
   { key: "end_time", label: "End Time", required: true },
   { key: "role", label: "Role / Position", required: false },
@@ -272,6 +273,7 @@ export const SHIFT_FIELDS = [
 
 export type ShiftImportRow = {
   date: string;
+  end_date?: string;
   start_time: string;
   end_time: string;
   role?: string;
@@ -282,6 +284,7 @@ export type ShiftImportRow = {
 
 const SHIFT_FIELD_ALIASES: Record<string, string[]> = {
   date: ["date", "shift date", "day"],
+  end_date: ["end date", "ends", "date ends", "overnight end", "End Date (overnight)"],
   start_time: ["start", "start time", "begin", "from", "clock in"],
   end_time: ["end", "end time", "finish", "to", "clock out"],
   role: ["role", "position", "post", "assignment"],
@@ -326,6 +329,7 @@ export function applyShiftMapping(
     };
     return {
       date: get("date"),
+      end_date: get("end_date") || undefined,
       start_time: get("start_time"),
       end_time: get("end_time"),
       role: get("role") || undefined,
@@ -716,9 +720,46 @@ export function validateShiftRows(rows: ShiftImportRow[]): ValidateShiftRowsResu
       continue;
     }
 
+    // Overnight end date. Prefer an explicit End Date column when the CSV
+    // provides one; otherwise, when the end time is earlier than the start
+    // time the shift crosses midnight, so roll the end onto the NEXT day.
+    // (Local-date input is ambiguous for an overnight CSV only if the user
+    // wrote a rolled end date without an end time; but end_time is always
+    // required, so end_date alone never drives the rollover here.)
+    let normEndDate: string | undefined;
+    const rawEndDate = p.raw.end_date?.trim();
+    if (rawEndDate) {
+      const ep = tryParseDate(rawEndDate);
+      let edYMD: ParsedYMD | null = null;
+      if (ep.kind === "year_first_numeric") {
+        edYMD = { year: ep.year, month: ep.a, day: ep.b };
+      } else if (ep.kind === "ambiguous_numeric") {
+        const y = ep.year ?? inferYear(convention === "MDY" ? ep.a : ep.b, convention === "MDY" ? ep.b : ep.a, today);
+        edYMD = {
+          year: y,
+          month: convention === "MDY" ? ep.a : ep.b,
+          day: convention === "MDY" ? ep.b : ep.a,
+        };
+      } else if (ep.kind === "month_day") {
+        edYMD = { year: inferYear(ep.month, ep.day, today), month: ep.month, day: ep.day };
+      }
+      if (edYMD && isValidYMD(edYMD)) {
+        normEndDate = formatISODate(edYMD);
+      } else {
+        errors.push({ line: p.line, message: `End Date "${rawEndDate}" — unrecognized format. Use YYYY-MM-DD or M/D/YYYY.` });
+        continue;
+      }
+    } else if (p.endTime < p.startTime) {
+      // Overnight rollover: end lands on the next calendar day.
+      const end = new Date(`${normDate}T00:00:00Z`);
+      end.setUTCDate(end.getUTCDate() + 1);
+      normEndDate = end.toISOString().slice(0, 10);
+    }
+
     valid.push({
       ...p.raw,
       date: normDate,
+      end_date: normEndDate,
       start_time: p.startTime,
       end_time: p.endTime,
     });
