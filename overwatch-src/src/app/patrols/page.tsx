@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { timeAgo } from "@/lib/utils";
 import { formatMemberName } from "@/lib/format-names";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
@@ -44,7 +44,16 @@ type PatrolRoute = any;
 type PatrolLog = any;
 
 
-export default function PatrolsPage() {
+function PatrolsBoundary({ embedded, children }: { embedded?: boolean; children: ReactNode }) {
+  if (embedded) return <>{children}</>;
+  return (
+    <PageShell title="WATCH LOG" subtitle="Patrol routes, checkpoints, and scan logs" icon={<Footprints className="h-5 w-5" />}>
+      {children}
+    </PageShell>
+  );
+}
+
+export default function PatrolsPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { activeCompanyId } = useAuthStore();
   const activeCompany = useAuthStore(s => s.getActiveCompany());
   const isAdmin = activeCompany && hasMinRole(activeCompany.role as CompanyRole, "manager");
@@ -168,9 +177,10 @@ export default function PatrolsPage() {
   ];
 
   return (
-    <PageShell title="WATCH LOG" subtitle="Patrol routes, checkpoints, and scan logs" icon={<Footprints className="h-5 w-5" />}>
+    <PatrolsBoundary embedded={embedded}>
       <div className="space-y-4">
-        {/* Tabs */}
+        {/* Outer tabs — only when standalone (embedded hides these; the Watch Log host renders its own tab bar) */}
+        {!embedded && (
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
           <Link href="/timeclock"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
@@ -187,6 +197,7 @@ export default function PatrolsPage() {
             Patrols
           </div>
         </div>
+        )}
 
         {/* Compliance Banner */}
         <Card className="overflow-hidden">
@@ -601,6 +612,6 @@ export default function PatrolsPage() {
         )}
       </div>
       <ConfirmDialog />
-    </PageShell>
+    </PatrolsBoundary>
   );
 }

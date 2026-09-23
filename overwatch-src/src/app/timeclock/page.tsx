@@ -280,7 +280,7 @@ function TimeClockInner() {
         {watchTab === "tasks" && <TasksPage />}
 
         {/* Patrols Tab Content */}
-        {watchTab === "patrols" && <PatrolsPage />}
+        {watchTab === "patrols" && <PatrolsPage embedded />}
       </div>
 
       {selectedEntry && (
