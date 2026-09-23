@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import {
   Camera, XCircle, LogIn, LogOut,
-  ChevronDown, ChevronUp, Users, Clock, WifiOff, AlertTriangle,
+  ChevronDown, ChevronUp, Users, Clock, WifiOff, AlertTriangle, ScanLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
@@ -79,7 +79,16 @@ const EVENT_STORAGE_KEY = "scan-selected-event";
 
 // ── Component ──
 
-export default function ScanPage() {
+function ScanBoundary({ embedded, title, subtitle, children }: { embedded: boolean; title: string; subtitle: string; children: ReactNode }) {
+  if (embedded) return <>{children}</>;
+  return (
+    <PageShell title={title} subtitle={subtitle} icon={<ScanLine className="h-5 w-5" />}>
+      {children}
+    </PageShell>
+  );
+}
+
+export default function ScanPage({ embedded = false }: { embedded?: boolean } = {}) {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
@@ -370,7 +379,7 @@ export default function ScanPage() {
   // ── Render ──
 
   return (
-    <PageShell title="MASS CLOCK" subtitle="Scan badges for rapid clock in/out">
+    <ScanBoundary embedded={embedded} title="MASS CLOCK" subtitle="Scan badges for rapid clock in/out">
     <div className="max-w-lg mx-auto space-y-4">
 
       {/* Offline banner */}
@@ -546,6 +555,6 @@ export default function ScanPage() {
       </div>
       <ConfirmDialog />
     </div>
-    </PageShell>
+    </ScanBoundary>
   );
 }

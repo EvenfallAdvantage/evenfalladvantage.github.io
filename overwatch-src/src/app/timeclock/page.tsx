@@ -274,7 +274,7 @@ function TimeClockInner() {
         </>}
 
         {/* Mass Clock Tab Content */}
-        {watchTab === "mass-clock" && isManager && <ScanPage />}
+                {watchTab === "mass-clock" && isManager && <ScanPage embedded />}
 
         {/* Tasks Tab Content */}
         {watchTab === "tasks" && <TasksPage embedded />}
