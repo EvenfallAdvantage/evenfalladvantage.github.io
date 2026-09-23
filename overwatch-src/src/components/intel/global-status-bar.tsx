@@ -85,7 +85,7 @@ export function GlobalStatusBar({ enabled = true, onOpenAttribution }: GlobalSta
 
   return (
     <div
-      className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 pointer-events-auto rounded-full px-3 py-1.5 flex items-center gap-3 backdrop-blur-sm border border-white/10 text-[10px] font-mono uppercase tracking-wider"
+      className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10 pointer-events-auto rounded-full px-3 py-1.5 flex items-center gap-3 backdrop-blur-sm border border-white/10 text-[10px] font-mono uppercase tracking-wider"
       style={{
         backgroundColor:
           "color-mix(in srgb, var(--brand-primary, #0f1a2e) 88%, transparent)",
