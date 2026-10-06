@@ -1,5 +1,5 @@
 -- =============================================================================
--- ROLLBACK for 20261006200000_intake_tokens_rls.sql
+-- ROLLBACK for 20261006193834_intake_tokens_rls.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY. Run by hand.
 -- Restores the live policies as read from pg_policies on 2026-10-06.
 -- NOTE: this re-opens public read/update of every intake row (lead PII).

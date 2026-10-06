@@ -1,9 +1,13 @@
 -- =============================================================================
--- 20261006200000_intake_tokens_rls.sql
+-- 20261006193834_intake_tokens_rls.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY.
--- Status: DRAFT. Not applied. Apply BEFORE putting an intake key on the
---         public website (see PR "feat/intake-leads" go-live checklist).
--- Rollback: supabase/migrations/rollback/20261006200000_intake_tokens_rls.rollback.sql
+-- Status: APPLIED to OverwatchDB on 2026-10-06 (12:38 PT) via apply_migration,
+--         recorded version 20261006193834 (name intake_tokens_rls). Applied
+--         without the BEGIN/COMMIT lines below (the tool wraps its own
+--         transaction) and with a shortened header; statements identical.
+--         28/28 live checks passed in a rolled-back transaction.
+--         Pre-apply snapshot of the old policies/grants = the rollback file.
+-- Rollback: supabase/migrations/rollback/20261006193834_intake_tokens_rls.rollback.sql
 -- Depends on: 20261006175319_rls_hardening.sql (role_rank, my_company_role).
 --
 -- Problem (live policies read 2026-10-06):

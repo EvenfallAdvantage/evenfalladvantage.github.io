@@ -25,9 +25,10 @@ export type IntakeTokenRow = {
 };
 
 /**
- * True when PostgREST says the RPC does not exist yet (migration
- * 20261006200000_intake_tokens_rls not applied). Lets this code ship before
- * the migration; remove the fallbacks once it is applied.
+ * True when PostgREST says the RPC does not exist (migration
+ * 20261006193834_intake_tokens_rls missing, e.g. a fresh local DB). The
+ * migration is applied to OverwatchDB since 2026-10-06, so in production the
+ * RPC path is always taken; the table fallback can be removed later.
  */
 function isMissingRpc(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;

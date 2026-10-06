@@ -36,7 +36,7 @@ Results on 2026-10-06 (Postgres 17):
   policies and grants identically. Each file refuses to run on the other
   database (guard block).
 
-## Intake tokens RLS (`20261006200000_intake_tokens_rls.sql`, draft)
+## Intake tokens RLS (`20261006193834_intake_tokens_rls.sql`, draft)
 
 `intake_tokens_rls_test.sql` adds a stub `client_intake_tokens` table with the
 live policies (phase `stub`) and runs 28 checks (phase `test`). Run it after
@@ -44,7 +44,7 @@ the three commands above:
 
 ```bash
 psql -d ow_rls_test -v phase=stub -f tests/intake_tokens_rls_test.sql
-psql -d ow_rls_test -f migrations/20261006200000_intake_tokens_rls.sql
+psql -d ow_rls_test -f migrations/20261006193834_intake_tokens_rls.sql
 psql -d ow_rls_test -v phase=test -f tests/intake_tokens_rls_test.sql
 ```
 
@@ -53,3 +53,8 @@ migration; 7 passed, 21 failed with today's live policies (anon can list and
 edit every row; any signed-in user can read, insert and delete across
 companies). The rollback restores policies and grants identically (diffed) and
 the migration re-applies cleanly after it.
+
+**Live (OverwatchDB, 2026-10-06 12:38 PT, version 20261006193834):** the same
+28 checks were run against the live database inside a single DO block with
+throwaway companies/users/rows that ends in RAISE EXCEPTION, so everything
+rolled back: **28 passed, 0 failed**; no fixture rows remained afterwards.

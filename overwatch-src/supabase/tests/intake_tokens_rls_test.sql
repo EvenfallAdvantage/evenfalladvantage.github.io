@@ -1,5 +1,5 @@
 -- =============================================================================
--- LOCAL-ONLY stub + test plan for 20261006200000_intake_tokens_rls.sql.
+-- LOCAL-ONLY stub + test plan for 20261006193834_intake_tokens_rls.sql.
 -- Run on a throwaway Postgres AFTER local_stub_schema.sql, rls_hardening_seed.sql
 -- and the rls_hardening migration. Two phases:
 --   psql -d ow_rls_test -v phase=stub -f tests/intake_tokens_rls_test.sql     # table + live policies + rows

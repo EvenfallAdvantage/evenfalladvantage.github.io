@@ -7,8 +7,8 @@
  * They then show up in Overwatch alongside other client intake requests.
  *
  * Setup (one-time; see the go-live checklist in the "feat/intake-leads" PR):
- *   1. Apply migration 20261006200000_intake_tokens_rls.sql to OverwatchDB
- *      (closes public read/update of client_intake_tokens, where leads land).
+ *   1. (Done 2026-10-06) Migration 20261006193834_intake_tokens_rls.sql is
+ *      applied to OverwatchDB (closes public read/update of client_intake_tokens).
  *   2. Deploy the `intake-ingest` edge function to OverwatchDB.
  *   3. In Overwatch > Settings > API Sources (Evenfall Advantage company),
  *      create an API key with ONLY the `intake:write` scope (the default) and
