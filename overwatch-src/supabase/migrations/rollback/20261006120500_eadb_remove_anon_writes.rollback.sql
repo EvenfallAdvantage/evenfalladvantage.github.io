@@ -18,12 +18,13 @@ END
 $guard$;
 
 DROP POLICY IF EXISTS students_self_insert ON public.students;
+DROP POLICY IF EXISTS student_profiles_self_insert ON public.student_profiles;
 
 GRANT INSERT, UPDATE, DELETE, TRUNCATE ON
   public.assessments, public.certificates, public.class_attendance,
   public.class_enrollments, public.courses, public.instructors,
   public.module_slides, public.scheduled_classes, public.students,
-  public.training_modules
+  public.training_modules, public.student_profiles
 TO anon;
 
 CREATE POLICY anon_insert_assessments ON public.assessments AS PERMISSIVE FOR INSERT TO anon WITH CHECK (true);
@@ -47,5 +48,8 @@ CREATE POLICY students_anon_insert ON public.students AS PERMISSIVE FOR INSERT T
 CREATE POLICY students_anon_update ON public.students AS PERMISSIVE FOR UPDATE TO anon USING (true);
 CREATE POLICY anon_insert_training_modules ON public.training_modules AS PERMISSIVE FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY anon_update_training_modules ON public.training_modules AS PERMISSIVE FOR UPDATE TO anon USING (true) WITH CHECK (true);
+
+CREATE POLICY "Enable insert for anon and authenticated" ON public.student_profiles AS PERMISSIVE FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY student_profiles_anon_insert ON public.student_profiles AS PERMISSIVE FOR INSERT TO anon WITH CHECK (true);
 
 COMMIT;

@@ -35,3 +35,19 @@ Results on 2026-10-06 (Postgres 17):
   authenticated student can insert only their own row; rollback restores
   policies and grants identically. Each file refuses to run on the other
   database (guard block).
+
+## EADB anon writes (`migrations/eadb/20261006120500_eadb_remove_anon_writes.sql`)
+
+```bash
+createdb eadb_test
+psql -d eadb_test -f tests/eadb_local_stub.sql
+psql -d eadb_test -f migrations/eadb/20261006120500_eadb_remove_anon_writes.sql
+psql -d eadb_test -f tests/eadb_anon_writes_test.sql
+```
+
+Results on 2026-10-06 (Postgres 17, after adding student_profiles):
+**15 passed, 0 failed** after the migration (anon writes denied on all 11
+tables, a signed-in student can still create only their own `students` and
+`student_profiles` rows, anon SELECT unchanged); 4 passed / 11 failed before
+it. Rollback restores policies and grants identically (diffed) and the
+migration re-applies cleanly.
