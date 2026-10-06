@@ -12,7 +12,7 @@ import {
   getLegacySlides, createLegacySlide, updateLegacySlide, deleteLegacySlide,
   type LegacySlide,
 } from "@/lib/legacy-bridge";
-import { sanitizeHtml } from "@/lib/security";
+import { sanitizeHtml } from "@/lib/security/sanitize-html";
 import { logger } from "@/lib/logger";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 

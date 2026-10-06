@@ -14,6 +14,7 @@
  */
 
 import { useEffect } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import { escapeHtml, safeHttpUrl } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
@@ -170,10 +171,10 @@ export function useEarthquakesLayer(params: {
     }
 
     fetchAndRender();
-    const interval = setInterval(fetchAndRender, REFRESH_INTERVAL_MS);
+    const stopPolling = setVisibleInterval(fetchAndRender, REFRESH_INTERVAL_MS);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      stopPolling();
     };
   }, [layers.earthquakes, loading, isReplaying, viewerRef, cesiumRef, entityGroupsRef]);
 }

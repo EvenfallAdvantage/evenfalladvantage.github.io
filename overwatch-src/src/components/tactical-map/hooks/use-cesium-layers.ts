@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { getSiteMapBounds, getSiteMapBoundsByCompany, migrateLegacyLocalStorageBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
@@ -801,10 +802,9 @@ export function useCesiumLayers(params: {
     getRecentGeofenceAlerts(companyId, 10).then(setGeofenceAlerts).catch(() => {});
 
     // Refresh every 60 seconds
-    const interval = setInterval(() => {
+    return setVisibleInterval(() => {
       getRecentGeofenceAlerts(companyId, 10).then(setGeofenceAlerts).catch(() => {});
     }, 60000);
-    return () => clearInterval(interval);
   }, [companyId, loading]);
 
   return {

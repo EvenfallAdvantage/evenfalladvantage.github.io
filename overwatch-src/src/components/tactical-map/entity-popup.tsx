@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { escapeHtml, sanitizeHtml } from "@/lib/security";
+import { escapeHtml } from "@/lib/security";
+import { sanitizeHtml } from "@/lib/security/sanitize-html";
 
 interface EntityPopupProps {
   entity: {

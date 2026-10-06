@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import {
   Camera, XCircle, LogIn, LogOut,
   ChevronDown, ChevronUp, Users, Clock, WifiOff, AlertTriangle, ScanLine,
@@ -160,8 +161,7 @@ export default function ScanPage({ embedded = false }: { embedded?: boolean } = 
 
   // Auto-refresh every 10s
   useEffect(() => {
-    const iv = setInterval(refreshClockedIn, CLOCKED_IN_REFRESH_MS);
-    return () => clearInterval(iv);
+    return setVisibleInterval(refreshClockedIn, CLOCKED_IN_REFRESH_MS);
   }, [refreshClockedIn]);
 
   // ── Online/offline detection ──

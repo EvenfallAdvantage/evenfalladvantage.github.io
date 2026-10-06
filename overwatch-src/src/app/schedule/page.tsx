@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
@@ -185,8 +186,8 @@ export default function SchedulePage() {
       });
     };
     const unsub = subscribeStaffLocations(activeCompanyId, refreshStaff);
-    const pollInterval = setInterval(refreshStaff, 30000);
-    return () => { unsub(); clearInterval(pollInterval); };
+    const stopPolling = setVisibleInterval(refreshStaff, 30000);
+    return () => { unsub(); stopPolling(); };
   }, [tab, activeCompanyId]);
 
   // Load issued documents & my availability for each event

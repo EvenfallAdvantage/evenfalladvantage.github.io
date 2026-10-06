@@ -2,7 +2,10 @@
 
 import { useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { fetchUserProfile, registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
+// Import from the domain module, not the "@/lib/supabase/db" barrel: this
+// provider is on every page (including the public landing) and the barrel
+// pulls every db-* module into the shared first-load bundle.
+import { fetchUserProfile, registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db-users";
 import { seedInternalUserId, clearInternalUserCache } from "@/lib/supabase/db-helpers";
 import { useAuthStore } from "@/stores/auth-store";
 import { logger } from "@/lib/logger";

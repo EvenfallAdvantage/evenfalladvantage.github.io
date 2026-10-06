@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { X, ExternalLink, Camera } from "lucide-react";
 import type { CctvCamera } from "@/lib/intel-types";
 
@@ -41,8 +42,7 @@ export function CctvViewer({ camera, onClose }: CctvViewerProps) {
   // cache-busting query string.
   useEffect(() => {
     if (streamType !== "jpg") return;
-    const id = setInterval(() => setCacheBust((c) => c + 1), 5_000);
-    return () => clearInterval(id);
+    return setVisibleInterval(() => setCacheBust((c) => c + 1), 5_000);
   }, [streamType]);
 
   const refreshedUrl =

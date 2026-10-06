@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { UserPlus, Loader2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { joinCompanyByCode } from "@/lib/supabase/db";
+import { joinCompanyByCode } from "@/lib/supabase/db-users";
 
 interface JoinCompanyModalProps {
   open: boolean;

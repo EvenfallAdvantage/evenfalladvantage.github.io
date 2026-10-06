@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import { subscribeAdsb } from "@/lib/sdr/adsb-store";
 import type { AdsbAircraftMap } from "@/lib/sdr/adsb-types";
@@ -192,11 +193,11 @@ export function useAircraftLayer(params: {
     }
 
     fetchOpenSky();
-    const openskyInterval = setInterval(fetchOpenSky, 15000);
+    const stopOpenSkyPolling = setVisibleInterval(fetchOpenSky, 15000);
 
     return () => {
       unsubAdsb();
-      clearInterval(openskyInterval);
+      stopOpenSkyPolling();
       (entityGroups.aircraft ?? []).forEach((e: { id: string }) => {
         try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("aircraft-layer:remove", e_, "debug"); }
       });

@@ -1,8 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import { AuthGuard } from "@/components/auth-guard";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
+
+// Loaded on demand so public routes (landing, login, apply, careers...) don't
+// download the sidebar/topbar/nav and their data modules on first load.
+const loadDashboardShell = () => import("@/components/layout/dashboard-shell");
+const DashboardShell = dynamic(
+  () => loadDashboardShell().then((m) => m.DashboardShell),
+  { loading: () => <div className="min-h-screen bg-background" /> },
+);
 
 const PUBLIC_ROUTES = ["/login", "/register", "/verify", "/join", "/auth/callback", "/apply", "/health", "/careers", "/intake", "/report", "/auth/reset", "/auth/update-password"];
 
@@ -13,8 +22,15 @@ function isPublicRoute(pathname: string): boolean {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isPublic = isPublicRoute(pathname);
 
-  if (isPublicRoute(pathname)) {
+  // On app routes, start fetching the shell right after hydration, in
+  // parallel with the auth check, instead of waiting for AuthGuard to render it.
+  useEffect(() => {
+    if (!isPublic) void loadDashboardShell();
+  }, [isPublic]);
+
+  if (isPublic) {
     return <>{children}</>;
   }
 

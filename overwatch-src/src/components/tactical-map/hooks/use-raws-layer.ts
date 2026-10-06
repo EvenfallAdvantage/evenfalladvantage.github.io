@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import { escapeHtml, safeHttpUrl } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
@@ -136,7 +137,7 @@ export function useRawsLayer(params: {
     if (!layers.raws || isReplaying) return;
 
     let cancelled = false;
-    let refreshInterval: ReturnType<typeof setInterval> | null = null;
+    let stopPolling: (() => void) | null = null;
 
     function renderVisible() {
       if (!viewer || !Cesium || cancelled) return;
@@ -235,11 +236,11 @@ export function useRawsLayer(params: {
     const removeMoveEnd = viewer.camera.moveEnd.addEventListener(renderVisible);
 
     fetchAndRender();
-    refreshInterval = setInterval(fetchAndRender, REFRESH_MS);
+    stopPolling = setVisibleInterval(fetchAndRender, REFRESH_MS);
 
     return () => {
       cancelled = true;
-      if (refreshInterval) clearInterval(refreshInterval);
+      if (stopPolling) stopPolling();
       removeMoveEnd();
     };
   }, [layers.raws, loading, isReplaying, viewerRef, cesiumRef, entityGroupsRef]);

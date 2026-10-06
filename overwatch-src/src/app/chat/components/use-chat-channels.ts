@@ -49,6 +49,9 @@ export function useChatChannels() {
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const realtimeRef = useRef<ReturnType<typeof createClient> | null>(null);
+  // The joined realtime channel for the selected chat (used for typing and
+  // reaction broadcasts so we never create duplicate channel objects).
+  const chatChannelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
 
   const internal = channels.filter((c: Channel) => !parseExt(c.description));
   const external = channels.filter((c: Channel) => parseExt(c.description)).map((c: Channel) => ({ ...c, meta: parseExt(c.description)! }));
@@ -73,10 +76,16 @@ export function useChatChannels() {
         async () => {
           try { setMessages(await getChatMessages(selected.id)); setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); } catch (e) { logger.swallow("chat:realtime-message", e, "debug"); }
         })
-      .on("postgres_changes", { event: "*", schema: "public", table: "chat_reactions", filter: `message_id=in.(${messages.map(m => m.id).join(",")})` },
-        async () => {
-          try { setMessages(await getChatMessages(selected.id)); } catch (e) { logger.swallow("chat:realtime-reaction", e, "debug"); }
-        })
+      // Reactions: peers broadcast a lightweight "reaction" event on this
+      // channel after toggling one (see handleReaction). This replaces a
+      // postgres_changes filter of `message_id=in.(<every message id>)`,
+      // which was captured once at subscribe time (so it went stale), would
+      // otherwise need a resubscribe on every new message, and runs into the
+      // 100-value `in` filter limit. chat_reactions has no channel_id to
+      // filter on.
+      .on("broadcast", { event: "reaction" }, async () => {
+        try { setMessages(await getChatMessages(selected.id)); } catch (e) { logger.swallow("chat:realtime-reaction", e, "debug"); }
+      })
       .on("broadcast", { event: "typing" }, (payload: { payload?: { name?: string } }) => {
         const name = payload?.payload?.name;
         if (name && name !== `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim()) {
@@ -85,7 +94,11 @@ export function useChatChannels() {
         }
       })
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    chatChannelRef.current = channel;
+    return () => {
+      if (chatChannelRef.current === channel) chatChannelRef.current = null;
+      supabase.removeChannel(channel);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
@@ -101,7 +114,8 @@ export function useChatChannels() {
   function broadcastTyping() {
     if (!selected || !realtimeRef.current) return;
     const name = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
-    realtimeRef.current.channel(`chat:${selected.id}`).send({ type: "broadcast", event: "typing", payload: { name } }).catch(() => {});
+    (chatChannelRef.current ?? realtimeRef.current.channel(`chat:${selected.id}`))
+      .send({ type: "broadcast", event: "typing", payload: { name } }).catch(() => {});
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {}, 3000);
   }
@@ -141,6 +155,8 @@ export function useChatChannels() {
     try {
       await toggleReaction(messageId, emoji);
       setEmojiPicker(null);
+      // Tell other viewers of this channel to refresh reactions.
+      chatChannelRef.current?.send({ type: "broadcast", event: "reaction", payload: { messageId } }).catch(() => {});
       setMessages(await getChatMessages(selected!.id));
     } catch (err) { console.error(err); }
   }

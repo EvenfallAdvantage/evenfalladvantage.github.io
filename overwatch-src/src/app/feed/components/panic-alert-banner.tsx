@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { ShieldAlert, Check, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -25,8 +26,9 @@ export function PanicAlertBanner({ activeCompanyId }: PanicAlertBannerProps) {
     };
     load();
     // Poll every 15 seconds for active alerts
-    const interval = setInterval(load, 15_000);
-    return () => { cancelled = true; clearInterval(interval); };
+    // Paused while the tab is hidden; refreshes immediately on return.
+    const stopPolling = setVisibleInterval(load, 15_000);
+    return () => { cancelled = true; stopPolling(); };
   }, [activeCompanyId]);
 
   if (alerts.length === 0) return null;

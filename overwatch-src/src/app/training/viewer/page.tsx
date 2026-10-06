@@ -15,7 +15,7 @@ import {
 import { getLegacyModules, getLegacySlides, updateLegacyProgress, type LegacySlide } from "@/lib/legacy-bridge";
 import { ensureStudentLinked } from "@/lib/account-linker";
 import { useAuthStore } from "@/stores/auth-store";
-import { sanitizeHtml } from "@/lib/security";
+import { sanitizeHtml } from "@/lib/security/sanitize-html";
 import type { TrainingModule, ModuleSlide } from "@/types";
 
 export default function ModuleViewerPage() {

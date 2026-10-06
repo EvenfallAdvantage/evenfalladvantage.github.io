@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import createGlobe from "cobe";
 
 const MQ = "(max-width: 768px)";
@@ -425,8 +426,8 @@ export function TacticalGlobe() {
       if (!cancelled && iss) issRef.current = iss;
     }
     load();
-    const interval = setInterval(load, 5000);
-    return () => { cancelled = true; clearInterval(interval); };
+    const stopPolling = setVisibleInterval(load, 5000);
+    return () => { cancelled = true; stopPolling(); };
   }, [isMobile]);
 
   // Cobe globe
