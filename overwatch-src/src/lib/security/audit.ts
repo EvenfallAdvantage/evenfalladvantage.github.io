@@ -19,26 +19,23 @@ export interface AuditEntry {
 }
 
 /**
- * Log a security event to the audit_logs table.
+ * Log a security event via the log_audit_event RPC (audit_logs is no longer
+ * writable from the client). The server derives the user from the session,
+ * generates the id, records the IP from the request headers and, when no
+ * company_id is given (e.g. login), writes one row per company the user
+ * belongs to. Events without a session (failed logins, lockouts) are not
+ * recorded server-side yet; entry.user_id / entry.ip_address are ignored.
  * Fails silently to avoid breaking the app on logging errors.
  */
 export async function logSecurityEvent(entry: AuditEntry): Promise<void> {
   try {
-    // company_id is NOT NULL with FK to companies — skip if no real company
-    if (!entry.company_id) return;
-
     const supabase = createClient();
-    await supabase.from("audit_logs").insert({
-      action: entry.event_type,
-      entity_type: "auth",
-      event_type: entry.event_type,
-      user_id: entry.user_id || null,
-      company_id: entry.company_id,
-      ip_address: entry.ip_address || null,
-      user_agent: entry.user_agent || (typeof navigator !== "undefined" ? navigator.userAgent : null),
-      metadata: entry.metadata || {},
-      outcome: entry.outcome,
-      created_at: new Date().toISOString(),
+    await supabase.rpc("log_audit_event", {
+      p_event_type: entry.event_type,
+      p_outcome: entry.outcome,
+      p_company_id: entry.company_id ?? null,
+      p_metadata: entry.metadata || {},
+      p_user_agent: entry.user_agent || (typeof navigator !== "undefined" ? navigator.userAgent : null),
     });
   } catch {
     // Audit logging should never crash the app

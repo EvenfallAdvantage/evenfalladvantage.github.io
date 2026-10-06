@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
 import {
-  getCompanyMembers, getCompanyDetails,
+  getCompanyMembers, getCompanyDetails, getCompanyJoinCode,
   getCompanyTimesheets, getAllTimeOffRequests,
   getAllFormSubmissions, getCompanyTimeChangeRequests,
   getApplicants, getIncidents,
@@ -109,18 +109,20 @@ function AdminStaffPageInner() {
   }, [setHeader, clearHeader, tab]);
 
   const myRole = user?.companies.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.role ?? "staff";
-  const canManageRoles = myRole === "owner" || myRole === "admin";
+  // Managers can change roles too, within the one-level-below rule enforced by update_member_role.
+  const canManageRoles = myRole === "owner" || myRole === "admin" || myRole === "manager";
   const canManage = myRole === "owner" || myRole === "admin" || myRole === "manager";
 
   const load = useCallback(async () => {
     if (!activeCompanyId) { setLoading(false); return; }
     try {
-      const [m, company] = await Promise.all([
+      const [m, company, code] = await Promise.all([
         getCompanyMembers(activeCompanyId),
         getCompanyDetails(activeCompanyId),
+        canManage ? getCompanyJoinCode(activeCompanyId) : Promise.resolve(""),
       ]);
       setMembers(m);
-      setJoinCode(company?.join_code ?? "");
+      setJoinCode(code);
       setCompanyName(company?.name ?? "");
 
       // Load badge counts (non-blocking)
@@ -136,7 +138,7 @@ function AdminStaffPageInner() {
         setCounts({ pendingTimesheets, pendingLeave, pendingForms, openIncidents, pendingCorrections, newApplicants, activePostings });
       });
     } catch (e) { logger.swallow("staff-dashboard:load-counts", e, "warn"); } finally { setLoading(false); }
-  }, [activeCompanyId]);
+  }, [activeCompanyId, canManage]);
 
   useEffect(() => { load(); }, [load]);
 

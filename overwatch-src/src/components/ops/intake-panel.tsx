@@ -12,6 +12,7 @@ import {
   getLatestDocument, updateDocument,
 } from "@/lib/supabase/db-documents";
 import { createClient } from "@/lib/supabase/client";
+import { resolveStorageUrl } from "@/lib/supabase/db-helpers";
 import type { IntakeData, OperationDocument } from "@/types/operations";
 import { useAuthStore } from "@/stores/auth-store";
 import { ClientIntakeShareModal } from "./client-intake-share-modal";
@@ -188,7 +189,8 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
           setOriginalData(merged);
         }
         if (eventRow?.data?.site_map_url) {
-          setSiteMapUrl(eventRow.data.site_map_url);
+          // operation-maps is private: display through a signed URL.
+          setSiteMapUrl(await resolveStorageUrl(eventRow.data.site_map_url, 24 * 3600));
         }
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
@@ -228,7 +230,7 @@ export function IntakePanel({ eventId, companyId, eventName, eventLocation, comp
       const url = urlData.publicUrl;
       // Update event record
       await supabase.from("events").update({ site_map_url: url }).eq("id", eventId);
-      setSiteMapUrl(url);
+      setSiteMapUrl(await resolveStorageUrl(url, 24 * 3600));
     } catch (err) { console.error("Site map upload failed:", err); }
     finally { setUploadingSiteMap(false); }
   }

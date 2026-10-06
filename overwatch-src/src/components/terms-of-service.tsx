@@ -2,6 +2,13 @@
 
 import { X, Shield } from "lucide-react";
 
+/**
+ * Version of the Terms shown in TOSModal. Recorded as `tos_version` in auth
+ * user_metadata (with `tos_accepted_at`) when a user accepts at signup.
+ * Bump this whenever the Terms text below changes.
+ */
+export const TOS_VERSION = "2026-03-18";
+
 interface TOSModalProps {
   open: boolean;
   onClose: () => void;

@@ -88,6 +88,8 @@ function VerifyForm() {
 
       const { error: otpError } = await supabase.auth.signInWithOtp({
         phone: formattedPhone,
+        // Resending a sign-in code must never create a new account.
+        options: { shouldCreateUser: false },
       });
 
       if (otpError) throw otpError;

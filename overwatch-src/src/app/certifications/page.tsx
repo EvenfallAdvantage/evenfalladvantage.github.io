@@ -13,6 +13,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { getUserCertifications, addCertification, deleteCertification, verifyCertificate } from "@/lib/supabase/db";
 import { formatMemberName } from "@/lib/format-names";
 import { createClient } from "@/lib/supabase/client";
+import { resolveStorageUrl } from "@/lib/supabase/db-helpers";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import dynamic from "next/dynamic";
 import Image from "next/image";
@@ -127,7 +128,14 @@ export default function CertificationsPage() {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [viewDoc, setViewDoc] = useState<{ url: string; name: string } | null>(null);
+  const [viewDoc, setViewDoc] = useState<{ url: string; name: string; isImage: boolean } | null>(null);
+
+  // certifications is a private bucket: open documents through a short-lived signed URL.
+  async function openCertDoc(ref: string, name: string) {
+    const url = await resolveStorageUrl(ref);
+    if (!url) { console.error("Could not open certification document"); return; }
+    setViewDoc({ url, name, isImage: /\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i.test(ref) });
+  }
 
   // Form
   const [certType, setCertType] = useState("");
@@ -401,7 +409,7 @@ export default function CertificationsPage() {
                       <div className="flex items-center gap-1 shrink-0">
                         {cert.document_url && (
                           <button
-                            onClick={() => setViewDoc({ url: cert.document_url!, name: cert.cert_type })}
+                            onClick={() => openCertDoc(cert.document_url!, cert.cert_type)}
                             className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors"
                             title="View document">
                             <Eye className="h-3.5 w-3.5" />
@@ -448,7 +456,7 @@ export default function CertificationsPage() {
               </div>
             </div>
             <div className="flex-1 overflow-auto p-1 min-h-[60vh]">
-              {/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(viewDoc.url) ? (
+              {viewDoc.isImage ? (
                 <Image src={viewDoc.url} alt={viewDoc.name} className="w-full h-auto rounded-md" width={800} height={600} unoptimized />
               ) : (
                 <iframe src={viewDoc.url} className="w-full h-full min-h-[60vh] rounded-md" title={viewDoc.name} />

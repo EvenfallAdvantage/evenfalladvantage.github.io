@@ -14,7 +14,7 @@ import {
   Map, Satellite, Hexagon, Wifi,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { TOSModal } from "@/components/terms-of-service";
+import { TOSModal, TOS_VERSION } from "@/components/terms-of-service";
 import { PrivacyPolicyModal } from "@/components/privacy-policy-modal";
 import { JoinCompanyModal } from "@/components/join-company-modal";
 
@@ -61,9 +61,20 @@ const STATS = [
   { value: "24/7", label: "Operational Uptime" },
 ];
 
+/** Friendly message for phone OTP failures (incl. "no account" when shouldCreateUser=false). */
+function otpErrorMessage(err: unknown): string {
+  const msg = err instanceof Error ? err.message : "";
+  if (/signups? not allowed|user not found|otp_disabled|phone.*(disabled|not enabled)/i.test(msg)) {
+    return "No account is set up for phone sign-in with that number. Use the Email tab, or ask your admin for an invite.";
+  }
+  return msg || "Failed to send code";
+}
+
 function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { open: boolean; onClose: () => void; onSwitchToRegister: () => void; onSwitchToJoin: () => void }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"phone" | "email">("phone");
+  // Email is the default: no current users have a phone identity, so phone
+  // OTP is kept as a secondary option only.
+  const [tab, setTab] = useState<"phone" | "email">("email");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -86,13 +97,16 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
       const supabase = createClient();
       const { error: otpError } = await supabase.auth.signInWithOtp({
         phone: phone.startsWith("+") ? phone : `+1${phone.replace(/\D/g, "")}`,
+        // Sign-in must never create a new account. New users register via
+        // "Create one" (email + password) or a company join code.
+        options: { shouldCreateUser: false },
       });
       if (otpError) throw otpError;
       router.push(`/verify?phone=${encodeURIComponent(phone)}`);
     } catch (err) {
       recordFailedAttempt(phone);
       logSecurityEvent({ event_type: "auth.login.failed", outcome: "failure", metadata: { method: "phone" } });
-      setError(err instanceof Error ? err.message : "Failed to send code");
+      setError(otpErrorMessage(err));
     } finally { setLoading(false); }
   }
 
@@ -131,11 +145,11 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 rounded-lg bg-white/5 p-1">
-          <button onClick={() => { setTab("phone"); setError(""); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${tab === "phone" ? "bg-[#dd8c33] text-white shadow" : "text-white/50 hover:text-white"}`}>
-            <Phone className="h-3.5 w-3.5" /> Phone
-          </button>
           <button onClick={() => { setTab("email"); setError(""); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${tab === "email" ? "bg-[#dd8c33] text-white shadow" : "text-white/50 hover:text-white"}`}>
             <Mail className="h-3.5 w-3.5" /> Email
+          </button>
+          <button onClick={() => { setTab("phone"); setError(""); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${tab === "phone" ? "bg-[#dd8c33] text-white shadow" : "text-white/50 hover:text-white"}`}>
+            <Phone className="h-3.5 w-3.5" /> Phone
           </button>
         </div>
 
@@ -148,7 +162,7 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
                 <input type="tel" inputMode="tel" placeholder="(555) 123-4567" value={phone} onChange={e => setPhone(formatPhone(e.target.value))} required
                   className="flex-1 h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/30" />
               </div>
-              <p className="text-[10px] text-white/30 mt-1">We&apos;ll text you a verification code</p>
+              <p className="text-[10px] text-white/30 mt-1">For accounts with a verified phone number. We&apos;ll text you a code.</p>
             </div>
             {error && <p className="text-xs text-red-400">{error}</p>}
             <button type="submit" disabled={loading || !phone}
@@ -218,7 +232,13 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    setError(""); setLoading(true);
+    setError("");
+    // Never record ToS acceptance unless the user actually ticked the box.
+    if (!tosAccepted) {
+      setError("Please read and accept the Terms of Service to continue.");
+      return;
+    }
+    setLoading(true);
     try {
       const supabase = createClient();
 
@@ -231,20 +251,18 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
         options: {
-          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: effectiveJoinCode ? "" : companyName, join_code: effectiveJoinCode || null, tos_accepted_at: new Date().toISOString() },
+          // join_code / company_name in user_metadata are the single source of
+          // truth for the pending join: /auth/callback and AuthProvider both
+          // complete it after email confirmation on any browser or device.
+          data: { first_name: firstName, last_name: lastName, phone: phone || null, company_name: effectiveJoinCode ? "" : companyName, join_code: effectiveJoinCode || null, tos_accepted_at: new Date().toISOString(), tos_version: TOS_VERSION },
           emailRedirectTo: `${window.location.origin}/overwatch/auth/callback/`,
         },
       });
       if (signUpError) throw signUpError;
 
       if (data.user && !data.session) {
-        // Email confirmation required — persist join code for after verification
-        if (effectiveJoinCode && data.user) {
-          localStorage.setItem("pending_join", JSON.stringify({
-            code: effectiveJoinCode, supabaseId: data.user.id,
-            email: data.user.email, phone: phone || null, firstName, lastName,
-          }));
-        }
+        // Email confirmation required. The join code / company name travel in
+        // user_metadata (set above), so nothing is kept in browser storage.
         setStep("done");
         return;
       }
@@ -345,7 +363,20 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
               </div>
               {!passwordsMatch && <p className="text-[10px] text-red-400 mt-1">Passwords do not match</p>}
             </div>
-            <button type="submit" disabled={!infoValid || loading}
+            {joinCode && (
+              <>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)} required
+                    className="mt-0.5 rounded border-white/20" />
+                  <span className="text-[11px] text-white/50 leading-tight">
+                    I have read and agree to the{" "}
+                    <button type="button" onClick={() => setShowTos(true)} className="text-[#dd8c33] hover:underline font-medium">Terms of Service</button>
+                  </span>
+                </label>
+                {error && <p className="text-xs text-red-400">{error}</p>}
+              </>
+            )}
+            <button type="submit" disabled={!infoValid || loading || (!!joinCode && !tosAccepted)}
               className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : joinCode ? "Create Account & Join" : <>Continue <ArrowRight className="h-4 w-4" /></>}
             </button>
@@ -359,7 +390,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
               <>
                 <div>
                   <label className="text-xs font-medium text-white/60 block mb-1">Company code</label>
-                  <input type="text" placeholder="e.g. S7WJ7V" value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value.toUpperCase())} required
+                  <input type="text" placeholder="e.g. K7WQ4M9TXR" value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value.toUpperCase())} required
                     className="w-full h-10 rounded-lg border border-[#dd8c33]/30 bg-[#dd8c33]/10 px-3 text-sm text-white font-mono text-center tracking-widest outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
                   <p className="text-[10px] text-white/30 mt-1">Enter the code provided by your manager or company admin.</p>
                 </div>
