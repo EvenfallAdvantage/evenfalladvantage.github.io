@@ -79,6 +79,15 @@ verify_jwt = false
 import_map = "./functions/intake-ingest/deno.json"
 entrypoint = "./functions/intake-ingest/index.ts"
 
+[functions.legacy-bridge-write]
+enabled = true
+verify_jwt = false
+# LEGACY EADB project (vaagvairvwmgyzsmymhs) only. Callers send an OverwatchDB
+# access token, which EADB's gateway can't verify; the function verifies it
+# against Overwatch's auth server and checks the caller's company role itself.
+import_map = "./functions/legacy-bridge-write/deno.json"
+entrypoint = "./functions/legacy-bridge-write/index.ts"
+
 # ─── Intel (Osiris-derived OSINT) ─────────────────────────────────
 # All public OSINT proxies. JWT verification disabled because:
 #   1. The browser preflight OPTIONS request has no Authorization header

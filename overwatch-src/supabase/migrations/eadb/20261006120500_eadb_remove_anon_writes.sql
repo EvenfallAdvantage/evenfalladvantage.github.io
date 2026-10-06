@@ -11,11 +11,20 @@
 -- modules, slides, classes, enrollments, attendance, assessments,
 -- certificates, instructors and students.
 --
--- !! BREAKING: the Overwatch legacy bridge (src/lib/legacy/*,
--- src/lib/account-linker.ts) writes to EADB with the anon key and no EADB
--- session. Those writes stop working when this is applied; see the PR body
--- for the exact list. Do not apply until the bridge is moved to an
--- authenticated EADB session or a server-side (service-role) endpoint.
+-- !! BREAKING until the Overwatch legacy bridge uses the server path:
+-- src/lib/legacy/* and src/lib/account-linker.ts used to write to EADB with
+-- the anon key. PR "fix/eadb-instructor-hq-server-link" moves every one of
+-- those writes to the `legacy-bridge-write` edge function (deployed on EADB,
+-- service role, verifies the Overwatch session + company role). Apply this
+-- migration ONLY after:
+--   1. legacy-bridge-write is deployed to EADB with its secrets, and
+--   2. the Overwatch frontend from that PR is live and Instructor HQ writes
+--      were checked to go through the function (Network tab: POST
+--      /functions/v1/legacy-bridge-write -> 200), and
+--   3. ideally NEXT_PUBLIC_LEGACY_BRIDGE_MODE=server is set so nothing falls
+--      back to anon writes.
+-- Updated 2026-10-06: also closes anon inserts on student_profiles (two
+-- policies) and revokes anon writes on it; adds student_profiles_self_insert.
 --
 -- Not changed here (follow-ups): anon SELECT USING (true) policies on these
 -- tables (students/instructors expose names and emails to the anon key).
@@ -72,12 +81,22 @@ CREATE POLICY students_self_insert ON public.students
   AS PERMISSIVE FOR INSERT TO authenticated
   WITH CHECK (id = auth.uid() AND lower(email) = lower(auth.jwt() ->> 'email'));
 
+-- student_profiles: the student portal inserts its own profile row right
+-- after signUp (and handle_new_student already creates it server-side).
+-- "Enable insert for anon and authenticated" also let any signed-in user
+-- create a profile for any student_id.
+DROP POLICY IF EXISTS student_profiles_anon_insert ON public.student_profiles;
+DROP POLICY IF EXISTS "Enable insert for anon and authenticated" ON public.student_profiles;
+CREATE POLICY student_profiles_self_insert ON public.student_profiles
+  AS PERMISSIVE FOR INSERT TO authenticated
+  WITH CHECK (student_id = auth.uid());
+
 -- Defence in depth: anon keeps SELECT (out of scope) but loses write grants.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON
   public.assessments, public.certificates, public.class_attendance,
   public.class_enrollments, public.courses, public.instructors,
   public.module_slides, public.scheduled_classes, public.students,
-  public.training_modules
+  public.training_modules, public.student_profiles
 FROM anon;
 
 -- OPTIONAL (not enabled): if EADB requires email confirmation, signUp()

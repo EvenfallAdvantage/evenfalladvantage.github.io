@@ -1,4 +1,5 @@
 import { getLegacyClient } from "./client";
+import { viaLegacyBridge } from "./bridge";
 import type { LegacyCourse, LegacyCourseModule, LegacyEnrollment } from "./types";
 
 /** Get courses from legacy. Pass includeInactive=true for instructor/admin views. */
@@ -91,6 +92,8 @@ export async function createLegacyCourse(courseData: {
   target_audience?: string;
   learning_objectives?: string[];
 }): Promise<{ success: boolean; id?: string }> {
+  const viaBridge = await viaLegacyBridge("course.create", { values: courseData });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { data, error } = await client
     .from("courses")
@@ -116,6 +119,8 @@ export async function updateLegacyCourse(courseId: string, updates: Partial<{
   is_featured: boolean;
   display_order: number;
 }>): Promise<{ success: boolean }> {
+  const viaBridge = await viaLegacyBridge("course.update", { keys: { id: courseId }, values: updates });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { error } = await client.from("courses").update(updates).eq("id", courseId);
   if (error) { console.error("Legacy: updateCourse error:", error); return { success: false }; }

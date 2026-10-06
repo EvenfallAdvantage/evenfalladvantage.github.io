@@ -13,6 +13,7 @@ import {
   createLegacyStudentProfile,
   getLegacyClient,
 } from "@/lib/legacy-bridge";
+import { viaLegacyBridge } from "@/lib/legacy/bridge";
 
 export type AccountLink = {
   id: string;
@@ -145,6 +146,17 @@ export async function ensureInstructorLinked(user: {
   if (existing) {
     updateSyncTimestamp(existing.id).catch(() => {});
     return existing.legacy_user_id;
+  }
+
+  // Server path: finds the instructor by the session email or creates one
+  // with the session uid (no anon write to EADB).
+  const viaBridge = await viaLegacyBridge("instructor.ensure", {
+    values: { first_name: user.firstName || "", last_name: user.lastName || "" },
+  });
+  if (viaBridge) {
+    if (!viaBridge.success || !viaBridge.id) return null;
+    await persistLink(viaBridge.id, "instructor", user.email);
+    return viaBridge.id;
   }
 
   const legacy = getLegacyClient();

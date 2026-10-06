@@ -1,4 +1,5 @@
 import { getLegacyClient } from "./client";
+import { viaLegacyBridge } from "./bridge";
 import type { LegacyScheduledClass, ClassEnrollmentRow, ClassAttendanceRow } from "./types";
 
 /** Get scheduled classes (upcoming) */
@@ -23,7 +24,21 @@ export async function getLegacyClasses(instructorId?: string): Promise<LegacySch
     console.error("Legacy: getClasses error:", error);
     return [];
   }
-  return data ?? [];
+  return withMaxStudents(data ?? []);
+}
+
+/** Map the Overwatch class shape to EADB scheduled_classes columns (max_students -> capacity). */
+export function toClassRow<T extends { max_students?: number }>(cls: T): Omit<T, "max_students"> & { capacity?: number } {
+  const { max_students, ...rest } = cls;
+  return max_students === undefined ? rest : { ...rest, capacity: max_students };
+}
+
+/** EADB rows carry `capacity`; the UI reads `max_students`. */
+function withMaxStudents(rows: LegacyScheduledClass[]): LegacyScheduledClass[] {
+  return rows.map((r) => {
+    const cap = (r as LegacyScheduledClass & { capacity?: number | null }).capacity;
+    return r.max_students == null && cap != null ? { ...r, max_students: cap } : r;
+  });
 }
 
 /** Create a scheduled class in legacy */
@@ -37,10 +52,14 @@ export async function createLegacyClass(classData: {
   location?: string;
   max_students?: number;
 }): Promise<{ success: boolean; id?: string }> {
+  // EADB column is `capacity`; `max_students` never existed there (inserts with it failed).
+  const row = toClassRow(classData);
+  const viaBridge = await viaLegacyBridge("class.create", { values: row });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { data, error } = await client
     .from("scheduled_classes")
-    .insert({ ...classData, status: "scheduled" })
+    .insert({ ...row, status: "scheduled" })
     .select("id")
     .single();
 
@@ -65,10 +84,13 @@ export async function updateLegacyClass(
     status: string;
   }>
 ): Promise<{ success: boolean }> {
+  const row = toClassRow(updates);
+  const viaBridge = await viaLegacyBridge("class.update", { keys: { id: classId }, values: row });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { error } = await client
     .from("scheduled_classes")
-    .update(updates)
+    .update(row)
     .eq("id", classId);
 
   if (error) {
@@ -83,6 +105,8 @@ export async function enrollStudentInClass(
   classId: string,
   studentId: string
 ): Promise<{ success: boolean }> {
+  const viaBridge = await viaLegacyBridge("class.enroll", { keys: { class_id: classId, student_id: studentId } });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { error } = await client
     .from("class_enrollments")
@@ -103,6 +127,8 @@ export async function removeStudentFromClass(
   classId: string,
   studentId: string
 ): Promise<{ success: boolean }> {
+  const viaBridge = await viaLegacyBridge("class.unenroll", { keys: { class_id: classId, student_id: studentId } });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { error } = await client
     .from("class_enrollments")
@@ -148,6 +174,13 @@ export async function markAttendance(
   status: "present" | "absent" | "late" | "excused",
   notes?: string
 ): Promise<{ success: boolean }> {
+  // EADB columns are attendance_status / created_at; `status` and `marked_at`
+  // never existed there (every upsert failed).
+  const viaBridge = await viaLegacyBridge("class.attendance", {
+    keys: { class_id: classId, student_id: studentId },
+    values: { attendance_status: status, notes: notes || null },
+  });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { error } = await client
     .from("class_attendance")
@@ -155,9 +188,8 @@ export async function markAttendance(
       {
         class_id: classId,
         student_id: studentId,
-        status,
+        attendance_status: status,
         notes: notes || null,
-        marked_at: new Date().toISOString(),
       },
       { onConflict: "class_id,student_id" }
     );
@@ -176,9 +208,9 @@ export async function getClassAttendance(classId: string): Promise<ClassAttendan
     .from("class_attendance")
     .select(`
       student_id,
-      status,
+      attendance_status,
       notes,
-      marked_at,
+      created_at,
       student:students(first_name, last_name, email)
     `)
     .eq("class_id", classId);
@@ -189,9 +221,9 @@ export async function getClassAttendance(classId: string): Promise<ClassAttendan
   }
   return (data ?? []).map((row: Record<string, unknown>) => ({
     student_id: row.student_id as string,
-    status: row.status as string,
+    status: row.attendance_status as string,
     notes: row.notes as string | null,
-    marked_at: row.marked_at as string,
+    marked_at: row.created_at as string,
     student: Array.isArray(row.student) ? (row.student[0] as ClassAttendanceRow["student"]) : (row.student as ClassAttendanceRow["student"]),
   }));
 }
@@ -213,5 +245,5 @@ export async function getAllLegacyClasses(instructorId: string): Promise<LegacyS
     console.error("Legacy: getAllClasses error:", error);
     return [];
   }
-  return data ?? [];
+  return withMaxStudents(data ?? []);
 }

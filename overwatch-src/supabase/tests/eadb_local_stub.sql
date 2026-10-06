@@ -20,8 +20,9 @@ CREATE TABLE public.scheduled_classes (id uuid PRIMARY KEY DEFAULT gen_random_uu
 CREATE TABLE public.class_enrollments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), class_id uuid);
 CREATE TABLE public.class_attendance (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), class_id uuid);
 CREATE TABLE public.certificates (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), issued_by uuid);
+CREATE TABLE public.student_profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), student_id uuid UNIQUE, bio text);
 DO $$ DECLARE t text; BEGIN
-  FOREACH t IN ARRAY ARRAY['administrators','instructors','students','courses','training_modules','module_slides','assessments','scheduled_classes','class_enrollments','class_attendance','certificates'] LOOP
+  FOREACH t IN ARRAY ARRAY['administrators','instructors','students','courses','training_modules','module_slides','assessments','scheduled_classes','class_enrollments','class_attendance','certificates','student_profiles'] LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('GRANT ALL ON public.%I TO anon, authenticated', t);
     EXECUTE format('CREATE POLICY %I ON public.%I FOR SELECT TO anon, authenticated USING (true)', t || '_read', t);
@@ -48,3 +49,8 @@ CREATE POLICY students_anon_insert ON public.students AS PERMISSIVE FOR INSERT T
 CREATE POLICY students_anon_update ON public.students AS PERMISSIVE FOR UPDATE TO anon USING (true);
 CREATE POLICY anon_insert_training_modules ON public.training_modules AS PERMISSIVE FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY anon_update_training_modules ON public.training_modules AS PERMISSIVE FOR UPDATE TO anon USING (true) WITH CHECK (true);
+-- student_profiles write policies (pg_policies, 2026-10-06)
+CREATE POLICY "Admins can insert profiles" ON public.student_profiles AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM administrators WHERE administrators.user_id = auth.uid()));
+CREATE POLICY "Enable insert for anon and authenticated" ON public.student_profiles AS PERMISSIVE FOR INSERT TO anon, authenticated WITH CHECK (true);
+CREATE POLICY student_profiles_anon_insert ON public.student_profiles AS PERMISSIVE FOR INSERT TO anon WITH CHECK (true);
+CREATE POLICY "Students can update own profile" ON public.student_profiles AS PERMISSIVE FOR UPDATE TO authenticated USING (student_id = auth.uid());

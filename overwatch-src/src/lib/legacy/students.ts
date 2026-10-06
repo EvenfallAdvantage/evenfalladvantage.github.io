@@ -1,4 +1,5 @@
 import { getLegacyClient } from "./client";
+import { viaLegacyBridge } from "./bridge";
 import type { LegacyStudent } from "./types";
 
 /** Get all students from legacy */
@@ -26,6 +27,10 @@ export async function createLegacyStudentProfile(
   firstName: string,
   lastName: string
 ): Promise<{ success: boolean; error?: string }> {
+  // Server path always uses the signed-in user's own uid + email (userId/email
+  // here are the same values; the function takes them from the session).
+  const viaBridge = await viaLegacyBridge("student.ensure", { values: { first_name: firstName, last_name: lastName } });
+  if (viaBridge) return viaBridge.success ? { success: true } : { success: false, error: viaBridge.error };
   const client = getLegacyClient();
 
   // Check if student already exists

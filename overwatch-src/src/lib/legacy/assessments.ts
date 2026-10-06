@@ -1,4 +1,5 @@
 import { getLegacyClient } from "./client";
+import { viaLegacyBridge } from "./bridge";
 import type { LegacyAssessment, LegacyAssessmentResult } from "./types";
 
 /** Get assessment results for a student */
@@ -47,6 +48,8 @@ export async function createLegacyAssessment(assessmentData: {
   total_questions: number;
   passing_score: number;
 }): Promise<{ success: boolean; id?: string }> {
+  const viaBridge = await viaLegacyBridge("assessment.create", { values: assessmentData });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { data, error } = await client
     .from("assessments")
@@ -64,6 +67,8 @@ export async function updateLegacyAssessment(assessmentId: string, updates: Part
   total_questions: number;
   passing_score: number;
 }>): Promise<{ success: boolean }> {
+  const viaBridge = await viaLegacyBridge("assessment.update", { keys: { id: assessmentId }, values: updates });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { error } = await client.from("assessments").update(updates).eq("id", assessmentId);
   if (error) { console.error("Legacy: updateAssessment error:", error); return { success: false }; }
