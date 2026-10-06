@@ -1,8 +1,14 @@
 -- =============================================================================
--- 20261006120000_rls_hardening.sql
+-- 20261006175319_rls_hardening.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY.
--- Status: DRAFT. Not applied. Review the PR before applying.
--- Rollback: supabase/migrations/rollback/20261006120000_rls_hardening.rollback.sql
+-- Status: APPLIED to OverwatchDB on 2026-10-06 (10:53 PT) as migration
+--         version 20261006175319 "rls_hardening" (PR #45). This file was
+--         drafted as 20261006120000_rls_hardening.sql and renamed so the repo
+--         matches supabase_migrations.schema_migrations. Apart from this header
+--         comment, the SQL is byte-for-byte what was applied (md5 of the
+--         applied statement = md5 of the original file,
+--         651792d1ebab16458979ded05ae4aa92).
+-- Rollback: supabase/migrations/rollback/20261006175319_rls_hardening.rollback.sql
 --
 -- Based on the LIVE definitions read on 2026-10-06 (pg_policies, pg_proc,
 -- storage.buckets). Sections:

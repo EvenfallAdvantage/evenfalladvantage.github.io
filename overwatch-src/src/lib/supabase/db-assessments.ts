@@ -20,6 +20,40 @@ export interface SiteAssessment {
 }
 
 /**
+ * Values allowed by the DB check constraint `site_assessments_risk_level_check`
+ * (lowercase). The scoring UI produces title case ("Low", "Moderate", "High",
+ * "Critical"), which the constraint rejected, so saving an assessment failed.
+ */
+export const DB_RISK_LEVELS = ["low", "moderate", "high", "critical"] as const;
+export type DbRiskLevel = (typeof DB_RISK_LEVELS)[number];
+
+const RISK_LEVEL_ALIASES: Record<string, DbRiskLevel> = {
+  minimal: "low",
+  medium: "moderate",
+  severe: "critical",
+};
+
+/** Map any UI / legacy spelling to the stored value, or null if unknown. */
+export function toDbRiskLevel(level: string | null | undefined): DbRiskLevel | null {
+  if (!level) return null;
+  const key = level.trim().toLowerCase();
+  if ((DB_RISK_LEVELS as readonly string[]).includes(key)) return key as DbRiskLevel;
+  return RISK_LEVEL_ALIASES[key] ?? null;
+}
+
+/** Stored value -> the title-case label the UI compares against. */
+export function fromDbRiskLevel(level: string | null | undefined): string | null {
+  const db = toDbRiskLevel(level);
+  if (!db) return level ?? null;
+  return db.charAt(0).toUpperCase() + db.slice(1);
+}
+
+function withDisplayRiskLevel<T extends { risk_level: string | null } | null>(row: T): T {
+  if (!row || row.risk_level == null) return row;
+  return { ...row, risk_level: fromDbRiskLevel(row.risk_level) };
+}
+
+/**
  * Save or update a site assessment.
  */
 export async function saveSiteAssessment(
@@ -49,7 +83,7 @@ export async function saveSiteAssessment(
     lng: assessment.lng ?? null,
     data: assessment.data,
     risk_score: assessment.risk_score ?? null,
-    risk_level: assessment.risk_level ?? null,
+    risk_level: toDbRiskLevel(assessment.risk_level),
     pdf_url: assessment.pdf_url ?? null,
     created_by: userId,
     updated_at: new Date().toISOString(),
@@ -64,7 +98,7 @@ export async function saveSiteAssessment(
       .select()
       .single();
     if (error) throw error;
-    return data as SiteAssessment;
+    return withDisplayRiskLevel(data as SiteAssessment);
   } else {
     // Insert new
     const { data, error } = await supabase
@@ -73,7 +107,7 @@ export async function saveSiteAssessment(
       .select()
       .single();
     if (error) throw error;
-    return data as SiteAssessment;
+    return withDisplayRiskLevel(data as SiteAssessment);
   }
 }
 
@@ -88,7 +122,7 @@ export async function getCompanyAssessments(companyId: string): Promise<SiteAsse
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as SiteAssessment[];
+  return ((data ?? []) as SiteAssessment[]).map(withDisplayRiskLevel);
 }
 
 /**
@@ -102,7 +136,7 @@ export async function getAssessment(id: string): Promise<SiteAssessment | null> 
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
-  return data as SiteAssessment | null;
+  return withDisplayRiskLevel(data as SiteAssessment | null);
 }
 
 /**
@@ -117,7 +151,7 @@ export async function getUnlinkedAssessments(companyId: string): Promise<SiteAss
     .is("event_id", null)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as SiteAssessment[];
+  return ((data ?? []) as SiteAssessment[]).map(withDisplayRiskLevel);
 }
 
 /**
@@ -143,7 +177,7 @@ export async function getAssessmentsByEventId(eventId: string): Promise<SiteAsse
     .eq("event_id", eventId)
     .order("created_at", { ascending: false });
   if (error) { logDbReadError("event assessments", error); return []; }
-  return data ?? [];
+  return ((data ?? []) as SiteAssessment[]).map(withDisplayRiskLevel);
 }
 
 /**
