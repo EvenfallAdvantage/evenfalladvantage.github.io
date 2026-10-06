@@ -17,7 +17,7 @@ it at a Supabase project.
 createdb ow_rls_test
 psql -v ON_ERROR_STOP=1 -d ow_rls_test -f tests/local_stub_schema.sql
 psql -v ON_ERROR_STOP=1 -d ow_rls_test -f tests/rls_hardening_seed.sql
-psql -v ON_ERROR_STOP=1 -d ow_rls_test -f migrations/20261006120000_rls_hardening.sql
+psql -v ON_ERROR_STOP=1 -d ow_rls_test -f migrations/20261006175319_rls_hardening.sql
 psql -d ow_rls_test -f tests/rls_hardening_test_plan.sql   # prints PASS/FAIL per check
 ```
 
@@ -27,7 +27,7 @@ Results on 2026-10-06 (Postgres 17):
 * Same plan before the migration (live policies): 52 passed, **69 failed**.
   Every failure is an attack path that is open today or a new flow that does
   not exist yet.
-* `migrations/rollback/20261006120000_rls_hardening.rollback.sql` restores
+* `migrations/rollback/20261006175319_rls_hardening.rollback.sql` restores
   policies, function definitions, table grants, join codes and bucket flags
   identical to the pre-migration stub (diffed), and the migration re-applies
   cleanly after a rollback.
