@@ -24,8 +24,28 @@ export type IntakeTokenRow = {
   companies?: { name: string; logo_url: string | null; brand_color: string; website_url: string | null };
 };
 
+/**
+ * True when PostgREST says the RPC does not exist yet (migration
+ * 20261006200000_intake_tokens_rls not applied). Lets this code ship before
+ * the migration; remove the fallbacks once it is applied.
+ */
+function isMissingRpc(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "PGRST202" || error.code === "42883";
+}
+
+/**
+ * Public client-intake page: load one shared-link intake by its token.
+ * Uses the get_intake_by_token RPC (SECURITY DEFINER, one row, limited
+ * fields), so the anon key no longer needs read access to the table.
+ */
 export async function getIntakeByToken(token: string): Promise<IntakeTokenRow | null> {
   const supabase = createClient();
+  const rpc = await supabase.rpc("get_intake_by_token", { p_token: token });
+  if (!rpc.error) return (rpc.data as IntakeTokenRow | null) ?? null;
+  if (!isMissingRpc(rpc.error)) throw rpc.error;
+
+  // Legacy path (pre-migration).
   const { data, error } = await supabase
     .from("client_intake_tokens")
     .select("*, companies(name, logo_url, brand_color, website_url)")
@@ -41,6 +61,19 @@ export async function submitIntakeData(token: string, payload: {
   data: Record<string, unknown>;
 }) {
   const supabase = createClient();
+  const rpc = await supabase.rpc("submit_intake_by_token", {
+    p_token: token,
+    p_client_name: payload.clientName,
+    p_client_email: payload.clientEmail,
+    p_data: payload.data,
+  });
+  if (!rpc.error) {
+    if (!rpc.data) throw new Error("This intake link is no longer active.");
+    return rpc.data;
+  }
+  if (!isMissingRpc(rpc.error)) throw rpc.error;
+
+  // Legacy path (pre-migration).
   const { data, error } = await supabase
     .from("client_intake_tokens")
     .update({
@@ -65,7 +98,8 @@ export async function createIntakeToken(params: {
   expiresAt?: string;
 }): Promise<IntakeTokenRow> {
   const supabase = createClient();
-  const token = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  // 32 hex chars (128 bits). Older 16-char tokens keep working.
+  const token = crypto.randomUUID().replace(/-/g, "");
   const { data, error } = await supabase
     .from("client_intake_tokens")
     .insert({
