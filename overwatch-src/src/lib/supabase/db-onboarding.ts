@@ -280,21 +280,29 @@ export async function deleteOnboardingTask(taskId: string) {
 
 /**
  * Reorder company onboarding tasks.
- * Must include company_id: the old upsert of only `{ id, sort_order }` hit the
- * INSERT path of ON CONFLICT with company_id null, so RLS
- * `onboarding_tasks_insert` (WITH CHECK is_company_admin(company_id)) rejected
- * real admins (seen live 2026-10-06 13:58 PT).
+ *
+ * One UPDATE per task (scoped to the company), not an upsert. An upsert of
+ * `{ id, sort_order }` hit the INSERT side of ON CONFLICT first: RLS
+ * (`is_company_admin(company_id)` with company_id null) rejected it, and even
+ * with company_id the NOT NULL `title` column fails (23502) before the
+ * conflict is detected. UPDATE only checks the existing row's company.
  */
 export async function reorderOnboardingTasks(
   companyId: string,
   tasks: { id: string; sort_order: number }[],
 ) {
   const supabase = createClient();
-  const { error } = await supabase.from("onboarding_tasks").upsert(
-    tasks.map((t) => ({ id: t.id, company_id: companyId, sort_order: t.sort_order })),
-    { onConflict: "id" },
+  const results = await Promise.all(
+    tasks.map((t) =>
+      supabase
+        .from("onboarding_tasks")
+        .update({ sort_order: t.sort_order })
+        .eq("id", t.id)
+        .eq("company_id", companyId),
+    ),
   );
-  if (error) throw error;
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 }
 
 // ─── Onboarding Progress (per-user) ─────────────────────

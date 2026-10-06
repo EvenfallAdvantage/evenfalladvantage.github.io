@@ -338,12 +338,24 @@ export async function deleteModuleSlide(slideId: string) {
   if (error) throw error;
 }
 
+/**
+ * Reorder a module's slides. One UPDATE per slide: an `{ id, sort_order }`
+ * upsert hits the INSERT side of ON CONFLICT (module_id null -> RLS, title
+ * NOT NULL -> 23502). RLS on UPDATE checks the existing row's module/company.
+ */
 export async function reorderModuleSlides(slides: { id: string; sortOrder: number }[]) {
   const supabase = createClient();
   const now = new Date().toISOString();
-  const updates = slides.map((s) => ({ id: s.id, sort_order: s.sortOrder, updated_at: now }));
-  const { error } = await supabase.from("module_slides").upsert(updates, { onConflict: "id" });
-  if (error) throw error;
+  const results = await Promise.all(
+    slides.map((s) =>
+      supabase
+        .from("module_slides")
+        .update({ sort_order: s.sortOrder, updated_at: now })
+        .eq("id", s.id),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 }
 
 // ─── Student Module Progress ─────────────────────────

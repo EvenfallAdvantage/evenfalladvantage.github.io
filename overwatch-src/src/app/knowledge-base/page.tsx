@@ -149,12 +149,12 @@ export default function KnowledgeBasePage() {
 
   async function moveFolder(idx: number, direction: -1 | 1) {
     const newIdx = idx + direction;
-    if (newIdx < 0 || newIdx >= folders.length) return;
+    if (newIdx < 0 || newIdx >= folders.length || !activeCompanyId) return;
     const updated = [...folders];
     [updated[idx], updated[newIdx]] = [updated[newIdx], updated[idx]];
     setFolders(updated);
     try {
-      await updateKBFolderOrder(updated.map((f: Folder, i: number) => ({ id: f.id, sort_order: i })));
+      await updateKBFolderOrder(activeCompanyId, updated.map((f: Folder, i: number) => ({ id: f.id, sort_order: i })));
     } catch (err) { console.error("Reorder failed:", err); await loadFolders(); }
   }
 

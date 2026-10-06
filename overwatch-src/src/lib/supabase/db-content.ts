@@ -251,13 +251,27 @@ export async function updateKBDocumentRequired(docId: string, required: boolean)
   if (error) throw error;
 }
 
-export async function updateKBFolderOrder(folders: { id: string; sort_order: number }[]) {
+/**
+ * Reorder knowledge-base folders. One UPDATE per folder, scoped to the company
+ * (an `{ id, sort_order }` upsert fails RLS / NOT NULL on the INSERT side of
+ * ON CONFLICT; see reorderOnboardingTasks).
+ */
+export async function updateKBFolderOrder(
+  companyId: string,
+  folders: { id: string; sort_order: number }[],
+) {
   const supabase = createClient();
-  const { error } = await supabase.from("kb_folders").upsert(
-    folders.map((f) => ({ id: f.id, sort_order: f.sort_order })),
-    { onConflict: "id" }
+  const results = await Promise.all(
+    folders.map((f) =>
+      supabase
+        .from("kb_folders")
+        .update({ sort_order: f.sort_order })
+        .eq("id", f.id)
+        .eq("company_id", companyId),
+    ),
   );
-  if (error) throw error;
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 }
 
 export async function deleteKBFolder(folderId: string) {
