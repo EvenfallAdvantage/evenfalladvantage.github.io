@@ -166,6 +166,22 @@ Deno.serve(async (req) => {
         console.log(`[legacy-bridge-write] course.delete ${id} by ${caller.id}`);
         return json({ ok: true });
       }
+      case "assessment.delete": {
+        const id = v.keys.id as string;
+        const { count: results, error: cErr } = await db.from("assessment_results")
+          .select("assessment_id", { count: "exact", head: true }).eq("assessment_id", id);
+        if (cErr) return fail(cErr);
+        if ((results ?? 0) > 0) return json({ error: "assessment_in_use", results }, 409);
+        // Both question stores: the rows (student portal) explicitly, then the
+        // assessment itself, which carries questions_json (static editor).
+        const { error: qErr } = await db.from("assessment_questions").delete().eq("assessment_id", id);
+        if (qErr) return fail(qErr);
+        const { data, error } = await db.from("assessments").delete().eq("id", id).select("id");
+        if (error) return fail(error);
+        if (!data?.length) return json({ error: "not_found" }, 404);
+        console.log(`[legacy-bridge-write] assessment.delete ${id} by ${caller.id}`);
+        return json({ ok: true });
+      }
       case "assessment.get_questions": {
         const id = v.keys.id as string;
         const { data: a, error: aErr } = await db.from("assessments").select("id, questions_json").eq("id", id).maybeSingle();

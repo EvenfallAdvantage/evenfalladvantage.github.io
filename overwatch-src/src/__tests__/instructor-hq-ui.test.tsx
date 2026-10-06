@@ -6,6 +6,8 @@ const api = vi.hoisted(() => ({
   getLegacyClasses: vi.fn(), createLegacyClass: vi.fn(), updateLegacyClass: vi.fn(),
   getClassEnrollments: vi.fn(), markAttendance: vi.fn(), getClassAttendance: vi.fn(),
   getLegacyAssessmentQuestions: vi.fn(), saveLegacyAssessmentQuestions: vi.fn(),
+  getLegacyAssessments: vi.fn(), getLegacyModules: vi.fn(), createLegacyAssessment: vi.fn(),
+  updateLegacyAssessment: vi.fn(), deleteLegacyAssessment: vi.fn(),
 }));
 
 vi.mock("@/lib/legacy-bridge", async () => {
@@ -19,6 +21,7 @@ vi.mock("@/stores/auth-store", () => ({ useAuthStore: { getState: () => ({}) } }
 
 import { ClassesTab } from "@/app/admin/instructor/components/classes-tab";
 import { QuestionsEditor } from "@/app/admin/instructor/components/questions-editor";
+import { AssessmentsTab } from "@/app/admin/instructor/components/assessments-tab";
 
 const alertSpy = vi.fn();
 beforeEach(() => {
@@ -86,5 +89,43 @@ describe("QuestionsEditor", () => {
     expect((screen.getByLabelText("Answer B is correct") as HTMLInputElement).checked).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: /add question/i }));
     expect(screen.getByLabelText("Question 2")).toBeDefined();
+  });
+});
+
+describe("AssessmentsTab delete", () => {
+  const A = { id: "a-9", assessment_name: "Old quiz", module_id: "m-1", total_questions: 10, passing_score: 70 };
+  beforeEach(() => {
+    api.getLegacyAssessments.mockResolvedValue([A]);
+    api.getLegacyModules.mockResolvedValue([{ id: "m-1", module_name: "Radio Basics" }]);
+  });
+
+  async function clickDeleteAndConfirm() {
+    render(<AssessmentsTab triggerNew={0} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Delete assessment" }));
+    expect(await screen.findByText(/Students on the "Radio Basics" module will no longer get this quiz/)).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+  }
+
+  it("deletes after confirm and reloads the list", async () => {
+    api.deleteLegacyAssessment.mockResolvedValue({ success: true });
+    await clickDeleteAndConfirm();
+    await waitFor(() => expect(api.deleteLegacyAssessment).toHaveBeenCalledWith("a-9"));
+    await waitFor(() => expect(api.getLegacyAssessments).toHaveBeenCalledTimes(2));
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  it("shows why when students have already taken it", async () => {
+    api.deleteLegacyAssessment.mockResolvedValue({ success: false, error: "assessment_in_use" });
+    await clickDeleteAndConfirm();
+    await waitFor(() => expect(alertSpy).toHaveBeenCalledWith(expect.stringMatching(/^Couldn't delete the assessment: students have already taken it/)));
+    expect(api.getLegacyAssessments).toHaveBeenCalledTimes(1);
+  });
+
+  it("does nothing when the confirm is cancelled", async () => {
+    render(<AssessmentsTab triggerNew={0} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Delete assessment" }));
+    fireEvent.click(await screen.findByRole("button", { name: /cancel/i }));
+    await waitFor(() => expect(screen.queryByText("Delete assessment?")).toBeNull());
+    expect(api.deleteLegacyAssessment).not.toHaveBeenCalled();
   });
 });

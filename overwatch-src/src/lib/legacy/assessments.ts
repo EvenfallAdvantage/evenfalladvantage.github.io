@@ -140,6 +140,18 @@ export async function saveLegacyAssessmentQuestions(
   return viaBridge.success ? { success: true } : { success: false, error: viaBridge.error };
 }
 
+/**
+ * Delete an assessment and its questions (assessment_questions rows and
+ * questions_json). Server-only: EADB has no anon DELETE policy on assessments.
+ * The bridge refuses with `assessment_in_use` while students have results for
+ * it (they would cascade away).
+ */
+export async function deleteLegacyAssessment(assessmentId: string): Promise<{ success: boolean; error?: string }> {
+  const viaBridge = await viaLegacyBridge("assessment.delete", { keys: { id: assessmentId } });
+  if (!viaBridge) return { success: false, error: "bridge_required" };
+  return viaBridge.success ? { success: true } : { success: false, error: viaBridge.error };
+}
+
 /** Save an assessment result in legacy */
 export async function saveLegacyAssessmentResult(resultData: {
   student_id: string;
