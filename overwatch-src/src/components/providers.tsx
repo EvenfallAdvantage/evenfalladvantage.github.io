@@ -3,13 +3,12 @@
 import { ThemeProvider } from "next-themes";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { getQueryClient } from "@/lib/query-client";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth-provider";
 import { SecurityProvider } from "@/components/security-provider";
 import BrandThemeProvider from "@/components/brand-theme-provider";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
-import { CommandPalette } from "@/components/command-palette";
+import { LazyCommandPalette } from "@/components/command-palette-lazy";
 import { installGlobalErrorHandlers } from "@/lib/error-tracker";
 import { useAuthStore } from "@/stores/auth-store";
 import { logger } from "@/lib/logger";
@@ -46,12 +45,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <AuthProvider>
           <BrandThemeProvider />
           <SecurityProvider>
-            <TooltipProvider delay={0}>
-              {children}
-              <Toaster richColors position="top-right" />
-              <CommandPalette />
-              <PwaInstallPrompt />
-            </TooltipProvider>
+            {/* TooltipProvider lives in DashboardShell: tooltips are only used
+                inside the signed-in app, and Base UI's floating/tooltip code
+                is a sizeable part of every public page's first load. */}
+            {children}
+            <Toaster richColors position="top-right" />
+            <LazyCommandPalette />
+            <PwaInstallPrompt />
           </SecurityProvider>
         </AuthProvider>
       </QueryClientProvider>

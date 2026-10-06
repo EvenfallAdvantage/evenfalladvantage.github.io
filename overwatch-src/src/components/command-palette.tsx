@@ -65,8 +65,8 @@ const COMMANDS: CommandItem[] = [
   { label: "Mass Clock", href: "/scan", icon: "ScanLine", keywords: "qr scanner badge", roles: ["owner", "admin", "manager"] },
 ];
 
-export function CommandPalette() {
-  const [open, setOpen] = useState(false);
+export function CommandPalette({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
+  const [open, setOpen] = useState(defaultOpen);
   const router = useRouter();
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const role = activeCompany?.role;

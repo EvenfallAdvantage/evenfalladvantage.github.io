@@ -24,7 +24,7 @@ const TacticalGlobe = dynamic(() => import("@/components/tactical-globe").then((
   loading: () => <div style={{ height: "clamp(160px, 22vw, 280px)" }} />,
 });
 import { createClient } from "@/lib/supabase/client";
-import { registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db";
+import { registerUserInDB, joinCompanyByCode } from "@/lib/supabase/db-users";
 import { useAuthStore } from "@/stores/auth-store";
 import { checkPasswordStrength } from "@/lib/security";
 import { formatPhone } from "@/lib/format-phone";

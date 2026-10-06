@@ -1,8 +1,15 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import { AuthGuard } from "@/components/auth-guard";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
+
+// Loaded on demand so public routes (landing, login, apply, careers...) don't
+// download the sidebar/topbar/nav and their data modules on first load.
+const DashboardShell = dynamic(
+  () => import("@/components/layout/dashboard-shell").then((m) => m.DashboardShell),
+  { loading: () => <div className="min-h-screen bg-background" /> },
+);
 
 const PUBLIC_ROUTES = ["/login", "/register", "/verify", "/join", "/auth/callback", "/apply", "/health", "/careers", "/intake", "/report", "/auth/reset", "/auth/update-password"];
 

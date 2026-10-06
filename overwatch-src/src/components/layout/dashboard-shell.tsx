@@ -9,6 +9,7 @@ import { MobilePageAction } from "@/components/mobile-page-action";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SyncIndicator } from "@/components/sync-indicator";
 import { ServiceWorkerRegistration } from "@/components/sw-registration";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const STORAGE_KEY = "overwatch-sidebar-collapsed";
 
@@ -25,48 +26,50 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [collapsed]);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Skip navigation — WCAG 2.4.1 */}
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[999] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg">
-        Skip to main content
-      </a>
+    <TooltipProvider delay={0}>
+      <div className="min-h-screen bg-background">
+        {/* Skip navigation — WCAG 2.4.1 */}
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[999] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg">
+          Skip to main content
+        </a>
 
-      {/* Desktop sidebar */}
-      <div className="hidden md:block">
-        <AppSidebar
-          collapsed={collapsed}
-          onToggle={() => setCollapsed(!collapsed)}
-        />
-      </div>
-
-      {/* Topbar */}
-      <Topbar sidebarCollapsed={collapsed} />
-
-      {/* Main content */}
-      <main
-        id="main-content"
-        className={cn(
-          "min-h-screen pt-14 sm:pt-16 pb-20 transition-all duration-300 md:pb-0",
-          collapsed ? "md:pl-[68px]" : "md:pl-[260px]"
-        )}
-      >
-        <div className="mx-auto max-w-7xl px-3 py-4 sm:p-6">
-          {/* Mobile action button — right-aligned above page content */}
-          <div className="flex justify-end mb-2 sm:hidden">
-            <MobilePageAction />
-          </div>
-          <ErrorBoundary>{children}</ErrorBoundary>
+        {/* Desktop sidebar */}
+        <div className="hidden md:block">
+          <AppSidebar
+            collapsed={collapsed}
+            onToggle={() => setCollapsed(!collapsed)}
+          />
         </div>
-      </main>
 
-      {/* Mobile bottom nav */}
-      <MobileNav />
+        {/* Topbar */}
+        <Topbar sidebarCollapsed={collapsed} />
 
-      {/* Offline sync indicator (only visible when there's something to show) */}
-      <SyncIndicator />
+        {/* Main content */}
+        <main
+          id="main-content"
+          className={cn(
+            "min-h-screen pt-14 sm:pt-16 pb-20 transition-all duration-300 md:pb-0",
+            collapsed ? "md:pl-[68px]" : "md:pl-[260px]"
+          )}
+        >
+          <div className="mx-auto max-w-7xl px-3 py-4 sm:p-6">
+            {/* Mobile action button — right-aligned above page content */}
+            <div className="flex justify-end mb-2 sm:hidden">
+              <MobilePageAction />
+            </div>
+            <ErrorBoundary>{children}</ErrorBoundary>
+          </div>
+        </main>
 
-      {/* Service worker registration (mount-once, no UI). */}
-      <ServiceWorkerRegistration />
-    </div>
+        {/* Mobile bottom nav */}
+        <MobileNav />
+
+        {/* Offline sync indicator (only visible when there's something to show) */}
+        <SyncIndicator />
+
+        {/* Service worker registration (mount-once, no UI). */}
+        <ServiceWorkerRegistration />
+      </div>
+    </TooltipProvider>
   );
 }
