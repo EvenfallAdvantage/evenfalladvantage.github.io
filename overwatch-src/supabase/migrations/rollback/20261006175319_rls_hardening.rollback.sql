@@ -1,5 +1,5 @@
 -- =============================================================================
--- ROLLBACK for 20261006120000_rls_hardening.sql
+-- ROLLBACK for 20261006175319_rls_hardening.sql (applied 2026-10-06; drafted as 20261006120000)
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY.
 -- Restores the live state as read on 2026-10-06 (policies, functions and
 -- bucket flags copied from pg_policies / pg_get_functiondef / storage.buckets).
