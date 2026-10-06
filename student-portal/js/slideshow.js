@@ -3422,8 +3422,15 @@ async function startModule(moduleId, skipStateCheck = false) {
             }
 
             if (hasAccess === false) {
-                alert('You need to enroll in a course to access this module. Redirecting to course catalog...');
-                window.location.href = 'courses.html';
+                alert('You need to enroll in a course to access this module. Taking you to the course catalog...');
+                // courses.html never existed (404). The catalog is the
+                // "Learn" (#training) section of the student portal itself.
+                if (typeof navigateToSection === 'function' && document.getElementById('training')) {
+                    navigateToSection('training');
+                    window.scrollTo(0, 0);
+                } else {
+                    window.location.href = 'index.html#training';
+                }
                 return;
             }
         }
