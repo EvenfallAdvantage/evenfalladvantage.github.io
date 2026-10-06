@@ -21,6 +21,7 @@ import {
   type IntakeFieldMapping, type CanonicalIntakeField,
 } from "@/lib/supabase/db-intake-mappings";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { LeadNotifySettings } from "./lead-notify-settings";
 import { logger } from "@/lib/logger";
 
 interface ApiSourcesSectionProps {
@@ -578,8 +579,9 @@ await fetch("${ingestUrl || "<INGEST_URL>"}", {
                 </div>
 
                 <div className="rounded-md bg-muted/30 border border-border/20 p-3 text-[11px] text-muted-foreground space-y-1">
-                  <p><strong className="text-foreground">Limits:</strong> 100 requests / minute per key, 64 KiB max payload.</p>
-                  <p><strong className="text-foreground">Returns:</strong> <code className="font-mono">201</code> with <code className="font-mono">{`{ ok, submission_id, token, canonical_fields_captured, unmapped_field_count }`}</code> on success. <code className="font-mono">401</code> if the key is invalid or revoked. <code className="font-mono">429</code> if rate-limited.</p>
+                  <p><strong className="text-foreground">Limits:</strong> 100 requests / minute per key; browser submissions also 5 per 10 minutes and 20 per day per visitor IP. 32 KiB max payload, 60 fields, 5,000 characters per value. A contact field (client_email or client_phone) is required.</p>
+                  <p><strong className="text-foreground">Returns:</strong> <code className="font-mono">201</code> with <code className="font-mono">{`{ ok: true }`}</code> on success. <code className="font-mono">400</code> for invalid input, <code className="font-mono">401</code> if the key is invalid or revoked, <code className="font-mono">403</code> for a disallowed website origin, <code className="font-mono">429</code> if rate-limited.</p>
+                  <p><strong className="text-foreground">Browser forms:</strong> a key used from a web page is visible in its source. Use a key with only the <code className="font-mono">intake:write</code> scope (the default); it can only add leads to this company. Website origins other than evenfalladvantage.com must be added to the function&apos;s <code className="font-mono">INTAKE_ALLOWED_ORIGINS</code> secret.</p>
                   <p><strong className="text-foreground">Security:</strong> Keys are SHA-256 hashed at rest. Plaintext is shown only once at creation. Revoke any time without breaking other keys.</p>
                 </div>
               </div>
@@ -587,6 +589,7 @@ await fetch("${ingestUrl || "<INGEST_URL>"}", {
           </div>
         </CardContent>
       </Card>
+      {!migrationMissing && <LeadNotifySettings companyId={companyId} />}
       <ConfirmDialog />
     </>
   );
