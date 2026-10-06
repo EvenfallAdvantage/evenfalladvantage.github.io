@@ -13,7 +13,7 @@ const DashboardShell = dynamic(
   { loading: () => <div className="min-h-screen bg-background" /> },
 );
 
-const PUBLIC_ROUTES = ["/login", "/register", "/verify", "/join", "/auth/callback", "/apply", "/health", "/careers", "/intake", "/report", "/auth/reset", "/auth/update-password"];
+const PUBLIC_ROUTES = ["/login", "/register", "/verify", "/join", "/auth/callback", "/apply", "/health", "/careers", "/intake", "/client-intake", "/report", "/auth/reset", "/auth/update-password"];
 
 function isPublicRoute(pathname: string): boolean {
   if (pathname === "/") return true;
