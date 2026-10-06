@@ -12,7 +12,7 @@ export async function getLegacyClasses(instructorId?: string): Promise<LegacySch
       instructor:instructors(first_name, last_name, email),
       enrollments:class_enrollments(count)
     `)
-    .gte("scheduled_date", new Date().toISOString().split("T")[0])
+    .gte("scheduled_date", localDateString())
     .order("scheduled_date", { ascending: true });
 
   if (instructorId) {
@@ -26,6 +26,21 @@ export async function getLegacyClasses(instructorId?: string): Promise<LegacySch
   }
   return withMaxStudents(data ?? []);
 }
+
+/** Today's date (YYYY-MM-DD) in the user's time zone. toISOString() is UTC,
+ *  which hid today's classes every evening in the Americas. */
+export function localDateString(d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** Same values as the static instructor portal; scheduled_classes.class_type is NOT NULL. */
+export const LEGACY_CLASS_TYPES = [
+  { value: "training", label: "General Training" },
+  { value: "review", label: "Review Session" },
+  { value: "scenario", label: "Scenario Training" },
+  { value: "proctored_exam", label: "Proctored Exam" },
+] as const;
 
 /** Map the Overwatch class shape to EADB scheduled_classes columns (max_students -> capacity). */
 export function toClassRow<T extends { max_students?: number }>(cls: T): Omit<T, "max_students"> & { capacity?: number } {
@@ -45,15 +60,17 @@ function withMaxStudents(rows: LegacyScheduledClass[]): LegacyScheduledClass[] {
 export async function createLegacyClass(classData: {
   instructor_id: string;
   class_name: string;
+  class_type?: string;
   description?: string;
   scheduled_date: string;
   start_time: string;
   end_time?: string;
   location?: string;
   max_students?: number;
-}): Promise<{ success: boolean; id?: string }> {
+}): Promise<{ success: boolean; id?: string; error?: string }> {
   // EADB column is `capacity`; `max_students` never existed there (inserts with it failed).
-  const row = toClassRow(classData);
+  // class_type is NOT NULL with no default; every insert without it failed (23502).
+  const row = toClassRow({ ...classData, class_type: classData.class_type || "training" });
   const viaBridge = await viaLegacyBridge("class.create", { values: row });
   if (viaBridge) return viaBridge;
   const client = getLegacyClient();
@@ -81,9 +98,10 @@ export async function updateLegacyClass(
     end_time: string;
     location: string;
     max_students: number;
+    class_type: string;
     status: string;
   }>
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   const row = toClassRow(updates);
   const viaBridge = await viaLegacyBridge("class.update", { keys: { id: classId }, values: row });
   if (viaBridge) return viaBridge;
@@ -104,7 +122,7 @@ export async function updateLegacyClass(
 export async function enrollStudentInClass(
   classId: string,
   studentId: string
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   const viaBridge = await viaLegacyBridge("class.enroll", { keys: { class_id: classId, student_id: studentId } });
   if (viaBridge) return viaBridge;
   const client = getLegacyClient();
@@ -126,7 +144,7 @@ export async function enrollStudentInClass(
 export async function removeStudentFromClass(
   classId: string,
   studentId: string
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   const viaBridge = await viaLegacyBridge("class.unenroll", { keys: { class_id: classId, student_id: studentId } });
   if (viaBridge) return viaBridge;
   const client = getLegacyClient();
@@ -173,7 +191,7 @@ export async function markAttendance(
   studentId: string,
   status: "present" | "absent" | "late" | "excused",
   notes?: string
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   // EADB columns are attendance_status / created_at; `status` and `marked_at`
   // never existed there (every upsert failed).
   const viaBridge = await viaLegacyBridge("class.attendance", {

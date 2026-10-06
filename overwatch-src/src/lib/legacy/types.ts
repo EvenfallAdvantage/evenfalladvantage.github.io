@@ -76,6 +76,8 @@ export type LegacyAssessment = {
   module_id: string | null;
   total_questions: number;
   passing_score: number;
+  /** Static admin editor's copy of the quiz; the student portal reads assessment_questions. */
+  questions_json?: unknown[] | null;
 };
 
 export type LegacyAssessmentResult = {
@@ -128,6 +130,7 @@ export type LegacyScheduledClass = {
   id: string;
   instructor_id: string;
   class_name: string;
+  class_type?: string | null;
   description: string | null;
   scheduled_date: string;
   start_time: string;

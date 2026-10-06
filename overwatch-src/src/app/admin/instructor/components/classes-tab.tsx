@@ -11,9 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   getLegacyClasses, createLegacyClass, updateLegacyClass,
-  getClassEnrollments, markAttendance, getClassAttendance,
+  getClassEnrollments, markAttendance, getClassAttendance, LEGACY_CLASS_TYPES,
   type LegacyScheduledClass, type ClassEnrollmentRow, type ClassAttendanceRow,
 } from "@/lib/legacy-bridge";
+import { legacyWriteErrorMessage } from "@/lib/legacy/bridge";
 import { logger } from "@/lib/logger";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
@@ -37,6 +38,7 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
   const [enrollLoading, setEnrollLoading] = useState(false);
   // New class
   const [ncName, setNcName] = useState("");
+  const [ncType, setNcType] = useState<string>("training");
   const [ncDate, setNcDate] = useState("");
   const [ncStart, setNcStart] = useState("09:00");
   const [ncEnd, setNcEnd] = useState("17:00");
@@ -52,15 +54,17 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
-    if (!ncName.trim() || !ncDate || !instructorId) return;
+    if (!ncName.trim() || !ncDate || !ncStart || !ncEnd) { alert("Class name, date, start and end time are required."); return; }
+    if (!instructorId) { alert("Your instructor profile isn't linked yet. Reload the page and try again."); return; }
     setSaving(true);
     try {
-      await createLegacyClass({
-        instructor_id: instructorId, class_name: ncName.trim(),
+      const r = await createLegacyClass({
+        instructor_id: instructorId, class_name: ncName.trim(), class_type: ncType,
         scheduled_date: ncDate, start_time: ncStart, end_time: ncEnd,
         location: ncLocation.trim() || undefined, max_students: parseInt(ncMax) || 20,
       });
-      setShowNew(false); setNcName(""); setNcDate(""); setNcLocation("");
+      if (!r.success) { alert(legacyWriteErrorMessage("create the class", r.error)); return; }
+      setShowNew(false); setNcName(""); setNcType("training"); setNcDate(""); setNcLocation("");
       await load();
     } catch { alert("Failed to create class"); }
     finally { setSaving(false); }
@@ -78,13 +82,15 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
   }
 
   async function handleMarkAttendance(classId: string, studentId: string, status: "present" | "absent" | "late") {
-    await markAttendance(classId, studentId, status);
+    const r = await markAttendance(classId, studentId, status);
+    if (!r.success) alert(legacyWriteErrorMessage("save attendance", r.error));
     setAttendance(await getClassAttendance(classId));
   }
 
   async function handleCancelClass(classId: string) {
     if (!await confirm({ description: "Cancel this class?", variant: "destructive" })) return;
-    await updateLegacyClass(classId, { status: "cancelled" });
+    const r = await updateLegacyClass(classId, { status: "cancelled" });
+    if (!r.success) { alert(legacyWriteErrorMessage("cancel the class", r.error)); return; }
     await load();
   }
 
@@ -99,7 +105,12 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
       {showNew && (
         <Card className="border-primary/30"><CardContent className="space-y-3 pt-4">
           <h3 className="text-sm font-semibold">Schedule New Class</h3>
-          <Input placeholder="Class Name *" value={ncName} onChange={(e) => setNcName(e.target.value)} />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Input placeholder="Class Name *" value={ncName} onChange={(e) => setNcName(e.target.value)} />
+            <select aria-label="Class type" value={ncType} onChange={(e) => setNcType(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+              {LEGACY_CLASS_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
           <div className="grid gap-2 sm:grid-cols-3">
             <div><label className="text-[10px] text-muted-foreground">Date</label><Input type="date" value={ncDate} onChange={(e) => setNcDate(e.target.value)} className="h-8" /></div>
             <div><label className="text-[10px] text-muted-foreground">Start</label><Input type="time" value={ncStart} onChange={(e) => setNcStart(e.target.value)} className="h-8" /></div>
@@ -132,6 +143,7 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
                     <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-foreground">
                       <span><Calendar className="h-2.5 w-2.5 inline mr-0.5" />{cls.scheduled_date}</span>
                       <span>{cls.start_time}{cls.end_time ? ` - ${cls.end_time}` : ""}</span>
+                      {cls.class_type && <span>{LEGACY_CLASS_TYPES.find((t) => t.value === cls.class_type)?.label ?? cls.class_type}</span>}
                       {cls.location && <span>{cls.location}</span>}
                       <span><Users className="h-2.5 w-2.5 inline mr-0.5" />{enrolled}/{cls.max_students ?? "\u221E"}</span>
                     </div>
