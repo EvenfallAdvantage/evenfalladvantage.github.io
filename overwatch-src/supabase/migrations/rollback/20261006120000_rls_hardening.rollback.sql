@@ -339,8 +339,11 @@ BEGIN
 END;
 $function$;
 
-GRANT EXECUTE ON FUNCTION public.join_company_by_code(text, text, text, text, text, text) TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.create_company_with_owner(text, text, text, text, text, text) TO anon, authenticated, service_role;
+-- Live ACL (2026-10-06): postgres, authenticated, service_role only.
+REVOKE ALL ON FUNCTION public.join_company_by_code(text, text, text, text, text, text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.create_company_with_owner(text, text, text, text, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.join_company_by_code(text, text, text, text, text, text) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.create_company_with_owner(text, text, text, text, text, text) TO authenticated, service_role;
 
 -- ------------------------------------------------------- 2. timesheets
 DROP TRIGGER IF EXISTS trg_guard_timesheets ON public.timesheets;
