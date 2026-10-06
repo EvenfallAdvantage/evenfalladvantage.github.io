@@ -197,6 +197,10 @@ function generateJoinCode(): string {
   return code;
 }
 
+/**
+ * @deprecated Direct company inserts are blocked by RLS (companies_insert was
+ * dropped). Use createCompanyWithOwner (create_company_with_owner RPC).
+ */
 export async function createCompany(data: {
   name: string;
   brandColor?: string;
@@ -239,6 +243,10 @@ export async function createCompany(data: {
   return company;
 }
 
+/**
+ * @deprecated companies.join_code is a retired placeholder; codes are only
+ * checked server-side by join_company_by_code. Always returns null now.
+ */
 export async function findCompanyByJoinCode(code: string) {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -253,6 +261,10 @@ export async function findCompanyByJoinCode(code: string) {
 
 // ─── Memberships ────────────────────────────────────────
 
+/**
+ * @deprecated Direct membership inserts are blocked by a DB trigger. Use
+ * joinCompanyByCode / createCompanyWithOwner / createRosterMember.
+ */
 export async function createMembership(data: {
   userId: string;
   companyId: string;
@@ -297,7 +309,7 @@ export interface CreateRosterMemberInput {
   lastName: string;
   email: string;
   phone?: string;
-  role?: "owner" | "admin" | "manager" | "lead" | "breaker" | "staff" | "client";
+  role?: "owner" | "admin" | "instructor" | "manager" | "lead" | "breaker" | "staff" | "client";
 }
 
 export interface CreateRosterMemberResult {
@@ -605,6 +617,26 @@ export async function updateCompanySettings(companyId: string, settings: Record<
   return data;
 }
 
+/**
+ * Current join code for a company. Codes live in an admin-only table;
+ * readable by owner/admin/manager via get_company_join_code.
+ * companies.join_code is a retired placeholder.
+ */
+export async function getCompanyJoinCode(companyId: string): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("get_company_join_code", { p_company_id: companyId });
+  if (error) { logDbReadError("company join code", error); return ""; }
+  return (data as string | null) ?? "";
+}
+
+/** Generate a new join code (owner/admin only). The old code stops working. */
+export async function rotateCompanyJoinCode(companyId: string): Promise<string> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("rotate_company_join_code", { p_company_id: companyId });
+  if (error) throw error;
+  return (data as string | null) ?? "";
+}
+
 // ─── Join company flow ──────────────────────────────────
 
 export async function joinCompanyByCode(params: {
@@ -644,12 +676,16 @@ export async function joinCompanyByCode(params: {
       });
       if (err2) throw new Error(err2.message || "Failed to join company");
       if (!data2) throw new Error("Failed to join company");
+      if (data2.error) throw new Error(data2.error);
       return { user: data2.user, company: data2.company, membership: data2.membership };
     }
     throw new Error(error.message || "Failed to join company");
   }
 
   if (!data) throw new Error("Failed to join company");
+  // join_company_by_code returns { error } for an invalid code instead of
+  // raising, so the failed attempt is kept for rate limiting.
+  if (data.error) throw new Error(data.error);
 
   return {
     user: data.user,

@@ -6,7 +6,6 @@
  */
 
 import { createClient } from "./client";
-import { ts } from "./db-helpers";
 import { logDbReadError } from "./db-error";
 
 export interface ClientMember {
@@ -112,47 +111,15 @@ export async function addClientMember(
   email: string
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient();
-
-  // Look up the user by email
-  const { data: user } = await supabase
-    .from("users")
-    .select("id")
-    .eq("email", email.toLowerCase().trim())
-    .maybeSingle();
-
-  if (!user) {
-    return { success: false, error: "No user found with that email. They need to create an account first." };
-  }
-
-  // Check if already a member
-  const { data: existing } = await supabase
-    .from("company_memberships")
-    .select("id, role")
-    .eq("company_id", companyId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (existing) {
-    return { success: false, error: `This user is already a ${existing.role} in your organization.` };
-  }
-
-  // Create the client membership
-  const { error } = await supabase
-    .from("company_memberships")
-    .insert({
-      id: crypto.randomUUID(),
-      company_id: companyId,
-      user_id: user.id,
-      role: "client",
-      status: "active",
-      ...ts(),
-    });
-
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
-  return { success: true };
+  // Server-side (add_client_member, SECURITY DEFINER): owner/admin/manager
+  // only. Direct membership inserts are blocked by the DB.
+  const { data, error } = await supabase.rpc("add_client_member", {
+    p_company_id: companyId,
+    p_email: email.toLowerCase().trim(),
+  });
+  if (error) return { success: false, error: error.message };
+  const res = (data ?? {}) as { success?: boolean; error?: string };
+  return res.success ? { success: true } : { success: false, error: res.error ?? "Failed to add client" };
 }
 
 /**

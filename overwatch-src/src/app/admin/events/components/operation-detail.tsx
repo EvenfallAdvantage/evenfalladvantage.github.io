@@ -26,6 +26,7 @@ import { AssessmentBadge } from "./assessment-linking";
 import { DocumentPanels, type DocPanelType } from "./document-panels";
 import { ShiftManagement } from "./shift-management";
 import { logger } from "@/lib/logger";
+import { useSignedStorageUrl } from "@/hooks/use-signed-storage-url";
 
 interface OperationDetailProps {
   event: Event;
@@ -76,6 +77,8 @@ export function OperationDetail({
   const [_storyboardId, setStoryboardId] = useState<string | null>(null);
   const storyboardIdRef = useRef<string | null>(null);
   const [storyboardLoading, setStoryboardLoading] = useState(false);
+  // operation-maps is a private bucket: render the site map from a signed URL.
+  const siteMapSrc = useSignedStorageUrl(ev?.site_map_url ?? null, 24 * 3600);
 
   /* ── Load data on mount ── */
   const loadDetail = useCallback(async () => {
@@ -351,11 +354,11 @@ export function OperationDetail({
           <MapPin className="h-3 w-3" /> Site Map
         </p>
         {ev.site_map_url ? (
-          storyboardLoading ? (
+          storyboardLoading || !siteMapSrc ? (
             <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : (
             <StoryboardEditor
-              imageUrl={ev.site_map_url}
+              imageUrl={siteMapSrc}
               pins={storyboardPins}
               onPinsChange={handleStoryboardPinsChange}
             />

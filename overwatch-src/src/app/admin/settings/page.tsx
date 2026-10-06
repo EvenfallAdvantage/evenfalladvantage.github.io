@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Building2, Settings } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { useAuthStore } from "@/stores/auth-store";
-import { getCompanyDetails, getTimeOffPolicies, getIntegrationsConfig } from "@/lib/supabase/db";
+import { getCompanyDetails, getCompanyJoinCode, getTimeOffPolicies, getIntegrationsConfig } from "@/lib/supabase/db";
 
 import CompanyProfileSection from "./components/company-profile-section";
 import LeavePoliciesSection from "./components/leave-policies-section";
@@ -51,13 +51,15 @@ export default function AdminSettingsPage() {
   const load = useCallback(async () => {
     if (!activeCompanyId) return;
     try {
-      const [c, p] = await Promise.all([
+      const [c, p, code] = await Promise.all([
         getCompanyDetails(activeCompanyId),
         getTimeOffPolicies(activeCompanyId),
+        // companies.join_code is a retired placeholder; the real code is admin-only.
+        getCompanyJoinCode(activeCompanyId),
       ]);
       if (c) {
         setName(c.name ?? "");
-        setJoinCode(c.join_code ?? "");
+        setJoinCode(code);
         setTimezone(c.timezone ?? "");
         setBrandColor(c.brand_color || "#1d3451");
         setAccentColor(c.accent_color || "#d59b3c");

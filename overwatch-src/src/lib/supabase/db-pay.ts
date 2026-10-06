@@ -43,10 +43,12 @@ export async function updateMemberPayRate(
   payRate: number | null
 ): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase
-    .from("company_memberships")
-    .update({ pay_rate_override: payRate, updated_at: new Date().toISOString() })
-    .eq("id", membershipId);
+  // Server-side (set_member_pay_rate): owner/admin/manager, members ranked
+  // below the caller only. The old direct update was a silent no-op under RLS.
+  const { error } = await supabase.rpc("set_member_pay_rate", {
+    p_membership_id: membershipId,
+    p_pay_rate: payRate,
+  });
   if (error) throw error;
 }
 
