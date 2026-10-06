@@ -70,7 +70,7 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
       updated,
     );
     try {
-      await reorderOnboardingTasks(updated.map((t: OTask, i: number) => ({ id: t.id, sort_order: i })));
+      await reorderOnboardingTasks(activeCompanyId, updated.map((t: OTask, i: number) => ({ id: t.id, sort_order: i })));
     } catch (err) { console.error(err); await refetch(); }
   }
 
