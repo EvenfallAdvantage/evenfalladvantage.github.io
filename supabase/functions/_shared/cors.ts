@@ -15,6 +15,11 @@ const allowedOrigins = [
  * Headers list includes `authorization` because the Intel functions accept
  * the Supabase anon key as Bearer for platform rate-limit accounting.
  */
+/** True when `origin` is one of the allowed site origins above. */
+export function isAllowedOrigin(origin: string | null | undefined): boolean {
+  return !!origin && allowedOrigins.includes(origin);
+}
+
 export function getCorsHeaders(origin: string | null): Record<string, string> {
   const headers: Record<string, string> = {
     'Access-Control-Allow-Headers':

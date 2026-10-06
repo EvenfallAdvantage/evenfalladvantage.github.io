@@ -6,8 +6,11 @@ export async function getEventUserCertifications(eventId: string) {
     .from("shifts")
     .select("assigned_user_id")
     .eq("event_id", eventId)
-    .is("assigned_user_id", null)
-    .neq("assigned_user_id", null);
+    // Assigned shifts only. The old `.is(null).neq(null)` pair sent
+    // `assigned_user_id=neq.null`, which Postgres rejects with
+    // `invalid input syntax for type uuid: "null"` (and would have matched
+    // nothing anyway).
+    .not("assigned_user_id", "is", null);
   if (shiftErr) { return {}; }
   
   const userIds = Array.from(new Set(shifts.map((s: { assigned_user_id: string }) => s.assigned_user_id)));

@@ -1297,16 +1297,38 @@ describe("updateCompany()", () => {
 // ===========================================================================
 
 describe("updateCompanySettings()", () => {
-  it("updates settings object", async () => {
-    const settings = { theme: "dark", notifications: true };
-    const updated = { id: "comp-1", settings };
-    queryBuilder.maybeSingle.mockResolvedValueOnce({ data: updated, error: null });
+  it("merges the given keys into the stored settings object", async () => {
+    const stored = { hiddenTabs: ["/patrols"], overtime_config: { weeklyThreshold: 40 } };
+    const updated = { id: "comp-1", settings: { ...stored, theme: "dark" } };
+    queryBuilder.maybeSingle
+      .mockResolvedValueOnce({ data: { settings: stored }, error: null })
+      .mockResolvedValueOnce({ data: updated, error: null });
 
-    const result = await updateCompanySettings("comp-1", settings);
+    const result = await updateCompanySettings("comp-1", { theme: "dark" });
 
-    expect(queryBuilder.update).toHaveBeenCalledWith({ settings });
+    expect(queryBuilder.update).toHaveBeenCalledWith({ settings: { ...stored, theme: "dark" } });
     expect(queryBuilder.eq).toHaveBeenCalledWith("id", "comp-1");
     expect(result).toEqual(updated);
+  });
+
+  it("overwrites only the keys it is given (hiddenTabs save keeps overtime_config)", async () => {
+    queryBuilder.maybeSingle
+      .mockResolvedValueOnce({ data: { settings: { hiddenTabs: ["/a"], overtime_config: { x: 1 } } }, error: null })
+      .mockResolvedValueOnce({ data: {}, error: null });
+
+    await updateCompanySettings("comp-1", { hiddenTabs: ["/b"] });
+
+    expect(queryBuilder.update).toHaveBeenCalledWith({ settings: { hiddenTabs: ["/b"], overtime_config: { x: 1 } } });
+  });
+
+  it("treats missing settings as an empty object", async () => {
+    queryBuilder.maybeSingle
+      .mockResolvedValueOnce({ data: { settings: null }, error: null })
+      .mockResolvedValueOnce({ data: {}, error: null });
+
+    await updateCompanySettings("comp-1", { intakeNotifyEmails: ["a@x.co"] });
+
+    expect(queryBuilder.update).toHaveBeenCalledWith({ settings: { intakeNotifyEmails: ["a@x.co"] } });
   });
 
   it("throws on error", async () => {

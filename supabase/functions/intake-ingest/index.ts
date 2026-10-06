@@ -1,170 +1,158 @@
 /**
  * Intake Ingest (Edge Function)
  *
- * Receives client intake submissions from external sources (a company's own
- * marketing site, a third-party form builder, Zapier, etc.) and lands them
- * in `client_intake_tokens` with `source = 'api'`.
+ * Receives client intake / lead submissions from external sources (the
+ * Evenfall Advantage estimate forms, a company's own site, Zapier, ...) and
+ * lands them in `client_intake_tokens` with `source = 'api'`.
  *
- * Auth:  Bearer <api_key>  in the Authorization header.
- *        Key is hashed (SHA-256) and matched against api_keys.key_hash.
+ * Auth:  `Authorization: Bearer ova_live_...` (required). The key is hashed
+ *        (SHA-256) and matched against api_keys.key_hash. It must carry the
+ *        `intake:write` scope. Keys used from a browser (Origin header
+ *        present) must carry ONLY `intake:write`: such a key is public in page
+ *        source, and all it can do is create one lead row per request for its
+ *        own company through this function. It is not a Supabase JWT and
+ *        grants nothing in PostgREST, Storage or any other function.
  *
- * Body:  Any JSON object. Fields are remapped via the company's
- *        intake_field_mappings rows to canonical fields.
- *        Unmapped keys are preserved in raw_payload.
+ * CORS:  Browser requests are accepted only from allowed origins
+ *        (evenfalladvantage.com by default; add more with the
+ *        INTAKE_ALLOWED_ORIGINS secret, comma-separated). Requests with no
+ *        Origin (server-to-server) are allowed.
  *
- * Rate limit: 100 requests / 60 seconds per API key. 429 on excess.
+ * Input: JSON object, <= 32 KiB, <= 60 top-level keys, scalars or arrays of
+ *        scalars (nested objects are dropped), strings capped at 5000 chars,
+ *        control characters stripped, client_email validated, at least one
+ *        contact field (client_email / client_phone / email / phone).
+ *        Canonical keys (client_name, client_email, ...) map to themselves;
+ *        the company's intake_field_mappings can map any other key.
  *
- * Returns: 201 { id, submission_id } on success.
+ * Spam:  Honeypot field `company_website` (or `_hp`): when filled, respond
+ *        201 as if accepted but store nothing.
  *
- * No JWT — external systems can't carry one. Authentication is the API key.
+ * Rate limits: 100 requests/min per key; for browser requests also 5 per
+ *        10 minutes and 20 per day per visitor IP per key. 429 on excess.
+ *
+ * Notify: when companies.settings.intakeNotifyEmails lists addresses
+ *        (Settings -> API Sources -> "Email new leads to"), an email goes to
+ *        them through the company's configured email provider (same factory
+ *        as email-send; platform Resend fallback). Off when the list is empty.
+ *
+ * Returns: 201 { ok: true } on success. The row id / token are NOT returned.
+ *
+ * Deployed with verify_jwt = false (supabase/config.toml): external systems
+ * can't carry a Supabase JWT; the API key is the authentication.
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import { resolveProviderForCompany } from "../_shared/email/factory.ts";
+import {
+  MAX_BODY_BYTES, RATE_LIMITS, applyMappings, buildLeadEmail, checkOrigin,
+  checkScopes, clientIp, corsHeaders, notifyRecipients, parseAllowedOrigins,
+  validatePayload, type CleanPayload,
+} from "./lib.ts";
 
-/* ── Constants ──────────────────────────────────────────────────────── */
-
-const RATE_LIMIT_WINDOW_MS = 60_000;          // 60s sliding window
-const RATE_LIMIT_MAX = 100;                    // max requests per window per key
-const MAX_BODY_BYTES = 64 * 1024;              // 64 KiB cap on payload
-const CANONICAL_FIELDS = new Set([
-  "client_name", "client_email", "client_phone",
-  "service", "location", "message",
-  "start_date", "end_date",
-  "subject", "notes",
-]);
 const RESERVED_PREFIX = "ova_live_";
-
-/* ── Helpers ────────────────────────────────────────────────────────── */
+const ENDPOINT = "intake-ingest";
 
 async function sha256Hex(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function extractBearer(req: Request): string | null {
-  const auth = req.headers.get("authorization") ?? req.headers.get("Authorization");
+  const auth = req.headers.get("authorization");
   if (!auth) return null;
-  const match = /^Bearer\s+(.+)$/i.exec(auth.trim());
-  return match ? match[1].trim() : null;
+  const match = /^Bearer\s+(\S+)$/i.exec(auth.trim());
+  return match ? match[1] : null;
 }
 
-function jsonResponse(body: unknown, status: number, origin: string | null): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      ...getCorsHeaders(origin),
-      "Content-Type": "application/json",
-      // Open CORS for this endpoint — external company sites need to call it.
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+// deno-lint-ignore no-explicit-any
+type Db = any;
+
+function runInBackground(p: Promise<unknown>) {
+  // deno-lint-ignore no-explicit-any
+  const rt = (globalThis as any).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(p);
+  else p.catch(() => {});
 }
 
-function pickString(value: unknown): string | null {
-  if (typeof value === "string") {
-    const t = value.trim();
-    return t.length > 0 ? t : null;
+async function notifyCompany(supabase: Db, params: {
+  companyId: string;
+  canonical: Record<string, string>;
+  extra: CleanPayload;
+  submissionId: string;
+}): Promise<void> {
+  try {
+    const { data: company } = await supabase
+      .from("companies").select("name, settings").eq("id", params.companyId).single();
+    const recipients = notifyRecipients(company?.settings);
+    if (recipients.length === 0) return;
+
+    const companyName = company?.name ?? "Overwatch";
+    const factory = await resolveProviderForCompany(supabase, params.companyId, companyName);
+    const email = buildLeadEmail({
+      companyName,
+      canonical: params.canonical,
+      extra: params.extra,
+      submissionId: params.submissionId,
+      appUrl: Deno.env.get("OVERWATCH_APP_URL") ?? "https://www.evenfalladvantage.com/overwatch",
+    });
+    const replyTo = params.canonical.client_email ? { email: params.canonical.client_email } : factory.defaultReplyTo;
+    const result = await factory.provider.send({
+      to: recipients.map((e) => ({ email: e })),
+      from: factory.defaultFrom,
+      replyTo,
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+      idempotencyKey: `intake-${params.submissionId}`,
+    });
+    const rows = [
+      ...result.accepted.map((to: string) => ({ to_email: to, status: "sent" })),
+      ...result.rejected.map((r: { to: string; reason: string }) => ({ to_email: r.to, status: "rejected", error_message: r.reason })),
+    ].map((r) => ({
+      ...r,
+      company_id: params.companyId,
+      delivery_method: factory.provider.kind,
+      from_email: factory.defaultFrom.email,
+      subject: email.subject,
+      purpose: "other",
+      provider_id: result.providerMessageId,
+      metadata: { kind: "intake_lead", submission_id: params.submissionId, used_fallback: factory.usedFallback },
+    }));
+    if (rows.length) await supabase.from("email_send_log").insert(rows);
+  } catch (err) {
+    console.error("[intake-ingest] notification failed:", err instanceof Error ? err.message : String(err));
   }
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  return null;
 }
-
-/**
- * Apply field mappings: walk the incoming object, for each top-level key
- * find the canonical_field (if any), and produce a structured intake row.
- * Unmapped values are preserved in `extra`.
- */
-function applyMappings(
-  payload: Record<string, unknown>,
-  mappings: { source_field: string; canonical_field: string }[],
-): { canonical: Record<string, string>; extra: Record<string, unknown> } {
-  const lookup = new Map<string, string>();
-  for (const m of mappings) {
-    // Lookup is case-insensitive on the source side
-    lookup.set(m.source_field.toLowerCase().trim(), m.canonical_field);
-  }
-
-  const canonical: Record<string, string> = {};
-  const extra: Record<string, unknown> = {};
-
-  for (const [rawKey, rawValue] of Object.entries(payload)) {
-    const key = rawKey.toLowerCase().trim();
-    const canonicalField = lookup.get(key);
-    if (canonicalField && CANONICAL_FIELDS.has(canonicalField)) {
-      const str = pickString(rawValue);
-      if (str !== null) {
-        canonical[canonicalField] = str;
-        continue;
-      }
-    }
-    // Unmapped or non-string → keep in extra
-    extra[rawKey] = rawValue;
-  }
-
-  return { canonical, extra };
-}
-
-/* ── Server ─────────────────────────────────────────────────────────── */
 
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin");
+  const allowed = parseAllowedOrigins(Deno.env.get("INTAKE_ALLOWED_ORIGINS"));
+  const cors = corsHeaders(origin, allowed);
+  const json = (body: unknown, status: number) =>
+    new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+
+  const originCheck = checkOrigin(origin, allowed);
 
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        ...getCorsHeaders(origin),
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "authorization, content-type",
-      },
-    });
+    return new Response(originCheck.ok ? "ok" : "origin_not_allowed", { status: originCheck.ok ? 200 : 403, headers: cors });
   }
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (!originCheck.ok) return json({ error: "origin_not_allowed" }, 403);
+  const browser = originCheck.browser;
 
-  if (req.method !== "POST") {
-    return jsonResponse({ error: "method_not_allowed" }, 405, origin);
+  if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("application/json")) {
+    return json({ error: "content_type_must_be_json" }, 415);
   }
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (declared > MAX_BODY_BYTES) return json({ error: "payload_too_large", limit_bytes: MAX_BODY_BYTES }, 413);
 
-  /* 1. Read body (with size cap) */
-  let rawBody: string;
-  try {
-    rawBody = await req.text();
-  } catch {
-    return jsonResponse({ error: "invalid_body" }, 400, origin);
-  }
-  if (rawBody.length > MAX_BODY_BYTES) {
-    return jsonResponse({ error: "payload_too_large", limit_bytes: MAX_BODY_BYTES }, 413, origin);
-  }
-  if (!rawBody.trim()) {
-    return jsonResponse({ error: "empty_body" }, 400, origin);
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(rawBody);
-  } catch {
-    return jsonResponse({ error: "invalid_json" }, 400, origin);
-  }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return jsonResponse({ error: "body_must_be_object" }, 400, origin);
-  }
-  const payload = parsed as Record<string, unknown>;
-
-  /* 2. Authenticate via API key */
+  /* 1. Authenticate (before reading/validating the body) */
   const token = extractBearer(req);
-  if (!token) {
-    return jsonResponse({ error: "missing_bearer_token" }, 401, origin);
-  }
-  if (!token.startsWith(RESERVED_PREFIX)) {
-    // We don't leak details about why it failed — same response as a bad hash.
-    return jsonResponse({ error: "invalid_api_key" }, 401, origin);
-  }
+  if (!token) return json({ error: "missing_bearer_token" }, 401);
+  if (!token.startsWith(RESERVED_PREFIX) || token.length > 128) return json({ error: "invalid_api_key" }, 401);
 
-  const keyHash = await sha256Hex(token);
-
-  /* 3. Build service-role client */
-  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.39.0");
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -174,120 +162,99 @@ Deno.serve(async (req) => {
   const { data: keyRow, error: keyErr } = await supabase
     .from("api_keys")
     .select("id, company_id, scopes, revoked_at, expires_at")
-    .eq("key_hash", keyHash)
+    .eq("key_hash", await sha256Hex(token))
     .maybeSingle();
-
-  if (keyErr || !keyRow) {
-    return jsonResponse({ error: "invalid_api_key" }, 401, origin);
-  }
-  if (keyRow.revoked_at) {
-    return jsonResponse({ error: "api_key_revoked" }, 401, origin);
-  }
+  if (keyErr || !keyRow) return json({ error: "invalid_api_key" }, 401);
+  if (keyRow.revoked_at) return json({ error: "api_key_revoked" }, 401);
   if (keyRow.expires_at && new Date(keyRow.expires_at as string) < new Date()) {
-    return jsonResponse({ error: "api_key_expired" }, 401, origin);
+    return json({ error: "api_key_expired" }, 401);
   }
-  const scopes: string[] = Array.isArray(keyRow.scopes) ? (keyRow.scopes as string[]) : [];
-  if (!scopes.includes("intake:write")) {
-    return jsonResponse({ error: "insufficient_scope", required: "intake:write" }, 403, origin);
+  const scope = checkScopes(keyRow.scopes, browser);
+  if (!scope.ok) return json({ error: scope.error }, scope.status);
+
+  const ip = clientIp(req.headers);
+  const log = (status_code: number) =>
+    supabase.from("api_request_log").insert({ api_key_id: keyRow.id, endpoint: ENDPOINT, status_code, ip });
+
+  /* 2. Rate limits */
+  const since = (ms: number) => new Date(Date.now() - ms).toISOString();
+  const { count: perKey } = await supabase
+    .from("api_request_log").select("id", { count: "exact", head: true })
+    .eq("api_key_id", keyRow.id).gte("created_at", since(60_000));
+  let limited = (perKey ?? 0) >= RATE_LIMITS.perKeyPerMinute;
+
+  if (!limited && browser && ip) {
+    const [{ count: ip10 }, { count: ipDay }] = await Promise.all([
+      supabase.from("api_request_log").select("id", { count: "exact", head: true })
+        .eq("api_key_id", keyRow.id).eq("ip", ip).gte("created_at", since(10 * 60_000)),
+      supabase.from("api_request_log").select("id", { count: "exact", head: true })
+        .eq("api_key_id", keyRow.id).eq("ip", ip).gte("created_at", since(24 * 3600_000)),
+    ]);
+    limited = (ip10 ?? 0) >= RATE_LIMITS.perIpPer10Min || (ipDay ?? 0) >= RATE_LIMITS.perIpPerDay;
+  }
+  if (limited) {
+    await log(429);
+    return json({ error: "rate_limited" }, 429);
   }
 
-  /* 4. Rate limit (sliding window) */
-  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
-  const { count: recentCount } = await supabase
-    .from("api_request_log")
-    .select("id", { count: "exact", head: true })
-    .eq("api_key_id", keyRow.id)
-    .gte("created_at", windowStart);
-
-  if ((recentCount ?? 0) >= RATE_LIMIT_MAX) {
-    // Log the 429 so it appears in usage stats
-    await supabase.from("api_request_log").insert({
-      api_key_id: keyRow.id,
-      endpoint: "intake-ingest",
-      status_code: 429,
-      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
-    });
-    return jsonResponse(
-      { error: "rate_limited", limit: RATE_LIMIT_MAX, window_seconds: RATE_LIMIT_WINDOW_MS / 1000 },
-      429,
-      origin,
-    );
+  /* 3. Validate body */
+  let rawBody: string;
+  try {
+    rawBody = await req.text();
+  } catch {
+    return json({ error: "invalid_body" }, 400);
+  }
+  const v = validatePayload(rawBody);
+  if (!v.ok) {
+    await log(v.status);
+    return json({ error: v.error }, v.status);
   }
 
-  /* 5. Load mappings for company */
+  /* 4. Honeypot: pretend success, store nothing */
+  if (v.honeypot) {
+    await log(202);
+    return json({ ok: true }, 201);
+  }
+
+  /* 5. Map + insert */
   const { data: mappings } = await supabase
-    .from("intake_field_mappings")
-    .select("source_field, canonical_field")
-    .eq("company_id", keyRow.company_id);
+    .from("intake_field_mappings").select("source_field, canonical_field").eq("company_id", keyRow.company_id);
+  const { canonical, extra } = applyMappings(v.payload, mappings ?? []);
 
-  const { canonical, extra } = applyMappings(payload, mappings ?? []);
-
-  /* 6. Generate a token (so the submission is uniquely addressable + re-editable later) */
-  const token16 = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
   const nowIso = new Date().toISOString();
-
-  // Stash canonical fields (name/email/data) on the submission row.
-  // The full canonical map AND unmapped fields live in raw_payload + data.
-  const dataPayload = {
-    ...canonical,
-    extra,
-    received_at: nowIso,
-  };
-
-  const { data: insertedRows, error: insErr } = await supabase
+  const { data: inserted, error: insErr } = await supabase
     .from("client_intake_tokens")
     .insert({
       id: crypto.randomUUID(),
       company_id: keyRow.company_id,
-      token: token16,
+      token: crypto.randomUUID().replace(/-/g, ""),
       status: "submitted",
       source: "api",
       api_key_id: keyRow.id,
       client_name: canonical.client_name ?? null,
       client_email: canonical.client_email ?? null,
-      data: dataPayload,
-      raw_payload: payload,
+      data: { ...canonical, extra, received_at: nowIso },
+      raw_payload: v.payload,
       submitted_at: nowIso,
       created_at: nowIso,
       updated_at: nowIso,
     })
-    .select("id, token")
+    .select("id")
     .single();
 
-  if (insErr || !insertedRows) {
+  if (insErr || !inserted) {
     console.error("[intake-ingest] insert failed:", insErr?.message);
-    await supabase.from("api_request_log").insert({
-      api_key_id: keyRow.id,
-      endpoint: "intake-ingest",
-      status_code: 500,
-      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
-    });
-    return jsonResponse({ error: "ingest_failed" }, 500, origin);
+    await log(500);
+    return json({ error: "ingest_failed" }, 500);
   }
 
-  /* 7. Update last_used_at + log success */
   await Promise.all([
-    supabase
-      .from("api_keys")
-      .update({ last_used_at: nowIso })
-      .eq("id", keyRow.id),
-    supabase.from("api_request_log").insert({
-      api_key_id: keyRow.id,
-      endpoint: "intake-ingest",
-      status_code: 201,
-      ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
-    }),
+    supabase.from("api_keys").update({ last_used_at: nowIso }).eq("id", keyRow.id),
+    log(201),
   ]);
 
-  return jsonResponse(
-    {
-      ok: true,
-      submission_id: insertedRows.id,
-      token: insertedRows.token,
-      canonical_fields_captured: Object.keys(canonical),
-      unmapped_field_count: Object.keys(extra).length,
-    },
-    201,
-    origin,
-  );
+  /* 6. Notify the company (best effort, after responding) */
+  runInBackground(notifyCompany(supabase, { companyId: keyRow.company_id, canonical, extra, submissionId: inserted.id }));
+
+  return json({ ok: true }, 201);
 });

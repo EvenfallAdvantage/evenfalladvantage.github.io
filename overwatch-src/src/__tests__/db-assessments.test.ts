@@ -52,7 +52,7 @@ describe("saveSiteAssessment()", () => {
     lng: -118.24,
     data: { hazards: ["fire"], notes: "Looks good" },
     risk_score: 3,
-    risk_level: "medium",
+    risk_level: "Moderate",
   };
 
   it("updates existing when assessment has an id field", async () => {

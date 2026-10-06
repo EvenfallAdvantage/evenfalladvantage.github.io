@@ -22,8 +22,12 @@
  *      size-checked values). student.ensure / instructor.ensure only ever
  *      act on the caller's own uid and email.
  *
- * Secrets (set on EADB): OVERWATCH_SUPABASE_URL, OVERWATCH_SUPABASE_ANON_KEY
- * (Overwatch's public anon key). Optional: LEGACY_BRIDGE_ALLOWED_ORIGINS.
+ * Secrets (set on EADB): OVERWATCH_SUPABASE_URL, OVERWATCH_SUPABASE_ANON_KEY.
+ * OverwatchDB's legacy JWT keys are disabled, so the "anon key" is a
+ * publishable key: the `default` one (sb_publishable_BYuOl…), the same key the
+ * live Overwatch frontend ships. It is only ever sent as the `apikey` header;
+ * the caller's own token is the Bearer. Don't disable that key without
+ * updating this secret. Optional: LEGACY_BRIDGE_ALLOWED_ORIGINS.
  * SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
  *
  * Request:  POST { op: string, args?: { keys?: {...}, values?: {...} } }

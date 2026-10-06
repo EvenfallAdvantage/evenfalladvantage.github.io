@@ -605,11 +605,29 @@ export async function updateCompany(companyId: string, updates: {
   return data;
 }
 
-export async function updateCompanySettings(companyId: string, settings: Record<string, unknown>) {
+export async function getCompanySettings(companyId: string): Promise<Record<string, unknown>> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("companies")
-    .update({ settings })
+    .select("settings")
+    .eq("id", companyId)
+    .maybeSingle();
+  if (error) throw error;
+  const settings = data?.settings;
+  return settings && typeof settings === "object" ? (settings as Record<string, unknown>) : {};
+}
+
+/**
+ * Update keys in companies.settings. The given keys are MERGED into the
+ * stored object; other keys are kept. (This used to replace the whole object,
+ * so saving feature visibility wiped e.g. overtime_config.)
+ */
+export async function updateCompanySettings(companyId: string, settings: Record<string, unknown>) {
+  const supabase = createClient();
+  const current = await getCompanySettings(companyId);
+  const { data, error } = await supabase
+    .from("companies")
+    .update({ settings: { ...current, ...settings } })
     .eq("id", companyId)
     .select()
     .maybeSingle();
