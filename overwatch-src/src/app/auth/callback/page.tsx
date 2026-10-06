@@ -105,31 +105,17 @@ async function handlePostAuth(supabase: any, session: any) {
   const email = session.user.email;
 
   // ── Resolve join code ──────────────────────────────────
-  // PRIMARY: user_metadata.join_code (survives cross-browser/device)
-  // FALLBACK: localStorage pending_join (same-browser only)
-  let joinCode: string | null = meta.join_code || null;
-  let phone: string | null = meta.phone || null;
-  let firstName: string = meta.first_name || "";
-  let lastName: string = meta.last_name || "";
+  // Source of truth: user_metadata.join_code (set at signUp). It survives
+  // cross-browser / cross-device email confirmation, so no browser storage
+  // is needed.
+  const joinCode: string | null = meta.join_code || null;
+  const phone: string | null = meta.phone || null;
+  const firstName: string = meta.first_name || "";
+  const lastName: string = meta.last_name || "";
 
-  // Check localStorage fallback
-  try {
-    const raw = localStorage.getItem("pending_join");
-    if (raw) {
-      const pending = JSON.parse(raw);
-      localStorage.removeItem("pending_join");
-
-      // Only use localStorage data if it matches this user
-      if (pending.supabaseId === userId) {
-        if (!joinCode) joinCode = pending.code || null;
-        if (!phone) phone = pending.phone || null;
-        if (!firstName) firstName = pending.firstName || "";
-        if (!lastName) lastName = pending.lastName || "";
-      }
-    }
-  } catch {
-    // localStorage unavailable (e.g. different browser) — no problem
-  }
+  // Clean up the legacy localStorage fallback written by older builds
+  // (it held PII and is no longer read).
+  try { localStorage.removeItem("pending_join"); } catch { /* storage unavailable */ }
 
   // ── Execute join or register ───────────────────────────
   if (joinCode) {
