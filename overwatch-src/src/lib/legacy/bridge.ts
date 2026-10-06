@@ -19,11 +19,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 
 export type LegacyBridgeOp =
-  | "course.create" | "course.update"
+  | "course.create" | "course.update" | "course.delete"
   | "module.create" | "module.update"
   | "slide.create" | "slide.update" | "slide.delete"
   | "class.create" | "class.update" | "class.enroll" | "class.unenroll" | "class.attendance"
-  | "assessment.create" | "assessment.update"
+  | "assessment.create" | "assessment.update" | "assessment.set_questions" | "assessment.get_questions"
   | "certificate.issue" | "instructor.ensure" | "student.ensure";
 
 export type LegacyBridgeArgs = {
@@ -32,7 +32,7 @@ export type LegacyBridgeArgs = {
 };
 
 export type LegacyBridgeResult =
-  | { status: "ok"; id?: string }
+  | { status: "ok"; id?: string; data?: unknown }
   | { status: "error"; error: string; httpStatus?: number }
   | { status: "unavailable" };
 
@@ -82,11 +82,11 @@ export async function legacyBridgeWrite(op: LegacyBridgeOp, args: LegacyBridgeAr
     return unavailable("network");
   }
 
-  const body = (await res.json().catch(() => ({}))) as { ok?: boolean; id?: string; error?: string };
+  const body = (await res.json().catch(() => ({}))) as { ok?: boolean; id?: string; data?: unknown; error?: string };
   if (res.status === 404 && body.error !== "unknown_op") return unavailable("bridge_not_deployed", 404);
   if (res.status === 503) return unavailable(body.error ?? "bridge_unavailable", 503);
   if (!res.ok) return { status: "error", error: body.error ?? `http_${res.status}`, httpStatus: res.status };
-  return body.id ? { status: "ok", id: body.id } : { status: "ok" };
+  return { status: "ok", ...(body.id ? { id: body.id } : {}), ...(body.data !== undefined ? { data: body.data } : {}) };
 }
 
 /**
@@ -97,12 +97,30 @@ export async function legacyBridgeWrite(op: LegacyBridgeOp, args: LegacyBridgeAr
 export async function viaLegacyBridge(
   op: LegacyBridgeOp,
   args: LegacyBridgeArgs,
-): Promise<{ success: boolean; id?: string; error?: string } | null> {
+): Promise<{ success: boolean; id?: string; data?: unknown; error?: string } | null> {
   const r = await legacyBridgeWrite(op, args);
   if (r.status === "unavailable") return null;
   if (r.status === "error") {
     console.error(`Legacy bridge ${op} error:`, r.error);
     return { success: false, error: r.error };
   }
-  return r.id ? { success: true, id: r.id } : { success: true };
+  return { success: true, ...(r.id ? { id: r.id } : {}), ...(r.data !== undefined ? { data: r.data } : {}) };
+}
+
+/** Plain-words message for a failed Instructor HQ save (shown in an alert). */
+export function legacyWriteErrorMessage(action: string, error?: string): string {
+  const why: Record<string, string> = {
+    forbidden: "your role in this company can't edit training content",
+    not_signed_in: "you're signed out; sign in again",
+    invalid_session: "your session expired; sign in again",
+    missing_company: "no active company is selected",
+    course_in_use: "students, payments or reviews are attached to it. Edit it and untick Active to hide it instead",
+    bridge_required: "this needs the Instructor HQ server, which isn't reachable right now",
+    unknown_op: "the Instructor HQ server needs an update for this",
+    conflict: "that code or name is already used",
+    not_found: "it no longer exists (refresh the page)",
+  };
+  const reason = error ? (why[error] ?? (error.startsWith("invalid_value:") || error.startsWith("missing:")
+    ? `check the "${error.split(":")[1].replace(/_/g, " ")}" field` : error)) : "unknown error";
+  return `Couldn't ${action}: ${reason}.`;
 }

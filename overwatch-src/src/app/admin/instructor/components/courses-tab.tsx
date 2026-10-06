@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Plus, Loader2, Save, X, Pencil, ChevronDown, ChevronUp, Clock, ExternalLink,
+  Plus, Loader2, Save, X, Pencil, ChevronDown, ChevronUp, Clock, ExternalLink, Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   getLegacyCourses, getLegacyCourseModules,
-  createLegacyCourse, updateLegacyCourse,
+  createLegacyCourse, updateLegacyCourse, deleteLegacyCourse,
   createLegacyModule, updateLegacyModule,
   type LegacyCourse, type LegacyModule, type LegacyCourseModule,
 } from "@/lib/legacy-bridge";
+import { legacyWriteErrorMessage } from "@/lib/legacy/bridge";
 import { SlidesPanel } from "./slides-panel";
 import { logger } from "@/lib/logger";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 interface CoursesTabProps {
   triggerNew: number;
@@ -49,6 +51,8 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
   const [emName, setEmName] = useState(""); const [emDesc, setEmDesc] = useState("");
   const [emDur, setEmDur] = useState(""); const [emDiff, setEmDiff] = useState("");
   const [savingModEdit, setSavingModEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   function generateCourseCode(name: string): string {
     const skip = new Set(["a","an","the","of","and","&","for","in","on","to","with"]);
@@ -79,7 +83,8 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
   async function handleCreateCourse() {
     if (!nCode.trim() || !nName.trim()) return; setSaving(true);
     try {
-      await createLegacyCourse({ course_code: nCode.trim(), course_name: nName.trim(), description: nDesc.trim() || undefined, price: parseFloat(nPrice) || 0, duration_hours: parseFloat(nHours) || undefined, difficulty_level: nDiff });
+      const r = await createLegacyCourse({ course_code: nCode.trim(), course_name: nName.trim(), description: nDesc.trim() || undefined, price: parseFloat(nPrice) || 0, duration_hours: parseFloat(nHours) || undefined, difficulty_level: nDiff });
+      if (!r.success) { alert(legacyWriteErrorMessage("create the course", r.error)); return; }
       setShowNew(false); setNCode(""); setNName(""); setNDesc(""); setNPrice("0"); setNHours(""); await loadCourses();
     } catch { alert("Failed to create course"); } finally { setSaving(false); }
   }
@@ -90,14 +95,32 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
   async function handleUpdateCourse() {
     if (!editId) return; setSaving(true);
     try {
-      await updateLegacyCourse(editId, { course_code: eCode.trim(), course_name: eName.trim(), description: eDesc.trim(), price: parseFloat(ePrice) || 0, duration_hours: parseFloat(eHours) || undefined, is_active: eActive });
+      const r = await updateLegacyCourse(editId, { course_code: eCode.trim(), course_name: eName.trim(), description: eDesc.trim(), price: parseFloat(ePrice) || 0, duration_hours: parseFloat(eHours) || undefined, is_active: eActive });
+      if (!r.success) { alert(legacyWriteErrorMessage("save the course", r.error)); return; }
       setEditId(null); await loadCourses();
     } catch { alert("Failed to update course"); } finally { setSaving(false); }
+  }
+  async function handleDeleteCourse(c: LegacyCourse) {
+    const ok = await confirm({
+      title: "Delete course?",
+      description: `Delete "${c.course_name}" for good? Its module links are removed too (the modules themselves stay). Courses with enrolled students can't be deleted; untick Active instead.`,
+      confirmLabel: "Delete",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setDeletingId(c.id);
+    try {
+      const r = await deleteLegacyCourse(c.id);
+      if (!r.success) { alert(legacyWriteErrorMessage("delete the course", r.error)); return; }
+      if (xCourseId === c.id) setXCourseId(null);
+      await loadCourses();
+    } finally { setDeletingId(null); }
   }
   async function handleCreateModule() {
     if (!nmCode.trim() || !nmName.trim()) return; setSavingMod(true);
     try {
-      await createLegacyModule({ module_code: nmCode.trim(), module_name: nmName.trim(), description: nmDesc.trim() || undefined, duration_minutes: parseInt(nmDur) || 30 });
+      const r = await createLegacyModule({ module_code: nmCode.trim(), module_name: nmName.trim(), description: nmDesc.trim() || undefined, duration_minutes: parseInt(nmDur) || 30 });
+      if (!r.success) { alert(legacyWriteErrorMessage("create the module", r.error)); return; }
       setShowNewModule(false); setNmCode(""); setNmName(""); setNmDesc(""); setNmDur("30");
       if (xCourseId) setCourseModules(await getLegacyCourseModules(xCourseId));
     } catch { alert("Failed to create module"); } finally { setSavingMod(false); }
@@ -109,7 +132,8 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
   async function handleUpdateModule() {
     if (!editModId) return; setSavingModEdit(true);
     try {
-      await updateLegacyModule(editModId, { module_name: emName.trim(), description: emDesc.trim(), duration_minutes: parseInt(emDur) || undefined, difficulty_level: emDiff });
+      const r = await updateLegacyModule(editModId, { module_name: emName.trim(), description: emDesc.trim(), duration_minutes: parseInt(emDur) || undefined, difficulty_level: emDiff });
+      if (!r.success) { alert(legacyWriteErrorMessage("save the module", r.error)); return; }
       setEditModId(null);
       if (xCourseId) setCourseModules(await getLegacyCourseModules(xCourseId));
     } catch { alert("Failed to update module"); } finally { setSavingModEdit(false); }
@@ -137,7 +161,7 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
             <Input placeholder="Price" type="number" value={nPrice} onChange={(e) => setNPrice(e.target.value)} />
             <Input placeholder="Hours" type="number" value={nHours} onChange={(e) => setNHours(e.target.value)} />
             <select value={nDiff} onChange={(e) => setNDiff(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
-              {["Beginner","Intermediate","Advanced","Expert"].map((d) => <option key={d}>{d}</option>)}
+              {["Beginner","Intermediate","Advanced"].map((d) => <option key={d}>{d}</option>)}
             </select>
           </div>
           <div className="flex gap-2">
@@ -183,7 +207,10 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={(e) => { e.stopPropagation(); startEditCourse(c); }} className="p-1 rounded hover:bg-accent/50"><Pencil className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); startEditCourse(c); }} className="p-1 rounded hover:bg-accent/50" aria-label="Edit course" title="Edit"><Pencil className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteCourse(c); }} disabled={deletingId === c.id} className="p-1 rounded hover:bg-red-500/10" aria-label="Delete course" title="Delete">
+                      {deletingId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 text-red-500/80" />}
+                    </button>
                     {xCourseId === c.id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                   </div>
                 </button>
@@ -266,6 +293,7 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
         ))}
         {courses.length === 0 && <div className="text-center py-8 text-sm text-muted-foreground">No courses yet. Create your first course above.</div>}
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

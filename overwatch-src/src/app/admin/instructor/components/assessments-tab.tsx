@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, Pencil, Save, X } from "lucide-react";
+import { Loader2, Pencil, Save, X, ListChecks } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,9 @@ import {
   createLegacyAssessment, updateLegacyAssessment,
   type LegacyAssessment, type LegacyModule,
 } from "@/lib/legacy-bridge";
+import { legacyWriteErrorMessage } from "@/lib/legacy/bridge";
 import { logger } from "@/lib/logger";
+import { QuestionsEditor } from "./questions-editor";
 
 interface AssessmentsTabProps {
   triggerNew: number;
@@ -27,6 +29,7 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
   }, [triggerNew]);
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [questionsId, setQuestionsId] = useState<string | null>(null);
   // New assessment
   const [naName, setNaName] = useState("");
   const [naModuleId, setNaModuleId] = useState("");
@@ -52,14 +55,17 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
     if (!naName.trim()) return;
     setSaving(true);
     try {
-      await createLegacyAssessment({
+      const r = await createLegacyAssessment({
         assessment_name: naName.trim(),
         module_id: naModuleId || undefined,
         total_questions: parseInt(naQuestions) || 10,
         passing_score: parseInt(naPassing) || 70,
       });
+      if (!r.success) { alert(legacyWriteErrorMessage("create the assessment", r.error)); return; }
       setShowNew(false); setNaName(""); setNaModuleId(""); setNaQuestions("10"); setNaPassing("70");
       await load();
+      // Go straight to writing the questions for the new assessment.
+      if (r.id) setQuestionsId(r.id);
     } catch { alert("Failed to create assessment"); }
     finally { setSaving(false); }
   }
@@ -74,12 +80,13 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
     if (!editId) return;
     setSaving(true);
     try {
-      await updateLegacyAssessment(editId, {
+      const r = await updateLegacyAssessment(editId, {
         assessment_name: eaName.trim(),
         module_id: eaModuleId || null,
         total_questions: parseInt(eaQuestions) || 10,
         passing_score: parseInt(eaPassing) || 70,
       });
+      if (!r.success) { alert(legacyWriteErrorMessage("save the assessment", r.error)); return; }
       setEditId(null); await load();
     } catch { alert("Failed to update"); }
     finally { setSaving(false); }
@@ -104,9 +111,10 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
               <option value="">No linked module</option>
               {modules.map((m) => <option key={m.id} value={m.id}>{m.module_name}</option>)}
             </select>
-            <Input placeholder="Total Questions" type="number" value={naQuestions} onChange={(e) => setNaQuestions(e.target.value)} />
+            <Input placeholder="Questions per attempt" type="number" value={naQuestions} onChange={(e) => setNaQuestions(e.target.value)} />
             <Input placeholder="Passing Score (%)" type="number" value={naPassing} onChange={(e) => setNaPassing(e.target.value)} />
           </div>
+          <p className="text-[10px] text-muted-foreground">After creating it you&apos;ll add the questions.</p>
           <div className="flex gap-2">
             <Button size="sm" onClick={handleCreate} disabled={saving}>{saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Create</Button>
             <Button size="sm" variant="ghost" onClick={() => setShowNew(false)}><X className="h-3.5 w-3.5" /> Cancel</Button>
@@ -144,8 +152,21 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
                       {a.module_id && <span>Module: {moduleMap.get(a.module_id) ?? "Unknown"}</span>}
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => startEdit(a)}><Pencil className="h-3.5 w-3.5" /></Button>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={() => setQuestionsId(questionsId === a.id ? null : a.id)}>
+                      <ListChecks className="h-3.5 w-3.5" /> Questions
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => startEdit(a)} aria-label="Edit assessment"><Pencil className="h-3.5 w-3.5" /></Button>
+                  </div>
                 </div>
+              )}
+              {questionsId === a.id && editId !== a.id && (
+                <QuestionsEditor
+                  assessmentId={a.id}
+                  assessmentName={a.assessment_name}
+                  onClose={() => setQuestionsId(null)}
+                  onSaved={async () => { setQuestionsId(null); await load(); }}
+                />
               )}
             </CardContent>
           </Card>

@@ -31,7 +31,7 @@
  * SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
  *
  * Request:  POST { op: string, args?: { keys?: {...}, values?: {...} } }
- * Response: 200 { ok: true, id?: string, data?: unknown }
+ * Response: 200 { ok: true, id?: string, data?: unknown }   (data: assessment.get_questions)
  *           400 invalid input, 401 no/invalid Overwatch session,
  *           403 not allowed / bad origin, 404 unknown op, 409 conflict, 500.
  */
@@ -39,7 +39,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
-  OPS, certificateCodes, corsHeaders, isAllowed, isUuid, originAllowed, validateArgs,
+  OPS, certificateCodes, corsHeaders, isAllowed, isUuid, nextTotalQuestions, originAllowed, questionRows,
+  rowsToQuestions, validateArgs, type Question,
 } from "./lib.ts";
 
 const MAX_BODY = 256 * 1024;
@@ -146,6 +147,55 @@ Deno.serve(async (req) => {
         if (error) return fail(error);
         return json({ ok: true, id: data.id });
       }
+      case "course.delete": {
+        const id = v.keys.id as string;
+        const count = async (table: string) => {
+          const { count: n, error } = await db.from(table).select("course_id", { count: "exact", head: true }).eq("course_id", id);
+          if (error) throw new Error(`${table}: ${error.message}`);
+          return n ?? 0;
+        };
+        const [enrollments, payments, reviews] = await Promise.all([
+          count("student_course_enrollments"), count("payment_transactions"), count("course_reviews"),
+        ]);
+        if (enrollments + payments + reviews > 0) {
+          return json({ error: "course_in_use", enrollments, payments, reviews }, 409);
+        }
+        const { data, error } = await db.from("courses").delete().eq("id", id).select("id");
+        if (error) return fail(error);
+        if (!data?.length) return json({ error: "not_found" }, 404);
+        console.log(`[legacy-bridge-write] course.delete ${id} by ${caller.id}`);
+        return json({ ok: true });
+      }
+      case "assessment.get_questions": {
+        const id = v.keys.id as string;
+        const { data: a, error: aErr } = await db.from("assessments").select("id, questions_json").eq("id", id).maybeSingle();
+        if (aErr) return fail(aErr);
+        if (!a) return json({ error: "not_found" }, 404);
+        const { data: rows, error } = await db.from("assessment_questions").select("*").eq("assessment_id", id);
+        if (error) return fail(error);
+        const fromJson = Array.isArray(a.questions_json) ? a.questions_json : [];
+        const questions = rows?.length ? rowsToQuestions(rows) : fromJson;
+        return json({ ok: true, data: { questions, source: rows?.length ? "rows" : "json" } });
+      }
+      case "assessment.set_questions": {
+        const id = v.keys.id as string;
+        const qs = v.values.questions as Question[];
+        const { data: a, error: aErr } = await db.from("assessments").select("id, total_questions").eq("id", id).maybeSingle();
+        if (aErr) return fail(aErr);
+        if (!a) return json({ error: "not_found" }, 404);
+        // Upsert 1..n first, then trim the tail, so there is never a moment
+        // with no questions (PostgREST gives no multi-statement transaction).
+        const { error: upErr } = await db.from("assessment_questions")
+          .upsert(questionRows(id, qs), { onConflict: "assessment_id,question_number" });
+        if (upErr) return fail(upErr);
+        const { error: delErr } = await db.from("assessment_questions").delete().eq("assessment_id", id).gt("question_number", qs.length);
+        if (delErr) return fail(delErr);
+        const { error: updErr } = await db.from("assessments").update({
+          questions_json: qs, total_questions: nextTotalQuestions(a.total_questions, qs.length), updated_at: new Date().toISOString(),
+        }).eq("id", id);
+        if (updErr) return fail(updErr);
+        return json({ ok: true });
+      }
       case "certificate.issue": {
         // issued_by = the caller's own instructor record, never a client value.
         let { data: inst } = await db.from("instructors").select("id").eq("id", caller.id).maybeSingle();
@@ -162,7 +212,8 @@ Deno.serve(async (req) => {
 
     const table = spec.table!;
     if (spec.kind === "insert") {
-      const { data, error } = await db.from(table).insert({ ...v.values, ...(spec.defaults ?? {}) }).select("id").single();
+      const row = { ...(spec.fallbacks ?? {}), ...v.values, ...(spec.defaults ?? {}) };
+      const { data, error } = await db.from(table).insert(row).select("id").single();
       if (error) return fail(error);
       return json({ ok: true, id: data.id });
     }

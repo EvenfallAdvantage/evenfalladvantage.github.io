@@ -22,7 +22,7 @@ export function canLinkInstructor(role: string | null): boolean {
   return role === "owner" || role === "admin" || role === "instructor" || role === "manager";
 }
 
-type ColumnKind = "text" | "longtext" | "int" | "num" | "bool" | "date" | "time" | "uuid" | "text[]" | "uuid?";
+type ColumnKind = "text" | "longtext" | "int" | "num" | "bool" | "date" | "time" | "uuid" | "text[]" | "uuid?" | "questions";
 type Columns = Record<string, ColumnKind>;
 
 export interface OpSpec {
@@ -35,8 +35,10 @@ export interface OpSpec {
   required?: string[];
   /** Key fields identifying the row(s) for update/delete/upsert. */
   keys?: Columns;
-  /** Server-set values merged into inserts. */
+  /** Server-set values merged into inserts (override client values). */
   defaults?: Record<string, unknown>;
+  /** Insert values used only when the client didn't send that column. */
+  fallbacks?: Record<string, unknown>;
   onConflict?: string;
   returnId?: boolean;
 }
@@ -54,7 +56,7 @@ const SLIDE_COLS: Columns = {
   title: "text", content: "longtext", slide_number: "int", slide_type: "text", image_url: "text",
 };
 const CLASS_COLS: Columns = {
-  class_name: "text", description: "longtext", scheduled_date: "date", start_time: "time",
+  class_name: "text", class_type: "text", description: "longtext", scheduled_date: "date", start_time: "time",
   end_time: "time", location: "text", capacity: "int",
 };
 const ASSESSMENT_COLS: Columns = {
@@ -76,6 +78,10 @@ export const OPS: Record<string, OpSpec> = {
     required: ["course_code", "course_name"], defaults: { is_active: true, is_featured: false, display_order: 999 }, returnId: true },
   "course.update": { permission: "instructor", table: "courses", kind: "update", keys: { id: "uuid" },
     columns: { ...COURSE_COLS, is_active: "bool", is_featured: "bool", display_order: "int" } },
+  // Custom (index.ts): refuses with 409 course_in_use while students, payments or
+  // reviews reference the course (their FKs would cascade / null out); otherwise
+  // deletes it. course_modules links and completion requirements cascade.
+  "course.delete": { permission: "instructor", table: "courses", kind: "custom", keys: { id: "uuid" } },
 
   "module.create": { permission: "instructor", table: "training_modules", kind: "insert", columns: MODULE_COLS,
     required: ["module_code", "module_name"], defaults: { is_active: true, display_order: 999 }, returnId: true },
@@ -88,8 +94,9 @@ export const OPS: Record<string, OpSpec> = {
   "slide.delete": { permission: "instructor", table: "module_slides", kind: "delete", keys: { id: "uuid" } },
 
   "class.create": { permission: "instructor", table: "scheduled_classes", kind: "insert",
-    columns: { instructor_id: "uuid", ...CLASS_COLS }, required: ["instructor_id", "class_name", "scheduled_date", "start_time"],
-    defaults: { status: "scheduled" }, returnId: true },
+    columns: { instructor_id: "uuid", ...CLASS_COLS }, required: ["instructor_id", "class_name", "scheduled_date", "start_time", "end_time"],
+    // scheduled_classes.class_type is NOT NULL with no default (23502 otherwise).
+    defaults: { status: "scheduled" }, fallbacks: { class_type: "training" }, returnId: true },
   "class.update": { permission: "instructor", table: "scheduled_classes", kind: "update", keys: { id: "uuid" },
     columns: { ...CLASS_COLS, status: "text" } },
   "class.enroll": { permission: "instructor", table: "class_enrollments", kind: "upsert",
@@ -103,6 +110,14 @@ export const OPS: Record<string, OpSpec> = {
   "assessment.create": { permission: "instructor", table: "assessments", kind: "insert", columns: ASSESSMENT_COLS,
     required: ["assessment_name", "total_questions", "passing_score"], returnId: true },
   "assessment.update": { permission: "instructor", table: "assessments", kind: "update", keys: { id: "uuid" }, columns: ASSESSMENT_COLS },
+  // Custom (index.ts). Questions live in TWO places in EADB: the student portal
+  // reads assessment_questions rows (option_a..d, correct_answer A-D); the static
+  // admin editor reads/writes assessments.questions_json. set_questions writes
+  // both so every reader sees the same quiz; get_questions prefers the rows
+  // (anon can't read assessment_questions, so this goes through the bridge).
+  "assessment.set_questions": { permission: "instructor", table: "assessments", kind: "custom", keys: { id: "uuid" },
+    columns: { questions: "questions" }, required: ["questions"] },
+  "assessment.get_questions": { permission: "instructor", table: "assessments", kind: "custom", keys: { id: "uuid" } },
 
   // Custom ops (handled in index.ts):
   "certificate.issue": { permission: "instructor", kind: "custom",
@@ -115,6 +130,67 @@ export const OPS: Record<string, OpSpec> = {
 export const ATTENDANCE_STATUSES = ["present", "absent", "late", "excused"];
 export const SLIDE_TYPES = ["text", "image", "video", "mixed"];
 export const CLASS_STATUSES = ["scheduled", "in_progress", "completed", "cancelled"];
+/** Same values as the static instructor portal's Class Type select. */
+export const CLASS_TYPES = ["training", "review", "scenario", "proctored_exam"];
+
+export const MAX_QUESTIONS = 200;
+export type Question = { question: string; options: [string, string, string, string]; correctAnswer: number; explanation?: string };
+const LETTERS = ["A", "B", "C", "D"];
+
+/**
+ * Validate + normalize a quiz: 1..200 questions, each with question text, exactly
+ * 4 non-empty options and correctAnswer 0-3 (the questions_json shape the static
+ * admin editor already uses). Returns null if anything is off.
+ */
+export function normalizeQuestions(v: unknown): Question[] | null {
+  if (!Array.isArray(v) || v.length === 0 || v.length > MAX_QUESTIONS) return null;
+  const out: Question[] = [];
+  for (const q of v) {
+    if (!q || typeof q !== "object") return null;
+    const { question, options, correctAnswer, explanation } = q as Record<string, unknown>;
+    if (typeof question !== "string" || !question.trim() || question.length > 2000) return null;
+    if (!Array.isArray(options) || options.length !== 4) return null;
+    if (!options.every((o) => typeof o === "string" && o.trim() && o.length <= 1000)) return null;
+    if (typeof correctAnswer !== "number" || !Number.isInteger(correctAnswer) || correctAnswer < 0 || correctAnswer > 3) return null;
+    if (explanation !== undefined && explanation !== null && (typeof explanation !== "string" || explanation.length > 4000)) return null;
+    const clean = (s: string) => s.replace(CTRL_RE, "").trim();
+    const item: Question = {
+      question: clean(question), options: (options as string[]).map(clean) as Question["options"], correctAnswer,
+    };
+    if (typeof explanation === "string" && explanation.trim()) item.explanation = clean(explanation);
+    out.push(item);
+  }
+  return out;
+}
+
+/** questions -> assessment_questions rows (question_number 1..n). */
+export function questionRows(assessmentId: string, qs: Question[]) {
+  return qs.map((q, i) => ({
+    assessment_id: assessmentId, question_number: i + 1, question_text: q.question,
+    option_a: q.options[0], option_b: q.options[1], option_c: q.options[2], option_d: q.options[3],
+    correct_answer: LETTERS[q.correctAnswer], explanation: q.explanation ?? null,
+  }));
+}
+
+/** assessment_questions rows -> questions (ordered by question_number). */
+export function rowsToQuestions(rows: Array<Record<string, unknown>>): Question[] {
+  return [...rows]
+    .sort((a, b) => Number(a.question_number) - Number(b.question_number))
+    .map((r) => {
+      const q: Question = {
+        question: String(r.question_text ?? ""),
+        options: [r.option_a, r.option_b, r.option_c, r.option_d].map((o) => String(o ?? "")) as Question["options"],
+        correctAnswer: Math.max(0, LETTERS.indexOf(String(r.correct_answer ?? "A"))),
+      };
+      if (typeof r.explanation === "string" && r.explanation) q.explanation = r.explanation;
+      return q;
+    });
+}
+
+/** Keep the instructor's "questions per attempt" unless it exceeds the new bank size. */
+export function nextTotalQuestions(current: number | null | undefined, count: number): number {
+  return current && current > 0 && current <= count ? current : count;
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -144,6 +220,10 @@ function coerce(kind: ColumnKind, v: unknown): { ok: true; value: unknown } | { 
     case "uuid":
     case "uuid?":
       return isUuid(v) ? { ok: true, value: v } : { ok: false };
+    case "questions": {
+      const qs = normalizeQuestions(v);
+      return qs ? { ok: true, value: qs } : { ok: false };
+    }
     case "text[]":
       return Array.isArray(v) && v.length <= 50 && v.every((x) => typeof x === "string" && x.length <= 500)
         ? { ok: true, value: v.map((x) => (x as string).replace(CTRL_RE, "")) } : { ok: false };
@@ -196,6 +276,9 @@ export function validateArgs(spec: OpSpec, args: unknown): Validated {
   }
   if (spec.table === "scheduled_classes" && values.status !== undefined && !CLASS_STATUSES.includes(values.status as string)) {
     return { ok: false, error: "invalid_value:status" };
+  }
+  if (spec.table === "scheduled_classes" && values.class_type !== undefined && !CLASS_TYPES.includes(values.class_type as string)) {
+    return { ok: false, error: "invalid_value:class_type" };
   }
   return { ok: true, keys, values };
 }

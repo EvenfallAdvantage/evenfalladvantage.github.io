@@ -28,7 +28,7 @@ export async function issueLegacyCertificate(certData: {
   certificate_name: string;
   state_issued?: string;
   expiration_date?: string;
-}): Promise<{ success: boolean; id?: string }> {
+}): Promise<{ success: boolean; id?: string; error?: string }> {
   // Server path sets issued_by to the caller's own instructor record and
   // generates the certificate number / verification code itself.
   const { issued_by: _issuedBy, ...certValues } = certData;

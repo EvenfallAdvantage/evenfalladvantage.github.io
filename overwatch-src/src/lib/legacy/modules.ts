@@ -66,7 +66,7 @@ export async function updateLegacyProgress(
     current_slide?: number;
     completed_at?: string | null;
   }
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   const client = getLegacyClient();
 
   const status = progressData.progress_percentage === 100 ? "completed" : "in_progress";
@@ -117,7 +117,7 @@ export async function createLegacyModule(moduleData: {
   difficulty_level?: string;
   duration_minutes?: number;
   default_course_id?: string;
-}): Promise<{ success: boolean; id?: string }> {
+}): Promise<{ success: boolean; id?: string; error?: string }> {
   const viaBridge = await viaLegacyBridge("module.create", { values: moduleData });
   if (viaBridge) return viaBridge;
   const client = getLegacyClient();
@@ -138,7 +138,7 @@ export async function updateLegacyModule(moduleId: string, updates: Partial<{
   duration_minutes: number;
   is_active: boolean;
   display_order: number;
-}>): Promise<{ success: boolean }> {
+}>): Promise<{ success: boolean; error?: string }> {
   const viaBridge = await viaLegacyBridge("module.update", { keys: { id: moduleId }, values: updates });
   if (viaBridge) return viaBridge;
   const client = getLegacyClient();
@@ -161,7 +161,7 @@ export async function createLegacySlide(slideData: {
   slide_number: number;
   slide_type?: string;
   image_url?: string;
-}): Promise<{ success: boolean; id?: string }> {
+}): Promise<{ success: boolean; id?: string; error?: string }> {
   // EADB column is `content`; `content_html` never existed there (inserts with it failed).
   const row = toSlideRow(slideData);
   const viaBridge = await viaLegacyBridge("slide.create", { values: row });
@@ -183,7 +183,7 @@ export async function updateLegacySlide(slideId: string, updates: Partial<{
   slide_number: number;
   slide_type: string;
   image_url: string;
-}>): Promise<{ success: boolean }> {
+}>): Promise<{ success: boolean; error?: string }> {
   const row = toSlideRow(updates);
   const viaBridge = await viaLegacyBridge("slide.update", { keys: { id: slideId }, values: row });
   if (viaBridge) return viaBridge;
@@ -194,7 +194,7 @@ export async function updateLegacySlide(slideId: string, updates: Partial<{
 }
 
 /** Delete a slide in legacy */
-export async function deleteLegacySlide(slideId: string): Promise<{ success: boolean }> {
+export async function deleteLegacySlide(slideId: string): Promise<{ success: boolean; error?: string }> {
   const viaBridge = await viaLegacyBridge("slide.delete", { keys: { id: slideId } });
   if (viaBridge) return viaBridge;
   const client = getLegacyClient();

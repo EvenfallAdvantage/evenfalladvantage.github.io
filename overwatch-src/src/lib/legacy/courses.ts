@@ -59,7 +59,7 @@ export async function enrollLegacyCourse(
   courseId: string,
   enrollmentType: "free" | "paid" = "free",
   amountPaid: number = 0
-): Promise<{ success: boolean }> {
+): Promise<{ success: boolean; error?: string }> {
   const client = getLegacyClient();
 
   const { error } = await client
@@ -91,7 +91,7 @@ export async function createLegacyCourse(courseData: {
   difficulty_level?: string;
   target_audience?: string;
   learning_objectives?: string[];
-}): Promise<{ success: boolean; id?: string }> {
+}): Promise<{ success: boolean; id?: string; error?: string }> {
   const viaBridge = await viaLegacyBridge("course.create", { values: courseData });
   if (viaBridge) return viaBridge;
   const client = getLegacyClient();
@@ -118,11 +118,21 @@ export async function updateLegacyCourse(courseId: string, updates: Partial<{
   is_active: boolean;
   is_featured: boolean;
   display_order: number;
-}>): Promise<{ success: boolean }> {
+}>): Promise<{ success: boolean; error?: string }> {
   const viaBridge = await viaLegacyBridge("course.update", { keys: { id: courseId }, values: updates });
   if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { error } = await client.from("courses").update(updates).eq("id", courseId);
   if (error) { console.error("Legacy: updateCourse error:", error); return { success: false }; }
   return { success: true };
+}
+
+/**
+ * Delete a course. Server-only (EADB has no anon/instructor DELETE policy on
+ * courses). The bridge refuses with `course_in_use` while students, payments or
+ * reviews reference it, because those rows would cascade away.
+ */
+export async function deleteLegacyCourse(courseId: string): Promise<{ success: boolean; error?: string }> {
+  const viaBridge = await viaLegacyBridge("course.delete", { keys: { id: courseId } });
+  return viaBridge ?? { success: false, error: "bridge_required" };
 }

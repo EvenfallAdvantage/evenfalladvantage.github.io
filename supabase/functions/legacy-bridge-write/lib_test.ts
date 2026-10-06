@@ -1,5 +1,8 @@
 import { assert, assertEquals, assertFalse } from "jsr:@std/assert@1";
-import { OPS, canManageLegacyCourses, certificateCodes, corsHeaders, isAllowed, originAllowed, validateArgs } from "./lib.ts";
+import {
+  CLASS_TYPES, OPS, canManageLegacyCourses, certificateCodes, corsHeaders, isAllowed, nextTotalQuestions, normalizeQuestions,
+  originAllowed, questionRows, rowsToQuestions, validateArgs,
+} from "./lib.ts";
 
 const U1 = "11111111-1111-4111-8111-111111111111";
 const U2 = "22222222-2222-4222-8222-222222222222";
@@ -54,7 +57,7 @@ Deno.test("slides, classes and attendance use the real EADB column names", () =>
   assert(validateArgs(OPS["slide.create"], { values: { module_id: U1, title: "T", slide_number: 1, content: "<p>x</p>", slide_type: "text" } }).ok);
   assertEquals(validateArgs(OPS["slide.update"], { keys: { id: U1 }, values: { content_html: "x" } }), { ok: false, error: "unknown_column:content_html" });
   assertEquals(validateArgs(OPS["slide.update"], { keys: { id: U1 }, values: { slide_type: "quiz" } }), { ok: false, error: "invalid_value:slide_type" });
-  assert(validateArgs(OPS["class.create"], { values: { instructor_id: U1, class_name: "A", scheduled_date: "2026-10-10", start_time: "09:00", capacity: 20 } }).ok);
+  assert(validateArgs(OPS["class.create"], { values: { instructor_id: U1, class_name: "A", scheduled_date: "2026-10-10", start_time: "09:00", end_time: "17:00", capacity: 20 } }).ok);
   assertEquals(validateArgs(OPS["class.create"], { values: { instructor_id: U1, class_name: "A", scheduled_date: "10/10/2026", start_time: "09:00" } }),
     { ok: false, error: "invalid_value:scheduled_date" });
   assertEquals(validateArgs(OPS["class.update"], { keys: { id: U1 }, values: { status: "deleted" } }), { ok: false, error: "invalid_value:status" });
@@ -91,4 +94,59 @@ Deno.test("args must be plain objects", () => {
   assertEquals(validateArgs(OPS["slide.delete"], []), { ok: false, error: "args_must_be_object" });
   assertEquals(validateArgs(OPS["slide.delete"], { keys: [] }), { ok: false, error: "args_must_be_object" });
   assert(validateArgs(OPS["slide.delete"], { keys: { id: U1 } }).ok);
+});
+
+// ── 2026-10-06 Instructor HQ fixes ──────────────────────────────────────────
+
+const Q = { question: "What is 2+2?", options: ["1", "2", "3", "4"], correctAnswer: 3, explanation: "basic" };
+
+Deno.test("class.create accepts class_type, falls back to 'training', rejects unknown types", () => {
+  const base = { instructor_id: U1, class_name: "Night shift", scheduled_date: "2026-10-20", start_time: "09:00", end_time: "11:00" };
+  assert(validateArgs(OPS["class.create"], { values: base }).ok, "class_type optional (server fallback)");
+  assertEquals(OPS["class.create"].fallbacks, { class_type: "training" });
+  for (const t of CLASS_TYPES) assert(validateArgs(OPS["class.create"], { values: { ...base, class_type: t } }).ok, t);
+  assertEquals(validateArgs(OPS["class.create"], { values: { ...base, class_type: "party" } }), { ok: false, error: "invalid_value:class_type" });
+  assert(validateArgs(OPS["class.update"], { keys: { id: U1 }, values: { class_type: "review" } }).ok);
+  const { end_time: _e, ...noEnd } = base;
+  assertEquals(validateArgs(OPS["class.create"], { values: noEnd }), { ok: false, error: "missing:end_time" }, "end_time is NOT NULL too");
+});
+
+Deno.test("course.delete needs a uuid key and nothing else", () => {
+  assertEquals(OPS["course.delete"].kind, "custom");
+  assert(validateArgs(OPS["course.delete"], { keys: { id: U1 } }).ok);
+  assertEquals(validateArgs(OPS["course.delete"], { keys: {} }), { ok: false, error: "invalid_key:id" });
+  assertEquals(validateArgs(OPS["course.delete"], { keys: { id: U1 }, values: { is_active: false } }), { ok: false, error: "unknown_column:is_active" });
+});
+
+Deno.test("assessment.set_questions validates the quiz", () => {
+  const ok = validateArgs(OPS["assessment.set_questions"], { keys: { id: U1 }, values: { questions: [Q] } });
+  assert(ok.ok);
+  if (ok.ok) assertEquals(ok.values.questions, [Q]);
+  const bad = (questions: unknown) => validateArgs(OPS["assessment.set_questions"], { keys: { id: U1 }, values: { questions } });
+  assertEquals(bad([]), { ok: false, error: "invalid_value:questions" }, "at least one question");
+  assertEquals(bad([{ ...Q, options: ["a", "b", "c"] }]), { ok: false, error: "invalid_value:questions" }, "exactly 4 options");
+  assertEquals(bad([{ ...Q, options: ["a", "b", "c", " "] }]), { ok: false, error: "invalid_value:questions" }, "no blank option");
+  assertEquals(bad([{ ...Q, correctAnswer: 4 }]), { ok: false, error: "invalid_value:questions" });
+  assertEquals(bad([{ ...Q, question: "" }]), { ok: false, error: "invalid_value:questions" });
+  assertEquals(bad(Array(201).fill(Q)), { ok: false, error: "invalid_value:questions" });
+  assertEquals(validateArgs(OPS["assessment.set_questions"], { keys: { id: U1 }, values: {} }), { ok: false, error: "missing:questions" });
+  assertEquals(validateArgs(OPS["assessment.get_questions"], { keys: { id: "nope" } }), { ok: false, error: "invalid_key:id" });
+});
+
+Deno.test("questions <-> assessment_questions rows round-trip", () => {
+  const qs = normalizeQuestions([Q, { question: " Q2 ", options: ["a", "b", "c", "d"], correctAnswer: 0 }])!;
+  assertEquals(qs[1].question, "Q2");
+  const rows = questionRows(U2, qs);
+  assertEquals(rows[0], { assessment_id: U2, question_number: 1, question_text: "What is 2+2?", option_a: "1", option_b: "2",
+    option_c: "3", option_d: "4", correct_answer: "D", explanation: "basic" });
+  assertEquals(rows[1].correct_answer, "A");
+  assertEquals(rows[1].explanation, null);
+  assertEquals(rowsToQuestions([...rows].reverse()), qs, "sorted by question_number");
+});
+
+Deno.test("total_questions keeps the per-attempt count unless the bank shrank below it", () => {
+  assertEquals(nextTotalQuestions(15, 20), 15);
+  assertEquals(nextTotalQuestions(10, 5), 5);
+  assertEquals(nextTotalQuestions(0, 7), 7);
+  assertEquals(nextTotalQuestions(null, 7), 7);
 });
