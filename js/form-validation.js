@@ -3,17 +3,22 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Hidden anti-spam field added to each form (see injectHoneypot below).
+    const LEAD_HONEYPOT_FIELD = 'company_website';
+
     // Get all forms
     const forms = document.querySelectorAll('.estimate-form');
     
     forms.forEach(form => {
+        injectHoneypot(form);
+
         // Add submission handler
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
             // Run validation
             if (validateForm(form)) {
-                // If validation passes, simulate form submission
+                // If validation passes, send the request to the lead intake backend
                 handleFormSubmission(form);
             }
         });
@@ -27,6 +32,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    /**
+     * Adds a visually hidden text input that humans never fill in. Bots that
+     * auto-complete every field reveal themselves; their submissions are dropped.
+     * @param {HTMLFormElement} form
+     */
+    function injectHoneypot(form) {
+        if (form.querySelector(`[name="${LEAD_HONEYPOT_FIELD}"]`)) return;
+        const wrap = document.createElement('div');
+        wrap.setAttribute('aria-hidden', 'true');
+        wrap.style.cssText = 'position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = LEAD_HONEYPOT_FIELD;
+        input.tabIndex = -1;
+        input.autocomplete = 'off';
+        wrap.appendChild(input);
+        form.appendChild(wrap);
+    }
+
     /**
      * Validates an individual form field
      * @param {HTMLElement} field - The field to validate
@@ -127,95 +151,210 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
-     * Handles form submission
-     * @param {HTMLFormElement} form - The form being submitted
+     * Collects form values, preserving multi-select checkbox groups as arrays.
+     * @param {HTMLFormElement} form
+     * @return {Object}
      */
-    function handleFormSubmission(form) {
-        // Get form ID to determine which form was submitted
-        const formId = form.id;
-        
-        // Get form data
-        const formData = new FormData(form);
+    function collectFormValues(form) {
         const formValues = {};
-        
-        // Handle form data entries, properly collecting multiple values for checkboxes
-        for (const [key, value] of formData.entries()) {
-            // If this is a checkbox (we're checking if the same key appears multiple times)
-            if (formValues.hasOwnProperty(key)) {
-                // If it's the first duplicate, convert to array
+        for (const [key, value] of new FormData(form).entries()) {
+            if (key === LEAD_HONEYPOT_FIELD) continue;
+            if (Object.prototype.hasOwnProperty.call(formValues, key)) {
                 if (!Array.isArray(formValues[key])) {
                     formValues[key] = [formValues[key]];
                 }
-                // Add the new value to the array
                 formValues[key].push(value);
             } else {
-                // First time seeing this key
                 formValues[key] = value;
             }
         }
-        
-        // Determine which form was submitted to create appropriate subject line
-        let subject = 'Estimate Request';
-        let formType = '';
-        
-        if (formId === 'security-consulting-form') {
-            subject = 'Security Consulting - Estimate Request';
-            formType = 'Security Consulting';
-        } else if (formId === 'training-form') {
-            subject = 'Training & Certification - Estimate Request';
-            formType = 'Training & Certification';
-        } else if (formId === 'festival-venue-form') {
-            subject = 'Festival & Venue Safety - Estimate Request';
-            formType = 'Festival & Venue Safety';
-        } else if (formId === 'emergency-planning-form') {
-            subject = 'Emergency Response Planning - Estimate Request';
-            formType = 'Emergency Response Planning';
+        return formValues;
+    }
+
+    /**
+     * Maps a form id to a human-readable service name.
+     * (Each form's id is set in forms/*.html.)
+     */
+    function getFormType(formId) {
+        switch (formId) {
+            case 'security-consulting-form': return 'Security Consulting';
+            case 'training-form': return 'Training & Certification';
+            case 'venue-safety-form':
+            case 'festival-venue-form': return 'Festival & Venue Safety';
+            case 'emergency-planning-form': return 'Emergency Response Planning';
+            default: return 'General';
         }
-        
-        // Construct email body
-        let emailBody = `${formType.toUpperCase()} ESTIMATE REQUEST\n\n`;
-        
-        // Add form values to email body
+    }
+
+    /** Plain-text summary used by the manual fallback (copy / email link). */
+    function buildSummary(formType, formValues) {
+        let body = `${formType.toUpperCase()} ESTIMATE REQUEST\n\n`;
         for (const [key, value] of Object.entries(formValues)) {
-            if (value) {
-                // Format the field name for readability
-                const fieldName = key.replace(/-/g, ' ')
-                    .replace(/(^|\s)\S/g, function(t) { return t.toUpperCase(); });
-                
-                // Handle arrays (multiple checkbox selections)
-                if (Array.isArray(value)) {
-                    emailBody += `${fieldName}: ${value.join(', ')}\n`;
-                } else {
-                    emailBody += `${fieldName}: ${value}\n`;
-                }
+            if (!value || (Array.isArray(value) && value.length === 0)) continue;
+            const fieldName = key.replace(/-/g, ' ').replace(/(^|\s)\S/g, t => t.toUpperCase());
+            body += `${fieldName}: ${Array.isArray(value) ? value.join(', ') : value}\n`;
+        }
+        return body;
+    }
+
+    /**
+     * Builds the JSON payload for the Overwatch `intake-ingest` edge function.
+     * Canonical keys (client_name, client_email, client_phone, service, location,
+     * message, start_date, notes) are populated so a company field mapping of
+     * key -> same key picks them up; every original field is also sent so
+     * nothing is lost (the function stores the full body in raw_payload).
+     */
+    function buildLeadPayload(formType, formValues) {
+        const first = (...keys) => {
+            for (const k of keys) {
+                const v = formValues[k];
+                if (v && !Array.isArray(v) && String(v).trim()) return String(v).trim();
+            }
+            return undefined;
+        };
+        const join = v => (Array.isArray(v) ? v.join(', ') : v);
+        const fields = {};
+        for (const [k, v] of Object.entries(formValues)) fields[k] = join(v);
+
+        return {
+            client_name: first('full-name'),
+            client_email: first('email'),
+            client_phone: first('phone'),
+            service: formType,
+            location: first('location', 'training-location', 'locations'),
+            start_date: first('event-date', 'preferred-date'),
+            message: first('description'),
+            notes: first('specific-concerns', 'specific-goals', 'additional-info'),
+            subject: `${formType} - Estimate Request`,
+            organization: first('company', 'organization'),
+            source: 'evenfalladvantage.com estimate form',
+            page: window.location.pathname,
+            ...fields
+        };
+    }
+
+    /** Returns the configured intake endpoint, or null if not configured. */
+    function getLeadConfig() {
+        const cfg = window.EVENFALL_LEAD_INTAKE || {};
+        if (!cfg.endpoint || !cfg.apiKey) return null;
+        return cfg;
+    }
+
+    async function postLead(cfg, payload) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 15000);
+        try {
+            const res = await fetch(cfg.endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${cfg.apiKey}`
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+            if (!res.ok) throw new Error(`Lead intake returned ${res.status}`);
+            return true;
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+    function showSuccess(form) {
+        const container = form.closest('.form-container') || form.parentElement;
+        const success = container.querySelector('.form-success');
+        form.style.display = 'none';
+        if (success) {
+            success.style.display = 'block';
+            success.setAttribute('role', 'status');
+            success.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+    /**
+     * Shown only when the request could not be delivered automatically
+     * (backend not configured, offline, or server error). The visitor keeps
+     * their answers and can send them manually; nothing opens on its own.
+     */
+    function showFallback(form, subject, summary) {
+        const container = form.closest('.form-container') || form.parentElement;
+        let box = container.querySelector('.form-fallback');
+        if (!box) {
+            box = document.createElement('div');
+            box.className = 'form-fallback error-message';
+            box.setAttribute('role', 'alert');
+            form.insertAdjacentElement('afterend', box);
+        }
+        const mailto = `mailto:contact@evenfalladvantage.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(summary)}`;
+        box.innerHTML = '';
+        const p = document.createElement('p');
+        p.textContent = 'We could not send your request automatically. Your answers are still in the form. Please try again, or send them to contact@evenfalladvantage.com:';
+        const actions = document.createElement('p');
+        const emailLink = document.createElement('a');
+        emailLink.href = mailto;
+        emailLink.textContent = 'Email this request';
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'submit-button';
+        copyBtn.style.marginLeft = '1rem';
+        copyBtn.textContent = 'Copy details';
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(summary);
+                copyBtn.textContent = 'Copied';
+            } catch (err) {
+                copyBtn.textContent = 'Copy failed';
+            }
+        });
+        actions.appendChild(emailLink);
+        actions.appendChild(copyBtn);
+        box.appendChild(p);
+        box.appendChild(actions);
+        box.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /**
+     * Handles form submission: POSTs the lead to the backend without opening
+     * the visitor's email client.
+     * @param {HTMLFormElement} form - The form being submitted
+     */
+    async function handleFormSubmission(form) {
+        // Simple bot trap: real visitors never see or fill the honeypot.
+        const trap = form.querySelector(`[name="${LEAD_HONEYPOT_FIELD}"]`);
+        if (trap && trap.value) {
+            showSuccess(form);
+            return;
+        }
+
+        const formType = getFormType(form.id);
+        const subject = `${formType} - Estimate Request`;
+        const formValues = collectFormValues(form);
+        const summary = buildSummary(formType, formValues);
+        const submitBtn = form.querySelector('[type="submit"]');
+        const originalLabel = submitBtn ? submitBtn.textContent : '';
+
+        const cfg = getLeadConfig();
+        if (!cfg) {
+            console.warn('[estimate-form] Lead intake not configured (js/lead-config.js); showing manual fallback.');
+            showFallback(form, subject, summary);
+            return;
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+        }
+        try {
+            await postLead(cfg, buildLeadPayload(formType, formValues));
+            showSuccess(form);
+        } catch (err) {
+            console.error('[estimate-form] Submission failed:', err);
+            showFallback(form, subject, summary);
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalLabel;
             }
         }
-        
-        // Create mailto URL
-        const mailtoURL = `mailto:contact@evenfalladvantage.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-        
-        // Open email client
-        window.location.href = mailtoURL;
-        
-        // Hide the form
-        form.style.display = 'none';
-        
-        // Show success message
-        const formContainer = document.querySelector('.form-container');
-        const successMessage = document.createElement('div');
-        successMessage.className = 'form-success';
-        
-        successMessage.innerHTML = `
-            <h3>Thank You!</h3>
-            <p>Your email client has been opened with your estimate request. Please send the email to complete your submission.</p>
-            <p>We typically respond to estimate requests within 1-2 business days.</p>
-            <p><a href="../index.html">Return to homepage</a></p>
-            <p><small>If your email client did not open, please contact us directly at contact@evenfalladvantage.com</small></p>
-        `;
-        
-        formContainer.appendChild(successMessage);
-        
-        // Scroll to top of the form container
-        formContainer.scrollIntoView({ behavior: 'smooth' });
     }
 });
