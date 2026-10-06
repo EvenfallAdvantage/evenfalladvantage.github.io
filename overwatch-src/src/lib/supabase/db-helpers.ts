@@ -119,6 +119,37 @@ async function _ensureInternalUserCore(): Promise<string | null> {
   return created.id;
 }
 
+/** Buckets that used to be public and are now private (signed URLs only). */
+const NOW_PRIVATE_BUCKETS = ["certifications", "operation-maps"];
+
+/**
+ * Turn a stored file reference into something a browser can load.
+ * - Legacy public URLs for buckets that are now private
+ *   (".../storage/v1/object/public/<bucket>/<path>") are converted to signed URLs.
+ * - "bucket/path" references are signed (see getSignedFileUrl).
+ * - Any other http(s) URL is returned unchanged.
+ * Returns null for empty input or when signing fails (caller shows a fallback).
+ */
+export async function resolveStorageUrl(
+  ref: string | null | undefined,
+  expiresIn = 3600,
+): Promise<string | null> {
+  if (!ref) return null;
+  const m = ref.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/?#]+)\/([^?#]+)/);
+  if (m && NOW_PRIVATE_BUCKETS.includes(m[1])) {
+    try {
+      return await getSignedFileUrl(`${m[1]}/${decodeURIComponent(m[2])}`, expiresIn);
+    } catch {
+      return null;
+    }
+  }
+  try {
+    return await getSignedFileUrl(ref, expiresIn);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Generate a signed URL for a private storage object.
  * Path format: "bucket-name/path/to/file" — splits on first "/" to get bucket + path.

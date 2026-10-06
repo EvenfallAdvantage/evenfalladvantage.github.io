@@ -18,6 +18,7 @@ import {
   clearInternalUserCache,
   ensureInternalUser,
   getSignedFileUrl,
+  resolveStorageUrl,
 } from "@/lib/supabase/db-helpers";
 
 // ---------------------------------------------------------------------------
@@ -232,5 +233,52 @@ describe("getSignedFileUrl()", () => {
 
     const bucket = (mockClient.storage.from as Mock)();
     expect(bucket.createSignedUrl).toHaveBeenCalledWith("file.txt", 7200);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveStorageUrl()
+// ---------------------------------------------------------------------------
+
+describe("resolveStorageUrl()", () => {
+  it("returns null for empty input", async () => {
+    expect(await resolveStorageUrl(null)).toBeNull();
+    expect(await resolveStorageUrl("")).toBeNull();
+  });
+
+  it("signs legacy public URLs for buckets that are now private", async () => {
+    setMockResponse({ data: { signedUrl: "https://signed.url/map" }, error: null });
+    const url = "https://proj.supabase.co/storage/v1/object/public/operation-maps/co-1/ev-1/site%20map.png";
+    const result = await resolveStorageUrl(url, 86400);
+
+    expect(mockClient.storage.from).toHaveBeenCalledWith("operation-maps");
+    const bucket = (mockClient.storage.from as Mock)();
+    expect(bucket.createSignedUrl).toHaveBeenCalledWith("co-1/ev-1/site map.png", 86400);
+    expect(result).toBe("https://signed.url/map");
+  });
+
+  it("signs legacy certification URLs", async () => {
+    setMockResponse({ data: { signedUrl: "https://signed.url/cert" }, error: null });
+    const result = await resolveStorageUrl("https://proj.supabase.co/storage/v1/object/public/certifications/uid/c.pdf");
+    expect(mockClient.storage.from).toHaveBeenCalledWith("certifications");
+    expect(result).toBe("https://signed.url/cert");
+  });
+
+  it("leaves public URLs of other buckets untouched", async () => {
+    const url = "https://proj.supabase.co/storage/v1/object/public/company-logos/co-1/logo.png";
+    expect(await resolveStorageUrl(url)).toBe(url);
+    expect(mockClient.storage.from).not.toHaveBeenCalled();
+  });
+
+  it("signs bucket/path references", async () => {
+    setMockResponse({ data: { signedUrl: "https://signed.url/doc" }, error: null });
+    expect(await resolveStorageUrl("applicant-documents/co/app/x.pdf")).toBe("https://signed.url/doc");
+  });
+
+  it("returns null instead of throwing when signing fails", async () => {
+    const bucket = (mockClient.storage.from as Mock)();
+    (bucket.createSignedUrl as Mock).mockResolvedValueOnce({ data: null, error: { message: "nope" } });
+    (mockClient.storage.from as Mock).mockReturnValueOnce(bucket);
+    expect(await resolveStorageUrl("https://proj.supabase.co/storage/v1/object/public/certifications/u/c.pdf")).toBeNull();
   });
 });

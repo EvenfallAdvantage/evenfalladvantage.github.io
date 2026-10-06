@@ -120,3 +120,34 @@ describe("Role Hierarchy Integrity", () => {
     expect(hasMinRole("owner", "admin")).toBe(true);
   });
 });
+
+// Mirrors the server-side rule in update_member_role / create_roster_member
+describe("role assignment rule (one level below your own)", () => {
+  it("owner can assign everything below owner", async () => {
+    const { assignableRoles } = await import("@/lib/permissions");
+    expect(assignableRoles("owner")).toEqual(["admin", "instructor", "manager", "lead", "breaker", "staff", "client"]);
+  });
+  it("admin can assign up to instructor", async () => {
+    const { assignableRoles } = await import("@/lib/permissions");
+    expect(assignableRoles("admin")[0]).toBe("instructor");
+    expect(assignableRoles("admin")).not.toContain("admin");
+  });
+  it("manager can assign up to lead", async () => {
+    const { assignableRoles } = await import("@/lib/permissions");
+    expect(assignableRoles("manager")).toEqual(["lead", "breaker", "staff", "client"]);
+  });
+  it("instructor, lead and below cannot assign roles", async () => {
+    const { assignableRoles } = await import("@/lib/permissions");
+    for (const r of ["instructor", "lead", "breaker", "staff", "client"]) expect(assignableRoles(r)).toEqual([]);
+  });
+  it("can only change members ranked below you", async () => {
+    const { canChangeRoleOf } = await import("@/lib/permissions");
+    expect(canChangeRoleOf("manager", "staff")).toBe(true);
+    expect(canChangeRoleOf("manager", "manager")).toBe(false);
+    expect(canChangeRoleOf("manager", "instructor")).toBe(false);
+    expect(canChangeRoleOf("admin", "instructor")).toBe(true);
+    expect(canChangeRoleOf("admin", "admin")).toBe(false);
+    expect(canChangeRoleOf("owner", "owner")).toBe(false);
+    expect(canChangeRoleOf("lead", "staff")).toBe(false);
+  });
+});

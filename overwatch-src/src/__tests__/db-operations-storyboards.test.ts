@@ -14,6 +14,8 @@ vi.mock("@/lib/supabase/client", () => ({
 vi.mock("@/lib/supabase/db-helpers", () => ({
   ts: () => ({ created_at: "2026-01-01T00:00:00.000Z", updated_at: "2026-01-01T00:00:00.000Z" }),
   ensureInternalUser: vi.fn(),
+  // Pass-through: signing is covered in db-helpers.test.ts
+  resolveStorageUrl: vi.fn(async (ref: string | null) => ref ?? null),
 }));
 
 vi.mock("@/lib/supabase/db-error", () => ({

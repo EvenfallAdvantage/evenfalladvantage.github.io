@@ -1,5 +1,5 @@
 import { createClient } from "./client";
-import { ts } from "./db-helpers";
+import { ts, resolveStorageUrl } from "./db-helpers";
 import { logDbReadError } from "./db-error";
 import { formatMemberName } from "@/lib/format-names";
 
@@ -167,7 +167,8 @@ export async function getEventSiteMapUrl(eventId: string): Promise<string | null
     .eq("id", eventId)
     .maybeSingle();
   if (error) { logDbReadError("site map URL", error); return null; }
-  return data?.site_map_url ?? null;
+  // operation-maps is private now: hand back a signed URL.
+  return resolveStorageUrl(data?.site_map_url ?? null, 24 * 3600);
 }
 
 // ─── Operation Activity Feed ─────────────────────────

@@ -390,7 +390,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
               <>
                 <div>
                   <label className="text-xs font-medium text-white/60 block mb-1">Company code</label>
-                  <input type="text" placeholder="e.g. S7WJ7V" value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value.toUpperCase())} required
+                  <input type="text" placeholder="e.g. K7WQ4M9TXR" value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value.toUpperCase())} required
                     className="w-full h-10 rounded-lg border border-[#dd8c33]/30 bg-[#dd8c33]/10 px-3 text-sm text-white font-mono text-center tracking-widest outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
                   <p className="text-[10px] text-white/30 mt-1">Enter the code provided by your manager or company admin.</p>
                 </div>

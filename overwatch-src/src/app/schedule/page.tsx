@@ -28,6 +28,7 @@ import { ArmoryTab } from "./components/armory-tab";
 import { ShiftSwapTab } from "./components/shift-swap-tab";
 import { logger } from "@/lib/logger";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { resolveStorageUrl } from "@/lib/supabase/db-helpers";
 
 const TacticalMap = dynamic(() => import("@/components/tactical-map").then(m => ({ default: m.TacticalMap })), { ssr: false, loading: () => <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
@@ -123,7 +124,11 @@ export default function SchedulePage() {
           geofenceRadius: ev.geofence_radius_meters ?? undefined,
           siteMapUrl: ev.site_map_url ?? null,
         }));
-      setMapOps(ops);
+      // operation-maps is private: swap stored public URLs for signed ones (24h).
+      const signedOps = await Promise.all(ops.map(async (op) => (
+        op.siteMapUrl ? { ...op, siteMapUrl: await resolveStorageUrl(op.siteMapUrl, 24 * 3600) } : op
+      )));
+      setMapOps(signedOps);
 
       const [staffLocs, incidentsRaw, teamsList] = await Promise.all([
         getStaffLocations(activeCompanyId),

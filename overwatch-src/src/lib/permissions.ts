@@ -70,3 +70,26 @@ export const ROLE_LABELS: Record<CompanyRole, string> = {
   staff: "Staff",
   client: "Client",
 };
+
+// ─── Role assignment rule (mirrors the DB: update_member_role / create_roster_member) ───
+// Owners, admins and managers may assign roles up to ONE level below their own
+// (owner -> admin, admin -> instructor, manager -> lead) and may only change
+// members ranked strictly below them. Nobody can change their own role, and
+// 'owner' cannot be granted from the app.
+const ROLES_BY_RANK: CompanyRole[] = ["owner", "admin", "instructor", "manager", "lead", "breaker", "staff", "client"];
+
+function rankOf(role: string): number {
+  return ROLE_HIERARCHY[role as CompanyRole] ?? 0;
+}
+
+/** Roles a member with `myRole` may assign (highest first). Empty if they cannot assign roles. */
+export function assignableRoles(myRole: string): CompanyRole[] {
+  if (myRole !== "owner" && myRole !== "admin" && myRole !== "manager") return [];
+  const myRank = rankOf(myRole);
+  return ROLES_BY_RANK.filter((r) => rankOf(r) < myRank);
+}
+
+/** Whether `myRole` may change the role of a member currently holding `targetRole`. */
+export function canChangeRoleOf(myRole: string, targetRole: string): boolean {
+  return assignableRoles(myRole).length > 0 && rankOf(targetRole) < rankOf(myRole);
+}
