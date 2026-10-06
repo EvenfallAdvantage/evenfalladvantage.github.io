@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MOBILE_NAV_ITEMS } from "./nav-items";
-import { useAuthStore } from "@/stores/auth-store";
+import { MOBILE_NAV_ITEMS, OFFICER_MOBILE_NAV_ITEMS, OFFICER_ROLES } from "./nav-items";
+import { useAuthStore, useActiveCompany } from "@/stores/auth-store";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
@@ -13,6 +13,7 @@ import {
   Clock,
   AlertTriangle,
   Menu,
+  Footprints,
   ShieldAlert,
   Loader2,
   type LucideIcon,
@@ -24,12 +25,21 @@ const MOBILE_ICON_MAP: Record<string, LucideIcon> = {
   Clock,
   AlertTriangle,
   Menu,
+  Footprints,
 };
 
 export function MobileNav() {
   const pathname = usePathname();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const [sosFiring, setSosFiring] = useState(false);
+  const activeCompany = useActiveCompany();
+  const role = activeCompany?.role ?? "";
+  const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
+  const isOfficer = (OFFICER_ROLES as readonly string[]).includes(role);
+  // Officers get Clock / Patrol / Report / Chat / More. If the company has
+  // switched off Patrols, fall back to the standard nav.
+  const navItems =
+    isOfficer && !hiddenTabs.has("/patrols") ? OFFICER_MOBILE_NAV_ITEMS : MOBILE_NAV_ITEMS;
 
   async function handleSOS() {
     if (!activeCompanyId || sosFiring) return;
@@ -51,7 +61,7 @@ export function MobileNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-border/50 bg-background/95 backdrop-blur-xl md:hidden safe-area-bottom">
-      {MOBILE_NAV_ITEMS.map((item) => {
+      {navItems.map((item) => {
         const Icon = MOBILE_ICON_MAP[item.icon];
         const isActive =
           pathname === item.href || pathname.startsWith(item.href + "/");

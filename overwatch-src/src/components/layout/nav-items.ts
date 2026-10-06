@@ -115,3 +115,20 @@ export const MOBILE_NAV_ITEMS: NavItem[] = [
   { title: "Comms", href: "/chat", icon: "Radio" },
   { title: "More", href: "/more", icon: "Menu" },
 ];
+
+/**
+ * Simplified bottom nav for field officers (staff / breaker / lead): the four
+ * things they do on shift (clock, patrol, report, chat) plus More. Dashboard
+ * and everything else stays reachable from More. Managers and above keep
+ * MOBILE_NAV_ITEMS.
+ */
+export const OFFICER_MOBILE_NAV_ITEMS: NavItem[] = [
+  { title: "Clock", href: "/timeclock", icon: "Clock" },
+  { title: "Patrol", href: "/patrols", icon: "Footprints" },
+  { title: "Report", href: "/incidents", icon: "AlertTriangle" },
+  { title: "Chat", href: "/chat", icon: "Radio" },
+  { title: "More", href: "/more", icon: "Menu" },
+];
+
+/** Roles that get the officer-focused bottom nav. */
+export const OFFICER_ROLES = ["staff", "breaker", "lead"] as const;
