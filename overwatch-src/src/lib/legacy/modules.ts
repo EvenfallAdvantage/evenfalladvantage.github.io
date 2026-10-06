@@ -1,4 +1,5 @@
 import { getLegacyClient } from "./client";
+import { viaLegacyBridge } from "./bridge";
 import type { LegacyModule, LegacySlide, LegacyModuleProgress } from "./types";
 
 /** Get all training modules from legacy */
@@ -117,6 +118,8 @@ export async function createLegacyModule(moduleData: {
   duration_minutes?: number;
   default_course_id?: string;
 }): Promise<{ success: boolean; id?: string }> {
+  const viaBridge = await viaLegacyBridge("module.create", { values: moduleData });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { data, error } = await client
     .from("training_modules")
@@ -136,10 +139,18 @@ export async function updateLegacyModule(moduleId: string, updates: Partial<{
   is_active: boolean;
   display_order: number;
 }>): Promise<{ success: boolean }> {
+  const viaBridge = await viaLegacyBridge("module.update", { keys: { id: moduleId }, values: updates });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { error } = await client.from("training_modules").update(updates).eq("id", moduleId);
   if (error) { console.error("Legacy: updateModule error:", error); return { success: false }; }
   return { success: true };
+}
+
+/** Map the Overwatch slide shape to EADB module_slides columns (content_html -> content). */
+export function toSlideRow<T extends { content_html?: string }>(slide: T): Omit<T, "content_html"> & { content?: string } {
+  const { content_html, ...rest } = slide;
+  return content_html === undefined ? rest : { ...rest, content: content_html };
 }
 
 /** Create a slide in legacy */
@@ -151,10 +162,14 @@ export async function createLegacySlide(slideData: {
   slide_type?: string;
   image_url?: string;
 }): Promise<{ success: boolean; id?: string }> {
+  // EADB column is `content`; `content_html` never existed there (inserts with it failed).
+  const row = toSlideRow(slideData);
+  const viaBridge = await viaLegacyBridge("slide.create", { values: row });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { data, error } = await client
     .from("module_slides")
-    .insert(slideData)
+    .insert(row)
     .select("id")
     .single();
   if (error) { console.error("Legacy: createSlide error:", error); return { success: false }; }
@@ -169,14 +184,19 @@ export async function updateLegacySlide(slideId: string, updates: Partial<{
   slide_type: string;
   image_url: string;
 }>): Promise<{ success: boolean }> {
+  const row = toSlideRow(updates);
+  const viaBridge = await viaLegacyBridge("slide.update", { keys: { id: slideId }, values: row });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
-  const { error } = await client.from("module_slides").update(updates).eq("id", slideId);
+  const { error } = await client.from("module_slides").update(row).eq("id", slideId);
   if (error) { console.error("Legacy: updateSlide error:", error); return { success: false }; }
   return { success: true };
 }
 
 /** Delete a slide in legacy */
 export async function deleteLegacySlide(slideId: string): Promise<{ success: boolean }> {
+  const viaBridge = await viaLegacyBridge("slide.delete", { keys: { id: slideId } });
+  if (viaBridge) return viaBridge;
   const client = getLegacyClient();
   const { error } = await client.from("module_slides").delete().eq("id", slideId);
   if (error) { console.error("Legacy: deleteSlide error:", error); return { success: false }; }

@@ -63,6 +63,8 @@ jobs:
           NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID: ${{ secrets.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID }}
           NEXT_PUBLIC_LEGACY_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_LEGACY_SUPABASE_URL }}
           NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY }}
+          # Empty = "auto" (legacy-bridge-write with direct fallback). Set the repo variable to "server" after the EADB migration.
+          NEXT_PUBLIC_LEGACY_BRIDGE_MODE: ${{ vars.NEXT_PUBLIC_LEGACY_BRIDGE_MODE }}
         run: npm run build
 
       - name: Inject build hash into service worker
