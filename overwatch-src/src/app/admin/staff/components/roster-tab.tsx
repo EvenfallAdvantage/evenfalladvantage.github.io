@@ -18,6 +18,7 @@ import { createRosterMember } from "@/lib/supabase/db-users";
 import { createClient } from "@/lib/supabase/client";
 import RosterBulkEmailModal from "@/components/roster/roster-bulk-email-modal";
 import { updateMemberPayRate } from "@/lib/supabase/db-pay";
+import { assignableRoles, canChangeRoleOf } from "@/lib/permissions";
 import { exportCSV, MEMBER_COLUMNS } from "@/lib/csv-export";
 import { parseCSVRaw, applyMapping, validateStaffRows, type StaffImportRow } from "@/lib/csv-import";
 import { bulkCreateApplicants } from "@/lib/supabase/db-onboarding";
@@ -137,7 +138,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
     lastName: string;
     email: string;
     phone: string;
-    role: "staff" | "manager" | "admin" | "lead" | "breaker";
+    role: "staff" | "manager" | "admin" | "instructor" | "lead" | "breaker";
     sendInvite: boolean;
   }>({
     firstName: "",
@@ -714,13 +715,13 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                   }))}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
               >
-                <option value="staff">Staff</option>
-                <option value="lead">Lead</option>
-                <option value="breaker">Breaker</option>
-                {/* Only owners can promote to admin/manager via the add UI;
-                    we don't gate the SELECT here because the RPC re-checks. */}
-                {myRole === "owner" && <option value="manager">Manager</option>}
-                {myRole === "owner" && <option value="admin">Admin</option>}
+                {/* Same rule as the server (create_roster_member): up to one
+                    role below your own. The RPC re-checks. */}
+                {assignableRoles(myRole)
+                  .filter((r) => r !== "client")
+                  .map((r) => (
+                    <option key={r} value={r} className="capitalize">{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+                  ))}
               </select>
             </div>
           </div>
@@ -867,12 +868,12 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                   </div>
                   <div className="relative shrink-0">
                     {(() => {
-                      const roleOptions = myRole === "owner"
-                        ? ["owner", "admin", "instructor", "manager", "lead", "breaker", "staff"]
-                        : myRole === "admin"
-                          ? ["admin", "instructor", "manager", "lead", "breaker", "staff"]
-                          : ["manager", "lead", "breaker", "staff"];
-                      const canEdit = canManageRoles && roleOptions.includes(m.role);
+                      // Server rule (update_member_role): only members ranked
+                      // below you, only roles up to one level below yours.
+                      const roleOptions: string[] = assignableRoles(myRole)
+                        .filter((r) => r !== "client" || m.role === "client");
+                      const isSelf = !!currentUserId && (m.user_id || u?.id) === currentUserId;
+                      const canEdit = canManageRoles && !isSelf && canChangeRoleOf(myRole, m.role);
                       return canEdit ? (
                         <>
                           <select value={m.role}
