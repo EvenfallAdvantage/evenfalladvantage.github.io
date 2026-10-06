@@ -34,6 +34,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { loadTransformers } from "./transformers-loader";
 
 const MODEL_ID = "onnx-community/pyannote-segmentation-3.0";
 
@@ -95,7 +96,7 @@ export async function loadDiarization(onProgress?: ProgressCallback): Promise<vo
     onProgress?.({ status: "loading", message: "Initializing speaker detection..." });
 
     const { AutoModelForAudioFrameClassification, AutoProcessor, env } =
-      await import("@huggingface/transformers");
+      await loadTransformers();
 
     env.allowLocalModels = false;
 

@@ -7,6 +7,7 @@
  * This module is loaded lazily — it is NOT included in the main bundle.
  * Import it dynamically: `const { transcribe } = await import("@/lib/speech/whisper-engine")`
  */
+import { loadTransformers } from "./transformers-loader";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let pipelineInstance: any = null;
@@ -62,8 +63,9 @@ export async function loadModel(onProgress?: ProgressCallback): Promise<void> {
   loadingPromise = (async () => {
     onProgress?.({ status: "loading", message: "Initializing speech engine..." });
 
-    // Dynamic import to keep the main bundle small
-    const { pipeline, env } = await import("@huggingface/transformers");
+    // Loaded on demand from a pinned CDN build (keeps the 26 MB ONNX WASM
+    // out of the static build). See transformers-loader.ts.
+    const { pipeline, env } = await loadTransformers();
 
     // Use remote models from HuggingFace Hub (cached by the browser)
     env.allowLocalModels = false;
