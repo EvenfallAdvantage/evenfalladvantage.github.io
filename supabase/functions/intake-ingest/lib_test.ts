@@ -106,3 +106,14 @@ Deno.test("email: escapes HTML and strips newlines from the subject", () => {
   assertEquals(e.html.includes("<img src=x"), false);
   assert(e.html.includes("&lt;script&gt;"));
 });
+
+Deno.test("email: footer says replies reach the visitor only when they gave an email", () => {
+  const base = { companyName: "Evenfall", extra: {}, submissionId: "s-2", appUrl: "https://x.test/overwatch" };
+  const withEmail = buildLeadEmail({ ...base, canonical: { client_name: "Eve", client_email: "eve@example.com" } });
+  assert(withEmail.html.includes("goes straight to the visitor"));
+  assert(withEmail.text.includes("goes straight to the visitor"));
+  assertEquals(withEmail.html.includes("does not reach"), false);
+  const phoneOnly = buildLeadEmail({ ...base, canonical: { client_name: "Eve", client_phone: "555-0100" } });
+  assert(phoneOnly.html.includes("left no email address"));
+  assertEquals(phoneOnly.html.includes("goes straight to the visitor"), false);
+});

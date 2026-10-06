@@ -263,17 +263,21 @@ export function buildLeadEmail(params: {
     `<tr><td style="padding:4px 12px 4px 0;color:#666;vertical-align:top">${escapeHtml(k)}</td>` +
     `<td style="padding:4px 0;white-space:pre-wrap">${escapeHtml(v)}</td></tr>`).join("");
   const link = `${params.appUrl.replace(/\/$/, "")}/admin/events/`;
+  // index.ts sets Reply-To to the visitor's address when they gave one.
+  const replyNote = c.client_email
+    ? "Replying to this email goes straight to the visitor (Reply-To is their address)."
+    : "The visitor left no email address; use the contact details above.";
   const html =
     `<div style="font-family:system-ui,Arial,sans-serif;font-size:14px;color:#111">` +
     `<p>A new lead was submitted to <strong>${escapeHtml(params.companyName)}</strong>.</p>` +
     `<table style="border-collapse:collapse">${htmlRows}</table>` +
     `<p style="margin-top:16px">Open Overwatch to follow up: <a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>` +
     `<p style="color:#888;font-size:12px">Submission ${escapeHtml(params.submissionId)}. ` +
-    `Replying to this email does not reach the visitor; use their contact details above.</p></div>`;
+    `${escapeHtml(replyNote)}</p></div>`;
   const text = [
     `A new lead was submitted to ${params.companyName}.`, "",
     ...rows.map(([k, v]) => `${k}: ${v}`), "",
-    `Open Overwatch: ${link}`, `Submission ${params.submissionId}`,
+    `Open Overwatch: ${link}`, `Submission ${params.submissionId}`, replyNote,
   ].join("\n");
   return { subject, html, text };
 }
