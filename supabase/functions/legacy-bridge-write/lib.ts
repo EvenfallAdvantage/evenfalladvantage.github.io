@@ -118,6 +118,10 @@ export const OPS: Record<string, OpSpec> = {
   "assessment.set_questions": { permission: "instructor", table: "assessments", kind: "custom", keys: { id: "uuid" },
     columns: { questions: "questions" }, required: ["questions"] },
   "assessment.get_questions": { permission: "instructor", table: "assessments", kind: "custom", keys: { id: "uuid" } },
+  // Custom (index.ts): refuses with 409 assessment_in_use while any student has a
+  // result for it (assessment_results would cascade away). Otherwise deletes its
+  // assessment_questions rows and the assessment (questions_json goes with it).
+  "assessment.delete": { permission: "instructor", table: "assessments", kind: "custom", keys: { id: "uuid" } },
 
   // Custom ops (handled in index.ts):
   "certificate.issue": { permission: "instructor", kind: "custom",

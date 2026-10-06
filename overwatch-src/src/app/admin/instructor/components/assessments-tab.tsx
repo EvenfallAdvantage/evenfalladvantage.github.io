@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, Pencil, Save, X, ListChecks } from "lucide-react";
+import { Loader2, Pencil, Save, X, ListChecks, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   getLegacyAssessments, getLegacyModules,
-  createLegacyAssessment, updateLegacyAssessment,
+  createLegacyAssessment, updateLegacyAssessment, deleteLegacyAssessment,
   type LegacyAssessment, type LegacyModule,
 } from "@/lib/legacy-bridge";
 import { legacyWriteErrorMessage } from "@/lib/legacy/bridge";
 import { logger } from "@/lib/logger";
 import { QuestionsEditor } from "./questions-editor";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
 interface AssessmentsTabProps {
   triggerNew: number;
@@ -30,6 +31,8 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [questionsId, setQuestionsId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   // New assessment
   const [naName, setNaName] = useState("");
   const [naModuleId, setNaModuleId] = useState("");
@@ -94,6 +97,26 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
 
   const moduleMap = new Map(modules.map((m) => [m.id, m.module_name]));
 
+  async function handleDelete(a: LegacyAssessment) {
+    const linked = a.module_id ? moduleMap.get(a.module_id) : null;
+    const ok = await confirm({
+      title: "Delete assessment?",
+      description: `Delete "${a.assessment_name}" and all its questions for good?${linked ? ` Students on the "${linked}" module will no longer get this quiz.` : ""} Assessments students have already taken can't be deleted.`,
+      confirmLabel: "Delete",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setDeletingId(a.id);
+    try {
+      const r = await deleteLegacyAssessment(a.id);
+      if (!r.success) { alert(legacyWriteErrorMessage("delete the assessment", r.error)); return; }
+      if (questionsId === a.id) setQuestionsId(null);
+      if (editId === a.id) setEditId(null);
+      await load();
+    } finally { setDeletingId(null); }
+  }
+
+
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   return (
@@ -157,6 +180,9 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
                       <ListChecks className="h-3.5 w-3.5" /> Questions
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => startEdit(a)} aria-label="Edit assessment"><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDelete(a)} disabled={deletingId === a.id} aria-label="Delete assessment" title="Delete">
+                      {deletingId === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 text-red-500/80" />}
+                    </Button>
                   </div>
                 </div>
               )}
@@ -173,6 +199,7 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
         ))}
         {assessments.length === 0 && <div className="text-center py-8 text-sm text-muted-foreground">No assessments yet.</div>}
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

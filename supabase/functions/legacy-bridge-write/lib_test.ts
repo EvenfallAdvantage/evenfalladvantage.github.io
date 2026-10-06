@@ -118,6 +118,16 @@ Deno.test("course.delete needs a uuid key and nothing else", () => {
   assertEquals(validateArgs(OPS["course.delete"], { keys: { id: U1 }, values: { is_active: false } }), { ok: false, error: "unknown_column:is_active" });
 });
 
+Deno.test("assessment.delete needs a uuid key and nothing else", () => {
+  assertEquals(OPS["assessment.delete"].kind, "custom");
+  assertEquals(OPS["assessment.delete"].permission, "instructor");
+  assert(validateArgs(OPS["assessment.delete"], { keys: { id: U1 } }).ok);
+  assertEquals(validateArgs(OPS["assessment.delete"], { keys: { id: "x" } }), { ok: false, error: "invalid_key:id" });
+  assertEquals(validateArgs(OPS["assessment.delete"], { keys: { id: U1, module_id: U2 } }), { ok: false, error: "unknown_key:module_id" });
+  assertEquals(validateArgs(OPS["assessment.delete"], { keys: { id: U1 }, values: { assessment_name: "x" } }),
+    { ok: false, error: "unknown_column:assessment_name" });
+});
+
 Deno.test("assessment.set_questions validates the quiz", () => {
   const ok = validateArgs(OPS["assessment.set_questions"], { keys: { id: U1 }, values: { questions: [Q] } });
   assert(ok.ok);

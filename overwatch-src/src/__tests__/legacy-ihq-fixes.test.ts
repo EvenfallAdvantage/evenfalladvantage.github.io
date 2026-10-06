@@ -19,7 +19,7 @@ import { _resetLegacyBridgeState, legacyWriteErrorMessage } from "@/lib/legacy/b
 import { deleteLegacyCourse } from "@/lib/legacy/courses";
 import { createLegacyClass, getLegacyClasses, localDateString, LEGACY_CLASS_TYPES } from "@/lib/legacy/classes";
 import {
-  getLegacyAssessmentQuestions, saveLegacyAssessmentQuestions, validateLegacyQuestions, type LegacyQuestion,
+  deleteLegacyAssessment, getLegacyAssessmentQuestions, saveLegacyAssessmentQuestions, validateLegacyQuestions, type LegacyQuestion,
 } from "@/lib/legacy/assessments";
 
 const fetchMock = vi.fn();
@@ -158,9 +158,36 @@ describe("assessment questions", () => {
   });
 });
 
+describe("deleteLegacyAssessment", () => {
+  const AID = "613f4bb4-6b59-4aca-b4f7-3f9e87539b0e";
+
+  it("calls assessment.delete on the bridge", async () => {
+    fetchMock.mockResolvedValueOnce(jsonRes(200, { ok: true }));
+    expect(await deleteLegacyAssessment(AID)).toEqual({ success: true });
+    expect(sentBody()).toEqual({ op: "assessment.delete", args: { keys: { id: AID } } });
+  });
+
+  it("passes assessment_in_use through (students have results)", async () => {
+    fetchMock.mockResolvedValueOnce(jsonRes(409, { error: "assessment_in_use", results: 14 }));
+    expect(await deleteLegacyAssessment(AID)).toEqual({ success: false, error: "assessment_in_use" });
+  });
+
+  it("reports an out-of-date server (unknown_op) instead of failing silently", async () => {
+    fetchMock.mockResolvedValueOnce(jsonRes(404, { error: "unknown_op" }));
+    expect(await deleteLegacyAssessment(AID)).toEqual({ success: false, error: "unknown_op" });
+  });
+
+  it("never falls back to a direct anon delete", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    expect(await deleteLegacyAssessment(AID)).toEqual({ success: false, error: "bridge_required" });
+    expect(queryBuilder.delete).not.toHaveBeenCalled();
+  });
+});
+
 describe("legacyWriteErrorMessage", () => {
   it("turns error codes into plain words", () => {
     expect(legacyWriteErrorMessage("delete the course", "course_in_use")).toMatch(/students, payments or reviews/);
+    expect(legacyWriteErrorMessage("delete the assessment", "assessment_in_use")).toMatch(/already taken it.*No linked module/);
     expect(legacyWriteErrorMessage("create the class", "invalid_value:class_type")).toBe('Couldn\'t create the class: check the "class type" field.');
     expect(legacyWriteErrorMessage("save", "write_failed")).toBe("Couldn't save: write_failed.");
     expect(legacyWriteErrorMessage("save")).toBe("Couldn't save: unknown error.");

@@ -23,7 +23,7 @@ export type LegacyBridgeOp =
   | "module.create" | "module.update"
   | "slide.create" | "slide.update" | "slide.delete"
   | "class.create" | "class.update" | "class.enroll" | "class.unenroll" | "class.attendance"
-  | "assessment.create" | "assessment.update" | "assessment.set_questions" | "assessment.get_questions"
+  | "assessment.create" | "assessment.update" | "assessment.set_questions" | "assessment.get_questions" | "assessment.delete"
   | "certificate.issue" | "instructor.ensure" | "student.ensure";
 
 export type LegacyBridgeArgs = {
@@ -115,6 +115,7 @@ export function legacyWriteErrorMessage(action: string, error?: string): string 
     invalid_session: "your session expired; sign in again",
     missing_company: "no active company is selected",
     course_in_use: "students, payments or reviews are attached to it. Edit it and untick Active to hide it instead",
+    assessment_in_use: "students have already taken it, and deleting it would erase their results. Edit it and set \"No linked module\" to take it out of the course instead",
     bridge_required: "this needs the Instructor HQ server, which isn't reachable right now",
     unknown_op: "the Instructor HQ server needs an update for this",
     conflict: "that code or name is already used",
