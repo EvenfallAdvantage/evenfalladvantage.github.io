@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import {
   Clock, LogIn, LogOut, Loader2, Zap, X, MapPin,
   CalendarDays, Briefcase, Flag,
@@ -55,8 +56,8 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
 
   // Auto-refresh clock status every 15 seconds (picks up manager badge scans)
   useEffect(() => {
-    const id = setInterval(() => { load(); }, 15000);
-    return () => clearInterval(id);
+    // Paused while hidden; the visibilitychange effect below refreshes on return.
+    return setVisibleInterval(() => { load(); }, 15000, { refreshOnVisible: false });
   }, [load]);
 
   // Immediately refresh when tab becomes visible again

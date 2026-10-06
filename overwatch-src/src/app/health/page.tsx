@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -56,8 +57,7 @@ export default function HealthPage() {
 
     check();
     // Re-check every 30 seconds
-    const interval = setInterval(check, 30000);
-    return () => clearInterval(interval);
+    return setVisibleInterval(check, 30000);
   }, []);
 
   return (

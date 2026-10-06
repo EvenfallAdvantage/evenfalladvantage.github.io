@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { Loader2, RefreshCcw, MapPin } from "lucide-react";
 import {
   fetchIntelNews,
@@ -54,8 +55,7 @@ export function LiveAlertsTab({ onLocate }: LiveAlertsTabProps) {
 
   useEffect(() => {
     refresh();
-    const id = setInterval(refresh, REFRESH_MS);
-    return () => clearInterval(id);
+    return setVisibleInterval(refresh, REFRESH_MS);
   }, []);
 
   const rows: AlertRow[] = [

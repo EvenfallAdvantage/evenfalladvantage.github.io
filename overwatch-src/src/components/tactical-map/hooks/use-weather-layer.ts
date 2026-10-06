@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef } from "./cesium-layer-types";
@@ -69,10 +70,10 @@ export function useWeatherLayer(params: {
     // Defer initial load so Cesium internals settle after loading state change
     const initialTimer = setTimeout(addRadarLayer, 0);
 
-    const interval = setInterval(addRadarLayer, 300000);
+    const stopPolling = setVisibleInterval(addRadarLayer, 300000);
     return () => {
       clearTimeout(initialTimer);
-      clearInterval(interval);
+      stopPolling();
     };
   }, [layers.weather, viewerRef, cesiumRef, isReplaying, loading]);
 }

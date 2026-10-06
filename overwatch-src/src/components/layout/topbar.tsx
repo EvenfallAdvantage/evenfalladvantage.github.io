@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -22,10 +23,10 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
     if (!activeCompanyId) return;
     const refresh = () => getUnreadNotificationCount(activeCompanyId).then(setUnreadCount).catch(() => {});
     refresh();
-    const interval = setInterval(refresh, 60000);
+    const stopPolling = setVisibleInterval(refresh, 60000);
     const onRead = () => refresh();
     window.addEventListener("notifications-read", onRead);
-    return () => { clearInterval(interval); window.removeEventListener("notifications-read", onRead); };
+    return () => { stopPolling(); window.removeEventListener("notifications-read", onRead); };
   }, [activeCompanyId]);
 
   const companyInitial = activeCompany?.companyName?.charAt(0)?.toUpperCase() ?? "O";

@@ -10,6 +10,7 @@
  */
 
 import { useEffect } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
@@ -160,10 +161,10 @@ export function useFiresLayer(params: {
     }
 
     fetchAndRender();
-    const interval = setInterval(fetchAndRender, REFRESH_INTERVAL_MS);
+    const stopPolling = setVisibleInterval(fetchAndRender, REFRESH_INTERVAL_MS);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      stopPolling();
     };
   }, [layers.fires, loading, isReplaying, debouncedReplayTime, viewerRef, cesiumRef, entityGroupsRef]);
 }

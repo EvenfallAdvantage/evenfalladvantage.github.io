@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelLightning } from "@/lib/intel-client";
@@ -153,10 +154,10 @@ export function useLightningLayer(params: {
     }
 
     fetchAndRender();
-    const interval = setInterval(fetchAndRender, POLL_MS);
+    const stopPolling = setVisibleInterval(fetchAndRender, POLL_MS);
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      stopPolling();
     };
   }, [layers.eonetWeather, loading, viewerRef, cesiumRef, entityGroupsRef, isReplaying, debouncedReplayTime]);
 }

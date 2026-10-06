@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { Loader2, Info } from "lucide-react";
 import {
   fetchIntelCountryRisk,
@@ -72,10 +73,10 @@ export function GlobalStatusBar({ enabled = true, onOpenAttribution }: GlobalSta
       }
     }
     load();
-    const id = setInterval(load, REFRESH_MS);
+    const stopPolling = setVisibleInterval(load, REFRESH_MS);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      stopPolling();
     };
   }, [enabled]);
 
