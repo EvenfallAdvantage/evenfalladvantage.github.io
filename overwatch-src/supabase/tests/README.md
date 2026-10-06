@@ -74,3 +74,32 @@ the migration re-applies cleanly after it.
 28 checks were run against the live database inside a single DO block with
 throwaway companies/users/rows that ends in RAISE EXCEPTION, so everything
 rolled back: **28 passed, 0 failed**; no fixture rows remained afterwards.
+
+## EADB admin writes on assessments (`migrations/eadb/20261006210000_eadb_assessments_admin_write.sql`, draft)
+
+```bash
+createdb eadb_test
+psql -d eadb_test -f tests/eadb_local_stub.sql
+psql -d eadb_test -f migrations/eadb/20261006210000_eadb_assessments_admin_write.sql
+psql -d eadb_test -f tests/eadb_assessments_admin_test.sql                  # anon still open
+psql -d eadb_test -f migrations/eadb/20261006120500_eadb_remove_anon_writes.sql
+psql -d eadb_test -v anon_closed=1 -f tests/eadb_assessments_admin_test.sql # anon closed too
+```
+
+Results on 2026-10-06 (Postgres 17): **17 passed, 0 failed** after the
+migration, in both orders relative to `20261006120500` (and
+`eadb_anon_writes_test.sql` still passes 15/15 with both applied); 11 passed,
+6 failed before it (every admin write fails or touches 0 rows). Each rollback
+restores policies and grants identically (diffed), the migration re-applies
+cleanly and is idempotent, and the guard refuses a non-EADB database.
+
+**Live (EADB, 2026-10-06, rolled back):** `eadb_assessments_admin_live_check.sql`
+creates the three policies and two `ZZ` fixtures inside one DO block that ends
+in RAISE EXCEPTION, impersonating the existing EADB admin: **18 passed, 0
+failed** (including "fails today" before the policies exist, and real rows
+unchanged). Afterwards: no new policies, no `ZZ` rows, 15 assessments as before.
+
+**Live after apply (EADB, 2026-10-06 ~14:14 PT, version 20261006211319):**
+`eadb_assessments_admin_post_apply_live_check.sql` (policies already present;
+fixtures + writes end in RAISE EXCEPTION): **14 passed, 0 failed**. No `ZZ`
+rows remained; assessment count still 15.

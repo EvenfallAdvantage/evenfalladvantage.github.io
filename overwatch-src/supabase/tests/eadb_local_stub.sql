@@ -1,5 +1,6 @@
 -- LOCAL-ONLY minimal stub of the legacy EADB tables/policies touched by
--- eadb/20261006120500_eadb_remove_anon_writes.sql (syntax + rollback check).
+-- eadb/20261006120500_eadb_remove_anon_writes.sql and
+-- eadb/20261006210000_eadb_assessments_admin_write.sql (syntax + rollback check).
 -- Never run against a Supabase project.
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN CREATE ROLE anon NOLOGIN; END IF;
@@ -15,7 +16,8 @@ CREATE TABLE public.students (id uuid PRIMARY KEY, email text NOT NULL UNIQUE, f
 CREATE TABLE public.courses (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text);
 CREATE TABLE public.training_modules (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text);
 CREATE TABLE public.module_slides (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text);
-CREATE TABLE public.assessments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text);
+-- assessments: live column set (information_schema, 2026-10-06), FK to training_modules omitted.
+CREATE TABLE public.assessments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), module_id uuid, assessment_name text NOT NULL, total_questions integer NOT NULL, passing_score numeric NOT NULL, time_limit_minutes integer, category text DEFAULT 'Miscellaneous', icon text DEFAULT 'fa-clipboard-check', questions_json jsonb DEFAULT '[]'::jsonb, updated_at timestamptz DEFAULT now());
 CREATE TABLE public.scheduled_classes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), instructor_id uuid);
 CREATE TABLE public.class_enrollments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), class_id uuid);
 CREATE TABLE public.class_attendance (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), class_id uuid);
