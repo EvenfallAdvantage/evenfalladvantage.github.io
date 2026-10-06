@@ -278,11 +278,21 @@ export async function deleteOnboardingTask(taskId: string) {
   if (error) throw error;
 }
 
-export async function reorderOnboardingTasks(tasks: { id: string; sort_order: number }[]) {
+/**
+ * Reorder company onboarding tasks.
+ * Must include company_id: the old upsert of only `{ id, sort_order }` hit the
+ * INSERT path of ON CONFLICT with company_id null, so RLS
+ * `onboarding_tasks_insert` (WITH CHECK is_company_admin(company_id)) rejected
+ * real admins (seen live 2026-10-06 13:58 PT).
+ */
+export async function reorderOnboardingTasks(
+  companyId: string,
+  tasks: { id: string; sort_order: number }[],
+) {
   const supabase = createClient();
   const { error } = await supabase.from("onboarding_tasks").upsert(
-    tasks.map((t) => ({ id: t.id, sort_order: t.sort_order })),
-    { onConflict: "id" }
+    tasks.map((t) => ({ id: t.id, company_id: companyId, sort_order: t.sort_order })),
+    { onConflict: "id" },
   );
   if (error) throw error;
 }
