@@ -2,7 +2,7 @@
 -- 20261006210000_eadb_assessments_admin_write.sql
 -- Target: LEGACY EADB (project vaagvairvwmgyzsmymhs) ONLY. Not OverwatchDB.
 -- Kept in migrations/eadb/ so `supabase db push` for overwatch-src never
--- picks it up. Status: DRAFT. Not applied.
+-- picks it up. Status: APPLIED on EADB (vaagvairvwmgyzsmymhs) as version 20261006211319 on 2026-10-06 ~14:13 PT.
 -- Rollback: migrations/rollback/20261006210000_eadb_assessments_admin_write.rollback.sql
 --
 -- Problem: public.assessments has write policies for `anon` only

@@ -98,3 +98,8 @@ creates the three policies and two `ZZ` fixtures inside one DO block that ends
 in RAISE EXCEPTION, impersonating the existing EADB admin: **18 passed, 0
 failed** (including "fails today" before the policies exist, and real rows
 unchanged). Afterwards: no new policies, no `ZZ` rows, 15 assessments as before.
+
+**Live after apply (EADB, 2026-10-06 ~14:14 PT, version 20261006211319):**
+`eadb_assessments_admin_post_apply_live_check.sql` (policies already present;
+fixtures + writes end in RAISE EXCEPTION): **14 passed, 0 failed**. No `ZZ`
+rows remained; assessment count still 15.
