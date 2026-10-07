@@ -294,3 +294,7 @@ entrypoint = "./functions/data-export/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/data-delete/index.ts"
+
+[functions.notify-send]
+enabled = true
+verify_jwt = true
