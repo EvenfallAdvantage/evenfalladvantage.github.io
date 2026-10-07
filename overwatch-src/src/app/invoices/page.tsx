@@ -570,7 +570,8 @@ export default function InvoicesPage() {
                     </div>
 
                     {/* Table */}
-                    <table className="w-full mb-6 text-sm">
+                    <div className="overflow-x-auto mb-6">
+                    <table className="w-full text-sm min-w-[480px]">
                       <thead>
                         <tr className="border-b-2 border-gray-800">
                           <th className="text-left py-2 font-semibold text-gray-800">Description</th>
@@ -594,6 +595,7 @@ export default function InvoicesPage() {
                         )}
                       </tbody>
                     </table>
+                    </div>
 
                     {/* Totals */}
                     <div className="flex justify-end mb-8">

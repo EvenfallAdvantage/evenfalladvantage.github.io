@@ -384,3 +384,29 @@
         font-size: 2.8rem;
     }
 }
+
+
+/* Mobile polish: 16px inputs avoid iOS focus-zoom; full-width actions */
+@media (max-width: 768px) {
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="tel"],
+    .form-group input[type="number"],
+    .form-group input[type="date"],
+    .form-group input[type="time"],
+    .form-group select,
+    .form-group textarea,
+    .estimate-form input,
+    .estimate-form select,
+    .estimate-form textarea {
+        font-size: 16px !important;
+        max-width: 100%;
+    }
+    .form-container { padding: 1.5rem !important; }
+    .form-title { font-size: 2.2rem !important; }
+    .form-subtitle { font-size: 1.4rem; }
+    .sidebar-button, .submit-button, .estimate-form button[type="submit"] {
+        width: 100%;
+        min-height: 44px;
+    }
+}
