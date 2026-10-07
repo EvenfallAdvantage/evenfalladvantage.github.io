@@ -200,7 +200,9 @@ export default function SmsConfigPage() {
     }
   };
 
-  if (!isAdminPlus) {
+  // Wait for the company to load before deciding access (avoids a flash of
+  // "Owner or admin role required" for real admins).
+  if (activeCompany && !isAdminPlus) {
     return (
       <PageShell title="SMS SENDING" subtitle="Access restricted" icon={<MessageSquare className="h-5 w-5" />}>
         <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -230,7 +232,7 @@ export default function SmsConfigPage() {
       subtitle="Per-company Twilio configuration for reporter replies and outbound SMS"
       icon={<MessageSquare className="h-5 w-5" />}
     >
-      <div className="space-y-4 max-w-3xl">
+      <div className="hq-config space-y-4 max-w-3xl">
         {/* Status banner */}
         <Card>
           <CardContent className="pt-6 space-y-2">

@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getCompanyRadioState, setCompanyRadioState } from "@/lib/supabase/db";
 import { STATE_LAWS } from "@/lib/state-laws-data";
+import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface RadioStateSectionProps {
   companyId: string;
@@ -24,7 +26,10 @@ export default function RadioStateSection({ companyId }: RadioStateSectionProps)
         const state = await getCompanyRadioState(companyId);
         setCurrentState(state);
         setSelectedState(state);
-      } catch { /* ignore */ }
+      } catch (e) {
+        logger.swallow("radio-state:load", e, "warn");
+        toast.error("Could not load the radio default");
+      }
       setLoading(false);
     })();
   }, [companyId]);
@@ -36,7 +41,11 @@ export default function RadioStateSection({ companyId }: RadioStateSectionProps)
       setCurrentState(selectedState);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch { /* ignore */ }
+      toast.success("Radio default saved");
+    } catch (e) {
+      logger.swallow("radio-state:save", e, "warn");
+      toast.error("Could not save the radio default");
+    }
     setSaving(false);
   }
 
@@ -48,7 +57,7 @@ export default function RadioStateSection({ companyId }: RadioStateSectionProps)
             <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="h-4 w-4" /> Radio State Default</h3>
             <p className="text-xs text-muted-foreground">Default frequency region for the radio scanner</p>
           </div>
-          <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave} disabled={saving || loading || selectedState === currentState}>
+          <Button size="sm" className="h-11 gap-1.5 text-xs sm:h-7" onClick={handleSave} disabled={saving || loading || selectedState === currentState}>
             {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : saved ? <Check className="h-3 w-3 text-green-500" /> : <Save className="h-3 w-3" />}
             {saved ? "Saved!" : "Save"}
           </Button>

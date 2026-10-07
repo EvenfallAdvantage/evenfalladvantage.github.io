@@ -296,3 +296,13 @@ main#main-content {
     padding-top: calc(4rem + env(safe-area-inset-top, 0px));
   }
 }
+
+/* ── HQ Config (/admin/settings*): stop iOS focus-zoom on phones ──
+   Many settings inputs use text-xs; iOS Safari zooms any control under 16px. */
+@media (max-width: 639px) {
+  .hq-config input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  .hq-config select,
+  .hq-config textarea {
+    font-size: 16px;
+  }
+}
