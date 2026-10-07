@@ -242,3 +242,13 @@ button, [role="button"], a[href] {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
+
+/* Very small phones: 5 tabs + SOS need a bit less horizontal padding */
+@media (max-width: 380px) {
+  nav.safe-area-bottom a,
+  nav.safe-area-bottom button {
+    min-width: 48px !important;
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+  }
+}

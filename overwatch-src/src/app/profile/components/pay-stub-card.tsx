@@ -62,8 +62,8 @@ export function PayStubCard({ activeCompanyId }: PayStubCardProps) {
 
         {/* Recent timesheets with pay */}
         {data.timesheets.length > 0 && (
-          <div className="max-h-48 overflow-y-auto">
-            <table className="w-full text-xs">
+          <div className="max-h-48 overflow-auto">
+            <table className="w-full text-xs min-w-[420px]">
               <thead>
                 <tr className="text-muted-foreground border-b border-border/30">
                   <th className="text-left pb-1">Date</th>

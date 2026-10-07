@@ -42,7 +42,7 @@ export function CSVColumnMapper({ csvHeaders, csvPreviewRows, onConfirm, onCance
 
       {/* Mapping table */}
       <div className="rounded-lg border border-border/40 overflow-hidden">
-        <table className="w-full text-xs">
+        <div className="overflow-x-auto"><table className="w-full text-xs">
           <thead className="bg-muted/50">
             <tr>
               <th className="px-3 py-2 text-left font-medium">Our Field</th>
@@ -97,7 +97,7 @@ export function CSVColumnMapper({ csvHeaders, csvPreviewRows, onConfirm, onCance
               );
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {/* Validation warning */}

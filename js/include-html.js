@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 headerPlaceholder.innerHTML = data;
                 setActiveNavLink();
+                initMobileNav();
             })
             .catch(error => console.error('Error loading header:', error));
     }
@@ -54,3 +55,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+
+function initMobileNav() {
+    const toggle = document.getElementById('nav-toggle');
+    const nav = document.getElementById('primary-nav');
+    if (!toggle || !nav || toggle.dataset.bound === '1') return;
+    toggle.dataset.bound = '1';
+
+    const setOpen = (open) => {
+        document.body.classList.toggle('nav-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    };
+
+    toggle.addEventListener('click', () => setOpen(!document.body.classList.contains('nav-open')));
+    nav.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') setOpen(false);
+    });
+    window.addEventListener('resize', () => {
+        if (window.matchMedia('(min-width: 769px)').matches) setOpen(false);
+    });
+}

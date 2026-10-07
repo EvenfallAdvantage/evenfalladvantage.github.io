@@ -338,8 +338,8 @@ export function AnalyticsView() {
             ) : drillRows.length === 0 ? (
               <p className="text-xs text-muted-foreground italic py-4 text-center">No rows match this segment.</p>
             ) : (
-              <div className="max-h-80 overflow-y-auto">
-                <table className="w-full text-xs">
+              <div className="max-h-80 overflow-auto">
+                <table className="w-full text-xs min-w-[480px]">
                   <thead className="text-[10px] uppercase tracking-wider text-muted-foreground border-b">
                     <tr>
                       <th className="text-left py-1.5 px-2">Title</th>
