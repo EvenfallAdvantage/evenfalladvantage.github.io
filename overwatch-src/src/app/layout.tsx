@@ -56,6 +56,8 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
+  // Required so env(safe-area-inset-*) is non-zero with apple-mobile-web-app-status-bar-style=black-translucent
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

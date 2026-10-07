@@ -9,12 +9,16 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+/**
+ * Floating install / update banner. On phones it sits ABOVE the bottom nav
+ * (and respects the iOS home-indicator inset) so it never covers page content
+ * or the nav itself. Dismiss is a 44×44 target.
+ */
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstall, setShowInstall] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
 
-  // Capture the install prompt event — only once
   useEffect(() => {
     let captured = false;
     const handler = (e: Event) => {
@@ -26,46 +30,44 @@ export function PwaInstallPrompt() {
       if (!dismissed) setShowInstall(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
-
     const installed = () => { setShowInstall(false); setDeferredPrompt(null); };
     window.addEventListener("appinstalled", installed);
-
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
       window.removeEventListener("appinstalled", installed);
     };
   }, []);
 
-  // Listen for service worker updates
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-
     navigator.serviceWorker.ready.then((reg) => {
       reg.addEventListener("updatefound", () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
         newWorker.addEventListener("statechange", () => {
           if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-            // New version available
             setShowUpdate(true);
           }
         });
       });
     });
-
-    // Also check for waiting worker on page load
     navigator.serviceWorker.getRegistration().then((reg) => {
       if (reg?.waiting) setShowUpdate(true);
     });
   }, []);
 
+  // Tell the rest of the app to leave room when the banner is up.
+  useEffect(() => {
+    const on = showInstall || showUpdate;
+    document.documentElement.classList.toggle("ow-install-banner", on);
+    return () => document.documentElement.classList.remove("ow-install-banner");
+  }, [showInstall, showUpdate]);
+
   const handleInstall = useCallback(async () => {
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setShowInstall(false);
-    }
+    if (outcome === "accepted") setShowInstall(false);
     setDeferredPrompt(null);
   }, [deferredPrompt]);
 
@@ -82,32 +84,41 @@ export function PwaInstallPrompt() {
   if (!showInstall && !showUpdate) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-sm">
+    <div
+      className="fixed left-3 right-3 z-50 mx-auto max-w-sm bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] md:bottom-4 ow-install-bar"
+      role="status"
+      aria-live="polite"
+    >
       {showUpdate && (
         <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-card p-3 shadow-lg shadow-black/20">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 shrink-0">
             <RefreshCw className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold">Update Available</p>
             <p className="text-[10px] text-muted-foreground">Tap to refresh and get the latest version</p>
           </div>
-          <Button size="sm" className="h-7 text-xs" onClick={handleUpdate}>Update</Button>
+          <Button size="sm" className="h-9 min-w-[72px] text-xs" onClick={handleUpdate}>Update</Button>
         </div>
       )}
 
       {showInstall && !showUpdate && (
-        <div className="flex items-center gap-3 rounded-xl border border-primary/30 bg-card p-3 shadow-lg shadow-black/20">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-card p-3 shadow-lg shadow-black/20">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 shrink-0">
             <Download className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold">Install Overwatch</p>
-            <p className="text-[10px] text-muted-foreground">Add to home screen for quick access</p>
+            <p className="text-[10px] text-muted-foreground truncate">Add to home screen for quick access</p>
           </div>
-          <Button size="sm" className="h-7 text-xs" onClick={handleInstall}>Install</Button>
-          <button onClick={handleDismiss} className="p-1 text-muted-foreground/50 hover:text-muted-foreground">
-            <X className="h-3.5 w-3.5" />
+          <Button size="sm" className="h-9 min-w-[72px] text-xs shrink-0" onClick={handleInstall}>Install</Button>
+          <button
+            type="button"
+            onClick={handleDismiss}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Dismiss install prompt"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}

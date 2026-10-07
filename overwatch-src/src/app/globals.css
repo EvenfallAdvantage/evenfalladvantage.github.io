@@ -252,3 +252,47 @@ button, [role="button"], a[href] {
     padding-right: 0.25rem !important;
   }
 }
+
+
+/* Safe-area helpers (needs viewport-fit=cover) */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* When the floating install/update banner is visible, leave room above the
+   bottom nav so page content and the banner never collide. Banner itself is
+   lifted via .ow-install-bar below. */
+html.ow-install-banner main#main-content {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 768px) {
+  html.ow-install-banner main#main-content {
+    padding-bottom: 5.5rem;
+  }
+}
+
+/* Lift install bar above the mobile bottom nav (~4rem + SOS) on phones */
+@media (max-width: 767px) {
+  .ow-install-bar {
+    bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Translucent status bar: keep fixed topbar + main content below the notch */
+header.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+  height: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 640px) {
+  header.safe-area-top {
+    height: calc(4rem + env(safe-area-inset-top, 0px));
+  }
+}
+main#main-content {
+  padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+@media (min-width: 640px) {
+  main#main-content {
+    padding-top: calc(4rem + env(safe-area-inset-top, 0px));
+  }
+}

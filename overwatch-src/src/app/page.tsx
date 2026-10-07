@@ -136,7 +136,14 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="relative w-full max-w-sm rounded-2xl border border-[#dd8c33]/30 bg-[#0f1a2e] p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-3 right-3 text-white/40 hover:text-white"><X className="h-5 w-5" /></button>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-2 right-2 flex h-11 w-11 items-center justify-center rounded-lg text-white/40 hover:bg-white/10 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </button>
 
         <div className="flex flex-col items-center mb-5">
           <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
@@ -298,7 +305,14 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="relative w-full max-w-sm rounded-2xl border border-[#dd8c33]/30 bg-[#0f1a2e] p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-3 right-3 text-white/40 hover:text-white"><X className="h-5 w-5" /></button>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute top-2 right-2 flex h-11 w-11 items-center justify-center rounded-lg text-white/40 hover:bg-white/10 hover:text-white"
+        >
+          <X className="h-5 w-5" />
+        </button>
 
         <div className="flex flex-col items-center mb-5">
           <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />

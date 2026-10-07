@@ -86,7 +86,7 @@ export default function ChatPage() {
           showCreate={ch.showCreate} setShowCreate={ch.setShowCreate} newName={ch.newName} setNewName={ch.setNewName}
           newAvatarUrl={ch.newAvatarUrl} setNewAvatarUrl={ch.setNewAvatarUrl}
           newAvatarFile={ch.newAvatarFile} setNewAvatarFile={ch.setNewAvatarFile}
-          creating={ch.creating} handleCreate={ch.handleCreate} selectCh={ch.selectCh} deletingCh={ch.deletingCh}
+          creating={ch.creating} handleCreate={ch.handleCreate} selectCh={ch.selectCh} clearSelected={ch.clearSelected} deletingCh={ch.deletingCh}
           handleDeleteCh={ch.handleDeleteCh} isAdmin={isAdmin} showSearch={ch.showSearch} setShowSearch={ch.setShowSearch}
           searchQ={ch.searchQ} setSearchQ={ch.setSearchQ} filteredMsgs={ch.filteredMsgs} user={ch.user}
           replyTo={ch.replyTo} setReplyTo={ch.setReplyTo} msgText={ch.msgText} setMsgText={ch.setMsgText}

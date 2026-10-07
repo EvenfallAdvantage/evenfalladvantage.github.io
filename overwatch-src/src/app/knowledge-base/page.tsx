@@ -464,8 +464,13 @@ export default function KnowledgeBasePage() {
                     {markingRead === viewDoc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : readDocIds.has(viewDoc.id) ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Circle className="h-3.5 w-3.5" />}
                     {readDocIds.has(viewDoc.id) ? "Read" : <span className="hidden sm:inline">Mark as Read</span>}
                   </Button>
-                  <button onClick={() => setViewDoc(null)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50">
-                    <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <button
+                    type="button"
+                    onClick={() => setViewDoc(null)}
+                    aria-label="Close document"
+                    className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/50"
+                  >
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
               </div>

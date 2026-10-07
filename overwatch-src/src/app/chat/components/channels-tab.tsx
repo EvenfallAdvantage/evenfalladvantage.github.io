@@ -4,7 +4,7 @@ import { type RefObject } from "react";
 import Image from "next/image";
 import {
   Radio, Plus, Send, Loader2, Trash2, Search, ExternalLink,
-  Reply, X, Hash, MessageSquare, MapPin,
+  Reply, X, Hash, MessageSquare, MapPin, ChevronLeft,
   Smile, Paperclip, Upload, Pencil, Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ interface ChannelsTabProps {
   creating: boolean;
   handleCreate: () => void;
   selectCh: (ch: Channel) => void;
+  clearSelected: () => void;
   deletingCh: string | null;
   handleDeleteCh: (id: string) => void;
   isAdmin: boolean;
@@ -91,7 +92,7 @@ export function ChannelsTab({
   loading, internal, external, selected,
   showCreate, setShowCreate, newName, setNewName,
   newAvatarUrl, setNewAvatarUrl, newAvatarFile, setNewAvatarFile,
-  creating, handleCreate, selectCh, deletingCh, handleDeleteCh,
+  creating, handleCreate, selectCh, clearSelected, deletingCh, handleDeleteCh,
   isAdmin, showSearch, setShowSearch,
   searchQ, setSearchQ, filteredMsgs, user,
   replyTo, setReplyTo, msgText, setMsgText,
@@ -147,8 +148,8 @@ export function ChannelsTab({
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-[260px_1fr]" style={{ minHeight: "60vh" }}>
-          {/* Sidebar */}
-          <div className="space-y-1 rounded-xl border border-border/50 bg-card p-3 overflow-y-auto max-h-[70vh]">
+          {/* Sidebar — full width on mobile until a channel is open */}
+          <div className={`space-y-1 rounded-xl border border-border/50 bg-card p-3 overflow-y-auto max-h-[70vh] ${selected ? "hidden md:block" : ""}`}>
             {isAdmin && (
               <button onClick={() => setShowCreate(true)}
                 className="flex w-full items-center gap-2 rounded-lg border border-dashed border-border/50 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors mb-1">
@@ -206,8 +207,16 @@ export function ChannelsTab({
 
           {/* Chat area */}
           {selected ? (
-            <div className="flex flex-col rounded-xl border border-border/50 bg-card">
-              <div className="flex items-center gap-3 border-b border-border/50 px-4 py-3">
+            <div className="flex flex-col rounded-xl border border-border/50 bg-card min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 border-b border-border/50 px-2 sm:px-4 py-2 sm:py-3">
+                <button
+                  type="button"
+                  className="md:hidden flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+                  onClick={clearSelected}
+                  aria-label="Back to channels"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
                 <div className="relative shrink-0 group/avatar">
                   <div className="h-7 w-7 rounded-full overflow-hidden bg-primary/15 flex items-center justify-center">
                     {selected.avatar_url ? (
@@ -415,7 +424,7 @@ export function ChannelsTab({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
+            <div className="hidden md:flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
               <MessageSquare className="mb-3 h-10 w-10 text-muted-foreground/40" />
               <p className="text-sm font-medium">Select a channel</p>
               <p className="mt-1 text-xs text-muted-foreground">Choose a channel from the sidebar to start messaging</p>
