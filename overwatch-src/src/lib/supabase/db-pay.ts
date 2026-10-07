@@ -68,6 +68,35 @@ export async function updateCompanyDefaultPayRate(
 }
 
 /**
+ * Update a company's default bill rate (what clients are invoiced per hour).
+ */
+export async function updateCompanyDefaultBillRate(
+  companyId: string,
+  billRate: number | null
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("companies")
+    .update({ default_bill_rate: billRate })
+    .eq("id", companyId);
+  if (error) throw error;
+}
+
+/** Read the company default pay and bill rates. */
+export async function getCompanyDefaultRates(companyId: string): Promise<{ payRate: number | null; billRate: number | null }> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("companies")
+    .select("default_pay_rate, default_bill_rate")
+    .eq("id", companyId)
+    .maybeSingle();
+  return {
+    payRate: data?.default_pay_rate != null ? Number(data.default_pay_rate) : null,
+    billRate: data?.default_bill_rate != null ? Number(data.default_bill_rate) : null,
+  };
+}
+
+/**
  * Get pay summary for the current user — their timesheets with calculated pay
  */
 export async function getMyPaySummary(companyId: string): Promise<{

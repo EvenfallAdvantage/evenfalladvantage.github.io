@@ -59,23 +59,66 @@ export async function createTimeOffRequest(params: {
 
 // ─── Time-off policy CRUD (admin) ────────────────────
 
+export type TimeOffPolicyFields = {
+  name?: string;
+  type?: string;
+  accrualRate?: number | null;
+  accrualPeriod?: string | null;
+  maxBalance?: number | null;
+  isPaid?: boolean;
+};
+
+function policyRow(f: TimeOffPolicyFields) {
+  const row: Record<string, unknown> = {};
+  if (f.name !== undefined) row.name = f.name;
+  if (f.type !== undefined) row.type = f.type;
+  if (f.accrualRate !== undefined) row.accrual_rate = f.accrualRate;
+  if (f.accrualPeriod !== undefined) row.accrual_period = f.accrualPeriod;
+  if (f.maxBalance !== undefined) row.max_balance = f.maxBalance;
+  // is_paid is added by migration 20261007180000; only send when set.
+  if (f.isPaid !== undefined) row.is_paid = f.isPaid;
+  return row;
+}
+
+/** PostgREST "column not found" (schema cache): is_paid before the migration is applied. */
+const isMissingColumn = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === "PGRST204" || /is_paid/.test(e.message ?? ""));
+
+export async function updateTimeOffPolicy(policyId: string, fields: TimeOffPolicyFields) {
+  const supabase = createClient();
+  const run = (row: Record<string, unknown>) =>
+    supabase.from("time_off_policies").update(row).eq("id", policyId).select().maybeSingle();
+  let { data, error } = await run(policyRow(fields));
+  if (isMissingColumn(error) && fields.isPaid !== undefined) {
+    ({ data, error } = await run(policyRow({ ...fields, isPaid: undefined })));
+  }
+  if (error) throw error;
+  if (!data) throw new Error("Policy not updated (no permission?)");
+  return data;
+}
+
 export async function createTimeOffPolicy(params: {
   companyId: string;
   name: string;
   type: string;
-}) {
+} & Omit<TimeOffPolicyFields, "name" | "type">) {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("time_off_policies")
-    .insert({
-      id: crypto.randomUUID(),
-      company_id: params.companyId,
-      name: params.name,
-      type: params.type,
-      created_at: new Date().toISOString(),
-    })
-    .select()
-    .maybeSingle();
+  const row = {
+    id: crypto.randomUUID(),
+    company_id: params.companyId,
+    ...policyRow({ accrualRate: params.accrualRate, accrualPeriod: params.accrualPeriod, maxBalance: params.maxBalance, isPaid: params.isPaid }),
+    name: params.name,
+    type: params.type,
+    created_at: new Date().toISOString(),
+  };
+  const run = (r: Record<string, unknown>) =>
+    supabase.from("time_off_policies").insert(r).select().maybeSingle();
+  let { data, error } = await run(row);
+  if (isMissingColumn(error) && "is_paid" in row) {
+    const { is_paid: _ignored, ...rest } = row as Record<string, unknown>;
+    void _ignored;
+    ({ data, error } = await run(rest));
+  }
   if (error) throw error;
   return data;
 }

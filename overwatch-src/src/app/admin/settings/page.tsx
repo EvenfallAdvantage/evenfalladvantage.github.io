@@ -10,6 +10,7 @@ import { HQ_SECTIONS, type HqSectionId } from "@/lib/hq-config";
 
 import CompanyProfileSection from "./components/company-profile-section";
 import LeavePoliciesSection from "./components/leave-policies-section";
+import PayOvertimeSection from "./components/pay-overtime-section";
 import FeatureVisibilitySection from "./components/feature-visibility-section";
 import IntegrationsSection from "./components/integrations-section";
 import DeliveryChannelsSection from "./components/delivery-channels-section";
@@ -180,6 +181,7 @@ export default function AdminSettingsPage() {
         </Section>
 
         <Section id="people" title="People & Time">
+          <PayOvertimeSection companyId={activeCompanyId!} />
           <LeavePoliciesSection
             companyId={activeCompanyId!}
             initialPolicies={policies}
