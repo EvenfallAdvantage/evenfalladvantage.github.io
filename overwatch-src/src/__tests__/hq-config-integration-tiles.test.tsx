@@ -13,7 +13,7 @@ describe("integration tiles", () => {
   it("drops duplicate/dead tiles", () => {
     const ids = INTEGRATION_PROVIDERS.map((p) => p.provider);
     for (const gone of ["twilio", "signal", "email"]) expect(ids).not.toContain(gone);
-    expect(INTEGRATION_PROVIDERS.filter((p) => p.available).map((p) => p.provider).sort()).toEqual(["airtable", "whatsapp"]);
+    expect(INTEGRATION_PROVIDERS.filter((p) => p.available).map((p) => p.provider).sort()).toEqual(["airtable"]); // WhatsApp hidden in PR E until it is server-side
   });
 
   it("never shows Active for an unavailable vendor, keeps Airtable working", () => {
