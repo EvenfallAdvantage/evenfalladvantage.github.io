@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Save, Loader2, Check, Plug, Mail, Eye, EyeOff, ChevronDown, ExternalLink } from "lucide-react";
+import { Save, Loader2, Check, Plug, Mail, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -12,21 +11,20 @@ import { toast } from "sonner";
 import { getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
 
 type IntField = { key: string; label: string; type: string; placeholder?: string; options?: string[] };
-/**
- * Integration definition.
- *   - Normal integrations: have `fields` and render an inline credentials form.
- *   - `redirectTo` integrations: render a link card pointing to a dedicated
- *     configuration page (used for email, which moved to /admin/settings/email
- *     once it grew its own Vault-backed credential storage + verification
- *     flow). For redirect tiles, `fields` is empty.
- */
+/** Integration definition: renders an inline credentials form. Email and SMS live on their own pages (see Delivery channels). */
 type IntDef = {
   provider: string;
   label: string;
   logo: string | null;
   desc: string;
   fields: IntField[];
-  redirectTo?: string;
+  /**
+   * false = the vendor can't work yet (browser calls blocked by CORS, no
+   * push SDK, undeployed webhook / OAuth refresh). The tile is shown as
+   * "Not available yet" with no credential form, and is never "Active".
+   * Existing integrations_config rows are left untouched.
+   */
+  available?: boolean;
 };
 type IntGroup = { id: string; label: string; desc: string; items: IntDef[] };
 
@@ -45,35 +43,13 @@ const INTEGRATION_GROUPS: IntGroup[] = [
       { key: "business_phone", label: "Business Phone Number", type: "text", placeholder: "+15551234567" },
       { key: "community_invite_link", label: "Community Invite Link", type: "text", placeholder: "https://chat.whatsapp.com/..." },
     ]},
-    { provider: "signal", label: "Signal", logo: "/images/integrations/signal.png", desc: "Secure encrypted messaging for sensitive operations and executive protection", fields: [
-      { key: "signal_group_link", label: "Signal Group Invite Link", type: "text", placeholder: "https://signal.group/#..." },
-    ]},
-    { provider: "twilio", label: "Twilio", logo: "/images/integrations/twilio.jpeg", desc: "SMS dispatch alerts, shift reminders, emergency notifications, and OTP verification", fields: [
-      { key: "account_sid", label: "Account SID", type: "text", placeholder: "AC..." },
-      { key: "auth_token", label: "Auth Token", type: "password", placeholder: "your_auth_token" },
-      { key: "from_number", label: "From Number", type: "text", placeholder: "+15551234567" },
-      { key: "messaging_service_sid", label: "Messaging Service SID (optional)", type: "text", placeholder: "MG..." },
-    ]},
-    // Email config moved to its own page (/admin/settings/email) — it has
-    // a verification flow, Vault-backed credential storage, recent-sends
-    // log, and per-message audit that don't fit the generic integrations
-    // form. We keep a redirect tile here so admins can still discover it
-    // from HQ Config.
-    {
-      provider: "email",
-      label: "Email Sending",
-      logo: null,
-      desc: "Configure per-company SMTP or Resend for invitations and broadcasts",
-      fields: [],
-      redirectTo: "/admin/settings/email",
-    },
-    { provider: "onesignal", label: "OneSignal", logo: "/images/integrations/onesignal.jpeg", desc: "Push notifications for shift alerts, incident updates, and company announcements", fields: [
+    { provider: "onesignal", available: false, label: "OneSignal", logo: "/images/integrations/onesignal.jpeg", desc: "Push notifications for shift alerts, incident updates, and company announcements", fields: [
       { key: "app_id", label: "App ID", type: "text", placeholder: "your_onesignal_app_id" },
       { key: "rest_api_key", label: "REST API Key", type: "password", placeholder: "your_rest_api_key" },
     ]},
   ]},
   { id: "hiring", label: "Hiring & Onboarding", desc: "Applicant intake, background checks, records sync, and e-signatures", items: [
-    { provider: "fillout", label: "Fillout", logo: "/images/integrations/fillout.png", desc: "Receive employment applications via Fillout webhook", fields: [
+    { provider: "fillout", available: false, label: "Fillout", logo: "/images/integrations/fillout.png", desc: "Receive employment applications via Fillout webhook", fields: [
       { key: "webhook_secret", label: "Webhook Secret", type: "password", placeholder: "whsec_..." },
     ]},
     { provider: "airtable", label: "Airtable", logo: "/images/integrations/airtable.jpeg", desc: "Sync applicant records with Airtable", fields: [
@@ -81,12 +57,12 @@ const INTEGRATION_GROUPS: IntGroup[] = [
       { key: "base_id", label: "Base ID", type: "text", placeholder: "app..." },
       { key: "table_name", label: "Table Name", type: "text", placeholder: "Staff" },
     ]},
-    { provider: "checkr", label: "Checkr", logo: "/images/integrations/checkr.jpeg", desc: "Automated background checks triggered from the applicant pipeline on hire", fields: [
+    { provider: "checkr", available: false, label: "Checkr", logo: "/images/integrations/checkr.jpeg", desc: "Automated background checks triggered from the applicant pipeline on hire", fields: [
       { key: "api_key", label: "API Key", type: "password", placeholder: "checkr_..." },
       { key: "package_slug", label: "Default Package", type: "select", options: ["tasker_standard", "tasker_plus", "driver_standard", "driver_plus", "basic_criminal", "essential_criminal"] },
       { key: "webhook_url", label: "Webhook URL (auto-generated)", type: "text", placeholder: "Set after first save" },
     ]},
-    { provider: "docusign", label: "DocuSign", logo: "/images/integrations/docusign.jpeg", desc: "E-signatures for employment agreements, NDAs, and policy acknowledgments during onboarding", fields: [
+    { provider: "docusign", available: false, label: "DocuSign", logo: "/images/integrations/docusign.jpeg", desc: "E-signatures for employment agreements, NDAs, and policy acknowledgments during onboarding", fields: [
       { key: "integration_key", label: "Integration Key", type: "text", placeholder: "your_integration_key" },
       { key: "secret_key", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "account_id", label: "Account ID", type: "text", placeholder: "your_account_id" },
@@ -95,25 +71,25 @@ const INTEGRATION_GROUPS: IntGroup[] = [
     ]},
   ]},
   { id: "payroll", label: "Payroll & Finance", desc: "Timesheet sync, payroll runs, and tax filing", items: [
-    { provider: "gusto", label: "Gusto", logo: "/images/integrations/gusto.jpeg", desc: "Sync timesheets to payroll runs, manage tax filing and direct deposits", fields: [
+    { provider: "gusto", available: false, label: "Gusto", logo: "/images/integrations/gusto.jpeg", desc: "Sync timesheets to payroll runs, manage tax filing and direct deposits", fields: [
       { key: "client_id", label: "OAuth Client ID", type: "text", placeholder: "your_client_id" },
       { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "company_uuid", label: "Gusto Company UUID", type: "text", placeholder: "uuid-from-gusto" },
       { key: "sync_frequency", label: "Sync Frequency", type: "select", options: ["manual", "daily", "weekly", "per_pay_period"] },
     ]},
-    { provider: "quickbooks", label: "QuickBooks Online", logo: "/images/integrations/quickbooks.png", desc: "Sync approved timesheets to QuickBooks as TimeActivity entries for payroll processing", fields: [
+    { provider: "quickbooks", available: false, label: "QuickBooks Online", logo: "/images/integrations/quickbooks.png", desc: "Sync approved timesheets to QuickBooks as TimeActivity entries for payroll processing", fields: [
       { key: "client_id", label: "OAuth Client ID", type: "text", placeholder: "your_client_id" },
       { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "realm_id", label: "Company ID (realmId)", type: "text", placeholder: "123456789" },
       { key: "environment", label: "Environment", type: "select", options: ["sandbox", "production"] },
     ]},
-    { provider: "adp", label: "ADP Workforce Now", logo: "/images/integrations/adp.jpeg", desc: "Sync approved timesheets to ADP as time card entries for payroll processing", fields: [
+    { provider: "adp", available: false, label: "ADP Workforce Now", logo: "/images/integrations/adp.jpeg", desc: "Sync approved timesheets to ADP as time card entries for payroll processing", fields: [
       { key: "client_id", label: "API Client ID", type: "text", placeholder: "your_client_id" },
       { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "org_oid", label: "Organization OID", type: "text", placeholder: "your_org_oid" },
       { key: "environment", label: "Environment", type: "select", options: ["sandbox", "production"] },
     ]},
-    { provider: "paychex", label: "Paychex Flex", logo: "/images/integrations/paychex.jpeg", desc: "Sync approved timesheets to Paychex Flex for payroll processing and direct deposits", fields: [
+    { provider: "paychex", available: false, label: "Paychex Flex", logo: "/images/integrations/paychex.jpeg", desc: "Sync approved timesheets to Paychex Flex for payroll processing and direct deposits", fields: [
       { key: "client_id", label: "API Client ID", type: "text", placeholder: "your_client_id" },
       { key: "client_secret", label: "OAuth Access Token", type: "password", placeholder: "eyJ0eX..." },
       { key: "company_id", label: "Company ID (displayId)", type: "text", placeholder: "your_company_id" },
@@ -123,6 +99,9 @@ const INTEGRATION_GROUPS: IntGroup[] = [
 ];
 
 const ALL_INTEGRATIONS = INTEGRATION_GROUPS.flatMap(g => g.items);
+
+export const isIntegrationAvailable = (def: Pick<IntDef, "available">) => def.available !== false;
+export const INTEGRATION_PROVIDERS = ALL_INTEGRATIONS.map((d) => ({ provider: d.provider, available: isIntegrationAvailable(d) }));
 
 interface IntegrationsSectionProps {
   companyId: string;
@@ -201,9 +180,9 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
           const isOpen = expandedGroups[group.id] ?? false;
           const activeCount = group.items.filter(d => {
             const f = intForms[d.provider];
-            return f?.isActive;
+            return isIntegrationAvailable(d) && f?.isActive;
           }).length;
-          const configuredCount = group.items.filter(d => integrations.find((i: IntConfig) => i.provider === d.provider)).length;
+          const configuredCount = group.items.filter(d => isIntegrationAvailable(d) && integrations.find((i: IntConfig) => i.provider === d.provider)).length;
 
           return (
             <div key={group.id} className="rounded-lg border border-border/40 overflow-hidden">
@@ -230,47 +209,25 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                     const existing = integrations.find((i: IntConfig) => i.provider === def.provider);
                     const isConfigured = !!existing;
 
-                    // Redirect tile: render a link to the dedicated config
-                    // page and skip the inline credential form entirely.
-                    // The integrations_config row's verification status is
-                    // surfaced via a "Verified" badge if present.
-                    if (def.redirectTo) {
-                      const existingRow = existing as
-                        | (IntConfig & { verified_at?: string | null; delivery_method?: string | null })
-                        | undefined;
-                      const verified = Boolean(existingRow?.verified_at);
-                      const method = existingRow?.delivery_method;
+                    if (!isIntegrationAvailable(def)) {
                       return (
-                        <Link
-                          key={def.provider}
-                          href={def.redirectTo}
-                          className="block rounded-lg border border-border/40 p-4 hover:bg-muted/30 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Mail className="h-4 w-4 text-primary" />
-                              <span className="text-sm font-semibold">{def.label}</span>
-                              {verified && (
-                                <Badge className="text-[9px] bg-green-500/15 text-green-500">
-                                  Verified{method ? ` · ${method}` : ""}
-                                </Badge>
-                              )}
-                              {isConfigured && !verified && (
-                                <Badge variant="outline" className="text-[9px] text-amber-500">
-                                  Unverified
-                                </Badge>
-                              )}
-                            </div>
-                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                        <div key={def.provider} data-testid={`integration-${def.provider}`} className="rounded-lg border border-dashed border-border/40 p-4 opacity-70">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {def.logo && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={def.logo} alt="" className="h-5 w-5 object-contain grayscale" />
+                            )}
+                            <span className="text-sm font-semibold">{def.label}</span>
+                            <Badge variant="outline" className="text-[9px]">Not available yet</Badge>
                           </div>
-                          <p className="text-[10px] text-muted-foreground mt-1">{def.desc}</p>
-                          <p className="text-[10px] text-primary mt-2">Open Email Config →</p>
-                        </Link>
+                          <p className="mt-1 text-[10px] text-muted-foreground">{def.desc}</p>
+                          <p className="mt-1 text-[10px] text-muted-foreground">This connection isn&apos;t supported yet. Contact support if you need it.</p>
+                        </div>
                       );
                     }
 
                     return (
-                      <div key={def.provider} className={`rounded-lg border p-4 space-y-3 ${
+                      <div key={def.provider} data-testid={`integration-${def.provider}`} className={`rounded-lg border p-4 space-y-3 ${
                         form?.isActive ? "border-green-500/30 bg-green-500/5" : "border-border/40"
                       }`}>
                         <div className="flex items-center justify-between">
@@ -346,9 +303,6 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
           );
         })}
 
-        <div className="rounded-lg border border-dashed border-border/40 p-3 text-center">
-          <p className="text-[10px] text-muted-foreground">More integrations coming soon: Verkada cameras, Brivo access control, Samsara fleet GPS</p>
-        </div>
       </CardContent>
     </Card>
   );
