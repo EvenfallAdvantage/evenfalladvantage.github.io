@@ -102,6 +102,10 @@ export function useChatChannels() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
+  function clearSelected() {
+    setSelected(null); setMessages([]); setReplyTo(null); setSearchQ(""); setShowSearch(false); setEmojiPicker(null);
+  }
+
   async function selectCh(ch: Channel) {
     setSelected(ch); setReplyTo(null); setSearchQ(""); setShowSearch(false); setEmojiPicker(null);
     try {
@@ -251,7 +255,7 @@ export function useChatChannels() {
     selected, filteredMsgs,
     showCreate, setShowCreate, newName, setNewName,
     newAvatarUrl, setNewAvatarUrl, newAvatarFile, setNewAvatarFile,
-    creating, handleCreate, selectCh, deletingCh, handleDeleteCh,
+    creating, handleCreate, selectCh, clearSelected, deletingCh, handleDeleteCh,
     showSearch, setShowSearch, searchQ, setSearchQ,
     replyTo, setReplyTo, msgText, setMsgText,
     sending, handleSend, handleSendLocation, bottomRef,

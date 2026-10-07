@@ -124,6 +124,26 @@
     <script src="js/include-html.js"></script>
     
     <!-- ElevenLabs AI Agent -->
+    
+    <!-- Mobile: keep ElevenLabs chat from covering intro/"Our Services" -->
+    <style id="el-mobile-nudge">
+      @media (max-width: 768px) {
+        elevenlabs-convai { z-index: 40 !important; }
+        /* Collapse the expanded panel's default footprint if the host exposes it */
+        elevenlabs-convai[variant="expanded"],
+        elevenlabs-convai[open] {
+          max-width: min(100vw - 1rem, 360px);
+        }
+      }
+      @media (max-width: 480px) {
+        elevenlabs-convai {
+          /* Prefer collapsed launcher; users tap to open */
+          transform: scale(0.9);
+          transform-origin: bottom right;
+          margin: 0 0.5rem 0.5rem 0 !important;
+        }
+      }
+    </style>
     <elevenlabs-convai agent-id="agent_3501k7vzkxnzec2vbt1pjw2nxt47"></elevenlabs-convai>
     <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 </body>

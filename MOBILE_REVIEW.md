@@ -113,3 +113,46 @@ Almost every public HTML page has `width=device-width, initial-scale=1.0`. Good.
 - Full Overwatch admin density pass (roster, scheduling calendars).
 - Device screenshot QA and any visual redesign of the marketing homepage.
 - Touching `NEXT_PUBLIC_*`, edge functions, or migrations (out of scope).
+
+
+---
+
+## Overwatch in-app deep-dive (follow-up draft PR)
+
+**Branch:** `fix/overwatch-mobile` (separate from #56)  
+**Basis:** code review at ~390px + live screenshots in `/workspace/evenfall/mobile-review/` (pre-#56 captures of home chat widget, Overwatch install bar, login X).  
+**Do not merge until reviewed.** No EADB / bridge / Resend changes.
+
+### Ranked issues (Overwatch app pages)
+
+| Rank | Severity | Area | Issue | Fix in this PR? |
+|---|---|---|---|---|
+| 1 | **P0** | Chat / DMs | `direct-messages.tsx` always mounts a `w-72` list beside the thread → ~100px left for messages on a 390px phone | Yes — mobile list→detail with back |
+| 2 | **P0** | Chat / channels | Below `md`, grid stacks sidebar **and** chat → double-tall scroll; no way to dismiss thread | Yes — hide sidebar when selected; back clears selection |
+| 3 | **P0** | Install prompt | Fixed `bottom-4 z-50` sits on top of bottom nav + clips fold stats on `/overwatch/` landing | Yes — lift above nav + `html.ow-install-banner` content padding + 44×44 dismiss |
+| 4 | **P0** | Dialogs / sheets / login | Close controls were `icon-sm` (~28px) or `h-5` icon alone — below 44px WCAG 2.5.5 | Yes — dialog/sheet/login/register/KB/more switcher → 44×44 |
+| 5 | **P1** | Safe area | `appleWebApp.statusBarStyle: black-translucent` but **no** `viewportFit: "cover"` → `env(safe-area-inset-*)` stays 0; notch/home-indicator collision | Yes — `viewportFit: "cover"` + `.safe-area-top` on topbar + main padding via CSS |
+| 6 | **P1** | Public home | ElevenLabs `<elevenlabs-convai>` overlaps intro / “Our Services”; “Powered by ElevenAgents” clips | Partial — host CSS nudge/scale (shadow DOM limits full control) |
+| 7 | **P2** | Mobile nav | 5 tabs + SOS dense under 380px | Already mitigated in #56 (`min-width: 48px`, tighter pad) |
+| 8 | **P2** | Feed / More / Join / Onboarding | Generally single-column; More is already a mobile hub — OK | No change needed |
+| 9 | **P2** | Timeclock / Schedule / Academy / Staff | Tab strips already `overflow-x-auto scrollbar-hide`; calendars/grids use `sm:` breakpoints | No change in this PR (density pass later) |
+| 10 | **P2** | Knowledge Base | `md:grid-cols-[280px_1fr]` stacks OK; doc viewer close was small | Close target only |
+
+### Files touched (this draft)
+
+- `overwatch-src/src/app/layout.tsx` — `viewportFit: "cover"`
+- `overwatch-src/src/app/globals.css` — safe-area top/bottom helpers, install-banner clearance, install-bar lift
+- `overwatch-src/src/components/pwa-install-prompt.tsx` — position, 44px dismiss, `ow-install-banner` class toggle
+- `overwatch-src/src/components/layout/topbar.tsx` + `dashboard-shell.tsx` — safe-area top ownership
+- `overwatch-src/src/components/ui/dialog.tsx` + `sheet.tsx` — 44×44 close
+- `overwatch-src/src/app/page.tsx` — login/register 44×44 close
+- `overwatch-src/src/components/direct-messages.tsx` — mobile list→detail
+- `overwatch-src/src/app/chat/components/{use-chat-channels.ts,channels-tab.tsx}` + `chat/page.tsx` — mobile list→detail + `clearSelected`
+- `overwatch-src/src/app/knowledge-base/page.tsx` + `more/page.tsx` — 44×44 closes
+- `index.html` + `css/styles.css` — ElevenLabs mobile nudge
+
+### Still out of scope / follow-ups
+
+- Full shadow-DOM restyle of ElevenLabs (needs their theming API / `variant` props).
+- Schedule week-grid density, Instructor HQ wide tables, admin roster filters.
+- Any EADB / messaging bridge / Resend work.

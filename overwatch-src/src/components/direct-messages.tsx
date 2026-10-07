@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Send, Loader2, Check, CheckCheck, MapPin } from "lucide-react";
+import { Send, Loader2, Check, CheckCheck, MapPin, ChevronLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -127,10 +127,12 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
     return name.includes(searchQ.toLowerCase());
   });
 
+  const showDetail = Boolean(selectedUserId) || showNewDM;
+
   return (
     <div className="flex h-[calc(100vh-200px)] min-h-[400px] border border-border/30 rounded-xl overflow-hidden">
-      {/* Conversation list */}
-      <div className="w-72 border-r border-border/30 flex flex-col">
+      {/* Conversation list — full-width on mobile until a thread is open */}
+      <div className={`border-r border-border/30 flex-col w-full md:w-72 shrink-0 ${showDetail ? "hidden md:flex" : "flex"}`}>
         <div className="p-3 border-b border-border/30 flex items-center justify-between">
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Messages</h3>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={handleNewDM}>+ New</Button>
@@ -175,13 +177,23 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
         </div>
       </div>
 
-      {/* Message area */}
-      <div className="flex-1 flex flex-col">
+      {/* Message area — full-width on mobile when a thread/new-DM is open */}
+      <div className={`flex-1 flex-col min-w-0 ${showDetail ? "flex" : "hidden md:flex"}`}>
         {showNewDM ? (
           /* New DM picker */
           <div className="flex-1 flex flex-col">
             <div className="p-3 border-b border-border/30">
-              <h3 className="text-sm font-medium mb-2">New Message</h3>
+              <div className="flex items-center gap-1 mb-2">
+                <button
+                  type="button"
+                  className="md:hidden flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+                  onClick={() => { setShowNewDM(false); setSearchQ(""); }}
+                  aria-label="Back to conversations"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <h3 className="text-sm font-medium">New Message</h3>
+              </div>
               <Input
                 placeholder="Search staff..."
                 value={searchQ}
@@ -214,7 +226,15 @@ export function DirectMessages({ companyId, initialUserId }: DirectMessagesProps
           /* Conversation view */
           <>
             {/* Header */}
-            <div className="px-4 py-2.5 border-b border-border/30 flex items-center gap-2">
+            <div className="px-2 sm:px-4 py-1.5 sm:py-2.5 border-b border-border/30 flex items-center gap-1 sm:gap-2">
+              <button
+                type="button"
+                className="md:hidden flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+                onClick={() => setSelectedUserId(null)}
+                aria-label="Back to conversations"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
               <Avatar className="h-7 w-7">
                 <AvatarImage src={selectedConv?.avatarUrl ?? undefined} />
                 <AvatarFallback className="text-[9px]">

@@ -278,8 +278,13 @@ export default function MorePage() {
                 <h3 className="text-sm font-bold">Switch Company</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">Select an organization</p>
               </div>
-              <button onClick={() => setShowSwitcher(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent transition-colors">
-                <X className="h-4 w-4" />
+              <button
+                type="button"
+                onClick={() => setShowSwitcher(false)}
+                aria-label="Close"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors"
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-3 space-y-1 max-h-64 overflow-auto">
