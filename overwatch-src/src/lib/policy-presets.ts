@@ -3,15 +3,16 @@ import type { OvertimeConfig } from "@/lib/supabase/db-overtime";
 export type OtPresetId = "federal" | "california" | "custom";
 
 export const OT_PRESETS: { id: Exclude<OtPresetId, "custom">; label: string; desc: string; config: Omit<OvertimeConfig, "weekStartDay"> }[] = [
-  { id: "federal", label: "Federal (FLSA)", desc: "Overtime after 40 hours a week.", config: { weeklyThreshold: 40, dailyThreshold: 0, doubletimeThreshold: 0 } },
-  { id: "california", label: "California", desc: "Overtime after 8 hours a day or 40 a week; double time after 12 hours a day.", config: { weeklyThreshold: 40, dailyThreshold: 8, doubletimeThreshold: 12 } },
+  { id: "federal", label: "Federal (FLSA)", desc: "Overtime after 40 hours a week.", config: { weeklyThreshold: 40, dailyThreshold: 0, doubletimeThreshold: 0, seventhDayRule: false } },
+  { id: "california", label: "California", desc: "Overtime after 8 hours a day or 40 a week; double time after 12 hours a day; 7th consecutive day rule.", config: { weeklyThreshold: 40, dailyThreshold: 8, doubletimeThreshold: 12, seventhDayRule: true } },
 ];
 
 export function detectOtPreset(cfg: OvertimeConfig): OtPresetId {
   const hit = OT_PRESETS.find((p) =>
     p.config.weeklyThreshold === cfg.weeklyThreshold &&
     p.config.dailyThreshold === cfg.dailyThreshold &&
-    p.config.doubletimeThreshold === cfg.doubletimeThreshold);
+    p.config.doubletimeThreshold === cfg.doubletimeThreshold &&
+    p.config.seventhDayRule === !!cfg.seventhDayRule);
   return hit?.id ?? "custom";
 }
 

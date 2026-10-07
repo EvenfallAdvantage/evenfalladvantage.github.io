@@ -1,5 +1,5 @@
 -- =============================================================================
--- ROLLBACK for 20261007180000_time_off_policies_paid_rls.sql
+-- ROLLBACK for 20261007180000_pay_leave_settings.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY. Run by hand.
 -- Restores the policies as read from pg_policies on 2026-10-07.
 -- NOTE: re-opens cross-tenant read and member-level edits of leave policies.
@@ -29,5 +29,10 @@ CREATE POLICY time_off_policies_select ON public.time_off_policies
   USING (true);
 
 ALTER TABLE public.time_off_policies DROP COLUMN IF EXISTS is_paid;
+
+-- Managers lose pay/overtime editing (the app falls back to direct updates,
+-- which companies RLS limits to owner/admin). Saved values are kept.
+DROP FUNCTION IF EXISTS public.set_company_default_rates(uuid, numeric, numeric);
+DROP FUNCTION IF EXISTS public.set_company_overtime_config(uuid, jsonb);
 
 COMMIT;

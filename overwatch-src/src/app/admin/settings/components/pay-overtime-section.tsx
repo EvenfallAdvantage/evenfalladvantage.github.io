@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import {
   getOvertimeConfig, saveOvertimeConfig, DEFAULT_OT_CONFIG, type OvertimeConfig,
-  getCompanyDefaultRates, updateCompanyDefaultPayRate, updateCompanyDefaultBillRate,
+  getCompanyDefaultRates, saveCompanyDefaultRates,
 } from "@/lib/supabase/db";
 import { OT_PRESETS, detectOtPreset, validateOvertimeConfig, parseRate, type OtPresetId } from "@/lib/policy-presets";
 
@@ -70,7 +70,7 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
     if (p === undefined || b === undefined) { toast.error("Enter rates like 22.50"); return; }
     setSavingRates(true);
     try {
-      await Promise.all([updateCompanyDefaultPayRate(companyId, p), updateCompanyDefaultBillRate(companyId, b)]);
+      await saveCompanyDefaultRates(companyId, p, b);
       toast.success("Default rates saved");
     } catch (e) { logger.swallow("pay-overtime:save-rates", e, "warn"); toast.error("Couldn't save default rates"); }
     finally { setSavingRates(false); }
@@ -81,7 +81,7 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
       <CardContent className="space-y-6 pt-6">
         <div>
           <h3 className="text-sm font-semibold">Pay &amp; Overtime</h3>
-          <p className="text-xs text-muted-foreground">Used for overtime warnings, pay estimates and invoices.</p>
+          <p className="text-xs text-muted-foreground">Used for overtime warnings, pay estimates, payroll export and invoices. Managers and above can change these.</p>
         </div>
         {loading ? (
           <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…</p>
@@ -140,7 +140,19 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
                   </select>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground">0 turns a rule off. The California 7th-consecutive-day rule isn&apos;t applied automatically. Check payroll for those weeks.</p>
+              <label className="flex min-h-11 items-start gap-2 text-sm sm:min-h-0">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 rounded"
+                  checked={!!cfg.seventhDayRule}
+                  onChange={(e) => { const next = { ...cfg, seventhDayRule: e.target.checked }; setCfg(next); setPreset(detectOtPreset(next)); }}
+                />
+                <span>
+                  7th consecutive day rule
+                  <span className="block text-[10px] text-muted-foreground">When someone works all 7 days of the workweek: first 8 hours on the 7th day at 1.5×, over 8 hours at 2× (California).</span>
+                </span>
+              </label>
+              <p className="text-[10px] text-muted-foreground">0 turns a rule off.</p>
               <Button onClick={saveOt} disabled={savingOt} className={`gap-1.5 ${tap}`}>
                 {savingOt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save overtime rules
               </Button>

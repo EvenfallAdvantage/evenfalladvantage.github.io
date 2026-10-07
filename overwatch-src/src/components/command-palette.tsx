@@ -61,6 +61,7 @@ const COMMANDS: CommandItem[] = [
   { label: "Ops Planning", href: "/admin/events", icon: "Flag", keywords: "operations events planning", roles: ["owner", "admin", "manager"] },
   { label: "Personnel", href: "/admin/staff", icon: "UserCog", keywords: "staff management hr", roles: ["owner", "admin", "manager"] },
   { label: "Training Admin", href: "/admin/training", icon: "NotebookPen", keywords: "modules slides", roles: ["owner", "admin", "manager"] },
+  { label: "Pay & Overtime", href: "/admin/settings/pay", icon: "Settings", keywords: "pay rate bill rate overtime california payroll", roles: ["owner", "admin", "manager"] },
   { label: "HQ Config", href: "/admin/settings", icon: "Settings", keywords: "settings company organization", roles: ["owner", "admin"] },
   { label: "Mass Clock", href: "/scan", icon: "ScanLine", keywords: "qr scanner badge", roles: ["owner", "admin", "manager"] },
 ];

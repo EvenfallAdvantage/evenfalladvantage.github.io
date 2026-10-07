@@ -20,6 +20,12 @@ export interface OvertimeConfig {
   dailyThreshold: number;     // e.g. 8 (CA) or 0 (disabled)
   doubletimeThreshold: number; // e.g. 12 (CA) or 0 (disabled)
   weekStartDay: number;       // 0=Sunday, 1=Monday
+  /**
+   * California 7th-consecutive-day rule: when someone works all 7 days of a
+   * workweek, the first 8h on the 7th day are overtime (1.5x) and anything
+   * over 8h that day is double time (2x).
+   */
+  seventhDayRule: boolean;
 }
 
 export const DEFAULT_OT_CONFIG: OvertimeConfig = {
@@ -27,6 +33,7 @@ export const DEFAULT_OT_CONFIG: OvertimeConfig = {
   dailyThreshold: 0,     // disabled by default (only CA/NV/CO require daily OT)
   doubletimeThreshold: 0, // disabled by default
   weekStartDay: 0,       // Sunday
+  seventhDayRule: false,  // CA only
 };
 
 /**
@@ -47,8 +54,22 @@ export async function getOvertimeConfig(companyId: string): Promise<OvertimeConf
   return { ...DEFAULT_OT_CONFIG, ...cfg };
 }
 
-/** Save overtime rules to companies.settings.overtime_config (owner/admin, RLS). */
+/** PostgREST "function not found": the pay-settings migration isn't applied yet. */
+export const isMissingRpc = (e: { code?: string } | null) => !!e && (e.code === "PGRST202" || e.code === "42883");
+
+/**
+ * Save overtime rules (manager and above). Uses the set_company_overtime_config
+ * RPC (validates and merges into companies.settings server-side). Before that
+ * migration is applied it falls back to the direct update (owner/admin only).
+ */
 export async function saveOvertimeConfig(companyId: string, cfg: OvertimeConfig): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("set_company_overtime_config", {
+    p_company_id: companyId,
+    p_config: cfg,
+  });
+  if (!error) return;
+  if (!isMissingRpc(error)) throw error;
   await updateCompanySettings(companyId, { overtime_config: cfg });
 }
 
@@ -117,7 +138,7 @@ export async function getWeeklyHoursReport(companyId: string): Promise<WeeklyHou
 
   // Calculate OT/DT split
   return Array.from(hoursByUser.entries()).map(([userId, { name, total, days }]) => {
-    const { regular, overtime, doubletime } = splitWorkweek(orderedDays(days), config);
+    const { regular, overtime, doubletime } = splitDays(days, config);
     return {
       userId,
       userName: name,
@@ -133,37 +154,78 @@ export async function getWeeklyHoursReport(companyId: string): Promise<WeeklyHou
 
 const localDayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-const orderedDays = (days: Map<string, number>) =>
-  Array.from(days.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([, h]) => h);
+const keyToDate = (k: string) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
 
 /**
- * Split one workweek (hours per workday, in order) into regular / OT / DT.
- *
- * Daily rules (when enabled): hours over `dailyThreshold` in a day are OT,
- * hours over `doubletimeThreshold` in a day are DT. Weekly rule: regular hours
- * beyond `weeklyThreshold` for the week become OT (hours already counted as
- * daily OT/DT are not double counted). This matches the California pattern
- * (8/day, 12/day DT, 40/week). Not modelled: the CA 7th-consecutive-day rule.
+ * Group per-day hours ("YYYY-MM-DD" -> hours) into workweeks of 7 slots
+ * (slot 0 = weekStartDay). Days not worked are 0.
  */
-export function splitWorkweek(
-  dailyHours: number[],
-  config: OvertimeConfig,
-): { regular: number; overtime: number; doubletime: number } {
+export function toWorkweeks(days: Map<string, number>, weekStartDay: number): Map<string, { slots: number[]; keys: string[] }> {
+  const weeks = new Map<string, { slots: number[]; keys: string[] }>();
+  for (const [key, hours] of days) {
+    const d = keyToDate(key);
+    const idx = (d.getDay() - weekStartDay + 7) % 7;
+    const start = new Date(d); start.setDate(d.getDate() - idx);
+    const wk = localDayKey(start);
+    if (!weeks.has(wk)) {
+      const keys = Array.from({ length: 7 }, (_, i) => { const x = new Date(start); x.setDate(start.getDate() + i); return localDayKey(x); });
+      weeks.set(wk, { slots: Array(7).fill(0), keys });
+    }
+    weeks.get(wk)!.slots[idx] += hours;
+  }
+  return weeks;
+}
+
+export type DaySplit = { regular: number; overtime: number; doubletime: number };
+
+/**
+ * Split one workweek into regular / OT / DT per day.
+ *
+ * `dailyHours` is the workweek in order (index 0 = first day of the
+ * workweek; 0 = not worked). Rules, as enabled in `config`:
+ *   - daily: hours over `dailyThreshold` are OT, over `doubletimeThreshold` DT
+ *   - weekly: regular hours beyond `weeklyThreshold` become OT (hours already
+ *     counted as daily OT/DT are not counted twice)
+ *   - 7th consecutive day (CA): if all 7 days are worked, the first 8h on the
+ *     7th day are OT and the rest DT (none of it is regular)
+ */
+export function splitWorkweekByDay(dailyHours: number[], config: OvertimeConfig): DaySplit[] {
   const daily = config.dailyThreshold > 0 ? config.dailyThreshold : Infinity;
   const dt = config.doubletimeThreshold > 0 ? config.doubletimeThreshold : Infinity;
   const weekly = config.weeklyThreshold > 0 ? config.weeklyThreshold : Infinity;
-  let regular = 0, overtime = 0, doubletime = 0;
-  for (const raw of dailyHours) {
+  const seventh = !!config.seventhDayRule && dailyHours.length === 7 && dailyHours.every((h) => h > 0);
+  let regularSoFar = 0;
+  return dailyHours.map((raw, i) => {
     const h = Math.max(0, raw);
+    if (seventh && i === 6) {
+      return { regular: 0, overtime: Math.min(h, 8), doubletime: Math.max(0, h - 8) };
+    }
     const dDt = Math.max(0, h - dt);
-    const dOt = Math.max(0, Math.min(h, dt) - daily);
+    let dOt = Math.max(0, Math.min(h, dt) - daily);
     let dReg = h - dDt - dOt;
-    // Weekly cap on regular hours
-    const room = Math.max(0, weekly - regular);
-    if (dReg > room) { overtime += dReg - room; dReg = room; }
-    regular += dReg; overtime += dOt; doubletime += dDt;
+    const room = Math.max(0, weekly - regularSoFar);
+    if (dReg > room) { dOt += dReg - room; dReg = room; }
+    regularSoFar += dReg;
+    return { regular: dReg, overtime: dOt, doubletime: dDt };
+  });
+}
+
+/** Totals for one workweek (see splitWorkweekByDay). */
+export function splitWorkweek(dailyHours: number[], config: OvertimeConfig): DaySplit {
+  return splitWorkweekByDay(dailyHours, config).reduce(
+    (a, d) => ({ regular: a.regular + d.regular, overtime: a.overtime + d.overtime, doubletime: a.doubletime + d.doubletime }),
+    { regular: 0, overtime: 0, doubletime: 0 },
+  );
+}
+
+/** Totals across any number of days, split per workweek. */
+export function splitDays(days: Map<string, number>, config: OvertimeConfig): DaySplit {
+  const total: DaySplit = { regular: 0, overtime: 0, doubletime: 0 };
+  for (const { slots } of toWorkweeks(days, config.weekStartDay).values()) {
+    const w = splitWorkweek(slots, config);
+    total.regular += w.regular; total.overtime += w.overtime; total.doubletime += w.doubletime;
   }
-  return { regular, overtime, doubletime };
+  return total;
 }
 
 /**
@@ -175,7 +237,7 @@ export function splitHours(
   totalHours: number,
   config: OvertimeConfig
 ): { regular: number; overtime: number; doubletime: number } {
-  return splitWorkweek([totalHours], { ...config, dailyThreshold: 0, doubletimeThreshold: 0 });
+  return splitWorkweek([totalHours], { ...config, dailyThreshold: 0, doubletimeThreshold: 0, seventhDayRule: false });
 }
 
 // ─── Payroll Hours for Sync ───────────────────────────────
@@ -220,7 +282,7 @@ export async function getPayrollHours(
     const email = ts.users?.email ?? "";
     if (!email) continue;
     const hours = (new Date(ts.clock_out).getTime() - new Date(ts.clock_in).getTime()) / 3600000;
-    const date = new Date(ts.clock_in).toISOString().split("T")[0];
+    const date = localDayKey(new Date(ts.clock_in));
     const existing = byUser.get(ts.user_id) ?? { email, entries: [] as TimesheetEntry[] };
     existing.entries.push({ date, hours });
     byUser.set(ts.user_id, existing);
@@ -228,20 +290,23 @@ export async function getPayrollHours(
 
   const results: PayrollHoursEntry[] = [];
   for (const [, { email, entries }] of byUser) {
-    const total = entries.reduce((sum, e) => sum + e.hours, 0);
     const days = new Map<string, number>();
     for (const e of entries) days.set(e.date, (days.get(e.date) ?? 0) + e.hours);
-    const { regular, overtime, doubletime } = splitWorkweek(orderedDays(days), config);
-
-    // Distribute the split proportionally across entries
+    // Per-day split, week by week, then share each day's split across that day's entries.
+    const byDay = new Map<string, DaySplit>();
+    for (const { slots, keys } of toWorkweeks(days, config.weekStartDay).values()) {
+      splitWorkweekByDay(slots, config).forEach((d, i) => { if (slots[i] > 0) byDay.set(keys[i], d); });
+    }
     for (const entry of entries) {
-      const ratio = entry.hours / total;
+      const dayTotal = days.get(entry.date) ?? entry.hours;
+      const split = byDay.get(entry.date) ?? { regular: entry.hours, overtime: 0, doubletime: 0 };
+      const ratio = dayTotal > 0 ? entry.hours / dayTotal : 0;
       results.push({
         employeeEmail: email,
         date: entry.date,
-        regularHours: Math.round(regular * ratio * 100) / 100,
-        overtimeHours: Math.round(overtime * ratio * 100) / 100,
-        doubletimeHours: Math.round(doubletime * ratio * 100) / 100,
+        regularHours: Math.round(split.regular * ratio * 100) / 100,
+        overtimeHours: Math.round(split.overtime * ratio * 100) / 100,
+        doubletimeHours: Math.round(split.doubletime * ratio * 100) / 100,
         totalHours: Math.round(entry.hours * 100) / 100,
       });
     }
