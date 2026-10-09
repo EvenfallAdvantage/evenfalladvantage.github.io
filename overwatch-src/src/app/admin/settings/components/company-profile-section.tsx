@@ -1,14 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Save, Loader2, Check, Copy, ImageIcon, Upload, Globe, MapPin, AlertTriangle, Link as LinkIcon } from "lucide-react";
+import { Save, Loader2, Check, Copy, ImageIcon, Upload, Globe, MapPin, AlertTriangle, Link as LinkIcon, RefreshCw, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { updateCompany } from "@/lib/supabase/db";
-import { uploadCompanyLogo } from "@/lib/supabase/db-users";
+import { uploadCompanyLogo, rotateCompanyJoinCode } from "@/lib/supabase/db-users";
+import { normalizeHttpUrl } from "@/lib/hq-config";
+import { useAuthStore } from "@/stores/auth-store";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { getLuminance, adjustBrightness } from "@/lib/brand-utils";
 
 // Get all IANA timezone names
@@ -35,6 +38,8 @@ interface CompanyProfileSectionProps {
   initialLogoUrl: string;
   initialWebsiteUrl: string;
   joinCode: string;
+  /** Owners/admins may rotate the join code. */
+  canRotateJoinCode?: boolean;
 }
 
 export default function CompanyProfileSection({
@@ -45,8 +50,13 @@ export default function CompanyProfileSection({
   initialAccentColor,
   initialLogoUrl,
   initialWebsiteUrl,
-  joinCode,
+  joinCode: initialJoinCode,
+  canRotateJoinCode = false,
 }: CompanyProfileSectionProps) {
+  const { user, setUser } = useAuthStore();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [joinCode, setJoinCode] = useState(initialJoinCode);
+  const [rotating, setRotating] = useState(false);
   const [name, setName] = useState(initialName);
   const [timezone, setTimezone] = useState(initialTimezone);
   const [brandColor, setBrandColor] = useState(initialBrandColor);
@@ -64,9 +74,30 @@ export default function CompanyProfileSection({
 
   async function handleSave() {
     if (!companyId) return;
+    const trimmedName = name.trim();
+    if (!trimmedName) { toast.error("Company name is required"); return; }
+    const site = normalizeHttpUrl(websiteUrl, "Company website");
+    if (!site.ok) { toast.error(site.error); return; }
+    const logo = normalizeHttpUrl(logoUrl, "Logo URL");
+    if (!logo.ok) { toast.error(logo.error); return; }
     setSaving(true);
     try {
-      await updateCompany(companyId, { name, brandColor, accentColor, timezone, logoUrl: logoUrl || undefined, websiteUrl: websiteUrl || undefined });
+      // null clears the stored value (an empty field used to be ignored).
+      await updateCompany(companyId, { name: trimmedName, brandColor, accentColor, timezone, logoUrl: logo.value, websiteUrl: site.value });
+      setName(trimmedName);
+      setWebsiteUrl(site.value ?? "");
+      setLogoUrl(logo.value ?? "");
+      // Refresh the session copy so the sidebar name, logo and colours update without a reload.
+      if (user) {
+        setUser({
+          ...user,
+          companies: user.companies.map((c) =>
+            c.companyId === companyId
+              ? { ...c, companyName: trimmedName, companyLogo: logo.value, brandColor, accentColor }
+              : c,
+          ),
+        });
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       toast.success("Settings saved");
@@ -74,10 +105,36 @@ export default function CompanyProfileSection({
     finally { setSaving(false); }
   }
 
-  function copyCode() {
-    navigator.clipboard.writeText(joinCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(joinCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Copy failed. Select the code and copy it manually.");
+    }
+  }
+
+  async function handleRotate() {
+    const ok = await confirm({
+      title: "Generate a new join code?",
+      description: "The current code stops working immediately. Anyone who hasn't joined yet will need the new code.",
+      confirmLabel: "Generate new code",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setRotating(true);
+    try {
+      const code = await rotateCompanyJoinCode(companyId);
+      if (!code) throw new Error("No code returned");
+      setJoinCode(code);
+      toast.success("New join code generated");
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not generate a new code. Only owners and admins can do this.");
+    } finally {
+      setRotating(false);
+    }
   }
 
   return (
@@ -101,6 +158,11 @@ export default function CompanyProfileSection({
                 </div>
               )}
               <Input id="company-logo-url" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="flex-1" placeholder="https://example.com/logo.png" />
+              {logoUrl && (
+                <Button type="button" size="icon" variant="ghost" className="size-11 shrink-0 sm:size-8" aria-label="Remove logo" onClick={() => setLogoUrl("")}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
               <input
                 ref={logoFileRef}
                 type="file"
@@ -115,7 +177,7 @@ export default function CompanyProfileSection({
                     setLogoUrl(url);
                   } catch (err) {
                     console.error("Logo upload failed:", err);
-                    alert(err instanceof Error ? err.message : "Failed to upload logo");
+                    toast.error(err instanceof Error ? err.message : "Failed to upload logo");
                   } finally {
                     setUploadingLogo(false);
                     if (logoFileRef.current) logoFileRef.current.value = "";
@@ -132,14 +194,14 @@ export default function CompanyProfileSection({
                 Upload
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1">Upload an image or paste a URL. It will appear in the sidebar.</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Upload an image or paste a URL. It appears in the sidebar. Clear the field and save to remove it.</p>
           </div>
           <div>
             <Label htmlFor="company-website-url" className="text-xs text-muted-foreground flex items-center gap-1.5">
               <LinkIcon className="h-3 w-3" /> Company Website
             </Label>
             <Input id="company-website-url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} className="mt-1" placeholder="https://www.yourcompany.com" />
-            <p className="text-[10px] text-muted-foreground mt-1">Your company&apos;s website. Visitors can click your badge on the landing page to visit it.</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Visitors can click your badge on the landing page to visit it. Must be an http(s) address; leave empty to remove.</p>
           </div>
           <div ref={tzRef}>
             <Label htmlFor="company-timezone" className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -240,28 +302,36 @@ export default function CompanyProfileSection({
               </div>
             </div>
           </div>
-          <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
+          <Button size="sm" className="h-11 gap-1.5 sm:h-7" onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Save className="h-3.5 w-3.5" />}
             {saved ? "Saved!" : "Save"}
           </Button>
         </CardContent>
       </Card>
 
-      {joinCode && (
+      {(joinCode || canRotateJoinCode) && (
         <Card>
           <CardContent className="space-y-3 pt-6">
             <h3 className="text-sm font-semibold">Join Code</h3>
             <p className="text-xs text-muted-foreground">Share this code so team members can join your organization.</p>
-            <div className="flex items-center gap-3">
-              <span className="text-2xl font-mono font-bold tracking-widest">{joinCode}</span>
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={copyCode}>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-2xl font-mono font-bold tracking-widest">{joinCode || "------"}</span>
+              <Button size="sm" variant="outline" className="h-11 gap-1.5 sm:h-7" onClick={copyCode} disabled={!joinCode}>
                 {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                 {copied ? "Copied" : "Copy"}
               </Button>
+              {canRotateJoinCode && (
+                <Button size="sm" variant="ghost" className="h-11 gap-1.5 text-muted-foreground sm:h-7" onClick={handleRotate} disabled={rotating}>
+                  {rotating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                  New code
+                </Button>
+              )}
             </div>
+            <p className="text-[11px] text-muted-foreground">If the code was shared too widely, generate a new one. The old code stops working.</p>
           </CardContent>
         </Card>
       )}
+      <ConfirmDialog />
     </>
   );
 }
