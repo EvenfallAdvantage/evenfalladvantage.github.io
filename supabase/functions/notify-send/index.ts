@@ -74,7 +74,9 @@ Deno.serve(async (req) => {
       return json(403, { error: denied });
     }
 
-    const appUrl = (Deno.env.get("OVERWATCH_APP_URL") ?? Deno.env.get("SITE_URL") ?? "").replace(/\/+$/, "");
+    // Same default as intake-ingest. SITE_URL is the marketing-site root (no
+    // /overwatch), so it is not used here; overwatch.* has no DNS record.
+    const appUrl = (Deno.env.get("OVERWATCH_APP_URL") || "https://www.evenfalladvantage.com/overwatch").replace(/\/+$/, "");
     const call = (fn: string, body: unknown) =>
       fetch(`${url}/functions/v1/${fn}`, {
         method: "POST",
@@ -87,7 +89,7 @@ Deno.serve(async (req) => {
     if (parsed.kind === "welcome") {
       const { data: co } = await admin.from("companies").select("name, join_code").eq("id", parsed.company_id).maybeSingle();
       const c = co as { name?: string; join_code?: string | null } | null;
-      const msg = welcomeEmail({ firstName: parsed.first_name, companyName: c?.name ?? "your new company", joinCode: c?.join_code ?? null, appUrl: appUrl || "https://overwatch.evenfalladvantage.com" });
+      const msg = welcomeEmail({ firstName: parsed.first_name, companyName: c?.name ?? "your new company", joinCode: c?.join_code ?? null, appUrl });
       const res = await call("email-send", { company_id: parsed.company_id, to: [{ email: parsed.to_email }], subject: msg.subject, html: msg.html, purpose: "welcome" });
       if (res.ok) result.email.sent = 1; else result.email.failed = 1;
     } else {
