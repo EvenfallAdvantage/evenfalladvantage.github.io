@@ -1,5 +1,5 @@
 -- =============================================================================
--- ROLLBACK for 20261007180000_pay_leave_settings.sql
+-- ROLLBACK for 20261009041312_pay_leave_settings.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY. Run by hand.
 -- Restores the policies as read from pg_policies on 2026-10-07.
 -- NOTE: re-opens cross-tenant read and member-level edits of leave policies.

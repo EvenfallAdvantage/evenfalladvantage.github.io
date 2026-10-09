@@ -1,9 +1,9 @@
 -- =============================================================================
--- 20261007180000_pay_leave_settings.sql
+-- 20261009041312_pay_leave_settings.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY.
--- Status: NOT APPLIED (draft, PR "HQ Config C"). Apply by hand after review.
---         Rename the file to the real apply timestamp when applied.
--- Rollback: supabase/migrations/rollback/20261007180000_pay_leave_settings.rollback.sql
+-- Status: APPLIED to OverwatchDB 2026-10-08 9:13 PM PT (version 20261009041312, PR #61).
+--         Applied via apply_migration "pay_leave_settings" (same statements, no explicit BEGIN/COMMIT).
+-- Rollback: supabase/migrations/rollback/20261009041312_pay_leave_settings.rollback.sql
 --
 -- Live state read 2026-10-07 (read-only):
 --   columns: id, company_id, name, type, accrual_rate, accrual_period,

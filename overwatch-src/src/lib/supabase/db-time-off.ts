@@ -75,7 +75,7 @@ function policyRow(f: TimeOffPolicyFields) {
   if (f.accrualRate !== undefined) row.accrual_rate = f.accrualRate;
   if (f.accrualPeriod !== undefined) row.accrual_period = f.accrualPeriod;
   if (f.maxBalance !== undefined) row.max_balance = f.maxBalance;
-  // is_paid is added by migration 20261007180000; only send when set.
+  // is_paid is added by migration 20261009041312; only send when set.
   if (f.isPaid !== undefined) row.is_paid = f.isPaid;
   return row;
 }
