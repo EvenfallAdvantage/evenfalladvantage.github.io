@@ -252,11 +252,6 @@ export default function SchedulePage() {
     try {
       const { dispatch } = await import("@/lib/services/notification-dispatcher");
       const { sendWhatsAppShiftReminder } = await import("@/lib/services/whatsapp-service");
-      const { sendShiftReminderSMS } = await import("@/lib/services/sms-service");
-      const { sendEmail, buildShiftReminderEmail } = await import("@/lib/services/email-service");
-      const { getCompanyDetails } = await import("@/lib/supabase/db");
-      const company = await getCompanyDetails(activeCompanyId);
-      const companyName = company?.name ?? "Your Company";
 
       for (const sh of shifts) {
         const u = Array.isArray(sh.users) ? sh.users[0] : sh.users;
@@ -265,10 +260,9 @@ export default function SchedulePage() {
         const shiftDate = fmtDate(sh.start_time);
         const shiftTime = `${fmtTime(sh.start_time)} — ${fmtTime(sh.end_time)}`;
         const location = sh.events?.location;
-        dispatch({ userId: u.id, companyId: activeCompanyId, title: "Shift Reminder", body: `${shiftDate} at ${shiftTime}${location ? ` — ${location}` : ""}`, type: "shift_reminder", actionUrl: "/schedule", phone: u.phone, email: u.email, urgent: true, emailFallback: true }).catch(() => {});
+        // In-app + email + SMS (server-side via notify-send).
+        dispatch({ userId: u.id, companyId: activeCompanyId, title: "Shift Reminder", body: `${shiftDate} at ${shiftTime}${location ? ` — ${location}` : ""}`, type: "shift_reminder", actionUrl: "/schedule", urgent: true, emailFallback: true }).catch(() => {});
         if (u.phone) sendWhatsAppShiftReminder(activeCompanyId, { phone: u.phone, firstName, shiftDate, shiftTime, location }).catch(() => {});
-        if (u.phone) sendShiftReminderSMS(activeCompanyId, { phone: u.phone, firstName, shiftDate, shiftTime, location }).catch(() => {});
-        if (u.email) { const tpl = buildShiftReminderEmail({ firstName, companyName, shiftDate, shiftTime, location }); tpl.to = u.email; sendEmail(activeCompanyId, tpl).catch(() => {}); }
       }
       setRemindersSent(true);
       setTimeout(() => setRemindersSent(false), 3000);
