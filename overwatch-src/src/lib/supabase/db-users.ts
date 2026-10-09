@@ -584,8 +584,10 @@ export async function updateCompany(companyId: string, updates: {
   brandColor?: string;
   accentColor?: string;
   timezone?: string;
-  logoUrl?: string;
-  websiteUrl?: string;
+  /** null clears the stored value. */
+  logoUrl?: string | null;
+  /** null clears the stored value. */
+  websiteUrl?: string | null;
 }) {
   const supabase = createClient();
   const payload: CompanyPayload = {};

@@ -114,8 +114,8 @@ export type CompanyPayload = {
   brand_color?: string;
   accent_color?: string;
   timezone?: string;
-  logo_url?: string;
-  website_url?: string;
+  logo_url?: string | null;
+  website_url?: string | null;
 };
 
 export type QuizPayload = {
