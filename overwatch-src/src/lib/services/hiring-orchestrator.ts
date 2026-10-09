@@ -15,9 +15,8 @@
  * Failures do NOT block the hiring flow — they're logged and reported.
  */
 
-import { logger } from "@/lib/logger";
-import { sendEmail, buildWelcomeEmail } from "./email-service";
-import { sendWhatsAppWelcome, getWhatsAppCommunityLink } from "./whatsapp-service";
+import { sendWelcomeEmail } from "./notify-client";
+import { sendWhatsAppWelcome } from "./whatsapp-service";
 import { triggerBackgroundCheck } from "./checkr-service";
 import { sendOnboardingDocuments } from "./docusign-service";
 import { isIntegrationActive } from "./integrations";
@@ -62,28 +61,15 @@ export async function onApplicantHired(ctx: HireContext): Promise<HireResult> {
     isIntegrationActive(ctx.companyId, "docusign"),
   ]);
 
-  // Get WhatsApp community link for inclusion in email
-  let communityLink: string | undefined;
-  if (waActive) {
-    try {
-      communityLink = (await getWhatsAppCommunityLink(ctx.companyId)) ?? undefined;
-    } catch (e) { logger.swallow("hiring-orchestrator:wa-link", e, "debug"); }
-  }
-
   // ─── 1. Welcome Email ────────────────────────────────
   if (emailActive) {
     try {
-      const emailTemplate = buildWelcomeEmail({
-        firstName: ctx.applicant.firstName,
-        companyName: ctx.companyName,
-        joinCode: ctx.joinCode,
-        appUrl: ctx.appUrl,
-        communityLink,
-      });
-      emailTemplate.to = ctx.applicant.email;
-      const sent = await sendEmail(ctx.companyId, emailTemplate);
+      // Server-side: notify-send builds the welcome email (company name +
+      // join code) and sends it via the company's email config.
+      const r = await sendWelcomeEmail({ companyId: ctx.companyId, toEmail: ctx.applicant.email, firstName: ctx.applicant.firstName });
+      const sent = r.ok && r.email.sent > 0;
       result.email = { sent };
-      if (!sent) result.email.error = "Email API returned failure";
+      if (!sent) result.email.error = r.error ?? "Email send failed";
     } catch (err) {
       result.email = { sent: false, error: String(err) };
       console.error("[Hire/Email]", err);

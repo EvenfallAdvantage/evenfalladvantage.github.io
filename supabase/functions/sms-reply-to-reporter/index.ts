@@ -2,8 +2,8 @@
  * sms-reply-to-reporter — manager replies via SMS to a public report
  * submission's reporter_phone.
  *
- * Auth: user JWT. RBAC: the caller must be a company member (admin/manager/
- * owner) of the submission's company.
+ * Auth: user JWT. RBAC: the caller must be manager/instructor/admin/owner
+ * of the submission's company (checked via the internal users.id).
  *
  * Body:
  *   {
@@ -98,19 +98,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // RBAC: must be a company member. We use the is_company_member helper
-    // via a direct SELECT so the user's JWT is honored.
-    const { data: memberCheck, error: memErr } = await supabaseUser
-      .from("company_memberships")
-      .select("role")
-      .eq("company_id", submission.company_id)
-      .eq("user_id", user.id)
+    // RBAC: company_memberships.user_id is the INTERNAL users.id, not the
+    // auth uid, so map first (the previous check compared against the auth
+    // uid and therefore rejected everyone). Managers and above only.
+    const { data: meRow } = await supabaseService
+      .from("users")
+      .select("id")
+      .eq("supabase_id", user.id)
       .maybeSingle();
+    const myId = (meRow as { id?: string } | null)?.id ?? null;
+    const { data: memberRow, error: memErr } = myId
+      ? await supabaseService
+        .from("company_memberships")
+        .select("role")
+        .eq("company_id", submission.company_id)
+        .eq("user_id", myId)
+        .maybeSingle()
+      : { data: null, error: null };
+    const RANK: Record<string, number> = { owner: 60, admin: 50, instructor: 45, manager: 40 };
+    const memberCheck = (RANK[(memberRow as { role?: string } | null)?.role ?? ""] ?? 0) >= 40 ? memberRow : null;
 
     if (memErr || !memberCheck) {
       await logAudit(supabaseService, {
         event_type: "admin.sms.sent",
-        user_id: user.id,
+        user_id: myId,
         company_id: submission.company_id,
         outcome: "blocked",
         entity_type: "public_report_submission",
@@ -130,7 +141,7 @@ Deno.serve(async (req) => {
       .from("public_report_messages")
       .select("id", { count: "exact", head: true })
       .eq("submission_id", submission.id)
-      .eq("sent_by", user.id)
+      .eq("sent_by", myId ?? "")
       .eq("channel", "sms")
       .gte("created_at", since);
     if ((recentCount ?? 0) >= 10) {
@@ -160,7 +171,7 @@ Deno.serve(async (req) => {
     if (!dispatch.ok) {
       await logAudit(supabaseService, {
         event_type: "admin.sms.sent",
-        user_id: user.id,
+        user_id: myId,
         company_id: submission.company_id,
         outcome: "failure",
         entity_type: "public_report_submission",
@@ -182,7 +193,7 @@ Deno.serve(async (req) => {
         direction: "outbound",
         channel: "sms",
         body: body.body,
-        sent_by: user.id,
+        sent_by: myId,
         external_id: (dispatchResult.provider_id as string) ?? null,
       });
     if (msgErr) {
@@ -192,7 +203,7 @@ Deno.serve(async (req) => {
 
     await logAudit(supabaseService, {
       event_type: "admin.sms.sent",
-      user_id: user.id,
+      user_id: myId,
       company_id: submission.company_id,
       outcome: "success",
       entity_type: "public_report_submission",

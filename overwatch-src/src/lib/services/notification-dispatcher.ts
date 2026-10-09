@@ -1,21 +1,17 @@
 /**
  * Notification Dispatcher
  *
- * Wraps the DB-only createNotification() with external delivery channels:
- *  - In-app (Supabase `notifications` table) — always
- *  - OneSignal push notification — if active
- *  - Twilio SMS — if active and user has phone on file
- *  - Email — if active and notification is high-priority
- *
- * Use `dispatch()` instead of calling `createNotification()` directly
- * to ensure all configured channels fire.
+ *  - In-app (Supabase `notifications` table): always
+ *  - Email (emailFallback) and SMS (urgent): through the `notify-send`
+ *    Edge Function, which looks up the member's address/phone server-side,
+ *    uses the company's email/SMS config (HQ Config → Email / SMS) and logs
+ *    each send. SMS is skipped unless the company has its own SMS set up.
+ *  - Push: not available (OneSignal had no subscription flow; tile hidden).
  */
 
 import { createNotification } from "@/lib/supabase/db";
-import { sendPushNotification } from "./push-service";
-import { sendSMS } from "./sms-service";
-import { sendEmail } from "./email-service";
-import { isIntegrationActive } from "./integrations";
+import { logger } from "@/lib/logger";
+import { notifyMembers, type NotifyChannel } from "./notify-client";
 
 export interface DispatchParams {
   userId: string;
@@ -24,13 +20,13 @@ export interface DispatchParams {
   body?: string;
   type: string;
   actionUrl?: string;
-  /** If true, also send via SMS (if Twilio is active and phone is available) */
+  /** Also send an SMS (if the company has SMS set up and the member has a phone). */
   urgent?: boolean;
-  /** If true, also send via email */
+  /** Also send an email. */
   emailFallback?: boolean;
-  /** User's phone number (E.164 format) for SMS delivery */
+  /** @deprecated Ignored. The server looks up the member's phone. */
   phone?: string;
-  /** User's email for email delivery */
+  /** @deprecated Ignored. The server looks up the member's email. */
   email?: string;
 }
 
@@ -41,14 +37,13 @@ export interface DispatchResult {
   email: boolean;
 }
 
-/**
- * Dispatch a notification across all active channels.
- * Always creates the in-app notification; external channels are best-effort.
- */
+const channelsFor = (p: { urgent?: boolean; emailFallback?: boolean }): NotifyChannel[] => [
+  ...(p.emailFallback ? (["email"] as const) : []),
+  ...(p.urgent ? (["sms"] as const) : []),
+];
+
 export async function dispatch(params: DispatchParams): Promise<DispatchResult> {
   const result: DispatchResult = { inApp: false, push: false, sms: false, email: false };
-
-  // ─── 1. In-App (always) ──────────────────────────────
   try {
     await createNotification({
       userId: params.userId,
@@ -60,81 +55,36 @@ export async function dispatch(params: DispatchParams): Promise<DispatchResult> 
     });
     result.inApp = true;
   } catch (err) {
-    console.error("[Dispatch/InApp] Failed:", err);
+    logger.swallow("dispatch:in-app", err, "warn");
   }
 
-  // ─── 2. Push (OneSignal) ─────────────────────────────
-  try {
-    if (await isIntegrationActive(params.companyId, "onesignal")) {
-      result.push = await sendPushNotification(params.companyId, {
-        userIds: [params.userId],
-        title: params.title,
-        body: params.body ?? "",
-        url: params.actionUrl,
-      });
-    }
-  } catch (err) {
-    console.error("[Dispatch/Push] Failed:", err);
+  const channels = channelsFor(params);
+  if (channels.length) {
+    const r = await notifyMembers({ companyId: params.companyId, userIds: [params.userId], channels, title: params.title, body: params.body, actionUrl: params.actionUrl });
+    if (!r.ok) logger.swallow("dispatch:notify-send", new Error(r.error ?? "notify-send failed"), "warn");
+    result.email = r.email.sent > 0;
+    result.sms = r.sms.sent > 0;
   }
-
-  // ─── 3. SMS (Twilio) — only for urgent ──────────────
-  if (params.urgent && params.phone) {
-    try {
-      if (await isIntegrationActive(params.companyId, "twilio")) {
-        const smsBody = params.body ? `${params.title}: ${params.body}` : params.title;
-        result.sms = await sendSMS(params.companyId, params.phone, smsBody);
-      }
-    } catch (err) {
-      console.error("[Dispatch/SMS] Failed:", err);
-    }
-  }
-
-  // ─── 4. Email — only if requested ───────────────────
-  if (params.emailFallback && params.email) {
-    try {
-      if (await isIntegrationActive(params.companyId, "email")) {
-        result.email = await sendEmail(params.companyId, {
-          to: params.email,
-          subject: params.title,
-          html: `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px;">
-            <h2 style="font-size:18px;">${params.title}</h2>
-            ${params.body ? `<p style="font-size:14px;color:#555;">${params.body}</p>` : ""}
-            ${params.actionUrl ? `<p><a href="${params.actionUrl}" style="color:#2563eb;">View in Overwatch</a></p>` : ""}
-          </div>`,
-        });
-      }
-    } catch (err) {
-      console.error("[Dispatch/Email] Failed:", err);
-    }
-  }
-
   return result;
 }
 
 /**
- * Dispatch a notification to multiple users at once.
- * Push is batched; in-app/SMS/email are per-user.
+ * Dispatch to many users: in-app per user, then ONE server call for
+ * email/SMS (batched, at most 100 per call).
  */
 export async function dispatchToMany(
   companyId: string,
   users: { userId: string; phone?: string; email?: string }[],
-  params: {
-    title: string;
-    body?: string;
-    type: string;
-    actionUrl?: string;
-    urgent?: boolean;
-    emailFallback?: boolean;
-  }
+  params: { title: string; body?: string; type: string; actionUrl?: string; urgent?: boolean; emailFallback?: boolean },
 ): Promise<{ total: number; results: DispatchResult[] }> {
-  const results = await Promise.all(
-    users.map(u => dispatch({
-      ...params,
-      userId: u.userId,
-      companyId,
-      phone: u.phone,
-      email: u.email,
-    }))
-  );
+  const results = await Promise.all(users.map((u) =>
+    dispatch({ ...params, urgent: false, emailFallback: false, userId: u.userId, companyId })));
+  const channels = channelsFor(params);
+  for (let i = 0; channels.length && i < users.length; i += 100) {
+    const batch = users.slice(i, i + 100);
+    const r = await notifyMembers({ companyId, userIds: batch.map((u) => u.userId), channels, title: params.title, body: params.body, actionUrl: params.actionUrl });
+    if (!r.ok) logger.swallow("dispatch-many:notify-send", new Error(r.error ?? "notify-send failed"), "warn");
+    batch.forEach((_, j) => { results[i + j].email = r.email.sent > 0; results[i + j].sms = r.sms.sent > 0; });
+  }
   return { total: users.length, results };
 }

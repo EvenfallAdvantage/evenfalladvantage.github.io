@@ -4,10 +4,10 @@
 // which require server-side execution. Since the app uses `output: "export"`
 // (static site), these cannot run in the browser. They are designed to be used
 // from Supabase Edge Functions or a future server-side API layer.
-export { sendEmail, buildWelcomeEmail, buildShiftReminderEmail, buildTimeChangeNotificationEmail } from "./email-service";
+// Email / SMS: server-side only, via the notify-send Edge Function.
+export { notifyMembers, sendWelcomeEmail } from "./notify-client";
+export type { NotifyChannel, NotifySendResult } from "./notify-client";
 export { sendWhatsAppMessage, sendWhatsAppWelcome, sendWhatsAppShiftReminder, getWhatsAppCommunityLink } from "./whatsapp-service";
-export { sendSMS, sendShiftReminderSMS, sendAlertSMS } from "./sms-service";
-export { sendPushNotification, sendBroadcastPush } from "./push-service";
 export { triggerBackgroundCheck, parseCheckrWebhook } from "./checkr-service";
 export { sendTemplateEnvelope, sendHtmlEnvelope, sendOnboardingDocuments } from "./docusign-service";
 export { syncTimesheetsToGusto, verifyGustoConnection } from "./gusto-service";
