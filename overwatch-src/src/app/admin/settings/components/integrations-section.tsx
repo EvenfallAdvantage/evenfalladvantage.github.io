@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
+import { isSecretKey } from "@/lib/integration-secrets";
 
 type IntField = { key: string; label: string; type: string; placeholder?: string; options?: string[] };
 /** Integration definition: renders an inline credentials form. Email and SMS live on their own pages (see Delivery channels). */
@@ -36,7 +37,7 @@ type IntConfig = Record<string, unknown> & {
 
 const INTEGRATION_GROUPS: IntGroup[] = [
   { id: "messaging", label: "Messaging & Alerts", desc: "Team comms, SMS dispatch, email automation, and push notifications", items: [
-    { provider: "whatsapp", label: "WhatsApp Business", logo: "/images/integrations/whatsapp.png", desc: "Auto-invite new hires to WhatsApp community and send notifications", fields: [
+    { provider: "whatsapp", available: false, label: "WhatsApp Business", logo: "/images/integrations/whatsapp.png", desc: "Auto-invite new hires to WhatsApp community and send notifications", fields: [
       { key: "waba_id", label: "WABA ID", type: "text", placeholder: "1234567890" },
       { key: "phone_number_id", label: "Phone Number ID", type: "text", placeholder: "1234567890" },
       { key: "access_token", label: "Permanent Access Token", type: "password", placeholder: "EAAx..." },
@@ -100,6 +101,12 @@ const INTEGRATION_GROUPS: IntGroup[] = [
 
 const ALL_INTEGRATIONS = INTEGRATION_GROUPS.flatMap(g => g.items);
 
+/** Names of secret fields already stored (values are never sent to the browser). */
+const savedSecrets = (row: IntConfig | undefined): string[] => {
+  const v = (row?.config as Record<string, unknown> | null | undefined)?.secret_keys_set;
+  return Array.isArray(v) ? (v as string[]) : [];
+};
+
 export const isIntegrationAvailable = (def: Pick<IntDef, "available">) => def.available !== false;
 export const INTEGRATION_PROVIDERS = ALL_INTEGRATIONS.map((d) => ({ provider: d.provider, available: isIntegrationAvailable(d) }));
 
@@ -119,7 +126,10 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
   const buildForms = () => {
     const forms: Record<string, { config: Record<string, string>; isActive: boolean }> = {};
     for (const int of initialIntegrations) {
-      forms[int.provider] = { config: int.config ?? {}, isActive: int.is_active ?? false };
+      // Secrets are never sent to the browser; only non-secret fields prefill.
+      const { secret_keys_set: _set, ...cfg } = (int.config ?? {}) as Record<string, unknown>;
+      void _set;
+      forms[int.provider] = { config: cfg as Record<string, string>, isActive: int.is_active ?? false };
     }
     for (const def of ALL_INTEGRATIONS) {
       if (!forms[def.provider]) {
@@ -142,6 +152,11 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
       await saveIntegrationConfig(companyId, provider, form.config, form.isActive);
       setSavedInt(provider);
       setTimeout(() => setSavedInt(null), 2000);
+      // Clear typed secrets from state once they're stored in Vault.
+      setIntForms(prev => ({
+        ...prev,
+        [provider]: { ...prev[provider], config: Object.fromEntries(Object.entries(prev[provider]?.config ?? {}).filter(([k]) => !isSecretKey(k))) },
+      }));
       setIntegrations(await getIntegrationsConfig(companyId));
       toast.success(`${provider} config saved`);
     } catch (err) { console.error(err); toast.error("Failed to save integration"); }
@@ -270,7 +285,12 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                                       type={field.type === "password" && !showSecret[`${def.provider}.${field.key}`] ? "password" : "text"}
                                       value={form?.config?.[field.key] ?? ""}
                                       onChange={(e) => updateIntField(def.provider, field.key, e.target.value)}
-                                      placeholder={field.placeholder ?? ""}
+                                      placeholder={
+                                        field.type === "password" && savedSecrets(existing).includes(field.key)
+                                          ? "Saved. Leave blank to keep, or enter a new value"
+                                          : field.placeholder ?? ""
+                                      }
+                                      aria-label={field.label}
                                       autoComplete="off"
                                       className="h-8 text-xs pr-8" />
                                     {field.type === "password" && (

@@ -1,4 +1,5 @@
 import { createClient } from "./client";
+import { isSecretKey, redactConfig } from "@/lib/integration-secrets";
 import { ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
 
@@ -371,24 +372,38 @@ export async function getIntegrationsConfig(companyId: string) {
     .select("*")
     .eq("company_id", companyId);
   if (error) throw error;
-  return data ?? [];
+  // Never keep secret values in browser state, even legacy plaintext ones
+  // that haven't been moved to Vault yet.
+  return (data ?? []).map((row: Record<string, unknown>) => {
+    const raw = (row.config ?? {}) as Record<string, unknown>;
+    const setKeys = Array.isArray(raw.secret_keys_set) ? (raw.secret_keys_set as string[]) : [];
+    const legacy = Object.keys(raw).filter((k) => isSecretKey(k) && raw[k]);
+    return {
+      ...row,
+      config: { ...redactConfig(raw), secret_keys_set: [...new Set([...setKeys, ...legacy])] },
+    };
+  });
 }
 
+/**
+ * Save a generic integration (Airtable, WhatsApp, ...). Goes through the
+ * `integration-save-credentials` Edge Function: secret fields are stored in
+ * Vault, blank secret fields keep the stored value. Owner/admin only.
+ */
 export async function saveIntegrationConfig(companyId: string, provider: string, config: Record<string, unknown>, isActive: boolean) {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("integrations_config")
-    .upsert({
-      company_id: companyId,
-      provider,
-      config,
-      is_active: isActive,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "company_id,provider" })
-    .select()
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not signed in");
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!base) throw new Error("Supabase URL missing");
+  const res = await fetch(`${base.replace(/\/+$/, "")}/functions/v1/integration-save-credentials`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ company_id: companyId, provider, config, is_active: isActive }),
+  });
+  const body = (await res.json().catch(() => ({}))) as { row?: Record<string, unknown>; error?: string };
+  if (!res.ok) throw new Error(body.error ?? `Save failed (${res.status})`);
+  return body.row ?? null;
 }
 
 // ─── Enhanced Profile (membership fields) ───────────────

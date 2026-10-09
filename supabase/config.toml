@@ -295,6 +295,14 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/data-delete/index.ts"
 
+[functions.integration-save-credentials]
+enabled = true
+verify_jwt = true
+
+[functions.airtable-proxy]
+enabled = true
+verify_jwt = true
+
 [functions.notify-send]
 enabled = true
 verify_jwt = true

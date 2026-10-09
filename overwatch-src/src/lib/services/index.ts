@@ -14,7 +14,7 @@ export { syncTimesheetsToGusto, verifyGustoConnection } from "./gusto-service";
 export { syncTimesheetsToQuickBooks, verifyQuickBooksConnection } from "./quickbooks-service";
 export { syncTimesheetsToADP, verifyADPConnection } from "./adp-service";
 export { syncTimesheetsToPaychex, verifyPaychexConnection } from "./paychex-service";
-export { listRecords, createRecords, updateRecords, deleteRecords, syncApplicantToAirtable, pullNewApplicantsFromAirtable, verifyAirtableConnection } from "./airtable-service";
+export { pullNewApplicantsFromAirtable, verifyAirtableConnection } from "./airtable-service";
 export { getSignalGroupLink, verifySignalConnection } from "./signal-service";
 export { validateFilloutWebhook, parseFilloutApplicant, verifyFilloutConnection } from "./fillout-service";
 export { onApplicantHired } from "./hiring-orchestrator";
