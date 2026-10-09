@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Clock, Loader2, ChevronDown, ChevronUp, Flag, Download, Trash2,
 } from "lucide-react";
@@ -107,13 +108,14 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
 
   return (
     <>
-      {timesheets.length > 0 && (
-        <div className="flex justify-end mb-2">
+      <div className="flex flex-wrap items-center justify-end gap-2 mb-2">
+        <Link href="/admin/settings/pay" className="inline-flex min-h-11 items-center text-xs text-primary hover:underline sm:min-h-0">Pay &amp; overtime rules</Link>
+        {timesheets.length > 0 && (
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => exportCSV(timesheets, TIMESHEET_COLUMNS, `timesheets-${new Date().toISOString().slice(0,10)}`)}>
             <Download className="h-3.5 w-3.5" /> Export CSV
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : timesheets.length === 0 ? (
