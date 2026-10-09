@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { statusDefsOrDefaults } from "@/lib/incident-config-resolve";
 import { AlertTriangle, Filter, CheckCircle2, Clock, User, MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,9 @@ export function IncidentBoard({ activeCompanyId, initialTeamFilter, onTeamFilter
           getIncidentStatuses(activeCompanyId),
         ]);
         setTeams(teamsData);
-        setStatuses(statusesData);
+        // No company statuses yet → show the built-in four so the filter and
+        // per-incident status picker are never empty.
+        setStatuses(statusDefsOrDefaults(statusesData, activeCompanyId));
       } catch (e) {
         logger.swallow("incident-board:load-config", e, "warn");
       }

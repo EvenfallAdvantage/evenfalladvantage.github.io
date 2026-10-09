@@ -21,11 +21,19 @@ import {
   saveStoryboard,
   getEventSiteMapUrl,
   getIncidentFields,
+  getIncidentTypes,
 } from "@/lib/supabase/db";
+import type { IncidentType as IncidentTypeDef } from "@/lib/supabase/db-incident-config";
+import {
+  effectiveIncidentTypes,
+  fieldsForType,
+  getChoices,
+  missingRequiredFields,
+  pickFieldValues,
+} from "@/lib/incident-config-resolve";
 import type { StoryboardPin } from "@/components/storyboard-editor";
 import { SiteMapMarkModal } from "./site-map-mark-modal";
 import {
-  TYPES,
   SEVERITY,
   WEATHER_OPTIONS,
   LIGHTING_OPTIONS,
@@ -92,6 +100,9 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
   // Custom fields
   const [customFields, setCustomFields] = useState<Record<string, unknown>>({});
   const [incidentFields, setIncidentFields] = useState<IncidentField[]>([]);
+  const [typeDefs, setTypeDefs] = useState<IncidentTypeDef[]>([]);
+  const typeOptions = effectiveIncidentTypes(typeDefs, newType);
+  const visibleFields = fieldsForType(incidentFields, newType);
   const [loadingFields, setLoadingFields] = useState(false);
 
   // Storyboard — incident creation (location marking)
@@ -107,8 +118,15 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
     const loadFields = async () => {
       setLoadingFields(true);
       try {
-        const fields = await getIncidentFields(activeCompanyId);
+        const [fields, types] = await Promise.all([
+          getIncidentFields(activeCompanyId),
+          getIncidentTypes(activeCompanyId, true),
+        ]);
         setIncidentFields(fields as IncidentField[]);
+        setTypeDefs(types);
+        // A company with its own types may not have "general"; start on the first one.
+        const opts = effectiveIncidentTypes(types);
+        setNewType((cur) => (opts.some((t) => t.key === cur) ? cur : opts[0]?.key ?? cur));
       } catch (e) { console.error("Failed to load incident fields:", e); }
       finally { setLoadingFields(false); }
     };
@@ -138,6 +156,11 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
 
   async function handleCreate() {
     if (!newTitle.trim() || !activeCompanyId) return;
+    const missing = missingRequiredFields(visibleFields, customFields);
+    if (missing.length) {
+      toast.error(`Please fill in: ${missing.join(", ")}`);
+      return;
+    }
     setCreating(true);
     try {
       // If there's an incident location pin, save it to the operation's storyboard
@@ -167,7 +190,8 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
         priority: newPriority,
         location: newLocation,
         eventId: activeTimesheet?.event_id ?? undefined,
-        customFields,
+        // Only keep answers for fields that apply to the chosen type.
+        customFields: pickFieldValues(visibleFields, customFields),
       });
 
       // Update incident with storyboard references if pin was saved
@@ -206,7 +230,7 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
               <div>
                 <label htmlFor="incident-type" className="text-xs font-medium text-muted-foreground">Type *</label>
                 <select id="incident-type" className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm" value={newType} onChange={e => setNewType(e.target.value)}>
-                  {TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</option>)}
+                  {typeOptions.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
                 </select>
               </div>
               <div>
@@ -232,15 +256,13 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
           </div>
 
           {/* ── Section 1.5: Custom Fields ── */}
-          {!loadingFields && incidentFields.length > 0 && (
+          {!loadingFields && visibleFields.length > 0 && (
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Additional Information</p>
               <div className="space-y-3">
-                {incidentFields.map((field) => {
+                {visibleFields.map((field) => {
                   const value = customFields[field.fieldKey] ?? "";
-                  const opts = Array.isArray(field.options?.choices)
-                    ? (field.options.choices as Array<{ value: string; label: string }>)
-                    : [];
+                  const opts = getChoices(field);
                   return (
                     <div key={field.id} className="space-y-1">
                       <label htmlFor={`custom-${field.fieldKey}`} className="text-xs font-medium text-muted-foreground">
@@ -264,7 +286,31 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
                           />
                           {field.label}
                         </label>
-                      ) : field.fieldType === "select" || field.fieldType === "multiselect" ? (
+                      ) : field.fieldType === "multiselect" ? (
+                        <div id={`custom-${field.fieldKey}`} role="group" aria-label={field.label} className="flex flex-wrap gap-2 pt-1">
+                          {opts.length === 0 && <span className="text-xs text-muted-foreground">No choices set up yet.</span>}
+                          {opts.map((opt) => {
+                            const selected = Array.isArray(value) ? (value as string[]) : [];
+                            const on = selected.includes(opt.value);
+                            return (
+                              <label key={opt.value} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm sm:min-h-8 ${on ? "border-primary bg-primary/10" : "border-input"}`}>
+                                <input
+                                  type="checkbox"
+                                  className="rounded"
+                                  checked={on}
+                                  onChange={(e) =>
+                                    handleCustomFieldChange(
+                                      field.fieldKey,
+                                      e.target.checked ? [...selected, opt.value] : selected.filter((v) => v !== opt.value),
+                                    )
+                                  }
+                                />
+                                {opt.label}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : field.fieldType === "select" ? (
                         <select
                           id={`custom-${field.fieldKey}`}
                           className="w-full mt-1 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
@@ -287,6 +333,8 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
                       ) : (
                         <Input
                           id={`custom-${field.fieldKey}`}
+                          type={field.fieldType === "number" ? "number" : "text"}
+                          inputMode={field.fieldType === "number" ? "decimal" : undefined}
                           className="mt-1"
                           placeholder={field.label}
                           value={value as string}
