@@ -111,7 +111,7 @@
 ## Known Issues / Technical Debt
 
 ### High
-- **Backup workflow failing** — `SUPABASE_DB_URL` needs Session Mode pooler URL (IPv4).
+- **Backups** — the GitHub Actions backup workflow never succeeded and was removed (Oct 2026). Supabase Pro daily backups (7 days) are the only backups; PITR is off; an encrypted off-site backup is planned. See `docs/compliance/BUSINESS_CONTINUITY_PLAN.md`.
 - **ESLint 10 blocked** — `eslint-config-next` not yet compatible. Pinned to ESLint 9.x.
 - **Instructor role lacks scan permissions** — Instructors can't mass clock (RLS blocks). Fix: add 'instructor' to `is_company_manager()`.
 - **OAuth token refresh** — Edge Function scaffold deployed but not yet connected to a cron trigger. Needs `supabase functions deploy oauth-refresh`.

@@ -16,15 +16,22 @@ This plan ensures the Overwatch platform can maintain or rapidly restore critica
 | Service | RPO | RTO | Priority |
 |---------|-----|-----|----------|
 | Overwatch web application | 0 (static site) | < 30 min | P1 |
-| Supabase database (OverwatchDB) | < 24 hrs (daily export) | < 1 hour | P1 |
+| Supabase database (OverwatchDB) | ≤ 24 hrs (Supabase daily backup) | < 1 hour (target, not yet measured) | P1 |
 | User authentication (Supabase Auth) | 0 (managed) | < 15 min | P1 |
-| File storage (Supabase Storage) | < 5 min | < 1 hour | P2 |
+| File storage (Supabase Storage) | No backup (not covered by Supabase database backups) | < 1 hour | P2 |
 | Payment processing (Stripe) | 0 (managed) | N/A (external) | P2 |
 | Email delivery (Resend) | 0 (managed) | N/A (external) | P3 |
-| Legacy training DB (EADB) | < 24 hrs (daily export) | < 2 hours | P3 |
+| Legacy training DB (EADB) | ≤ 24 hrs (Supabase daily backup) | < 2 hours | P3 |
 
 **RPO** = Recovery Point Objective (max data loss)
 **RTO** = Recovery Time Objective (max downtime)
+
+Current backup posture (as of October 9, 2026):
+
+- **Supabase Pro daily backups.** Supabase takes an automatic daily **physical** backup of each project (OverwatchDB and EADB) and keeps the **last 7 days**. They can be restored from the Dashboard (in place, or to a new project) but are **not downloadable**, and they **do not include Supabase Storage files** (only the file metadata rows).
+- **Point-in-Time Recovery (PITR) is NOT enabled** on either project.
+- **No off-site backup exists yet.** An encrypted off-site logical backup is planned. The former GitHub Actions `backup.yml` workflow never completed a successful run and has been removed.
+- **RPO: up to 24 hours** (time since the last daily backup). Deleting a Supabase project also deletes its backups.
 
 ## 3. Disaster Scenarios and Response
 
@@ -45,10 +52,10 @@ This plan ensures the Overwatch platform can maintain or rapidly restore critica
 - **Impact:** Data integrity compromised
 - **Response:**
   1. Assess scope of corruption
-  2. Use Supabase PITR to restore to point before corruption
+  2. Restore the most recent Supabase daily backup taken before the corruption (Database > Backups). Prefer "Restore to a new project" and copy back affected rows when only part of the data is damaged; an in-place restore makes the project unavailable while it runs
   3. Verify data integrity after restore
   4. Investigate root cause
-- **RPO:** < 5 minutes (Supabase PITR)
+- **RPO:** up to 24 hours (Supabase daily backups; PITR is not enabled)
 
 ### 3.4 Source Code Loss
 - **Detection:** GitHub repo inaccessible or deleted
@@ -86,12 +93,13 @@ This plan ensures the Overwatch platform can maintain or rapidly restore critica
 3. Deploy to GitHub Pages (push to main triggers automated deploy)
 ```
 
-### 5.2 Database Restore (Supabase PITR)
+### 5.2 Database Restore (Supabase daily backup)
 ```
-1. Log in to Supabase Dashboard
-2. Navigate to Database > Backups
-3. Select point-in-time to restore to
-4. Confirm restore
+1. Log in to Supabase Dashboard and open the affected project
+2. Navigate to Database > Backups > Scheduled
+3. Choose the newest daily backup taken before the incident
+   (or use "Restore to a new project" to recover data without downtime)
+4. Confirm restore (project is unavailable while an in-place restore runs)
 5. Verify application functionality
 6. Check error_logs for any post-restore issues
 ```
@@ -110,7 +118,7 @@ This plan ensures the Overwatch platform can maintain or rapidly restore critica
 ## 6. Testing
 
 - **Annual:** Full BCP tabletop exercise simulating a P1 scenario
-- **Quarterly:** Verify backup restoration works (Supabase PITR test)
+- **Quarterly:** Verify backup restoration works (restore the latest Supabase daily backup to a new project, compare row counts, then delete the copy)
 - **Monthly:** Review UptimeRobot reports for patterns
 
 ## 7. Review

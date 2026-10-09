@@ -35,10 +35,10 @@ Uptime % = (Total minutes in month - Downtime minutes) / Total minutes in month 
 
 | Metric | Target | Method |
 |--------|--------|--------|
-| Recovery Point Objective (RPO) | < 5 minutes | Supabase Point-in-Time Recovery |
+| Recovery Point Objective (RPO) | ≤ 24 hours | Supabase Pro daily backups (PITR not enabled) |
 | Recovery Time Objective (RTO) | < 1 hour | Automated redeployment from GitHub |
 | Data retention | Per Data Retention Policy | Category-specific (90 days to 7 years) |
-| Backup frequency | Continuous (WAL streaming) | Supabase managed |
+| Backup frequency | Daily, 7-day retention | Supabase managed physical backups (not downloadable; Storage files not included); no off-site copy yet (planned) |
 
 ## 4. Monitoring
 

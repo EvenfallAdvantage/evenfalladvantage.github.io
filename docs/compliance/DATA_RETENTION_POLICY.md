@@ -65,7 +65,7 @@ Export format: JSON or CSV, delivered within 30 days.
 |-------------|----------------|
 | Database records | SQL DELETE with cascade; Supabase handles physical deletion |
 | File storage (documents, images) | Supabase Storage deletion; CDN cache expires within 24 hours |
-| Backups | Supabase PITR automatically ages out per retention window |
+| Backups | Supabase daily backups automatically age out after 7 days |
 | Local development data | Developers must securely delete test data after use |
 
 ## 5. Implementation

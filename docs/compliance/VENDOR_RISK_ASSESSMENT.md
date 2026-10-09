@@ -34,7 +34,7 @@ This document assesses the security posture of third-party vendors that process,
 | Data encryption in transit | Yes | TLS 1.2+ enforced on all connections |
 | Data residency | US (AWS us-east-1) | Configurable per project |
 | Access controls | Yes | RLS, JWT, API keys, Dashboard MFA |
-| Backup / PITR | Yes | Point-in-time recovery enabled |
+| Backup / PITR | Daily backups (Pro, 7 days); PITR available but not enabled | [Supabase backups docs](https://supabase.com/docs/guides/platform/backups) |
 | DPA available | Yes | [Supabase DPA](https://supabase.com/legal/dpa) |
 | Incident notification | Yes | Via status page and email |
 | Subprocessors | AWS, Fly.io | Listed on Supabase legal page |
