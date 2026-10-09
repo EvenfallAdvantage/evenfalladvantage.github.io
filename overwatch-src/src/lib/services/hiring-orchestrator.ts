@@ -15,7 +15,6 @@
  * Failures do NOT block the hiring flow — they're logged and reported.
  */
 
-import { logger } from "@/lib/logger";
 import { sendWelcomeEmail } from "./notify-client";
 import { sendWhatsAppWelcome } from "./whatsapp-service";
 import { triggerBackgroundCheck } from "./checkr-service";
