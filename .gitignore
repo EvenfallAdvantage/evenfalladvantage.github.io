@@ -18,8 +18,10 @@ overwatch-src/.env
 overwatch-src/.env.local
 overwatch-src/public/cesium/
 
-# Overwatch built output (now built in CI via GitHub Actions)
-overwatch/
+# Overwatch build output: built and deployed by .github/workflows/deploy.yml
+# (Pages source = GitHub Actions). Never commit it; a committed copy gets served
+# by the legacy branch build and shows stale code after each push.
+/overwatch/
 
 # Database backups (NEVER commit to public repo)
 backups/
