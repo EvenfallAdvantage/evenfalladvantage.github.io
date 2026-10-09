@@ -18,23 +18,26 @@ function ErrorLogList({ companyId }: { companyId: string }) {
   const [logs, setLogs] = useState<ErrorLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!companyId) return;
     import("@/lib/error-tracker").then(({ getErrorLogs }) => {
-      getErrorLogs(companyId, 30).then(setLogs).catch(() => {}).finally(() => setLoading(false));
+      getErrorLogs(companyId, 30).then(setLogs).catch(() => setFailed(true)).finally(() => setLoading(false));
     });
   }, [companyId]);
 
   if (loading) return <p className="text-xs text-muted-foreground">Loading logs...</p>;
-  if (logs.length === 0) return <p className="text-xs text-muted-foreground">No errors logged. All clear.</p>;
+  if (failed) return <p role="alert" className="text-xs text-amber-500">Couldn&apos;t load logs. Reload the page to try again.</p>;
+  if (logs.length === 0) return <p className="text-xs text-muted-foreground">No uncaught errors logged.</p>;
 
   return (
     <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
       {logs.map((log) => (
         <div key={log.id} className="rounded-lg border border-border/40 bg-muted/20 text-xs">
           <button
-            className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/30 transition-colors"
+            aria-expanded={expanded === log.id}
+            className="w-full flex min-h-11 items-center gap-2 px-3 py-2 text-left sm:min-h-0 hover:bg-muted/30 transition-colors"
             onClick={() => setExpanded(expanded === log.id ? null : log.id)}
           >
             <span className={`h-2 w-2 rounded-full shrink-0 ${log.level === "error" ? "bg-red-500" : log.level === "warning" ? "bg-amber-500" : "bg-blue-500"}`} />
@@ -67,7 +70,7 @@ export default function ErrorLogViewer({ companyId }: ErrorLogViewerProps) {
         <CardTitle className="text-base flex items-center gap-2">
           <AlertTriangle className="h-4 w-4" /> System Logs
         </CardTitle>
-        <p className="text-xs text-muted-foreground">Recent application errors (auto-tracked, 30-day retention)</p>
+        <p className="text-xs text-muted-foreground">The 30 most recent uncaught app errors in this company. Handled errors and server-side failures are not listed here.</p>
       </CardHeader>
       <CardContent>
         <ErrorLogList companyId={companyId} />

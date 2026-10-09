@@ -114,7 +114,7 @@ export default function EmailConfigPage() {
     const supabase = createClient();
 
     // Read existing config row.
-    const { data: cfg } = await supabase
+    const { data: cfg, error: cfgErr } = await supabase
       .from("integrations_config")
       .select(
         "id, delivery_method, from_email, from_name, reply_to, verified_at, test_sent_to, vault_secret_id, is_active",
@@ -123,6 +123,11 @@ export default function EmailConfigPage() {
       .eq("provider", "email")
       .maybeSingle();
 
+    if (cfgErr) {
+      toast.error("Could not load email settings. Reload to try again.");
+      setLoading(false);
+      return;
+    }
     if (cfg) {
       const cfgT = cfg as unknown as EmailConfigRow;
       setRow(cfgT);
@@ -134,7 +139,7 @@ export default function EmailConfigPage() {
     }
 
     // Read recent sends.
-    const { data: log } = await supabase
+    const { data: log, error: logErr } = await supabase
       .from("email_send_log")
       .select(
         "id, sent_at, to_email, subject, status, delivery_method, purpose, error_message",
@@ -142,6 +147,7 @@ export default function EmailConfigPage() {
       .eq("company_id", activeCompanyId)
       .order("sent_at", { ascending: false })
       .limit(20);
+    if (logErr) toast.error("Could not load recent sends.");
     if (log) setRecentSends(log as RecentSend[]);
 
     setLoading(false);
@@ -160,6 +166,13 @@ export default function EmailConfigPage() {
     setSaving(true);
     try {
       const supabase = createClient();
+      // Only fields that change what recipients see (or how mail is sent)
+      // require a fresh test send. Editing Reply-To alone keeps verification.
+      const needsReverify =
+        !row ||
+        row.delivery_method !== deliveryMethod ||
+        (row.from_email ?? "") !== fromEmail.trim() ||
+        (row.from_name ?? "") !== fromName.trim();
       const payload = {
         company_id: activeCompanyId,
         provider: "email",
@@ -171,7 +184,7 @@ export default function EmailConfigPage() {
         // Saving verified_at = null forces a re-verification after any
         // change to the public-facing fields. Test-send re-stamps it on
         // success.
-        verified_at: null,
+        verified_at: needsReverify ? null : row?.verified_at ?? null,
         config: {},
       };
 
@@ -180,7 +193,7 @@ export default function EmailConfigPage() {
         .upsert(payload, { onConflict: "company_id,provider" });
       if (error) throw error;
 
-      toast.success("Saved. Run a test send to verify the configuration.");
+      toast.success(needsReverify ? "Saved. Run a test send to verify the configuration." : "Saved.");
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       await load();
@@ -348,7 +361,7 @@ export default function EmailConfigPage() {
       subtitle="Per-company email sending"
       icon={<Mail className="h-5 w-5" />}
     >
-      <div className="space-y-6 max-w-3xl">
+      <div className="hq-config space-y-6 max-w-3xl">
         {/* Status banner */}
         <Card>
           <CardContent className="pt-6">
