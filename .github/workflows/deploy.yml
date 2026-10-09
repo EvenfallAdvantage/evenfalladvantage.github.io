@@ -104,6 +104,23 @@ jobs:
           cp google3c85dd61b89bb3b1.html _deploy/ 2>/dev/null || true
           cp CNAME .nojekyll _deploy/
 
+      - name: Verify deployment directory
+        run: |
+          set -euo pipefail
+          # Pages serves ONLY this artifact (source = GitHub Actions), so fail
+          # the deploy if a public page is missing or repo-internal files leak in.
+          required="index.html about.html blog.html login.html register.html dashboard.html privacy-policy.html terms-of-service.html CNAME overwatch/index.html overwatch/admin/settings/index.html"
+          for f in $required; do
+            [ -s "_deploy/$f" ] || { echo "::error::missing _deploy/$f"; exit 1; }
+          done
+          [ "$(tr -d '[:space:]' < _deploy/CNAME)" = "www.evenfalladvantage.com" ] || { echo "::error::unexpected CNAME"; exit 1; }
+          ls _deploy/case-studies/*.html > /dev/null
+          ls _deploy/overwatch/_next/static/chunks/*.js > /dev/null
+          for d in overwatch-src supabase sql docs DPAs sop assets-src google-meet-addon .github; do
+            [ ! -e "_deploy/$d" ] || { echo "::error::_deploy/$d must not be published"; exit 1; }
+          done
+          echo "Deployment directory OK: $(find _deploy -type f | wc -l) files"
+
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v5
         with:
