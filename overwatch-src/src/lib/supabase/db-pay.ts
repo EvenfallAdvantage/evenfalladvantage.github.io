@@ -53,7 +53,30 @@ export async function updateMemberPayRate(
 }
 
 /**
- * Update a company's default pay rate
+ * Save the company default pay and bill rates (manager and above) via the
+ * set_company_default_rates RPC. Before that migration is applied it falls
+ * back to direct updates (owner/admin only under companies RLS).
+ */
+export async function saveCompanyDefaultRates(
+  companyId: string,
+  payRate: number | null,
+  billRate: number | null,
+): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("set_company_default_rates", {
+    p_company_id: companyId,
+    p_pay_rate: payRate,
+    p_bill_rate: billRate,
+  });
+  if (!error) return;
+  if (!(error.code === "PGRST202" || error.code === "42883")) throw error;
+  await updateCompanyDefaultPayRate(companyId, payRate);
+  const { error: e2 } = await supabase.from("companies").update({ default_bill_rate: billRate }).eq("id", companyId);
+  if (e2) throw e2;
+}
+
+/**
+ * Update a company's default pay rate (direct update; owner/admin only).
  */
 export async function updateCompanyDefaultPayRate(
   companyId: string,
@@ -65,6 +88,20 @@ export async function updateCompanyDefaultPayRate(
     .update({ default_pay_rate: payRate })
     .eq("id", companyId);
   if (error) throw error;
+}
+
+/** Read the company default pay and bill rates. */
+export async function getCompanyDefaultRates(companyId: string): Promise<{ payRate: number | null; billRate: number | null }> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("companies")
+    .select("default_pay_rate, default_bill_rate")
+    .eq("id", companyId)
+    .maybeSingle();
+  return {
+    payRate: data?.default_pay_rate != null ? Number(data.default_pay_rate) : null,
+    billRate: data?.default_bill_rate != null ? Number(data.default_bill_rate) : null,
+  };
 }
 
 /**

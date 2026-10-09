@@ -63,7 +63,6 @@ function isMigrationMissingError(e: unknown): boolean {
   if (!e || typeof e !== "object") return false;
   const err = e as { code?: string; message?: string; status?: number };
   if (err.code === "42P01" || err.code === "PGRST205") return true;
-  if (err.status === 404) return true;
   if (typeof err.message === "string" && /relation .* does not exist|not exist in schema/i.test(err.message)) return true;
   return false;
 }
@@ -161,7 +160,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
       }
     } catch (e) {
       logger.swallow("ApiSourcesSection:create", e, "warn");
-      toast.error("Failed to create key — has the migration been run?");
+      toast.error("Failed to create key. Only owners, admins and managers can create keys.");
     } finally {
       setCreatingKey(false);
     }
@@ -292,15 +291,9 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0 space-y-1">
-                  <p className="text-xs font-semibold">Database setup required</p>
+                  <p className="text-xs font-semibold">API Sources isn&apos;t available yet</p>
                   <p className="text-[11px] text-muted-foreground">
-                    The API Sources feature uses two tables (<code className="font-mono">api_keys</code>,{" "}
-                    <code className="font-mono">intake_field_mappings</code>) that haven&apos;t been created yet.
-                    Run the migration <code className="font-mono">sql/add_intake_api_keys.sql</code>{" "}
-                    in the Supabase SQL Editor (it&apos;s idempotent — safe to re-run).
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/70">
-                    After running the migration, reload this page to start using API Sources.
+                    This workspace isn&apos;t set up for API keys. Contact Overwatch support to turn it on.
                   </p>
                 </div>
               </div>
@@ -323,13 +316,13 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 <code className="text-[11px] font-mono flex-1 truncate" style={{ letterSpacing: 0 }}>
                   {revealedVisible ? revealedKey.plaintext : revealedKey.plaintext.slice(0, 12) + "•".repeat(20)}
                 </code>
-                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setRevealedVisible(v => !v)} aria-label="Toggle visibility">
+                <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-6 sm:w-6" onClick={() => setRevealedVisible(v => !v)} aria-label="Toggle visibility">
                   {revealedVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                 </Button>
-                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => copyTo(revealedKey.plaintext, "Key copied")} aria-label="Copy key">
+                <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-6 sm:w-6" onClick={() => copyTo(revealedKey.plaintext, "Key copied")} aria-label="Copy key">
                   <Copy className="h-3 w-3" />
                 </Button>
-                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setRevealedKey(null); setRevealedVisible(false); }} aria-label="Dismiss">
+                <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-6 sm:w-6" onClick={() => { setRevealedKey(null); setRevealedVisible(false); }} aria-label="Dismiss">
                   <X className="h-3 w-3" />
                 </Button>
               </div>
@@ -344,7 +337,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 POST {ingestUrl || `<SUPABASE_URL>${INGEST_PATH}`}
               </code>
               {ingestUrl && (
-                <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs shrink-0" onClick={() => copyTo(ingestUrl, "Endpoint URL copied")}>
+                <Button variant="ghost" size="sm" className="h-11 gap-1 text-xs shrink-0 sm:h-7" onClick={() => copyTo(ingestUrl, "Endpoint URL copied")}>
                   <Copy className="h-3 w-3" /> Copy
                 </Button>
               )}
@@ -356,7 +349,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
             <Label htmlFor="new-api-key-name" className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               Create API Key
             </Label>
-            <div className="mt-1 flex gap-2">
+            <div className="mt-1 flex flex-col gap-2 sm:flex-row">
               <Input
                 id="new-api-key-name"
                 placeholder='e.g. "OpServe Marketing Site"'
@@ -365,7 +358,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 onKeyDown={(e) => e.key === "Enter" && void handleCreateKey()}
                 className="text-xs"
               />
-              <Button onClick={handleCreateKey} disabled={creatingKey || !newKeyName.trim()} className="gap-1.5 shrink-0">
+              <Button onClick={handleCreateKey} disabled={creatingKey || !newKeyName.trim()} className="h-11 gap-1.5 shrink-0 sm:h-8">
                 {creatingKey ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
                 Generate
               </Button>
@@ -414,11 +407,11 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                         <Badge variant="outline" className="text-[9px] border-green-500/40 text-green-500">active</Badge>
                       )}
                       {!isRevoked && (
-                        <button onClick={() => handleRevoke(row)} className="text-muted-foreground/40 hover:text-amber-500 transition-colors" title="Revoke">
+                        <button onClick={() => handleRevoke(row)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:text-amber-500 transition-colors sm:h-7 sm:w-7" title="Revoke" aria-label={`Revoke ${row.name}`}>
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
-                      <button onClick={() => handleDelete(row)} className="text-muted-foreground/40 hover:text-red-500 transition-colors" title="Delete">
+                      <button onClick={() => handleDelete(row)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:text-red-500 transition-colors sm:h-7 sm:w-7" title="Delete" aria-label={`Delete ${row.name}`}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -467,7 +460,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 </select>
               </div>
               <div className="flex items-end">
-                <Button onClick={handleSaveMapping} disabled={savingMapping || !newSourceField.trim()} className="gap-1.5">
+                <Button onClick={handleSaveMapping} disabled={savingMapping || !newSourceField.trim()} className="h-11 w-full gap-1.5 sm:h-8 sm:w-auto">
                   {savingMapping ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                   Save
                 </Button>
@@ -488,7 +481,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                       <code className="font-mono text-muted-foreground flex-1 truncate">{m.source_field}</code>
                       <span className="text-muted-foreground/40">→</span>
                       <span className="text-primary flex-1 truncate">{meta?.label ?? m.canonical_field}</span>
-                      <button onClick={() => handleDeleteMapping(m)} className="text-muted-foreground/40 hover:text-red-500 transition-colors" aria-label="Delete mapping">
+                      <button onClick={() => handleDeleteMapping(m)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:text-red-500 transition-colors sm:h-7 sm:w-7" aria-label={`Delete mapping ${m.source_field}`}>
                         <X className="h-3 w-3" />
                       </button>
                     </div>

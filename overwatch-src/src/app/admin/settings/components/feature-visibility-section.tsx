@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { updateCompanySettings } from "@/lib/supabase/db";
 import { TOGGLEABLE_TABS } from "@/lib/feature-flags";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "sonner";
 
 interface FeatureVisibilitySectionProps {
   companyId: string;
@@ -32,7 +33,11 @@ export default function FeatureVisibilitySection({ companyId, initialHiddenTabs 
       }
       setSavedTabs(true);
       setTimeout(() => setSavedTabs(false), 2000);
-    } catch (err) { console.error(err); }
+      toast.success("Feature visibility saved");
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not save feature visibility");
+    }
     finally { setSavingTabs(false); }
   }
 
@@ -44,7 +49,7 @@ export default function FeatureVisibilitySection({ companyId, initialHiddenTabs 
             <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> Feature Visibility</h3>
             <p className="text-xs text-muted-foreground">Toggle which tabs are visible for your entire company</p>
           </div>
-          <Button size="sm" className="gap-1.5 text-xs" onClick={handleSave} disabled={savingTabs}>
+          <Button size="sm" className="h-11 gap-1.5 text-xs sm:h-7" onClick={handleSave} disabled={savingTabs}>
             {savingTabs ? <Loader2 className="h-3 w-3 animate-spin" /> : savedTabs ? <Check className="h-3 w-3 text-green-500" /> : <Save className="h-3 w-3" />}
             {savedTabs ? "Saved!" : "Save"}
           </Button>
@@ -67,7 +72,8 @@ export default function FeatureVisibilitySection({ companyId, initialHiddenTabs 
                       </div>
                       <button
                         onClick={() => { setHiddenTabs((prev) => prev.includes(tab.href) ? prev.filter((h) => h !== tab.href) : [...prev, tab.href]); setSavedTabs(false); }}
-                        className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                        aria-pressed={isVisible}
+                        className={`flex min-h-11 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium sm:min-h-0 transition-colors ${
                           isVisible ? "bg-green-500/10 text-green-600 hover:bg-green-500/20" : "bg-muted/50 text-muted-foreground hover:bg-muted"
                         } cursor-pointer`}
                       >
@@ -81,7 +87,7 @@ export default function FeatureVisibilitySection({ companyId, initialHiddenTabs 
             );
           })}
         </div>
-        <p className="text-[10px] text-muted-foreground text-center">Hidden tabs won&apos;t appear in the sidebar or mobile nav for anyone in this company.</p>
+        <p className="text-[11px] text-muted-foreground text-center">Hidden tabs are removed from the sidebar, mobile nav and More menu for everyone in this company. Direct links still open.</p>
       </CardContent>
     </Card>
   );

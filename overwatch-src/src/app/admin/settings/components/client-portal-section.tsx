@@ -102,15 +102,9 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0 space-y-1">
-                  <p className="text-xs font-semibold">Database setup required</p>
+                  <p className="text-xs font-semibold">Client Portal isn&apos;t available yet</p>
                   <p className="text-[11px] text-muted-foreground">
-                    The Client Portal requires the <code className="font-mono">client</code> value to be added
-                    to the <code className="font-mono">CompanyRole</code> enum. Run the migration{" "}
-                    <code className="font-mono">sql/add_client_role.sql</code> in the Supabase SQL Editor
-                    (it&apos;s idempotent — safe to re-run).
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/70">
-                    After running the migration, reload this page to start inviting clients.
+                    This workspace isn&apos;t set up for client accounts. Contact Overwatch support to turn it on.
                   </p>
                 </div>
               </div>
@@ -121,14 +115,14 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
           <div className="rounded-lg border border-border/40 bg-muted/30 p-3 flex items-center gap-3">
             <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
             <code className="text-xs font-mono text-muted-foreground flex-1 truncate">{portalUrl}</code>
-            <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs shrink-0"
+            <Button variant="ghost" size="sm" className="h-11 gap-1 text-xs shrink-0 sm:h-7"
               onClick={() => { navigator.clipboard.writeText(portalUrl); toast.success("Portal URL copied"); }}>
               <Copy className="h-3 w-3" /> Copy
             </Button>
           </div>
 
           {/* Add client form */}
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <div className="flex-1">
               <Label htmlFor="client-email" className="text-xs">Client Email</Label>
               <Input
@@ -143,7 +137,7 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleAdd} disabled={adding || !email.trim() || migrationMissing} className="gap-1.5">
+              <Button onClick={handleAdd} disabled={adding || !email.trim() || migrationMissing} className="h-11 w-full gap-1.5 sm:h-8 sm:w-auto">
                 {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                 Add Client
               </Button>
@@ -176,7 +170,8 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
                   <button
                     onClick={() => handleRemove(c)}
                     disabled={removing === c.id}
-                    className="text-muted-foreground/40 hover:text-red-500 transition-colors"
+                    aria-label={`Remove ${c.firstName} ${c.lastName}`}
+                    className="-m-2 flex h-11 w-11 items-center justify-center rounded text-muted-foreground/60 hover:text-red-500 transition-colors"
                   >
                     {removing === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </button>
