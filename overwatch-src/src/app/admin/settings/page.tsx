@@ -5,7 +5,8 @@ import { AlertTriangle, Building2, Loader2, RefreshCw, Settings } from "lucide-r
 import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
-import { getCompanyDetails, getCompanyJoinCode, getTimeOffPolicies, getIntegrationsConfig } from "@/lib/supabase/db";
+import { getCompanyDetails, getCompanyJoinCode, getTimeOffPolicies, getIntegrationsConfig, getIntegrationConnections } from "@/lib/supabase/db";
+import { FRAMEWORK_PROVIDERS, type IntegrationConnection } from "@/lib/integrations/connections";
 import { HQ_SECTIONS, type HqSectionId } from "@/lib/hq-config";
 
 import CompanyProfileSection from "./components/company-profile-section";
@@ -13,6 +14,8 @@ import LeavePoliciesSection from "./components/leave-policies-section";
 import PayOvertimeSection from "./components/pay-overtime-section";
 import FeatureVisibilitySection from "./components/feature-visibility-section";
 import IntegrationsSection from "./components/integrations-section";
+import ConnectionCards from "./components/connection-cards";
+import IntegrationHealthStrip from "./components/integration-health-strip";
 import DeliveryChannelsSection from "./components/delivery-channels-section";
 import ClientPortalSection from "./components/client-portal-section";
 import ApiSourcesSection from "./components/api-sources-section";
@@ -67,6 +70,7 @@ export default function AdminSettingsPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [hiddenTabs, setHiddenTabs] = useState<string[]>([]);
   const [integrations, setIntegrations] = useState<IntConfig[]>([]);
+  const [connections, setConnections] = useState<IntegrationConnection[]>([]);
 
   const load = useCallback(async () => {
     if (!activeCompanyId) return;
@@ -97,6 +101,12 @@ export default function AdminSettingsPage() {
         // Don't render blank credential forms over real stored values.
         logger.swallow("admin-settings:load-integrations", e, "warn");
         setIntegrationsError(true);
+      }
+      try {
+        setConnections(await getIntegrationConnections(activeCompanyId));
+      } catch (e) {
+        logger.swallow("admin-settings:load-connections", e, "warn");
+        setConnections([]);
       }
       setLoaded(true);
     } catch (e) {
@@ -203,10 +213,18 @@ export default function AdminSettingsPage() {
               <Button size="sm" variant="outline" className="h-11 sm:h-7" onClick={() => void load()}>Retry</Button>
             </div>
           ) : (
+            <>
+            <ConnectionCards
+              companyId={activeCompanyId!}
+              canManage={isAdminPlus}
+              providers={FRAMEWORK_PROVIDERS}
+              initialConnections={connections}
+            />
             <IntegrationsSection
               companyId={activeCompanyId!}
               initialIntegrations={integrations}
             />
+            </>
           )}
         </Section>
 
@@ -217,6 +235,7 @@ export default function AdminSettingsPage() {
         </Section>
 
         <Section id="diagnostics" title="Diagnostics">
+          <IntegrationHealthStrip connections={connections} providers={FRAMEWORK_PROVIDERS} />
           <ErrorLogViewer companyId={activeCompanyId!} />
         </Section>
       </div>

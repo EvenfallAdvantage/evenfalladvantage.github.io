@@ -51,19 +51,7 @@ verify_jwt = false
 import_map = "./functions/process-course-payment/deno.json"
 entrypoint = "./functions/process-course-payment/index.ts"
 
-[functions.webhook-checkr]
-enabled = true
-verify_jwt = false
-# Checkr calls server-to-server; no JWT possible
-import_map = "./functions/webhook-checkr/deno.json"
-entrypoint = "./functions/webhook-checkr/index.ts"
 
-[functions.webhook-fillout]
-enabled = true
-verify_jwt = false
-# Fillout calls server-to-server; webhook secret verified in-function
-import_map = "./functions/webhook-fillout/deno.json"
-entrypoint = "./functions/webhook-fillout/index.ts"
 
 [functions.opensky-proxy]
 enabled = true
@@ -306,3 +294,32 @@ verify_jwt = true
 [functions.notify-send]
 enabled = true
 verify_jwt = true
+
+# ── Vendor integration framework (PR V0) ──
+[functions.integration-oauth-start]
+enabled = true
+verify_jwt = true
+
+[functions.integration-oauth-callback]
+enabled = true
+verify_jwt = false
+# Browser redirect from the vendor; trust comes from the single-use OAuth state
+
+[functions.integration-token-refresh]
+enabled = true
+verify_jwt = false
+# pg_cron caller; authenticated by x-integrations-cron-secret
+
+[functions.integration-webhook]
+enabled = true
+verify_jwt = false
+# Vendor servers; fail-closed per-vendor signature verification
+
+[functions.integration-action]
+enabled = true
+verify_jwt = true
+
+[functions.integration-jobs-worker]
+enabled = true
+verify_jwt = false
+# pg_cron caller; authenticated by x-integrations-cron-secret
