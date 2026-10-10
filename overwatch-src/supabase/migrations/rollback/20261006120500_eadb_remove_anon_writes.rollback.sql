@@ -1,7 +1,8 @@
 -- =============================================================================
 -- ROLLBACK for eadb/20261006120500_eadb_remove_anon_writes.sql
 -- Target: LEGACY EADB (project vaagvairvwmgyzsmymhs) ONLY.
--- Recreates the exact policies read from pg_policies on 2026-10-06.
+-- Recreates the exact policies read from pg_policies on 2026-10-06, plus the
+-- activity_log policy and the (broken) is_admin(uuid) body read on 2026-10-10.
 -- NOTE: this re-opens anonymous writes on all 10 tables.
 -- =============================================================================
 
@@ -24,8 +25,20 @@ GRANT INSERT, UPDATE, DELETE, TRUNCATE ON
   public.assessments, public.certificates, public.class_attendance,
   public.class_enrollments, public.courses, public.instructors,
   public.module_slides, public.scheduled_classes, public.students,
-  public.training_modules, public.student_profiles
+  public.training_modules, public.student_profiles, public.activity_log
 TO anon;
+CREATE POLICY anon_insert_activity_log ON public.activity_log AS PERMISSIVE FOR INSERT TO anon WITH CHECK (true);
+CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM administrators WHERE auth_user_id = p_user_id AND is_active = true
+  );
+END;
+$function$;
 
 CREATE POLICY anon_insert_assessments ON public.assessments AS PERMISSIVE FOR INSERT TO anon WITH CHECK (true);
 CREATE POLICY anon_update_assessments ON public.assessments AS PERMISSIVE FOR UPDATE TO anon USING (true) WITH CHECK (true);

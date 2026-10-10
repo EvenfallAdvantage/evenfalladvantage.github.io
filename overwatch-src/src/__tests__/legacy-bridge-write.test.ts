@@ -16,7 +16,11 @@ vi.mock("@/stores/auth-store", () => ({
 
 import { legacyBridgeWrite, _resetLegacyBridgeState } from "@/lib/legacy/bridge";
 import { createLegacyCourse } from "@/lib/legacy/courses";
-import { createLegacySlide, toSlideRow } from "@/lib/legacy/modules";
+import { createLegacySlide, toSlideRow, updateLegacyProgress, createLegacyModule, updateLegacySlide, deleteLegacySlide } from "@/lib/legacy/modules";
+import { updateLegacyCourse } from "@/lib/legacy/courses";
+import { enrollStudentInClass, removeStudentFromClass, updateLegacyClass } from "@/lib/legacy/classes";
+import { createLegacyAssessment, updateLegacyAssessment } from "@/lib/legacy/assessments";
+import { createLegacyStudentProfile } from "@/lib/legacy/students";
 import { createLegacyClass, markAttendance, toClassRow } from "@/lib/legacy/classes";
 import { issueLegacyCertificate } from "@/lib/legacy/certificates";
 
@@ -140,4 +144,47 @@ describe("legacy write helpers", () => {
     await issueLegacyCertificate({ student_id: "s1", issued_by: "spoofed", certificate_type: "t", certificate_name: "n" });
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).args.values).toEqual({ student_id: "s1", certificate_type: "t", certificate_name: "n" });
   });
+});
+
+describe("progress.save (training viewer)", () => {
+  it("sends only module + percent + slide; the server resolves the student", async () => {
+    fetchMock.mockResolvedValueOnce(jsonRes(200, { ok: true }));
+    expect(await updateLegacyProgress("client-student-id", "m1", { progress_percentage: 50, current_slide: 4 })).toEqual({ success: true });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      op: "progress.save", args: { keys: { module_id: "m1" }, values: { progress_percentage: 50, current_slide: 4 } },
+    });
+    expect(legacyMock.from).not.toHaveBeenCalled();
+  });
+});
+
+describe("server mode: no direct EADB write ever", () => {
+  const calls: Array<[string, () => Promise<unknown>]> = [
+    ["createLegacyCourse", () => createLegacyCourse({ course_code: "C1", course_name: "B" })],
+    ["updateLegacyCourse", () => updateLegacyCourse("c1", { course_name: "B" })],
+    ["createLegacyModule", () => createLegacyModule({ module_code: "M", module_name: "N" } as never)],
+    ["createLegacySlide", () => createLegacySlide({ module_id: "m1", title: "T", slide_number: 1 })],
+    ["updateLegacySlide", () => updateLegacySlide("s1", { title: "T" })],
+    ["deleteLegacySlide", () => deleteLegacySlide("s1")],
+    ["createLegacyClass", () => createLegacyClass({ instructor_id: "i1", class_name: "A", scheduled_date: "2026-10-10", start_time: "09:00" })],
+    ["updateLegacyClass", () => updateLegacyClass("c1", { class_name: "A" })],
+    ["enrollStudentInClass", () => enrollStudentInClass("c1", "s1")],
+    ["removeStudentFromClass", () => removeStudentFromClass("c1", "s1")],
+    ["markAttendance", () => markAttendance("c1", "s1", "present")],
+    ["createLegacyAssessment", () => createLegacyAssessment({ assessment_name: "A", total_questions: 1, passing_score: 70 } as never)],
+    ["updateLegacyAssessment", () => updateLegacyAssessment("a1", { assessment_name: "A" })],
+    ["issueLegacyCertificate", () => issueLegacyCertificate({ student_id: "s1", issued_by: "ignored", certificate_type: "t", certificate_name: "n" })],
+    ["createLegacyStudentProfile", () => createLegacyStudentProfile("u1", "a@b.co", "A", "B")],
+    ["updateLegacyProgress", () => updateLegacyProgress("s1", "m1", { progress_percentage: 10 })],
+  ];
+  for (const [name, call] of calls) {
+    it(`${name}: bridge down (404) -> error, no anon write`, async () => {
+      vi.stubEnv("NEXT_PUBLIC_LEGACY_BRIDGE_MODE", "server");
+      fetchMock.mockResolvedValue(jsonRes(404, {}));
+      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const r = (await call()) as { success: boolean };
+      spy.mockRestore();
+      expect(r.success).toBe(false);
+      expect(legacyMock.from).not.toHaveBeenCalled();
+    });
+  }
 });

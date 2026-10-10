@@ -53,33 +53,6 @@ export async function getLegacyEnrollments(studentId: string): Promise<LegacyEnr
   return data ?? [];
 }
 
-/** Enroll student in a free course in legacy DB */
-export async function enrollLegacyCourse(
-  studentId: string,
-  courseId: string,
-  enrollmentType: "free" | "paid" = "free",
-  amountPaid: number = 0
-): Promise<{ success: boolean; error?: string }> {
-  const client = getLegacyClient();
-
-  const { error } = await client
-    .from("student_course_enrollments")
-    .upsert({
-      student_id: studentId,
-      course_id: courseId,
-      enrollment_status: "active",
-      enrollment_type: enrollmentType,
-      amount_paid: amountPaid,
-      currency: "USD",
-    }, { onConflict: "student_id,course_id" });
-
-  if (error) {
-    console.error("Legacy: enrollCourse error:", error);
-    return { success: false };
-  }
-  return { success: true };
-}
-
 /** Create a course in legacy */
 export async function createLegacyCourse(courseData: {
   course_code: string;

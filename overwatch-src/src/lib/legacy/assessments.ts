@@ -152,26 +152,3 @@ export async function deleteLegacyAssessment(assessmentId: string): Promise<{ su
   return viaBridge.success ? { success: true } : { success: false, error: viaBridge.error };
 }
 
-/** Save an assessment result in legacy */
-export async function saveLegacyAssessmentResult(resultData: {
-  student_id: string;
-  assessment_id: string;
-  score: number;
-  passed: boolean;
-  state_code?: string;
-  answers?: Record<string, unknown>;
-}): Promise<{ success: boolean; error?: string }> {
-  const client = getLegacyClient();
-  const { error } = await client
-    .from("assessment_results")
-    .insert({
-      ...resultData,
-      completed_at: new Date().toISOString(),
-    });
-
-  if (error) {
-    console.error("Legacy: saveAssessmentResult error:", error);
-    return { success: false };
-  }
-  return { success: true };
-}

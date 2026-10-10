@@ -2,8 +2,8 @@
  * legacy-bridge-write (Edge Function, deployed to the LEGACY EADB project
  * vaagvairvwmgyzsmymhs).
  *
- * Server-side path for the writes Overwatch's Instructor HQ and legacy
- * account auto-linking make to EADB. Today those go straight from the browser
+ * Server-side path for the writes Overwatch's Instructor HQ, legacy account
+ * auto-linking and the training viewer (own module progress) make to EADB. Today those go straight from the browser
  * with the EADB anon key, which only works because EADB has anon INSERT /
  * UPDATE / DELETE policies on 10 tables. Once Overwatch uses this function,
  * migrations/eadb/20261006120500_eadb_remove_anon_writes.sql can be applied.
@@ -39,7 +39,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
-  OPS, certificateCodes, corsHeaders, isAllowed, isUuid, nextTotalQuestions, originAllowed, questionRows,
+  OPS, certificateCodes, corsHeaders, isAllowed, isUuid, nextProgress, nextTotalQuestions, originAllowed, questionRows,
   rowsToQuestions, validateArgs, type Question,
 } from "./lib.ts";
 
@@ -136,6 +136,25 @@ Deno.serve(async (req) => {
         if (error && error.code !== "23505") return fail(error);
         await db.from("student_profiles").upsert({ student_id: caller.id }, { onConflict: "student_id", ignoreDuplicates: true });
         return json({ ok: true, id: caller.id });
+      }
+      case "progress.save": {
+        // Own progress only: student row from the session (uid, then email).
+        let { data: stu } = await db.from("students").select("id").eq("id", caller.id).maybeSingle();
+        if (!stu) ({ data: stu } = await db.from("students").select("id").eq("email", caller.email).maybeSingle());
+        if (!stu) return json({ error: "not_a_student" }, 404);
+        const moduleId = v.keys.module_id as string;
+        const { data: existing, error: exErr } = await db.from("student_module_progress")
+          .select("id, status, progress_percentage, completed_at")
+          .eq("student_id", stu.id).eq("module_id", moduleId).maybeSingle();
+        if (exErr) return fail(exErr);
+        const now = new Date().toISOString();
+        const next = nextProgress(existing, v.values.progress_percentage as number,
+          (v.values.current_slide as number | undefined) ?? null, now);
+        const { error } = existing
+          ? await db.from("student_module_progress").update(next).eq("id", existing.id)
+          : await db.from("student_module_progress").insert({ student_id: stu.id, module_id: moduleId, started_at: now, ...next });
+        if (error) return error.code === "23503" ? json({ error: "not_found" }, 404) : fail(error);
+        return json({ ok: true });
       }
       case "instructor.ensure": {
         const { data: found } = await db.from("instructors").select("id").eq("email", caller.email).maybeSingle();
