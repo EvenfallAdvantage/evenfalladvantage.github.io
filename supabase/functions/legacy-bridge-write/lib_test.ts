@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertFalse } from "jsr:@std/assert@1";
 import {
-  CLASS_TYPES, OPS, canManageLegacyCourses, certificateCodes, corsHeaders, isAllowed, nextProgress, nextTotalQuestions, normalizeQuestions,
+  CLASS_TYPES, OPS, READ_SELECTS, canManageLegacyCourses, certificateCodes, corsHeaders, isAllowed, nextProgress, nextTotalQuestions, normalizeQuestions,
   originAllowed, questionRows, rowsToQuestions, validateArgs,
 } from "./lib.ts";
 
@@ -177,4 +177,29 @@ Deno.test("nextProgress clamps, completes at 100 and never un-completes", () => 
   assertEquals(nextProgress(null, 42.4, 1, now).progress_percentage, 42);
   const done = { status: "completed", progress_percentage: 100, completed_at: "2026-01-01T00:00:00.000Z" };
   assertEquals(nextProgress(done, 10, 1, now), { status: "completed", progress_percentage: 100, current_slide: 1, completed_at: "2026-01-01T00:00:00.000Z" });
+});
+
+Deno.test("read ops: me.* take no ids from the client; instructor reads need valid keys", () => {
+  for (const op of ["me.student", "me.enrollments", "me.progress", "me.results", "me.certificates"]) {
+    const spec = OPS[op];
+    assertEquals(spec.permission, "self", op);
+    assert(spec.read, op);
+    assertEquals(spec.keys, undefined, op);
+    assertEquals(spec.columns, undefined, op);
+    assert(!validateArgs(spec, { values: { student_id: U1 } }).ok, `${op} must reject a client student_id`);
+  }
+  for (const op of ["students.list", "student.progress", "classes.list", "class.enrollments.list", "class.attendance.list"]) {
+    assertEquals(OPS[op].permission, "instructor", op);
+    assert(OPS[op].read, op);
+  }
+  assert(validateArgs(OPS["student.progress"], { keys: { student_id: U1 } }).ok);
+  assert(!validateArgs(OPS["student.progress"], { keys: { student_id: "x" } }).ok);
+  assert(validateArgs(OPS["classes.list"], { values: { instructor_id: U1, from_date: "2026-10-10" } }).ok);
+  assert(!validateArgs(OPS["classes.list"], { values: { from_date: "tomorrow" } }).ok);
+  assert(validateArgs(OPS["class.attendance.list"], { keys: { class_id: U2 } }).ok);
+});
+
+Deno.test("read selects never come from the client and stay on the expected tables", () => {
+  for (const sel of Object.values(READ_SELECTS)) assert(!/[;]|--/.test(sel));
+  assert(READ_SELECTS.classEnrollments.includes("student:students (first_name, last_name, email)"));
 });

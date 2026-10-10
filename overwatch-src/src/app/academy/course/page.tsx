@@ -14,7 +14,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import {
   getLegacyCourses,
   getLegacyCourseModules,
-  getLegacyProgress,
+  getMyLegacyProgress,
   findLegacyStudentByEmail,
   type LegacyCourse,
   type LegacyCourseModule,
@@ -69,7 +69,7 @@ function CourseDetailInner() {
       if (user?.email) {
         const student = await findLegacyStudentByEmail(user.email);
         if (student) {
-          const prog = await getLegacyProgress(student.id);
+          const prog = await getMyLegacyProgress(student.id);
           setProgress(prog);
         }
       }

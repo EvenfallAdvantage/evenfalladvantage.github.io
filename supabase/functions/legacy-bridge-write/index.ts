@@ -39,7 +39,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
-  OPS, certificateCodes, corsHeaders, isAllowed, isUuid, nextProgress, nextTotalQuestions, originAllowed, questionRows,
+  OPS, READ_SELECTS, certificateCodes, corsHeaders, isAllowed, isUuid, nextProgress, nextTotalQuestions, originAllowed, questionRows,
   rowsToQuestions, validateArgs, type Question,
 } from "./lib.ts";
 
@@ -67,6 +67,15 @@ async function overwatchContext(owUrl: string, owAnon: string, token: string, co
     role: typeof role === "string" ? role : null,
     isTrainingProvider: Array.isArray(rows) && rows[0]?.is_training_provider === true,
   };
+}
+
+/** The caller's OWN EADB student row: by session uid, then session email. */
+// deno-lint-ignore no-explicit-any
+async function ownStudent(db: any, caller: Caller, select: string): Promise<any | null> {
+  const { data: byId } = await db.from("students").select(select).eq("id", caller.id).maybeSingle();
+  if (byId) return byId;
+  const { data: byEmail } = await db.from("students").select(select).eq("email", caller.email).maybeSingle();
+  return byEmail ?? null;
 }
 
 Deno.serve(async (req) => {
@@ -137,10 +146,52 @@ Deno.serve(async (req) => {
         await db.from("student_profiles").upsert({ student_id: caller.id }, { onConflict: "student_id", ignoreDuplicates: true });
         return json({ ok: true, id: caller.id });
       }
+      case "me.student": {
+        const stu = await ownStudent(db, caller, READ_SELECTS.student);
+        return json({ ok: true, data: stu });
+      }
+      case "me.enrollments": case "me.progress": case "me.results": case "me.certificates": {
+        const stu = await ownStudent(db, caller, "id");
+        if (!stu) return json({ ok: true, data: [] });
+        const q = op === "me.enrollments"
+          ? db.from("student_course_enrollments").select(READ_SELECTS.enrollments).eq("student_id", stu.id).in("enrollment_status", ["active", "completed"])
+          : op === "me.progress"
+          ? db.from("student_module_progress").select(READ_SELECTS.progress).eq("student_id", stu.id)
+          : op === "me.results"
+          ? db.from("assessment_results").select(READ_SELECTS.results).eq("student_id", stu.id).order("completed_at", { ascending: false })
+          : db.from("certificates").select(READ_SELECTS.certificates).eq("student_id", stu.id).order("issue_date", { ascending: false });
+        const { data, error } = await q;
+        if (error) return fail(error);
+        return json({ ok: true, data: data ?? [] });
+      }
+      case "students.list": {
+        const { data, error } = await db.from("students").select(READ_SELECTS.studentsList).order("created_at", { ascending: false });
+        if (error) return fail(error);
+        return json({ ok: true, data: data ?? [] });
+      }
+      case "student.progress": {
+        const { data, error } = await db.from("student_module_progress").select(READ_SELECTS.progress).eq("student_id", v.keys.student_id as string);
+        if (error) return fail(error);
+        return json({ ok: true, data: data ?? [] });
+      }
+      case "classes.list": {
+        let q = db.from("scheduled_classes").select(READ_SELECTS.classes);
+        if (v.values.instructor_id) q = q.eq("instructor_id", v.values.instructor_id as string);
+        if (v.values.from_date) q = q.gte("scheduled_date", v.values.from_date as string);
+        const { data, error } = await q.order("scheduled_date", { ascending: !!v.values.from_date });
+        if (error) return fail(error);
+        return json({ ok: true, data: data ?? [] });
+      }
+      case "class.enrollments.list": case "class.attendance.list": {
+        const { data, error } = await db.from(op === "class.enrollments.list" ? "class_enrollments" : "class_attendance")
+          .select(op === "class.enrollments.list" ? READ_SELECTS.classEnrollments : READ_SELECTS.classAttendance)
+          .eq("class_id", v.keys.class_id as string);
+        if (error) return fail(error);
+        return json({ ok: true, data: data ?? [] });
+      }
       case "progress.save": {
         // Own progress only: student row from the session (uid, then email).
-        let { data: stu } = await db.from("students").select("id").eq("id", caller.id).maybeSingle();
-        if (!stu) ({ data: stu } = await db.from("students").select("id").eq("email", caller.email).maybeSingle());
+        const stu = await ownStudent(db, caller, "id");
         if (!stu) return json({ error: "not_a_student" }, 404);
         const moduleId = v.keys.module_id as string;
         const { data: existing, error: exErr } = await db.from("student_module_progress")

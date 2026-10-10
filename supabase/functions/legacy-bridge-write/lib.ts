@@ -41,6 +41,8 @@ export interface OpSpec {
   fallbacks?: Record<string, unknown>;
   onConflict?: string;
   returnId?: boolean;
+  /** Read-only op (returns data, writes nothing). */
+  read?: boolean;
 }
 
 const COURSE_COLS: Columns = {
@@ -71,8 +73,8 @@ const ASSESSMENT_COLS: Columns = {
  *
  * Every write the Overwatch legacy bridge makes to the 10 EADB tables whose
  * anon write policies migrations/eadb/20261006120500 removes, plus the
- * caller's own student_module_progress (progress.save). Nothing else is
- * reachable through this function.
+ * caller's own student_module_progress (progress.save), plus the read ops
+ * below. Nothing else is reachable through this function.
  */
 export const OPS: Record<string, OpSpec> = {
   "course.create": { permission: "instructor", table: "courses", kind: "insert", columns: COURSE_COLS,
@@ -134,7 +136,36 @@ export const OPS: Record<string, OpSpec> = {
   // student row is resolved from the session (uid, then email), never the client.
   "progress.save": { permission: "self", table: "student_module_progress", kind: "custom", keys: { module_id: "uuid" },
     columns: { progress_percentage: "num", current_slide: "int" }, required: ["progress_percentage"] },
+
+  // ---- Reads (custom, index.ts). EADB per-person tables are not readable with
+  // the anon key once migrations/eadb/20261010180000 is applied, so Overwatch
+  // reads them here. "me.*" = the caller's OWN student record only (resolved
+  // from the session; no client-supplied id). The rest = Instructor HQ.
+  "me.student": { permission: "self", kind: "custom", read: true },
+  "me.enrollments": { permission: "self", kind: "custom", read: true },
+  "me.progress": { permission: "self", kind: "custom", read: true },
+  "me.results": { permission: "self", kind: "custom", read: true },
+  "me.certificates": { permission: "self", kind: "custom", read: true },
+  "students.list": { permission: "instructor", kind: "custom", read: true },
+  "student.progress": { permission: "instructor", kind: "custom", read: true, keys: { student_id: "uuid" } },
+  "classes.list": { permission: "instructor", kind: "custom", read: true,
+    columns: { instructor_id: "uuid", from_date: "date" } },
+  "class.enrollments.list": { permission: "instructor", kind: "custom", read: true, keys: { class_id: "uuid" } },
+  "class.attendance.list": { permission: "instructor", kind: "custom", read: true, keys: { class_id: "uuid" } },
 };
+
+/** PostgREST select lists for the read ops (fixed server-side; never from the client). */
+export const READ_SELECTS = {
+  student: "id, email, first_name, last_name, created_at",
+  enrollments: "*, courses (*)",
+  progress: "*, training_modules (module_name, module_code, description)",
+  results: "*, assessments (assessment_name, module_id, total_questions, passing_score)",
+  certificates: "*",
+  studentsList: "*, student_profiles (*)",
+  classes: "*, instructor:instructors (first_name, last_name, email), enrollments:class_enrollments (count)",
+  classEnrollments: "student_id, enrollment_status, student:students (first_name, last_name, email)",
+  classAttendance: "student_id, attendance_status, notes, created_at, student:students (first_name, last_name, email)",
+} as const;
 
 /**
  * Next student_module_progress values. Percent is clamped to 0..100 and a
