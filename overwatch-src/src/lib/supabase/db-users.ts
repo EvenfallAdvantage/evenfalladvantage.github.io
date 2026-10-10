@@ -247,16 +247,9 @@ export async function createCompany(data: {
  * @deprecated companies.join_code is a retired placeholder; codes are only
  * checked server-side by join_company_by_code. Always returns null now.
  */
-export async function findCompanyByJoinCode(code: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("companies")
-    .select("*")
-    .eq("join_code", code.toUpperCase().trim())
-    .single();
-
-  if (error) return null;
-  return data;
+export async function findCompanyByJoinCode(_code: string): Promise<null> {
+  // companies is member-only; join codes are checked by join_company_by_code.
+  return null;
 }
 
 // ─── Memberships ────────────────────────────────────────

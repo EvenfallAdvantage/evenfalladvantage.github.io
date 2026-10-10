@@ -11,6 +11,10 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => mockClient,
 }));
 
+vi.mock("@/lib/supabase/db-public-company", () => ({
+  getPublicCompany: vi.fn(),
+}));
+
 // Mock ensureInternalUser from db-helpers (used by createJobPosting)
 vi.mock("@/lib/supabase/db-helpers", () => ({
   ensureInternalUser: vi.fn(),
@@ -30,8 +34,10 @@ import {
   type JobPosting,
 } from "@/lib/supabase/db-postings";
 import { ensureInternalUser } from "@/lib/supabase/db-helpers";
+import { getPublicCompany } from "@/lib/supabase/db-public-company";
 
 const mockedEnsureInternalUser = vi.mocked(ensureInternalUser);
+const mockedGetPublicCompany = vi.mocked(getPublicCompany);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -411,11 +417,8 @@ describe("getActivePostingsBySlug()", () => {
       slug: "acme",
     };
 
-    // For the company lookup (maybeSingle)
-    queryBuilder.maybeSingle.mockResolvedValueOnce({
-      data: companyData,
-      error: null,
-    });
+    // Company lookup goes through get_public_company (companies is member-only)
+    mockedGetPublicCompany.mockResolvedValueOnce({ ...companyData, accent_color: null, website_url: null });
 
     // For the postings query (thenable resolution)
     const postingsData = [makePosting()];
@@ -425,18 +428,15 @@ describe("getActivePostingsBySlug()", () => {
 
     const result = await getActivePostingsBySlug("acme");
 
-    expect(mockClient.from).toHaveBeenCalledWith("companies");
-    expect(queryBuilder.eq).toHaveBeenCalledWith("slug", "acme");
+    expect(mockedGetPublicCompany).toHaveBeenCalledWith({ slug: "acme" });
+    expect(mockClient.from).not.toHaveBeenCalledWith("companies");
     expect(result).not.toBeNull();
-    expect(result!.company).toEqual(companyData);
+    expect(result!.company).toMatchObject(companyData);
     expect(result!.postings).toEqual(postingsData);
   });
 
   it("returns null when company not found", async () => {
-    queryBuilder.maybeSingle.mockResolvedValueOnce({
-      data: null,
-      error: null,
-    });
+    mockedGetPublicCompany.mockResolvedValueOnce(null);
 
     const result = await getActivePostingsBySlug("nonexistent");
     expect(result).toBeNull();
@@ -451,10 +451,7 @@ describe("getActivePostingsBySlug()", () => {
       slug: "acme",
     };
 
-    queryBuilder.maybeSingle.mockResolvedValueOnce({
-      data: companyData,
-      error: null,
-    });
+    mockedGetPublicCompany.mockResolvedValueOnce({ ...companyData, accent_color: null, website_url: null });
 
     queryBuilder.then = vi.fn((resolve: (v: unknown) => void) =>
       Promise.resolve({ data: [], error: null }).then(resolve)

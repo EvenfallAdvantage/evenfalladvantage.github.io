@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { ensureInternalUser } from "./db-helpers";
+import { getPublicCompany } from "./db-public-company";
 
 export interface IntakeShare {
   id: string;
@@ -78,11 +79,7 @@ export async function lookupIntakeShare(token: string): Promise<{
     .maybeSingle();
 
   // Get company info for branding
-  const { data: company } = await supabase
-    .from("companies")
-    .select("id, name, logo_url, brand_color")
-    .eq("id", share.company_id)
-    .maybeSingle();
+  const company = await getPublicCompany({ id: share.company_id });
 
   if (!event || !company) return null;
 

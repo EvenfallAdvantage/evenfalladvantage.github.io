@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
+import { getPublicCompany } from "./db-public-company";
 
 export type EmploymentType = "full-time" | "part-time" | "contract" | "temporary" | "internship";
 export type PostingStatus = "draft" | "active" | "paused" | "closed";
@@ -147,11 +148,7 @@ export async function getActivePostingsBySlug(slug: string): Promise<{
   const supabase = createClient();
 
   // Look up company by slug
-  const { data: company } = await supabase
-    .from("companies")
-    .select("id, name, logo_url, brand_color, slug")
-    .eq("slug", slug)
-    .maybeSingle();
+  const company = await getPublicCompany({ slug });
 
   if (!company) return null;
 

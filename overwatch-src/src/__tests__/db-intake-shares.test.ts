@@ -15,6 +15,10 @@ vi.mock("@/lib/supabase/db-helpers", () => ({
   ensureInternalUser: vi.fn(),
 }));
 
+vi.mock("@/lib/supabase/db-public-company", () => ({
+  getPublicCompany: vi.fn(),
+}));
+
 import {
   createIntakeShare,
   getEventShares,
@@ -23,8 +27,10 @@ import {
   deleteIntakeShare,
 } from "@/lib/supabase/db-intake-shares";
 import { ensureInternalUser } from "@/lib/supabase/db-helpers";
+import { getPublicCompany } from "@/lib/supabase/db-public-company";
 
 const mockedEnsureInternalUser = vi.mocked(ensureInternalUser);
+const mockedGetPublicCompany = vi.mocked(getPublicCompany);
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -172,20 +178,21 @@ describe("lookupIntakeShare()", () => {
     queryBuilder.maybeSingle
       .mockResolvedValueOnce({ data: share, error: null })
       // Second maybeSingle: event lookup
-      .mockResolvedValueOnce({ data: event, error: null })
-      // Third maybeSingle: company lookup
-      .mockResolvedValueOnce({ data: company, error: null });
+      .mockResolvedValueOnce({ data: event, error: null });
+    // Company branding via get_public_company (companies is member-only)
+    mockedGetPublicCompany.mockResolvedValueOnce({ ...company, slug: "acme", accent_color: null, website_url: null });
 
     const result = await lookupIntakeShare("tok-abc");
 
     expect(mockClient.from).toHaveBeenCalledWith("intake_shares");
     expect(mockClient.from).toHaveBeenCalledWith("events");
-    expect(mockClient.from).toHaveBeenCalledWith("companies");
+    expect(mockClient.from).not.toHaveBeenCalledWith("companies");
+    expect(mockedGetPublicCompany).toHaveBeenCalledWith({ id: "comp-1" });
     expect(queryBuilder.eq).toHaveBeenCalledWith("token", "tok-abc");
     expect(result).not.toBeNull();
     expect(result!.share).toEqual(share);
     expect(result!.event).toEqual(event);
-    expect(result!.company).toEqual(company);
+    expect(result!.company).toMatchObject(company);
   });
 
   it("returns null when token not found", async () => {
@@ -212,11 +219,8 @@ describe("lookupIntakeShare()", () => {
     const share = { id: "share-1", event_id: "event-1", company_id: "comp-1" };
     queryBuilder.maybeSingle
       .mockResolvedValueOnce({ data: share, error: null })
-      .mockResolvedValueOnce({ data: null, error: null }) // event not found
-      .mockResolvedValueOnce({
-        data: { id: "comp-1", name: "Acme", logo_url: null, brand_color: "#000" },
-        error: null,
-      });
+      .mockResolvedValueOnce({ data: null, error: null }); // event not found
+    mockedGetPublicCompany.mockResolvedValueOnce({ id: "comp-1", name: "Acme", slug: "acme", logo_url: null, brand_color: "#000", accent_color: null, website_url: null });
 
     const result = await lookupIntakeShare("tok-abc");
     expect(result).toBeNull();
@@ -229,8 +233,8 @@ describe("lookupIntakeShare()", () => {
       .mockResolvedValueOnce({
         data: { id: "event-1", name: "Event", location: null, start_date: null },
         error: null,
-      })
-      .mockResolvedValueOnce({ data: null, error: null }); // company not found
+      });
+    mockedGetPublicCompany.mockResolvedValueOnce(null); // company not found
 
     const result = await lookupIntakeShare("tok-abc");
     expect(result).toBeNull();
