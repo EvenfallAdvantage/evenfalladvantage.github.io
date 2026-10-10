@@ -1,188 +1,147 @@
-// Supabase Edge Function: process-course-payment
-// Handles Stripe webhook events for course purchases
-// Deploy with: supabase functions deploy process-course-payment
+// Supabase Edge Function: process-course-payment (Stripe webhook, deployed on
+// the LEGACY EADB vaagvairvwmgyzsmymhs). verify_jwt MUST be false: Stripe sends
+// no Supabase JWT, the request is authenticated by its Stripe signature.
+//
+// Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET (whsec_... of the endpoint
+// https://vaagvairvwmgyzsmymhs.supabase.co/functions/v1/process-course-payment).
+// Events: checkout.session.completed, checkout.session.async_payment_succeeded,
+// checkout.session.async_payment_failed, checkout.session.expired,
+// charge.refunded (payment_intent.* kept for older endpoints).
+//
+// Fulfilment (enrolment) only for a PAID session that maps to the pending
+// payment row create-checkout-session wrote (see fulfil.ts); idempotent.
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 import Stripe from 'https://esm.sh/stripe@14.5.0?target=deno'
-import { getCorsHeaders } from '../_shared/cors.ts'
+import { decideFulfilment, type PaymentRow } from './fulfil.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
   httpClient: Stripe.createFetchHttpClient(),
 })
+// Deno has no sync crypto: signature checks must use the async SubtleCrypto path.
+const cryptoProvider = Stripe.createSubtleCryptoProvider()
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
   const signature = req.headers.get('stripe-signature')
   const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
+  if (!webhookSecret) return json({ error: 'webhook_not_configured' }, 503)
+  if (!signature) return json({ error: 'missing_signature' }, 400)
 
-  // CORS headers
-  const corsHeaders = getCorsHeaders(req.headers.get('origin'))
-
-  // Handle OPTIONS request for CORS
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  const body = await req.text()
+  let event: Stripe.Event
+  try {
+    event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret, undefined, cryptoProvider)
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err instanceof Error ? err.message : String(err))
+    return json({ error: 'invalid_signature' }, 400)
   }
 
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { autoRefreshToken: false, persistSession: false } })
   try {
-    // Verify webhook signature
-    const body = await req.text()
-    let event: Stripe.Event
-
-    if (!signature || !webhookSecret) {
-      console.error('Missing stripe-signature header or STRIPE_WEBHOOK_SECRET')
-      return new Response(
-        JSON.stringify({ error: 'Webhook signature verification required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err)
-      return new Response(
-        JSON.stringify({ error: 'Webhook signature verification failed' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    console.log('Processing event:', event.type)
-
-    // Create Supabase client with service role
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-    // Handle different event types
+    console.log('Processing event:', event.type, event.id)
     switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session
-        await handleCheckoutCompleted(supabase, session)
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded':
+        await handleCheckoutCompleted(supabase, event.data.object as Stripe.Checkout.Session)
         break
-      }
-
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        await handlePaymentSucceeded(supabase, paymentIntent)
+      case 'checkout.session.async_payment_failed':
+      case 'checkout.session.expired':
+        await markSession(supabase, event.data.object as Stripe.Checkout.Session,
+          event.type === 'checkout.session.expired' ? 'cancelled' : 'failed')
         break
-      }
-
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        await handlePaymentFailed(supabase, paymentIntent)
+      case 'payment_intent.succeeded':
+        await handlePaymentSucceeded(supabase, event.data.object as Stripe.PaymentIntent)
         break
-      }
-
-      case 'charge.refunded': {
-        const charge = event.data.object as Stripe.Charge
-        await handleRefund(supabase, charge)
+      case 'payment_intent.payment_failed':
+        await handlePaymentFailed(supabase, event.data.object as Stripe.PaymentIntent)
         break
-      }
-
+      case 'charge.refunded':
+        await handleRefund(supabase, event.data.object as Stripe.Charge)
+        break
       default:
         console.log(`Unhandled event type: ${event.type}`)
     }
-
-    return new Response(
-      JSON.stringify({ received: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return json({ received: true })
   } catch (error) {
-    console.error('Error processing webhook:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    // 500 makes Stripe retry; the handlers are idempotent.
+    console.error('Error processing webhook:', error instanceof Error ? error.message : String(error))
+    return json({ error: 'processing_failed' }, 500)
   }
 })
 
-async function handleCheckoutCompleted(supabase: any, session: Stripe.Checkout.Session) {
-  console.log('Handling checkout.session.completed:', session.id)
+// deno-lint-ignore no-explicit-any
+type Db = any
 
-  const metadata = session.metadata || {}
-  const studentId = metadata.student_id
-  const courseId = metadata.course_id
+async function handleCheckoutCompleted(supabase: Db, session: Stripe.Checkout.Session) {
+  const paymentId = session.metadata?.payment_id || session.client_reference_id || ''
+  const { data: row, error: rowErr } = paymentId
+    ? await supabase.from('payment_transactions').select('id, student_id, course_id, amount, status').eq('id', paymentId).maybeSingle()
+    : { data: null, error: null }
+  if (rowErr) throw new Error(`payment lookup: ${rowErr.message}`)
 
-  if (!studentId || !courseId) {
-    console.error('Missing student_id or course_id in session metadata')
+  const d = decideFulfilment({
+    id: session.id, payment_status: session.payment_status, amount_total: session.amount_total,
+    currency: session.currency, client_reference_id: session.client_reference_id,
+    metadata: (session.metadata ?? {}) as Record<string, string>,
+  }, row as PaymentRow | null)
+
+  if (d.action === 'skip') { console.log(`checkout ${session.id}: skipped (${d.reason})`); return }
+  if (d.action === 'reject') {
+    console.error(`checkout ${session.id}: NOT fulfilled (${d.reason}); needs manual review`)
+    if (row) {
+      await supabase.from('payment_transactions').update({ error_message: `webhook: ${d.reason}`, updated_at: new Date().toISOString() }).eq('id', row.id)
+    }
     return
   }
 
-  // Get course details
-  const { data: course, error: courseError } = await supabase
-    .from('courses')
-    .select('*')
-    .eq('id', courseId)
-    .single()
+  const now = new Date().toISOString()
+  const intent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
+  const { error: payErr } = await supabase.from('payment_transactions').update({
+    status: 'completed',
+    transaction_id: intent,
+    payment_intent_id: intent,
+    checkout_session_id: session.id,
+    payment_method: session.payment_method_types?.[0] || 'card',
+    customer_email: session.customer_details?.email ?? session.customer_email ?? undefined,
+    customer_name: session.customer_details?.name ?? undefined,
+    billing_address: session.customer_details?.address ?? undefined,
+    error_message: null,
+    updated_at: now,
+  }).eq('id', d.paymentId)
+  if (payErr) throw new Error(`payment update: ${payErr.message}`)
 
-  if (courseError || !course) {
-    console.error('Course not found:', courseError)
-    return
-  }
-
-  // Create payment transaction record
-  const { data: payment, error: paymentError } = await supabase
-    .from('payment_transactions')
-    .insert({
-      student_id: studentId,
-      course_id: courseId,
-      amount: session.amount_total ? session.amount_total / 100 : 0,
-      currency: session.currency?.toUpperCase() || 'USD',
-      payment_provider: 'stripe',
-      transaction_id: session.payment_intent as string,
-      checkout_session_id: session.id,
-      status: 'completed',
-      payment_method: session.payment_method_types?.[0] || 'card',
-      customer_email: session.customer_email || session.customer_details?.email,
-      customer_name: session.customer_details?.name,
-      billing_address: session.customer_details?.address,
-      metadata: {
-        stripe_session: session.id,
-        payment_status: session.payment_status,
-      },
-    })
-    .select()
-    .single()
-
-  if (paymentError) {
-    console.error('Error creating payment transaction:', paymentError)
-    return
-  }
-
-  console.log('Payment transaction created:', payment.id)
-
-  // Create or update enrollment
-  const { data: enrollment, error: enrollmentError } = await supabase
-    .from('student_course_enrollments')
-    .upsert({
-      student_id: studentId,
-      course_id: courseId,
-      enrollment_status: 'active',
-      enrollment_type: 'paid',
-      payment_id: payment.id,
-      amount_paid: payment.amount,
-      currency: payment.currency,
-      purchase_date: new Date().toISOString(),
-    }, {
-      onConflict: 'student_id,course_id',
-    })
-    .select()
-    .single()
-
-  if (enrollmentError) {
-    console.error('Error creating enrollment:', enrollmentError)
-    return
-  }
-
-  console.log('Enrollment created/updated:', enrollment.id)
-
-  // TODO: Send confirmation email to student
-  // You can call the send-email Edge Function here
+  const { error: enrErr } = await supabase.from('student_course_enrollments').upsert({
+    student_id: d.studentId,
+    course_id: d.courseId,
+    enrollment_status: 'active',
+    enrollment_type: 'paid',
+    payment_id: d.paymentId,
+    amount_paid: d.amount,
+    currency: 'USD',
+    purchase_date: now,
+    updated_at: now,
+  }, { onConflict: 'student_id,course_id' })
+  if (enrErr) throw new Error(`enrollment upsert: ${enrErr.message}`)
+  console.log(`checkout ${session.id}: enrolled student ${d.studentId} in course ${d.courseId}`)
 }
 
-async function handlePaymentSucceeded(supabase: any, paymentIntent: Stripe.PaymentIntent) {
+async function markSession(supabase: Db, session: Stripe.Checkout.Session, status: 'failed' | 'cancelled') {
+  const paymentId = session.metadata?.payment_id || session.client_reference_id
+  if (!paymentId) return
+  const { error } = await supabase.from('payment_transactions')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', paymentId).in('status', ['pending', 'processing'])
+  if (error) throw new Error(`payment ${status}: ${error.message}`)
+}
+
+async function handlePaymentSucceeded(supabase: Db, paymentIntent: Stripe.PaymentIntent) {
   console.log('Handling payment_intent.succeeded:', paymentIntent.id)
 
   // Update payment transaction status
@@ -199,7 +158,7 @@ async function handlePaymentSucceeded(supabase: any, paymentIntent: Stripe.Payme
   }
 }
 
-async function handlePaymentFailed(supabase: any, paymentIntent: Stripe.PaymentIntent) {
+async function handlePaymentFailed(supabase: Db, paymentIntent: Stripe.PaymentIntent) {
   console.log('Handling payment_intent.payment_failed:', paymentIntent.id)
 
   // Update payment transaction status
@@ -217,7 +176,7 @@ async function handlePaymentFailed(supabase: any, paymentIntent: Stripe.PaymentI
   }
 }
 
-async function handleRefund(supabase: any, charge: Stripe.Charge) {
+async function handleRefund(supabase: Db, charge: Stripe.Charge) {
   console.log('Handling charge.refunded:', charge.id)
 
   const paymentIntentId = charge.payment_intent as string

@@ -13,8 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
-import { getUserPayments } from "@/lib/supabase/db";
-import { getLegacyCourses } from "@/lib/legacy-bridge";
+import { getLegacyCourses, getLegacyEnrollments } from "@/lib/legacy-bridge";
+import { getStudentLink } from "@/lib/account-linker";
+import { startCourseCheckout, checkoutErrorMessage } from "@/lib/legacy/checkout";
 import { PageShell } from "@/components/layout/page-shell";
 
 type Course = Record<string, unknown> & {
@@ -53,7 +54,6 @@ type PageTab = "courses" | "conference";
 
 function CoursesContent() {
   const user = useAuthStore((s) => s.user);
-  const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const searchParams = useSearchParams();
 
   const [pageTab, setPageTab] = useState<PageTab>("courses");
@@ -103,17 +103,14 @@ function CoursesContent() {
 
   const loadData = useCallback(async () => {
     try {
-      const [rawCourses, payments] = await Promise.all([
+      // Enrolments (paid via the Stripe webhook, free or comp) live in EADB.
+      const [rawCourses, link] = await Promise.all([
         getLegacyCourses().catch(() => []),
-        getUserPayments().catch(() => []),
+        getStudentLink().catch(() => null),
       ]);
       setCourses(rawCourses.map(normalizeCourse));
-      const purchased = new Set<string>();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const p of payments as any[]) {
-        if (p.status === "completed" && p.course_id) purchased.add(p.course_id);
-      }
-      setPurchasedCourses(purchased);
+      const enrollments = link ? await getLegacyEnrollments(link.legacy_user_id).catch(() => []) : [];
+      setPurchasedCourses(new Set(enrollments.map((e) => e.course_id).filter(Boolean)));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, []);
@@ -123,35 +120,15 @@ function CoursesContent() {
   async function handlePurchase(course: Course) {
     setPurchasing(course.id);
     try {
-      // Checkout requires a server-side Stripe session. In the static export,
-      // this must be handled by a Supabase Edge Function (not a Next.js API route).
-      const checkoutUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`
-        : null;
-
-      if (!checkoutUrl) {
-        toast.error("Course purchases are not available yet.");
+      // Checkout runs on EADB (create-checkout-session); price and buyer are
+      // resolved server-side from our session, never sent from here.
+      const r = await startCourseCheckout(course.id);
+      if ("url" in r) {
+        window.location.href = r.url;
         return;
       }
-
-      const res = await fetch(checkoutUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          courseId: course.id,
-          courseTitle: course.title,
-          priceInCents: Math.round(course.price * 100),
-          userId: user?.id || "",
-          companyId: activeCompanyId ?? "",
-        }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error("Unable to start checkout. Please try again.");
-        console.error("No checkout URL returned:", data);
-      }
+      if (r.error === "already_enrolled") setPurchasedCourses((prev) => new Set(prev).add(course.id));
+      toast.error(checkoutErrorMessage(r.error));
     } catch (err) {
       toast.error("Purchase failed. Please try again.");
       console.error("Purchase error:", err);
@@ -168,7 +145,7 @@ function CoursesContent() {
         {/* Status banners from Stripe redirect */}
         {status === "success" && (
           <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 flex items-center gap-2 text-sm text-green-600">
-            <CheckCircle2 className="h-4 w-4" /> Payment successful! You&apos;ve been enrolled in the course.
+            <CheckCircle2 className="h-4 w-4" /> Payment successful! Your enrolment appears here within a minute (refresh if it doesn&apos;t).
           </div>
         )}
         {status === "cancelled" && (
