@@ -12,7 +12,7 @@ import {
 } from "@/lib/supabase/db";
 import {
   getLegacyCourses, getLegacyCourseModules, getLegacyEnrollments,
-  getLegacyProgress, getLegacyAssessmentResults, getLegacyCertificates,
+  getMyLegacyProgress, getLegacyAssessmentResults, getLegacyCertificates,
   findLegacyStudentByEmail, createLegacyStudentProfile,
   type LegacyCourse, type LegacyCourseModule, type LegacyEnrollment,
   type LegacyModuleProgress, type LegacyAssessmentResult, type LegacyCertificate,
@@ -111,7 +111,7 @@ export default function AcademyPage() {
       await Promise.all(coursesData.map(async (co) => { modulesMap[co.id] = await getLegacyCourseModules(co.id); }));
       setCourseModules(modulesMap);
       if (studentId) {
-        const [pd, ad, cd] = await Promise.all([getLegacyProgress(studentId), getLegacyAssessmentResults(studentId), getLegacyCertificates(studentId)]);
+        const [pd, ad, cd] = await Promise.all([getMyLegacyProgress(studentId), getLegacyAssessmentResults(studentId), getLegacyCertificates(studentId)]);
         setProgress(pd); setAssessmentResults(ad); setCertificates(cd);
       }
     } catch (err) { console.error("Academy load error:", err); } finally { setLoading(false); }

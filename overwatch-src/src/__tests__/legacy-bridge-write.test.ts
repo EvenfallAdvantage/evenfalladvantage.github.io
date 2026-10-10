@@ -188,3 +188,77 @@ describe("server mode: no direct EADB write ever", () => {
     });
   }
 });
+
+describe("EADB reads go through the bridge (PII lockdown)", () => {
+  it("own-record reads send NO student id; the server resolves the caller", async () => {
+    const { findLegacyStudentByEmail } = await import("@/lib/legacy/students");
+    const { getLegacyEnrollments } = await import("@/lib/legacy/courses");
+    const { getMyLegacyProgress } = await import("@/lib/legacy/modules");
+    const { getLegacyAssessmentResults } = await import("@/lib/legacy/assessments");
+    const { getLegacyCertificates } = await import("@/lib/legacy/certificates");
+    const calls: Array<[string, () => Promise<unknown>]> = [
+      ["me.student", () => findLegacyStudentByEmail("someone-else@x.co")],
+      ["me.enrollments", () => getLegacyEnrollments("other-student")],
+      ["me.progress", () => getMyLegacyProgress("other-student")],
+      ["me.results", () => getLegacyAssessmentResults("other-student")],
+      ["me.certificates", () => getLegacyCertificates("other-student")],
+    ];
+    for (const [op, call] of calls) {
+      fetchMock.mockResolvedValueOnce(jsonRes(200, { ok: true, data: op === "me.student" ? { id: "me" } : [{ id: "r1" }] }));
+      const out = await call();
+      expect(out).toEqual(op === "me.student" ? { id: "me" } : [{ id: "r1" }]);
+      const body = JSON.parse(fetchMock.mock.calls.at(-1)![1].body);
+      expect(body).toEqual({ op, args: {} });
+    }
+    expect(legacyMock.from).not.toHaveBeenCalled();
+  });
+
+  it("Instructor HQ reads use instructor ops with explicit keys", async () => {
+    const { getLegacyProgress } = await import("@/lib/legacy/modules");
+    const { getLegacyStudents } = await import("@/lib/legacy/students");
+    const { getClassEnrollments, getClassAttendance, getLegacyClasses } = await import("@/lib/legacy/classes");
+    fetchMock.mockResolvedValue(jsonRes(200, { ok: true, data: [] }));
+    await getLegacyProgress("s9");
+    await getLegacyStudents();
+    await getClassEnrollments("c1");
+    await getClassAttendance("c1");
+    await getLegacyClasses("i1");
+    const bodies = fetchMock.mock.calls.map((c) => JSON.parse(c[1].body));
+    expect(bodies[0]).toEqual({ op: "student.progress", args: { keys: { student_id: "s9" } } });
+    expect(bodies[1]).toEqual({ op: "students.list", args: {} });
+    expect(bodies[2]).toEqual({ op: "class.enrollments.list", args: { keys: { class_id: "c1" } } });
+    expect(bodies[3]).toEqual({ op: "class.attendance.list", args: { keys: { class_id: "c1" } } });
+    expect(bodies[4].op).toBe("classes.list");
+    expect(bodies[4].args.values).toMatchObject({ instructor_id: "i1" });
+    expect(bodies[4].args.values.from_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(legacyMock.from).not.toHaveBeenCalled();
+  });
+
+  it("class enrolment rows from the bridge are normalised like before", async () => {
+    const { getClassEnrollments } = await import("@/lib/legacy/classes");
+    fetchMock.mockResolvedValueOnce(jsonRes(200, { ok: true, data: [{ student_id: "s1", enrollment_status: "enrolled", student: [{ first_name: "A", last_name: "B", email: "a@b.co" }] }] }));
+    expect(await getClassEnrollments("c1")).toEqual([{ student_id: "s1", enrollment_status: "enrolled", student: { first_name: "A", last_name: "B", email: "a@b.co" } }]);
+  });
+
+  it("server mode: bridge down -> empty result, never an anon read", async () => {
+    vi.stubEnv("NEXT_PUBLIC_LEGACY_BRIDGE_MODE", "server");
+    fetchMock.mockResolvedValue(jsonRes(503, { error: "bridge_not_configured" }));
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { getLegacyStudents } = await import("@/lib/legacy/students");
+    const { getLegacyCertificates } = await import("@/lib/legacy/certificates");
+    const { getClassAttendance } = await import("@/lib/legacy/classes");
+    expect(await getLegacyStudents()).toEqual([]);
+    expect(await getLegacyCertificates("x")).toEqual([]);
+    expect(await getClassAttendance("c1")).toEqual([]);
+    spy.mockRestore();
+    expect(legacyMock.from).not.toHaveBeenCalled();
+  });
+
+  it("auto mode: bridge not deployed -> old direct read", async () => {
+    fetchMock.mockResolvedValueOnce(jsonRes(404, {}));
+    queryBuilder.order.mockReturnValueOnce(Promise.resolve({ data: [{ id: "s1" }], error: null }) as never);
+    const { getLegacyStudents } = await import("@/lib/legacy/students");
+    expect(await getLegacyStudents()).toEqual([{ id: "s1" }]);
+    expect(legacyMock.from).toHaveBeenCalledWith("students");
+  });
+});

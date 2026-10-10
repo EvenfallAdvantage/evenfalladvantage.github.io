@@ -26,7 +26,9 @@ export type LegacyBridgeOp =
   | "slide.create" | "slide.update" | "slide.delete"
   | "class.create" | "class.update" | "class.enroll" | "class.unenroll" | "class.attendance"
   | "assessment.create" | "assessment.update" | "assessment.set_questions" | "assessment.get_questions" | "assessment.delete"
-  | "certificate.issue" | "instructor.ensure" | "student.ensure" | "progress.save";
+  | "certificate.issue" | "instructor.ensure" | "student.ensure" | "progress.save"
+  | "me.student" | "me.enrollments" | "me.progress" | "me.results" | "me.certificates"
+  | "students.list" | "student.progress" | "classes.list" | "class.enrollments.list" | "class.attendance.list";
 
 export type LegacyBridgeArgs = {
   keys?: Record<string, unknown>;
@@ -126,4 +128,18 @@ export function legacyWriteErrorMessage(action: string, error?: string): string 
   const reason = error ? (why[error] ?? (error.startsWith("invalid_value:") || error.startsWith("missing:")
     ? `check the "${error.split(":")[1].replace(/_/g, " ")}" field` : error)) : "unknown error";
   return `Couldn't ${action}: ${reason}.`;
+}
+
+/**
+ * Read through the bridge. EADB per-person tables (students, progress,
+ * results, certificates, classes, ...) are not readable with the anon key once
+ * migrations/eadb/20261010180000 is applied. `fallback` (the old direct anon
+ * read) only runs in "auto" mode while the function is unreachable; in
+ * "server" mode a bridge error returns `empty`.
+ */
+export async function legacyRead<T>(op: LegacyBridgeOp, args: LegacyBridgeArgs, fallback: () => Promise<T>, empty: T): Promise<T> {
+  const r = await viaLegacyBridge(op, args);
+  if (!r) return fallback();
+  if (!r.success) return empty;
+  return (r.data as T | undefined) ?? empty;
 }

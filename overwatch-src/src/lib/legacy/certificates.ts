@@ -1,9 +1,13 @@
 import { getLegacyClient } from "./client";
-import { viaLegacyBridge } from "./bridge";
+import { legacyRead, viaLegacyBridge } from "./bridge";
 import type { LegacyCertificate } from "./types";
 
-/** Get certificates for a student */
+/** The signed-in user's own certificates (studentId: fallback only). */
 export async function getLegacyCertificates(studentId: string): Promise<LegacyCertificate[]> {
+  return legacyRead("me.certificates", {}, () => directGetLegacyCertificates(studentId), []);
+}
+
+async function directGetLegacyCertificates(studentId: string): Promise<LegacyCertificate[]> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("certificates")

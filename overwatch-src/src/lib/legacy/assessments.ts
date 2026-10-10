@@ -1,9 +1,13 @@
 import { getLegacyClient } from "./client";
-import { viaLegacyBridge } from "./bridge";
+import { legacyRead, viaLegacyBridge } from "./bridge";
 import type { LegacyAssessment, LegacyAssessmentResult } from "./types";
 
-/** Get assessment results for a student */
+/** The signed-in user's own assessment results (studentId: fallback only). */
 export async function getLegacyAssessmentResults(studentId: string): Promise<LegacyAssessmentResult[]> {
+  return legacyRead("me.results", {}, () => directGetLegacyAssessmentResults(studentId), []);
+}
+
+async function directGetLegacyAssessmentResults(studentId: string): Promise<LegacyAssessmentResult[]> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("assessment_results")

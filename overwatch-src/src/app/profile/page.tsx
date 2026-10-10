@@ -60,8 +60,11 @@ export default function ProfilePage() {
         const [owCerts, legacy] = await Promise.all([
           getUserCertifications(),
           (async () => {
-            const { getLegacyCertificates } = await import("@/lib/legacy-bridge");
-            return await getLegacyCertificates(activeCompanyId);
+            // Own certificates (the bridge resolves the student from the session;
+            // this used to pass the company id as a student id).
+            const { getLegacyCertificates, findLegacyStudentByEmail } = await import("@/lib/legacy-bridge");
+            const me = user?.email ? await findLegacyStudentByEmail(user.email) : null;
+            return me ? await getLegacyCertificates(me.id) : [];
           })()
         ]);
         setCerts(owCerts || []);
@@ -69,7 +72,7 @@ export default function ProfilePage() {
       } catch (e) { logger.swallow("profile:load-certs", e, "debug"); }
       setMpLoaded(true);
     })();
-  }, [activeCompanyId, mpLoaded]);
+  }, [activeCompanyId, mpLoaded, user?.email]);
 
   function handleAvatarUpdated(url: string) {
     if (user) setUser({ ...user, avatarUrl: url });
