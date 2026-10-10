@@ -1,0 +1,10 @@
+{
+  "_comment": "Recorded responses for the mock vendor (shape mirrors a typical OAuth vendor). Replayed by integrations_test.ts; no live calls in CI.",
+  "POST /oauth/token authorization_code": { "status": 200, "body": { "access_token": "at_1", "refresh_token": "rt_1", "expires_in": 7200, "account": { "id": "acct_42", "name": "Acme Security LLC" } } },
+  "POST /oauth/token refresh_token": { "status": 200, "body": { "access_token": "at_2", "refresh_token": "rt_2", "expires_in": 7200, "account": { "id": "acct_42", "name": "Acme Security LLC" } } },
+  "GET /v1/me ok": { "status": 200, "body": { "account": { "id": "acct_42", "name": "Acme Security LLC" } } },
+  "GET /v1/me revoked": { "status": 401, "body": { "error": "invalid_token" } },
+  "POST /v1/messages 429": { "status": 429, "headers": { "retry-after": "0" }, "body": { "error": "rate_limited" } },
+  "POST /v1/messages ok": { "status": 201, "body": { "id": "msg_1" } },
+  "webhook": { "id": "evt_100", "type": "employee.updated", "account_id": "acct_42", "data": { "employee": { "id": "e1", "ssn": "123-45-6789", "email": "a@b.co" } } }
+}
