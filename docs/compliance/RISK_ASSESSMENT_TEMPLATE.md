@@ -28,7 +28,7 @@
 | 4 | Credential compromise | 2 | 5 | 10 | 12-char min password; HaveIBeenPwned; session timeout; brute force protection |
 | 5 | Cross-company data leakage | 1 | 5 | 5 | All queries filter by company_id; RLS policies |
 | 6 | Insider threat | 2 | 4 | 8 | RBAC (4-tier); audit logging; quarterly access reviews |
-| 7 | Service outage (Supabase) | 2 | 4 | 8 | PITR backups; service worker offline fallback; UptimeRobot monitoring |
+| 7 | Service outage (Supabase) | 2 | 4 | 8 | Supabase daily backups; service worker offline fallback; UptimeRobot monitoring |
 | 8 | Supply chain attack (npm) | 2 | 3 | 6 | Dependabot; CodeQL; npm audit in CI |
 | 9 | Stripe payment fraud | 2 | 3 | 6 | Webhook signature verification; no unsigned fallback |
 | 10 | API key exposure | 1 | 5 | 5 | No keys in source; .gitignore; GitHub Secrets; localStorage for AI keys |

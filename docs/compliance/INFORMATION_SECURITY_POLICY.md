@@ -118,12 +118,12 @@ See `INCIDENT_RESPONSE_PLAN.md` for detailed procedures.
 ## 9. Business Continuity
 
 ### 9.1 Backup
-- Database: Supabase Point-in-Time Recovery (PITR) enabled
+- Database: Supabase Pro daily physical backups, 7-day retention (not downloadable). Point-in-Time Recovery (PITR) is not enabled. No off-site backup yet (planned)
 - Source code: GitHub with full git history
-- File storage: Supabase Storage with CDN
+- File storage: Supabase Storage with CDN (Storage files are not included in database backups)
 
 ### 9.2 Recovery Objectives
-- Recovery Point Objective (RPO): < 5 minutes (Supabase PITR)
+- Recovery Point Objective (RPO): up to 24 hours (Supabase daily backups)
 - Recovery Time Objective (RTO): < 1 hour (redeploy from GitHub)
 
 ## 10. Acceptable Use

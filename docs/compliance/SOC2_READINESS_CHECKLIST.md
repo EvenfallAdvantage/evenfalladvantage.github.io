@@ -169,9 +169,9 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 7.2.1 | Automated database backups | `[x]` | `.github/workflows/backup.yml` | Daily pg_dump via GitHub Actions; 30-day retention; PITR available on Pro plan |
-| 7.2.2 | Backup restoration tested | `[x]` | `docs/compliance/drills/BACKUP-DRILL-Q2-2026.md` | Drill conducted April 6, 2026; discovered PITR requires Pro; implemented daily backup alternative |
-| 7.2.3 | Recovery Point Objective (RPO) defined | `[x]` | `docs/compliance/SLA_DEFINITION.md`, `BUSINESS_CONTINUITY_PLAN.md` | RPO < 5 min (Supabase PITR) |
+| 7.2.1 | Automated database backups | `[x]` | Supabase Dashboard > Database > Backups | Supabase Pro daily physical backups, 7-day retention; PITR not enabled; off-site encrypted backup planned (the former GitHub Actions workflow never succeeded and was removed) |
+| 7.2.2 | Backup restoration tested | `[ ]` | `docs/compliance/drills/BACKUP-DRILL-Q2-2026.md` | April 6, 2026 drill did not restore a backup; a restore test is still needed |
+| 7.2.3 | Recovery Point Objective (RPO) defined | `[x]` | `docs/compliance/SLA_DEFINITION.md`, `BUSINESS_CONTINUITY_PLAN.md` | RPO up to 24 hours (Supabase daily backups) |
 | 7.2.4 | Recovery Time Objective (RTO) defined | `[x]` | `docs/compliance/SLA_DEFINITION.md`, `BUSINESS_CONTINUITY_PLAN.md` | RTO < 1 hour (automated redeploy) |
 | 7.2.5 | Business continuity plan | `[x]` | `docs/compliance/BUSINESS_CONTINUITY_PLAN.md` | 6 disaster scenarios, recovery procedures, communication plan |
 | 7.2.6 | Source code backed up | `[x]` | GitHub | Git repository with full history |
@@ -254,12 +254,12 @@ Evidence paths reference files in the Overwatch codebase.
 | CC4: Monitoring | 5 | 0 | 0 | 5 |
 | CC5: Control Activities | 18 | 0 | 1 | 19 |
 | CC6: Access Controls | 5 | 0 | 0 | 5 |
-| CC7: System Operations | 10 | 0 | 0 | 10 |
+| CC7: System Operations | 9 | 0 | 1 | 10 |
 | CC8: Change Management | 9 | 0 | 0 | 9 |
 | CC9: Additional | 8 | 2 | 2 | 12 |
-| **TOTAL** | **70** | **2** | **4** | **76** |
+| **TOTAL** | **69** | **2** | **5** | **76** |
 
-**Readiness Score: 92% complete (70/76 fully implemented)**
+**Readiness Score: 91% complete (69/76 fully implemented)**
 
 ### Categories at 100%
 - CC1: Control Environment (5/5)
@@ -267,12 +267,13 @@ Evidence paths reference files in the Overwatch codebase.
 - CC4: Monitoring Activities (5/5)
 - CC6: Logical and Physical Access Controls (5/5)
 
-### Remaining 6 Gaps
+### Remaining 7 Gaps
 
 | # | Control | Category | What's Needed | Type |
 |---|---------|----------|--------------|------|
 | 1 | Vendor SOC 2 reports reviewed | CC3 | Emails drafted — send and file reports when received | Process |
 | 2 | Penetration testing (annual) | CC4 | Hire third-party firm ($5-15K) | External |
+| 3 | Backup restoration tested | CC7 | Restore a Supabase daily backup to a new project and record results | Process |
 
 ### Priority Remediation (Remaining)
 
