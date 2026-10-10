@@ -186,8 +186,8 @@ export async function getCompanyRadioState(companyId: string) {
 
 export async function setCompanyRadioState(companyId: string, state: string | null) {
   const supabase = createClient();
-  // companies UPDATE is owner/admin-only; members set the radio state through
-  // the narrow set_company_radio_state RPC.
+  // Owner/admin only (enforced by the set_company_radio_state RPC; the only UI
+  // is /admin/settings, which is owner/admin-only).
   const { error } = await supabase.rpc("set_company_radio_state", {
     p_company_id: companyId,
     p_state: state,

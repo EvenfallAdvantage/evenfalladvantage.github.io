@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Loader2, CheckCircle2, AlertTriangle, Send, Building2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { getPublicCompany } from "@/lib/supabase/db-public-company";
 
 import { type EducationEntry, type WorkHistoryEntry, type DocumentEntry, type PendingFile } from "@/components/apply/apply-types";
 import { ApplyPersonalInfoSection } from "@/components/apply/apply-personal-info-section";
@@ -55,9 +56,8 @@ function ApplyForm() {
     if (!companyId) { setLoading(false); return; }
     (async () => {
       try {
-        const supabase = createClient();
-        const { data } = await supabase.from("companies").select("id, name, logo_url, brand_color").eq("id", companyId).maybeSingle();
-        if (data) setCompany(data); else setNotFound(true);
+        const data = await getPublicCompany({ id: companyId });
+        if (data) setCompany({ id: data.id, name: data.name, logo_url: data.logo_url ?? undefined, brand_color: data.brand_color ?? undefined }); else setNotFound(true);
       } catch { setNotFound(true); }
       finally { setLoading(false); }
     })();

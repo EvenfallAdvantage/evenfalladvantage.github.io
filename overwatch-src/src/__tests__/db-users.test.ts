@@ -538,24 +538,10 @@ describe("createCompany()", () => {
 // ===========================================================================
 
 describe("findCompanyByJoinCode()", () => {
-  it("returns company for valid code (uppercased and trimmed)", async () => {
-    const company = { id: "comp-1", join_code: "ABC123" };
-    queryBuilder.single.mockResolvedValueOnce({ data: company, error: null });
-
+  it("is retired: returns null without reading companies (member-only table)", async () => {
     const result = await findCompanyByJoinCode("  abc123 ");
-
-    expect(queryBuilder.eq).toHaveBeenCalledWith("join_code", "ABC123");
-    expect(result).toEqual(company);
-  });
-
-  it("returns null on error (not found)", async () => {
-    queryBuilder.single.mockResolvedValueOnce({
-      data: null,
-      error: { message: "not found", code: "PGRST116" },
-    });
-
-    const result = await findCompanyByJoinCode("XXXXXX");
     expect(result).toBeNull();
+    expect(mockClient.from).not.toHaveBeenCalledWith("companies");
   });
 });
 
