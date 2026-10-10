@@ -67,6 +67,17 @@ export async function updateLegacyProgress(
     completed_at?: string | null;
   }
 ): Promise<{ success: boolean; error?: string }> {
+  // Server path: the function resolves the caller's own student row from the
+  // session (studentId is only used by the pre-bridge fallback below).
+  const viaBridge = await viaLegacyBridge("progress.save", {
+    keys: { module_id: moduleId },
+    values: {
+      progress_percentage: progressData.progress_percentage,
+      ...(progressData.current_slide !== undefined ? { current_slide: progressData.current_slide } : {}),
+    },
+  });
+  if (viaBridge) return viaBridge.success ? { success: true } : { success: false, error: viaBridge.error };
+
   const client = getLegacyClient();
 
   const status = progressData.progress_percentage === 100 ? "completed" : "in_progress";
