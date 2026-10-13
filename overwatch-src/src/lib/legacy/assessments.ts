@@ -35,7 +35,8 @@ export async function getLegacyAssessments(): Promise<LegacyAssessment[]> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("assessments")
-    .select("*")
+    // questions_json is not readable with the anon key (answers); questions come via the bridge.
+    .select("id, module_id, assessment_name, total_questions, passing_score, time_limit_minutes, category, icon, updated_at")
     .order("assessment_name", { ascending: true });
 
   if (error) {

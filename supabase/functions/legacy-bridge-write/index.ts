@@ -39,7 +39,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import {
-  OPS, READ_SELECTS, certificateCodes, corsHeaders, isAllowed, isUuid, nextProgress, nextTotalQuestions, originAllowed, questionRows,
+  OPS, READ_SELECTS, certificateCodes, seesAllClasses, corsHeaders, isAllowed, isUuid, nextProgress, nextTotalQuestions, originAllowed, questionRows,
   rowsToQuestions, validateArgs, type Question,
 } from "./lib.ts";
 
@@ -67,6 +67,15 @@ async function overwatchContext(owUrl: string, owAnon: string, token: string, co
     role: typeof role === "string" ? role : null,
     isTrainingProvider: Array.isArray(rows) && rows[0]?.is_training_provider === true,
   };
+}
+
+/** The caller's own EADB instructor id (session uid, then email), or null. */
+// deno-lint-ignore no-explicit-any
+async function ownInstructorId(db: any, caller: Caller): Promise<string | null> {
+  const { data: byId } = await db.from("instructors").select("id").eq("id", caller.id).maybeSingle();
+  if (byId) return byId.id;
+  const { data: byEmail } = await db.from("instructors").select("id").eq("email", caller.email).maybeSingle();
+  return byEmail?.id ?? null;
 }
 
 /** The caller's OWN EADB student row: by session uid, then session email. */
@@ -176,13 +185,23 @@ Deno.serve(async (req) => {
       }
       case "classes.list": {
         let q = db.from("scheduled_classes").select(READ_SELECTS.classes);
-        if (v.values.instructor_id) q = q.eq("instructor_id", v.values.instructor_id as string);
+        if (!seesAllClasses(ctx.role)) {
+          // Instructors: own classes only, whatever instructor_id was sent.
+          const inst = await ownInstructorId(db, caller);
+          if (!inst) return json({ ok: true, data: [] });
+          q = q.eq("instructor_id", inst);
+        } else if (v.values.instructor_id) q = q.eq("instructor_id", v.values.instructor_id as string);
         if (v.values.from_date) q = q.gte("scheduled_date", v.values.from_date as string);
         const { data, error } = await q.order("scheduled_date", { ascending: !!v.values.from_date });
         if (error) return fail(error);
         return json({ ok: true, data: data ?? [] });
       }
       case "class.enrollments.list": case "class.attendance.list": {
+        if (!seesAllClasses(ctx.role)) {
+          const inst = await ownInstructorId(db, caller);
+          const { data: cls } = await db.from("scheduled_classes").select("instructor_id").eq("id", v.keys.class_id as string).maybeSingle();
+          if (!inst || !cls || cls.instructor_id !== inst) return json({ error: "forbidden" }, 403);
+        }
         const { data, error } = await db.from(op === "class.enrollments.list" ? "class_enrollments" : "class_attendance")
           .select(op === "class.enrollments.list" ? READ_SELECTS.classEnrollments : READ_SELECTS.classAttendance)
           .eq("class_id", v.keys.class_id as string);

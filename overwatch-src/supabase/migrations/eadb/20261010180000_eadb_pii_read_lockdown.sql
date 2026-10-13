@@ -26,8 +26,8 @@
 --   * EADB admins (is_admin(auth.uid())): everything below.
 --   * active instructors (static instructor portal = staff directory: lists
 --     all students to enrol them, checks prerequisites): students, module
---     progress, assessment results (certificates/classes/attendance already
---     have instructor policies). Address/phone/bio in student_profiles only
+--     progress, assessment results. Classes, rosters (class_enrollments) and
+--     attendance: their OWN classes only. Address/phone/bio in student_profiles only
 --     for students enrolled in one of THEIR classes.
 --   * messaging partners (shared message_threads row): each other's
 --     students / clients name + email (student-portal/js/messages.js).
@@ -72,6 +72,10 @@ AS $$
     WHERE e.student_id = p_student_id AND c.instructor_id = auth.uid())
 $$;
 
+CREATE OR REPLACE FUNCTION public.eadb_instructor_owns_class(p_class_id uuid)
+  RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO ''
+AS $$ SELECT EXISTS (SELECT 1 FROM public.scheduled_classes c WHERE c.id = p_class_id AND c.instructor_id = auth.uid()) $$;
+
 CREATE OR REPLACE FUNCTION public.eadb_shares_thread(p_other uuid)
   RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO ''
 AS $$
@@ -86,21 +90,22 @@ CREATE OR REPLACE FUNCTION public.eadb_profile_visible(p_student_id uuid)
 AS $$ SELECT EXISTS (SELECT 1 FROM public.student_profiles p WHERE p.student_id = p_student_id AND p.profile_visible) $$;
 
 REVOKE ALL ON FUNCTION public.eadb_is_active_instructor(), public.eadb_is_client(),
-  public.eadb_instructor_has_student(uuid), public.eadb_shares_thread(uuid),
+  public.eadb_instructor_has_student(uuid), public.eadb_instructor_owns_class(uuid), public.eadb_shares_thread(uuid),
   public.eadb_profile_visible(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.eadb_is_active_instructor(), public.eadb_is_client(),
-  public.eadb_instructor_has_student(uuid), public.eadb_shares_thread(uuid),
+  public.eadb_instructor_has_student(uuid), public.eadb_instructor_owns_class(uuid), public.eadb_shares_thread(uuid),
   public.eadb_profile_visible(uuid) TO authenticated, service_role;
 
 -- Public certificate verification: by verification code or certificate
--- number, non-sensitive fields only (no email, no student id, no notes/pdf).
+-- number: certificate details + the holder's full name (decision 2026-10-10);
+-- no email, no student id, no notes/pdf.
 CREATE OR REPLACE FUNCTION public.verify_certificate(p_code text)
   RETURNS TABLE (certificate_number text, certificate_name text, certificate_type text,
                  holder_name text, state_issued text, issue_date date, expiration_date date, status text)
   LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO ''
 AS $$
   SELECT c.certificate_number::text, c.certificate_name::text, c.certificate_type::text,
-         trim(coalesce(s.first_name, '') || ' ' || left(coalesce(s.last_name, ''), 1) || CASE WHEN coalesce(s.last_name, '') <> '' THEN '.' ELSE '' END),
+         trim(coalesce(s.first_name, '') || ' ' || coalesce(s.last_name, '')),
          c.state_issued::text, c.issue_date::date, c.expiration_date::date,
          CASE WHEN c.status = 'active' AND c.expiration_date IS NOT NULL AND c.expiration_date::date < current_date
               THEN 'expired' ELSE c.status::text END
@@ -163,6 +168,14 @@ CREATE POLICY certificates_admin_select ON public.certificates FOR SELECT TO aut
 DROP POLICY IF EXISTS anon_select_class_attendance ON public.class_attendance;
 DROP POLICY IF EXISTS anon_select_class_enrollments ON public.class_enrollments;
 DROP POLICY IF EXISTS anon_select_scheduled_classes ON public.scheduled_classes;
+-- Rosters: an instructor sees enrolments of THEIR OWN classes only (decision
+-- 2026-10-10). Replaces "Instructors can view all enrollments" (any active
+-- instructor saw every roster). Attendance ("Instructors can manage
+-- attendance") and classes ("Instructors can view their classes") are already
+-- scoped to the instructor's own classes. Write policies unchanged.
+DROP POLICY IF EXISTS "Instructors can view all enrollments" ON public.class_enrollments;
+CREATE POLICY class_enrollments_own_class_select ON public.class_enrollments FOR SELECT TO authenticated
+  USING (public.eadb_instructor_owns_class(class_id));
 CREATE POLICY class_attendance_admin_select ON public.class_attendance FOR SELECT TO authenticated
   USING (public.is_admin(auth.uid()));
 CREATE POLICY class_enrollments_admin_select ON public.class_enrollments FOR SELECT TO authenticated

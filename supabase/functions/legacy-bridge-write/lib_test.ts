@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertFalse } from "jsr:@std/assert@1";
 import {
-  CLASS_TYPES, OPS, READ_SELECTS, canManageLegacyCourses, certificateCodes, corsHeaders, isAllowed, nextProgress, nextTotalQuestions, normalizeQuestions,
+  CLASS_TYPES, OPS, READ_SELECTS, canManageLegacyCourses, seesAllClasses, certificateCodes, corsHeaders, isAllowed, nextProgress, nextTotalQuestions, normalizeQuestions,
   originAllowed, questionRows, rowsToQuestions, validateArgs,
 } from "./lib.ts";
 
@@ -202,4 +202,12 @@ Deno.test("read ops: me.* take no ids from the client; instructor reads need val
 Deno.test("read selects never come from the client and stay on the expected tables", () => {
   for (const sel of Object.values(READ_SELECTS)) assert(!/[;]|--/.test(sel));
   assert(READ_SELECTS.classEnrollments.includes("student:students (first_name, last_name, email)"));
+});
+
+Deno.test("class rosters: only Overwatch admin+ see every class", () => {
+  assert(seesAllClasses("owner"));
+  assert(seesAllClasses("admin"));
+  assertFalse(seesAllClasses("instructor"));
+  assertFalse(seesAllClasses("manager"));
+  assertFalse(seesAllClasses(null));
 });

@@ -9,6 +9,40 @@ let currentAssessment = null;
 let currentQuestionIndex = 0;
 let userAnswers = [];
 let shuffledQuestions = [];
+let currentAssessmentDbId = null;
+
+// Grade the server-held questions (grade_assessment records the result and
+// returns the correct answers, which the review screen then shows). Questions
+// without an id (state-law questions built in the browser) keep local grading.
+async function gradeOnServer() {
+    const graded = shuffledQuestions.filter(q => q.id);
+    if (!graded.length || !currentAssessmentDbId) return true;
+    const letters = ['A', 'B', 'C', 'D'];
+    const answers = {};
+    shuffledQuestions.forEach((q, i) => {
+        if (q.id && userAnswers[i] !== null && userAnswers[i] !== undefined) {
+            answers[q.id] = letters[q.originalIndexes[userAnswers[i]]];
+        }
+    });
+    const stateCode = currentAssessment === 'use-of-force' ? (localStorage.getItem('selectedState') || null) : null;
+    const { data, error } = await supabase.rpc('grade_assessment', {
+        p_assessment_id: currentAssessmentDbId, p_answers: answers, p_state_code: stateCode
+    });
+    if (error || !data) {
+        console.error('Grading failed:', error);
+        alert('Your answers could not be graded right now. Please check your connection and submit again.');
+        return false;
+    }
+    const byId = new Map((data.questions || []).map(r => [r.id, r]));
+    shuffledQuestions.forEach(q => {
+        const r = q.id && byId.get(q.id);
+        if (r) {
+            q.correct = q.originalIndexes.indexOf(letters.indexOf(r.correct_answer));
+            q.explanation = r.explanation || '';
+        }
+    });
+    return true;
+}
 let assessmentStartTime = null;
 let timerInterval = null;
 let assessmentAttempts = {}; // Track attempts per assessment
@@ -411,7 +445,7 @@ async function loadAssessments() {
         const { data: assessments, error } = await supabase
             .from('assessments')
             .select(`
-                *,
+                id, module_id, assessment_name, total_questions, passing_score, time_limit_minutes, category, icon, updated_at,
                 training_modules (
                     module_code,
                     module_name,
@@ -4815,12 +4849,11 @@ async function loadAssessmentQuestions(moduleCode) {
             return null;
         }
         
-        // Load questions from assessment_questions table
+        // Answer-free questions (answers stay on the server; grade_assessment
+        // grades on submit). assessment_questions itself is admin-only.
+        currentAssessmentDbId = assessment.id;
         const { data: questionRows, error: questionsError } = await supabase
-            .from('assessment_questions')
-            .select('*')
-            .eq('assessment_id', assessment.id)
-            .order('question_number', { ascending: true });
+            .rpc('get_assessment_quiz', { p_assessment_id: assessment.id });
         
         if (questionsError) {
             console.error('❌ Error loading questions:', questionsError);
@@ -4833,10 +4866,11 @@ async function loadAssessmentQuestions(moduleCode) {
         let questions = [];
         if (questionRows && questionRows.length > 0) {
             questions = questionRows.map(q => ({
+                id: q.id, // graded on the server
                 question: q.question_text,
                 options: [q.option_a, q.option_b, q.option_c, q.option_d],
-                correct: q.correct_answer === 'A' ? 0 : q.correct_answer === 'B' ? 1 : q.correct_answer === 'C' ? 2 : 3,
-                explanation: q.explanation || ''
+                correct: null,
+                explanation: ''
             }));
         } else {
             console.warn('⚠️ No question rows returned from database');
@@ -5012,9 +5046,13 @@ async function startAssessment(assessmentId) {
         const newCorrectIndex = shuffled.findIndex(opt => opt.originalIndex === q.correct);
         
         return {
+            id: q.id || null,
             question: q.question,
             options: shuffled.map(opt => opt.text),
-            correct: newCorrectIndex
+            originalIndexes: shuffled.map(opt => opt.originalIndex),
+            // Server-graded questions get `correct` from grade_assessment on submit.
+            correct: q.correct === null || q.correct === undefined ? null : newCorrectIndex,
+            explanation: q.explanation || ''
         };
     });
     
@@ -5134,7 +5172,8 @@ function nextQuestion() {
     }
 }
 
-function submitAssessment() {
+async function submitAssessment() {
+    if (!(await gradeOnServer())) return;
     clearInterval(timerInterval);
     
     let correctCount = 0;
@@ -5331,8 +5370,9 @@ function selectReviewAnswer(questionIndex, optionIndex) {
     }
 }
 
-function resubmitAssessment() {
+async function resubmitAssessment() {
     console.log('Resubmitting assessment with updated answers');
+    if (!(await gradeOnServer())) return;
     
     // Restore quiz header and footer
     const quizHeader = document.querySelector('.quiz-header');

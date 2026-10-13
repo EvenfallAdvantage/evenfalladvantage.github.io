@@ -1,7 +1,7 @@
 -- =============================================================================
 -- ROLLBACK for eadb/20261010180000_eadb_pii_read_lockdown.sql
 -- Target: LEGACY EADB (project vaagvairvwmgyzsmymhs) ONLY.
--- Recreates the 23 SELECT policies exactly as read from pg_policies on
+-- Recreates the 24 SELECT policies exactly as read from pg_policies on
 -- 2026-10-10. NOTE: this re-exposes every per-person table to anon.
 -- verify_certificate() is kept (harmless, read-only, non-sensitive fields).
 -- =============================================================================
@@ -17,6 +17,7 @@ DROP POLICY IF EXISTS assessment_results_staff_select ON public.assessment_resul
 DROP POLICY IF EXISTS certificates_admin_select ON public.certificates;
 DROP POLICY IF EXISTS class_attendance_admin_select ON public.class_attendance;
 DROP POLICY IF EXISTS class_enrollments_admin_select ON public.class_enrollments;
+DROP POLICY IF EXISTS class_enrollments_own_class_select ON public.class_enrollments;
 DROP POLICY IF EXISTS scheduled_classes_admin_select ON public.scheduled_classes;
 DROP POLICY IF EXISTS activity_log_scoped_select ON public.activity_log;
 DROP POLICY IF EXISTS clients_scoped_select ON public.clients;
@@ -50,11 +51,15 @@ CREATE POLICY "Allow authenticated to view students" ON public.students AS PERMI
 CREATE POLICY "Allow authenticated users to view students" ON public.students AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY anon_select_students ON public.students AS PERMISSIVE FOR SELECT TO anon USING (true);
 CREATE POLICY "Allow authenticated users to view work experience" ON public.work_experience AS PERMISSIVE FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Instructors can view all enrollments" ON public.class_enrollments AS PERMISSIVE FOR SELECT TO public USING ((EXISTS ( SELECT 1
+   FROM instructors
+  WHERE ((instructors.id = auth.uid()) AND (instructors.is_active = true)))));
 
 DROP FUNCTION IF EXISTS public.eadb_is_active_instructor();
 DROP FUNCTION IF EXISTS public.eadb_is_client();
 DROP FUNCTION IF EXISTS public.eadb_instructor_has_student(uuid);
 DROP FUNCTION IF EXISTS public.eadb_shares_thread(uuid);
+DROP FUNCTION IF EXISTS public.eadb_instructor_owns_class(uuid);
 DROP FUNCTION IF EXISTS public.eadb_profile_visible(uuid);
 
 COMMIT;

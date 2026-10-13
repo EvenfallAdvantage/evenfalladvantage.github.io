@@ -793,7 +793,7 @@ async function updateOrCreateAssessment(module) {
         // Check if assessment already exists for this module
         const { data: existingAssessment } = await supabase
             .from('assessments')
-            .select('*')
+            .select('id, module_id, assessment_name, total_questions, passing_score, time_limit_minutes, category, icon, updated_at')
             .eq('module_id', module.id)
             .single();
         

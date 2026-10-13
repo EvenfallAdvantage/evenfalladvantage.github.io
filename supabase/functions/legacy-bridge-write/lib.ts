@@ -17,6 +17,11 @@ export function canManageLegacyCourses(role: string | null, isTrainingProvider: 
   return role === "instructor" || rank(role) >= rank("admin");
 }
 
+/** Class rosters/attendance: Overwatch admin+ see every class; instructors only their own. */
+export function seesAllClasses(role: string | null): boolean {
+  return rank(role) >= rank("admin");
+}
+
 /** autoLinkByRole() links an instructor record for these roles. */
 export function canLinkInstructor(role: string | null): boolean {
   return role === "owner" || role === "admin" || role === "instructor" || role === "manager";
