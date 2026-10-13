@@ -5,7 +5,8 @@
 -- picks it up. Status: DRAFT. Not applied.
 -- Rollback: migrations/rollback/20261006120500_eadb_remove_anon_writes.rollback.sql
 --
--- Removes every anon INSERT/UPDATE/DELETE policy on the 10 legacy tables.
+-- Removes every anon INSERT/UPDATE/DELETE policy on the 10 legacy tables
+-- (+ student_profiles and activity_log) and fixes is_admin(uuid).
 -- With the publishable (anon) key shipped in the static portals and the
 -- Overwatch bundle, these let anyone on the internet create/alter courses,
 -- modules, slides, classes, enrollments, attendance, assessments,
@@ -25,6 +26,19 @@
 --      back to anon writes.
 -- Updated 2026-10-06: also closes anon inserts on student_profiles (two
 -- policies) and revokes anon writes on it; adds student_profiles_self_insert.
+--
+-- Re-checked against the live EADB 2026-10-10 (all 26 dropped policies still
+-- exist as listed). Also now:
+--   * activity_log: drops anon_insert_activity_log (anon INSERT WITH CHECK
+--     true; every writer signs in - student portal - and keeps
+--     authenticated_insert_activity_log) and revokes anon writes on it.
+--   * is_admin(uuid): live body reads administrators.auth_user_id / is_active,
+--     which don't exist (columns are id, user_id, ...), so every policy that
+--     calls is_admin(auth.uid()) errors 42703 (administrators "Admins can
+--     create new admins", state_laws insert/update/delete, skills insert).
+--     Rewritten to the same test as is_admin(): a row with user_id = p_user_id.
+--     SECURITY INVOKER on purpose: administrators RLS shows a user only their
+--     own row, so is_admin(<someone else>) can't be used to probe who is admin.
 --
 -- Not changed here (follow-ups): anon SELECT USING (true) policies on these
 -- tables (students/instructors expose names and emails to the anon key).
@@ -91,12 +105,26 @@ CREATE POLICY student_profiles_self_insert ON public.student_profiles
   AS PERMISSIVE FOR INSERT TO authenticated
   WITH CHECK (student_id = auth.uid());
 
+-- activity_log: signed-in writers only (authenticated_insert_activity_log stays).
+DROP POLICY IF EXISTS anon_insert_activity_log ON public.activity_log;
+
+-- is_admin(uuid): fix the broken column references (see header).
+CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid)
+  RETURNS boolean
+  LANGUAGE sql
+  STABLE
+  SET search_path TO ''
+AS $function$
+  SELECT p_user_id IS NOT NULL
+     AND EXISTS (SELECT 1 FROM public.administrators a WHERE a.user_id = p_user_id)
+$function$;
+
 -- Defence in depth: anon keeps SELECT (out of scope) but loses write grants.
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON
   public.assessments, public.certificates, public.class_attendance,
   public.class_enrollments, public.courses, public.instructors,
   public.module_slides, public.scheduled_classes, public.students,
-  public.training_modules, public.student_profiles
+  public.training_modules, public.student_profiles, public.activity_log
 FROM anon;
 
 -- OPTIONAL (not enabled): if EADB requires email confirmation, signUp()

@@ -11,8 +11,10 @@
  *   "auto" (default) - use the function; if it is not deployed yet (404,
  *                       503 or a network/CORS failure) fall back to the old
  *                       direct anon write. Lets this ship before the deploy.
- *   "server"         - function only, never fall back. Set this once the
- *                       function is deployed and the EADB migration applied.
+ *   "server"         - function only, never fall back to anon writes. Set the
+ *                       repo variable (gh variable set NEXT_PUBLIC_LEGACY_BRIDGE_MODE
+ *                       --body server) BEFORE applying the EADB lockdown
+ *                       migration; deploy.yml passes it to the build.
  */
 
 import { createClient } from "@/lib/supabase/client";
@@ -24,7 +26,7 @@ export type LegacyBridgeOp =
   | "slide.create" | "slide.update" | "slide.delete"
   | "class.create" | "class.update" | "class.enroll" | "class.unenroll" | "class.attendance"
   | "assessment.create" | "assessment.update" | "assessment.set_questions" | "assessment.get_questions" | "assessment.delete"
-  | "certificate.issue" | "instructor.ensure" | "student.ensure";
+  | "certificate.issue" | "instructor.ensure" | "student.ensure" | "progress.save";
 
 export type LegacyBridgeArgs = {
   keys?: Record<string, unknown>;
