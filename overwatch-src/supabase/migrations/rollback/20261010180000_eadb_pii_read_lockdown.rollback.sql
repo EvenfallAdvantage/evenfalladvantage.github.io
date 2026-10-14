@@ -55,6 +55,10 @@ CREATE POLICY "Instructors can view all enrollments" ON public.class_enrollments
    FROM instructors
   WHERE ((instructors.id = auth.uid()) AND (instructors.is_active = true)))));
 
+DROP POLICY IF EXISTS certificates_instructor_scoped_select ON public.certificates;
+CREATE POLICY "Instructors can view all certificates" ON public.certificates AS PERMISSIVE FOR SELECT TO public
+  USING ((auth.uid() IN ( SELECT instructors.id FROM instructors)));
+
 DROP FUNCTION IF EXISTS public.eadb_is_active_instructor();
 DROP FUNCTION IF EXISTS public.eadb_is_client();
 DROP FUNCTION IF EXISTS public.eadb_instructor_has_student(uuid);

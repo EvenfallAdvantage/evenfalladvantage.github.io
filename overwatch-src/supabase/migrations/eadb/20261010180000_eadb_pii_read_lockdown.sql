@@ -162,6 +162,11 @@ CREATE POLICY assessment_results_staff_select ON public.assessment_results FOR S
 DROP POLICY IF EXISTS anon_select_certificates ON public.certificates;
 CREATE POLICY certificates_admin_select ON public.certificates FOR SELECT TO authenticated
   USING (public.is_admin(auth.uid()));
+-- Instructors: certificates they issued, or held by students in their own classes
+-- (was: every instructor sees every certificate).
+DROP POLICY IF EXISTS "Instructors can view all certificates" ON public.certificates;
+CREATE POLICY certificates_instructor_scoped_select ON public.certificates FOR SELECT TO authenticated
+  USING (issued_by = auth.uid() OR public.eadb_instructor_has_student(student_id));
 -- kept: "Students can view own certificates", "Instructors can view all certificates"
 
 -- classes
