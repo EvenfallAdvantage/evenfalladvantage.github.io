@@ -287,6 +287,10 @@ var StudentData = {
 
     // Save assessment result (upsert to avoid duplicates)
     async saveAssessmentResult(studentId, assessmentId, resultData) {
+        // Results are recorded by the server when grade_assessment grades a
+        // quiz; students can no longer insert their own scores.
+        return { success: true, skipped: 'server_graded' };
+        // eslint-disable-next-line no-unreachable
         try {
             // For Module 7 with state_code, check for existing result for this specific state
             let query = supabase

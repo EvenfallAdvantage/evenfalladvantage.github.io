@@ -191,7 +191,7 @@ async function loadCourseAssessments(courseId) {
         // Fetch assessments for these modules
         const { data: assessments, error: assessError } = await supabase
             .from('assessments')
-            .select('*')
+            .select('id, module_id, assessment_name, total_questions, passing_score, time_limit_minutes, category, icon, updated_at')
             .in('module_id', moduleIds);
 
         if (assessError) throw assessError;

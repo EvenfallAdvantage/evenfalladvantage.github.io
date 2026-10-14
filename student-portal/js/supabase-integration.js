@@ -97,7 +97,7 @@ async function saveProgressToDatabase(studentId) {
                         // Get assessment for this module
                         const { data: assessments } = await supabase
                             .from('assessments')
-                            .select('*')
+                            .select('id')
                             .eq('module_id', moduleResult.data.id)
                             .limit(1);
                         

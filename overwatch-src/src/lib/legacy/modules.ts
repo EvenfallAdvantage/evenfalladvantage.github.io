@@ -1,5 +1,5 @@
 import { getLegacyClient } from "./client";
-import { viaLegacyBridge } from "./bridge";
+import { legacyRead, viaLegacyBridge } from "./bridge";
 import type { LegacyModule, LegacySlide, LegacyModuleProgress } from "./types";
 
 /** Get all training modules from legacy */
@@ -35,8 +35,17 @@ export async function getLegacySlides(moduleId: string): Promise<LegacySlide[]> 
   return data ?? [];
 }
 
-/** Get student module progress */
+/** A student's module progress (Instructor HQ). */
 export async function getLegacyProgress(studentId: string): Promise<LegacyModuleProgress[]> {
+  return legacyRead("student.progress", { keys: { student_id: studentId } }, () => directGetLegacyProgress(studentId), []);
+}
+
+/** The signed-in user's OWN module progress (studentId: fallback only). */
+export async function getMyLegacyProgress(studentId: string): Promise<LegacyModuleProgress[]> {
+  return legacyRead("me.progress", {}, () => directGetLegacyProgress(studentId), []);
+}
+
+async function directGetLegacyProgress(studentId: string): Promise<LegacyModuleProgress[]> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("student_module_progress")

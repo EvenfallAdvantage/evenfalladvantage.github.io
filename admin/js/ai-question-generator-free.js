@@ -396,7 +396,7 @@ async function _doGenerate(moduleId, moduleName, config) {
     if (slidesError) throw slidesError;
     if (!slides || slides.length === 0) throw new Error('No slides found for this module');
 
-    const { data: assessment, error: assessmentError } = await supabase.from('assessments').select('*').eq('module_id', moduleId).single();
+    const { data: assessment, error: assessmentError } = await supabase.from('assessments').select('id, module_id, assessment_name, total_questions, passing_score, time_limit_minutes, category, icon, updated_at').eq('module_id', moduleId).single();
     if (assessmentError) throw assessmentError;
 
     let questions;

@@ -1,9 +1,13 @@
 import { getLegacyClient } from "./client";
-import { viaLegacyBridge } from "./bridge";
+import { legacyRead, viaLegacyBridge } from "./bridge";
 import type { LegacyAssessment, LegacyAssessmentResult } from "./types";
 
-/** Get assessment results for a student */
+/** The signed-in user's own assessment results (studentId: fallback only). */
 export async function getLegacyAssessmentResults(studentId: string): Promise<LegacyAssessmentResult[]> {
+  return legacyRead("me.results", {}, () => directGetLegacyAssessmentResults(studentId), []);
+}
+
+async function directGetLegacyAssessmentResults(studentId: string): Promise<LegacyAssessmentResult[]> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("assessment_results")
@@ -31,7 +35,8 @@ export async function getLegacyAssessments(): Promise<LegacyAssessment[]> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("assessments")
-    .select("*")
+    // questions_json is not readable with the anon key (answers); questions come via the bridge.
+    .select("id, module_id, assessment_name, total_questions, passing_score, time_limit_minutes, category, icon, updated_at")
     .order("assessment_name", { ascending: true });
 
   if (error) {

@@ -78,7 +78,7 @@ async function selectAssessmentCourse(courseId, courseName) {
         const { data: assessments, error: assessError } = await supabase
             .from('assessments')
             .select(`
-                *,
+                id, module_id, assessment_name, total_questions, passing_score, time_limit_minutes, category, icon, updated_at,
                 training_modules (
                     module_name,
                     module_code,
@@ -194,7 +194,7 @@ async function editAssessment(id) {
         const { data: assessment, error } = await supabase
             .from('assessments')
             .select(`
-                *,
+                id, module_id, assessment_name, total_questions, passing_score, time_limit_minutes, category, icon, updated_at,
                 training_modules (
                     module_name,
                     module_code
@@ -208,7 +208,10 @@ async function editAssessment(id) {
         currentAssessment = assessment;
         
         // Parse questions
-        currentQuestions = assessment.questions_json || [];
+        // questions_json is admin-only (column hidden from students/anon).
+        const { data: qJson, error: qErr } = await supabase.rpc('admin_get_assessment_questions_json', { p_assessment_id: id });
+        if (qErr) throw qErr;
+        currentQuestions = qJson || [];
         
         showAssessmentEditorModal();
     } catch (error) {

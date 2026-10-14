@@ -1,5 +1,5 @@
 import { getLegacyClient } from "./client";
-import { viaLegacyBridge } from "./bridge";
+import { legacyRead, viaLegacyBridge } from "./bridge";
 import type { LegacyCourse, LegacyCourseModule, LegacyEnrollment } from "./types";
 
 /** Get courses from legacy. Pass includeInactive=true for instructor/admin views. */
@@ -35,7 +35,12 @@ export async function getLegacyCourseModules(courseId: string): Promise<LegacyCo
 }
 
 /** Get course enrollments for a student */
+/** The signed-in user's own course enrolments (studentId: fallback only). */
 export async function getLegacyEnrollments(studentId: string): Promise<LegacyEnrollment[]> {
+  return legacyRead("me.enrollments", {}, () => directGetLegacyEnrollments(studentId), []);
+}
+
+async function directGetLegacyEnrollments(studentId: string): Promise<LegacyEnrollment[]> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("student_course_enrollments")

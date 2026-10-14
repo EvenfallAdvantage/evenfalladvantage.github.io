@@ -1,9 +1,15 @@
 import { getLegacyClient } from "./client";
-import { viaLegacyBridge } from "./bridge";
+import { legacyRead, viaLegacyBridge } from "./bridge";
 import type { LegacyScheduledClass, ClassEnrollmentRow, ClassAttendanceRow } from "./types";
 
 /** Get scheduled classes (upcoming) */
 export async function getLegacyClasses(instructorId?: string): Promise<LegacyScheduledClass[]> {
+  const rows = await legacyRead<LegacyScheduledClass[] | null>("classes.list",
+    { values: { from_date: localDateString(), ...(instructorId ? { instructor_id: instructorId } : {}) } }, async () => null, []);
+  return rows === null ? directGetLegacyClasses(instructorId) : withMaxStudents(rows as never);
+}
+
+async function directGetLegacyClasses(instructorId?: string): Promise<LegacyScheduledClass[]> {
   const client = getLegacyClient();
   let query = client
     .from("scheduled_classes")
@@ -163,8 +169,9 @@ export async function removeStudentFromClass(
 
 /** Get students enrolled in a class */
 export async function getClassEnrollments(classId: string): Promise<ClassEnrollmentRow[]> {
+  const viaBridge = await legacyRead<Record<string, unknown>[] | null>("class.enrollments.list", { keys: { class_id: classId } }, async () => null, []);
   const client = getLegacyClient();
-  const { data, error } = await client
+  const { data, error } = viaBridge !== null ? { data: viaBridge, error: null } : await client
     .from("class_enrollments")
     .select(`
       student_id,
@@ -221,8 +228,9 @@ export async function markAttendance(
 
 /** Get attendance for a class */
 export async function getClassAttendance(classId: string): Promise<ClassAttendanceRow[]> {
+  const viaBridge = await legacyRead<Record<string, unknown>[] | null>("class.attendance.list", { keys: { class_id: classId } }, async () => null, []);
   const client = getLegacyClient();
-  const { data, error } = await client
+  const { data, error } = viaBridge !== null ? { data: viaBridge, error: null } : await client
     .from("class_attendance")
     .select(`
       student_id,
@@ -248,6 +256,11 @@ export async function getClassAttendance(classId: string): Promise<ClassAttendan
 
 /** Get all classes (past included) for an instructor */
 export async function getAllLegacyClasses(instructorId: string): Promise<LegacyScheduledClass[]> {
+  const rows = await legacyRead<LegacyScheduledClass[] | null>("classes.list", { values: { instructor_id: instructorId } }, async () => null, []);
+  return rows === null ? directGetAllLegacyClasses(instructorId) : withMaxStudents(rows as never);
+}
+
+async function directGetAllLegacyClasses(instructorId: string): Promise<LegacyScheduledClass[]> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("scheduled_classes")

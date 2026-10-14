@@ -1,9 +1,13 @@
 import { getLegacyClient } from "./client";
-import { viaLegacyBridge } from "./bridge";
+import { legacyRead, viaLegacyBridge } from "./bridge";
 import type { LegacyStudent } from "./types";
 
-/** Get all students from legacy */
+/** Get all students from legacy (Instructor HQ). */
 export async function getLegacyStudents(): Promise<LegacyStudent[]> {
+  return legacyRead("students.list", {}, directGetLegacyStudents, []);
+}
+
+async function directGetLegacyStudents(): Promise<LegacyStudent[]> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("students")
@@ -76,8 +80,16 @@ export async function createLegacyStudentProfile(
   return { success: true };
 }
 
-/** Find a legacy student by email */
+/**
+ * The SIGNED-IN user's own legacy student record. Every caller passes the
+ * user's own email; through the bridge the record is resolved from the session
+ * (the email argument is only used by the pre-bridge fallback).
+ */
 export async function findLegacyStudentByEmail(email: string): Promise<LegacyStudent | null> {
+  return legacyRead<LegacyStudent | null>("me.student", {}, () => directFindLegacyStudentByEmail(email), null);
+}
+
+async function directFindLegacyStudentByEmail(email: string): Promise<LegacyStudent | null> {
   const client = getLegacyClient();
   const { data, error } = await client
     .from("students")

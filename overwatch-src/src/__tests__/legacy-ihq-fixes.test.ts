@@ -87,6 +87,13 @@ describe("upcoming classes use the local date, not UTC", () => {
   it("getLegacyClasses filters scheduled_date >= local today", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 9, 6, 22, 0));
+    // Bridge path: sends the local date.
+    fetchMock.mockResolvedValueOnce(jsonRes(200, { ok: true, data: [{ id: "c", capacity: 9, max_students: null }] }));
+    const viaBridge = await getLegacyClasses("i-1");
+    expect(sentBody(0)).toEqual({ op: "classes.list", args: { values: { from_date: "2026-10-06", instructor_id: "i-1" } } });
+    expect(viaBridge[0].max_students).toBe(9);
+    // Fallback path (bridge not deployed, auto mode): direct read, same filter.
+    fetchMock.mockResolvedValueOnce(jsonRes(404, {}));
     setMockResponse({ data: [{ id: "c", capacity: 9, max_students: null }], error: null });
     const rows = await getLegacyClasses("i-1");
     expect(queryBuilder.gte).toHaveBeenCalledWith("scheduled_date", "2026-10-06");
