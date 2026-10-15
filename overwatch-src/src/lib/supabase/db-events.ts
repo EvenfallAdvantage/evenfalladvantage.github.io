@@ -2,6 +2,7 @@ import { createClient } from "./client";
 import { ts, resolveStorageUrl } from "./db-helpers";
 import { logDbReadError } from "./db-error";
 import { formatMemberName } from "@/lib/format-names";
+import { isUuid, recentOpsCutoff, MAP_OPS_LIMIT } from "@/lib/map/map-ops-window";
 
 // ─── Events (Operations) ──────────────────────────────
 
@@ -134,6 +135,25 @@ export async function getUpcomingEvents(companyId: string) {
     .order("start_date", { ascending: true })
     .limit(20);
   if (error) { logDbReadError("upcoming events", error); return []; }
+  return data ?? [];
+}
+
+/**
+ * Operations for the Operations map: active + upcoming + any that ended in
+ * the last RECENT_OPS_DAYS (30). Ops with no end_date are treated as ongoing.
+ * Capped at MAP_OPS_LIMIT so a busy org can't flood the globe.
+ */
+export async function getMapOperations(companyId: string, now: Date = new Date()) {
+  if (!isUuid(companyId)) return [];
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .select("*")
+    .eq("company_id", companyId)
+    .or(`end_date.gte.${recentOpsCutoff(now)},end_date.is.null`)
+    .order("start_date", { ascending: true })
+    .limit(MAP_OPS_LIMIT);
+  if (error) { logDbReadError("map operations", error); return []; }
   return data ?? [];
 }
 
