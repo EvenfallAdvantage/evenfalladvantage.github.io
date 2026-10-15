@@ -231,6 +231,16 @@ export function useCesiumLayers(params: {
       viewer.scene.globe.depthTestAgainstTerrain = true;
       // Show buildings — they require terrain to render at correct elevation
       if (buildings) buildings.show = true;
+      else if (!entityGroupsRef.current.buildingsLoading) {
+        // Lazy-load (phones start with terrain off and never fetch them up front).
+        entityGroupsRef.current.buildingsLoading = true;
+        Cesium.createOsmBuildingsAsync().then((tileset: { show: boolean }) => {
+          if (viewer.isDestroyed?.()) return;
+          viewer.scene.primitives.add(tileset);
+          entityGroupsRef.current.buildings = [tileset];
+        }).catch((e: unknown) => logger.swallow("cesium-layers:buildings-lazy", e))
+          .finally(() => { entityGroupsRef.current.buildingsLoading = false; });
+      }
     } else {
       // Flat ellipsoid (no terrain)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

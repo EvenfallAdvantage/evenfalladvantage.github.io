@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { OperationPin } from "./types";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
+import { isConstrainedDevice } from "@/lib/map/device-profile";
 
 export interface LayerVisibility {
   staff: boolean;
@@ -90,6 +91,17 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   siteOverlayOpacity: 0.75,
 };
 
+/** Phones/tablets: skip 3D terrain + OSM buildings by default (biggest GPU/network cost). */
+export const MOBILE_DEFAULT_LAYERS: LayerVisibility = {
+  ...DEFAULT_LAYERS,
+  terrain: false,
+  buildings: false,
+};
+
+export function defaultLayersFor(constrained: boolean): LayerVisibility {
+  return constrained ? MOBILE_DEFAULT_LAYERS : DEFAULT_LAYERS;
+}
+
 interface LayerToggle {
   key: keyof Omit<LayerVisibility, "siteOverlays">;
   label: string;
@@ -164,7 +176,8 @@ interface MapLayersPanelProps {
 }
 
 export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, onAdjustSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, isReplaying, savedBounds }: MapLayersPanelProps) {
-  const [open, setOpen] = useState(true);
+  // Collapsed by default on phones so the globe is usable; desktop unchanged.
+  const [open, setOpen] = useState(() => !isConstrainedDevice());
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   function toggleGroup(group: string) {
@@ -186,7 +199,7 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
   const opsWithSiteMaps = operations.filter((o) => o.siteMapUrl);
 
   return (
-    <div className={`absolute top-3 right-3 z-10 transition-all duration-200 ${open ? "w-56" : "w-9"}`}>
+    <div className={`absolute top-3 right-3 z-10 transition-all duration-200 ${open ? "w-56 max-w-[calc(100vw-1.5rem)]" : "w-9"}`}>
       {/* Toggle button */}
       <button
         onClick={() => setOpen(!open)}
@@ -199,7 +212,7 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
 
       {/* Panel */}
       {open && (
-        <div className="ml-11 rounded-xl backdrop-blur-sm border border-white/10 p-3 space-y-3 max-h-[calc(100vh-240px)] overflow-y-auto" style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)" }}>
+        <div className="ml-11 rounded-xl backdrop-blur-sm border border-white/10 p-3 space-y-3 max-h-[calc(100dvh-240px)] overflow-y-auto overscroll-contain" style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)" }}>
           <div className="flex items-center justify-between">
             <h3 className="text-[10px] font-bold font-mono text-white/50 uppercase tracking-wider">Layers</h3>
             <button onClick={onFlyToAll} className="text-[9px] hover:opacity-80 font-mono font-bold" style={{ color: "var(--brand-accent, #d59b3c)" }}>FLY TO ALL</button>

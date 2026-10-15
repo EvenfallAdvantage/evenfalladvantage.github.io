@@ -11,6 +11,7 @@
 
 import { useEffect } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
+import { isConstrainedDevice, pointBudget, topN, withSuspendedEvents } from "@/lib/map/device-profile";
 import { logger } from "@/lib/logger";
 import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
@@ -129,7 +130,10 @@ export function useFiresLayer(params: {
         });
         entityGroupsRef.current.fires = [];
 
-        const fires = data.fires ?? [];
+        // Budget: keep volcanoes + the most intense fires (by FRP).
+        const fires = topN(data.fires ?? [], pointBudget("fires"), (f) => (f.type === "volcano" ? Infinity : (f.frp ?? 0)));
+        const constrained = isConstrainedDevice();
+        withSuspendedEvents(viewer.entities, () => {
         for (let i = 0; i < fires.length; i++) {
           const f = fires[i];
           if (!Number.isFinite(f.lat) || !Number.isFinite(f.lng)) continue;
@@ -148,13 +152,15 @@ export function useFiresLayer(params: {
             billboard: {
               image: buildFireIcon(f.type),
               scale: 1.0,
-              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+              // Terrain sampling per billboard is the main cost on phones.
+              heightReference: constrained ? Cesium.HeightReference.NONE : Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             },
             description: buildPopup(f),
           });
           (entityGroupsRef.current.fires as Array<{ id: string }>).push(entity);
         }
+        });
       } catch (err) {
         logger.swallow("cesium-layers:fires-fetch", err, "warn");
       }

@@ -4,7 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { logger } from "@/lib/logger";
 import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
-import { MapLayersPanel, type LayerVisibility, DEFAULT_LAYERS } from "./map-layers-panel";
+import { MapLayersPanel, type LayerVisibility, defaultLayersFor } from "./map-layers-panel";
+import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { MapToolsBar } from "./map-tools";
 import { SiteMapAligner } from "./site-map-aligner";
 import { saveSiteMapBounds } from "@/lib/supabase/db-operations";
@@ -51,15 +52,20 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [error, setError] = useState<string | null>(null);
 
   // Persist layer visibility to localStorage per company
-  const storageKey = `tactical-map-${companyId}`;
+  // Phones keep their own saved layer prefs so desktop choices (e.g. 3D
+  // terrain on) don't follow the user onto a phone.
+  const constrained = typeof window !== "undefined" && isConstrainedDevice();
+  const storageKey = `tactical-map-${companyId}${constrained ? "-mobile" : ""}`;
   const [layers, setLayersRaw] = useState<LayerVisibility>(() => {
-    if (typeof window === "undefined") return DEFAULT_LAYERS;
+    const defaults = defaultLayersFor(constrained);
+    if (typeof window === "undefined") return defaults;
     try {
       const saved = localStorage.getItem(storageKey);
-      if (saved) return { ...DEFAULT_LAYERS, ...JSON.parse(saved) };
+      if (saved) return { ...defaults, ...JSON.parse(saved) };
     } catch (e) { logger.swallow("tactical-map:layers-read", e, "debug"); }
-    return DEFAULT_LAYERS;
+    return defaults;
   });
+  const initialTerrainRef = useRef(layers.terrain);
   const setLayers = useCallback((update: LayerVisibility | ((prev: LayerVisibility) => LayerVisibility)) => {
     setLayersRaw(prev => {
       const next = typeof update === "function" ? update(prev) : update;
@@ -187,7 +193,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         // Set terrain after construction: Terrain.fromWorldTerrain() returns a
         // Promise in Cesium 1.104+, so it cannot be passed inline to the Viewer
         // constructor.  We apply it asynchronously here.
-        try {
+        if (isConstrainedDevice()) {
+          // Coarser globe tiles on phones (default 2): fewer requests + less GPU.
+          viewer.scene.globe.maximumScreenSpaceError = 4;
+        }
+        // Skip the world-terrain fetch when the terrain layer starts off; the
+        // terrain layer effect loads it if the user turns it on later.
+        if (initialTerrainRef.current) try {
           const terrainProvider = await Cesium.Terrain.fromWorldTerrain({
             requestVertexNormals: true,
             requestWaterMask: true,
@@ -227,10 +239,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           setSelectedEntityRef.current?.(null);
         };
 
-        // Add 3D buildings
-        const buildingsTileset = await Cesium.createOsmBuildingsAsync();
-        viewer.scene.primitives.add(buildingsTileset);
-        entityGroupsRef.current.buildings = [buildingsTileset];
+        // Add 3D buildings (only when terrain starts on; otherwise the terrain
+        // layer effect loads them lazily the first time terrain is enabled).
+        if (initialTerrainRef.current) {
+          const buildingsTileset = await Cesium.createOsmBuildingsAsync();
+          viewer.scene.primitives.add(buildingsTileset);
+          entityGroupsRef.current.buildings = [buildingsTileset];
+        }
 
         // Restore saved camera position or fly to CONUS
         const cameraKey = `tactical-cam-${companyId}`;
