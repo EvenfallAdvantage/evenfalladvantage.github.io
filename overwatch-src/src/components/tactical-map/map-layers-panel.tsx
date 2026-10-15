@@ -123,7 +123,7 @@ const LAYER_TOGGLES: LayerToggle[] = [
   // ─── INTELLIGENCE — external data feeds ────────────────
   // Threats
   { key: "conflictZones", label: "Conflict Zones", icon: <Swords className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  { key: "gdelt", label: "Global Incidents", icon: <Newspaper className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
+  { key: "gdelt", label: "World News (geotagged)", icon: <Newspaper className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "sigintNews", label: "SIGINT News", icon: <Rss className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "nuclearInfrastructure", label: "Nuclear Facilities", icon: <Atom className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   // Surveillance feeds

@@ -1,3 +1,4 @@
+import { setVisibleInterval } from "@/lib/visible-interval";
 /**
  * S2 Underground Intel Layer for the Tactical Map
  *
@@ -73,7 +74,7 @@ export function useS2IntelLayer({
   });
   const [featureCount, setFeatureCount] = useState(0);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  const intervalsRef = useRef<ReturnType<typeof setInterval>[]>([]);
+  const intervalsRef = useRef<Array<() => void>>([]);
 
   // Re-hydrate when company changes (user switches tenants).
   // Deferred via microtask to avoid cascading setState in the same render.
@@ -264,15 +265,14 @@ export function useS2IntelLayer({
     const activeLayerDefs = S2_LAYERS.filter(l => activeLayers.has(l.id));
     const minRefresh = Math.min(...activeLayerDefs.map(l => l.refreshMinutes));
     if (minRefresh > 0 && minRefresh < Infinity) {
-      const interval = setInterval(() => {
+      intervalsRef.current.push(setVisibleInterval(() => {
         if (!cancelled) loadAllLayers();
-      }, minRefresh * 60 * 1000);
-      intervalsRef.current.push(interval);
+      }, minRefresh * 60 * 1000));
     }
 
     return () => {
       cancelled = true;
-      for (const i of intervalsRef.current) clearInterval(i);
+      for (const stop of intervalsRef.current) stop();
       intervalsRef.current = [];
     };
   }, [viewerRef, cesiumRef, entityGroupsRef, loading, enabled, activeLayers, timeMachineExtraHours]);
@@ -280,7 +280,8 @@ export function useS2IntelLayer({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      for (const i of intervalsRef.current) clearInterval(i);
+      for (const stop of intervalsRef.current) stop();
+      intervalsRef.current = [];
     };
   }, []);
 

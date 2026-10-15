@@ -1,3 +1,4 @@
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
@@ -30,8 +31,7 @@ export function useOrbitLayer(params: {
   // we should not advance the propagation behind the user's back.
   useEffect(() => {
     if (!layers.satelliteOrbits || isReplaying) return;
-    const interval = setInterval(() => setRefreshTick(t => t + 1), 60000);
-    return () => clearInterval(interval);
+    return setVisibleInterval(() => setRefreshTick(t => t + 1), 60000);
   }, [layers.satelliteOrbits, isReplaying]);
 
   // ─── Satellite Orbits (CelesTrak) ──────────────────
