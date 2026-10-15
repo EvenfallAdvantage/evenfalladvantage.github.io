@@ -1,105 +1,63 @@
-// OpenSky Network Proxy — relays aircraft position requests to avoid CORS
-// The OpenSky API does not include Access-Control-Allow-Origin headers,
-// so browser-side requests are blocked. This proxy runs server-side.
+// Aircraft proxy (name kept as opensky-proxy so the client is unchanged).
 //
-// Usage: GET /opensky-proxy?lamin=38&lamax=42&lomin=-80&lomax=-75
-// Returns: { states: [...] } — same format as OpenSky /states/all
+// OpenSky blocks Supabase/cloud egress (every call timed out), so this now
+// reads the free, keyless community ADS-B aggregators and returns OpenSky's
+// /states/all shape: { time, states: [...], source }.
+//   primary:  adsb.lol  (https://api.adsb.lol, ODbL)
+//   fallback: adsb.fi   (https://opendata.adsb.fi)
+// airplanes.live was evaluated but now requires registration (403).
+//
+// Usage: GET /opensky-proxy?lamin=38&lamax=42&lomin=-80&lomax=-75 (max 10° per axis)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { cacheKey, extractAircraft, parseBBox, toOpenSkyStates, upstreamUrls } from './lib.ts'
 
-const OPENSKY_BASE = "https://opensky-network.org/api/states/all";
+const CACHE_TTL_MS = 10_000;
+const CACHE_MAX = 64;
+const UPSTREAM_TIMEOUT_MS = 6_000;
+const cache = new Map<string, { body: string; ts: number }>();
 
-// Simple in-memory cache to respect rate limits (~100 req / 10s on free tier)
-let cache: { key: string; data: unknown; ts: number } | null = null;
-const CACHE_TTL_MS = 15_000; // 15 seconds
+function json(body: unknown, corsHeaders: Record<string, string>, extra: Record<string, string> = {}, status = 200) {
+  return new Response(typeof body === 'string' ? body : JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=10', ...extra },
+  });
+}
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('origin'));
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  const bbox = parseBBox(new URL(req.url).searchParams);
+  if ('error' in bbox) return json({ error: bbox.error, states: [] }, corsHeaders, {}, 400);
+
+  const key = cacheKey(bbox);
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return json(hit.body, corsHeaders, { 'X-Cache': 'HIT' });
+
+  const errors: string[] = [];
+  for (const up of upstreamUrls(bbox)) {
+    try {
+      const res = await fetch(up.url, {
+        headers: { Accept: 'application/json', 'User-Agent': 'EvenfallOverwatch/1.0 (+https://www.evenfalladvantage.com)' },
+        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+      });
+      if (!res.ok) { errors.push(`${up.name} ${res.status}`); continue; }
+      const aircraft = extractAircraft(await res.json());
+      if (!aircraft) { errors.push(`${up.name} bad body`); continue; }
+      const now = Math.floor(Date.now() / 1000);
+      const body = JSON.stringify({ time: now, states: toOpenSkyStates(aircraft, bbox, now), source: up.name });
+      if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value as string);
+      cache.set(key, { body, ts: Date.now() });
+      return json(body, corsHeaders, { 'X-Cache': 'MISS', 'X-Upstream': up.name });
+    } catch (err) {
+      errors.push(`${up.name} ${err instanceof Error ? err.name : 'error'}`);
+    }
   }
 
-  try {
-    const url = new URL(req.url);
-    const lamin = url.searchParams.get('lamin');
-    const lamax = url.searchParams.get('lamax');
-    const lomin = url.searchParams.get('lomin');
-    const lomax = url.searchParams.get('lomax');
-
-    if (!lamin || !lamax || !lomin || !lomax) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required params: lamin, lamax, lomin, lomax' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Validate params are reasonable numbers
-    const bounds = [lamin, lamax, lomin, lomax].map(Number);
-    if (bounds.some(isNaN)) {
-      return new Response(
-        JSON.stringify({ error: 'Parameters must be valid numbers' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Limit bounding box size to prevent abuse (max ~10 degrees per axis)
-    if (Math.abs(bounds[1] - bounds[0]) > 10 || Math.abs(bounds[3] - bounds[2]) > 10) {
-      return new Response(
-        JSON.stringify({ error: 'Bounding box too large. Max 10 degrees per axis.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const cacheKey = `${lamin},${lamax},${lomin},${lomax}`;
-
-    // Return cached result if fresh
-    if (cache && cache.key === cacheKey && Date.now() - cache.ts < CACHE_TTL_MS) {
-      return new Response(
-        JSON.stringify(cache.data),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'HIT' } }
-      );
-    }
-
-    // Fetch from OpenSky
-    const openskyUrl = `${OPENSKY_BASE}?lamin=${lamin}&lamax=${lamax}&lomin=${lomin}&lomax=${lomax}`;
-    const res = await fetch(openskyUrl, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(10_000),
-    });
-
-    if (!res.ok) {
-      const status = res.status;
-      if (status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'OpenSky rate limit exceeded. Try again in a few seconds.', states: [] }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      return new Response(
-        JSON.stringify({ error: `OpenSky returned ${status}`, states: [] }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Upstream-Status': String(status) } }
-      );
-    }
-
-    const data = await res.json();
-
-    // Cache the result
-    cache = { key: cacheKey, data, ts: Date.now() };
-
-    return new Response(
-      JSON.stringify(data),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'MISS' } }
-    );
-
-  } catch (err) {
-    console.error('[opensky-proxy] Error:', err);
-    // Return 200 with empty states so the client gracefully shows no aircraft
-    return new Response(
-      JSON.stringify({ error: 'OpenSky unreachable', states: [] }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Cache': 'ERROR' } }
-    );
-  }
+  console.error('[opensky-proxy] all upstreams failed:', errors.join('; '));
+  // 200 + empty states so the client quietly shows no aircraft.
+  if (hit) return json(hit.body, corsHeaders, { 'X-Cache': 'STALE' });
+  return json({ error: 'Aircraft feeds unreachable', states: [] }, corsHeaders, { 'X-Cache': 'ERROR' });
 });
