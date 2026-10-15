@@ -30,6 +30,10 @@ import { ShiftSwapTab } from "./components/shift-swap-tab";
 import { logger } from "@/lib/logger";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { resolveStorageUrl } from "@/lib/supabase/db-helpers";
+import { getMapOperations } from "@/lib/supabase/db-events";
+import { classifyStaffFreshness, hasValidCoords, isUuid } from "@/lib/map/map-ops-window";
+
+type StaffLoc = { userId: string; name: string; lat: number; lng: number; heading: number | null; speed: number | null; updatedAt: string };
 
 const TacticalMap = dynamic(() => import("@/components/tactical-map").then(m => ({ default: m.TacticalMap })), { ssr: false, loading: () => <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
@@ -80,6 +84,7 @@ export default function SchedulePage() {
   const [mapOps, setMapOps] = useState<OperationPin[]>([]);
   const [mapStaff, setMapStaff] = useState<StaffPin[]>([]);
   const [mapIncidents, setMapIncidents] = useState<IncidentPin[]>([]);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
     setHeader("OPERATIONS", "Your assigned shifts, operations, and equipment",
@@ -113,14 +118,36 @@ export default function SchedulePage() {
   useEffect(() => { loadSchedule(); loadAssets(); }, [loadSchedule, loadAssets]);
 
   // ─── Map Tab: load operation pins, staff locations, incidents ────
+  // Operations come from getMapOperations (active + upcoming + ended in the
+  // last 30 days), not the Schedule tab's upcoming-only list, so recently
+  // finished ops and their site maps / geofence rings stay visible.
+  const toStaffPins = useCallback((locs: StaffLoc[]): StaffPin[] => {
+    const now = Date.now();
+    return locs
+      .filter((s: StaffLoc) => hasValidCoords(s.lat, s.lng) && classifyStaffFreshness(s.updatedAt, now) !== "hidden")
+      .map((s: StaffLoc) => ({
+        userId: s.userId, name: s.name, role: "staff",
+        lat: s.lat, lng: s.lng,
+        heading: s.heading ?? undefined, speed: s.speed ?? undefined,
+        updatedAt: s.updatedAt,
+      }));
+  }, []);
+
   const loadMapData = useCallback(async () => {
-    if (!activeCompanyId || tab !== "map") return;
+    if (!isUuid(activeCompanyId) || tab !== "map") return;
     try {
-      const ops: OperationPin[] = events
-        .filter((ev: Ev) => ev.location_lat && ev.location_lng)
+      const [opsRaw, staffLocs, incidentsRaw, teamsList] = await Promise.all([
+        getMapOperations(activeCompanyId),
+        getStaffLocations(activeCompanyId),
+        getIncidents(activeCompanyId, "all"),
+        getTeams(activeCompanyId),
+      ]);
+
+      const ops: OperationPin[] = (opsRaw as Ev[])
+        .filter((ev: Ev) => hasValidCoords(ev.location_lat, ev.location_lng))
         .map((ev: Ev) => ({
           id: ev.id, name: ev.name, location: ev.location ?? "",
-          lat: ev.location_lat, lng: ev.location_lng,
+          lat: Number(ev.location_lat), lng: Number(ev.location_lng),
           status: ev.status ?? "draft", startDate: ev.start_date ?? "",
           geofenceRadius: ev.geofence_radius_meters ?? undefined,
           siteMapUrl: ev.site_map_url ?? null,
@@ -131,31 +158,20 @@ export default function SchedulePage() {
       )));
       setMapOps(signedOps);
 
-      const [staffLocs, incidentsRaw, teamsList] = await Promise.all([
-        getStaffLocations(activeCompanyId),
-        getIncidents(activeCompanyId, "all"),
-        getTeams(activeCompanyId),
-      ]);
-
-      setMapStaff(staffLocs.map((s: { userId: string; name: string; lat: number; lng: number; heading: number | null; speed: number | null; updatedAt: string }) => ({
-        userId: s.userId, name: s.name, role: "staff",
-        lat: s.lat, lng: s.lng,
-        heading: s.heading ?? undefined, speed: s.speed ?? undefined,
-        updatedAt: s.updatedAt,
-      })));
+      setMapStaff(toStaffPins(staffLocs));
 
       const teamById = new Map(teamsList.map((t) => [t.id, t]));
 
       setMapIncidents(
         (incidentsRaw ?? [])
-          .filter((inc: Ev) => inc.location_lat && inc.location_lng)
+          .filter((inc: Ev) => hasValidCoords(inc.location_lat, inc.location_lng))
           .map((inc: Ev) => {
             const team = inc.team_id ? teamById.get(inc.team_id) : null;
             return {
               id: inc.id, title: inc.title ?? "Incident",
               description: inc.description ?? undefined, type: inc.type ?? undefined,
               priority: inc.priority ?? undefined,
-              lat: inc.location_lat, lng: inc.location_lng,
+              lat: Number(inc.location_lat), lng: Number(inc.location_lng),
               severity: inc.severity ?? "low", status: inc.status ?? "open",
               reportedBy: inc.reported_user ? formatMemberName(inc.reported_user) || undefined : undefined,
               assignedTo: inc.assigned_user ? formatMemberName(inc.assigned_user) || undefined : undefined,
@@ -167,28 +183,25 @@ export default function SchedulePage() {
             };
           })
       );
+      setMapLoaded(true);
     } catch (err) { console.error("[Map] Failed to load map data:", err); }
-  }, [activeCompanyId, tab, events]);
+  }, [activeCompanyId, tab, toStaffPins]);
 
   useEffect(() => { loadMapData(); }, [loadMapData]);
 
-  // Subscribe to real-time staff location updates when map tab is active
+  // Staff positions: realtime (staff_locations is in supabase_realtime after
+  // migration 20261015190000) plus a 30s poll as a fallback. The poll also
+  // re-classifies freshness so pins grey out / disappear without new rows.
   useEffect(() => {
-    if (tab !== "map" || !activeCompanyId) return;
+    if (tab !== "map" || !isUuid(activeCompanyId)) return;
     const refreshStaff = () => {
-      getStaffLocations(activeCompanyId).then((locs) => {
-        setMapStaff(locs.map((s: { userId: string; name: string; lat: number; lng: number; heading: number | null; speed: number | null; updatedAt: string }) => ({
-          userId: s.userId, name: s.name, role: "staff",
-          lat: s.lat, lng: s.lng,
-          heading: s.heading ?? undefined, speed: s.speed ?? undefined,
-          updatedAt: s.updatedAt,
-        })));
-      });
+      getStaffLocations(activeCompanyId).then((locs) => setMapStaff(toStaffPins(locs)))
+        .catch((e) => logger.swallow("schedule:map-staff-refresh", e, "debug"));
     };
     const unsub = subscribeStaffLocations(activeCompanyId, refreshStaff);
     const stopPolling = setVisibleInterval(refreshStaff, 30000);
     return () => { unsub(); stopPolling(); };
-  }, [tab, activeCompanyId]);
+  }, [tab, activeCompanyId, toStaffPins]);
 
   // Load issued documents & my availability for each event
   useEffect(() => {
@@ -363,6 +376,13 @@ export default function SchedulePage() {
       {/* ── Map Tab ── */}
       {tab === "map" && (
         <ErrorBoundary fallback={<div className="flex justify-center py-24 text-sm text-muted-foreground">Failed to load map. Try refreshing the page.</div>}>
+          {mapLoaded && (mapOps.length === 0 || mapStaff.length === 0 || mapIncidents.length === 0) && (
+            <div className="mb-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground space-y-0.5" data-testid="map-empty-hints">
+              {mapOps.length === 0 && <p>No operations with a location that are active, upcoming, or ended in the last 30 days. Add a location in Admin → Operations to pin one.</p>}
+              {mapStaff.length === 0 && <p>No staff positions in the last 12 hours. Staff appear while clocked in with location sharing on; positions older than 15 min show greyed.</p>}
+              {mapIncidents.length === 0 && <p>No incidents with a location. Incidents reported without GPS coordinates aren&apos;t shown on the map.</p>}
+            </div>
+          )}
           <TacticalMap
             operations={mapOps} staff={mapStaff} incidents={mapIncidents}
             companyId={activeCompanyId ?? ""} isAdmin={isAdmin}
