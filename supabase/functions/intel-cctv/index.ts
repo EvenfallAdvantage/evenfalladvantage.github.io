@@ -7,144 +7,49 @@
  * advertised JSON shape for callers; the gating is enforced client-side by
  * the layer toggle in the UI.
  *
- * Initial sources (all free, open data — no commercial review needed in the
- * jurisdictions where Overwatch users operate; but legal still pending):
- *   - Singapore LTA traffic-images
- *   - Florida 511 (FL DOT)
- *   - Caltrans California districts
+ * Sources (free, keyless open data):
+ *   - Singapore LTA traffic-images (data.gov.sg v1)
+ *   - Caltrans CWWP2, districts 1–12 (path /data/d7/…/cctvStatusD07.json)
+ *   - NYC DOT traffic webcams (webcams.nyctmc.org)
  *
  * Adapted from Osiris (github.com/simplifaisoul/osiris, MIT).
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { CALTRANS_DISTRICTS, caltransUrl, parseCaltrans, parseNyc, parseSingapore, type CctvCamera } from "./lib.ts";
 
-interface CctvCamera {
-  id: string;
-  lat: number;
-  lng: number;
-  name: string;
-  city: string;
-  country: string;
-  feed_url?: string;
-  external_url?: string;
-  source: string;
+const UA = { "User-Agent": "EvenfallOverwatch/1.0 (+https://www.evenfalladvantage.com)", Accept: "application/json" };
+
+async function getJson(url: string, timeoutMs: number): Promise<unknown | null> {
+  const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(timeoutMs) });
+  if (!res.ok) { console.warn("[intel-cctv]", url, res.status); return null; }
+  return await res.json();
 }
 
 async function fetchSingaporeCameras(): Promise<CctvCamera[]> {
-  try {
-    const res = await fetch("https://api.data.gov.sg/v1/transport/traffic-images", {
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as {
-      items?: Array<{
-        cameras?: Array<{
-          camera_id?: string;
-          location?: { latitude?: number; longitude?: number };
-          image?: string;
-        }>;
-      }>;
-    };
-    const items = data.items?.[0]?.cameras ?? [];
-    const cams: CctvCamera[] = [];
-    for (const cam of items) {
-      if (!cam.location?.latitude || !cam.location?.longitude || !cam.image) continue;
-      cams.push({
-        id: `sin-${cam.camera_id}`,
-        lat: cam.location.latitude,
-        lng: cam.location.longitude,
-        name: `Camera ${cam.camera_id}`,
-        city: "Singapore",
-        country: "Singapore",
-        feed_url: cam.image,
-        source: "LTA Singapore",
-      });
-    }
-    return cams;
-  } catch (e) {
-    console.warn("[intel-cctv] singapore error:", e);
-    return [];
-  }
-}
-
-async function fetchFloridaCameras(): Promise<CctvCamera[]> {
-  try {
-    const res = await fetch("https://fl511.com/api/v2/cameras", {
-      signal: AbortSignal.timeout(8_000),
-      headers: { Accept: "application/json" },
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as Array<{
-      latitude?: number; longitude?: number;
-      description?: string; imageUrl?: string;
-    }>;
-    const cams: CctvCamera[] = [];
-    for (const cam of data.slice(0, 800)) {
-      if (!cam.latitude || !cam.longitude) continue;
-      cams.push({
-        id: `fl-${cams.length}`,
-        lat: cam.latitude,
-        lng: cam.longitude,
-        name: cam.description ?? "FL-511 Camera",
-        city: "Florida",
-        country: "US",
-        feed_url: cam.imageUrl ?? "",
-        source: "FL-511",
-      });
-    }
-    return cams;
-  } catch (e) {
-    console.warn("[intel-cctv] florida error:", e);
-    return [];
-  }
+  try { return parseSingapore(await getJson("https://api.data.gov.sg/v1/transport/traffic-images", 10_000)); }
+  catch (e) { console.warn("[intel-cctv] singapore error:", e); return []; }
 }
 
 async function fetchCaltransCameras(): Promise<CctvCamera[]> {
-  const allCams: CctvCamera[] = [];
-  const districts = ["d03", "d04", "d05", "d06", "d07", "d08", "d10", "d11", "d12"];
-  await Promise.allSettled(
-    districts.map(async (dist) => {
-      try {
-        const res = await fetch(
-          `https://cwwp2.dot.ca.gov/data/${dist}/cctv/cctvStatus${dist.toUpperCase()}.json`,
-          { signal: AbortSignal.timeout(8_000) },
-        );
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          data?: Array<{
-            location?: { latitude?: string; longitude?: string; locationName?: string };
-            cctv?: { imageData?: { static?: { currentImageURL?: string } } };
-          }>;
-        };
-        for (const cam of data.data ?? []) {
-          const lat = parseFloat(cam.location?.latitude ?? "");
-          const lng = parseFloat(cam.location?.longitude ?? "");
-          const url = cam.cctv?.imageData?.static?.currentImageURL;
-          if (!lat || !lng || !url) continue;
-          allCams.push({
-            id: `cal-${allCams.length}`,
-            lat,
-            lng,
-            name: cam.location?.locationName ?? "Caltrans",
-            city: "California",
-            country: "US",
-            feed_url: url,
-            source: "Caltrans",
-          });
-        }
-      } catch (e) {
-        console.warn("[intel-cctv] caltrans error:", e);
-      }
-    }),
+  const results = await Promise.allSettled(
+    CALTRANS_DISTRICTS.map(async (d) => parseCaltrans(await getJson(caltransUrl(d), 10_000), d)),
   );
-  return allCams;
+  return results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 }
 
+async function fetchNycCameras(): Promise<CctvCamera[]> {
+  try { return parseNyc(await getJson("https://webcams.nyctmc.org/api/cameras", 10_000)); }
+  catch (e) { console.warn("[intel-cctv] nyc error:", e); return []; }
+}
+
+// FL-511 removed: its open endpoint now 404s and the v2 API requires a key
+// (FL511_API_KEY). See PR notes for other keyed 511 feeds.
 const REGION_FETCHERS: Record<string, () => Promise<CctvCamera[]>> = {
   "sg": fetchSingaporeCameras,
-  "us-fl": fetchFloridaCameras,
   "us-ca": fetchCaltransCameras,
+  "us-ny": fetchNycCameras,
 };
 
 Deno.serve(async (req) => {

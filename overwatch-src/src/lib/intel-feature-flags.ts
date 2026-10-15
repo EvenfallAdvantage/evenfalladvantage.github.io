@@ -97,15 +97,15 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   },
 
   // ─── Surveillance: legal review cleared (May 2026) ────────────────
-  // Initial enabled scope: Singapore LTA traffic-images, FL-511 (Florida DOT),
-  // Caltrans California districts. All are public open-data sources cleared
+  // Enabled scope: Singapore LTA traffic-images, NYC DOT webcams,
+  // Caltrans California districts 1–12. (FL-511 dropped: needs an API key.) All are public open-data sources cleared
   // for the Overwatch user base. Additional regions (TfL JamCams, WSDOT, NYC
   // DOT, ASFINAG, Bulgaria, Greece, Serbia, Macedonia, Romania, Turkey) are
   // available in the upstream Osiris implementation and can be added per
   // region as their individual ToS are reviewed.
   cctv: {
     enabled: true,
-    attribution: "LTA Singapore, FL-511, Caltrans (initial scope)",
+    attribution: "Caltrans CWWP2, NYC DOT, LTA Singapore (open data)",
     attributionRequired: true,
   },
 
