@@ -1,5 +1,9 @@
 /**
- * Live Flight Tracking via OpenSky Network
+ * Live Flight Tracking (OpenSky-format state vectors)
+ *
+ * The `opensky-proxy` Edge Function now sources adsb.lol (fallback adsb.fi)
+ * because OpenSky blocks Supabase egress; it still returns OpenSky's
+ * /states/all shape, so parsing below is unchanged.
  *
  * Free API, no key required. Rate limited to ~100 requests/10 seconds.
  * Returns all aircraft positions within a bounding box.
