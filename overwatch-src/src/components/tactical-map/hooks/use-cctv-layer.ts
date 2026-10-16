@@ -62,6 +62,9 @@ function buildPopup(cam: CctvCamera): string {
   </div>`;
 }
 
+/** Camera pins render only when the camera is within this distance (m). */
+const CCTV_VIEW_DISTANCE_M = 400_000;
+
 export function useCctvLayer(params: {
   viewerRef: CesiumRef;
   cesiumRef: CesiumRef;
@@ -120,6 +123,11 @@ export function useCctvLayer(params: {
           return;
         }
 
+        // ~3,400 cameras (mostly Caltrans): batch the adds and only draw
+        // pins within CCTV_VIEW_DISTANCE_M of the camera so the globe view
+        // isn't carpeted and the GPU skips far-away billboards.
+        viewer.entities.suspendEvents?.();
+        try {
         for (const cam of data.cameras ?? []) {
           if (!Number.isFinite(cam.lat) || !Number.isFinite(cam.lng)) continue;
           const entityId = `cctv-${cam.id}`;
@@ -133,11 +141,13 @@ export function useCctvLayer(params: {
               scale: 1.0,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, CCTV_VIEW_DISTANCE_M),
             },
             description: buildPopup(cam),
           });
           (entityGroups.cctv as Array<{ id: string }>).push(entity);
         }
+        } finally { viewer.entities.resumeEvents?.(); }
 
         const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((click: { position: { x: number; y: number } }) => {
