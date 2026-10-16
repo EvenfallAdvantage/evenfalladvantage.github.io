@@ -10,14 +10,13 @@
  * Sources (free, keyless open data):
  *   - Singapore LTA traffic-images (data.gov.sg v1)
  *   - Caltrans CWWP2, districts 1–12 (path /data/d7/…/cctvStatusD07.json)
- *   - NYC DOT traffic webcams (webcams.nyctmc.org)
  *
  * Adapted from Osiris (github.com/simplifaisoul/osiris, MIT).
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { CALTRANS_DISTRICTS, caltransUrl, parseCaltrans, parseNyc, parseSingapore, type CctvCamera } from "./lib.ts";
+import { CALTRANS_DISTRICTS, caltransUrl, parseCaltrans, parseSingapore, type CctvCamera } from "./lib.ts";
 
 const UA = { "User-Agent": "EvenfallOverwatch/1.0 (+https://www.evenfalladvantage.com)", Accept: "application/json" };
 
@@ -39,17 +38,12 @@ async function fetchCaltransCameras(): Promise<CctvCamera[]> {
   return results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 }
 
-async function fetchNycCameras(): Promise<CctvCamera[]> {
-  try { return parseNyc(await getJson("https://webcams.nyctmc.org/api/cameras", 10_000)); }
-  catch (e) { console.warn("[intel-cctv] nyc error:", e); return []; }
-}
-
 // FL-511 removed: its open endpoint now 404s and the v2 API requires a key
 // (FL511_API_KEY). See PR notes for other keyed 511 feeds.
+// NYC DOT (webcams.nyctmc.org) is keyless but NOT approved — do not add without sign-off.
 const REGION_FETCHERS: Record<string, () => Promise<CctvCamera[]>> = {
   "sg": fetchSingaporeCameras,
   "us-ca": fetchCaltransCameras,
-  "us-ny": fetchNycCameras,
 };
 
 Deno.serve(async (req) => {

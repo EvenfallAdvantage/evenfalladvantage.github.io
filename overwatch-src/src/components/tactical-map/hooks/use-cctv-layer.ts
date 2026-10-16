@@ -123,7 +123,7 @@ export function useCctvLayer(params: {
           return;
         }
 
-        // ~4,400 cameras (mostly Caltrans + NYC): batch the adds and only draw
+        // ~3,400 cameras (mostly Caltrans): batch the adds and only draw
         // pins within CCTV_VIEW_DISTANCE_M of the camera so the globe view
         // isn't carpeted and the GPU skips far-away billboards.
         viewer.entities.suspendEvents?.();
