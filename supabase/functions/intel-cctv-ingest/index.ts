@@ -11,10 +11,12 @@
  * service_role-only rpc cctv_ingest_secret_matches (migration 20261016223000);
  * the function never sees the secret. Accepted values are cached 5 min (hash
  * only). No env-var fallback: Vault is the single source of truth, shared
- * with the pg_cron job. Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (platform).
+ * with the pg_cron job. Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (platform),
+ *   optional CCTV_ENABLE_PENDING_SOURCES ("all" or comma ids) to enable the
+ *   terms-pending sources (Illinois / Iowa / Oregon).
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { CCTV_SOURCES, makeGetJson } from "../_shared/cctv/sources.ts";
+import { enabledSources, makeFetchers } from "../_shared/cctv/sources.ts";
 import { chunk, SecretCache, toRows } from "./lib.ts";
 
 const STALE_AFTER_MS = 24 * 3600_000;
@@ -55,14 +57,15 @@ Deno.serve(async (req) => {
   const params = new URL(req.url).searchParams;
   const only = params.get("source")?.split(",").map((s) => s.trim()).filter(Boolean);
   const dryRun = params.get("dry_run") === "1";
-  const sources = only?.length ? CCTV_SOURCES.filter((s) => only.includes(s.id)) : CCTV_SOURCES;
-  const getJson = makeGetJson();
+  const pool = enabledSources(Deno.env.get("CCTV_ENABLE_PENDING_SOURCES"));
+  const sources = only?.length ? pool.filter((s) => only.includes(s.id)) : pool;
+  const fetchers = makeFetchers();
 
   const results = await Promise.all(sources.map(async (src) => {
     const now = new Date();
     const nowIso = now.toISOString();
     try {
-      const rows = toRows(await src.fetch(getJson), src.attribution, nowIso);
+      const rows = toRows(await src.fetch(fetchers), src.attribution, nowIso);
       if (rows.length === 0) throw new Error("source returned 0 cameras (not marking stale)");
       let stale = 0;
       if (!dryRun) {

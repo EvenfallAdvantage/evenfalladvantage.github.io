@@ -8,11 +8,12 @@ export interface CctvCamera {
   city: string;
   country: string;
   feed_url?: string;
+  stream_url?: string;
   external_url?: string;
   source: string;
 }
 
-const validLatLng = (lat: number, lng: number) =>
+export const validLatLng = (lat: number, lng: number) =>
   Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 
 /** Caltrans districts 1–12. Paths use the bare number ("d7"); file names zero-pad ("cctvStatusD07.json"). */
