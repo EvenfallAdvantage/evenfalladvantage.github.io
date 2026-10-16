@@ -55,6 +55,28 @@ export function parseCaltrans(body: unknown, district: number): CctvCamera[] {
   return out;
 }
 
+interface NycRecord { id?: string; name?: string; latitude?: number; longitude?: number; area?: string; isOnline?: string | boolean; imageUrl?: string }
+
+export function parseNyc(body: unknown): CctvCamera[] {
+  if (!Array.isArray(body)) return [];
+  const out: CctvCamera[] = [];
+  for (const r of body as NycRecord[]) {
+    if (!r?.id || String(r.isOnline) === "false") continue;
+    const lat = Number(r.latitude), lng = Number(r.longitude);
+    if (!validLatLng(lat, lng) || !r.imageUrl?.startsWith("https://")) continue;
+    out.push({
+      id: `nyc-${r.id}`,
+      lat, lng,
+      name: r.name ?? "NYC DOT camera",
+      city: r.area ? `${r.area}, New York` : "New York",
+      country: "US",
+      feed_url: r.imageUrl,
+      source: "NYC DOT",
+    });
+  }
+  return out;
+}
+
 interface SgBody { items?: Array<{ cameras?: Array<{ camera_id?: string; location?: { latitude?: number; longitude?: number }; image?: string }> }> }
 
 export function parseSingapore(body: unknown): CctvCamera[] {
