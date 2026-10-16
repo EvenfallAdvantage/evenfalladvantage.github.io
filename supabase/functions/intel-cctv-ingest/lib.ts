@@ -28,11 +28,24 @@ export function chunk<T>(xs: T[], n: number): T[][] {
   return out;
 }
 
-/** Constant-time-ish string compare for the shared secret. */
-export function secretMatches(given: string | null, expected: string | undefined): boolean {
-  const a = (given ?? "").trim(), b = (expected ?? "").trim();
-  if (!a || !b || a.length !== b.length) return false;
-  let d = 0;
-  for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return d === 0;
+async function sha256Hex(s: string): Promise<string> {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Short-lived cache of accepted secrets, stored as SHA-256 hashes only. */
+export class SecretCache {
+  private hashes = new Map<string, number>();
+  constructor(private ttlMs: number, private now: () => number = Date.now) {}
+  async has(candidate: string): Promise<boolean> {
+    const h = await sha256Hex(candidate);
+    const exp = this.hashes.get(h);
+    if (exp === undefined) return false;
+    if (exp < this.now()) { this.hashes.delete(h); return false; }
+    return true;
+  }
+  async add(candidate: string): Promise<void> {
+    if (this.hashes.size > 10) this.hashes.clear();
+    this.hashes.set(await sha256Hex(candidate), this.now() + this.ttlMs);
+  }
 }

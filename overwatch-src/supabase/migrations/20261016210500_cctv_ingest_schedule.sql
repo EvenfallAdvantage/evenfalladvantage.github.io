@@ -2,10 +2,10 @@
 --
 -- PREREQUISITES (go-live, each needs approval):
 --   1. 20261016210000_cctv_cameras.sql applied.
---   2. intel-cctv-ingest deployed with verify_jwt=false and function secret
---      CCTV_INGEST_SECRET set.
---   3. The same value stored in Vault:
---        select vault.create_secret('<value>', 'cctv_ingest_secret');
+--   2. 20261016223000_cctv_ingest_secret_rpc.sql applied; intel-cctv-ingest
+--      deployed with verify_jwt=false (it checks the header via that rpc).
+--   3. Vault secret created in SQL (never printed):
+--        select vault.create_secret(encode(extensions.gen_random_bytes(32),'hex'), 'cctv_ingest_secret');
 -- The job reads the secret from Vault at run time (btrim guards against a
 -- trailing newline from copy/paste) and sends it as x-ingest-secret.
 

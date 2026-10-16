@@ -7,11 +7,15 @@
  * record health in cctv_source_status. One failing source never blocks others.
  *
  * Optional: ?source=<id>[,<id>] to run a subset; ?dry_run=1 to parse only.
- * Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (platform), CCTV_INGEST_SECRET.
+ * Auth: x-ingest-secret is checked against Vault 'cctv_ingest_secret' via the
+ * service_role-only rpc cctv_ingest_secret_matches (migration 20261016223000);
+ * the function never sees the secret. Accepted values are cached 5 min (hash
+ * only). No env-var fallback: Vault is the single source of truth, shared
+ * with the pg_cron job. Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (platform).
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { CCTV_SOURCES, makeGetJson } from "../_shared/cctv/sources.ts";
-import { chunk, secretMatches, toRows } from "./lib.ts";
+import { chunk, SecretCache, toRows } from "./lib.ts";
 
 const STALE_AFTER_MS = 24 * 3600_000;
 const CHUNK = 500;
@@ -31,8 +35,21 @@ async function ok(res: Response, what: string) {
   await res.body?.cancel();
 }
 
+const secretCache = new SecretCache(5 * 60_000);
+
+async function authorized(candidate: string | null): Promise<boolean> {
+  const c = (candidate ?? "").trim();
+  if (c.length < 32 || c.length > 256) return false;
+  if (await secretCache.has(c)) return true;
+  const res = await rest("rpc/cctv_ingest_secret_matches", { method: "POST", body: JSON.stringify({ candidate: c }) });
+  if (!res.ok) { console.warn("[intel-cctv-ingest] secret rpc", res.status); await res.body?.cancel(); return false; }
+  const ok = (await res.json()) === true;
+  if (ok) await secretCache.add(c);
+  return ok;
+}
+
 Deno.serve(async (req) => {
-  if (!secretMatches(req.headers.get("x-ingest-secret"), Deno.env.get("CCTV_INGEST_SECRET"))) {
+  if (!(await authorized(req.headers.get("x-ingest-secret")))) {
     return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
   }
   const params = new URL(req.url).searchParams;

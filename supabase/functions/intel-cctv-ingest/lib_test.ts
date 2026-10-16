@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { chunk, secretMatches, toRows } from "./lib.ts";
+import { chunk, SecretCache, toRows } from "./lib.ts";
 
 Deno.test("toRows: dedupes, drops invalid coords, stamps attribution", () => {
   const rows = toRows([
@@ -14,10 +14,13 @@ Deno.test("toRows: dedupes, drops invalid coords, stamps attribution", () => {
 
 Deno.test("chunk", () => assertEquals(chunk([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]));
 
-Deno.test("secretMatches", () => {
-  assert(secretMatches("abc", "abc\n"));
-  assert(!secretMatches("abd", "abc"));
-  assert(!secretMatches("", ""));
-  assert(!secretMatches(null, "abc"));
-  assert(!secretMatches("abc", undefined));
+Deno.test("SecretCache: hit, miss, expiry", async () => {
+  let t = 0;
+  const c = new SecretCache(1000, () => t);
+  assert(!(await c.has("a".repeat(64))));
+  await c.add("a".repeat(64));
+  assert(await c.has("a".repeat(64)));
+  assert(!(await c.has("b".repeat(64))));
+  t = 1001;
+  assert(!(await c.has("a".repeat(64))));
 });
