@@ -1,99 +1,62 @@
-// Pure parsers for intel-cctv sources (unit-tested in lib_test.ts).
+// intel-cctv helpers. Parsers live in ../_shared/cctv (shared with ingest).
+export * from "../_shared/cctv/parsers.ts";
 
-export interface CctvCamera {
-  id: string;
-  lat: number;
-  lng: number;
-  name: string;
-  city: string;
-  country: string;
-  feed_url?: string;
-  external_url?: string;
-  source: string;
+export interface BBoxQuery { west: number; south: number; east: number; north: number; zoom: number; limit: number }
+
+export const MAX_LIMIT = 5000;
+export const DEFAULT_LIMIT = 2000;
+
+/** Grid step (deg) used to round bboxes so nearby viewports share cache keys. */
+export function gridStep(zoom: number): number {
+  return Math.max(0.01, 360 / 2 ** Math.max(0, Math.min(zoom, 22)) / 8);
 }
 
-const validLatLng = (lat: number, lng: number) =>
-  Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+const roundTo = (v: number, step: number, dir: "down" | "up") =>
+  +(dir === "down" ? Math.floor(v / step) * step : Math.ceil(v / step) * step).toFixed(6);
 
-/** Caltrans districts 1–12. Paths use the bare number ("d7"); file names zero-pad ("cctvStatusD07.json"). */
-export const CALTRANS_DISTRICTS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
-
-export function caltransUrl(district: number): string {
-  return `https://cwwp2.dot.ca.gov/data/d${district}/cctv/cctvStatusD${String(district).padStart(2, "0")}.json`;
+/** Normalise any longitude to [-180, 180]. */
+export function wrapLng(lng: number): number {
+  if (lng >= -180 && lng <= 180) return lng;
+  return ((((lng + 180) % 360) + 360) % 360) - 180;
 }
 
-interface CaltransRecord {
-  cctv?: {
-    index?: string;
-    inService?: string;
-    location?: { latitude?: string; longitude?: string; locationName?: string; nearbyPlace?: string; county?: string };
-    imageData?: { static?: { currentImageURL?: string } };
-  };
-}
-
-export function parseCaltrans(body: unknown, district: number): CctvCamera[] {
-  const rows = (body as { data?: CaltransRecord[] })?.data;
-  if (!Array.isArray(rows)) return [];
-  const out: CctvCamera[] = [];
-  for (const r of rows) {
-    const c = r?.cctv;
-    if (!c || c.inService === "false") continue;
-    const lat = parseFloat(c.location?.latitude ?? "");
-    const lng = parseFloat(c.location?.longitude ?? "");
-    const url = c.imageData?.static?.currentImageURL;
-    if (!validLatLng(lat, lng) || !url || !url.startsWith("https://")) continue;
-    out.push({
-      id: `cal-d${district}-${c.index ?? out.length}`,
-      lat, lng,
-      name: c.location?.locationName ?? "Caltrans camera",
-      city: c.location?.nearbyPlace || c.location?.county || "California",
-      country: "US",
-      feed_url: url,
-      source: "Caltrans",
-    });
+/**
+ * Parse `bbox=w,s,e,n&zoom=z[&limit=n]`. Longitudes are wrapped, so a view
+ * crossing the antimeridian arrives as west > east (handled by the SQL).
+ * Boxes spanning >= 360° become the whole world. The box is rounded OUTWARD
+ * to a zoom-dependent grid for cache sharing.
+ */
+export function parseBBoxQuery(params: URLSearchParams): BBoxQuery | { error: string } | null {
+  const raw = params.get("bbox");
+  if (raw == null) return null;
+  const parts = raw.split(",").map((x) => Number(x.trim()));
+  if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n))) return { error: "bbox must be west,south,east,north" };
+  let [west, south, east, north] = parts;
+  const zoomRaw = Number(params.get("zoom") ?? "10");
+  if (!Number.isFinite(zoomRaw)) return { error: "zoom must be a number" };
+  const zoom = Math.max(0, Math.min(22, Math.round(zoomRaw)));
+  const limitRaw = Number(params.get("limit") ?? DEFAULT_LIMIT);
+  const limit = Math.max(1, Math.min(MAX_LIMIT, Number.isFinite(limitRaw) ? Math.round(limitRaw) : DEFAULT_LIMIT));
+  if (south > north) [south, north] = [north, south];
+  south = Math.max(-90, south); north = Math.min(90, north);
+  const step = gridStep(zoom);
+  if (east - west >= 360) { west = -180; east = 180; }
+  else {
+    west = wrapLng(roundTo(wrapLng(west), step, "down"));
+    east = wrapLng(roundTo(wrapLng(east), step, "up"));
   }
-  return out;
+  south = Math.max(-90, roundTo(south, step, "down"));
+  north = Math.min(90, roundTo(north, step, "up"));
+  return { west, south, east, north, zoom, limit };
 }
 
-interface NycRecord { id?: string; name?: string; latitude?: number; longitude?: number; area?: string; isOnline?: string | boolean; imageUrl?: string }
-
-export function parseNyc(body: unknown): CctvCamera[] {
-  if (!Array.isArray(body)) return [];
-  const out: CctvCamera[] = [];
-  for (const r of body as NycRecord[]) {
-    if (!r?.id || String(r.isOnline) === "false") continue;
-    const lat = Number(r.latitude), lng = Number(r.longitude);
-    if (!validLatLng(lat, lng) || !r.imageUrl?.startsWith("https://")) continue;
-    out.push({
-      id: `nyc-${r.id}`,
-      lat, lng,
-      name: r.name ?? "NYC DOT camera",
-      city: r.area ? `${r.area}, New York` : "New York",
-      country: "US",
-      feed_url: r.imageUrl,
-      source: "NYC DOT",
-    });
-  }
-  return out;
+export function bboxCacheKey(q: BBoxQuery): string {
+  return `${q.west},${q.south},${q.east},${q.north},${q.zoom},${q.limit}`;
 }
 
-interface SgBody { items?: Array<{ cameras?: Array<{ camera_id?: string; location?: { latitude?: number; longitude?: number }; image?: string }> }> }
-
-export function parseSingapore(body: unknown): CctvCamera[] {
-  const cams = (body as SgBody)?.items?.[0]?.cameras ?? [];
-  const out: CctvCamera[] = [];
-  for (const cam of cams) {
-    const lat = Number(cam.location?.latitude), lng = Number(cam.location?.longitude);
-    if (!validLatLng(lat, lng) || !cam.image) continue;
-    out.push({
-      id: `sin-${cam.camera_id}`,
-      lat, lng,
-      name: `Camera ${cam.camera_id}`,
-      city: "Singapore",
-      country: "Singapore",
-      feed_url: cam.image,
-      source: "LTA Singapore",
-    });
-  }
+/** Attach attribution strings for the sources present in a bbox response. */
+export function attributionFor(sources: Record<string, number> | undefined, table: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const s of Object.keys(sources ?? {})) out[s] = table[s] ?? s;
   return out;
 }

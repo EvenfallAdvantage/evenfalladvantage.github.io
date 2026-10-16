@@ -40,7 +40,7 @@ export function isConstrainedDevice(): boolean {
   return cached;
 }
 
-export type PointLayer = "fires" | "lightning" | "frequencies" | "earthquakes" | "gdelt";
+export type PointLayer = "fires" | "lightning" | "frequencies" | "earthquakes" | "gdelt" | "cctv";
 
 const BUDGETS: Record<PointLayer, { desktop: number; mobile: number }> = {
   fires: { desktop: 1500, mobile: 300 },
@@ -48,6 +48,7 @@ const BUDGETS: Record<PointLayer, { desktop: number; mobile: number }> = {
   frequencies: { desktop: 800, mobile: 200 },
   earthquakes: { desktop: 500, mobile: 200 },
   gdelt: { desktop: 300, mobile: 100 },
+  cctv: { desktop: 2000, mobile: 400 },
 };
 
 export function pointBudget(layer: PointLayer, constrained: boolean = isConstrainedDevice()): number {

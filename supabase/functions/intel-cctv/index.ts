@@ -12,12 +12,47 @@
  *   - Caltrans CWWP2, districts 1–12 (path /data/d7/…/cctvStatusD07.json)
  *   - NYC DOT traffic webcams (webcams.nyctmc.org)
  *
+ * Modes:
+ *   - `?bbox=w,s,e,n&zoom=z[&limit=n]` (viewport): reads the ingested
+ *     cctv_cameras cache via the cctv_cameras_bbox RPC. Returns
+ *     {mode:"clusters"|"points", ...} — clusters below zoom 7. West > east
+ *     means the view crosses the antimeridian. Bboxes are grid-rounded and
+ *     cached in-memory for 60s.
+ *   - `?region=all|sg,us-ca,us-ny` (legacy, live upstream fetch) — unchanged.
+ *
  * Adapted from Osiris (github.com/simplifaisoul/osiris, MIT).
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { CALTRANS_DISTRICTS, caltransUrl, parseCaltrans, parseNyc, parseSingapore, type CctvCamera } from "./lib.ts";
+import { CALTRANS_DISTRICTS, caltransUrl, parseCaltrans, parseNyc, parseSingapore, type CctvCamera, attributionFor, bboxCacheKey, parseBBoxQuery, type BBoxQuery } from "./lib.ts";
+import { CCTV_ATTRIBUTION } from "../_shared/cctv/sources.ts";
+
+const BBOX_TTL_MS = 60_000;
+const bboxCache = new Map<string, { at: number; body: string }>();
+
+async function bboxBody(q: BBoxQuery): Promise<string> {
+  const key = bboxCacheKey(q);
+  const hit = bboxCache.get(key);
+  if (hit && Date.now() - hit.at < BBOX_TTL_MS) return hit.body;
+  const url = Deno.env.get("SUPABASE_URL")!;
+  const sk = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const res = await fetch(`${url}/rest/v1/rpc/cctv_cameras_bbox`, {
+    method: "POST",
+    headers: { apikey: sk, Authorization: `Bearer ${sk}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_west: q.west, p_south: q.south, p_east: q.east, p_north: q.north, p_zoom: q.zoom, p_limit: q.limit }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) throw new Error(`rpc ${res.status} ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json() as Record<string, unknown> & { sources?: Record<string, number> };
+  const body = JSON.stringify({
+    ...data, bbox: [q.west, q.south, q.east, q.north], zoom: q.zoom,
+    attribution: attributionFor(data.sources, CCTV_ATTRIBUTION), timestamp: new Date().toISOString(),
+  });
+  if (bboxCache.size > 500) bboxCache.clear();
+  bboxCache.set(key, { at: Date.now(), body });
+  return body;
+}
 
 const UA = { "User-Agent": "EvenfallOverwatch/1.0 (+https://www.evenfalladvantage.com)", Accept: "application/json" };
 
@@ -58,6 +93,15 @@ Deno.serve(async (req) => {
 
   try {
     const { searchParams } = new URL(req.url);
+    const bbox = parseBBoxQuery(searchParams);
+    if (bbox && "error" in bbox) {
+      return new Response(JSON.stringify({ error: bbox.error }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (bbox) {
+      return new Response(await bboxBody(bbox), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" },
+      });
+    }
     const regionParam = searchParams.get("region");
 
     let regionsToFetch: string[];

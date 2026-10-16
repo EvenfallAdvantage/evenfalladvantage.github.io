@@ -24,6 +24,7 @@ import type {
   IntelCyberThreatsResponse,
   IntelRegionDossierResponse,
   IntelCctvResponse,
+  IntelCctvBboxResponse,
   IntelDnsResponse,
   IntelWhoisResponse,
   IntelIpResponse,
@@ -127,6 +128,26 @@ export function fetchIntelRegionDossier(lat: number, lng: number) {
 // ─── Surveillance (gated) ────────────────────────────────────────
 export function fetchIntelCctv(region: string = "all") {
   return call<IntelCctvResponse>(`/intel-cctv?region=${encodeURIComponent(region)}`);
+}
+/** Caller abort OR timeout (no AbortSignal.any: older Safari lacks it). */
+function withTimeout(signal: AbortSignal | undefined, ms: number): AbortSignal {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(new DOMException("Timeout", "TimeoutError")), ms);
+  const done = () => { clearTimeout(t); ctl.abort(signal?.reason); };
+  if (signal?.aborted) done(); else signal?.addEventListener("abort", done, { once: true });
+  return ctl.signal;
+}
+/** Viewport mode (cctv_cameras cache). West > east = crosses antimeridian. */
+export function fetchIntelCctvBbox(
+  b: { west: number; south: number; east: number; north: number },
+  zoom: number,
+  limit: number,
+  signal?: AbortSignal,
+) {
+  const q = `bbox=${b.west},${b.south},${b.east},${b.north}&zoom=${zoom}&limit=${limit}`;
+  return call<IntelCctvBboxResponse>(`/intel-cctv?${q}`, {
+    signal: withTimeout(signal, 20_000),
+  });
 }
 
 // ─── OSINT / RECON ───────────────────────────────────────────────
