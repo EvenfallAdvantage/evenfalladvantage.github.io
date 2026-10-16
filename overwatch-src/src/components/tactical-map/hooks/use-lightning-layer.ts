@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
+import { isConstrainedDevice, pointBudget, topN } from "@/lib/map/device-profile";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelLightning } from "@/lib/intel-client";
@@ -95,7 +96,13 @@ export function useLightningLayer(params: {
         const now = currentTimestamp();
         const replayTime = isReplaying ? debouncedReplayTime : now;
 
-        for (const f of data.features ?? []) {
+        // Budget: newest strikes win. Per-frame blink callbacks only for strikes
+        // still inside BLINK_DURATION_MS; older ones get a constant scale.
+        const features = topN(data.features ?? [], pointBudget("lightning"), (f) => f.properties.time ?? 0);
+        const constrained = isConstrainedDevice();
+        viewer.entities.suspendEvents?.();
+        try {
+        for (const f of features) {
           const strikeId = f.properties.id;
           if (strikeId !== undefined) {
             if (knownIdsRef.current.has(strikeId)) continue;
@@ -118,19 +125,29 @@ export function useLightningLayer(params: {
             position: Cesium.Cartesian3.fromDegrees(lon, lat, 2),
             billboard: {
               image: buildIcon(),
-              scale: new Cesium.CallbackProperty(() => {
+              scale: (constrained || now - timeMs > BLINK_DURATION_MS) ? 0.6 : new Cesium.CallbackProperty(() => {
                 const strikeMs = timesRef.current.get(entityId);
                 if (!strikeMs) return 0.6;
                 const age = currentTimestamp() - strikeMs;
                 if (age > BLINK_DURATION_MS) return 0.6;
                 return (currentTimestamp() % BLINK_PERIOD_MS < BLINK_PERIOD_MS / 2) ? 1.0 : 0.6;
               }, false),
-              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+              heightReference: constrained ? Cesium.HeightReference.NONE : Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.CENTER,
             },
           });
           timesRef.current.set(entityId, timeMs);
           (entityGroupsRef.current.lightning as Array<{ id: string }>).push(entity);
+        }
+
+        } finally { viewer.entities.resumeEvents?.(); }
+
+        // Enforce the budget across polls too (oldest first out).
+        const all = (entityGroupsRef.current.lightning ?? []) as Array<{ id: string }>;
+        if (all.length > pointBudget("lightning")) {
+          const keepSet = new Set(topN(all, pointBudget("lightning"), (e) => timesRef.current.get(e.id) ?? 0));
+          for (const e of all) if (!keepSet.has(e)) { timesRef.current.delete(e.id); try { viewer.entities.removeById(e.id); } catch { /* ok */ } }
+          entityGroupsRef.current.lightning = all.filter((e) => keepSet.has(e));
         }
 
         const list = (entityGroupsRef.current.lightning ?? []) as Array<{ id: string }>;
