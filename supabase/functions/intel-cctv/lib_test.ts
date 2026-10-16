@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { caltransUrl, parseCaltrans, parseSingapore } from "./lib.ts";
+import { caltransUrl, parseCaltrans, parseNyc, parseSingapore } from "./lib.ts";
 
 Deno.test("caltransUrl: bare district in path, zero-padded file", () => {
   assertEquals(caltransUrl(7), "https://cwwp2.dot.ca.gov/data/d7/cctv/cctvStatusD07.json");
@@ -17,6 +17,16 @@ Deno.test("parseCaltrans reads location nested under cctv, skips out-of-service"
   assertEquals(cams.length, 1);
   assertEquals(cams[0], { id: "cal-d11-1", lat: 32.77, lng: -117.16, name: "SR-163 Friars", city: "San Diego", country: "US", feed_url: "https://cwwp2.dot.ca.gov/x.jpg", source: "Caltrans" });
   assertEquals(parseCaltrans({}, 1), []);
+});
+
+Deno.test("parseNyc", () => {
+  const cams = parseNyc([
+    { id: "a", name: "CPW @ 86", latitude: 40.78, longitude: -73.97, area: "Manhattan", isOnline: "true", imageUrl: "https://webcams.nyctmc.org/api/cameras/a/image" },
+    { id: "b", latitude: 40.7, longitude: -73.9, isOnline: "false", imageUrl: "https://x" },
+    { id: "c", latitude: 0, longitude: 0, imageUrl: "https://x" },
+  ]);
+  assertEquals(cams.map((c) => [c.id, c.city]), [["nyc-a", "Manhattan, New York"]]);
+  assertEquals(parseNyc({ error: 1 }), []);
 });
 
 Deno.test("parseSingapore", () => {
