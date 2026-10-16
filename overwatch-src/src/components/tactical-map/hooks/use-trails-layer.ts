@@ -1,3 +1,4 @@
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
@@ -91,7 +92,6 @@ export function useTrailsLayer(params: {
     renderTrails();
 
     // Refresh trails every 60s
-    const interval = setInterval(renderTrails, 60000);
-    return () => clearInterval(interval);
+    return setVisibleInterval(renderTrails, 60000);
   }, [staff, layers.breadcrumbs, loading, companyId, timeMachineOpen, debouncedReplayTime, viewerRef, cesiumRef, entityGroupsRef]);
 }

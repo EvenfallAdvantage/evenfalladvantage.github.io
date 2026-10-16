@@ -85,7 +85,7 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   // ─── News / events ────────────────────────────────────────────────
   gdelt: {
     enabled: true,
-    attribution: "GDELT Project / RSS aggregator",
+    attribution: "Geotagged world-news RSS (BBC, Reuters, Al Jazeera, etc.)",
   },
   live_news: {
     enabled: true,
@@ -125,7 +125,7 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   // ─── Aviation / Space ─────────────────────────────────────────────
   flights: {
     enabled: true,
-    attribution: "OpenSky Network / adsb.lol",
+    attribution: "Aircraft data © adsb.lol / adsb.fi contributors (ODbL)",
     attributionRequired: true,
   },
   satellites: {

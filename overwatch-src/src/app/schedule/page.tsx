@@ -189,6 +189,14 @@ export default function SchedulePage() {
 
   useEffect(() => { loadMapData(); }, [loadMapData]);
 
+  // Site-map overlays use 24h signed URLs. Reload map data every 12h while the
+  // tab is visible (and immediately on return if a tick was missed) so a
+  // long-open command screen never ends up with expired overlay images.
+  useEffect(() => {
+    if (tab !== "map") return;
+    return setVisibleInterval(() => { loadMapData(); }, 12 * 3600 * 1000);
+  }, [tab, loadMapData]);
+
   // Staff positions: realtime (staff_locations is in supabase_realtime after
   // migration 20261015190000) plus a 30s poll as a fallback. The poll also
   // re-classifies freshness so pins grey out / disappear without new rows.
