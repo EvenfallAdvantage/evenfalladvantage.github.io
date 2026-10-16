@@ -60,8 +60,11 @@ export function useNightVision(params: {
       }
 
       // Add CartoDB Dark Matter tiles as the sole basemap
+      // The `key` query param is REQUIRED: without it basemaps.cartocdn.com
+      // returns an "API KEY REQUIRED" watermark tile (same 2,513 B PNG at every
+      // z/x/y). Do not strip it. (Regression in #75, restored in hotfix.)
       const darkProvider = new Cesium.UrlTemplateImageryProvider({
-        url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
+        url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png?key=cb1_3umn_1_b4fff84fdc4118a7bc7c88af",
         credit: "CartoDB Dark Matter",
         minimumLevel: 0,
         maximumLevel: 18,
