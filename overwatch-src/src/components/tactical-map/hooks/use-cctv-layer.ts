@@ -1,25 +1,30 @@
 /**
- * CCTV cameras layer.
+ * CCTV cameras layer (viewport-driven).
  *
- * **GATED**: this hook checks `INTEL_LAYER_FLAGS.cctv.enabled` and renders
- * NOTHING if the flag is off (default until legal review per
- * docs/THIRD-PARTY-NOTICES.md). The layer toggle is still visible in the
- * panel for forward awareness; flipping the flag is the one-line change that
- * activates it.
+ * **GATED**: renders nothing unless `INTEL_LAYER_FLAGS.cctv.enabled`.
  *
- * When enabled, fetches /intel-cctv (Singapore LTA + FL-511 + Caltrans only
- * in the initial port; more regions are added incrementally per legal
- * review). Clicking a camera dot fires `onOpenCamera` so the parent can
- * mount the camera viewer modal.
+ * On camera moveEnd (400 ms debounce) the hook requests
+ * `/intel-cctv?bbox=…&zoom=…` for the visible rectangle. Below zoom 7 the
+ * server returns clusters (count bubbles); above, individual cameras capped
+ * by the device point budget (mobile cap). Stale in-flight requests are
+ * aborted, entities are diffed by id (only adds/removes touch Cesium), and
+ * a Cesium credit lists attribution for the sources currently in view.
+ *
+ * Rollout-safe: if the deployed function predates bbox mode (no `mode`
+ * field), the legacy full list is rendered once and viewport refetch stops.
  */
 
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
-import { fetchIntelCctv } from "@/lib/intel-client";
+import { fetchIntelCctvBbox } from "@/lib/intel-client";
 import { INTEL_LAYER_FLAGS } from "@/lib/intel-feature-flags";
-import type { CctvCamera } from "@/lib/intel-types";
+import type { CctvCamera, CctvCluster } from "@/lib/intel-types";
+import { pointBudget, withSuspendedEvents } from "@/lib/map/device-profile";
+import {
+  attributionLine, bboxKey, clusterLabel, diffIds, rectToBBox, roundBBox, zoomFromHeight,
+} from "@/lib/map/cctv-viewport";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 let iconCacheValue: HTMLCanvasElement | null = null;
@@ -33,7 +38,6 @@ function buildIcon(): HTMLCanvasElement {
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
   const r = size / 2;
-
   const grad = ctx.createRadialGradient(r, r, 0.5, r, r, r);
   grad.addColorStop(0, "#86efac");
   grad.addColorStop(0.7, "#10b981");
@@ -42,14 +46,42 @@ function buildIcon(): HTMLCanvasElement {
   ctx.beginPath();
   ctx.arc(r, r, r - 0.5, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.strokeStyle = "rgba(255,255,255,0.95)";
   ctx.lineWidth = 0.8;
   ctx.beginPath();
   ctx.arc(r, r, r * 0.45, 0, Math.PI * 2);
   ctx.stroke();
-
   iconCacheValue = canvas;
+  return canvas;
+}
+
+const clusterIconCache = new Map<string, HTMLCanvasElement>();
+function buildClusterIcon(count: number): HTMLCanvasElement {
+  const label = clusterLabel(count);
+  const hit = clusterIconCache.get(label);
+  if (hit) return hit;
+  const size = count >= 1000 ? 34 : count >= 100 ? 28 : 22;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    const r = size / 2;
+    ctx.fillStyle = "rgba(16,185,129,0.85)";
+    ctx.beginPath();
+    ctx.arc(r, r, r - 1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.font = `bold ${size >= 28 ? 11 : 10}px monospace`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, r, r + 0.5);
+  }
+  if (clusterIconCache.size > 300) clusterIconCache.clear();
+  clusterIconCache.set(label, canvas);
   return canvas;
 }
 
@@ -62,8 +94,10 @@ function buildPopup(cam: CctvCamera): string {
   </div>`;
 }
 
-/** Camera pins render only when the camera is within this distance (m). */
-const CCTV_VIEW_DISTANCE_M = 400_000;
+const DEBOUNCE_MS = 400;
+const CLUSTER_PREFIX = "cctv-cl-";
+
+type Item = { kind: "cam"; cam: CctvCamera } | { kind: "cluster"; cl: CctvCluster };
 
 export function useCctvLayer(params: {
   viewerRef: CesiumRef;
@@ -79,18 +113,16 @@ export function useCctvLayer(params: {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
-
-    // Snapshot the ref's current value so the cleanup closure references the
-    // same object even if the ref is reassigned later (React Hooks rule).
     const entityGroups = entityGroupsRef.current;
 
-    const existing = (entityGroups.cctv ?? []) as Array<{ id: string }>;
-    existing.forEach((e) => {
-      try { viewer.entities.removeById(e.id); }
-      catch (err) { logger.swallow("cesium-layers:remove-cctv", err); }
-    });
-    entityGroups.cctv = [];
-
+    const clearAll = () => {
+      for (const e of (entityGroups.cctv ?? []) as Array<{ id: string }>) {
+        try { viewer.entities.removeById(e.id); }
+        catch (err) { logger.swallow("cesium-layers:remove-cctv", err); }
+      }
+      entityGroups.cctv = [];
+    };
+    clearAll();
     if (entityGroups.cctvClickHandler) {
       try { entityGroups.cctvClickHandler.destroy(); }
       catch (err) { logger.swallow("cesium-layers:destroy-cctv-handler", err); }
@@ -98,10 +130,6 @@ export function useCctvLayer(params: {
     }
 
     if (!layers.cctv) return;
-
-    // Gating: respect the feature flag. The endpoint also enforces this
-    // server-side via 503, but failing fast in the client avoids a useless
-    // network round-trip and the resulting empty-state confusion.
     if (!INTEL_LAYER_FLAGS.cctv.enabled) {
       logger.swallow(
         "cesium-layers:cctv-gated",
@@ -111,62 +139,133 @@ export function useCctvLayer(params: {
       return;
     }
 
-    let cancelled = false;
-    const camsById = new Map<string, CctvCamera>();
+    let disposed = false;
+    let legacy = false;
+    let lastKey = "";
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let inflight: AbortController | null = null;
+    let credit: unknown = null;
+    const live = new Map<string, { entity: { id: string }; item: Item }>();
+    const budget = pointBudget("cctv");
 
-    async function loadAndRender() {
+    const setCredit = (text: string) => {
+      const cd = viewer.creditDisplay;
       try {
-        const data = await fetchIntelCctv("all");
-        if (cancelled || !viewer || !Cesium) return;
+        if (credit) cd?.removeStaticCredit?.(credit);
+        credit = text ? new Cesium.Credit(escapeHtml(text), false) : null;
+        if (credit) cd?.addStaticCredit?.(credit);
+      } catch (err) { logger.swallow("cesium-layers:cctv-credit", err); }
+    };
+
+    const render = (next: Map<string, Item>) => {
+      const { add, remove } = diffIds(live.keys(), next.keys());
+      if (!add.length && !remove.length) return;
+      withSuspendedEvents(viewer.entities, () => {
+        for (const id of remove) {
+          try { viewer.entities.removeById(id); }
+          catch (err) { logger.swallow("cesium-layers:remove-cctv", err); }
+          live.delete(id);
+        }
+        for (const id of add) {
+          const item = next.get(id)!;
+          const lat = item.kind === "cam" ? item.cam.lat : item.cl.lat;
+          const lng = item.kind === "cam" ? item.cam.lng : item.cl.lng;
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+          const entity = viewer.entities.add(item.kind === "cam"
+            ? {
+                id, name: item.cam.name,
+                position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
+                billboard: {
+                  image: buildIcon(), scale: 1.0,
+                  heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                  verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+                },
+                description: buildPopup(item.cam),
+              }
+            : {
+                id, name: `${item.cl.count} cameras`,
+                position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
+                billboard: {
+                  image: buildClusterIcon(item.cl.count),
+                  heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                  disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                },
+              });
+          live.set(id, { entity, item });
+        }
+      });
+      entityGroups.cctv = [...live.values()].map((v) => v.entity);
+    };
+
+    const load = async () => {
+      if (disposed || legacy) return;
+      const rect = viewer.camera.computeViewRectangle?.(viewer.scene.globe.ellipsoid);
+      const zoom = zoomFromHeight(viewer.camera.positionCartographic?.height ?? 1e7);
+      const raw = rect ? rectToBBox(rect) : { west: -180, south: -90, east: 180, north: 90 };
+      // Rounding only applies to non-wrapping boxes; wrapping ones go as-is.
+      const bbox = raw.west <= raw.east ? roundBBox(raw, zoom) : raw;
+      const key = bboxKey(bbox, zoom);
+      if (key === lastKey) return;
+      lastKey = key;
+      inflight?.abort();
+      const ctl = new AbortController();
+      inflight = ctl;
+      try {
+        const data = await fetchIntelCctvBbox(bbox, zoom, budget, ctl.signal);
+        if (disposed || ctl.signal.aborted) return;
         if (data.gated_by) {
           logger.swallow("cesium-layers:cctv-server-gated", new Error(data.gated_by), "debug");
           return;
         }
-
-        // ~4,400 cameras (mostly Caltrans + NYC): batch the adds and only draw
-        // pins within CCTV_VIEW_DISTANCE_M of the camera so the globe view
-        // isn't carpeted and the GPU skips far-away billboards.
-        viewer.entities.suspendEvents?.();
-        try {
-        for (const cam of data.cameras ?? []) {
-          if (!Number.isFinite(cam.lat) || !Number.isFinite(cam.lng)) continue;
-          const entityId = `cctv-${cam.id}`;
-          camsById.set(entityId, cam);
-          const entity = viewer.entities.add({
-            id: entityId,
-            name: cam.name,
-            position: Cesium.Cartesian3.fromDegrees(cam.lng, cam.lat, 5),
-            billboard: {
-              image: buildIcon(),
-              scale: 1.0,
-              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, CCTV_VIEW_DISTANCE_M),
-            },
-            description: buildPopup(cam),
-          });
-          (entityGroups.cctv as Array<{ id: string }>).push(entity);
+        const next = new Map<string, Item>();
+        if (data.mode === "clusters") {
+          for (const cl of data.clusters ?? []) {
+            // A 1-camera cluster renders as a bubble too; clicking zooms in.
+            next.set(`${CLUSTER_PREFIX}${cl.id}`, { kind: "cluster", cl });
+          }
+        } else {
+          if (!data.mode) legacy = true; // old deployment: full list, render once
+          const cams = data.cameras ?? [];
+          for (const cam of legacy ? cams : cams.slice(0, budget)) next.set(`cctv-${cam.id}`, { kind: "cam", cam });
         }
-        } finally { viewer.entities.resumeEvents?.(); }
-
-        const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-        handler.setInputAction((click: { position: { x: number; y: number } }) => {
-          const picked = viewer.scene.pick(click.position);
-          const pickedId = picked?.id?.id as string | undefined;
-          if (!pickedId) return;
-          const cam = camsById.get(pickedId);
-          if (cam) onOpenCamera(cam);
-        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-        entityGroups.cctvClickHandler = handler;
+        render(next);
+        setCredit(attributionLine(data.attribution ?? Object.fromEntries(Object.keys(data.sources ?? {}).map((s) => [s, s]))));
       } catch (err) {
+        if (ctl.signal.aborted) return;
+        lastKey = ""; // allow retry on next move
         logger.swallow("cesium-layers:cctv-fetch", err, "warn");
+      } finally {
+        if (inflight === ctl) inflight = null;
       }
-    }
+    };
 
-    loadAndRender();
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { timer = null; void load(); }, DEBOUNCE_MS);
+    };
+    const removeMoveListener = viewer.camera.moveEnd.addEventListener(schedule);
+    void load();
+
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    handler.setInputAction((click: { position: { x: number; y: number } }) => {
+      const picked = viewer.scene.pick(click.position);
+      const pickedId = picked?.id?.id as string | undefined;
+      if (!pickedId) return;
+      const hit = live.get(pickedId);
+      if (!hit) return;
+      if (hit.item.kind === "cam") { onOpenCamera(hit.item.cam); return; }
+      const { lat, lng } = hit.item.cl;
+      const h = viewer.camera.positionCartographic?.height ?? 5e6;
+      viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(lng, lat, Math.max(20_000, h / 4)), duration: 0.8 });
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    entityGroups.cctvClickHandler = handler;
+
     return () => {
-      cancelled = true;
+      disposed = true;
+      if (timer) clearTimeout(timer);
+      inflight?.abort();
+      try { removeMoveListener?.(); } catch (err) { logger.swallow("cesium-layers:cctv-move", err); }
+      setCredit("");
       if (entityGroups.cctvClickHandler) {
         try { entityGroups.cctvClickHandler.destroy(); }
         catch (err) { logger.swallow("cesium-layers:destroy-cctv-handler", err); }

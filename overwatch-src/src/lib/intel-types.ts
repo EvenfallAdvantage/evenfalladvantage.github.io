@@ -320,6 +320,24 @@ export interface IntelCctvResponse {
   gated_by?: string;
   error?: string;
 }
+export interface CctvCluster { id: string; lat: number; lng: number; count: number; sample_id: string }
+/**
+ * intel-cctv?bbox= response. `mode` is absent when an older deployment
+ * ignored bbox and returned the legacy full list (handled by the client).
+ */
+export interface IntelCctvBboxResponse {
+  mode?: "clusters" | "points";
+  total: number;
+  sources: Record<string, number>;
+  attribution?: Record<string, string>;
+  truncated?: boolean;
+  cameras?: CctvCamera[];
+  clusters?: CctvCluster[];
+  zoom?: number;
+  timestamp?: string;
+  gated_by?: string;
+  error?: string;
+}
 
 // ─── OSINT: DNS ──────────────────────────────────────────────────
 export interface IntelDnsRecord {
