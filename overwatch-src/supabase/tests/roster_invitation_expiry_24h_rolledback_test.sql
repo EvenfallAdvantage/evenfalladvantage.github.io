@@ -1,4 +1,4 @@
--- Rolled-back test for 20261017230500_roster_invitation_expiry_24h.sql (OverwatchDB).
+-- Rolled-back test for 20261017230420_roster_invitation_expiry_24h.sql (OverwatchDB).
 -- Run as ONE request: [before] + migration body + [checks] + rollback body + [final]. The final RAISE aborts everything.
 CREATE TEMP TABLE _t(k text, v text) ON COMMIT DROP;
 INSERT INTO _t SELECT 'def_before', md5(pg_get_functiondef('public.upsert_roster_invitation(uuid,uuid,text,uuid,jsonb)'::regprocedure));

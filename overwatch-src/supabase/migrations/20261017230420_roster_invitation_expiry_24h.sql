@@ -1,13 +1,13 @@
 -- Roster invitations: the invitation record expires 24 hours after it is (re)sent, instead of 7 days,
 -- so roster_invitations.expires_at matches the emailed text ("This link expires in 24 hours", roster-invite v13).
--- OverwatchDB. DRAFT: not applied.
+-- OverwatchDB. Applied 2026-10-17 16:04 PT as version 20261017230420 (MCP apply_migration; applied body = this file without the BEGIN/COMMIT lines).
 --
 -- The function body is the live definition (read 2026-10-17 16:0x PT), with only the two intervals changed.
 -- Owner, SECURITY DEFINER, search_path and the comment are unchanged. CREATE OR REPLACE keeps the existing grants
 -- (EXECUTE: postgres, service_role only).
 -- Not changed: the column default (now() + 7 days). Every write goes through this function with an explicit value.
 -- Existing rows keep their expires_at. The 6 pending rows (another company) had all already expired when checked.
--- Rollback: migrations/rollback/20261017230500_roster_invitation_expiry_24h.rollback.sql
+-- Rollback: migrations/rollback/20261017230420_roster_invitation_expiry_24h.rollback.sql
 -- Test (rolled back): tests/roster_invitation_expiry_24h_rolledback_test.sql
 
 BEGIN;

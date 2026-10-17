@@ -1,4 +1,4 @@
--- Rollback for 20261017230500_roster_invitation_expiry_24h.sql: restores the live 7-day definition (as read 2026-10-17).
+-- Rollback for 20261017230420_roster_invitation_expiry_24h.sql: restores the live 7-day definition (as read 2026-10-17).
 -- Rows written while the 24h version was live keep their 24h expires_at.
 BEGIN;
 
