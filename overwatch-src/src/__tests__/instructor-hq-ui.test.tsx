@@ -10,14 +10,16 @@ const api = vi.hoisted(() => ({
   updateLegacyAssessment: vi.fn(), deleteLegacyAssessment: vi.fn(),
 }));
 
-vi.mock("@/lib/legacy-bridge", async () => {
-  const classes = await vi.importActual<typeof import("@/lib/legacy/classes")>("@/lib/legacy/classes");
-  const assessments = await vi.importActual<typeof import("@/lib/legacy/assessments")>("@/lib/legacy/assessments");
-  return { ...api, LEGACY_CLASS_TYPES: classes.LEGACY_CLASS_TYPES, validateLegacyQuestions: assessments.validateLegacyQuestions };
+vi.mock("@/lib/training", async () => {
+  const classes = await vi.importActual<typeof import("@/lib/training/classes")>("@/lib/training/classes");
+  const assessments = await vi.importActual<typeof import("@/lib/training/assessments")>("@/lib/training/assessments");
+  const shared = await vi.importActual<typeof import("@/lib/training/shared")>("@/lib/training/shared");
+  return { ...api, LEGACY_CLASS_TYPES: classes.LEGACY_CLASS_TYPES, validateLegacyQuestions: assessments.validateLegacyQuestions,
+    trainingWriteErrorMessage: shared.trainingWriteErrorMessage };
 });
-vi.mock("@/lib/legacy/client", () => ({ getLegacyClient: () => ({}) }));
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({}) }));
 vi.mock("@/stores/auth-store", () => ({ useAuthStore: { getState: () => ({}) } }));
+vi.mock("@/lib/supabase/db-helpers", () => ({ ensureInternalUser: async () => "u-1" }));
 
 import { ClassesTab } from "@/app/admin/instructor/components/classes-tab";
 import { QuestionsEditor } from "@/app/admin/instructor/components/questions-editor";

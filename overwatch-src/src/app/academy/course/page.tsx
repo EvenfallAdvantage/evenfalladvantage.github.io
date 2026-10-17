@@ -15,11 +15,10 @@ import {
   getLegacyCourses,
   getLegacyCourseModules,
   getMyLegacyProgress,
-  findLegacyStudentByEmail,
   type LegacyCourse,
   type LegacyCourseModule,
   type LegacyModuleProgress,
-} from "@/lib/legacy-bridge";
+} from "@/lib/training";
 
 export default function CourseDetailPage() {
   return (
@@ -65,14 +64,8 @@ function CourseDetailInner() {
       const mods = await getLegacyCourseModules(courseId);
       setModules(mods);
 
-      // Load student progress
-      if (user?.email) {
-        const student = await findLegacyStudentByEmail(user.email);
-        if (student) {
-          const prog = await getMyLegacyProgress(student.id);
-          setProgress(prog);
-        }
-      }
+      // Load the signed-in user's progress (OverwatchDB student_module_progress)
+      if (user?.id) setProgress(await getMyLegacyProgress());
     } catch (err) {
       console.error("Course detail load error:", err);
     } finally {

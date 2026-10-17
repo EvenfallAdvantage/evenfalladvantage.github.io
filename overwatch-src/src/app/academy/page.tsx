@@ -12,11 +12,10 @@ import {
 } from "@/lib/supabase/db";
 import {
   getLegacyCourses, getLegacyCourseModules, getLegacyEnrollments,
-  getMyLegacyProgress, getLegacyAssessmentResults, getLegacyCertificates,
-  findLegacyStudentByEmail, createLegacyStudentProfile,
+  getMyLegacyProgress, getLegacyAssessmentResults,
   type LegacyCourse, type LegacyCourseModule, type LegacyEnrollment,
-  type LegacyModuleProgress, type LegacyAssessmentResult, type LegacyCertificate,
-} from "@/lib/legacy-bridge";
+  type LegacyModuleProgress, type LegacyAssessmentResult,
+} from "@/lib/training";
 import type { TrainingModule, StudentModuleProgress } from "@/types";
 import { PageShell } from "@/components/layout/page-shell";
 
@@ -32,7 +31,6 @@ type LinkedQuiz = { id: string; title: string; passing_score: number };
 type Tab = "courses" | "progress" | "assessments";
 
 export default function AcademyPage() {
-  const user = useAuthStore((s) => s.user);
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const hiddenTabs = new Set(activeCompany?.settings?.hiddenTabs ?? []);
@@ -40,7 +38,6 @@ export default function AcademyPage() {
 
   const [tab, setTab] = useState<Tab>("courses");
   const [loading, setLoading] = useState(true);
-  const [linking, setLinking] = useState(false);
 
   // Overwatch data
   const [owModules, setOwModules] = useState<ModuleWithProgress[]>([]);
@@ -48,13 +45,12 @@ export default function AcademyPage() {
   const [folderCount, setFolderCount] = useState(0);
   const [owCerts, setOwCerts] = useState<Cert[]>([]);
 
-  // Legacy data
+  // Course catalog data (OverwatchDB courses / enrollments / attempts; EADB history was migrated in)
   const [courses, setCourses] = useState<LegacyCourse[]>([]);
   const [enrollments, setEnrollments] = useState<LegacyEnrollment[]>([]);
   const [courseModules, setCourseModules] = useState<Record<string, LegacyCourseModule[]>>({});
   const [progress, setProgress] = useState<LegacyModuleProgress[]>([]);
   const [assessmentResults, setAssessmentResults] = useState<LegacyAssessmentResult[]>([]);
-  const [certificates, setCertificates] = useState<LegacyCertificate[]>([]);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -67,24 +63,6 @@ export default function AcademyPage() {
         getKBFolders(activeCompanyId),
         getUserCertifications(),
       ] : [[], [], [], [], []];
-
-      let studentId: string | null = null;
-      if (user?.email) {
-        try {
-          const existing = await findLegacyStudentByEmail(user.email);
-          if (existing) {
-            studentId = existing.id;
-          } else {
-            setLinking(true);
-            const result = await createLegacyStudentProfile(user.id, user.email, user.firstName || "", user.lastName || "");
-            setLinking(false);
-            if (result.success) studentId = user.id;
-          }
-        } catch (linkErr) {
-          console.warn("Legacy student linking failed (non-fatal):", linkErr);
-          setLinking(false);
-        }
-      }
 
       const [mods, modProgress, q, f, c] = await Promise.all(owPromises);
 
@@ -101,21 +79,17 @@ export default function AcademyPage() {
       setFolderCount((f as any[]).length);
       setOwCerts(c as Cert[]);
 
-      const [coursesData, enrollmentsData] = await Promise.all([
-        getLegacyCourses(),
-        studentId ? getLegacyEnrollments(studentId) : Promise.resolve([]),
-      ]);
+      const [coursesData, enrollmentsData, pd, ad] = companyReady ? await Promise.all([
+        getLegacyCourses(), getLegacyEnrollments(), getMyLegacyProgress(), getLegacyAssessmentResults(),
+      ]) : [[], [], [], []];
       setCourses(coursesData);
       setEnrollments(enrollmentsData);
       const modulesMap: Record<string, LegacyCourseModule[]> = {};
       await Promise.all(coursesData.map(async (co) => { modulesMap[co.id] = await getLegacyCourseModules(co.id); }));
       setCourseModules(modulesMap);
-      if (studentId) {
-        const [pd, ad, cd] = await Promise.all([getMyLegacyProgress(studentId), getLegacyAssessmentResults(studentId), getLegacyCertificates(studentId)]);
-        setProgress(pd); setAssessmentResults(ad); setCertificates(cd);
-      }
+      setProgress(pd); setAssessmentResults(ad);
     } catch (err) { console.error("Academy load error:", err); } finally { setLoading(false); }
-  }, [user, activeCompanyId]);
+  }, [activeCompanyId]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
@@ -136,7 +110,7 @@ export default function AcademyPage() {
       <PageShell title="ACADEMY HUB" subtitle="Training, SOPs, assessments & certifications" icon={<Compass className="h-5 w-5" />}>
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">{linking ? "Linking your training account..." : "Loading academy..."}</p>
+          <p className="text-sm text-muted-foreground">Loading academy...</p>
         </div>
       </PageShell>
     );
@@ -170,11 +144,10 @@ export default function AcademyPage() {
 
       <CertificationsSection
         owCerts={owCerts}
-        legacyCertificates={certificates}
         onCertsChange={setOwCerts}
       />
 
-      {/* Legacy Courses Section */}
+      {/* Course catalog */}
       {showCourses && <div className="space-y-4">
         <h2 className="text-lg font-semibold">Course Catalog</h2>
         <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">

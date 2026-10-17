@@ -161,11 +161,11 @@ export function StaffProgressTab({ activeCompanyId, modules }: StaffProgressTabP
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5"><BookOpen className="h-4 w-4" /> Company Quizzes</h3>
             <div className="space-y-1">
-              {quizzes.map((q: { id: string; title: string; description: string | null; questions: unknown[]; passing_score: number }) => (
+              {quizzes.map((q: { id: string; title: string; description: string | null; question_count?: number; passing_score: number }) => (
                 <div key={q.id} className="flex items-center justify-between p-2 rounded-lg border border-border/30">
                   <p className="text-xs font-medium">{q.title}</p>
                   <div className="flex items-center gap-2">
-                    <Badge className="text-[9px] bg-muted">{q.questions?.length ?? 0} Q&apos;s</Badge>
+                    <Badge className="text-[9px] bg-muted">{q.question_count ?? 0} Q&apos;s</Badge>
                     <Badge className="text-[9px] bg-primary/10 text-primary">Pass: {q.passing_score}%</Badge>
                   </div>
                 </div>

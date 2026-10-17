@@ -61,13 +61,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_CESIUM_TOKEN: ${{ secrets.NEXT_PUBLIC_CESIUM_TOKEN }}
           NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID: ${{ secrets.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID }}
-          NEXT_PUBLIC_LEGACY_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_LEGACY_SUPABASE_URL }}
-          NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY }}
-          # Empty = "auto" (legacy-bridge-write, falls back to direct EADB anon writes if the
-          # function is unreachable). "server" = function only, no anon fallback. Set it with
-          #   gh variable set NEXT_PUBLIC_LEGACY_BRIDGE_MODE --body server
-          # BEFORE applying migrations/eadb/20261006120500 (that migration removes the anon writes).
-          NEXT_PUBLIC_LEGACY_BRIDGE_MODE: ${{ vars.NEXT_PUBLIC_LEGACY_BRIDGE_MODE }}
         run: npm run build
 
       - name: Inject build hash into service worker
@@ -119,6 +112,15 @@ jobs:
           [ "$(tr -d '[:space:]' < _deploy/CNAME)" = "www.evenfalladvantage.com" ] || { echo "::error::unexpected CNAME"; exit 1; }
           ls _deploy/case-studies/*.html > /dev/null
           ls _deploy/overwatch/_next/static/chunks/*.js > /dev/null
+          # Retired portals are redirect stubs only (EADB retirement): they must exist and must
+          # not ship the old portal JS (which embedded the EADB config).
+          for f in student-portal/index.html student-portal/login.html student-portal/redirect.html student-portal/embed-viewer.html student-portal/training-room.html student-portal/instructor-room.html student-portal/reset-password.html instructor-portal/index.html instructor-portal/login.html admin/index.html admin/login.html admin/assessments.html admin/state-laws.html; do
+            grep -q 'url=/overwatch/' "_deploy/$f" || { echo "::error::_deploy/$f is not an Overwatch redirect"; exit 1; }
+          done
+          for d in student-portal/js instructor-portal/js admin/js student-portal/css instructor-portal/css admin/css; do
+            [ ! -e "_deploy/$d" ] || { echo "::error::_deploy/$d must not be published (retired portal)"; exit 1; }
+          done
+          ! grep -rqs 'vaagvairvwmgyzsmymhs' _deploy || { echo "::error::EADB reference in _deploy"; exit 1; }
           for d in overwatch-src supabase sql docs DPAs sop assets-src google-meet-addon .github; do
             [ ! -e "_deploy/$d" ] || { echo "::error::_deploy/$d must not be published"; exit 1; }
           done

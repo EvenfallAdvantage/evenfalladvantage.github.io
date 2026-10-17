@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { canManageLegacyCourses, type CompanyRole } from "@/lib/permissions";
-import { ensureInstructorLinked } from "@/lib/account-linker";
+import { ensureInternalUser } from "@/lib/supabase/db-helpers";
 import { usePageHeader } from "@/stores/page-header-store";
 import { CoursesTab } from "./components/courses-tab";
 import { ClassesTab } from "./components/classes-tab";
@@ -33,7 +33,7 @@ export default function InstructorHQPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader("INSTRUCTOR HQ", "Legacy course management for Evenfall Advantage",
+    setHeader("INSTRUCTOR HQ", "Courses, classes and students",
       tab === "classes" ? <Calendar className="h-5 w-5" /> : tab === "assessments" ? <ClipboardCheck className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />,
       tab === "courses" ? (
         <Button size="sm" className="gap-1.5" onClick={() => setTriggerNew((n) => n + 1)}>
@@ -54,12 +54,11 @@ export default function InstructorHQPage() {
   const [linking, setLinking] = useState(false);
 
   const linkInstructor = useCallback(async () => {
-    if (!user?.email || !hasAccess) return;
+    if (!user?.id || !hasAccess) return;
     setLinking(true);
-    try {
-      const id = await ensureInstructorLinked({ id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName });
-      setInstructorId(id);
-    } catch (e) { logger.swallow("instructor-link:ensure", e, "warn"); }
+    // Instructor identity is the Overwatch users.id (EADB instructor linking is retired).
+    try { setInstructorId(await ensureInternalUser()); }
+    catch (e) { logger.swallow("instructor-hq:user", e, "warn"); }
     finally { setLinking(false); }
   }, [user, hasAccess]);
 
@@ -81,7 +80,7 @@ export default function InstructorHQPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Linking instructor account...</p>
+        <p className="text-sm text-muted-foreground">Loading your profile...</p>
       </div>
     );
   }

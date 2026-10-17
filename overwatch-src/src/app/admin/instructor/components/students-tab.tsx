@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import {
   getLegacyStudents, getLegacyProgress, issueLegacyCertificate,
   type LegacyStudent, type LegacyModuleProgress,
-} from "@/lib/legacy-bridge";
+  trainingWriteErrorMessage,
+} from "@/lib/training";
 import { logger } from "@/lib/logger";
 
 interface StudentsTabProps {
@@ -50,11 +51,12 @@ export function StudentsTab({ instructorId }: StudentsTabProps) {
     if (!certName.trim() || !instructorId) return;
     setIssuingCert(true);
     try {
-      await issueLegacyCertificate({
-        student_id: studentId, issued_by: instructorId,
+      const r = await issueLegacyCertificate({
+        student_id: studentId,
         certificate_type: certType, certificate_name: certName.trim(),
         state_issued: certState.trim() || undefined,
       });
+      if (!r.success) { alert(trainingWriteErrorMessage("issue the certificate", r.error)); return; }
       setShowCert(null); setCertName(""); setCertState("");
       alert("Certificate issued successfully!");
     } catch { alert("Failed to issue certificate"); }
@@ -83,7 +85,7 @@ export function StudentsTab({ instructorId }: StudentsTabProps) {
               <button onClick={() => toggleExpand(s.id)} className="w-full flex items-center justify-between p-3 text-left hover:bg-accent/30 transition-colors">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{s.first_name} {s.last_name}</p>
-                  <p className="text-[10px] text-muted-foreground">{s.email}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.email}{!s.has_login && " · invite pending"}</p>
                 </div>
                 {expandedId === s.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>

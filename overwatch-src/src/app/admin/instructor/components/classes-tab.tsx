@@ -13,8 +13,8 @@ import {
   getLegacyClasses, createLegacyClass, updateLegacyClass,
   getClassEnrollments, markAttendance, getClassAttendance, LEGACY_CLASS_TYPES,
   type LegacyScheduledClass, type ClassEnrollmentRow, type ClassAttendanceRow,
-} from "@/lib/legacy-bridge";
-import { legacyWriteErrorMessage } from "@/lib/legacy/bridge";
+  trainingWriteErrorMessage as legacyWriteErrorMessage,
+} from "@/lib/training";
 import { logger } from "@/lib/logger";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 
@@ -48,14 +48,14 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setClasses(await getLegacyClasses(instructorId ?? undefined)); } catch (e) { logger.swallow("instructor-classes:load", e, "warn"); }
+    try { setClasses(await getLegacyClasses()); } catch (e) { logger.swallow("instructor-classes:load", e, "warn"); }
     finally { setLoading(false); }
-  }, [instructorId]);
+  }, []);
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
     if (!ncName.trim() || !ncDate || !ncStart || !ncEnd) { alert("Class name, date, start and end time are required."); return; }
-    if (!instructorId) { alert("Your instructor profile isn't linked yet. Reload the page and try again."); return; }
+    if (!instructorId) { alert("Your Overwatch profile isn't loaded yet. Reload the page and try again."); return; }
     setSaving(true);
     try {
       const r = await createLegacyClass({
