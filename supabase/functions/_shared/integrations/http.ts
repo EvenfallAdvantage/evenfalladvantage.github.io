@@ -38,7 +38,8 @@ export function isCronCall(req: Request): boolean {
 
 /**
  * Resolve the signed-in caller and their role in company_id.
- * Returns null user when the JWT is missing/invalid.
+ * Returns null user when the JWT is missing/invalid. Only an active membership
+ * counts, matching public.my_company_role().
  */
 export async function callerRole(req: Request, admin: ReturnType<typeof serviceClient>, companyId: string): Promise<{ authUserId: string | null; userId: string | null; role: string | null }> {
   const authHeader = req.headers.get("authorization") ?? "";
@@ -53,6 +54,6 @@ export async function callerRole(req: Request, admin: ReturnType<typeof serviceC
   const userId = (me as { id?: string } | null)?.id ?? null;
   if (!userId) return { authUserId: user.id, userId: null, role: null };
   const { data: mem } = await admin.from("company_memberships").select("role")
-    .eq("company_id", companyId).eq("user_id", userId).maybeSingle();
+    .eq("company_id", companyId).eq("user_id", userId).eq("status", "active").maybeSingle();
   return { authUserId: user.id, userId, role: (mem as { role?: string } | null)?.role ?? null };
 }
