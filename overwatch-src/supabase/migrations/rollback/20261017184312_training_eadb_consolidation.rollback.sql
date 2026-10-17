@@ -1,4 +1,4 @@
--- Rollback for 20261017190000_training_eadb_consolidation.sql.
+-- Rollback for 20261017184312_training_eadb_consolidation.sql.
 -- Drops only objects that migration added. Run BEFORE any EADB data is copied, or after
 -- deleting copied rows (`delete from <table> where eadb_id is not null`), because dropping
 -- the eadb_id columns loses the back-references.

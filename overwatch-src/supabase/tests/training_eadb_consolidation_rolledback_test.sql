@@ -1,4 +1,4 @@
--- Rolled-back test for 20261017190000_training_eadb_consolidation.sql (OverwatchDB).
+-- Rolled-back test for 20261017184312_training_eadb_consolidation.sql (OverwatchDB).
 -- Paste the migration body (without BEGIN/COMMIT) and then this block in ONE request;
 -- the final RAISE aborts the whole implicit transaction, so nothing persists.
 DO $t$

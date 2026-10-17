@@ -8,7 +8,7 @@ Checked read-only against both projects on 2026-10-06.
 | `migrations/20261006175319_rls_hardening.sql` | OverwatchDB `nneueuvyeohwnspbwfub` | **Applied** 2026-10-06 10:53 PT (PR #45), version `20261006175319`. |
 | `migrations/rollback/20261006175319_rls_hardening.rollback.sql` | OverwatchDB | Manual rollback; never run. Not scanned by the CLI. |
 | `migrations/eadb/*.sql` | Legacy EADB `vaagvairvwmgyzsmymhs` | **Held / not applied.** Not scanned by the CLI for this project. |
-| `migrations/20261017190000_training_eadb_consolidation.sql` | OverwatchDB | **Draft, not applied** (EADB retirement phase 1). Rolled-back test: `tests/training_eadb_consolidation_rolledback_test.sql`. Rollback: `rollback/20261017190000_training_eadb_consolidation.rollback.sql`. Rename to the apply version if applied with MCP/dashboard. |
+| `migrations/20261017184312_training_eadb_consolidation.sql` | OverwatchDB | **Applied** 2026-10-17 11:43 PT (PR #85), version `20261017184312`. EADB retirement phase 1. Test: `tests/training_eadb_consolidation_rolledback_test.sql`. Rollback: `rollback/20261017184312_training_eadb_consolidation.rollback.sql`. |
 
 ## Why the rename
 

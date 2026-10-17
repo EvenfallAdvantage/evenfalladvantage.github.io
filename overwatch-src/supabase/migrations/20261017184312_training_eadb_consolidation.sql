@@ -1,5 +1,6 @@
 -- EADB retirement, phase 1: OverwatchDB schema for the training data that lives in
--- the legacy EADB project (vaagvairvwmgyzsmymhs). DRAFT: not applied.
+-- the legacy EADB project (vaagvairvwmgyzsmymhs). Applied 2026-10-17 11:43 PT as version 20261017184312
+-- (MCP apply_migration; applied body = this file without the BEGIN/COMMIT lines).
 --
 -- What this adds
 --   * eadb_id (uuid, unique) on every table EADB rows will be copied into, so the
@@ -22,7 +23,7 @@
 --   training_can_manage(company) = active owner / admin / instructor / manager
 --   anon: no privileges on any new table.
 --
--- Rollback: migrations/rollback/20261017190000_training_eadb_consolidation.rollback.sql
+-- Rollback: migrations/rollback/20261017184312_training_eadb_consolidation.rollback.sql
 -- (drops only what this file adds; existing rows and policies are untouched).
 
 BEGIN;
