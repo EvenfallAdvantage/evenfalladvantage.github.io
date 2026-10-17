@@ -103,7 +103,7 @@ jobs:
           cp -r student-resources/ _deploy/student-resources/
           # Copy top-level HTML and config files
           cp index.html about.html blog.html login.html register.html dashboard.html _deploy/
-          cp privacy-policy.html terms-of-service.html _deploy/
+          cp privacy-policy.html terms-of-service.html data-sources.html _deploy/
           cp google3c85dd61b89bb3b1.html _deploy/ 2>/dev/null || true
           cp CNAME .nojekyll _deploy/
 
@@ -112,7 +112,7 @@ jobs:
           set -euo pipefail
           # Pages serves ONLY this artifact (source = GitHub Actions), so fail
           # the deploy if a public page is missing or repo-internal files leak in.
-          required="index.html about.html blog.html login.html register.html dashboard.html privacy-policy.html terms-of-service.html CNAME overwatch/index.html overwatch/admin/settings/index.html"
+          required="index.html about.html blog.html login.html register.html dashboard.html privacy-policy.html terms-of-service.html data-sources.html CNAME overwatch/index.html overwatch/admin/settings/index.html"
           for f in $required; do
             [ -s "_deploy/$f" ] || { echo "::error::missing _deploy/$f"; exit 1; }
           done
