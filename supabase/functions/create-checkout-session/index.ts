@@ -1,169 +1,159 @@
-// Supabase Edge Function: create-checkout-session
-// Creates a Stripe Checkout session for course purchase
-// Deploy with: supabase functions deploy create-checkout-session
+// Supabase Edge Function: create-checkout-session (deployed on the LEGACY EADB,
+// project vaagvairvwmgyzsmymhs, where courses / students / payments live).
+//
+// Creates a Stripe Checkout session for a paid course.
+//
+// Auth (verify_jwt = false: the function authenticates the caller itself,
+// because Overwatch users hold an OverwatchDB token, not an EADB one):
+//   Authorization: Bearer <token>, either
+//     * an Overwatch access token  -> verified at Overwatch GoTrue
+//       (OVERWATCH_SUPABASE_URL / OVERWATCH_SUPABASE_ANON_KEY, the same
+//       secrets legacy-bridge-write uses), or
+//     * an EADB access token (student portal) -> verified at this project's
+//       GoTrue.
+//   The buyer's EADB student row is resolved from that session (id, then
+//   email; created if missing, like the bridge's student.ensure). The client's
+//   studentId and any price it sends are IGNORED: the amount always comes from
+//   the course row.
+//
+// Request:  POST { courseId, successUrl?, cancelUrl? }  (redirects must stay on
+//           an allowed site origin, see redirects.ts)
+// Response: 200 { sessionId, url } | 400/401/404/409 { error } |
+//           503 { error: 'payments_not_configured' } when STRIPE_SECRET_KEY is unset.
+//
+// Secrets: STRIPE_SECRET_KEY (sk_test_... or sk_live_...), OVERWATCH_SUPABASE_URL,
+// OVERWATCH_SUPABASE_ANON_KEY. Fulfilment (enrolment after payment) happens in
+// the process-course-payment webhook, never here.
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 import Stripe from 'https://esm.sh/stripe@14.5.0?target=deno'
-import { getCorsHeaders } from '../_shared/cors.ts'
+import { getCorsHeaders, isAllowedOrigin } from '../_shared/cors.ts'
 import { buildCheckoutRedirects } from './redirects.ts'
+import { amountCents, bearer, checkoutRefusal, isUuid } from './lib.ts'
 
-const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-  apiVersion: '2023-10-16',
-  httpClient: Stripe.createFetchHttpClient(),
-})
+type Buyer = { uid: string; email: string; firstName: string; lastName: string; source: 'overwatch' | 'eadb' }
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+async function overwatchUser(token: string): Promise<Buyer | null> {
+  const url = Deno.env.get('OVERWATCH_SUPABASE_URL') ?? ''
+  const key = Deno.env.get('OVERWATCH_SUPABASE_ANON_KEY') ?? ''
+  if (!url || !key) return null
+  const r = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` } })
+  if (!r.ok) return null
+  const u = await r.json().catch(() => null)
+  if (!u || !isUuid(u.id) || typeof u.email !== 'string' || !u.email) return null
+  const m = u.user_metadata ?? {}
+  return { uid: u.id, email: u.email.toLowerCase(), firstName: m.first_name ?? '', lastName: m.last_name ?? '', source: 'overwatch' }
+}
 
-serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req.headers.get('origin'))
+Deno.serve(async (req) => {
+  const origin = req.headers.get('origin')
+  const cors = getCorsHeaders(origin)
+  const json = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
-  // Handle OPTIONS request for CORS
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response('ok', { status: isAllowedOrigin(origin) ? 200 : 403, headers: cors })
+  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
+  if (origin && !isAllowedOrigin(origin)) return json({ error: 'origin_not_allowed' }, 403)
+
+  const token = bearer(req.headers.get('authorization'))
+  if (!token) return json({ error: 'missing_session' }, 401)
+
+  let body: { courseId?: unknown; successUrl?: unknown; cancelUrl?: unknown }
+  try {
+    body = await req.json()
+  } catch {
+    return json({ error: 'invalid_json' }, 400)
   }
+  const courseId = body?.courseId
+  if (!isUuid(courseId)) return json({ error: 'invalid_course_id' }, 400)
+
+  const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') ?? ''
+  if (!stripeKey) return json({ error: 'payments_not_configured' }, 503)
+
+  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 
   try {
-    // Get request body
-    const { courseId, studentId, successUrl, cancelUrl } = await req.json()
+    // 1. Who is buying: Overwatch session first, then an EADB session.
+    let buyer = await overwatchUser(token)
+    if (!buyer) {
+      const { data } = await db.auth.getUser(token)
+      const u = data?.user
+      if (u?.id && u.email) {
+        const m = u.user_metadata ?? {}
+        buyer = { uid: u.id, email: u.email.toLowerCase(), firstName: m.first_name ?? '', lastName: m.last_name ?? '', source: 'eadb' }
+      }
+    }
+    if (!buyer) return json({ error: 'invalid_session' }, 401)
 
-    if (!courseId || !studentId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing courseId or studentId' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // 2. The buyer's EADB student row (id, then email; create if missing).
+    let { data: student } = await db.from('students').select('id, email, first_name, last_name').eq('id', buyer.uid).maybeSingle()
+    if (!student) ({ data: student } = await db.from('students').select('id, email, first_name, last_name').eq('email', buyer.email).maybeSingle())
+    if (!student) {
+      const { data: created, error } = await db.from('students')
+        .insert({ id: buyer.uid, email: buyer.email, first_name: buyer.firstName || 'Student', last_name: buyer.lastName || '' })
+        .select('id, email, first_name, last_name').single()
+      if (error) {
+        console.error('[checkout] student create failed:', error.code, error.message)
+        return json({ error: 'student_unavailable' }, 500)
+      }
+      student = created
+      await db.from('student_profiles').upsert({ student_id: created.id }, { onConflict: 'student_id', ignoreDuplicates: true })
     }
 
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // 3. Course + eligibility (amount from the row, never the client).
+    const { data: course } = await db.from('courses')
+      .select('id, course_name, short_description, description, thumbnail_url, price, is_active')
+      .eq('id', courseId).maybeSingle()
+    const { data: enrolled } = await db.from('student_course_enrollments').select('id')
+      .eq('student_id', student.id).eq('course_id', courseId).in('enrollment_status', ['active', 'completed']).maybeSingle()
+    const refusal = checkoutRefusal(course, enrolled)
+    if (refusal) return json({ error: refusal.error }, refusal.status)
+    const cents = amountCents(course!.price)
 
-    // Get course details
-    const { data: course, error: courseError } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('id', courseId)
-      .single()
-
-    if (courseError || !course) {
-      return new Response(
-        JSON.stringify({ error: 'Course not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // 4. Pending payment row, then the Stripe session.
+    const { data: payment, error: payErr } = await db.from('payment_transactions').insert({
+      student_id: student.id, course_id: courseId, amount: cents / 100, currency: 'USD',
+      payment_provider: 'stripe', status: 'pending', customer_email: student.email,
+      customer_name: `${student.first_name ?? ''} ${student.last_name ?? ''}`.trim(),
+      metadata: { source: buyer.source },
+    }).select('id').single()
+    if (payErr) {
+      console.error('[checkout] payment row failed:', payErr.code, payErr.message)
+      return json({ error: 'payment_record_failed' }, 500)
     }
 
-    // Get student details
-    const { data: student, error: studentError } = await supabase
-      .from('students')
-      .select('email, first_name, last_name')
-      .eq('id', studentId)
-      .single()
-
-    if (studentError || !student) {
-      return new Response(
-        JSON.stringify({ error: 'Student not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Check if student is already enrolled
-    const { data: existingEnrollment } = await supabase
-      .from('student_course_enrollments')
-      .select('*')
-      .eq('student_id', studentId)
-      .eq('course_id', courseId)
-      .eq('enrollment_status', 'active')
-      .maybeSingle()
-
-    if (existingEnrollment) {
-      return new Response(
-        JSON.stringify({ error: 'Already enrolled in this course' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Create pending payment transaction
-    const { data: payment, error: paymentError } = await supabase
-      .from('payment_transactions')
-      .insert({
-        student_id: studentId,
-        course_id: courseId,
-        amount: course.price,
-        currency: 'USD',
-        payment_provider: 'stripe',
-        status: 'pending',
-        customer_email: student.email,
-        customer_name: `${student.first_name} ${student.last_name}`,
-      })
-      .select()
-      .single()
-
-    if (paymentError) {
-      console.error('Error creating payment transaction:', paymentError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to create payment record' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Redirect back to the student portal catalog (courses.html never existed)
-    const redirects = buildCheckoutRedirects({
-      origin: req.headers.get('origin'),
-      courseId,
-      successUrl,
-      cancelUrl,
-    })
-
-    // Create Stripe Checkout Session
+    const redirects = buildCheckoutRedirects({ origin, courseId, successUrl: body.successUrl, cancelUrl: body.cancelUrl })
+    const stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16', httpClient: Stripe.createFetchHttpClient() })
+    const description = course!.short_description || course!.description || undefined
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: course.course_name,
-              description: course.short_description || course.description,
-              images: course.thumbnail_url ? [course.thumbnail_url] : [],
-            },
-            unit_amount: Math.round(course.price * 100), // Convert to cents
-          },
-          quantity: 1,
-        },
-      ],
       mode: 'payment',
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: 'usd',
+          unit_amount: cents,
+          product_data: {
+            name: course!.course_name,
+            ...(description ? { description: String(description).slice(0, 500) } : {}),
+            ...(course!.thumbnail_url ? { images: [course!.thumbnail_url] } : {}),
+          },
+        },
+      }],
       success_url: redirects.successUrl,
       cancel_url: redirects.cancelUrl,
       customer_email: student.email,
       client_reference_id: payment.id,
-      metadata: {
-        student_id: studentId,
-        course_id: courseId,
-        payment_id: payment.id,
-      },
-    })
+      metadata: { student_id: student.id, course_id: courseId, payment_id: payment.id },
+    }, { idempotencyKey: `course-checkout-${payment.id}` })
 
-    // Update payment transaction with checkout session ID
-    await supabase
-      .from('payment_transactions')
-      .update({
-        checkout_session_id: session.id,
-        status: 'processing',
-      })
+    await db.from('payment_transactions').update({ checkout_session_id: session.id, status: 'processing', updated_at: new Date().toISOString() })
       .eq('id', payment.id)
 
-    return new Response(
-      JSON.stringify({
-        sessionId: session.id,
-        url: session.url,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (error) {
-    console.error('Error creating checkout session:', error)
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return json({ sessionId: session.id, url: session.url })
+  } catch (err) {
+    console.error('[checkout] failed:', err instanceof Error ? err.message : String(err))
+    return json({ error: 'checkout_failed' }, 500)
   }
 })
