@@ -36,6 +36,10 @@ import { RegionDossierModal } from "@/components/intel/region-dossier-modal";
 import { GlobalStatusBar } from "@/components/intel/global-status-bar";
 import { KeyboardShortcutsModal } from "@/components/intel/keyboard-shortcuts-modal";
 import { AttributionModal } from "@/components/intel/attribution-modal";
+import { CctvAckModal } from "@/components/intel/cctv-ack-modal";
+import { MapLegalFooter } from "./map-legal-footer";
+import { gateCctvEnable, hasCctvAck, recordCctvAck } from "@/lib/map/cctv-ack";
+import { useAuthStore } from "@/stores/auth-store";
 
 export type { StaffPin, OperationPin, IncidentPin } from "./types";
 
@@ -66,13 +70,37 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     return defaults;
   });
   const initialTerrainRef = useRef(layers.terrain);
+  // One-time CCTV acknowledgement (per user, localStorage). Every path that
+  // turns the CCTV layer on goes through setLayers, so gate it there.
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+  const [cctvAckOpen, setCctvAckOpen] = useState(false);
   const setLayers = useCallback((update: LayerVisibility | ((prev: LayerVisibility) => LayerVisibility)) => {
     setLayersRaw(prev => {
-      const next = typeof update === "function" ? update(prev) : update;
+      const requested = typeof update === "function" ? update(prev) : update;
+      const acked = typeof window !== "undefined" && hasCctvAck(window.localStorage, userIdRef.current);
+      const { next, needsAck } = gateCctvEnable(prev, requested, acked);
+      if (needsAck) queueMicrotask(() => setCctvAckOpen(true));
       try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch (e) { logger.swallow("tactical-map:layers-write", e, "debug"); }
       return next;
     });
   }, [storageKey]);
+  // Layer prefs saved before the acknowledgement existed may already have CCTV
+  // on: switch it off and ask once.
+  useEffect(() => {
+    if (layers.cctv && !hasCctvAck(window.localStorage, userId)) {
+      setLayersRaw((prev) => ({ ...prev, cctv: false }));
+      setCctvAckOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per user
+  }, [userId]);
+  const acceptCctvAck = useCallback(() => {
+    recordCctvAck(window.localStorage, userIdRef.current);
+    setCctvAckOpen(false);
+    setLayers((prev) => ({ ...prev, cctv: true }));
+  }, [setLayers]);
+  const creditRef = useRef<HTMLDivElement>(null);
   // Map tools (measure, range rings, LOS, elevation)
   const {
     activeTool, setActiveTool,
@@ -187,7 +215,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           vrButton: false,
           navigationHelpButton: false,
           infoBox: false,
-          creditContainer: document.createElement("div"),
+          creditContainer: creditRef.current ?? document.createElement("div"),
         });
 
         // Set terrain after construction: Terrain.fromWorldTerrain() returns a
@@ -439,6 +467,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       }
       if (e.key === "Escape") {
         // Top-down close priority: shortcuts → attribution → dossier → cctv → live feed → drawer.
+        if (cctvAckOpen) { setCctvAckOpen(false); return; }
         if (shortcutsOpen) { setShortcutsOpen(false); return; }
         if (attributionOpen) { setAttributionOpen(false); return; }
         if (regionDossier) { setRegionDossier(null); return; }
@@ -488,6 +517,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   }, [
     shortcutsOpen,
     attributionOpen,
+    cctvAckOpen,
     regionDossier,
     activeCctvCamera,
     activeLiveFeed,
@@ -529,6 +559,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       )}
       <div ref={containerRef} className="w-full h-full" />
 
+      {/* Persistent legal footer + Cesium provider credits */}
+      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} />
+
       {/* Compass + Fullscreen + Time Machine + Drone + Intel — top left */}
       {!loading && !error && (
         <MapControlButtons
@@ -565,6 +598,11 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       {/* Attribution modal — launched from the status bar's info button */}
       {attributionOpen && (
         <AttributionModal onClose={() => setAttributionOpen(false)} />
+      )}
+
+      {/* One-time acknowledgement before the CCTV layer is first enabled */}
+      {cctvAckOpen && (
+        <CctvAckModal onAccept={acceptCctvAck} onCancel={() => setCctvAckOpen(false)} />
       )}
 
       {/* Keyboard shortcuts modal — `?` to open */}
