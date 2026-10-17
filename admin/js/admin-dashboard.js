@@ -943,54 +943,28 @@ async function createStudent(event) {
     submitBtn.innerHTML = '<span class="loading-spinner"></span> Creating...';
 
     try {
-        // Create user account (email confirmation is disabled in Supabase settings)
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-            email: data.email,
-            password: data.password,
-            options: {
-                data: {
-                    first_name: data.first_name,
-                    last_name: data.last_name,
-                    user_type: 'student'
-                }
+        // Create the student server-side via the create-student Edge Function.
+        // It checks that the caller is an admin and uses the Auth admin API, so
+        // the admin's own session is kept. (Calling supabase.auth.signUp() here
+        // signed the browser in as the new student, so the follow-up
+        // send-welcome-email call carried the student's JWT, not the admin's.)
+        const { data: created, error: createError } = await supabase.functions.invoke('create-student', {
+            body: {
+                email: data.email,
+                password: data.password,
+                firstName: data.first_name,
+                lastName: data.last_name,
+                phone: data.phone || null
             }
         });
 
-        if (authError) throw authError;
-        
-        if (!authData.user) {
-            throw new Error('User creation failed');
+        if (createError) throw createError;
+        if (!created || !created.success) {
+            throw new Error((created && created.error) || 'User creation failed');
         }
-        
-        console.log('User created:', authData.user.id);
-        
-        // Create student record
-        const { error: studentError } = await supabase
-            .from('students')
-            .insert({
-                id: authData.user.id,
-                email: data.email,
-                first_name: data.first_name,
-                last_name: data.last_name
-            });
-        
-        if (studentError && studentError.code !== '23505') {
-            console.error('Error creating student record:', studentError);
-            throw studentError;
-        }
-        
-        // Create student profile
-        const { error: profileError } = await supabase
-            .from('student_profiles')
-            .insert({
-                student_id: authData.user.id,
-                phone: data.phone || null
-            });
-        
-        if (profileError && profileError.code !== '23505') {
-            console.warn('Profile creation warning:', profileError);
-        }
-        
+
+        console.log('Student created:', created.userId);
+
         // Send welcome email with login credentials
         try {
             const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-welcome-email', {
@@ -1023,7 +997,15 @@ async function createStudent(event) {
         
         // Try to get more details from the error
         let errorMessage = error.message;
-        if (error.context && error.context.body) {
+        // supabase-js FunctionsHttpError: context is the fetch Response.
+        if (error.context && typeof error.context.json === 'function') {
+            try {
+                const errorBody = await error.context.json();
+                errorMessage = errorBody.error || errorMessage;
+            } catch (e) {
+                // Couldn't parse error body
+            }
+        } else if (error.context && error.context.body) {
             try {
                 const errorBody = JSON.parse(error.context.body);
                 errorMessage = errorBody.error || errorMessage;
