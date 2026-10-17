@@ -1,4 +1,4 @@
--- Rollback for 20261017233000_training_cutover.sql (OverwatchDB).
+-- Rollback for 20261017202341_training_cutover.sql (OverwatchDB).
 -- Restores the previous policies and grade_training_quiz, drops the new RPCs and the CHECK.
 -- NOT restored: answers moved out of quizzes.questions stay in training_quiz_answer_keys
 -- (quizzes stay question_source = 'server' and keep working with the server RPCs). On

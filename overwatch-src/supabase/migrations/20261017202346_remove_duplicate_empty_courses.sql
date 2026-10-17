@@ -1,5 +1,6 @@
 -- EADB retirement phase 6: remove the 3 empty Overwatch course shells that duplicate
--- copied EADB courses (same titles). DRAFT: not applied.
+-- copied EADB courses (same titles). Applied 2026-10-17 13:23 PT as version 20261017202346 (MCP apply_migration;
+-- applied body = this file without the BEGIN/COMMIT lines; removed all 3 shells; EADB prices kept by decision).
 --
 --   6d1bfb20-5abe-4e53-a2c3-d06262fe5570  Unarmed Guard Core            (keep c4757f12…, from EADB)
 --   81e8c6ba-74a3-4cd7-811d-273e641c54f4  Advanced Surveillance & …     (keep 774f7003…, from EADB)
@@ -12,7 +13,7 @@
 -- enrolments, module links, payments, classes or default-course
 -- references. The DELETE re-checks that at apply time and skips any row that gained a reference;
 -- the final check fails the migration if a duplicate is left behind for that reason.
--- Rollback: migrations/rollback/20261017233100_remove_duplicate_empty_courses.rollback.sql
+-- Rollback: migrations/rollback/20261017202346_remove_duplicate_empty_courses.rollback.sql
 BEGIN;
 
 CREATE TEMP TABLE _dup_courses ON COMMIT DROP AS

@@ -8,6 +8,6 @@ import subprocess
 t = open("tests/training_cutover_rolledback_test.sql").read()
 def body(p):
     return "\n".join(l for l in open(p).read().splitlines() if l.strip() not in ("BEGIN;", "COMMIT;"))
-m = body("migrations/20261017233000_training_cutover.sql") + "\n" + body("migrations/20261017233100_remove_duplicate_empty_courses.sql").replace("ON COMMIT DROP", "")
+m = body("migrations/20261017202341_training_cutover.sql") + "\n" + body("migrations/20261017202346_remove_duplicate_empty_courses.sql").replace("ON COMMIT DROP", "")
 print(t.replace("--@@MIGRATIONS@@", m))
 PY

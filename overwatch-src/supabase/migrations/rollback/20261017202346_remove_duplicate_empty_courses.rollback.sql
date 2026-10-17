@@ -1,4 +1,4 @@
--- Rollback for 20261017233100_remove_duplicate_empty_courses.sql: re-creates the 3 course shells
+-- Rollback for 20261017202346_remove_duplicate_empty_courses.sql: re-creates the 3 course shells
 -- exactly as they were (full rows read from OverwatchDB on 2026-10-17; they had no modules,
 -- enrolments, payments or classes).
 BEGIN;

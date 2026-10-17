@@ -1,5 +1,5 @@
--- Rolled-back test for 20261017233000_training_cutover.sql and
--- 20261017233100_remove_duplicate_empty_courses.sql (OverwatchDB).
+-- Rolled-back test for 20261017202341_training_cutover.sql and
+-- 20261017202346_remove_duplicate_empty_courses.sql (OverwatchDB).
 -- Run as ONE request: [setup block] + both migration bodies (without BEGIN/COMMIT) + [test block].
 -- The final RAISE aborts the whole implicit transaction, so nothing persists.
 -- (scripts: build with tests/build_training_cutover_test.sh)

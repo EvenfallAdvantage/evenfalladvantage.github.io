@@ -1,4 +1,5 @@
--- EADB retirement phase 6 (code cutover), OverwatchDB. DRAFT: not applied.
+-- EADB retirement phase 6 (code cutover), OverwatchDB. Applied 2026-10-17 13:23 PT as version 20261017202341
+-- (MCP apply_migration; applied body = this file without the BEGIN/COMMIT lines).
 --
 -- What it does
 --   1. Quizzes: every quiz becomes server-graded. Inline `quizzes.questions` (which carried
@@ -27,7 +28,7 @@
 --
 -- Requires 20261017184312_training_eadb_consolidation (applied).
 -- Test (rolled back): tests/training_cutover_rolledback_test.sql
--- Rollback: migrations/rollback/20261017233000_training_cutover.rollback.sql
+-- Rollback: migrations/rollback/20261017202341_training_cutover.rollback.sql
 
 BEGIN;
 
