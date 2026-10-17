@@ -14,6 +14,7 @@ export * from "./db-availability";
 export * from "./db-client-intake";
 export * from "./db-location";
 export * from "./db-pay";
+export * from "./db-integrations";
 export * from "./db-compliance";
 export * from "./db-overtime";
 export * from "./db-shift-swap";
