@@ -12,9 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   getTrainingModule, getModuleSlides, upsertModuleProgress, completeModule,
 } from "@/lib/supabase/db";
-import { getLegacyModules, getLegacySlides, updateLegacyProgress, type LegacySlide } from "@/lib/legacy-bridge";
-import { ensureStudentLinked } from "@/lib/account-linker";
-import { useAuthStore } from "@/stores/auth-store";
 import { sanitizeHtml } from "@/lib/security/sanitize-html";
 import type { TrainingModule, ModuleSlide } from "@/types";
 
@@ -32,27 +29,11 @@ export default function ModuleViewerPage() {
   );
 }
 
-function legacySlidesToModuleSlides(ls: LegacySlide[]): ModuleSlide[] {
-  const now = new Date().toISOString();
-  return ls.map((s) => ({
-    id: s.id,
-    module_id: s.module_id,
-    title: s.title,
-    content_html: s.content_html ?? s.content ?? "",
-    sort_order: s.slide_number,
-    image_url: s.image_url,
-    audio_url: s.audio_url,
-    created_at: now,
-    updated_at: now,
-  }));
-}
-
 function ModuleViewerInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const moduleId = searchParams.get("id") ?? "";
   const courseId = searchParams.get("course") ?? "";
-  const user = useAuthStore((s: { user: unknown }) => s.user) as { id: string; email: string; user_metadata?: Record<string, string> } | null;
   const backUrl = courseId ? `/academy/course?id=${courseId}` : "/academy";
 
   const [mod, setMod] = useState<TrainingModule | null>(null);
@@ -62,110 +43,31 @@ function ModuleViewerInner() {
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
-  const [legacyStudentId, setLegacyStudentId] = useState<string | null>(null);
-  const [isLegacyModule, setIsLegacyModule] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const load = useCallback(async () => {
     if (!moduleId) { setLoading(false); return; }
     try {
-      // Try Overwatch DB first
+      // All modules (incl. the ones imported from EADB) live in OverwatchDB; RLS limits them to
+      // members of the owning company. The old /student-portal/embed-viewer.html fallback is gone.
       const [moduleData, slideData] = await Promise.all([
         getTrainingModule(moduleId),
         getModuleSlides(moduleId),
       ]);
-
-      if (moduleData && slideData && slideData.length > 0) {
-        setMod(moduleData as TrainingModule | null);
-        setSlides(slideData as ModuleSlide[]);
-      } else {
-        // Fallback: try legacy DB
-        const legacySlides = await getLegacySlides(moduleId);
-        if (legacySlides.length > 0) {
-          setIsLegacyModule(true);
-          setSlides(legacySlidesToModuleSlides(legacySlides));
-
-          // Try to get module metadata from legacy
-          if (!moduleData) {
-            const legacyModules = await getLegacyModules();
-            const found = legacyModules.find((m) => m.id === moduleId);
-            if (found) {
-              setMod({
-                id: found.id,
-                module_name: found.module_name,
-                module_code: found.module_code,
-                description: found.description,
-                icon: found.icon,
-                difficulty_level: found.difficulty_level,
-                estimated_time: found.estimated_time,
-                duration_minutes: found.duration_minutes,
-                is_active: found.is_active,
-                display_order: found.display_order,
-                company_id: "",
-                is_required: false,
-                created_at: "",
-                updated_at: "",
-              } as unknown as TrainingModule);
-            }
-          } else {
-            setMod(moduleData as TrainingModule | null);
-          }
-        } else {
-          setMod(moduleData as TrainingModule | null);
-          setSlides(slideData as ModuleSlide[]);
-        }
-      }
-
-      // Auto-link legacy student for progress sync
-      if (user?.email) {
-        const sId = await ensureStudentLinked({
-          id: user.id,
-          email: user.email,
-          firstName: user.user_metadata?.first_name,
-          lastName: user.user_metadata?.last_name,
-        });
-        setLegacyStudentId(sId);
-      }
+      setMod(moduleData as TrainingModule | null);
+      setSlides((slideData ?? []) as ModuleSlide[]);
     } catch (err) {
       console.error("Failed to load module:", err);
     } finally {
       setLoading(false);
     }
-  }, [moduleId, user]);
+  }, [moduleId]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Listen for messages from the embedded legacy viewer
-  useEffect(() => {
-    if (!isLegacyModule) return;
-    function onMessage(e: MessageEvent) {
-      if (e.data?.source !== "embed-viewer") return;
-      if (e.data.type === "progress" && legacyStudentId) {
-        updateLegacyProgress(legacyStudentId, moduleId, {
-          progress_percentage: e.data.pct,
-          current_slide: e.data.slide,
-          completed_at: e.data.pct === 100 ? new Date().toISOString() : null,
-        }).catch(console.error);
-      }
-      if (e.data.type === "complete") {
-        setCompleted(true);
-        if (legacyStudentId) {
-          updateLegacyProgress(legacyStudentId, moduleId, {
-            progress_percentage: 100,
-            completed_at: new Date().toISOString(),
-          }).catch(console.error);
-        }
-        // Auto-navigate back to module list after a brief delay
-        setTimeout(() => router.push(backUrl), 1200);
-      }
-    }
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [isLegacyModule, legacyStudentId, moduleId, backUrl, router]);
-
   // Save progress whenever slide changes (Overwatch-native modules only)
   useEffect(() => {
-    if (isLegacyModule || slides.length === 0 || loading || !moduleId) return;
+    if (slides.length === 0 || loading || !moduleId) return;
     const timeout = setTimeout(() => {
       upsertModuleProgress(moduleId, {
         currentSlide,
@@ -173,11 +75,10 @@ function ModuleViewerInner() {
       }).catch(console.error);
     }, 500);
     return () => clearTimeout(timeout);
-  }, [currentSlide, slides.length, moduleId, loading, isLegacyModule]);
+  }, [currentSlide, slides.length, moduleId, loading]);
 
-  // Handle audio (Overwatch-native only)
+  // Handle audio
   useEffect(() => {
-    if (isLegacyModule) return;
     if (audioRef.current) {
       audioRef.current.pause();
       setAudioPlaying(false);
@@ -189,7 +90,7 @@ function ModuleViewerInner() {
     } else {
       audioRef.current = null;
     }
-  }, [currentSlide, slides, isLegacyModule]);
+  }, [currentSlide, slides]);
 
   function toggleAudio() {
     if (!audioRef.current) return;
@@ -223,16 +124,15 @@ function ModuleViewerInner() {
     }
   }
 
-  // Keyboard navigation (Overwatch-native only — iframe handles its own)
+  // Keyboard navigation
   useEffect(() => {
-    if (isLegacyModule) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "ArrowLeft") handlePrev();
       else if (e.key === "ArrowRight") handleNext();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isLegacyModule, handlePrev, handleNext]);
+  }, [handlePrev, handleNext]);
 
   if (loading) {
     return (
@@ -258,47 +158,7 @@ function ModuleViewerInner() {
     );
   }
 
-  // ─── Legacy module: embed the legacy viewer in an iframe ───
-  if (isLegacyModule) {
-    const embedUrl = `/student-portal/embed-viewer.html?module_id=${moduleId}&v=3`;
-    return (
-      <>
-        <div className="flex flex-col" style={{ height: "calc(100vh - 4rem)" }}>
-          {/* Header */}
-          <div className="flex items-center gap-3 pb-3 shrink-0">
-            <Button variant="ghost" size="sm" onClick={() => router.push(backUrl)} className="gap-1">
-              <ChevronLeft className="h-4 w-4" /> Back
-            </Button>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold tracking-tight truncate">{mod.module_name}</h1>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {mod.duration_minutes ? <><Clock className="h-3 w-3" /> {mod.duration_minutes}m<span className="text-border">·</span></> : null}
-                <FileText className="h-3 w-3" /> {slides.length} slides
-              </div>
-            </div>
-            {completed && (
-              <Badge className="bg-green-500/15 text-green-600 text-xs gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Completed
-              </Badge>
-            )}
-          </div>
-
-          {/* Embedded legacy viewer */}
-          <iframe
-            src={embedUrl}
-            className="flex-1 w-full rounded-lg border border-border/40 bg-black"
-            style={{ minHeight: 400 }}
-            allow="autoplay"
-            title="Module Slides"
-          />
-
-          {/* Auto-navigates back on completion */}
-        </div>
-      </>
-    );
-  }
-
-  // ─── Overwatch-native module: existing React slide renderer ───
+  // ─── Slide renderer ───
   const slide = slides[currentSlide];
   const isLastSlide = currentSlide === slides.length - 1;
   const progress = slides.length > 0

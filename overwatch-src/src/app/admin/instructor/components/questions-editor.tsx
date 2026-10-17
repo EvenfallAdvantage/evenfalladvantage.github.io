@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import {
   getLegacyAssessmentQuestions, saveLegacyAssessmentQuestions, validateLegacyQuestions,
   type LegacyQuestion,
-} from "@/lib/legacy-bridge";
-import { legacyWriteErrorMessage } from "@/lib/legacy/bridge";
+  trainingWriteErrorMessage as legacyWriteErrorMessage,
+} from "@/lib/training";
 
 const LETTERS = ["A", "B", "C", "D"];
 const blankQuestion = (): LegacyQuestion => ({ question: "", options: ["", "", "", ""], correctAnswer: 0, explanation: "" });
@@ -21,9 +21,10 @@ interface QuestionsEditorProps {
 }
 
 /**
- * Multiple-choice question editor for a legacy (EADB) assessment: question
- * text, 4 answers, the correct one, optional explanation. Saving replaces the
- * whole list (the bridge writes assessment_questions + questions_json).
+ * Multiple-choice question editor for an assessment (OverwatchDB quiz): question
+ * text, up to 4 answers, the correct one, optional explanation. Saving replaces the
+ * whole list through admin_save_training_quiz_questions; answers stay server-side
+ * (training_quiz_answer_keys) and never reach learners.
  */
 export function QuestionsEditor({ assessmentId, assessmentName, onClose, onSaved }: QuestionsEditorProps) {
   const [questions, setQuestions] = useState<LegacyQuestion[]>([]);

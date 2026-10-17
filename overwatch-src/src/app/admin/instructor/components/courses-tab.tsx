@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Plus, Loader2, Save, X, Pencil, ChevronDown, ChevronUp, Clock, ExternalLink, Trash2,
+  Plus, Loader2, Save, X, Pencil, ChevronDown, ChevronUp, Clock, Trash2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,8 @@ import {
   createLegacyCourse, updateLegacyCourse, deleteLegacyCourse,
   createLegacyModule, updateLegacyModule,
   type LegacyCourse, type LegacyModule, type LegacyCourseModule,
-} from "@/lib/legacy-bridge";
-import { legacyWriteErrorMessage } from "@/lib/legacy/bridge";
+  trainingWriteErrorMessage as legacyWriteErrorMessage,
+} from "@/lib/training";
 import { SlidesPanel } from "./slides-panel";
 import { logger } from "@/lib/logger";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -119,7 +119,7 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
   async function handleCreateModule() {
     if (!nmCode.trim() || !nmName.trim()) return; setSavingMod(true);
     try {
-      const r = await createLegacyModule({ module_code: nmCode.trim(), module_name: nmName.trim(), description: nmDesc.trim() || undefined, duration_minutes: parseInt(nmDur) || 30 });
+      const r = await createLegacyModule({ module_code: nmCode.trim(), module_name: nmName.trim(), description: nmDesc.trim() || undefined, duration_minutes: parseInt(nmDur) || 30, default_course_id: xCourseId ?? undefined });
       if (!r.success) { alert(legacyWriteErrorMessage("create the module", r.error)); return; }
       setShowNewModule(false); setNmCode(""); setNmName(""); setNmDesc(""); setNmDur("30");
       if (xCourseId) setCourseModules(await getLegacyCourseModules(xCourseId));
@@ -145,9 +145,6 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{courses.length} courses</p>
-        <a href="../../admin/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-[#dd8c33] transition-colors">
-          <ExternalLink className="h-3 w-3" /> Legacy Editor
-        </a>
       </div>
       {showNew && (
         <Card className="border-primary/30"><CardContent className="space-y-3 pt-4">

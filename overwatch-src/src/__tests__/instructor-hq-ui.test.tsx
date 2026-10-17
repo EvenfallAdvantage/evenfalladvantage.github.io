@@ -10,14 +10,16 @@ const api = vi.hoisted(() => ({
   updateLegacyAssessment: vi.fn(), deleteLegacyAssessment: vi.fn(),
 }));
 
-vi.mock("@/lib/legacy-bridge", async () => {
-  const classes = await vi.importActual<typeof import("@/lib/legacy/classes")>("@/lib/legacy/classes");
-  const assessments = await vi.importActual<typeof import("@/lib/legacy/assessments")>("@/lib/legacy/assessments");
-  return { ...api, LEGACY_CLASS_TYPES: classes.LEGACY_CLASS_TYPES, validateLegacyQuestions: assessments.validateLegacyQuestions };
+vi.mock("@/lib/training", async () => {
+  const classes = await vi.importActual<typeof import("@/lib/training/classes")>("@/lib/training/classes");
+  const assessments = await vi.importActual<typeof import("@/lib/training/assessments")>("@/lib/training/assessments");
+  const shared = await vi.importActual<typeof import("@/lib/training/shared")>("@/lib/training/shared");
+  return { ...api, LEGACY_CLASS_TYPES: classes.LEGACY_CLASS_TYPES, validateLegacyQuestions: assessments.validateLegacyQuestions,
+    trainingWriteErrorMessage: shared.trainingWriteErrorMessage };
 });
-vi.mock("@/lib/legacy/client", () => ({ getLegacyClient: () => ({}) }));
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({}) }));
 vi.mock("@/stores/auth-store", () => ({ useAuthStore: { getState: () => ({}) } }));
+vi.mock("@/lib/supabase/db-helpers", () => ({ ensureInternalUser: async () => "u-1" }));
 
 import { ClassesTab } from "@/app/admin/instructor/components/classes-tab";
 import { QuestionsEditor } from "@/app/admin/instructor/components/questions-editor";
@@ -53,6 +55,26 @@ describe("ClassesTab create", () => {
     await fillAndCreate();
     await waitFor(() => expect(alertSpy).toHaveBeenCalledWith("Couldn't create the class: write_failed."));
     expect(screen.getByText("Schedule New Class")).toBeDefined();
+  });
+});
+
+describe("ClassesTab scoping", () => {
+  it("instructors load only the classes they teach", async () => {
+    render(<ClassesTab instructorId="i-1" triggerNew={0} />);
+    await waitFor(() => expect(api.getLegacyClasses).toHaveBeenCalledWith("i-1"));
+    expect(await screen.findByText(/classes you teach/)).toBeDefined();
+  });
+
+  it("owners/admins load every class", async () => {
+    render(<ClassesTab instructorId="i-1" triggerNew={0} seeAll />);
+    await waitFor(() => expect(api.getLegacyClasses).toHaveBeenCalledWith(undefined));
+    expect(await screen.findByText(/all instructors/)).toBeDefined();
+  });
+
+  it("loads nothing until the instructor's own id is known", async () => {
+    render(<ClassesTab instructorId={null} triggerNew={0} />);
+    expect(await screen.findByText(/0 upcoming classes you teach/)).toBeDefined();
+    expect(api.getLegacyClasses).not.toHaveBeenCalled();
   });
 });
 

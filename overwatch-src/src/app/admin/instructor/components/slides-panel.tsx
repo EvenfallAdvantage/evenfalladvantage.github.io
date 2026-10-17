@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   getLegacySlides, createLegacySlide, updateLegacySlide, deleteLegacySlide,
   type LegacySlide,
-} from "@/lib/legacy-bridge";
+  trainingWriteErrorMessage,
+} from "@/lib/training";
 import { sanitizeHtml } from "@/lib/security/sanitize-html";
 import { logger } from "@/lib/logger";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -65,7 +66,8 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
   async function handleCreateSlide() {
     if (!nsTitle.trim()) return; setSavingSlide(true);
     try {
-      await createLegacySlide({ module_id: moduleId, title: nsTitle.trim(), content_html: nsContent.trim() || undefined, slide_number: slides.length + 1, slide_type: nsType || "text", image_url: nsImage.trim() || undefined });
+      const r = await createLegacySlide({ module_id: moduleId, title: nsTitle.trim(), content_html: nsContent.trim() || undefined, slide_number: slides.length + 1, slide_type: nsType || "text", image_url: nsImage.trim() || undefined });
+      if (!r.success) { alert(trainingWriteErrorMessage("create the slide", r.error)); return; }
       setShowNewSlide(false); setNsTitle(""); setNsContent(""); setNsType("text"); setNsImage("");
       setSlides(await getLegacySlides(moduleId));
     } catch { alert("Failed to create slide"); } finally { setSavingSlide(false); }
@@ -74,14 +76,17 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
   async function handleUpdateSlide() {
     if (!editSlide) return; setSavingSlideEdit(true);
     try {
-      await updateLegacySlide(editSlide.id, { title: esTitle.trim(), content_html: esContent, slide_type: esType, image_url: esImage.trim() || undefined });
+      const r = await updateLegacySlide(editSlide.id, { title: esTitle.trim(), content_html: esContent, slide_type: esType, image_url: esImage.trim() || undefined });
+      if (!r.success) { alert(trainingWriteErrorMessage("save the slide", r.error)); return; }
       setEditSlide(null); setSlides(await getLegacySlides(moduleId));
     } catch { alert("Failed to update slide"); } finally { setSavingSlideEdit(false); }
   }
 
   async function handleDeleteSlide(slideId: string) {
     if (!await confirm({ description: "Delete this slide?", variant: "destructive" })) return;
-    await deleteLegacySlide(slideId); if (editSlide?.id === slideId) setEditSlide(null);
+    const r = await deleteLegacySlide(slideId);
+    if (!r.success) { alert(trainingWriteErrorMessage("delete the slide", r.error)); return; }
+    if (editSlide?.id === slideId) setEditSlide(null);
     setSlides(await getLegacySlides(moduleId));
   }
 

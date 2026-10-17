@@ -4,24 +4,31 @@ import { logDbReadError } from "./db-error";
 import type { QuizPayload, UserName, CertificationRow } from "@/types";
 
 // ─── Quizzes (Drills) ──────────────────────────────────
+// Questions live in training_quiz_questions; answers in training_quiz_answer_keys, which no
+// client role can read. quizzes.questions is always [] (CHECK quizzes_no_inline_answers).
+// Learners: get_training_quiz + grade_training_quiz (see @/lib/training/quiz).
+// Editors (owner/admin/manager/instructor): admin_get_training_quiz_answers /
+// admin_save_training_quiz_questions.
 
 export async function getQuizzes(companyId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("quizzes")
-    .select("*")
+    .select("id, company_id, title, description, passing_score, max_attempts, time_limit_min, icon, color, is_active, created_at, updated_at, module_id, category, training_quiz_questions(count)")
     .eq("company_id", companyId)
     .eq("is_active", true)
     .order("created_at", { ascending: false });
   if (error) { logDbReadError("quizzes", error); return []; }
-  return data ?? [];
+  return (data ?? []).map(({ training_quiz_questions, ...q }: Record<string, unknown> & { training_quiz_questions?: { count: number }[] }) => ({
+    ...q,
+    question_count: Number(training_quiz_questions?.[0]?.count ?? 0),
+  }));
 }
 
 export async function createQuiz(params: {
   companyId: string;
   title: string;
   description?: string;
-  questions?: unknown[];
   passingScore?: number;
   moduleId?: string;
 }) {
@@ -33,33 +40,76 @@ export async function createQuiz(params: {
       company_id: params.companyId,
       title: params.title,
       description: params.description ?? null,
-      questions: params.questions ?? [],
+      questions: [],
+      question_source: "server",
       passing_score: params.passingScore ?? 70,
       module_id: params.moduleId ?? null,
       ...ts(),
     })
-    .select()
+    .select("id, title, description, passing_score, module_id")
     .maybeSingle();
   if (error) throw error;
   return data;
 }
 
-export async function updateQuiz(quizId: string, updates: { questions?: unknown[]; title?: string; description?: string; passingScore?: number; moduleId?: string | null }) {
+export async function updateQuiz(quizId: string, updates: { title?: string; description?: string; passingScore?: number; moduleId?: string | null }) {
   const supabase = createClient();
   const payload: QuizPayload = { updated_at: new Date().toISOString() };
-  if (updates.questions !== undefined) payload.questions = updates.questions;
   if (updates.title !== undefined) payload.title = updates.title;
   if (updates.description !== undefined) payload.description = updates.description;
   if (updates.passingScore !== undefined) payload.passing_score = updates.passingScore;
   if (updates.moduleId !== undefined) payload.module_id = updates.moduleId;
-  const { data, error } = await supabase.from("quizzes").update(payload).eq("id", quizId).select().maybeSingle();
+  const { data, error } = await supabase.from("quizzes").update(payload).eq("id", quizId)
+    .select("id, title, description, passing_score, module_id").maybeSingle();
   if (error) throw error;
   return data;
 }
 
+/** Server-side; refuses with assessment_in_use while attempts exist (they'd cascade away). */
 export async function deleteQuiz(quizId: string) {
   const supabase = createClient();
-  const { error } = await supabase.from("quizzes").delete().eq("id", quizId);
+  const { error } = await supabase.rpc("training_delete_quiz", { p_quiz_id: quizId });
+  if (error) throw error;
+}
+
+/** Editor question: options as an array, correct = letter ("A".."H"). */
+export type EditableQuizQuestion = { question: string; options: string[]; correct: string; explanation?: string };
+
+/** Questions + answers for the editor (owner/admin/manager/instructor only). */
+export async function getQuizQuestionsForEditing(quizId: string): Promise<EditableQuizQuestion[]> {
+  const supabase = createClient();
+  const [qs, keys] = await Promise.all([
+    supabase.rpc("get_training_quiz", { p_quiz_id: quizId }),
+    supabase.rpc("admin_get_training_quiz_answers", { p_quiz_id: quizId }),
+  ]);
+  if (qs.error) throw qs.error;
+  if (keys.error) throw keys.error;
+  const byId = new Map(((keys.data ?? []) as { question_id: string; correct_answer: string; explanation: string | null }[])
+    .map((k) => [k.question_id, k]));
+  return ((qs.data ?? []) as { id: string; question_text: string; options: Record<string, string> }[]).map((q) => {
+    const letters = Object.keys(q.options ?? {}).sort();
+    const k = byId.get(q.id);
+    return {
+      question: q.question_text,
+      options: letters.map((l) => q.options[l]),
+      correct: (k?.correct_answer ?? "A").toUpperCase(),
+      ...(k?.explanation ? { explanation: k.explanation } : {}),
+    };
+  });
+}
+
+/** Replace all questions + answer keys (server-side). */
+export async function saveQuizQuestions(quizId: string, questions: EditableQuizQuestion[]) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("admin_save_training_quiz_questions", {
+    p_quiz_id: quizId,
+    p_questions: questions.map((q) => ({
+      question: q.question.trim(),
+      options: q.options.map((o) => o.trim()),
+      correct: q.correct,
+      ...(q.explanation?.trim() ? { explanation: q.explanation.trim() } : {}),
+    })),
+  });
   if (error) throw error;
 }
 
@@ -139,68 +189,39 @@ export async function getQuestionCategories(companyId: string) {
   return [...cats].sort();
 }
 
+/** Bank answer (option text, or a letter) -> letter. */
+export function bankAnswerLetter(options: string[], correctAnswer: string): string | null {
+  const idx = options.indexOf(correctAnswer);
+  if (idx >= 0) return String.fromCharCode(65 + idx);
+  const letter = correctAnswer.trim().toUpperCase();
+  return /^[A-H]$/.test(letter) && letter.charCodeAt(0) - 65 < options.length ? letter : null;
+}
+
+/** Append bank questions to a quiz (server-side save; answers never sent to learners). */
 export async function importQuestionsToQuiz(quizId: string, questionIds: string[]) {
   const supabase = createClient();
-  // Fetch the selected questions
   const { data: questions, error: fetchErr } = await supabase
     .from("assessment_questions")
-    .select("*")
+    .select("id, question_text, options, correct_answer, explanation")
     .in("id", questionIds);
   if (fetchErr) throw fetchErr;
   if (!questions || questions.length === 0) return;
-
-  // Fetch current quiz
-  const { data: quiz, error: quizErr } = await supabase
-    .from("quizzes")
-    .select("questions")
-    .eq("id", quizId)
-    .maybeSingle();
-  if (quizErr) throw quizErr;
-
-  // Convert assessment_questions to quiz JSONB format and append
-  const existing = (quiz?.questions ?? []) as { id: string; text: string; options: string[]; correctIndex: number }[];
-  const newQs = questions.map((q: { id: string; question_text: string; options: string[] | null; correct_answer: string }) => ({
-    id: q.id,
-    text: q.question_text,
-    options: q.options ?? [],
-    correctIndex: (q.options ?? []).indexOf(q.correct_answer),
-  }));
-  const merged = [...existing, ...newQs];
-  const { error: updateErr } = await supabase
-    .from("quizzes")
-    .update({ questions: merged, updated_at: new Date().toISOString() })
-    .eq("id", quizId);
-  if (updateErr) throw updateErr;
+  const existing = await getQuizQuestionsForEditing(quizId);
+  const added: EditableQuizQuestion[] = [];
+  for (const q of questions as { question_text: string; options: string[] | null; correct_answer: string; explanation: string | null }[]) {
+    const options = q.options ?? [];
+    const correct = bankAnswerLetter(options, q.correct_answer);
+    if (!correct || options.length < 2) continue; // not a usable multiple-choice question
+    added.push({ question: q.question_text, options, correct, ...(q.explanation ? { explanation: q.explanation } : {}) });
+  }
+  if (added.length === 0) return;
+  await saveQuizQuestions(quizId, [...existing, ...added]);
 }
 
 // ─── Quiz attempts ──────────────────────────────────
 
-export async function submitQuizAttempt(params: {
-  quizId: string;
-  answers: Record<string, unknown>;
-  score: number;
-  passed: boolean;
-}) {
-  const userId = await ensureInternalUser();
-  if (!userId) throw new Error("Not authenticated");
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("quiz_attempts")
-    .insert({
-      id: crypto.randomUUID(),
-      quiz_id: params.quizId,
-      user_id: userId,
-      answers: params.answers,
-      score: params.score,
-      passed: params.passed,
-      started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-    })
-    .select()
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
+// Attempts are written only by grade_training_quiz (server-side grading); clients can't
+// insert or edit quiz_attempts.
 
 export async function getUserQuizAttempts(quizId?: string) {
   const userId = await ensureInternalUser();

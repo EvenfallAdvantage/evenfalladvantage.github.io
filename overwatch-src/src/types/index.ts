@@ -120,7 +120,6 @@ export type CompanyPayload = {
 
 export type QuizPayload = {
   updated_at: string;
-  questions?: unknown[];
   title?: string;
   description?: string;
   passing_score?: number;

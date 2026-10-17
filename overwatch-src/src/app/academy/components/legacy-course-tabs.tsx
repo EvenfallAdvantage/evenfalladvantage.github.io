@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type {
   LegacyCourse, LegacyCourseModule, LegacyModuleProgress, LegacyAssessmentResult,
-} from "@/lib/legacy-bridge";
+} from "@/lib/training";
 
 const DIFFICULTY_COLORS: Record<string, string> = {
   Beginner: "bg-green-500/15 text-green-600",

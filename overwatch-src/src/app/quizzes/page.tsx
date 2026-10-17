@@ -7,12 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
-import { getQuizzes, createQuiz, submitQuizAttempt, getUserQuizAttempts, deleteQuiz, updateQuiz, getAssessmentQuestions, importQuestionsToQuiz, getTrainingModules, completeModule } from "@/lib/supabase/db";
+import { getQuizzes, createQuiz, getUserQuizAttempts, deleteQuiz, getAssessmentQuestions, importQuestionsToQuiz, getTrainingModules, completeModule, getQuizQuestionsForEditing, saveQuizQuestions, type EditableQuizQuestion } from "@/lib/supabase/db";
+import { getQuizQuestions, gradeQuiz, type QuizQuestion, type GradeResult } from "@/lib/training/quiz";
+import { errorCode, trainingWriteErrorMessage } from "@/lib/training/shared";
 import type { TrainingModule } from "@/types";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
+import { toast } from "sonner";
 
-type Question = { id: string; text: string; options: string[]; correctIndex: number };
+/** Editor row: key is local only (React list key). */
+type Question = EditableQuizQuestion & { key: string };
 type BankQuestion = { id: string; question_text: string; options: string[]; correct_answer: string; difficulty: string; category: string | null };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,10 +24,15 @@ type Quiz = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Attempt = any;
 
+const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+const optionEntries = (q: QuizQuestion) => Object.entries(q.options ?? {}).sort(([a], [b]) => a.localeCompare(b));
+const withKeys = (qs: EditableQuizQuestion[]): Question[] => qs.map((q) => ({ ...q, key: crypto.randomUUID() }));
+
 export default function QuizzesPage() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  // Editing needs owner/admin/manager/instructor (training_can_manage on the server).
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
   const { data: quizzes = [], isLoading: quizLoading, refetch: refetchQuizzes } = useCompanyQuery<Quiz[]>(
     "quizzes", (cid) => getQuizzes(cid)
@@ -44,12 +53,17 @@ export default function QuizzesPage() {
   const [taking, setTaking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingQuiz, setDeletingQuiz] = useState<string | null>(null);
+  // Learner view of the questions (no answers) and the server's grade
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [quizError, setQuizError] = useState<string | null>(null);
+  const [grade, setGrade] = useState<GradeResult | null>(null);
   // Question builder
   const [editingQuestions, setEditingQuestions] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [savingQs, setSavingQs] = useState(false);
-  // Quiz taking
-  const [answers, setAnswers] = useState<Record<string, number>>({});
+  // Quiz taking: question id -> letter
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
   // Import from question bank
   const [showImport, setShowImport] = useState(false);
@@ -64,17 +78,24 @@ export default function QuizzesPage() {
     try {
       await createQuiz({ companyId: activeCompanyId, title: newTitle.trim(), description: newDesc.trim() || undefined, passingScore: parseInt(newPassScore) || 70, moduleId: newModuleId || undefined });
       setNewTitle(""); setNewDesc(""); setNewPassScore("70"); setNewModuleId(""); setShowCreate(false); await load();
-    } catch (err) { console.error("Create quiz failed:", err); }
+    } catch (err) { console.error("Create quiz failed:", err); toast.error(trainingWriteErrorMessage("create the drill", errorCode(err as never))); }
     finally { setCreating(false); }
   }
 
   async function handleDeleteQuiz(quizId: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!await confirm({ description: "Delete this drill and all attempt history?", variant: "destructive", confirmLabel: "Delete" })) return;
+    if (!await confirm({ description: "Delete this drill? Drills that people have already taken can't be deleted.", variant: "destructive", confirmLabel: "Delete" })) return;
     setDeletingQuiz(quizId);
     try { await deleteQuiz(quizId); await load(); }
-    catch (err) { console.error(err); }
+    catch (err) { console.error(err); toast.error(trainingWriteErrorMessage("delete the drill", errorCode(err as never))); }
     finally { setDeletingQuiz(null); }
+  }
+
+  async function loadQuizQuestions(quizId: string) {
+    setLoadingQuestions(true); setQuizError(null);
+    try { setQuizQuestions(await getQuizQuestions(quizId)); }
+    catch (err) { console.error(err); setQuizQuestions([]); setQuizError("Couldn't load this drill's questions."); }
+    finally { setLoadingQuestions(false); }
   }
 
   async function selectQuiz(q: Quiz) {
@@ -82,14 +103,18 @@ export default function QuizzesPage() {
     setTaking(false);
     setShowResults(false);
     setAnswers({});
+    setGrade(null);
     setEditingQuestions(false);
+    loadQuizQuestions(q.id);
     try { setAttempts(await getUserQuizAttempts(q.id)); } catch { setAttempts([]); }
   }
 
-  function startEditing() {
+  async function startEditing() {
     if (!selected) return;
-    setQuestions((selected.questions ?? []).map((q: Question, i: number) => ({ ...q, id: q.id || `q${i}` })));
-    setEditingQuestions(true);
+    try {
+      setQuestions(withKeys(await getQuizQuestionsForEditing(selected.id)));
+      setEditingQuestions(true);
+    } catch (err) { console.error(err); toast.error(trainingWriteErrorMessage("load the questions", errorCode(err as never))); }
   }
 
   async function openImportPanel() {
@@ -116,42 +141,51 @@ export default function QuizzesPage() {
     if (!selected || selectedBankIds.size === 0) return;
     setImporting(true);
     try {
+      // Saves any edits first so the import appends to what's on screen.
+      await saveQuizQuestions(selected.id, questions);
       await importQuestionsToQuiz(selected.id, [...selectedBankIds]);
       setShowImport(false);
-      // Refresh the quiz data
-      const refreshed = await getQuizzes(activeCompanyId!);
-      const updated = refreshed.find((q: Quiz) => q.id === selected.id);
-      if (updated) { setSelected(updated); setQuestions((updated.questions ?? []).map((q: Question, i: number) => ({ ...q, id: q.id || `q${i}` }))); }
+      setQuestions(withKeys(await getQuizQuestionsForEditing(selected.id)));
+      await loadQuizQuestions(selected.id);
       await load();
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); toast.error(trainingWriteErrorMessage("import the questions", errorCode(err as never))); }
     finally { setImporting(false); }
   }
 
   function addQuestion() {
-    setQuestions((prev) => [...prev, { id: crypto.randomUUID(), text: "", options: ["", "", "", ""], correctIndex: 0 }]);
+    setQuestions((prev) => [...prev, { key: crypto.randomUUID(), question: "", options: ["", "", "", ""], correct: "A" }]);
   }
 
-  function removeQuestion(id: string) {
-    setQuestions((prev) => prev.filter((q) => q.id !== id));
+  function removeQuestion(key: string) {
+    setQuestions((prev) => prev.filter((q) => q.key !== key));
   }
 
-  function updateQuestion(id: string, field: string, value: string | number) {
-    setQuestions((prev) => prev.map((q) => q.id === id ? { ...q, [field]: value } : q));
+  function updateQuestion(key: string, patch: Partial<EditableQuizQuestion>) {
+    setQuestions((prev) => prev.map((q) => q.key === key ? { ...q, ...patch } : q));
   }
 
-  function updateOption(qId: string, optIdx: number, value: string) {
-    setQuestions((prev) => prev.map((q) => q.id === qId ? { ...q, options: q.options.map((o, i) => i === optIdx ? value : o) } : q));
+  function updateOption(key: string, optIdx: number, value: string) {
+    setQuestions((prev) => prev.map((q) => q.key === key ? { ...q, options: q.options.map((o, i) => i === optIdx ? value : o) } : q));
   }
 
   async function saveQuestions() {
     if (!selected) return;
+    // Drop empty trailing options; the correct answer must be a filled option.
+    const clean = questions.map((q) => {
+      const correctIdx = LETTERS.indexOf(q.correct);
+      const kept = q.options.map((o, i) => ({ o: o.trim(), i })).filter((x) => x.o);
+      const newIdx = kept.findIndex((x) => x.i === correctIdx);
+      return { ...q, options: kept.map((x) => x.o), correct: newIdx >= 0 ? LETTERS[newIdx] : "" };
+    });
+    const bad = clean.findIndex((q) => !q.question.trim() || q.options.length < 2 || !q.correct);
+    if (bad >= 0) { toast.error(`Question ${bad + 1} needs text, at least 2 answers, and a correct answer.`); return; }
     setSavingQs(true);
     try {
-      const updated = await updateQuiz(selected.id, { questions });
-      setSelected(updated);
+      await saveQuizQuestions(selected.id, clean);
       setEditingQuestions(false);
+      await loadQuizQuestions(selected.id);
       await load();
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); toast.error(trainingWriteErrorMessage("save the questions", errorCode(err as never))); }
     finally { setSavingQs(false); }
   }
 
@@ -159,43 +193,28 @@ export default function QuizzesPage() {
     setTaking(true);
     setShowResults(false);
     setAnswers({});
+    setGrade(null);
   }
 
   async function handleSubmitQuiz() {
     if (!selected) return;
-    const qs: Question[] = selected.questions ?? [];
-    if (qs.length === 0) {
-      // No questions - mark complete
-      setSubmitting(true);
-      try {
-        await submitQuizAttempt({ quizId: selected.id, answers: { completed: true }, score: 100, passed: true });
-        // Auto-complete linked module
-        if (selected.module_id) {
-          try { await completeModule(selected.module_id); } catch (err) { console.warn("Auto-complete module failed:", err); }
-        }
-        setTaking(false);
-        setAttempts(await getUserQuizAttempts(selected.id));
-      } catch (err) { console.error(err); }
-      finally { setSubmitting(false); }
-      return;
-    }
-    // Score the quiz
-    let correct = 0;
-    for (const q of qs) {
-      if (answers[q.id] === q.correctIndex) correct++;
-    }
-    const score = Math.round((correct / qs.length) * 100);
-    const passed = score >= (selected.passing_score ?? 70);
     setSubmitting(true);
     try {
-      await submitQuizAttempt({ quizId: selected.id, answers, score, passed });
-      // Auto-complete linked module when quiz is passed
-      if (passed && selected.module_id) {
+      // Graded and recorded on the server. A drill with no questions is recorded as acknowledged.
+      const outcome = await gradeQuiz(selected.id, answers);
+      if (!outcome.ok) {
+        toast.error(outcome.message);
+        if (outcome.error === "quiz_not_found") { setSelected(null); await load(); }
+        return;
+      }
+      const { result } = outcome;
+      if (result.passed && selected.module_id) {
         try { await completeModule(selected.module_id); } catch (err) { console.warn("Auto-complete module failed:", err); }
       }
-      setShowResults(true);
+      if (result.total === 0) setTaking(false);
+      else { setGrade(result); setShowResults(true); }
       setAttempts(await getUserQuizAttempts(selected.id));
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); toast.error("Couldn't submit the drill. Please try again."); }
     finally { setSubmitting(false); }
   }
 
@@ -275,7 +294,7 @@ export default function QuizzesPage() {
               {/* Admin: Edit questions */}
               {isAdmin && !taking && !editingQuestions && (
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={startEditing}>
-                  <PencilLine className="h-3.5 w-3.5" /> Edit Questions ({(selected.questions ?? []).length})
+                  <PencilLine className="h-3.5 w-3.5" /> Edit Questions ({quizQuestions.length})
                 </Button>
               )}
 
@@ -331,23 +350,23 @@ export default function QuizzesPage() {
                     </div>
                   )}
                   {questions.map((q, qi) => (
-                    <div key={q.id} className="space-y-2 rounded-lg border border-border/50 bg-card p-3">
+                    <div key={q.key} className="space-y-2 rounded-lg border border-border/50 bg-card p-3">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-mono text-muted-foreground">Q{qi + 1}</span>
-                        <Input value={q.text} onChange={(e) => updateQuestion(q.id, "text", e.target.value)} placeholder="Question text..." className="flex-1 h-8 text-sm" />
-                        <button onClick={() => removeQuestion(q.id)} className="text-muted-foreground/50 hover:text-red-500"><X className="h-3.5 w-3.5" /></button>
+                        <Input value={q.question} onChange={(e) => updateQuestion(q.key, { question: e.target.value })} placeholder="Question text..." className="flex-1 h-8 text-sm" />
+                        <button onClick={() => removeQuestion(q.key)} className="text-muted-foreground/50 hover:text-red-500"><X className="h-3.5 w-3.5" /></button>
                       </div>
                       {q.options.map((opt, oi) => (
                         <div key={oi} className="flex items-center gap-2 ml-6">
                           <button
-                            onClick={() => updateQuestion(q.id, "correctIndex", oi)}
+                            onClick={() => updateQuestion(q.key, { correct: LETTERS[oi] })}
                             className={`h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${
-                              q.correctIndex === oi ? "border-green-500 bg-green-500" : "border-border hover:border-green-500/50"
+                              q.correct === LETTERS[oi] ? "border-green-500 bg-green-500" : "border-border hover:border-green-500/50"
                             }`}
                           >
-                            {q.correctIndex === oi && <CheckCircle2 className="h-3 w-3 text-white" />}
+                            {q.correct === LETTERS[oi] && <CheckCircle2 className="h-3 w-3 text-white" />}
                           </button>
-                          <Input value={opt} onChange={(e) => updateOption(q.id, oi, e.target.value)} placeholder={`Option ${String.fromCharCode(65 + oi)}`} className="flex-1 h-7 text-xs" />
+                          <Input value={opt} onChange={(e) => updateOption(q.key, oi, e.target.value)} placeholder={`Option ${String.fromCharCode(65 + oi)}`} className="flex-1 h-7 text-xs" />
                         </div>
                       ))}
                       <p className="ml-6 text-[10px] text-muted-foreground">Click the circle to mark the correct answer</p>
@@ -366,7 +385,11 @@ export default function QuizzesPage() {
               {/* Take quiz */}
               {taking && !showResults ? (
                 <div className="space-y-4">
-                  {(selected.questions ?? []).length === 0 ? (
+                  {loadingQuestions ? (
+                    <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                  ) : quizError ? (
+                    <p className="text-sm text-red-600">{quizError}</p>
+                  ) : quizQuestions.length === 0 ? (
                     <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
                       <p className="text-sm font-medium">Drill in progress...</p>
                       <p className="text-xs text-muted-foreground">Review the material, then mark complete.</p>
@@ -379,17 +402,17 @@ export default function QuizzesPage() {
                     </div>
                   ) : (
                     <>
-                      {(selected.questions as Question[]).map((q, qi) => (
+                      {quizQuestions.map((q, qi) => (
                         <div key={q.id} className="rounded-xl border border-border/50 bg-card p-4 space-y-2">
-                          <p className="text-sm font-semibold"><span className="text-muted-foreground font-mono mr-1">Q{qi + 1}.</span> {q.text}</p>
+                          <p className="text-sm font-semibold"><span className="text-muted-foreground font-mono mr-1">Q{qi + 1}.</span> {q.question_text}</p>
                           <div className="space-y-1.5">
-                            {q.options.map((opt, oi) => (
-                              <button key={oi} onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: oi }))}
+                            {optionEntries(q).map(([letter, opt]) => (
+                              <button key={letter} onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: letter }))}
                                 className={`w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-sm text-left transition-colors ${
-                                  answers[q.id] === oi ? "border-primary bg-primary/10 font-medium" : "border-border/50 hover:bg-accent/30"
+                                  answers[q.id] === letter ? "border-primary bg-primary/10 font-medium" : "border-border/50 hover:bg-accent/30"
                                 }`}>
                                 <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-mono font-bold">
-                                  {String.fromCharCode(65 + oi)}
+                                  {letter}
                                 </span>
                                 {opt}
                               </button>
@@ -399,7 +422,7 @@ export default function QuizzesPage() {
                       ))}
                       <div className="flex gap-2">
                         <Button className="gap-1.5" onClick={handleSubmitQuiz}
-                          disabled={submitting || Object.keys(answers).length < (selected.questions as Question[]).length}>
+                          disabled={submitting || Object.keys(answers).length < quizQuestions.length}>
                           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                           Submit Answers
                         </Button>
@@ -408,23 +431,29 @@ export default function QuizzesPage() {
                     </>
                   )}
                 </div>
-              ) : taking && showResults ? (
+              ) : taking && showResults && grade ? (
                 <div className="space-y-3">
-                  {(selected.questions as Question[]).map((q, qi) => {
+                  <div className={`rounded-xl border p-4 ${grade.passed ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
+                    <p className="text-sm font-semibold">{grade.passed ? "Passed" : "Not passed"}: {grade.score}% ({grade.correct}/{grade.total})</p>
+                  </div>
+                  {quizQuestions.map((q, qi) => {
+                    // Correct answers come back from the server only after grading.
+                    const g = grade.questions.find((x) => x.id === q.id);
                     const userAnswer = answers[q.id];
-                    const isCorrect = userAnswer === q.correctIndex;
+                    const isCorrect = g?.is_correct === true;
                     return (
                       <div key={q.id} className={`rounded-xl border p-4 space-y-1 ${isCorrect ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
                         <div className="flex items-center gap-2">
                           {isCorrect ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <XCircle className="h-4 w-4 text-red-500" />}
-                          <p className="text-sm font-semibold">Q{qi + 1}. {q.text}</p>
+                          <p className="text-sm font-semibold">Q{qi + 1}. {q.question_text}</p>
                         </div>
-                        <p className="text-xs ml-6">Your answer: <span className={isCorrect ? "text-green-600 font-medium" : "text-red-600 font-medium"}>{q.options[userAnswer] ?? "No answer"}</span></p>
-                        {!isCorrect && <p className="text-xs ml-6 text-green-600">Correct: {q.options[q.correctIndex]}</p>}
+                        <p className="text-xs ml-6">Your answer: <span className={isCorrect ? "text-green-600 font-medium" : "text-red-600 font-medium"}>{(userAnswer && q.options[userAnswer]) ?? "No answer"}</span></p>
+                        {!isCorrect && g && <p className="text-xs ml-6 text-green-600">Correct: {q.options[g.correct_answer] ?? g.correct_answer}</p>}
+                        {g?.explanation && <p className="text-xs ml-6 text-muted-foreground">{g.explanation}</p>}
                       </div>
                     );
                   })}
-                  <Button variant="outline" onClick={() => { setTaking(false); setShowResults(false); setAnswers({}); }}>Done</Button>
+                  <Button variant="outline" onClick={() => { setTaking(false); setShowResults(false); setAnswers({}); setGrade(null); }}>Done</Button>
                 </div>
               ) : !editingQuestions ? (
                 <Button className="gap-2" onClick={startQuiz}>
@@ -478,7 +507,7 @@ export default function QuizzesPage() {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm truncate">{q.title}</p>
                     {q.description && <p className="text-xs text-muted-foreground truncate">{q.description}</p>}
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Pass: {q.passing_score}%</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Pass: {q.passing_score}%{q.question_count > 0 ? ` · ${q.question_count} Q` : ""}</p>
                   </div>
                   {isAdmin && (
                     <button onClick={(e) => handleDeleteQuiz(q.id, e)} disabled={deletingQuiz === q.id}

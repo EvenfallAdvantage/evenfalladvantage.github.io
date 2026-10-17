@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { addCertification, deleteCertification, getUserCertifications } from "@/lib/supabase/db";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
-import type { LegacyCertificate } from "@/lib/legacy-bridge";
 
 export type Cert = { id: string; cert_type: string; issue_date: string | null; expiry_date: string | null; status: string };
 
@@ -20,11 +19,10 @@ type UnifiedCert = {
 
 interface CertificationsSectionProps {
   owCerts: Cert[];
-  legacyCertificates: LegacyCertificate[];
   onCertsChange: (certs: Cert[]) => void;
 }
 
-export default function CertificationsSection({ owCerts, legacyCertificates, onCertsChange }: CertificationsSectionProps) {
+export default function CertificationsSection({ owCerts, onCertsChange }: CertificationsSectionProps) {
   const now = new Date();
   const [showAddCert, setShowAddCert] = useState(false);
   const [certType, setCertType] = useState("");
@@ -57,25 +55,19 @@ export default function CertificationsSection({ owCerts, legacyCertificates, onC
     catch (err) { console.error(err); } finally { setDeletingCert(null); }
   }
 
-  // Build unified cert list
+  // Build unified cert list. Course certificates (issued by an instructor or imported from the
+  // old student portal) carry a certificate number and can't be deleted by the holder.
   const unified: UnifiedCert[] = [];
   for (const c of owCerts) {
-    const isTraining = !!(c as Record<string, unknown>).module_id || !!(c as Record<string, unknown>).quiz_id;
+    const r = c as Record<string, unknown>;
+    const isTraining = !!r.module_id || !!r.quiz_id;
+    const isCourse = !isTraining && (!!r.certificate_number || r.category === "course_completion");
     unified.push({
-      id: c.id, name: c.cert_type, source: isTraining ? "training" : "manual",
-      issueDate: c.issue_date, expiryDate: c.expiry_date, status: c.status, canDelete: !isTraining,
-      verificationCode: (c as Record<string, unknown>).verification_code as string | null,
-      certNumber: (c as Record<string, unknown>).certificate_number as string | null,
-      extra: (c as Record<string, unknown>).state_issued ? `State: ${(c as Record<string, unknown>).state_issued}` : undefined,
-    });
-  }
-  for (const lc of legacyCertificates) {
-    unified.push({
-      id: `legacy-${lc.id}`, name: lc.certificate_name || lc.certificate_type, source: "course",
-      issueDate: lc.issue_date, expiryDate: lc.expiration_date,
-      status: lc.status === "revoked" ? "revoked" : "active", canDelete: false,
-      verificationCode: lc.verification_code, certNumber: lc.certificate_number,
-      extra: lc.state_issued ? `State: ${lc.state_issued}` : undefined,
+      id: c.id, name: c.cert_type, source: isTraining ? "training" : isCourse ? "course" : "manual",
+      issueDate: c.issue_date, expiryDate: c.expiry_date, status: c.status, canDelete: !isTraining && !isCourse,
+      verificationCode: r.verification_code as string | null,
+      certNumber: r.certificate_number as string | null,
+      extra: r.state_issued ? `State: ${r.state_issued}` : undefined,
     });
   }
   unified.sort((a, b) => {

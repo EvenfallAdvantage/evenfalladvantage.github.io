@@ -9,8 +9,8 @@ import {
   getLegacyAssessments, getLegacyModules,
   createLegacyAssessment, updateLegacyAssessment, deleteLegacyAssessment,
   type LegacyAssessment, type LegacyModule,
-} from "@/lib/legacy-bridge";
-import { legacyWriteErrorMessage } from "@/lib/legacy/bridge";
+  trainingWriteErrorMessage as legacyWriteErrorMessage,
+} from "@/lib/training";
 import { logger } from "@/lib/logger";
 import { QuestionsEditor } from "./questions-editor";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -36,12 +36,10 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
   // New assessment
   const [naName, setNaName] = useState("");
   const [naModuleId, setNaModuleId] = useState("");
-  const [naQuestions, setNaQuestions] = useState("10");
   const [naPassing, setNaPassing] = useState("70");
   // Edit
   const [eaName, setEaName] = useState("");
   const [eaModuleId, setEaModuleId] = useState("");
-  const [eaQuestions, setEaQuestions] = useState("");
   const [eaPassing, setEaPassing] = useState("");
 
   const load = useCallback(async () => {
@@ -61,11 +59,10 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
       const r = await createLegacyAssessment({
         assessment_name: naName.trim(),
         module_id: naModuleId || undefined,
-        total_questions: parseInt(naQuestions) || 10,
         passing_score: parseInt(naPassing) || 70,
       });
       if (!r.success) { alert(legacyWriteErrorMessage("create the assessment", r.error)); return; }
-      setShowNew(false); setNaName(""); setNaModuleId(""); setNaQuestions("10"); setNaPassing("70");
+      setShowNew(false); setNaName(""); setNaModuleId(""); setNaPassing("70");
       await load();
       // Go straight to writing the questions for the new assessment.
       if (r.id) setQuestionsId(r.id);
@@ -75,7 +72,7 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
 
   function startEdit(a: LegacyAssessment) {
     setEditId(a.id); setEaName(a.assessment_name);
-    setEaModuleId(a.module_id ?? ""); setEaQuestions(String(a.total_questions));
+    setEaModuleId(a.module_id ?? "");
     setEaPassing(String(a.passing_score));
   }
 
@@ -86,7 +83,6 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
       const r = await updateLegacyAssessment(editId, {
         assessment_name: eaName.trim(),
         module_id: eaModuleId || null,
-        total_questions: parseInt(eaQuestions) || 10,
         passing_score: parseInt(eaPassing) || 70,
       });
       if (!r.success) { alert(legacyWriteErrorMessage("save the assessment", r.error)); return; }
@@ -129,12 +125,11 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
         <Card className="border-primary/30"><CardContent className="space-y-3 pt-4">
           <h3 className="text-sm font-semibold">New Assessment</h3>
           <Input placeholder="Assessment Name *" value={naName} onChange={(e) => setNaName(e.target.value)} />
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-2">
             <select value={naModuleId} onChange={(e) => setNaModuleId(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
               <option value="">No linked module</option>
               {modules.map((m) => <option key={m.id} value={m.id}>{m.module_name}</option>)}
             </select>
-            <Input placeholder="Questions per attempt" type="number" value={naQuestions} onChange={(e) => setNaQuestions(e.target.value)} />
             <Input placeholder="Passing Score (%)" type="number" value={naPassing} onChange={(e) => setNaPassing(e.target.value)} />
           </div>
           <p className="text-[10px] text-muted-foreground">After creating it you&apos;ll add the questions.</p>
@@ -152,12 +147,11 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
               {editId === a.id ? (
                 <div className="space-y-2">
                   <Input value={eaName} onChange={(e) => setEaName(e.target.value)} />
-                  <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-2">
                     <select value={eaModuleId} onChange={(e) => setEaModuleId(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
                       <option value="">No linked module</option>
                       {modules.map((m) => <option key={m.id} value={m.id}>{m.module_name}</option>)}
                     </select>
-                    <Input type="number" value={eaQuestions} onChange={(e) => setEaQuestions(e.target.value)} placeholder="Questions" />
                     <Input type="number" value={eaPassing} onChange={(e) => setEaPassing(e.target.value)} placeholder="Passing %" />
                   </div>
                   <div className="flex gap-2">
