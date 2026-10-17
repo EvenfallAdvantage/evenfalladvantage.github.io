@@ -73,6 +73,8 @@ Keep this table and that page in sync.
 | City of Austin | CCTV — Austin, TX | "City of Austin Open Data" |
 | Transport for London | CCTV — London | "Powered by TfL Open Data" |
 | NZ Transport Agency Waka Kotahi | CCTV — New Zealand | NZTA (imagery excluded from CC BY; permission requested 2026-10-16) |
+| S2 Underground (ArcGIS) | Incident layers (Domestic Terrorism Tracker, Drone Reports, Tipline Reports) | "Data: S2 Underground" (used with permission) |
+| Radio reference frequencies | Radio frequency seed data | Community-compiled reference data; provenance under review |
 
 ### Terms pending — wired but disabled
 
