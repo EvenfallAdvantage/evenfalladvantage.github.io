@@ -403,7 +403,9 @@ Deno.serve(async (req) => {
           companyName,
           inviteUrl: actionLink,
           inviterName,
-          expiresInDays: 7,
+          // Text shown in the email. Keep it in line with Supabase Auth's email
+          // OTP expiry (the real link lifetime), set in the Auth settings.
+          expiresInHours: 24,
         });
 
         const emailRes = await fetch(`${supabaseUrl}/functions/v1/email-send`, {
