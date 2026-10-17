@@ -6,7 +6,6 @@
  * Source: FBI Crime Data Explorer (https://cde.ucr.cjis.gov)
  */
 
-import { getLegacyCrimeData } from "@/lib/legacy-bridge";
 import { logger } from "@/lib/logger";
 
 export type RiskLevel = "Negligible" | "Low" | "Moderate" | "High" | "Critical";
@@ -338,36 +337,18 @@ const _crimeCache: Record<string, { data: CrimeResult; ts: number }> = {};
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 
 /**
- * Multi-tier crime data: Legacy Supabase RPC → static city → static county → static state
+ * Multi-tier crime data: static city → static county → static state
  */
 export async function getMultiTierCrimeData(
   city: string, county: string, state: string
 ): Promise<CrimeResult> {
-  const abbr = STATE_ABBR[state] || state;
   const cacheKey = `${city}|${county}|${state}`;
 
   // Check cache
   const cached = _crimeCache[cacheKey];
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
 
-  // ── Primary: Legacy Supabase RPC ──
-  try {
-    const rpc = await getLegacyCrimeData(city, county, abbr);
-    if (rpc) {
-      const result: CrimeResult = {
-        violent: rpc.violent_crime_rate,
-        property: rpc.property_crime_rate,
-        population: rpc.population,
-        granularity: rpc.granularity,
-        source: rpc.location_name,
-        dynamic: true,
-      };
-      _crimeCache[cacheKey] = { data: result, ts: Date.now() };
-      return result;
-    }
-  } catch (e) { logger.swallow("geo-risk:crime-rpc-fallback", e, "debug"); }
-
-  // ── Fallback: Static data ──
+  // Static data (the EADB crime-data RPC is retired; its tables were empty)
   const result = getStaticCrimeData(city, county, state);
   _crimeCache[cacheKey] = { data: result, ts: Date.now() };
   return result;

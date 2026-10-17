@@ -24,7 +24,6 @@ import CertificationsSection from "@/app/academy/components/certifications-secti
 import { getUserCertifications } from "@/lib/supabase/db";
 import { logger } from "@/lib/logger";
 import type { Cert } from "@/app/academy/components/certifications-section";
-import type { LegacyCertificate } from "@/lib/legacy-bridge";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -35,7 +34,6 @@ export default function ProfilePage() {
   const [mpLoaded, setMpLoaded] = useState(false);
   const [onboardingProgress, setOnboardingProgress] = useState<OProgress[]>([]);
   const [certs, setCerts] = useState<Cert[]>([]);
-  const [legacyCerts, setLegacyCerts] = useState<LegacyCertificate[]>([]);
 
   const isOnboarding = mp?.status === "onboarding" && !mp?.onboarding_complete;
 
@@ -57,15 +55,8 @@ export default function ProfilePage() {
       } catch (e) { logger.swallow("profile:load-member", e, "warn"); }
       try { setOnboardingProgress(await getMyOnboardingProgress(activeCompanyId)); } catch (e) { logger.swallow("profile:load-onboarding", e, "debug"); }
       try {
-        const [owCerts, legacy] = await Promise.all([
-          getUserCertifications(),
-          (async () => {
-            const { getLegacyCertificates } = await import("@/lib/legacy-bridge");
-            return await getLegacyCertificates(activeCompanyId);
-          })()
-        ]);
-        setCerts(owCerts || []);
-        setLegacyCerts(legacy || []);
+        // Course certificates imported from EADB are regular OverwatchDB certifications now.
+        setCerts((await getUserCertifications()) || []);
       } catch (e) { logger.swallow("profile:load-certs", e, "debug"); }
       setMpLoaded(true);
     })();
@@ -116,7 +107,6 @@ export default function ProfilePage() {
             {mpLoaded && mp && (
               <CertificationsSection
                 owCerts={certs}
-                legacyCertificates={legacyCerts}
                 onCertsChange={setCerts}
               />
             )}

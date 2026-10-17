@@ -85,7 +85,7 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   // ─── News / events ────────────────────────────────────────────────
   gdelt: {
     enabled: true,
-    attribution: "GDELT Project / RSS aggregator",
+    attribution: "Geotagged world-news RSS (BBC, Reuters, Al Jazeera, etc.)",
   },
   live_news: {
     enabled: true,
@@ -97,15 +97,16 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   },
 
   // ─── Surveillance: legal review cleared (May 2026) ────────────────
-  // Initial enabled scope: Singapore LTA traffic-images, FL-511 (Florida DOT),
-  // Caltrans California districts. All are public open-data sources cleared
+  // Enabled scope: Singapore LTA traffic-images, NYC DOT webcams (approved Oct 16 2026),
+  // Caltrans California districts 1–12. (FL-511 dropped: needs an API key.) All are public open-data sources cleared
   // for the Overwatch user base. Additional regions (TfL JamCams, WSDOT, NYC
   // DOT, ASFINAG, Bulgaria, Greece, Serbia, Macedonia, Romania, Turkey) are
   // available in the upstream Osiris implementation and can be added per
   // region as their individual ToS are reviewed.
   cctv: {
     enabled: true,
-    attribution: "LTA Singapore, FL-511, Caltrans (initial scope)",
+    attribution:
+      "Caltrans, NYC DOT, LTA Singapore (data.gov.sg, SODL 1.0), DriveBC (OGL-BC), HK Transport Dept (DATA.GOV.HK), City of Austin, Powered by TfL Open Data, NZ Transport Agency Waka Kotahi",
     attributionRequired: true,
   },
 
@@ -125,7 +126,7 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   // ─── Aviation / Space ─────────────────────────────────────────────
   flights: {
     enabled: true,
-    attribution: "OpenSky Network / adsb.lol",
+    attribution: "Aircraft data © adsb.lol / adsb.fi contributors (ODbL)",
     attributionRequired: true,
   },
   satellites: {

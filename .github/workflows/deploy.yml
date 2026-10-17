@@ -61,10 +61,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_CESIUM_TOKEN: ${{ secrets.NEXT_PUBLIC_CESIUM_TOKEN }}
           NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID: ${{ secrets.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID }}
-          NEXT_PUBLIC_LEGACY_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_LEGACY_SUPABASE_URL }}
-          NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY }}
-          # Empty = "auto" (legacy-bridge-write with direct fallback). Set the repo variable to "server" after the EADB migration.
-          NEXT_PUBLIC_LEGACY_BRIDGE_MODE: ${{ vars.NEXT_PUBLIC_LEGACY_BRIDGE_MODE }}
         run: npm run build
 
       - name: Inject build hash into service worker
@@ -100,7 +96,7 @@ jobs:
           cp -r student-resources/ _deploy/student-resources/
           # Copy top-level HTML and config files
           cp index.html about.html blog.html login.html register.html dashboard.html _deploy/
-          cp privacy-policy.html terms-of-service.html _deploy/
+          cp privacy-policy.html terms-of-service.html data-sources.html _deploy/
           cp google3c85dd61b89bb3b1.html _deploy/ 2>/dev/null || true
           cp CNAME .nojekyll _deploy/
 
@@ -109,13 +105,22 @@ jobs:
           set -euo pipefail
           # Pages serves ONLY this artifact (source = GitHub Actions), so fail
           # the deploy if a public page is missing or repo-internal files leak in.
-          required="index.html about.html blog.html login.html register.html dashboard.html privacy-policy.html terms-of-service.html CNAME overwatch/index.html overwatch/admin/settings/index.html"
+          required="index.html about.html blog.html login.html register.html dashboard.html privacy-policy.html terms-of-service.html data-sources.html CNAME overwatch/index.html overwatch/admin/settings/index.html"
           for f in $required; do
             [ -s "_deploy/$f" ] || { echo "::error::missing _deploy/$f"; exit 1; }
           done
           [ "$(tr -d '[:space:]' < _deploy/CNAME)" = "www.evenfalladvantage.com" ] || { echo "::error::unexpected CNAME"; exit 1; }
           ls _deploy/case-studies/*.html > /dev/null
           ls _deploy/overwatch/_next/static/chunks/*.js > /dev/null
+          # Retired portals are redirect stubs only (EADB retirement): they must exist and must
+          # not ship the old portal JS (which embedded the EADB config).
+          for f in student-portal/index.html student-portal/login.html student-portal/redirect.html student-portal/embed-viewer.html student-portal/training-room.html student-portal/instructor-room.html student-portal/reset-password.html instructor-portal/index.html instructor-portal/login.html admin/index.html admin/login.html admin/assessments.html admin/state-laws.html; do
+            grep -q 'url=/overwatch/' "_deploy/$f" || { echo "::error::_deploy/$f is not an Overwatch redirect"; exit 1; }
+          done
+          for d in student-portal/js instructor-portal/js admin/js student-portal/css instructor-portal/css admin/css; do
+            [ ! -e "_deploy/$d" ] || { echo "::error::_deploy/$d must not be published (retired portal)"; exit 1; }
+          done
+          ! grep -rqs 'vaagvairvwmgyzsmymhs' _deploy || { echo "::error::EADB reference in _deploy"; exit 1; }
           for d in overwatch-src supabase sql docs DPAs sop assets-src google-meet-addon .github; do
             [ ! -e "_deploy/$d" ] || { echo "::error::_deploy/$d must not be published"; exit 1; }
           done

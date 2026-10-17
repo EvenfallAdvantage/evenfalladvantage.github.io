@@ -17,6 +17,11 @@ export function canManageLegacyCourses(role: string | null, isTrainingProvider: 
   return role === "instructor" || rank(role) >= rank("admin");
 }
 
+/** Class rosters/attendance: Overwatch admin+ see every class; instructors only their own. */
+export function seesAllClasses(role: string | null): boolean {
+  return rank(role) >= rank("admin");
+}
+
 /** autoLinkByRole() links an instructor record for these roles. */
 export function canLinkInstructor(role: string | null): boolean {
   return role === "owner" || role === "admin" || role === "instructor" || role === "manager";
@@ -41,6 +46,8 @@ export interface OpSpec {
   fallbacks?: Record<string, unknown>;
   onConflict?: string;
   returnId?: boolean;
+  /** Read-only op (returns data, writes nothing). */
+  read?: boolean;
 }
 
 const COURSE_COLS: Columns = {
@@ -70,8 +77,9 @@ const ASSESSMENT_COLS: Columns = {
  * names (content_html, max_students, status) before calling.
  *
  * Every write the Overwatch legacy bridge makes to the 10 EADB tables whose
- * anon write policies migrations/eadb/20261006120500 removes. Nothing else is
- * reachable through this function.
+ * anon write policies migrations/eadb/20261006120500 removes, plus the
+ * caller's own student_module_progress (progress.save), plus the read ops
+ * below. Nothing else is reachable through this function.
  */
 export const OPS: Record<string, OpSpec> = {
   "course.create": { permission: "instructor", table: "courses", kind: "insert", columns: COURSE_COLS,
@@ -129,7 +137,61 @@ export const OPS: Record<string, OpSpec> = {
     required: ["student_id", "certificate_type", "certificate_name"] },
   "instructor.ensure": { permission: "instructor_link", kind: "custom", columns: { first_name: "text", last_name: "text" } },
   "student.ensure": { permission: "self", kind: "custom", columns: { first_name: "text", last_name: "text" } },
+  // Custom (index.ts): the caller's OWN module progress (training viewer). The
+  // student row is resolved from the session (uid, then email), never the client.
+  "progress.save": { permission: "self", table: "student_module_progress", kind: "custom", keys: { module_id: "uuid" },
+    columns: { progress_percentage: "num", current_slide: "int" }, required: ["progress_percentage"] },
+
+  // ---- Reads (custom, index.ts). EADB per-person tables are not readable with
+  // the anon key once migrations/eadb/20261010180000 is applied, so Overwatch
+  // reads them here. "me.*" = the caller's OWN student record only (resolved
+  // from the session; no client-supplied id). The rest = Instructor HQ.
+  "me.student": { permission: "self", kind: "custom", read: true },
+  "me.enrollments": { permission: "self", kind: "custom", read: true },
+  "me.progress": { permission: "self", kind: "custom", read: true },
+  "me.results": { permission: "self", kind: "custom", read: true },
+  "me.certificates": { permission: "self", kind: "custom", read: true },
+  "students.list": { permission: "instructor", kind: "custom", read: true },
+  "student.progress": { permission: "instructor", kind: "custom", read: true, keys: { student_id: "uuid" } },
+  "classes.list": { permission: "instructor", kind: "custom", read: true,
+    columns: { instructor_id: "uuid", from_date: "date" } },
+  "class.enrollments.list": { permission: "instructor", kind: "custom", read: true, keys: { class_id: "uuid" } },
+  "class.attendance.list": { permission: "instructor", kind: "custom", read: true, keys: { class_id: "uuid" } },
 };
+
+/** PostgREST select lists for the read ops (fixed server-side; never from the client). */
+export const READ_SELECTS = {
+  student: "id, email, first_name, last_name, created_at",
+  enrollments: "*, courses (*)",
+  progress: "*, training_modules (module_name, module_code, description)",
+  results: "*, assessments (assessment_name, module_id, total_questions, passing_score)",
+  certificates: "*",
+  studentsList: "*, student_profiles (*)",
+  classes: "*, instructor:instructors (first_name, last_name, email), enrollments:class_enrollments (count)",
+  classEnrollments: "student_id, enrollment_status, student:students (first_name, last_name, email)",
+  classAttendance: "student_id, attendance_status, notes, created_at, student:students (first_name, last_name, email)",
+} as const;
+
+/**
+ * Next student_module_progress values. Percent is clamped to 0..100 and a
+ * completed module never goes back to in_progress (re-watching keeps it done).
+ */
+export function nextProgress(
+  existing: { status?: string | null; progress_percentage?: number | null; completed_at?: string | null } | null,
+  pct: number,
+  currentSlide: number | null,
+  now: string,
+): { status: "in_progress" | "completed"; progress_percentage: number; current_slide?: number; completed_at: string | null } {
+  const p = Math.max(0, Math.min(100, Math.round(Number.isFinite(pct) ? pct : 0)));
+  const wasDone = existing?.status === "completed";
+  const done = wasDone || p === 100;
+  return {
+    status: done ? "completed" : "in_progress",
+    progress_percentage: done ? 100 : p,
+    ...(currentSlide !== null && Number.isInteger(currentSlide) && currentSlide >= 0 ? { current_slide: currentSlide } : {}),
+    completed_at: done ? (wasDone && existing?.completed_at ? existing.completed_at : now) : null,
+  };
+}
 
 export const ATTENDANCE_STATUSES = ["present", "absent", "late", "excused"];
 export const SLIDE_TYPES = ["text", "image", "video", "mixed"];

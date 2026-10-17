@@ -1,118 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assessment Editor | Admin Dashboard</title>
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="css/admin-dashboard.css">
-    <link rel="stylesheet" href="css/course-editor.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Moved to Overwatch | Evenfall Advantage</title>
+<link rel="canonical" href="/overwatch/admin/instructor/">
+<meta http-equiv="refresh" content="0; url=/overwatch/admin/instructor/">
+<script>window.location.replace("/overwatch/admin/instructor/");</script>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a0a0f;color:#fff;font-family:system-ui,sans-serif;text-align:center;padding:2rem}a{color:#dd8c33}</style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="container">
-            <div class="nav-container">
-                <div class="nav-brand">
-                    <a href="../index.html" class="logo-link">
-                        <img src="../images/logo.png" alt="Evenfall Advantage Logo" class="nav-logo">
-                    </a>
-                </div>
-                <div class="portal-content">
-                    <h2 class="portal-title">Admin Dashboard</h2>
-                    <div class="portal-nav-container">
-                        <div class="nav-links">
-                            <a href="index.html" class="nav-link">Overview</a>
-                            <a href="index.html#students" class="nav-link">Students</a>
-                            <a href="index.html#clients" class="nav-link">Clients</a>
-                            <a href="index.html#courses" class="nav-link">Courses</a>
-                            <a href="assessments.html" class="nav-link active">Assessments</a>
-                            <a href="index.html#certifications" class="nav-link">Certifications</a>
-                            <a href="index.html#messages" class="nav-link">Messages</a>
-                            <a href="javascript:void(0)" class="nav-link" onclick="logout()">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Container -->
-    <div class="admin-container">
-        <!-- Main Content -->
-        <main class="admin-main" style="margin-left: 0; max-width: 1400px; margin: 0 auto; padding: 2rem;">
-
-            <!-- Course Selection View -->
-            <div id="assessmentCourseSelectionView">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Course Assessments</h2>
-                        <p>Select a course to view and manage its assessments</p>
-                    </div>
-                    <div class="card-body">
-                        <div id="assessmentCoursesGrid" class="courses-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-                            <p>Loading courses...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Assessments List (shown when course is selected) -->
-            <div id="assessmentManagementView" style="display: none;">
-                <div class="card">
-                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <button class="btn btn-secondary" onclick="backToAssessmentCourses()" style="margin-bottom: 0.5rem;">
-                                <i class="fas fa-arrow-left"></i> Back to Courses
-                            </button>
-                            <h2 id="selectedAssessmentCourseTitle">Course Assessments</h2>
-                        </div>
-                        <div class="search-box" style="max-width: 300px;">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="searchAssessments" placeholder="Search assessments..." onkeyup="filterAssessments()">
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="assessmentsList" class="table-container">
-                            <p>Loading assessments...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modal Container -->
-    <div id="modalContainer"></div>
-
-    <!-- Scripts -->
-    <script src="../student-portal/js/supabase-config.js"></script>
-    <script src="js/assessment-editor.js"></script>
-    <script>
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Check authentication
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                window.location.href = '../login.html';
-                return;
-            }
-            
-            // Load assessments
-            await loadAssessments();
-        });
-
-        function logout() {
-            supabase.auth.signOut();
-            window.location.href = '../login.html';
-        }
-    </script>
+<!-- EADB retirement: the old assessment editor moved into Overwatch. This page only redirects. -->
+<p>The assessment editor has moved to Overwatch.<br><a href="/overwatch/admin/instructor/">Continue to Overwatch</a></p>
 </body>
 </html>

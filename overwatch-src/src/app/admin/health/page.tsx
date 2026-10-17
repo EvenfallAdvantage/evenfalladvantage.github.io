@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getLegacyClient } from "@/lib/legacy-bridge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Activity,
@@ -27,7 +26,6 @@ type ServiceStatus = {
 const INITIAL_SERVICES: ServiceStatus[] = [
   { name: "Overwatch Supabase", region: "us-east-1", status: "checking", latencyMs: null, detail: "Auth + DB", checkedAt: null },
   { name: "Overwatch PostgREST", region: "us-east-1", status: "checking", latencyMs: null, detail: "REST API", checkedAt: null },
-  { name: "Legacy Supabase", region: "us-east-1", status: "checking", latencyMs: null, detail: "Training DB", checkedAt: null },
   { name: "Static Assets (GH Pages)", region: "global-cdn", status: "checking", latencyMs: null, detail: "CDN delivery", checkedAt: null },
 ];
 
@@ -79,30 +77,13 @@ export default function HealthPage() {
       detail: restResult.ok ? `REST OK (${restResult.ms}ms)` : "PostgREST error",
     };
 
-    // 3. Legacy Supabase
-    const legacy = getLegacyClient();
-    const legacyResult = await pingService(async () => {
-      const { error } = await legacy
-        .from("training_modules")
-        .select("id", { count: "exact", head: true })
-        .limit(1);
-      if (error) throw error;
-    });
-    updated[2] = {
-      ...updated[2],
-      status: legacyResult.ok ? "healthy" : "down",
-      latencyMs: legacyResult.ms,
-      checkedAt: now,
-      detail: legacyResult.ok ? `Legacy DB OK (${legacyResult.ms}ms)` : "Legacy unreachable",
-    };
-
     // 4. Static assets (fetch a known asset)
     const cdnResult = await pingService(async () => {
       const resp = await fetch("/overwatch/_next/static/chunks/webpack.js", { method: "HEAD", cache: "no-store" });
       if (!resp.ok) throw new Error("CDN fetch failed");
     });
-    updated[3] = {
-      ...updated[3],
+    updated[2] = {
+      ...updated[2],
       status: cdnResult.ok ? "healthy" : "degraded",
       latencyMs: cdnResult.ms,
       checkedAt: now,
@@ -170,8 +151,7 @@ export default function HealthPage() {
       {/* Service Cards */}
       <div className="grid gap-3">
         {services.map((svc) => {
-          const Icon = svc.name.includes("Legacy") ? Database
-            : svc.name.includes("Static") ? Globe
+          const Icon = svc.name.includes("Static") ? Globe
               : svc.name.includes("PostgREST") ? Server
                 : Database;
           const StatusIcon = svc.status === "healthy" ? CheckCircle2
@@ -229,10 +209,6 @@ export default function HealthPage() {
             <div className="flex justify-between">
               <span className="text-muted-foreground">Overwatch DB</span>
               <span className="font-mono">nneueuvyeohwnspbwfub</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Legacy DB</span>
-              <span className="font-mono">vaagvairvwmgyzsmymhs</span>
             </div>
           </div>
         </CardContent>

@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertFalse } from "jsr:@std/assert@1";
 import {
-  CLASS_TYPES, OPS, canManageLegacyCourses, certificateCodes, corsHeaders, isAllowed, nextTotalQuestions, normalizeQuestions,
+  CLASS_TYPES, OPS, READ_SELECTS, canManageLegacyCourses, seesAllClasses, certificateCodes, corsHeaders, isAllowed, nextProgress, nextTotalQuestions, normalizeQuestions,
   originAllowed, questionRows, rowsToQuestions, validateArgs,
 } from "./lib.ts";
 
@@ -159,4 +159,55 @@ Deno.test("total_questions keeps the per-attempt count unless the bank shrank be
   assertEquals(nextTotalQuestions(10, 5), 5);
   assertEquals(nextTotalQuestions(0, 7), 7);
   assertEquals(nextTotalQuestions(null, 7), 7);
+});
+
+Deno.test("progress.save: own progress only, module uuid + percent required, no student_id from the client", () => {
+  const spec = OPS["progress.save"];
+  assertEquals(spec.permission, "self");
+  assert(validateArgs(spec, { keys: { module_id: "11111111-1111-4111-8111-111111111111" }, values: { progress_percentage: 40, current_slide: 3 } }).ok);
+  assert(!validateArgs(spec, { keys: { module_id: "nope" }, values: { progress_percentage: 40 } }).ok);
+  assert(!validateArgs(spec, { keys: { module_id: "11111111-1111-4111-8111-111111111111" }, values: {} }).ok);
+  assert(!validateArgs(spec, { keys: { module_id: "11111111-1111-4111-8111-111111111111" }, values: { progress_percentage: 40, student_id: "x" } }).ok);
+});
+
+Deno.test("nextProgress clamps, completes at 100 and never un-completes", () => {
+  const now = "2026-10-10T00:00:00.000Z";
+  assertEquals(nextProgress(null, 140, 2, now), { status: "completed", progress_percentage: 100, current_slide: 2, completed_at: now });
+  assertEquals(nextProgress(null, -5, null, now), { status: "in_progress", progress_percentage: 0, completed_at: null });
+  assertEquals(nextProgress(null, 42.4, 1, now).progress_percentage, 42);
+  const done = { status: "completed", progress_percentage: 100, completed_at: "2026-01-01T00:00:00.000Z" };
+  assertEquals(nextProgress(done, 10, 1, now), { status: "completed", progress_percentage: 100, current_slide: 1, completed_at: "2026-01-01T00:00:00.000Z" });
+});
+
+Deno.test("read ops: me.* take no ids from the client; instructor reads need valid keys", () => {
+  for (const op of ["me.student", "me.enrollments", "me.progress", "me.results", "me.certificates"]) {
+    const spec = OPS[op];
+    assertEquals(spec.permission, "self", op);
+    assert(spec.read, op);
+    assertEquals(spec.keys, undefined, op);
+    assertEquals(spec.columns, undefined, op);
+    assert(!validateArgs(spec, { values: { student_id: U1 } }).ok, `${op} must reject a client student_id`);
+  }
+  for (const op of ["students.list", "student.progress", "classes.list", "class.enrollments.list", "class.attendance.list"]) {
+    assertEquals(OPS[op].permission, "instructor", op);
+    assert(OPS[op].read, op);
+  }
+  assert(validateArgs(OPS["student.progress"], { keys: { student_id: U1 } }).ok);
+  assert(!validateArgs(OPS["student.progress"], { keys: { student_id: "x" } }).ok);
+  assert(validateArgs(OPS["classes.list"], { values: { instructor_id: U1, from_date: "2026-10-10" } }).ok);
+  assert(!validateArgs(OPS["classes.list"], { values: { from_date: "tomorrow" } }).ok);
+  assert(validateArgs(OPS["class.attendance.list"], { keys: { class_id: U2 } }).ok);
+});
+
+Deno.test("read selects never come from the client and stay on the expected tables", () => {
+  for (const sel of Object.values(READ_SELECTS)) assert(!/[;]|--/.test(sel));
+  assert(READ_SELECTS.classEnrollments.includes("student:students (first_name, last_name, email)"));
+});
+
+Deno.test("class rosters: only Overwatch admin+ see every class", () => {
+  assert(seesAllClasses("owner"));
+  assert(seesAllClasses("admin"));
+  assertFalse(seesAllClasses("instructor"));
+  assertFalse(seesAllClasses("manager"));
+  assertFalse(seesAllClasses(null));
 });

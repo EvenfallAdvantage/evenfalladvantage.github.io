@@ -37,8 +37,7 @@ interface ProgressRecord {
   progress_percentage: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface Quiz { id: string; title: string; description: string | null; questions: any[]; passing_score: number }
+interface Quiz { id: string; title: string; description: string | null; question_count?: number; passing_score: number }
 
 export default function TrainingManagerPage() {
   const companyId = useAuthStore((s) => s.activeCompanyId);
@@ -216,7 +215,7 @@ export default function TrainingManagerPage() {
                         {q.description && <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{q.description}</p>}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge className="text-[9px] bg-muted">{q.questions?.length ?? 0} Q&apos;s</Badge>
+                        <Badge className="text-[9px] bg-muted">{q.question_count ?? 0} Q&apos;s</Badge>
                         <Badge className="text-[9px] bg-primary/10 text-primary">Pass: {q.passing_score}%</Badge>
                       </div>
                     </div>

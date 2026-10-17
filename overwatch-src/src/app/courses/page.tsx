@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
 import { getUserPayments } from "@/lib/supabase/db";
-import { getLegacyCourses } from "@/lib/legacy-bridge";
+import { getLegacyCourses, getLegacyEnrollments } from "@/lib/training";
 import { PageShell } from "@/components/layout/page-shell";
 
 type Course = Record<string, unknown> & {
@@ -35,7 +35,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   expert: "bg-red-500/15 text-red-600",
 };
 
-// Normalize legacy course rows to the shape expected by the UI
+// Normalize training course rows (OverwatchDB courses) to the shape expected by the UI
 function normalizeCourse(row: Record<string, unknown>): Course {
   return {
     ...row,
@@ -103,12 +103,14 @@ function CoursesContent() {
 
   const loadData = useCallback(async () => {
     try {
-      const [rawCourses, payments] = await Promise.all([
+      const [rawCourses, payments, enrollments] = await Promise.all([
         getLegacyCourses().catch(() => []),
         getUserPayments().catch(() => []),
+        getLegacyEnrollments().catch(() => []),
       ]);
       setCourses(rawCourses.map(normalizeCourse));
-      const purchased = new Set<string>();
+      // Owned = a completed payment, or an enrollment (incl. purchases imported from the old portal).
+      const purchased = new Set<string>(enrollments.map((e) => e.course_id));
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const p of payments as any[]) {
         if (p.status === "completed" && p.course_id) purchased.add(p.course_id);
@@ -116,7 +118,9 @@ function CoursesContent() {
       setPurchasedCourses(purchased);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, []);
+  // Re-run when the company changes: the training layer reads the active company from the store.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCompanyId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

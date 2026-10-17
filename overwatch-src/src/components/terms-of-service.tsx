@@ -142,7 +142,7 @@ export function TOSModal({ open, onClose }: TOSModalProps) {
             <p className="mt-2"><strong className="text-white">Assignment:</strong> You may not assign or transfer these Terms or your rights hereunder without the Company&apos;s prior written consent. The Company may assign these Terms without restriction.</p>
             <p className="mt-2"><strong className="text-white">Force Majeure:</strong> The Company shall not be liable for any failure or delay in performance resulting from causes beyond its reasonable control, including but not limited to acts of God, war, terrorism, pandemics, government actions, natural disasters, power failures, internet or telecommunications failures, or cyberattacks.</p>
             <p className="mt-2"><strong className="text-white">Modifications:</strong> We reserve the right to modify these Terms at any time. Material changes will be communicated via the Service or email at least thirty (30) days prior to taking effect. Continued use of the Service after such changes constitutes acceptance of the modified Terms.</p>
-            <p className="mt-2"><strong className="text-white">Notices:</strong> All notices under these Terms shall be in writing and shall be deemed given when delivered by email to the address associated with your account or, for notices to the Company, to legal@evenfalladvantage.com.</p>
+            <p className="mt-2"><strong className="text-white">Notices:</strong> All notices under these Terms shall be in writing and shall be deemed given when delivered by email to the address associated with your account or, for notices to the Company, to evenfall.adv@gmail.com.</p>
           </section>
 
           <section>
@@ -150,7 +150,7 @@ export function TOSModal({ open, onClose }: TOSModalProps) {
             <p>For questions about these Terms of Service, please contact:</p>
             <div className="mt-2 rounded-lg bg-white/5 p-4 text-xs space-y-1">
               <p className="text-white font-semibold">Evenfall Advantage LLC</p>
-              <p>Email: legal@evenfalladvantage.com</p>
+              <p>Email: evenfall.adv@gmail.com</p>
               <p>Website: evenfalladvantage.com</p>
             </div>
           </section>

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { escapeHtml } from "@/lib/security";
+import { isConstrainedDevice, pointBudget, withSuspendedEvents } from "@/lib/map/device-profile";
 import { createPinCanvas } from "../pin-canvas";
 import { getRadioFrequenciesWithLocation } from "@/lib/supabase/db";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -57,7 +58,12 @@ export function useFrequencyLayer(params: {
       try {
         const freqs = await getRadioFrequenciesWithLocation(companyId);
         if (cancelled) return;
-        for (const f of freqs) {
+        // Budget: query is already ordered by priority, then frequency; keep the first N.
+        const budget = pointBudget("frequencies");
+        const kept = freqs.slice(0, budget);
+        const constrained = isConstrainedDevice();
+        withSuspendedEvents(viewer.entities, () => {
+        for (const f of kept) {
           if (f.latitude == null || f.longitude == null) continue;
           const color = getColor(f.category);
           const freqMhz = f.frequency.toFixed(4);
@@ -84,7 +90,7 @@ export function useFrequencyLayer(params: {
               image: createPinCanvas(color, "alert"),
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               scale: 0.5,
-              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+              heightReference: constrained ? Cesium.HeightReference.NONE : Cesium.HeightReference.RELATIVE_TO_GROUND,
               disableDepthTestDistance: 500_000,
             },
             label: {
@@ -99,12 +105,14 @@ export function useFrequencyLayer(params: {
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               disableDepthTestDistance: 500_000,
               scale: 0.8,
-              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
+              // Labels only near the camera; 700+ always-on labels were the main cost.
+              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, constrained ? 30_000 : 80_000),
             },
             description,
           });
           (entityGroups.frequencies as { id: string }[]).push(entity);
         }
+        });
       } catch (e) {
         logger.swallow("frequency-layer:fetch", e, "warn");
       }

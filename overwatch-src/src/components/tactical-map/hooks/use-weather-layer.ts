@@ -42,6 +42,9 @@ export function useWeatherLayer(params: {
         weatherLayerRef.current = null;
       }
 
+      // Iowa State Mesonet NEXRAD composite. (The old NOAA WMS fallback was
+      // dead — GetCapabilities returns 400 — and the provider constructor
+      // never throws, so it could not trigger anyway.)
       try {
         const radarProvider = new C.UrlTemplateImageryProvider({
           url: `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png?_t=${Date.now()}`,
@@ -52,19 +55,7 @@ export function useWeatherLayer(params: {
         const layer = v.imageryLayers.addImageryProvider(radarProvider);
         layer.alpha = 0.6;
         weatherLayerRef.current = layer;
-      } catch {
-        try {
-          const weatherProvider = new C.WebMapServiceImageryProvider({
-            url: "https://mapservices.weather.noaa.gov/eventdriven/services/radar/radar_base_reflectivity_time/MapServer/WMSServer",
-            layers: "0",
-            parameters: { transparent: true, format: "image/png" },
-            credit: "NOAA/NWS",
-          });
-          const layer = v.imageryLayers.addImageryProvider(weatherProvider);
-          layer.alpha = 0.5;
-          weatherLayerRef.current = layer;
-        } catch (e) { logger.swallow("cesium-layers:weather-refresh", e); }
-      }
+      } catch (e) { logger.swallow("cesium-layers:weather-refresh", e); }
     }
 
     // Defer initial load so Cesium internals settle after loading state change

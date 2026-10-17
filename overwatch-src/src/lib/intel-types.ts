@@ -310,6 +310,8 @@ export interface CctvCamera {
   stream_type?: CctvStreamType;
   external_url?: string;
   source: string;
+  /** Provider credit (client-attached from the bbox response's attribution map). */
+  attribution?: string;
 }
 export interface IntelCctvResponse {
   cameras: CctvCamera[];
@@ -317,6 +319,24 @@ export interface IntelCctvResponse {
   sources: Record<string, number>;
   regions: string[];
   timestamp: string;
+  gated_by?: string;
+  error?: string;
+}
+export interface CctvCluster { id: string; lat: number; lng: number; count: number; sample_id: string }
+/**
+ * intel-cctv?bbox= response. `mode` is absent when an older deployment
+ * ignored bbox and returned the legacy full list (handled by the client).
+ */
+export interface IntelCctvBboxResponse {
+  mode?: "clusters" | "points";
+  total: number;
+  sources: Record<string, number>;
+  attribution?: Record<string, string>;
+  truncated?: boolean;
+  cameras?: CctvCamera[];
+  clusters?: CctvCluster[];
+  zoom?: number;
+  timestamp?: string;
   gated_by?: string;
   error?: string;
 }

@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { X, ExternalLink, Camera } from "lucide-react";
 import type { CctvCamera } from "@/lib/intel-types";
+import { DATA_SOURCES_URL } from "@/lib/legal/links";
 
 interface CctvViewerProps {
   camera: CctvCamera;
@@ -137,6 +138,12 @@ export function CctvViewer({ camera, onClose }: CctvViewerProps) {
               )}
             </div>
           )}
+        </div>
+        <div className="px-4 py-2 border-t border-white/10 text-[10px] text-white/50 shrink-0 flex flex-wrap items-center gap-x-2">
+          <span>Image: {camera.attribution ?? camera.source}. Live third-party image, not recorded by Overwatch; may be delayed. Not for emergency use.</span>
+          <a href={DATA_SOURCES_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-white">
+            Licence
+          </a>
         </div>
       </div>
     </div>

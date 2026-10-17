@@ -5,6 +5,12 @@
 
 import { logger } from "@/lib/logger";
 
+/** Overpass API endpoints, tried in order (public instances, no key). */
+export const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+] as const;
+
 // ─── Nearby POIs via Overpass API (OpenStreetMap) ─────────────
 
 export type PoiType =
@@ -183,12 +189,23 @@ async function fetchTile(tileLat: number, tileLng: number, types: readonly PoiTy
         return entry.data;
       }
 
-      const res = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        body: `data=${encodeURIComponent(query)}`,
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        signal: AbortSignal.timeout(15000),
-      });
+      // Primary + public mirror: on 429/5xx or a network error from one
+      // endpoint, try the next before backing off.
+      let res: Response | null = null;
+      let lastErr: unknown = null;
+      for (const endpoint of OVERPASS_ENDPOINTS) {
+        try {
+          const r = await fetch(endpoint, {
+            method: "POST",
+            body: `data=${encodeURIComponent(query)}`,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            signal: AbortSignal.timeout(15000),
+          });
+          res = r;
+          if (r.ok || (r.status !== 429 && r.status < 500)) break;
+        } catch (e) { lastErr = e; }
+      }
+      if (!res) throw lastErr ?? new Error("Overpass unreachable");
       if (!res.ok) {
         logger.warn("env-intel", `Overpass tile ${key} returned ${res.status}`);
         if (res.status === 429 || res.status >= 500) triggerBackoff();
