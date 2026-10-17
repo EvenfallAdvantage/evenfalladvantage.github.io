@@ -8,7 +8,14 @@
  */
 
 import { useMemo } from "react";
-import { X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
+import {
+  DATA_SOURCES_URL,
+  LEGAL_CONTACT_EMAIL,
+  MAP_DISCLAIMER,
+  PRIVACY_MAP_DATA_URL,
+  TERMS_OVERWATCH_URL,
+} from "@/lib/legal/links";
 import {
   INTEL_LAYER_FLAGS,
   type IntelLayerKey,
@@ -48,7 +55,7 @@ export function AttributionModal({ activeLayers, onClose }: AttributionModalProp
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <span className="text-sm font-semibold text-white">
-            Intel Data Sources & Attribution
+            Data Sources & Attribution
           </span>
           <button
             onClick={onClose}
@@ -59,15 +66,25 @@ export function AttributionModal({ activeLayers, onClose }: AttributionModalProp
           </button>
         </div>
         <div className="px-4 py-3 space-y-2 text-xs text-white/80">
-          <p className="text-white/50">
-            The Intel features in Overwatch aggregate public data from the
-            following sources. Some are free with attribution; some require
-            legal review before commercial use. See{" "}
-            <code className="font-mono text-[10px] text-white/70">
-              docs/THIRD-PARTY-NOTICES.md
-            </code>{" "}
-            for the full license posture.
+          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-amber-200">
+            {MAP_DISCLAIMER}
           </p>
+          <p className="text-white/50">
+            Overwatch shows third-party data owned by the providers below, used
+            under their licences. No provider endorses Overwatch. Full credits
+            and licence links:
+          </p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            <a href={DATA_SOURCES_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 underline text-amber-400">
+              Data Sources Notice <ExternalLink className="h-3 w-3" />
+            </a>
+            <a href={TERMS_OVERWATCH_URL} target="_blank" rel="noopener noreferrer" className="underline text-amber-400">
+              Terms §16
+            </a>
+            <a href={PRIVACY_MAP_DATA_URL} target="_blank" rel="noopener noreferrer" className="underline text-amber-400">
+              Privacy
+            </a>
+          </div>
           <table className="w-full font-mono text-[11px] mt-3">
             <thead className="text-white/40 border-b border-white/10">
               <tr>
@@ -101,6 +118,10 @@ export function AttributionModal({ activeLayers, onClose }: AttributionModalProp
             Vendored code from the Osiris OSS project
             (github.com/simplifaisoul/osiris, MIT). License preserved per MIT
             terms.
+          </p>
+          <p className="text-[10px] text-white/40">
+            Corrections or takedown requests:{" "}
+            <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} className="underline">{LEGAL_CONTACT_EMAIL}</a>
           </p>
         </div>
       </div>

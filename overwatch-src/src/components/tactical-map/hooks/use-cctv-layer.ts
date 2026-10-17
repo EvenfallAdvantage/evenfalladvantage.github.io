@@ -226,7 +226,10 @@ export function useCctvLayer(params: {
         } else {
           if (!data.mode) legacy = true; // old deployment: full list, render once
           const cams = data.cameras ?? [];
-          for (const cam of legacy ? cams : cams.slice(0, budget)) next.set(`cctv-${cam.id}`, { kind: "cam", cam });
+          const credits = data.attribution ?? {};
+          for (const cam of legacy ? cams : cams.slice(0, budget)) {
+            next.set(`cctv-${cam.id}`, { kind: "cam", cam: { ...cam, attribution: cam.attribution ?? credits[cam.source] } });
+          }
         }
         render(next);
         setCredit(attributionLine(data.attribution ?? Object.fromEntries(Object.keys(data.sources ?? {}).map((s) => [s, s]))));

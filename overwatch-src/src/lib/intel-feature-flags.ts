@@ -105,7 +105,8 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   // region as their individual ToS are reviewed.
   cctv: {
     enabled: true,
-    attribution: "Caltrans CWWP2, NYC DOT, LTA Singapore (open data)",
+    attribution:
+      "Caltrans, NYC DOT, LTA Singapore (data.gov.sg, SODL 1.0), DriveBC (OGL-BC), HK Transport Dept (DATA.GOV.HK), City of Austin, Powered by TfL Open Data, NZ Transport Agency Waka Kotahi",
     attributionRequired: true,
   },
 

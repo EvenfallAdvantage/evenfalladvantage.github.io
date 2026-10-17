@@ -310,6 +310,8 @@ export interface CctvCamera {
   stream_type?: CctvStreamType;
   external_url?: string;
   source: string;
+  /** Provider credit (client-attached from the bbox response's attribution map). */
+  attribution?: string;
 }
 export interface IntelCctvResponse {
   cameras: CctvCamera[];

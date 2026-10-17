@@ -41,7 +41,7 @@ sources are currently enabled and any gating reasons.
 | MITRE CVE / CIRCL | CVE lookups (RECON tab) | `cveawg.mitre.org`, `cve.circl.lu` |
 | BGPView | ASN / prefix lookups (RECON tab) | `api.bgpview.io` |
 | crt.sh | Certificate transparency (RECON tab) | `crt.sh` |
-| ip-api.com | IP geolocation (RECON tab) | `ip-api.com` |
+| ip-api.com | IP geolocation (RECON tab) | `ip-api.com` (free tier non-commercial; permission requested 2026-10-16) |
 | AlienVault OTX | Threat intel (RECON tab) | `otx.alienvault.com` |
 | Shodan InternetDB | IP sweep (RECON tab) | `internetdb.shodan.io` |
 | CISA KEV | Cyber threats status bar | `cisa.gov` |
@@ -52,25 +52,46 @@ sources are currently enabled and any gating reasons.
 
 ### Free with attribution required
 
-| Source | Used for | Attribution string |
+The public, user-facing list (exact credit strings + licence links) is
+`/data-sources.html` at the site root (https://www.evenfalladvantage.com/data-sources.html).
+Keep this table and that page in sync.
+
+| Source | Used for | Attribution string / licence |
 |---|---|---|
-| NASA FIRMS (VIIRS/MODIS) | Active fires layer | "NASA FIRMS" |
+| NASA FIRMS (VIIRS/MODIS) | Active fires layer | "NASA FIRMS" (NASA data policy) |
 | NASA EONET imagery | EONET events layer | "NASA EONET" |
 | CelesTrak TLE catalog | Satellite orbits | "CelesTrak" |
-| OpenSky Network / adsb.lol | Flight tracking layer | "OpenSky Network" |
-| LTA Singapore (data.gov.sg) | CCTV layer — Singapore | "LTA Singapore" |
-| Florida DOT (FL-511) | CCTV layer — Florida | "FL-511" |
-| Caltrans (cwwp2.dot.ca.gov) | CCTV layer — California | "Caltrans" |
+| ADSB.lol (primary) / adsb.fi (fallback) | Flight tracking layer (`opensky-proxy`) | "Aircraft data © adsb.lol / adsb.fi contributors (ODbL)"; adsb.lol ODbL 1.0; adsb.fi open-data terms (non-commercial; permission requested 2026-10-16) |
+| CARTO / OpenStreetMap | Basemap | "© OpenStreetMap contributors, © CARTO" (ODbL + CARTO basemap terms) |
+| EOX EOxCloudless 2021 | Sentinel-2 mosaic | "EOxCloudless … by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2021)" CC BY-NC-SA 4.0; licensing enquiry sent 2026-10-16 |
+| Blitzortung.org / LightningMaps | Lightning layer | "© Blitzortung.org and contributors" (non-commercial; permission requested 2026-10-16) |
+| Caltrans CWWP2 | CCTV — California | "Caltrans" |
+| NYC DOT | CCTV — New York City | "NYC DOT" (data-sharing agreement requested 2026-10-16) |
+| LTA Singapore (data.gov.sg) | CCTV — Singapore | Singapore Open Data Licence 1.0 notice + link |
+| DriveBC | CCTV — British Columbia | "Contains information licensed under the Open Government Licence – British Columbia" |
+| HK Transport Department (DATA.GOV.HK) | CCTV — Hong Kong | Government of HKSAR / TD / DATA.GOV.HK; licence includes user indemnity (passed through in ToS §16.11) |
+| City of Austin | CCTV — Austin, TX | "City of Austin Open Data" |
+| Transport for London | CCTV — London | "Powered by TfL Open Data" |
+| NZ Transport Agency Waka Kotahi | CCTV — New Zealand | NZTA (imagery excluded from CC BY; permission requested 2026-10-16) |
+| S2 Underground (ArcGIS) | Incident layers (Domestic Terrorism Tracker, Drone Reports, Tipline Reports) | "Data: S2 Underground" (used with permission) |
+| Radio reference frequencies | Radio frequency seed data | Community-compiled reference data; provenance under review |
 
-### Available for future activation — per-region legal review required
+### Terms pending — wired but disabled
 
-The upstream Osiris CCTV aggregator supports additional sources whose ToS
-need per-jurisdiction review before the regions are wired into `intel-cctv`:
+Disabled unless the `CCTV_ENABLE_PENDING_SOURCES` env allowlist is set on
+`intel-cctv-ingest` (it is not set).
+
+| Source | Status |
+|---|---|
+| Illinois DOT (Gateway / Travel Midwest) | Registration submitted 2026-10-17. Requires credit "Gateway traffic information courtesy of the Illinois Department of Transportation", IDOT logo, policy link, ≤1 image request / 5 min |
+| Iowa DOT | Permission requested 2026-10-16 |
+| Oregon DOT (TripCheck) | Permission requested 2026-10-16. Credit "Camera courtesy of ODOT" |
+
+### Not yet integrated — per-region legal review required
 
 | Source | Restriction |
 |---|---|
-| TfL JamCams (London) | Free for non-commercial; commercial use requires TfL registration |
-| WSDOT, NYC DOT, etc. | Open data with varying terms; check per-jurisdiction |
+| WSDOT, etc. | Open data with varying terms; check per-jurisdiction |
 | ASFINAG (Austria) | Free with attribution; check ToS |
 | 511 Ontario / Alberta (Canada) | Open data |
 | Netherlands NDW (RWS) | Open data |
@@ -93,3 +114,10 @@ attribution string must be rendered somewhere accessible (status bar,
 attribution modal, or layer tooltip). The `getRequiredAttributions(...)`
 helper in `src/lib/intel-feature-flags.ts` returns the list for any given
 set of active layers.
+
+## Legal surfaces
+
+- Terms of Service §16 (Overwatch Platform and Third-Party Data): `/terms-of-service.html#overwatch`
+- Privacy Policy §8A (map data, no camera image archiving): `/privacy-policy.html#overwatch-map-data`
+- In-app: map footer "Not for emergency use", Data Sources modal link, and a
+  one-time CCTV acknowledgement (`src/lib/map/cctv-ack.ts`).
