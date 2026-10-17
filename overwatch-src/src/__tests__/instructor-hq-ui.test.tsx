@@ -58,6 +58,26 @@ describe("ClassesTab create", () => {
   });
 });
 
+describe("ClassesTab scoping", () => {
+  it("instructors load only the classes they teach", async () => {
+    render(<ClassesTab instructorId="i-1" triggerNew={0} />);
+    await waitFor(() => expect(api.getLegacyClasses).toHaveBeenCalledWith("i-1"));
+    expect(await screen.findByText(/classes you teach/)).toBeDefined();
+  });
+
+  it("owners/admins load every class", async () => {
+    render(<ClassesTab instructorId="i-1" triggerNew={0} seeAll />);
+    await waitFor(() => expect(api.getLegacyClasses).toHaveBeenCalledWith(undefined));
+    expect(await screen.findByText(/all instructors/)).toBeDefined();
+  });
+
+  it("loads nothing until the instructor's own id is known", async () => {
+    render(<ClassesTab instructorId={null} triggerNew={0} />);
+    expect(await screen.findByText(/0 upcoming classes you teach/)).toBeDefined();
+    expect(api.getLegacyClasses).not.toHaveBeenCalled();
+  });
+});
+
 describe("QuestionsEditor", () => {
   it("validates, then saves the questions", async () => {
     api.getLegacyAssessmentQuestions.mockResolvedValue({ success: true, questions: [] });

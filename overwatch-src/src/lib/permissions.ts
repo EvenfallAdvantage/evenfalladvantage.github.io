@@ -55,6 +55,15 @@ export function canManageLegacyCourses(role: CompanyRole): boolean {
   return role === "instructor" || hasMinRole(role, "admin");
 }
 
+/**
+ * Instructor HQ classes: owners and admins see every class and roster of the company;
+ * instructors (and managers) only the classes they teach. Mirrors
+ * training_sees_all_classes() / training_can_manage_class() in the database.
+ */
+export function canSeeAllTrainingClasses(role: CompanyRole): boolean {
+  return hasMinRole(role, "admin");
+}
+
 /** Check if the role is a client (not internal staff) */
 export function isClientRole(role: CompanyRole): boolean {
   return role === "client";

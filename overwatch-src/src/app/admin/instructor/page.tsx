@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
-import { canManageLegacyCourses, type CompanyRole } from "@/lib/permissions";
+import { canManageLegacyCourses, canSeeAllTrainingClasses, type CompanyRole } from "@/lib/permissions";
 import { ensureInternalUser } from "@/lib/supabase/db-helpers";
 import { usePageHeader } from "@/stores/page-header-store";
 import { CoursesTab } from "./components/courses-tab";
@@ -104,7 +104,7 @@ export default function InstructorHQPage() {
       </div>
 
       {tab === "courses" && <CoursesTab triggerNew={triggerNew} />}
-      {tab === "classes" && <ClassesTab instructorId={instructorId} triggerNew={triggerNew} />}
+      {tab === "classes" && <ClassesTab instructorId={instructorId} triggerNew={triggerNew} seeAll={canSeeAllTrainingClasses(role)} />}
       {tab === "students" && <StudentsTab instructorId={instructorId} />}
       {tab === "assessments" && <AssessmentsTab triggerNew={triggerNew} />}
     </div>

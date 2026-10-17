@@ -106,4 +106,34 @@ CREATE POLICY courses_insert ON public.courses FOR INSERT TO authenticated WITH 
 CREATE POLICY courses_update ON public.courses FOR UPDATE TO authenticated USING (public.is_company_member(company_id));
 CREATE POLICY courses_delete ON public.courses FOR DELETE TO authenticated USING (public.is_company_admin(company_id));
 
+
+-- Section 8 (class scoping): restore the pre-cutover class policies.
+DROP POLICY IF EXISTS training_classes_select ON public.training_classes;
+DROP POLICY IF EXISTS training_classes_insert ON public.training_classes;
+DROP POLICY IF EXISTS training_classes_update ON public.training_classes;
+DROP POLICY IF EXISTS training_classes_delete ON public.training_classes;
+CREATE POLICY training_classes_select ON public.training_classes FOR SELECT TO authenticated USING (public.training_can_view(company_id));
+CREATE POLICY training_classes_insert ON public.training_classes FOR INSERT TO authenticated WITH CHECK (public.training_can_manage(company_id));
+CREATE POLICY training_classes_update ON public.training_classes FOR UPDATE TO authenticated USING (public.training_can_manage(company_id)) WITH CHECK (public.training_can_manage(company_id));
+CREATE POLICY training_classes_delete ON public.training_classes FOR DELETE TO authenticated USING (public.training_can_manage(company_id));
+DROP POLICY IF EXISTS training_class_enrollments_select ON public.training_class_enrollments;
+DROP POLICY IF EXISTS training_class_enrollments_insert ON public.training_class_enrollments;
+DROP POLICY IF EXISTS training_class_enrollments_update ON public.training_class_enrollments;
+DROP POLICY IF EXISTS training_class_enrollments_delete ON public.training_class_enrollments;
+CREATE POLICY training_class_enrollments_select ON public.training_class_enrollments FOR SELECT TO authenticated USING (public.training_can_manage(company_id) OR ((user_id = (SELECT public.get_my_user_id())) AND public.training_can_view(company_id)));
+CREATE POLICY training_class_enrollments_insert ON public.training_class_enrollments FOR INSERT TO authenticated WITH CHECK (public.training_can_manage(company_id));
+CREATE POLICY training_class_enrollments_update ON public.training_class_enrollments FOR UPDATE TO authenticated USING (public.training_can_manage(company_id)) WITH CHECK (public.training_can_manage(company_id));
+CREATE POLICY training_class_enrollments_delete ON public.training_class_enrollments FOR DELETE TO authenticated USING (public.training_can_manage(company_id));
+DROP POLICY IF EXISTS training_class_attendance_select ON public.training_class_attendance;
+DROP POLICY IF EXISTS training_class_attendance_insert ON public.training_class_attendance;
+DROP POLICY IF EXISTS training_class_attendance_update ON public.training_class_attendance;
+DROP POLICY IF EXISTS training_class_attendance_delete ON public.training_class_attendance;
+CREATE POLICY training_class_attendance_select ON public.training_class_attendance FOR SELECT TO authenticated USING (public.training_can_manage(company_id) OR ((user_id = (SELECT public.get_my_user_id())) AND public.training_can_view(company_id)));
+CREATE POLICY training_class_attendance_insert ON public.training_class_attendance FOR INSERT TO authenticated WITH CHECK (public.training_can_manage(company_id));
+CREATE POLICY training_class_attendance_update ON public.training_class_attendance FOR UPDATE TO authenticated USING (public.training_can_manage(company_id)) WITH CHECK (public.training_can_manage(company_id));
+CREATE POLICY training_class_attendance_delete ON public.training_class_attendance FOR DELETE TO authenticated USING (public.training_can_manage(company_id));
+DROP FUNCTION IF EXISTS public.training_can_manage_class(uuid, uuid);
+DROP FUNCTION IF EXISTS public.training_is_enrolled_in_class(uuid);
+DROP FUNCTION IF EXISTS public.training_sees_all_classes(uuid);
+
 COMMIT;

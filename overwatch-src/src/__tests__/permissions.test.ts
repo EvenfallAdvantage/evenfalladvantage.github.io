@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   hasMinRole, canManageStaff, canManageEvents, canClockOthers,
-  canApproveTimesheets, canManageSettings, canManageLegacyCourses,
+  canApproveTimesheets, canManageSettings, canManageLegacyCourses, canSeeAllTrainingClasses,
   ROLE_LABELS, type CompanyRole,
 } from "@/lib/permissions";
 
@@ -98,6 +98,13 @@ describe("Role-Based Access Control", () => {
       expect(canManageLegacyCourses("manager")).toBe(false);
       expect(canManageLegacyCourses("instructor")).toBe(true);
       expect(canManageLegacyCourses("admin")).toBe(true);
+    });
+
+    it("canSeeAllTrainingClasses is owner/admin only (instructors and managers: own classes)", () => {
+      expect(canSeeAllTrainingClasses("instructor")).toBe(false);
+      expect(canSeeAllTrainingClasses("manager")).toBe(false);
+      expect(canSeeAllTrainingClasses("admin")).toBe(true);
+      expect(canSeeAllTrainingClasses("owner")).toBe(true);
     });
   });
 });

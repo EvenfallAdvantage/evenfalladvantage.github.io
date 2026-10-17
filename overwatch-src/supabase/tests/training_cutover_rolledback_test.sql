@@ -21,12 +21,16 @@ DECLARE
   s_instr text := 'f2fc53f4-d752-498c-b4f3-2465695dfcc4';
   s_staff text := '3689872f-7a38-455c-8d15-4087ed77ffe0';
   s_out   text := 'afaa0965-ebe0-4a9d-94e4-be3553f8eab0';
+  s_mgr   text := '6d44cf9e-2ed3-4453-b5c6-ef5fa6dfc37d';
+  u_instr uuid; u_admin uuid; cl2 uuid := gen_random_uuid(); cl3 uuid := gen_random_uuid();
   u_staff uuid; inline_q uuid := '00000000-0000-4000-8000-00000000a001';
   qz uuid := gen_random_uuid(); qz0 uuid := gen_random_uuid(); c1 uuid := gen_random_uuid(); m1 uuid;
   cl uuid := gen_random_uuid(); ids_before uuid[]; ids_after uuid[];
   r text[] := '{}'; n int; j jsonb; v text; st text; det text; id1 uuid; id2 uuid;
 BEGIN
   SELECT id INTO u_staff FROM public.users WHERE supabase_id = s_staff;
+  SELECT id INTO u_instr FROM public.users WHERE supabase_id = s_instr;
+  SELECT id INTO u_admin FROM public.users WHERE supabase_id = s_admin;
 
   -- 1. inline quiz converted
   SELECT count(*) INTO n FROM public.training_quiz_questions WHERE quiz_id = inline_q; r := array_append(r, (('inline_moved_q=' || n))::text);
@@ -46,8 +50,11 @@ BEGIN
   INSERT INTO public.quizzes (id, company_id, title, updated_at, passing_score, max_attempts) VALUES
     (qz, ef, 'ZZTEST server quiz', now(), 50, 2), (qz0, ef, 'ZZTEST ack drill', now(), 70, 0);
   INSERT INTO public.courses (id, company_id, title, updated_at) VALUES (c1, ef, 'ZZTEST course', now());
-  INSERT INTO public.training_classes (id, company_id, class_name, scheduled_date) VALUES (cl, ef, 'ZZTEST class', current_date);
-  INSERT INTO public.training_class_enrollments (company_id, class_id, user_id) VALUES (ef, cl, u_staff);
+  -- cl: taught by the instructor; cl2: taught by the admin. Staff is enrolled in cl only.
+  INSERT INTO public.training_classes (id, company_id, class_name, scheduled_date, instructor_user_id) VALUES
+    (cl, ef, 'ZZTEST class (instructor)', current_date, u_instr), (cl2, ef, 'ZZTEST class (admin)', current_date, u_admin);
+  INSERT INTO public.training_class_enrollments (company_id, class_id, user_id) VALUES (ef, cl, u_staff), (ef, cl2, u_staff);
+  INSERT INTO public.training_class_attendance (company_id, class_id, user_id, attendance_status) VALUES (ef, cl2, u_staff, 'present');
 
   -- ── instructor ──
   PERFORM set_config('request.jwt.claims', json_build_object('sub', s_instr, 'role', 'authenticated')::text, true);
@@ -66,6 +73,42 @@ BEGIN
   SELECT count(*) INTO n FROM public.training_list_learners(ef) WHERE user_id = u_staff; r := array_append(r, (('instr_learners_has_staff=' || n))::text);
   SELECT count(*) INTO n FROM public.training_list_learners(ef); r := array_append(r, (('learners_total=' || n))::text);
   SELECT count(*) INTO n FROM public.training_class_roster(cl); r := array_append(r, (('roster=' || n))::text);
+  -- class scoping: own classes only
+  SELECT count(*) INTO n FROM public.training_classes WHERE id IN (cl, cl2); r := array_append(r, (('instr_sees_classes=' || n))::text);
+  SELECT count(*) INTO n FROM public.training_classes WHERE company_id = ef AND instructor_user_id IS DISTINCT FROM u_instr; r := array_append(r, (('instr_sees_others_classes=' || n))::text);
+  BEGIN PERFORM public.training_class_roster(cl2); r := array_append(r, ('instr_roster_other=ALLOWED'::text)::text);
+  EXCEPTION WHEN insufficient_privilege THEN r := array_append(r, ('instr_roster_other=denied'::text)::text); END;
+  SELECT count(*) INTO n FROM public.training_class_enrollments WHERE class_id = cl2; r := array_append(r, (('instr_other_enrol_rows=' || n))::text);
+  SELECT count(*) INTO n FROM public.training_class_attendance WHERE class_id = cl2; r := array_append(r, (('instr_other_attend_rows=' || n))::text);
+  BEGIN INSERT INTO public.training_class_enrollments (company_id, class_id, user_id) VALUES (ef, cl2, u_instr); r := array_append(r, ('instr_enrol_other=ALLOWED'::text)::text);
+  EXCEPTION WHEN insufficient_privilege THEN r := array_append(r, ('instr_enrol_other=denied'::text)::text); END;
+  BEGIN INSERT INTO public.training_class_attendance (company_id, class_id, user_id, attendance_status) VALUES (ef, cl2, u_staff, 'absent'); r := array_append(r, ('instr_attend_other=ALLOWED'::text)::text);
+  EXCEPTION WHEN insufficient_privilege THEN r := array_append(r, ('instr_attend_other=denied'::text)::text); END;
+  INSERT INTO public.training_class_attendance (company_id, class_id, user_id, attendance_status) VALUES (ef, cl, u_staff, 'late');
+  r := array_append(r, ('instr_attend_own=ok'::text)::text);
+  UPDATE public.training_classes SET location = 'x' WHERE id = cl2; GET DIAGNOSTICS n = ROW_COUNT; r := array_append(r, (('instr_update_other_rows=' || n))::text);
+  BEGIN UPDATE public.training_classes SET instructor_user_id = u_admin WHERE id = cl; r := array_append(r, ('instr_handoff=ALLOWED'::text)::text);
+  EXCEPTION WHEN insufficient_privilege THEN r := array_append(r, ('instr_handoff=denied'::text)::text); END;
+  BEGIN INSERT INTO public.training_classes (company_id, class_name, instructor_user_id) VALUES (ef, 'ZZ for admin', u_admin); r := array_append(r, ('instr_create_for_other=ALLOWED'::text)::text);
+  EXCEPTION WHEN insufficient_privilege THEN r := array_append(r, ('instr_create_for_other=denied'::text)::text); END;
+  INSERT INTO public.training_classes (id, company_id, class_name, instructor_user_id) VALUES (cl3, ef, 'ZZ own', u_instr);
+  r := array_append(r, ('instr_create_own=ok'::text)::text);
+  RESET ROLE;
+
+  -- ── manager: same "own classes only" rule ──
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', s_mgr, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.training_classes WHERE id IN (cl, cl2, cl3); r := array_append(r, (('mgr_sees_classes=' || n))::text);
+  BEGIN PERFORM public.training_class_roster(cl); r := array_append(r, ('mgr_roster=ALLOWED'::text)::text);
+  EXCEPTION WHEN insufficient_privilege THEN r := array_append(r, ('mgr_roster=denied'::text)::text); END;
+  RESET ROLE;
+
+  -- ── admin: all classes and rosters ──
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', s_admin, 'role', 'authenticated')::text, true);
+  SET LOCAL ROLE authenticated;
+  SELECT count(*) INTO n FROM public.training_classes WHERE id IN (cl, cl2, cl3); r := array_append(r, (('admin_sees_classes=' || n))::text);
+  SELECT count(*) INTO n FROM public.training_class_roster(cl); r := array_append(r, (('admin_roster_instr_class=' || n))::text);
+  UPDATE public.training_classes SET location = 'y' WHERE id = cl; GET DIAGNOSTICS n = ROW_COUNT; r := array_append(r, (('admin_update_any_rows=' || n))::text);
   RESET ROLE;
 
   -- ── staff (learner) ──
@@ -78,6 +121,10 @@ BEGIN
   BEGIN INSERT INTO public.quiz_attempts (id, quiz_id, user_id, score, passed) VALUES (gen_random_uuid(), qz, u_staff, 100, true); r := array_append(r, ('staff_fake_attempt=ALLOWED'::text)::text);
   EXCEPTION WHEN insufficient_privilege THEN r := array_append(r, ('staff_fake_attempt=denied'::text)::text); END;
   SELECT count(*) INTO n FROM public.assessment_questions; r := array_append(r, (('staff_bank_rows=' || n))::text);
+  SELECT count(*) INTO n FROM public.training_classes WHERE id IN (cl, cl2, cl3); r := array_append(r, (('staff_sees_classes=' || n))::text);
+  SELECT count(*) INTO n FROM public.training_class_enrollments WHERE class_id IN (cl, cl2); r := array_append(r, (('staff_own_enrol_rows=' || n))::text);
+  BEGIN PERFORM public.training_class_roster(cl); r := array_append(r, ('staff_roster=ALLOWED'::text)::text);
+  EXCEPTION WHEN insufficient_privilege THEN r := array_append(r, ('staff_roster=denied'::text)::text); END;
   BEGIN SELECT count(*) INTO n FROM public.training_quiz_answer_keys; r := array_append(r, ('staff_keys=ALLOWED'::text)::text);
   EXCEPTION WHEN insufficient_privilege THEN r := array_append(r, ('staff_keys=denied'::text)::text); END;
   SELECT id INTO id1 FROM public.training_quiz_questions WHERE quiz_id = qz AND question_number = 1;

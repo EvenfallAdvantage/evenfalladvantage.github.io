@@ -20,6 +20,10 @@
 --      training_list_learners, training_learner_progress, training_class_roster,
 --      training_issue_certificate, admin_save_training_quiz_questions,
 --      training_delete_quiz, training_delete_course.
+--   8. Class scoping: instructors (and managers) see and manage only the classes they teach
+--      (training_classes.instructor_user_id) and those classes' rosters/attendance. Owners and
+--      admins see all of the company's classes. Learners see only classes they're enrolled in.
+--      Before: every member could list every class, and any manager+ could read every roster.
 --
 -- Requires 20261017184312_training_eadb_consolidation (applied).
 -- Test (rolled back): tests/training_cutover_rolledback_test.sql
@@ -173,6 +177,90 @@ BEGIN
                             'passed', v_score >= v_quiz.passing_score, 'questions', v_detail);
 END $$;
 
+-- ── 8. Class scoping (defined before the RPCs that use it) ─────────────────
+-- Owners/admins: all classes of the company. Instructors/managers: classes they teach.
+-- Learners: classes they're enrolled in (read only). Managers follow the same "own only"
+-- rule as instructors: nothing in Overwatch gives managers company-wide class access
+-- (Instructor HQ itself is instructor/admin/owner only).
+CREATE OR REPLACE FUNCTION public.training_sees_all_classes(p_company_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SET search_path = '' AS $$
+  SELECT coalesce(public.role_rank(public.my_company_role(p_company_id)) >= public.role_rank('admin'), false)
+$$;
+
+-- Can the caller manage this class (edit it, see/edit its roster and attendance)?
+-- p_company_id, when given, must be the class's company (stops cross-company rows).
+CREATE OR REPLACE FUNCTION public.training_can_manage_class(p_class_id uuid, p_company_id uuid DEFAULT NULL)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.training_classes c
+    WHERE c.id = p_class_id
+      AND c.company_id = coalesce(p_company_id, c.company_id)
+      AND public.training_can_manage(c.company_id)
+      AND (public.training_sees_all_classes(c.company_id) OR c.instructor_user_id = public.get_my_user_id())
+  )
+$$;
+
+CREATE OR REPLACE FUNCTION public.training_is_enrolled_in_class(p_class_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT EXISTS (SELECT 1 FROM public.training_class_enrollments e
+                 WHERE e.class_id = p_class_id AND e.user_id = public.get_my_user_id())
+$$;
+
+REVOKE ALL ON FUNCTION public.training_sees_all_classes(uuid), public.training_can_manage_class(uuid, uuid),
+  public.training_is_enrolled_in_class(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.training_sees_all_classes(uuid), public.training_can_manage_class(uuid, uuid),
+  public.training_is_enrolled_in_class(uuid) TO authenticated, service_role;
+
+DROP POLICY IF EXISTS training_classes_select ON public.training_classes;
+DROP POLICY IF EXISTS training_classes_insert ON public.training_classes;
+DROP POLICY IF EXISTS training_classes_update ON public.training_classes;
+DROP POLICY IF EXISTS training_classes_delete ON public.training_classes;
+CREATE POLICY training_classes_select ON public.training_classes FOR SELECT TO authenticated USING (
+  public.training_sees_all_classes(company_id)
+  OR (public.training_can_manage(company_id) AND instructor_user_id = (SELECT public.get_my_user_id()))
+  OR (public.training_can_view(company_id) AND public.training_is_enrolled_in_class(id)));
+-- Instructors/managers can only create, edit or delete classes they teach (and can't hand
+-- a class to someone else); owners/admins can do it for anyone.
+CREATE POLICY training_classes_insert ON public.training_classes FOR INSERT TO authenticated WITH CHECK (
+  public.training_can_manage(company_id)
+  AND (public.training_sees_all_classes(company_id) OR instructor_user_id = (SELECT public.get_my_user_id())));
+CREATE POLICY training_classes_update ON public.training_classes FOR UPDATE TO authenticated
+  USING (public.training_can_manage(company_id)
+    AND (public.training_sees_all_classes(company_id) OR instructor_user_id = (SELECT public.get_my_user_id())))
+  WITH CHECK (public.training_can_manage(company_id)
+    AND (public.training_sees_all_classes(company_id) OR instructor_user_id = (SELECT public.get_my_user_id())));
+CREATE POLICY training_classes_delete ON public.training_classes FOR DELETE TO authenticated USING (
+  public.training_can_manage(company_id)
+  AND (public.training_sees_all_classes(company_id) OR instructor_user_id = (SELECT public.get_my_user_id())));
+
+DROP POLICY IF EXISTS training_class_enrollments_select ON public.training_class_enrollments;
+DROP POLICY IF EXISTS training_class_enrollments_insert ON public.training_class_enrollments;
+DROP POLICY IF EXISTS training_class_enrollments_update ON public.training_class_enrollments;
+DROP POLICY IF EXISTS training_class_enrollments_delete ON public.training_class_enrollments;
+CREATE POLICY training_class_enrollments_select ON public.training_class_enrollments FOR SELECT TO authenticated USING (
+  public.training_can_manage_class(class_id)
+  OR (user_id = (SELECT public.get_my_user_id()) AND public.training_can_view(company_id)));
+CREATE POLICY training_class_enrollments_insert ON public.training_class_enrollments FOR INSERT TO authenticated
+  WITH CHECK (public.training_can_manage_class(class_id, company_id));
+CREATE POLICY training_class_enrollments_update ON public.training_class_enrollments FOR UPDATE TO authenticated
+  USING (public.training_can_manage_class(class_id)) WITH CHECK (public.training_can_manage_class(class_id, company_id));
+CREATE POLICY training_class_enrollments_delete ON public.training_class_enrollments FOR DELETE TO authenticated
+  USING (public.training_can_manage_class(class_id));
+
+DROP POLICY IF EXISTS training_class_attendance_select ON public.training_class_attendance;
+DROP POLICY IF EXISTS training_class_attendance_insert ON public.training_class_attendance;
+DROP POLICY IF EXISTS training_class_attendance_update ON public.training_class_attendance;
+DROP POLICY IF EXISTS training_class_attendance_delete ON public.training_class_attendance;
+CREATE POLICY training_class_attendance_select ON public.training_class_attendance FOR SELECT TO authenticated USING (
+  public.training_can_manage_class(class_id)
+  OR (user_id = (SELECT public.get_my_user_id()) AND public.training_can_view(company_id)));
+CREATE POLICY training_class_attendance_insert ON public.training_class_attendance FOR INSERT TO authenticated
+  WITH CHECK (public.training_can_manage_class(class_id, company_id));
+CREATE POLICY training_class_attendance_update ON public.training_class_attendance FOR UPDATE TO authenticated
+  USING (public.training_can_manage_class(class_id)) WITH CHECK (public.training_can_manage_class(class_id, company_id));
+CREATE POLICY training_class_attendance_delete ON public.training_class_attendance FOR DELETE TO authenticated
+  USING (public.training_can_manage_class(class_id));
+
 -- ── 7. Instructor HQ RPCs ──────────────────────────────────────────────────
 -- Learners of a company: active members, plus anyone with training history on its content
 -- (EADB learners without a membership yet, phase 4).
@@ -214,10 +302,9 @@ CREATE OR REPLACE FUNCTION public.training_class_roster(p_class_id uuid)
 RETURNS TABLE (user_id uuid, first_name text, last_name text, email text, enrollment_status text,
                attendance_status text, attendance_notes text, marked_at timestamptz)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
-DECLARE v_company uuid;
 BEGIN
-  SELECT company_id INTO v_company FROM public.training_classes WHERE id = p_class_id;
-  IF v_company IS NULL OR NOT public.training_can_manage(v_company) THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
+  -- Own classes only, unless owner/admin (section 8).
+  IF NOT public.training_can_manage_class(p_class_id) THEN RAISE EXCEPTION 'forbidden' USING ERRCODE = '42501'; END IF;
   RETURN QUERY
   SELECT u.id, u.first_name, u.last_name, u.email, e.enrollment_status, a.attendance_status, a.notes, a.created_at
   FROM public.training_class_enrollments e

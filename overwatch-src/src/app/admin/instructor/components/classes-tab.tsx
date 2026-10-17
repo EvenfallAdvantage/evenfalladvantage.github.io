@@ -21,9 +21,11 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 interface ClassesTabProps {
   instructorId: string | null;
   triggerNew: number;
+  /** Owner/admin: every class of the company. Otherwise only the classes you teach. */
+  seeAll?: boolean;
 }
 
-export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
+export function ClassesTab({ instructorId, triggerNew, seeAll = false }: ClassesTabProps) {
   const [classes, setClasses] = useState<LegacyScheduledClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
@@ -48,9 +50,13 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setClasses(await getLegacyClasses()); } catch (e) { logger.swallow("instructor-classes:load", e, "warn"); }
+    // Own classes only unless owner/admin (the database enforces the same rule).
+    try {
+      if (!seeAll && !instructorId) { setClasses([]); return; }
+      setClasses(await getLegacyClasses(seeAll ? undefined : instructorId ?? undefined));
+    } catch (e) { logger.swallow("instructor-classes:load", e, "warn"); }
     finally { setLoading(false); }
-  }, []);
+  }, [seeAll, instructorId]);
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
@@ -99,7 +105,7 @@ export function ClassesTab({ instructorId, triggerNew }: ClassesTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{classes.length} upcoming classes</p>
+        <p className="text-sm text-muted-foreground">{classes.length} upcoming {seeAll ? "classes (all instructors)" : "classes you teach"}</p>
       </div>
 
       {showNew && (
