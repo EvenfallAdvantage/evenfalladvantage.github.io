@@ -1,13 +1,17 @@
 -- =============================================================================
--- 20261011000100_integration_cron.sql   (PR V0, OPTIONAL schedule, NOT APPLIED)
+-- PENDING / NOT APPLIED: migrations/pending/integration_cron.sql (PR #69)
+-- Kept outside migrations/ so the CLI never pushes it by accident. When the
+-- user has set both secrets below, apply it via MCP apply_migration (name
+-- integration_cron), then move it to migrations/<recorded version>_integration_cron.sql.
 -- Target: OverwatchDB (nneueuvyeohwnspbwfub) ONLY. Apply LAST, after
---   20261011000000_integration_framework.sql, after integration-token-refresh
+--   20261017232039_integration_framework.sql, after integration-token-refresh
 --   and integration-jobs-worker are deployed, and after the user has:
 --     1. set the Edge Function secret INTEGRATIONS_CRON_SECRET (random 32+ bytes)
 --     2. stored the SAME value in Vault:
 --          select vault.create_secret('<value>', 'integrations_cron_secret');
---   Enabling pg_cron + pg_net is a project-level change: needs explicit OK.
--- Rollback: rollback/20261011000100_integration_cron.rollback.sql
+--   pg_cron 1.6.4 and pg_net 0.20.0 are already installed on OverwatchDB
+--   (checked 2026-10-17), so the CREATE EXTENSION lines are no-ops.
+-- Rollback: rollback/pending_integration_cron.rollback.sql
 -- Schedules: token refresh every 10 min, jobs worker every minute,
 --            purge expired oauth states daily.
 -- =============================================================================
@@ -18,7 +22,7 @@ CREATE EXTENSION IF NOT EXISTS pg_net;
 DO $guard$
 BEGIN
   IF to_regclass('public.integration_connections') IS NULL THEN
-    RAISE EXCEPTION 'Apply 20261011000000_integration_framework.sql first';
+    RAISE EXCEPTION 'Apply 20261017232039_integration_framework.sql first';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM vault.decrypted_secrets WHERE name = 'integrations_cron_secret') THEN
     RAISE EXCEPTION 'Create the Vault secret integrations_cron_secret first (same value as INTEGRATIONS_CRON_SECRET)';

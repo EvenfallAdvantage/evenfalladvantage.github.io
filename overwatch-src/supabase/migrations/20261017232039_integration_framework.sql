@@ -1,9 +1,9 @@
 -- =============================================================================
--- 20261011000000_integration_framework.sql   (PR V0, vendor integration framework)
+-- 20261017232039_integration_framework.sql   (PR #69, vendor integration framework) APPLIED 2026-10-17 16:20 PT
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY.
 -- Status: NOT APPLIED (draft). Apply AFTER the integration-* Edge Functions are
 --         deployed (they tolerate the tables being absent only for reads).
--- Rollback: rollback/20261011000000_integration_framework.rollback.sql
+-- Rollback: rollback/20261017232039_integration_framework.rollback.sql
 --
 -- New tables (all company-scoped, RLS on):
 --   integration_connections   one row per (company, provider); secrets live in

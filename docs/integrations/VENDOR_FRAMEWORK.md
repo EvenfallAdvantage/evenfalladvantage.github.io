@@ -7,8 +7,8 @@ Checkr, Gusto, Paychex, ADP) plugs into. Plan: `VENDOR_INTEGRATIONS_PLAN.md` §1
 
 | Piece | Where |
 |---|---|
-| Tables + RLS + RPCs | `overwatch-src/supabase/migrations/20261011000000_integration_framework.sql` (+ rollback) |
-| Schedules (optional) | `…/20261011000100_integration_cron.sql` (pg_cron + pg_net, + rollback) |
+| Tables + RLS + RPCs | `overwatch-src/supabase/migrations/20261017232039_integration_framework.sql` (+ rollback) |
+| Schedules (optional) | `…/pending/integration_cron.sql` (pg_cron + pg_net, + rollback) |
 | Adapter interface | `supabase/functions/_shared/integrations/types.ts` |
 | Registry (vendor PRs add one line) | `…/_shared/integrations/registry.ts` |
 | Vault storage, refresh lease, `withFreshToken` | `…/_shared/integrations/connections.ts` (uses PR #63 `vault_*` RPCs) |

@@ -1,5 +1,5 @@
 -- =============================================================================
--- Live, ALWAYS-ROLLED-BACK check for 20261011000000_integration_framework.sql.
+-- Live, ALWAYS-ROLLED-BACK check for 20261017232039_integration_framework.sql.
 -- Build the runnable script with:
 --   scripts: (sed '/^BEGIN;$/d;/^COMMIT;$/d' migration) wrapped as below.
 -- It runs BEGIN; <migration>; <seed + role checks>; then RAISEs an exception

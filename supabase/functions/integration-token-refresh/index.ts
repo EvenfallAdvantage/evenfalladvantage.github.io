@@ -1,7 +1,7 @@
 /**
  * integration-token-refresh (PR V0). Replaces the undeployed oauth-refresh.
  * Auth: verify_jwt = false; requires x-integrations-cron-secret
- *       (pg_cron every 10 min, see migration 20261011000100).
+ *       (pg_cron every 10 min, see migrations/pending/integration_cron.sql).
  * Refreshes connected tokens expiring within 15 min, one refresher per
  * connection (lease lock), and flips a connection to "error" after 3
  * consecutive failures (audited, visible as "Needs attention").

@@ -1,4 +1,4 @@
--- Rollback for 20261011000000_integration_framework.sql (OverwatchDB only).
+-- Rollback for 20261017232039_integration_framework.sql (OverwatchDB only).
 -- Deletes the Vault secrets the framework created (named 'integration-conn:%'),
 -- then drops the framework tables and functions. integrations_config is untouched.
 BEGIN;
