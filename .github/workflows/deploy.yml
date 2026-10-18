@@ -59,7 +59,11 @@ jobs:
           # Supabase public keys are safe to expose in CI (they are scoped/RLS-protected)
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_CESIUM_TOKEN: ${{ secrets.NEXT_PUBLIC_CESIUM_TOKEN }}
+          # Cesium ion is off unless ion is licensed for commercial use: set the repo
+          # VARIABLE CESIUM_ION_COMMERCIAL=true to opt in. Without it the token is not
+          # passed to the build at all, so it can't end up in the public bundle.
+          NEXT_PUBLIC_CESIUM_ION_COMMERCIAL: ${{ vars.CESIUM_ION_COMMERCIAL == 'true' && 'true' || '' }}
+          NEXT_PUBLIC_CESIUM_TOKEN: ${{ vars.CESIUM_ION_COMMERCIAL == 'true' && secrets.NEXT_PUBLIC_CESIUM_TOKEN || '' }}
           NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID: ${{ secrets.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID }}
         run: npm run build
 
@@ -125,6 +129,12 @@ jobs:
             [ ! -e "_deploy/$d" ] || { echo "::error::_deploy/$d must not be published"; exit 1; }
           done
           echo "Deployment directory OK: $(find _deploy -type f | wc -l) files"
+
+      - name: No server-side secrets in the public artifact
+        env:
+          CESIUM_ION_COMMERCIAL: ${{ vars.CESIUM_ION_COMMERCIAL }}
+        # Prints file, kind and a fingerprint only (never a value). See docs/SECRETS.md.
+        run: python3 .github/scripts/check-public-secrets.py _deploy
 
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v5

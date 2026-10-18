@@ -1,0 +1,75 @@
+# gitleaks config for this repo (used by .github/workflows/secret-scan.yml and .githooks/pre-commit).
+# Docs: docs/SECRETS.md. Never paste a real value into this file; allowlist by shape/path only.
+title = "Evenfall Advantage gitleaks config"
+
+[extend]
+useDefault = true
+
+# --- Extra rules for keys this project actually uses -------------------------
+
+[[rules]]
+id = "supabase-secret-key"
+description = "Supabase secret API key (sb_secret_...). Server-only: Edge Function env or Vault."
+regex = '''\bsb_secret_[A-Za-z0-9_\-]{20,}'''
+keywords = ["sb_secret_"]
+
+[[rules]]
+id = "supabase-service-role-jwt"
+description = "Supabase legacy service_role JWT. Server-only; bypasses RLS."
+regex = '''\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]*(?:InNlcnZpY2Vfcm9sZS|JzZXJ2aWNlX3JvbG|ic2VydmljZV9yb2xl)[A-Za-z0-9_\-]*\.[A-Za-z0-9_\-]{10,}'''
+keywords = ["eyj"]
+
+[[rules]]
+id = "overwatch-api-key"
+description = "Overwatch API Sources key (ova_live_/ova_test_). Only the intake-only website key may be public."
+regex = '''\bova_(?:live|test)_[A-Za-z0-9_]{16,}'''
+keywords = ["ova_live_", "ova_test_"]
+
+[[rules]]
+id = "stripe-webhook-secret"
+description = "Stripe webhook signing secret. Edge Function env only."
+regex = '''\bwhsec_[A-Za-z0-9]{16,}'''
+keywords = ["whsec_"]
+
+# --- Allowlists (narrow; each says why) ---------------------------------------
+
+[[allowlists]]
+description = "Paths that are generated, vendored or binary test fixtures"
+paths = [
+  '''(^|/)node_modules/''',
+  '''^overwatch-src/(out|\.next)/''',
+  '''^overwatch/''',
+  '''(^|/)package-lock\.json$''',
+  '''^overwatch-src/src/__tests__/fixtures/.*\.(pbf\.gz|bin)$''',
+]
+
+[[allowlists]]
+description = "Documentation placeholders (YOUR_ANON_KEY, sk_test_..., a1b2c3...)"
+regexTarget = "secret"
+regexes = [
+  '''^YOUR_[A-Z0-9_]+$''',
+  '''\.\.\.$''',
+  '''^<[^>]+>$''',
+]
+
+[[allowlists]]
+description = "Environment variable NAMES (not values), e.g. lists of supported *_API_KEY secrets"
+regexTarget = "secret"
+regexes = ['''^[A-Z][A-Z0-9_]*_(API_KEY|TOKEN|SECRET|KEY)$''']
+
+[[allowlists]]
+description = "Public intake-only key for the website estimate forms: visible in page source by design, origin-locked, intake:write scope only (see js/lead-config.js header). Rotate in Overwatch > Settings > API Sources."
+condition = "AND"
+targetRules = ["generic-api-key", "overwatch-api-key"]
+paths = ['''^js/lead-config\.js$''']
+regexTarget = "secret"
+regexes = ['''^ova_live_[A-Za-z0-9_]+$''']
+
+[[allowlists]]
+description = "Keyword-rule false positives on code identifiers / template placeholders (reviewed 2026-10-18)"
+condition = "AND"
+targetRules = ["linkedin-client-secret", "curl-auth-header"]
+paths = [
+  '''^overwatch-src/src/app/dictate/page\.tsx$''',
+  '''^overwatch-src/src/app/admin/settings/components/api-sources-section\.tsx$''',
+]

@@ -1,0 +1,68 @@
+# Historical findings only (commits already in main's history; git history is NOT rewritten).
+# Each is tracked in docs/SECRETS.md ("Exposed in git history") with its rotation status.
+# Fingerprint format: <commit>:<file>:<rule>:<line> (no secret values).
+# Never add a fingerprint here for a NEW finding: remove the secret and rotate it instead.
+
+# gcp-api-key under admin/ (2)
+1d78fbb37a47925046404b789a2afd1709413543:admin/js/ai-question-generator-free.js:gcp-api-key:8
+6443c36bae534e77d59b8deadbde1b4297ba8b9a:admin/js/ai-question-generator-free.js:gcp-api-key:8
+
+# generic-api-key under .opencode/ (1)
+55ff356b28cf3f3e518dc45a3e63ee634d66950b:.opencode/plans/comprehensive-audit-plan.md:generic-api-key:73
+
+# generic-api-key under client-portal/ (8)
+1d78fbb37a47925046404b789a2afd1709413543:client-portal/js/client-auth.js:generic-api-key:5
+1d78fbb37a47925046404b789a2afd1709413543:client-portal/js/client-config.js:generic-api-key:6
+1d78fbb37a47925046404b789a2afd1709413543:client-portal/reset-password.html:generic-api-key:244
+8702abed4002bf7aebfb4d81d21d46c0555b2c6a:client-portal/js/client-auth.js:generic-api-key:5
+8702abed4002bf7aebfb4d81d21d46c0555b2c6a:client-portal/js/client-config.js:generic-api-key:5
+8702abed4002bf7aebfb4d81d21d46c0555b2c6a:client-portal/reset-password.html:generic-api-key:244
+8bc27f598f3faf6e5904d97519b0b67a264ef938:client-portal/reset-password.html:generic-api-key:244
+a8a2c9aed14c8f9cb7c80cb518c8c885e264f178:client-portal/js/client-config.js:generic-api-key:6
+
+# generic-api-key under instructor-portal/ (5)
+1d78fbb37a47925046404b789a2afd1709413543:instructor-portal/js/instructor-config.js:generic-api-key:6
+1d78fbb37a47925046404b789a2afd1709413543:instructor-portal/js/instructor-enrollment.js:generic-api-key:187
+8702abed4002bf7aebfb4d81d21d46c0555b2c6a:instructor-portal/js/instructor-config.js:generic-api-key:3
+8702abed4002bf7aebfb4d81d21d46c0555b2c6a:instructor-portal/js/instructor-enrollment.js:generic-api-key:187
+a8a2c9aed14c8f9cb7c80cb518c8c885e264f178:instructor-portal/js/instructor-config.js:generic-api-key:6
+
+# generic-api-key under overwatch-src/ (4)
+1873f461af27124107f6ac505f4a15fa918d59cb:overwatch-src/src/components/tactical-map/hooks/use-night-vision.ts:generic-api-key:67
+558744027068571761d25ffe8ed6185c133db249:overwatch-src/src/components/geo-risk-map.tsx:generic-api-key:35
+558744027068571761d25ffe8ed6185c133db249:overwatch-src/src/components/tactical-map/hooks/use-night-vision.ts:generic-api-key:64
+894248aa6fe63196e3fc57a0147e5d39984d5c16:overwatch-src/src/lib/legacy-bridge.ts:generic-api-key:15
+
+# generic-api-key under student-portal/ (4)
+1d78fbb37a47925046404b789a2afd1709413543:student-portal/js/supabase-config.js:generic-api-key:6
+8702abed4002bf7aebfb4d81d21d46c0555b2c6a:student-portal/js/supabase-config.js:generic-api-key:3
+a312a59c5653df57c4040e8a02c89923d2b6e24a:student-portal/embed-viewer.html:generic-api-key:118
+a8a2c9aed14c8f9cb7c80cb518c8c885e264f178:student-portal/js/supabase-config.js:generic-api-key:6
+
+# jwt under _next/ (1)
+06660d59174f4a2e38d2d5e83d341462188de130:_next/static/chunks/237ee82223a704fe.js:jwt:59
+
+# jwt under client-portal/ (7)
+407cf9ceb252c0de4253d82b16599696a83d8ca3:client-portal/reset-password.html:jwt:244
+c772cc64f549c2790143c720835881e8fe632eb4:client-portal/js/client-auth.js:jwt:5
+c772cc64f549c2790143c720835881e8fe632eb4:client-portal/js/client-config.js:jwt:5
+ce56284be151f36460b7346823d1cfd4dc49bf66:client-portal/js/client-auth.js:jwt:5
+ce56284be151f36460b7346823d1cfd4dc49bf66:client-portal/js/client-config.js:jwt:5
+d6044a52dec733f0e10d4199bc2c5899e177da50:client-portal/js/client-auth.js:jwt:5
+d6044a52dec733f0e10d4199bc2c5899e177da50:client-portal/js/client-config.js:jwt:5
+
+# jwt under instructor-portal/ (2)
+75526c066964c5cf8403126fd3bbab2e6ce6d2a1:instructor-portal/js/instructor-config.js:jwt:3
+e7163cfe424c16dcbe22720b424e2773d8ffe342:instructor-portal/js/instructor-enrollment.js:jwt:187
+
+# jwt under overwatch-src/ (3)
+08be186a26ffa3d581c329c875d8f0aca5991876:overwatch-src/src/components/tactical-map/cesium-config.ts:jwt:14
+afb21f6826b6580b31ca4caa192170d52e1a05a0:overwatch-src/src/components/tactical-map/cesium-config.ts:jwt:17
+cb71f6967f6149da467bec9af2e9f0dd213d845b:overwatch-src/scripts/geocode-frequencies.js:jwt:10
+
+# jwt under student-portal/ (2)
+42ff00e5b62b62ac60454cc80ab0311b1ad3932f:student-portal/js/supabase-config.js:jwt:3
+c772cc64f549c2790143c720835881e8fe632eb4:student-portal/js/supabase-config.js:jwt:3
+
+# supabase-service-role-jwt under overwatch-src/ (1)
+cb71f6967f6149da467bec9af2e9f0dd213d845b:overwatch-src/scripts/geocode-frequencies.js:supabase-service-role-jwt:10

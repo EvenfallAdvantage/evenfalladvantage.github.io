@@ -32,7 +32,9 @@ const INCIDENT_COLORS: Record<string, string> = {
 };
 
 const LIGHT_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"; // OSMF: no a/b/c subdomains
-const DARK_TILES = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_3umn_1_b4fff84fdc4118a7bc7c88af";
+// Dark mode re-grades the same keyless OSM tiles with a CSS filter (no CARTO raster key in the bundle).
+const DARK_TILE_CLASS = "geo-risk-dark-tiles";
+const DARK_TILE_FILTER = "invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.6)";
 
 function makeDot(color: string, size: number, symbol?: string): L.DivIcon {
   return L.divIcon({
@@ -74,7 +76,8 @@ export default function GeoRiskMap({
       attributionControl: false,
     });
 
-    L.tileLayer(isDark ? DARK_TILES : LIGHT_TILES, { maxZoom: 19, crossOrigin: true }).addTo(map);
+    const tiles = L.tileLayer(LIGHT_TILES, { maxZoom: 19, crossOrigin: true, className: isDark ? DARK_TILE_CLASS : "" }).addTo(map);
+    if (isDark) tiles.getContainer()?.style.setProperty("filter", DARK_TILE_FILTER);
     L.control.zoom({ position: "bottomright" }).addTo(map);
     L.control.attribution({ position: "bottomleft", prefix: false })
       .addAttribution('&copy; <a href="https://openstreetmap.org">OSM</a>')
