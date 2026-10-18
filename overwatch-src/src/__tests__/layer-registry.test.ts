@@ -33,11 +33,11 @@ describe("layer registry structure", () => {
 
 describe("effectiveLayers", () => {
   it("a group master off hides all its sub-layers without losing the choice", () => {
-    const s = { ...base(), earthquakes: true, fires: true, weather: true, groups: { ...allGroups(true), weather: false } };
+    const s = { ...base(), naturalHazards: true, weather: true, groups: { ...allGroups(true), weather: false } };
     const eff = effectiveLayers(s);
-    expect(eff.earthquakes || eff.fires || eff.weather).toBe(false);
-    expect(s.earthquakes).toBe(true);
-    expect(effectiveLayers({ ...s, groups: allGroups(true) }).earthquakes).toBe(true);
+    expect(eff.naturalHazards || eff.weather).toBe(false);
+    expect(s.naturalHazards).toBe(true);
+    expect(effectiveLayers({ ...s, groups: allGroups(true) }).naturalHazards).toBe(true);
   });
   it("retired keys never draw under v2", () => {
     const s = { ...base(), gdelt: true, sigintNews: true, eonetWeather: true, liveNews: true, radioFrequencies: true };
@@ -70,14 +70,15 @@ describe("groups and subs", () => {
     expect(n.aircraft).toBe(true);
     expect(n.preset).toBe("custom");
   });
-  it("setSub toggles all keys of a multi-key option", () => {
+  it("setSub toggles an option's keys", () => {
     const hazards = groupDef("weather").subs.find((s) => s.id === "hazards")!;
     const n = setSub(base(), hazards, true);
-    expect(n.earthquakes && n.fires).toBe(true);
+    expect(n.naturalHazards).toBe(true);
     expect(subOn(n, hazards)).toBe(true);
+    expect(subOn(setSub(n, hazards, false), hazards)).toBe(false);
   });
   it("activeDataGroups ignores My Operations and empty groups", () => {
-    const s = { ...base(), aircraft: true, cctv: false, earthquakes: false, fires: false, weather: false, lightning: false, raws: false, s2Intel: false, conflictZones: false, news: false, maritime: false, nuclearInfrastructure: false, satelliteOrbits: false };
+    const s = { ...base(), aircraft: true, cctv: false, naturalHazards: false, nwsWarnings: false, tropical: false, clouds: false, wind: false, weather: false, lightning: false, raws: false, s2Intel: false, conflictZones: false, news: false, maritime: false, nuclearInfrastructure: false, satelliteOrbits: false };
     expect(activeDataGroups(s)).toEqual(["airSea"]);
   });
 });
@@ -113,13 +114,19 @@ describe("presets", () => {
     expect(applyPreset(base(), "securityOps").groups.cameras).toBe(false);
     const acked = applyPreset(base(), "securityOps", { cctvAcked: true });
     expect(acked.cctv && acked.groups.cameras).toBe(true);
-    expect(acked.s2Intel && acked.earthquakes && acked.staff).toBe(true);
+    expect(acked.s2Intel && acked.naturalHazards && acked.nwsWarnings && acked.staff).toBe(true);
+    expect(acked.aircraft).toBe(true);
+    expect(acked.aircraftFilter).toBe("emergency");
   });
   it("Weather Watch uses the Dark basemap; Air Watch shows aircraft", () => {
     expect(basemapOf(applyPreset(base(), "weatherWatch"))).toBe("dark");
     const air = effectiveLayers(applyPreset(base(), "airWatch"));
-    expect(air.aircraft).toBe(true);
+    expect(air.aircraft && air.gnss).toBe(true);
+    expect(air.aircraftFilter).toBe("all");
     expect(air.weather).toBe(false);
+    expect(applyPreset(base(), "airWatch", { constrained: true }).gnss).toBe(false);
+    expect(applyPreset(base(), "weatherWatch").wind).toBe(true);
+    expect(applyPreset(base(), "weatherWatch", { constrained: true }).wind).toBe(false);
   });
   it("presets keep terrain, look and site overlays", () => {
     const s = { ...setLook(base(), "nvg"), terrain: false, siteOverlays: { a: true } };
@@ -132,13 +139,15 @@ describe("presets", () => {
 
 describe("migration and share links", () => {
   it("classic saved state keeps everything that was on", () => {
-    const saved = { aircraft: true, gdelt: true, eonetWeather: true, radioFrequencies: true };
+    const saved = { aircraft: true, gdelt: true, eonetWeather: true, radioFrequencies: true, fires: true };
     const m = migrateLayers(DEFAULT_LAYERS, saved as Partial<LayerVisibility>);
     expect(m.groups).toEqual(allGroups(true));
     expect(m.preset).toBe("custom");
     expect(m.news).toBe(true);
     expect(m.lightning).toBe(true);
     expect(m.radioFrequencies).toBe(false);
+    expect(m.naturalHazards).toBe(true);
+    expect(m.aircraftFilter).toBe("all");
     expect(effectiveLayers(m).aircraft).toBe(true);
   });
   it("v2 saved state keeps group switches", () => {
@@ -151,7 +160,7 @@ describe("migration and share links", () => {
     expect(migrateLayers(DEFAULT_LAYERS, { groups: allGroups(true), preset: "bogus" } as never).preset).toBe("custom");
   });
   it("old share links map retired keys to their replacements", () => {
-    expect(expandSharedLayers(["gdelt", "eonetWeather"]).sort()).toEqual(["eonetWeather", "gdelt", "lightning", "news"]);
+    expect(expandSharedLayers(["gdelt", "eonetWeather", "earthquakes"]).sort()).toEqual(["earthquakes", "eonetWeather", "gdelt", "lightning", "naturalHazards", "news"]);
     const s = applySharedLayers(base(), expandSharedLayers(["sigintNews", "aircraft"]));
     const eff = effectiveLayers({ ...s, groups: allGroups(true) });
     expect(eff.news && eff.aircraft).toBe(true);
@@ -161,10 +170,12 @@ describe("migration and share links", () => {
     expect(activeBooleanLayers(effectiveLayers(s))).not.toContain("aircraft");
   });
   it("switching back to classic keeps what v2 showed", () => {
-    const s = { ...base(), news: true, aircraft: true, earthquakes: true, groups: { ...allGroups(true), weather: false } };
+    const s = { ...base(), news: true, aircraft: true, naturalHazards: true, groups: { ...allGroups(true), weather: false } };
     const c = classicLayers(flattenForClassic(s));
     expect(c.aircraft).toBe(true);
-    expect(c.earthquakes).toBe(false);
+    expect(c.earthquakes || c.fires).toBe(false);
+    const c2 = classicLayers(flattenForClassic({ ...s, groups: allGroups(true) }));
+    expect(c2.earthquakes && c2.fires).toBe(true);
     expect(c.gdelt && c.sigintNews).toBe(true);
   });
 });

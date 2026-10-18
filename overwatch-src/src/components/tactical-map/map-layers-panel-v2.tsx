@@ -19,6 +19,7 @@ import { SiteMapsList } from "./site-maps-list";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
 import { SAR_AVAILABLE } from "./sentinel-layer";
 import { ionAssetsEnabled } from "@/lib/map/basemap-sources";
+import { AIRCRAFT_FILTER_LABELS } from "@/lib/map/aircraft-filter";
 import {
   GROUPS, PRESET_IDS, PRESET_LABELS, BASEMAP_LABELS, LOOK_LABELS, MOBILE_LOOKS, MOBILE_MAX_DATA_GROUPS,
   activeDataGroups, applyPreset, basemapOf, lookOf, setBasemap, setGroup, setLook, setSub, subOn,
@@ -189,6 +190,11 @@ function PanelBody(props: MapLayersPanelV2Props) {
                           />
                           <span className="flex-1 truncate">{s.label}</span>
                         </label>
+                        {g.id === "airSea" && s.id === "aircraft" && checked && (
+                          <div className="ml-6 mb-1">
+                            <Segmented value={layers.aircraftFilter ?? "all"} options={["all", "military", "emergency"] as const} labels={AIRCRAFT_FILTER_LABELS} onPick={(f) => onChange({ ...layers, aircraftFilter: f, preset: "custom" })} />
+                          </div>
+                        )}
                         {g.id === "security" && s.id === "events" && checked && s2ActiveLayers && onToggleS2Layer && (
                           <div className="ml-6 mb-1 space-y-0.5">
                             <p className="text-[8px] font-mono text-white/30 uppercase">Feeds {s2FeatureCount ? `(${s2FeatureCount})` : ""}</p>

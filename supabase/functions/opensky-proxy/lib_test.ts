@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { bboxToPointQuery, cacheKey, extractAircraft, parseBBox, toOpenSkyStates, upstreamUrls, type BBox } from "./lib.ts";
+import { aircraftFlags, bboxToPointQuery, cacheKey, extractAircraft, FLAG_EMERGENCY, FLAG_MILITARY, parseBBox, toOpenSkyStates, upstreamUrls, type BBox } from "./lib.ts";
 
 const LA: BBox = { lamin: 33, lamax: 35, lomin: -119, lomax: -117 };
 const p = (q: string) => new URLSearchParams(q);
@@ -55,4 +55,17 @@ Deno.test("extractAircraft handles `ac` and `aircraft` readsb shapes", () => {
   assertEquals(extractAircraft({ aircraft: [{ hex: "a" }, { hex: "b" }] })?.length, 2);
   assertEquals(extractAircraft({ msg: "err" }), null);
   assertEquals(extractAircraft(null), null);
+});
+
+Deno.test("military / emergency flags and accuracy fields are appended at 17-21", () => {
+  assertEquals(aircraftFlags({ dbFlags: 1 }), FLAG_MILITARY);
+  assertEquals(aircraftFlags({ dbFlags: 8 }), 0);
+  assertEquals(aircraftFlags({ squawk: "7700" }), FLAG_EMERGENCY);
+  assertEquals(aircraftFlags({ squawk: "1200", emergency: "none" }), 0);
+  assertEquals(aircraftFlags({ emergency: "lifeguard", dbFlags: 3 }), FLAG_MILITARY | FLAG_EMERGENCY);
+  const [s] = toOpenSkyStates([{ hex: "ae1234", lat: 34, lon: -118, alt_baro: 20000, dbFlags: 1, squawk: "7600", emergency: "nordo", nac_p: 6, nic: 5, t: "C17" }], LA, 0);
+  assertEquals(s.slice(17), [FLAG_MILITARY | FLAG_EMERGENCY, 6, 5, "C17", "nordo"]);
+  assertEquals(s[14], "7600");
+  const [plain] = toOpenSkyStates([{ hex: "a1", lat: 34, lon: -118, alt_baro: 1000 }], LA, 0);
+  assertEquals(plain.slice(17), [0, null, null, null, null]);
 });

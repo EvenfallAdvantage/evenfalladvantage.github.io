@@ -29,12 +29,14 @@ export type FlatKey =
   | "conflictZones" | "gdelt" | "sigintNews" | "news" | "nuclearInfrastructure" | "cctv" | "liveNews"
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
   | "satellite" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
-  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud";
+  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud"
+  | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss";
 
 /** Minimal shape the registry needs; LayerVisibility satisfies it. */
 export type RegistryState = Record<FlatKey, boolean> & {
   groups: Record<GroupId, boolean>;
   preset: PresetId | "custom";
+  aircraftFilter?: "all" | "military" | "emergency";
 };
 
 export interface SubOption {
@@ -71,10 +73,14 @@ export const GROUPS: readonly GroupDef[] = [
   {
     id: "weather", label: "Weather & Hazards", blurb: "Warnings, quakes, fires, radar",
     subs: [
-      { id: "hazards", label: "Natural hazards", keys: ["earthquakes", "fires"], hint: "Earthquakes (USGS) and active fires (NASA FIRMS)" },
-      { id: "radar", label: "Radar", keys: ["weather"] },
+      { id: "warnings", label: "Weather warnings", keys: ["nwsWarnings"], hint: "NWS warnings, watches and advisories (US)" },
+      { id: "hazards", label: "Quakes, fires & volcanoes", keys: ["naturalHazards"], hint: "USGS earthquakes, NASA FIRMS fire detections, NIFC wildfire perimeters, volcanoes" },
+      { id: "tropical", label: "Hurricanes", keys: ["tropical"], hint: "NHC active storms, forecast cones and tracks" },
+      { id: "radar", label: "Radar loop", keys: ["weather"], hint: "NOAA MRMS reflectivity, last hour (US)" },
+      { id: "clouds", label: "Clouds", keys: ["clouds"], hint: "Infrared satellite, day and night" },
       { id: "lightning", label: "Lightning", keys: ["lightning"], hint: "NOAA 15-minute strike density" },
-      { id: "stations", label: "Weather stations", keys: ["raws"] },
+      { id: "wind", label: "Wind", keys: ["wind"], hint: "Observed surface wind barbs (US)" },
+      { id: "stations", label: "Fire-weather stations", keys: ["raws"] },
     ],
   },
   {
@@ -89,6 +95,7 @@ export const GROUPS: readonly GroupDef[] = [
     id: "airSea", label: "Air & Sea", blurb: "Aircraft, ports",
     subs: [
       { id: "aircraft", label: "Aircraft", keys: ["aircraft"] },
+      { id: "gnss", label: "GPS interference", keys: ["gnss"], hint: "Areas where many aircraft report poor GPS accuracy (an anomaly, not confirmed jamming)" },
       { id: "ports", label: "Ports & chokepoints", keys: ["maritime"] },
     ],
   },
@@ -106,9 +113,9 @@ export const GROUPS: readonly GroupDef[] = [
 ];
 
 /** Flat keys that panel v2 never draws (dropped, merged or moved). */
-export const V2_RETIRED_KEYS: readonly FlatKey[] = ["eonetWeather", "gdelt", "sigintNews", "liveNews", "radioFrequencies"];
+export const V2_RETIRED_KEYS: readonly FlatKey[] = ["eonetWeather", "gdelt", "sigintNews", "liveNews", "radioFrequencies", "earthquakes", "fires"];
 /** Flat keys the classic panel never draws (v2-only merges). */
-export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies"];
+export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss"];
 
 export const PRESET_LABELS: Record<PresetId, string> = {
   clean: "Clean",
@@ -193,7 +200,12 @@ export function classicLayers<T extends RegistryState>(state: T): T {
 /** Stored state that, under the classic panel, draws what v2 drew (used when switching back). */
 export function flattenForClassic<T extends RegistryState>(state: T): T {
   const eff = effectiveLayers(state);
-  return { ...eff, groups: allGroups(true), preset: "custom", gdelt: eff.news || state.gdelt, sigintNews: eff.news || state.sigintNews, eonetWeather: false, liveNews: state.liveNews && state.groups?.security !== false };
+  return {
+    ...eff, groups: allGroups(true), preset: "custom",
+    gdelt: eff.news || state.gdelt, sigintNews: eff.news || state.sigintNews, eonetWeather: false,
+    earthquakes: eff.naturalHazards, fires: eff.naturalHazards,
+    liveNews: state.liveNews && state.groups?.security !== false,
+  };
 }
 
 // ─── Basemap + look ────────────────────────────────────────────────
@@ -237,24 +249,29 @@ interface PresetSpec {
   /** Extra sub-options only on desktop. */
   desktopSubs?: string[];
   basemap: BasemapId;
+  aircraftFilter?: "all" | "military" | "emergency";
 }
 
 export const PRESETS: Record<PresetId, PresetSpec> = {
   clean: { groups: ["myOps"], subs: ["myOps:sites", "myOps:incidents"], basemap: "satellite" },
   securityOps: {
-    groups: ["myOps", "weather", "security", "cameras"],
-    subs: ["myOps:sites", "myOps:staff", "myOps:incidents", "weather:hazards", "security:events", "security:conflict", "cameras:cctv"],
+    groups: ["myOps", "weather", "security", "airSea", "cameras"],
+    subs: ["myOps:sites", "myOps:staff", "myOps:incidents", "weather:warnings", "weather:hazards", "weather:tropical", "security:events", "security:conflict", "airSea:aircraft", "cameras:cctv"],
     basemap: "satellite",
+    aircraftFilter: "emergency",
   },
   weatherWatch: {
     groups: ["myOps", "weather"],
-    subs: ["myOps:sites", "weather:hazards", "weather:radar", "weather:lightning"],
+    subs: ["myOps:sites", "weather:warnings", "weather:hazards", "weather:tropical", "weather:radar", "weather:lightning"],
+    desktopSubs: ["weather:wind"],
     basemap: "dark",
   },
   airWatch: {
     groups: ["myOps", "airSea"],
     subs: ["myOps:sites", "airSea:aircraft"],
+    desktopSubs: ["airSea:gnss"],
     basemap: "satellite",
+    aircraftFilter: "all",
   },
 };
 
@@ -280,7 +297,7 @@ export function applyPreset<T extends RegistryState>(state: T, id: PresetId, opt
   const groups = allGroups(false);
   for (const g of spec.groups) groups[g] = GROUPS.find((d) => d.id === g)!.subs.some((s) => want.has(`${g}:${s.id}`));
   groups.myOps = true;
-  next = setBasemap({ ...next, groups, preset: id }, spec.basemap);
+  next = setBasemap({ ...next, groups, preset: id, aircraftFilter: spec.aircraftFilter ?? "all" }, spec.basemap);
   for (const k of V2_RETIRED_KEYS) (next as RegistryState)[k] = false;
   return next;
 }
@@ -300,6 +317,8 @@ export function migrateLayers<T extends RegistryState>(defaults: T, saved: Parti
   }
   if (saved.lightning === undefined) merged.lightning = !!saved.eonetWeather;
   if (saved.news === undefined) merged.news = !!(saved.gdelt || saved.sigintNews);
+  if (saved.naturalHazards === undefined) merged.naturalHazards = !!(saved.earthquakes || saved.fires);
+  if (!["all", "military", "emergency"].includes(merged.aircraftFilter as string)) merged.aircraftFilter = "all";
   if (!PRESET_IDS.includes(merged.preset as PresetId)) merged.preset = "custom";
   merged.radioFrequencies = false;
   return merged;
@@ -310,6 +329,8 @@ export const KEY_ALIASES: Record<string, FlatKey[]> = {
   gdelt: ["news"],
   sigintNews: ["news"],
   eonetWeather: ["lightning"],
+  earthquakes: ["naturalHazards"],
+  fires: ["naturalHazards"],
 };
 
 /** Expand a shared layer list with the keys that replaced retired ones. */

@@ -13,6 +13,7 @@ import {
 import type { OperationPin } from "./types";
 import { SiteMapsList } from "./site-maps-list";
 import type { GroupId, PresetId } from "@/lib/map/layer-registry";
+import type { AircraftFilter } from "@/lib/map/aircraft-filter";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 
@@ -63,6 +64,14 @@ export interface LayerVisibility {
   lightning: boolean;
   /** Merged news (GDELT + RSS, de-duplicated); panel v2 only. */
   news: boolean;
+  /** Panel v2 data layers (intel-hazards, nowCOAST, NWS, adsb.lol). */
+  nwsWarnings: boolean;
+  naturalHazards: boolean;
+  tropical: boolean;
+  clouds: boolean;
+  wind: boolean;
+  gnss: boolean;
+  aircraftFilter: AircraftFilter;
   /** Panel v2: master switch per group; a sub-layer draws only if its group is on. */
   groups: Record<GroupId, boolean>;
   /** Panel v2: preset last applied, or "custom" once anything is changed by hand. */
@@ -112,6 +121,13 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   raws: false,
   lightning: false,
   news: false,
+  nwsWarnings: false,
+  naturalHazards: false,
+  tropical: false,
+  clouds: false,
+  wind: false,
+  gnss: false,
+  aircraftFilter: "all",
   groups: { myOps: true, weather: true, security: true, airSea: true, cameras: true, infrastructure: true },
   preset: "custom",
   siteOverlays: {},

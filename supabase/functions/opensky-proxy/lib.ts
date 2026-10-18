@@ -24,6 +24,29 @@ export interface ReadsbAircraft {
   mlat?: unknown[];
   tisb?: unknown[];
   lastPosition?: { lat?: number; lon?: number };
+  /** readsb database flags: bit 0 military, bit 1 interesting, bit 2 PIA, bit 3 LADD. */
+  dbFlags?: number;
+  /** ADS-B emergency/priority status, e.g. "none", "general", "lifeguard", "nordo", "unlawful". */
+  emergency?: string;
+  /** Navigation accuracy category for position (0–11; < 8 means > 92.6 m 95% bound). */
+  nac_p?: number;
+  /** Navigation integrity category (0–11). */
+  nic?: number;
+  /** ICAO aircraft type designator. */
+  t?: string;
+}
+
+/** Emergency squawks: hijack, radio failure, general emergency. */
+export const EMERGENCY_SQUAWKS = new Set(["7500", "7600", "7700"]);
+export const FLAG_MILITARY = 1;
+export const FLAG_EMERGENCY = 2;
+
+/** Extra flags appended at index 17 of each state vector. */
+export function aircraftFlags(a: ReadsbAircraft): number {
+  let f = 0;
+  if (typeof a.dbFlags === "number" && (a.dbFlags & 1) === 1) f |= FLAG_MILITARY;
+  if ((a.squawk && EMERGENCY_SQUAWKS.has(a.squawk)) || (a.emergency && a.emergency !== "none")) f |= FLAG_EMERGENCY;
+  return f;
 }
 
 export type StateVector = (string | number | boolean | null)[];
@@ -86,6 +109,8 @@ export function upstreamUrls(b: BBox): { name: string; url: string }[] {
  * [0 icao24, 1 callsign, 2 origin_country, 3 time_position, 4 last_contact,
  *  5 lon, 6 lat, 7 baro_alt_m, 8 on_ground, 9 velocity_ms, 10 true_track,
  *  11 vertical_rate_ms, 12 sensors, 13 geo_alt_m, 14 squawk, 15 spi, 16 position_source]
+ * plus Overwatch extensions (ignored by OpenSky-only parsers):
+ *  [17 flags (1 military, 2 emergency), 18 nac_p, 19 nic, 20 type designator, 21 emergency status]
  * Aircraft without a position, or outside the bbox, are dropped.
  */
 export function toOpenSkyStates(aircraft: ReadsbAircraft[], b: BBox, nowSec: number): StateVector[] {
@@ -120,6 +145,11 @@ export function toOpenSkyStates(aircraft: ReadsbAircraft[], b: BBox, nowSec: num
       a.squawk ?? null,
       Boolean(a.spi),
       source,
+      aircraftFlags(a),
+      typeof a.nac_p === "number" ? a.nac_p : null,
+      typeof a.nic === "number" ? a.nic : null,
+      a.t ?? null,
+      a.emergency && a.emergency !== "none" ? a.emergency : null,
     ]);
   }
   return out;

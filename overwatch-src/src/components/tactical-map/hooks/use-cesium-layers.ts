@@ -37,6 +37,9 @@ import { useGdeltLayer } from "./use-gdelt-layer";
 import { useLiveNewsLayer } from "./use-live-news-layer";
 import { useSigintNewsLayer } from "./use-sigint-news-layer";
 import { useNewsLayer } from "./use-news-layer";
+import { useHazardsLayer } from "./use-hazards-layer";
+import { useCloudsLayer } from "./use-clouds-layer";
+import { useWindLayer } from "./use-wind-layer";
 import { useMaritimeLayer } from "./use-maritime-layer";
 import { useCctvLayer } from "./use-cctv-layer";
 import { useGeofencesLayer } from "./use-geofences-layer";
@@ -194,6 +197,12 @@ export function useCesiumLayers(params: {
 
   // ─── Sub-hook: SIGINT RSS news (geo-mapped by keyword, deterministic risk) ──
   useNewsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen });
+
+  const { hazards } = useHazardsLayer({ viewerRef, cesiumRef, loading, layers, debouncedReplayTime, timeMachineOpen });
+
+  useCloudsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen });
+
+  useWindLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen });
 
   useSigintNewsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
@@ -821,6 +830,7 @@ export function useCesiumLayers(params: {
     aligningOp, setAligningOp,
     savedBounds, setSavedBounds,
     s2Intel,
+    hazards,
     geofences: geofencesLayer.geofences,
     refreshGeofences: geofencesLayer.refresh,
   };

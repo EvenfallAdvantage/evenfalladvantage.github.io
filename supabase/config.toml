@@ -102,6 +102,11 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/intel-fires/index.ts"
 
+[functions.intel-hazards]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/intel-hazards/index.ts"
+
 [functions.intel-eonet-weather]
 enabled = true
 verify_jwt = false
