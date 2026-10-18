@@ -51,21 +51,23 @@ export function TrackingChip({ viewerRef, entityGroupsRef, trackedId, label, onS
     };
   }, [viewerRef, entityGroupsRef, trackedId]);
 
+  // Top-centre on wide maps, dropped below the top row on narrower ones so
+  // it never sits under top-right controls (e.g. the Ops Mode bar).
   return (
-    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-mono text-white/90 backdrop-blur-md border border-cyan-400/40 bg-black/60 shadow-lg">
-      <Crosshair className="h-3.5 w-3.5 text-cyan-300 animate-pulse" />
-      <span>TRACKING {label}</span>
-      {lost && <span className="text-amber-300">· signal lost</span>}
+    <div className="absolute top-14 lg:top-3 left-1/2 -translate-x-1/2 z-30 max-w-[calc(100%-1.5rem)] lg:max-w-[min(36rem,calc(100%-36rem))] pointer-events-auto flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-mono text-white/90 backdrop-blur-md border border-cyan-400/40 bg-black/60 shadow-lg">
+      <Crosshair className="h-3.5 w-3.5 shrink-0 text-cyan-300 animate-pulse" />
+      <span className="truncate min-w-0" title={`Tracking ${label}`}>TRACKING {label}</span>
+      {lost && <span className="shrink-0 text-amber-300">· signal lost</span>}
       {nearest && (
         <button
           onClick={() => onOpenCamera(nearest.cam)}
-          className="flex items-center gap-1 rounded-full px-2 py-0.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200"
+          className="flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200"
           title={`Nearest traffic camera: ${nearest.cam.name}`}
         >
-          <Video className="h-3 w-3" /> {nearest.cam.name.slice(0, 24)} · {nearest.km.toFixed(1)} km
+          <Video className="h-3 w-3 shrink-0" /> <span className="truncate">{nearest.cam.name.slice(0, 24)}</span><span className="shrink-0">· {nearest.km.toFixed(1)} km</span>
         </button>
       )}
-      <button onClick={onStop} className="text-white/50 hover:text-white" aria-label="Stop tracking">
+      <button onClick={onStop} className="shrink-0 text-white/50 hover:text-white" aria-label="Stop tracking">
         <X className="h-3.5 w-3.5" />
       </button>
     </div>
