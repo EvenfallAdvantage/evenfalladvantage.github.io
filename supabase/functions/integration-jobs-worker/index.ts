@@ -1,6 +1,6 @@
 /**
  * integration-jobs-worker (PR V0)
- * Auth: verify_jwt = false; requires x-integrations-cron-secret (pg_cron every minute).
+ * Auth: verify_jwt = false; requires x-integrations-cron-secret (checked against Vault) (pg_cron every minute).
  * Claims due jobs with SKIP LOCKED (integration_claim_jobs), runs adapter.jobs[kind],
  * retries with backoff (1m, 5m, 15m, 1h, 4h, 12h), marks dead after max_attempts.
  */
@@ -18,8 +18,8 @@ const json = (status: number, body: unknown) => new Response(JSON.stringify(body
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
-  if (!isCronCall(req)) return json(401, { error: "Unauthorized" });
   const admin = serviceClient();
+  if (!(await isCronCall(req, admin))) return json(401, { error: "Unauthorized" });
   const ctx = adapterCtx("integration-jobs-worker");
   const { data: jobs, error } = await admin.rpc("integration_claim_jobs", { p_limit: 10 });
   if (error) return json(500, { error: "claim failed" });

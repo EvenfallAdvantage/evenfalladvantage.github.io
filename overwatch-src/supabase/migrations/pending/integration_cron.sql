@@ -1,14 +1,9 @@
 -- =============================================================================
--- PENDING / NOT APPLIED: migrations/pending/integration_cron.sql (PR #69)
--- Kept outside migrations/ so the CLI never pushes it by accident. When the
--- user has set both secrets below, apply it via MCP apply_migration (name
--- integration_cron), then move it to migrations/<recorded version>_integration_cron.sql.
--- Target: OverwatchDB (nneueuvyeohwnspbwfub) ONLY. Apply LAST, after
---   20261017232039_integration_framework.sql, after integration-token-refresh
---   and integration-jobs-worker are deployed, and after the user has:
---     1. set the Edge Function secret INTEGRATIONS_CRON_SECRET (random 32+ bytes)
---     2. stored the SAME value in Vault:
---          select vault.create_secret('<value>', 'integrations_cron_secret');
+-- integration_cron (OverwatchDB nneueuvyeohwnspbwfub ONLY), PR #69 follow-up.
+-- Apply AFTER integration_framework and integration_cron_secret_vault (which
+-- generates the Vault secret 'integrations_cron_secret' in-database). The jobs
+-- send it as x-integrations-cron-secret; the Edge functions check it against
+-- Vault via integration_cron_secret_matches(). No Edge secret is involved.
 --   pg_cron 1.6.4 and pg_net 0.20.0 are already installed on OverwatchDB
 --   (checked 2026-10-17), so the CREATE EXTENSION lines are no-ops.
 -- Rollback: rollback/pending_integration_cron.rollback.sql
@@ -24,8 +19,8 @@ BEGIN
   IF to_regclass('public.integration_connections') IS NULL THEN
     RAISE EXCEPTION 'Apply 20261017232039_integration_framework.sql first';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM vault.decrypted_secrets WHERE name = 'integrations_cron_secret') THEN
-    RAISE EXCEPTION 'Create the Vault secret integrations_cron_secret first (same value as INTEGRATIONS_CRON_SECRET)';
+  IF NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name = 'integrations_cron_secret') THEN
+    RAISE EXCEPTION 'Apply integration_cron_secret_vault first (creates Vault secret integrations_cron_secret)';
   END IF;
 END
 $guard$;
