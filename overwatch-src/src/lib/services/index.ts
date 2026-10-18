@@ -16,7 +16,6 @@ export { syncTimesheetsToADP, verifyADPConnection } from "./adp-service";
 export { syncTimesheetsToPaychex, verifyPaychexConnection } from "./paychex-service";
 export { pullNewApplicantsFromAirtable, verifyAirtableConnection } from "./airtable-service";
 export { getSignalGroupLink, verifySignalConnection } from "./signal-service";
-export { validateFilloutWebhook, parseFilloutApplicant, verifyFilloutConnection } from "./fillout-service";
 export { onApplicantHired } from "./hiring-orchestrator";
 export type { HireContext, HireResult } from "./hiring-orchestrator";
 export { dispatch, dispatchToMany } from "./notification-dispatcher";

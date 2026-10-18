@@ -70,7 +70,7 @@ const LEGACY_ANON_KEY = process.env.NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY ?? "";
 Then add to `.env.local`:
 ```
 NEXT_PUBLIC_LEGACY_SUPABASE_URL=https://vaagvairvwmgyzsmymhs.supabase.co
-NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY=sb_publishable_IPcFlKw8LEGnk2NYg5qrsw_Rq8yIhR1
+NEXT_PUBLIC_LEGACY_SUPABASE_ANON_KEY=<EADB publishable key removed: EADB is retired; never paste keys into docs>
 ```
 And add to GitHub Secrets for deploy.yml.
 

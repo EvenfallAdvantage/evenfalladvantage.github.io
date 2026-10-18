@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   addFreeBaseImagery, EOX_S2_2016_URL, gibsDate, gibsTrueColorUrl, ionAssetsEnabled,
   clearNoDataPixels, isNoDataTile, lightningCacheKey, USGS_IMAGERY_EXTENTS,
@@ -90,5 +90,27 @@ describe("night mode", () => {
     applyGrade(layer, NIGHT_GRADE);
     expect(layer.brightness).toBeLessThan(0.5);
     expect(layer.saturation).toBeLessThan(0.5);
+  });
+});
+
+describe("Cesium ion token gating", () => {
+  afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
+
+  it("does not expose a leftover token unless ion is licensed", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CESIUM_TOKEN", "leftover-token");
+    vi.stubEnv("NEXT_PUBLIC_CESIUM_ION_COMMERCIAL", "");
+    vi.resetModules();
+    const m = await import("@/lib/map/basemap-sources");
+    expect(m.CESIUM_ION_TOKEN).toBe("");
+    expect(m.ionAssetsEnabled()).toBe(false);
+  });
+
+  it("passes the token through when ion is licensed for commercial use", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CESIUM_TOKEN", "licensed-token");
+    vi.stubEnv("NEXT_PUBLIC_CESIUM_ION_COMMERCIAL", "true");
+    vi.resetModules();
+    const m = await import("@/lib/map/basemap-sources");
+    expect(m.CESIUM_ION_TOKEN).toBe("licensed-token");
+    expect(m.ionAssetsEnabled()).toBe(true);
   });
 });

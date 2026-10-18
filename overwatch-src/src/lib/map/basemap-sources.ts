@@ -58,10 +58,19 @@ export const NOWCOAST_LIGHTNING_STYLE = "lightning_density";
 export const NOWCOAST_LIGHTNING_CREDIT =
   'Lightning density: <a href="https://nowcoast.noaa.gov/" target="_blank" rel="noopener">NOAA/NWS nowCOAST</a> (15-min, ~8 km grid)';
 
+/**
+ * The Cesium ion token, inlined into the bundle ONLY when the build opts in to
+ * commercial ion (NEXT_PUBLIC_CESIUM_ION_COMMERCIAL=true). Next replaces both
+ * env reads with literals at build time and the minifier drops the unused
+ * branch, so a leftover NEXT_PUBLIC_CESIUM_TOKEN never ships to browsers.
+ */
+export const CESIUM_ION_TOKEN: string =
+  process.env.NEXT_PUBLIC_CESIUM_ION_COMMERCIAL === "true" ? (process.env.NEXT_PUBLIC_CESIUM_TOKEN ?? "") : "";
+
 /** True only when the deployment explicitly licensed Cesium ion for commercial use. */
 export function ionAssetsEnabled(env: Record<string, string | undefined> = {
   NEXT_PUBLIC_CESIUM_ION_COMMERCIAL: process.env.NEXT_PUBLIC_CESIUM_ION_COMMERCIAL,
-  NEXT_PUBLIC_CESIUM_TOKEN: process.env.NEXT_PUBLIC_CESIUM_TOKEN,
+  NEXT_PUBLIC_CESIUM_TOKEN: CESIUM_ION_TOKEN,
 }): boolean {
   return env.NEXT_PUBLIC_CESIUM_ION_COMMERCIAL === "true" && !!(env.NEXT_PUBLIC_CESIUM_TOKEN ?? "").trim();
 }

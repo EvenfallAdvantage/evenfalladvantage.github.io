@@ -54,3 +54,30 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# --- Secrets guard (see docs/SECRETS.md) ---
+# Any env file, anywhere (keep only *.example templates)
+**/.env
+**/.env.*
+!**/.env.example
+.dev.vars
+**/.dev.vars
+# Key material and credential files
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+id_ecdsa*
+*service-account*.json
+*credentials*.json
+# Supabase CLI local state (holds project refs/tokens)
+supabase/.temp/
+overwatch-src/supabase/.temp/
+.supabase/
+# Secret-scan reports can contain matched values
+gitleaks-report*.json
+gitleaks-*.json
+# Vendored CLI binaries (install the Supabase CLI locally instead)
+supabase-cli/

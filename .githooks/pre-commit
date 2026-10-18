@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Secret guard for staged changes. Enable once per clone:  git config core.hooksPath .githooks
+# Uses gitleaks when installed (https://github.com/gitleaks/gitleaks), otherwise a basic
+# pattern check. Findings are redacted. Bypass only for a confirmed false positive:
+# add an allowlist entry to .gitleaks.toml instead of using --no-verify. See docs/SECRETS.md.
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+# Never commit env files or key material, whatever .gitignore says.
+blocked="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)\.env($|\.)|(^|/)\.dev\.vars$|\.(pem|key|p12|pfx|jks|keystore)$|(^|/)id_(rsa|ed25519|ecdsa)$|service[-_]account.*\.json$' | grep -vE '\.env\.example$' || true)"
+if [ -n "$blocked" ]; then
+  echo "pre-commit: refusing to commit secret-bearing files:" >&2
+  echo "$blocked" | sed 's/^/  /' >&2
+  exit 1
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+  exec gitleaks git --pre-commit --staged --config .gitleaks.toml --redact=100 --no-banner --exit-code 1 .
+fi
+
+# Fallback: basic patterns on added lines (prints file names only).
+hits="$(git diff --cached -U0 --no-color | awk '/^\+\+\+ b\//{f=substr($0,7)} /^\+[^+]/{print f"\t"$0}' \
+  | grep -E 'sb_secret_[A-Za-z0-9_-]{20,}|[sr]k_(live|test)_[A-Za-z0-9]{16,}|whsec_[A-Za-z0-9]{16,}|AIza[0-9A-Za-z_-]{35}|-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{36}|re_[A-Za-z0-9]{8,}_[A-Za-z0-9]{16,}|ova_(live|test)_[A-Za-z0-9_]{16,}' \
+  | cut -f1 | sort -u | grep -v '^js/lead-config\.js$' || true)"
+if [ -n "$hits" ]; then
+  echo "pre-commit: possible secret in staged changes (install gitleaks for details):" >&2
+  echo "$hits" | sed 's/^/  /' >&2
+  exit 1
+fi

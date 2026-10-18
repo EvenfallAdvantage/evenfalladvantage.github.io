@@ -9,9 +9,7 @@
 const CESIUM_VERSION = "1.128";
 const CESIUM_CDN = `https://cesium.com/downloads/cesiumjs/releases/${CESIUM_VERSION}/Build/Cesium`;
 
-import { ionAssetsEnabled } from "@/lib/map/basemap-sources";
-
-const CESIUM_TOKEN = process.env.NEXT_PUBLIC_CESIUM_TOKEN ?? "";
+import { CESIUM_ION_TOKEN, ionAssetsEnabled } from "@/lib/map/basemap-sources";
 
 let loadPromise: Promise<typeof globalThis.Cesium> | null = null;
 
@@ -51,8 +49,8 @@ export function loadCesium(): Promise<typeof globalThis.Cesium> {
       if (window.Cesium) {
         // Only hand Cesium an ion token when the deployment licensed ion for
         // commercial use. Otherwise no ion asset is ever requested (see
-        // basemap-sources.ts), so a leftover token is simply ignored.
-        if (ionAssetsEnabled()) window.Cesium.Ion.defaultAccessToken = CESIUM_TOKEN;
+        // basemap-sources.ts), and the token is not even inlined into the bundle.
+        if (ionAssetsEnabled()) window.Cesium.Ion.defaultAccessToken = CESIUM_ION_TOKEN;
         resolve(window.Cesium);
       } else {
         reject(new Error("CesiumJS failed to initialize"));
