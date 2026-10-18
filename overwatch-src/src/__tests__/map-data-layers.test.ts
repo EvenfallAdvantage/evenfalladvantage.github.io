@@ -64,3 +64,19 @@ describe("hazard styling and request planning", () => {
     expect(hazardColor({ kind: "watch", severity: 2 })).toBe("#f59e0b");
   });
 });
+
+describe("aircraft filter is part of presets that include aircraft", () => {
+  it("Security Ops = Emergency, Air Watch = All; changing it is custom, changing back re-matches; ignored when aircraft are off", async () => {
+    const { DEFAULT_LAYERS } = await import("@/components/tactical-map/map-layers-panel");
+    const reg = await import("@/lib/map/layer-registry");
+    const b = { ...DEFAULT_LAYERS, groups: reg.allGroups(true), siteOverlays: {} };
+    const sec = reg.applyPreset(b, "securityOps", { cctvAcked: true });
+    expect(sec.aircraftFilter).toBe("emergency");
+    expect(reg.matchingPreset({ ...sec, aircraftFilter: "military" }, { cctvAcked: true })).toBe("custom");
+    expect(reg.matchingPreset({ ...sec, aircraftFilter: "emergency" }, { cctvAcked: true })).toBe("securityOps");
+    const air = reg.applyPreset(b, "airWatch");
+    expect(reg.matchingPreset({ ...air, aircraftFilter: "emergency" })).toBe("custom");
+    const clean = reg.applyPreset(b, "clean");
+    expect(reg.matchingPreset({ ...clean, aircraftFilter: "military" })).toBe("clean");
+  });
+});

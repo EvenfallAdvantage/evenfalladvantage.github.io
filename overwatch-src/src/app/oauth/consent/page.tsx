@@ -105,7 +105,7 @@ function ConsentContent() {
       <div className="w-full max-w-md rounded-2xl border border-[#dd8c33]/30 bg-[#0f1a2e] p-8 shadow-2xl">
         {/* Header */}
         <div className="flex flex-col items-center mb-6">
-          <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={48} height={48} style={{ width: 48, height: "auto" }} className="rounded-xl" />
+          <Image src="/overwatch/images/overwatch_logo.png?v=2" alt="Overwatch" width={48} height={48} style={{ width: 48, height: "auto" }} className="rounded-xl" />
           <h1 className="mt-3 text-lg font-bold font-mono text-white">AUTHORIZE ACCESS</h1>
           <p className="text-xs text-white/40 mt-1 text-center">
             An application is requesting access to your Overwatch account

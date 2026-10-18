@@ -18,7 +18,7 @@ export default function Error({
     <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col items-center justify-center px-6">
       <div className="fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
       <div className="relative text-center max-w-md">
-        <Image src="/images/logo-shield.png" alt="Overwatch" width={48} height={48} className="rounded-xl mx-auto mb-6" style={{ width: 48, height: "auto" }} />
+        <Image src="/overwatch/images/logo-shield.png" alt="Overwatch" width={48} height={48} className="rounded-xl mx-auto mb-6" style={{ width: 48, height: "auto" }} />
         <div className="inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-4 py-1.5 text-xs text-red-400 mb-6">
           <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
           System Anomaly Detected

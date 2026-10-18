@@ -552,7 +552,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
         <ThemeToggle collapsed={collapsed} />
         {!collapsed && (
           <div className="flex flex-col items-center space-y-1">
-            <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={24} height={24} className="h-6 w-auto opacity-40" />
+            <Image src="/overwatch/images/overwatch_logo.png?v=2" alt="Overwatch" width={24} height={24} className="h-6 w-auto opacity-40" />
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 font-mono">
               Overwatch
             </p>

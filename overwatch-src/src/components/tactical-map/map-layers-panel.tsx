@@ -344,7 +344,7 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
           })}
 
           {onUseNewPanel && (
-            <button onClick={onUseNewPanel} className="w-full text-[9px] font-mono text-white/40 hover:text-white/70 underline underline-offset-2">
+            <button onClick={onUseNewPanel} className="w-full min-h-[40px] rounded text-[12px] font-mono text-white/65 hover:text-white hover:bg-white/5 underline underline-offset-2">
               Use the new grouped layers panel
             </button>
           )}

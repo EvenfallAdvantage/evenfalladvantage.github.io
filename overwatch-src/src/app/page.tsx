@@ -146,7 +146,7 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
         </button>
 
         <div className="flex flex-col items-center mb-5">
-          <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
+          <Image src="/overwatch/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
           <h2 className="mt-2 text-lg font-bold font-mono text-white">SIGN IN</h2>
         </div>
 
@@ -315,7 +315,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
         </button>
 
         <div className="flex flex-col items-center mb-5">
-          <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
+          <Image src="/overwatch/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
           <h2 className="mt-2 text-lg font-bold font-mono text-white">CREATE ACCOUNT</h2>
           {joinCode && <p className="text-[10px] text-[#dd8c33] mt-1 font-mono">JOIN CODE: {joinCode}</p>}
         </div>
@@ -561,7 +561,7 @@ function HomePageInner() {
       <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0b1422]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2 sm:gap-3">
-            <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={54} height={54} className="w-8 sm:w-[54px] h-auto" />
+            <Image src="/overwatch/images/overwatch_logo.png?v=2" alt="Overwatch" width={54} height={54} className="w-8 sm:w-[54px] h-auto" />
             <span className="font-mono text-xl sm:text-3xl font-bold tracking-tight leading-none">OVERWATCH</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
@@ -745,7 +745,7 @@ function HomePageInner() {
             <div className="hidden sm:flex flex-col items-start gap-2.5">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Powered By</h4>
               <a href="https://www.evenfalladvantage.com" target="_blank" rel="noopener noreferrer">
-                <Image src="/images/logo.png" alt="Evenfall Advantage" width={120} height={36} className="w-[100px] h-auto opacity-40 hover:opacity-70 transition-opacity" />
+                <Image src="/overwatch/images/logo.png" alt="Evenfall Advantage" width={120} height={36} className="w-[100px] h-auto opacity-40 hover:opacity-70 transition-opacity" />
               </a>
             </div>
           </div>
