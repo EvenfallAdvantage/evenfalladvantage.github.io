@@ -1,4 +1,6 @@
 "use client";
+import { ionAssetsEnabled } from "@/lib/map/basemap-sources";
+import { SAR_AVAILABLE } from "./sentinel-layer";
 
 import { useState } from "react";
 import {
@@ -109,14 +111,17 @@ interface LayerToggle {
   group: string;
   /** True if this layer cannot be replayed historically (no free historical data source). */
   liveOnly?: boolean;
+  /** Hide the toggle entirely (e.g. source not configured for this deployment). */
+  hidden?: boolean;
 }
 
 const LAYER_TOGGLES: LayerToggle[] = [
   // ─── MAP — how the basemap renders (basemap + imagery overlays) ──
   { key: "satellite", label: "Satellite View", icon: <Satellite className="h-3.5 w-3.5" />, group: "MAP" },
-  { key: "terrain", label: "3D Terrain & Buildings", icon: <Mountain className="h-3.5 w-3.5" />, group: "MAP" },
-  { key: "sentinel1", label: "SAR Imagery", icon: <Scan className="h-3.5 w-3.5" />, group: "MAP", liveOnly: true },
-  { key: "sentinel2", label: "Satellite Photos", icon: <Layers className="h-3.5 w-3.5" />, group: "MAP", liveOnly: true },
+  { key: "terrain", label: ionAssetsEnabled() ? "3D Terrain & Buildings" : "3D Terrain", icon: <Mountain className="h-3.5 w-3.5" />, group: "MAP" },
+  // Real Sentinel-1 SAR only; hidden when no Sentinel Hub instance is configured.
+  { key: "sentinel1", label: "SAR Imagery", icon: <Scan className="h-3.5 w-3.5" />, group: "MAP", liveOnly: true, hidden: !SAR_AVAILABLE },
+  { key: "sentinel2", label: "Daily Satellite (NASA)", icon: <Layers className="h-3.5 w-3.5" />, group: "MAP", liveOnly: true },
   // ─── OPERATIONS — your company's data ──────────────────
   { key: "operations", label: "Operations", icon: <MapPin className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "staff", label: "Staff", icon: <Users className="h-3.5 w-3.5" />, group: "OPERATIONS" },
@@ -195,7 +200,8 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
     });
   }
 
-  const groups = [...new Set(LAYER_TOGGLES.map((t) => t.group))];
+  const visibleToggles = LAYER_TOGGLES.filter((t) => !t.hidden);
+  const groups = [...new Set(visibleToggles.map((t) => t.group))];
   const opsWithSiteMaps = operations.filter((o) => o.siteMapUrl);
 
   return (
@@ -227,7 +233,7 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
                 {isCollapsed ? <ChevronRight className="h-2.5 w-2.5 text-white/20" /> : <ChevronDown className="h-2.5 w-2.5 text-white/20" />}
               </button>
               {!isCollapsed && <div className="space-y-0.5">
-                {LAYER_TOGGLES.filter((t) => t.group === group).map((t) => {
+                {visibleToggles.filter((t) => t.group === group).map((t) => {
                   const active = layers[t.key];
                   const isLiveOnlyDuringReplay = !!t.liveOnly && !!isReplaying;
                   return (

@@ -27,13 +27,6 @@ export function IpTab() {
     }
   }
 
-  const riskColor =
-    result?.reputation.risk_level === "HIGH"
-      ? "#ef4444"
-      : result?.reputation.risk_level === "MEDIUM"
-      ? "#f97316"
-      : "#10b981";
-
   return (
     <div className="space-y-3">
       <form onSubmit={onSubmit} className="flex gap-2">
@@ -63,39 +56,33 @@ export function IpTab() {
         <div className="text-[11px] text-red-300 font-mono">{error}</div>
       )}
 
-      {result?.geo && (
+      {result && !result.network && (
+        <div className="text-[11px] text-white/50 font-mono">{result.error ?? "No registry record found"}</div>
+      )}
+
+      {result?.network && (
         <div className="space-y-1.5 text-[11px] font-mono">
-          <div className="flex items-center gap-2">
-            <span style={{ color: riskColor }}>
-              ● {result.reputation.risk_level}
-            </span>
-            <span className="text-white/40">{result.geo.country_code}</span>
-          </div>
-          <div className="text-white/80">
-            {result.geo.city}, {result.geo.region}, {result.geo.country}
+          <div className="text-white/90 font-bold">
+            {result.network.org || result.network.name}
+            {result.network.country && <span className="text-white/40 font-normal"> · {result.network.country}</span>}
           </div>
           <div className="text-white/60">
-            {result.geo.lat.toFixed(4)}, {result.geo.lon.toFixed(4)} —{" "}
-            {result.geo.timezone}
+            {result.network.name} ({result.network.handle}){result.network.type ? ` · ${result.network.type}` : ""}
           </div>
-          <div className="border-t border-white/10 pt-1.5 mt-1.5">
-            <div className="text-white/60">ISP: {result.geo.isp}</div>
-            <div className="text-white/60">Org: {result.geo.org}</div>
-            <div className="text-white/60">
-              {result.geo.as_number} ({result.geo.as_name})
-            </div>
+          <div className="text-white/70">
+            {result.network.cidr.length > 0 ? result.network.cidr.join(", ") : `${result.network.start} – ${result.network.end}`}
           </div>
-          <div className="flex gap-3 text-[10px] mt-1">
-            {result.reputation.is_proxy && (
-              <span style={{ color: "#ef4444" }}>PROXY</span>
-            )}
-            {result.reputation.is_hosting && (
-              <span style={{ color: "#fbbf24" }}>HOSTING</span>
-            )}
-            {result.reputation.is_mobile && (
-              <span className="text-white/60">MOBILE</span>
-            )}
-          </div>
+          {result.ptr && result.ptr.length > 0 && (
+            <div className="text-white/60">PTR: {result.ptr.join(", ")}</div>
+          )}
+          {result.network.abuse_email && (
+            <div className="text-white/60">Abuse: {result.network.abuse_email}</div>
+          )}
+          {result.network.registry_url && (
+            <a href={result.network.registry_url} target="_blank" rel="noreferrer" className="text-[10px] text-white/40 underline">
+              Registry record (RDAP)
+            </a>
+          )}
         </div>
       )}
     </div>

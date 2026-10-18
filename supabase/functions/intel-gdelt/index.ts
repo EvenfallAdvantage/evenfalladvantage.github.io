@@ -5,6 +5,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireIntelUser } from "../_shared/intel-auth.ts";
 
 const RSS_FEEDS: Array<{ url: string; source: string }> = [
   { url: "https://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World" },
@@ -31,6 +32,8 @@ const CONFLICT_KEYWORDS = [
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders);
+  if (denied) return denied;
 
   try {
     const allEvents: Array<{

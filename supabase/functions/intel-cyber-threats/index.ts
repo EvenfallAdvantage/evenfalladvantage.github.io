@@ -6,6 +6,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireIntelUser } from "../_shared/intel-auth.ts";
 
 interface CisaKevEntry {
   cveID?: string;
@@ -19,6 +20,8 @@ interface CisaKevEntry {
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders);
+  if (denied) return denied;
 
   const result = {
     threats: [] as Array<{

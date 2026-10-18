@@ -4,14 +4,16 @@
  * via the standard `{ error?: string }` field on the response.
  *
  * All functions deploy under `${NEXT_PUBLIC_SUPABASE_URL}/functions/v1/intel-*`.
- * They do NOT require auth (no JWT) — see the per-function definitions in
- * supabase/functions/intel-*.
+ * They require a signed-in user: the caller's Supabase session access token
+ * is sent as the bearer and checked in-function (_shared/intel-auth.ts),
+ * which also applies a per-user rate limit. The functions still deploy with
+ * verify_jwt=false so CORS preflight works; auth is enforced in code.
  */
 
+import { createClient } from "@/lib/supabase/client";
 import type {
   IntelEarthquakesResponse,
   IntelFiresResponse,
-  IntelLightningResponse,
   IntelEonetResponse,
   IntelSpaceWeatherResponse,
   IntelNewsResponse,
@@ -43,19 +45,28 @@ function getBaseUrl(): string {
   return `${base.replace(/\/$/, "")}/functions/v1`;
 }
 
-function buildHeaders(): HeadersInit {
-  // Edge functions accept the anon key as bearer for rate-limit accounting.
-  // If unset, requests still succeed because the functions deploy with
-  // `--no-verify-jwt`.
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+async function buildHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (anonKey) headers["Authorization"] = `Bearer ${anonKey}`;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (anonKey) headers["apikey"] = anonKey;
+  const token = await getAccessToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   return headers;
+}
+
+/** Current user's access token (null when signed out or in non-browser tests). */
+export async function getAccessToken(): Promise<string | null> {
+  try {
+    const { data } = await createClient().auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${getBaseUrl()}${path}`, {
-    headers: buildHeaders(),
+    headers: await buildHeaders(),
     signal: AbortSignal.timeout(20_000),
     ...init,
   });
@@ -68,7 +79,7 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     if (!ct.includes("application/json")) {
       throw new Error(
         `Intel function ${path} returned ${res.status} (${ct || "no content-type"}) — ` +
-        `likely verify_jwt=true on the function; redeploy with --no-verify-jwt`,
+        `check sign-in, or verify_jwt=true on the function (redeploy with --no-verify-jwt)`,
       );
     }
   }
@@ -78,9 +89,6 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 // ─── Hazards & events ────────────────────────────────────────────
 export function fetchIntelEarthquakes() {
   return call<IntelEarthquakesResponse>("/intel-earthquakes");
-}
-export function fetchIntelLightning() {
-  return call<IntelLightningResponse>("/intel-lightning");
 }
 export function fetchIntelFires() {
   return call<IntelFiresResponse>("/intel-fires");

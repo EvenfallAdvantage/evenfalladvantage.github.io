@@ -1,12 +1,21 @@
 /**
- * Intel OSINT — Subnet sweep via Shodan InternetDB + geolocation.
- * Tight rate limit: 2 sweeps / minute per IP.
+ * Intel OSINT — Subnet sweep via Shodan InternetDB + RDAP network owner.
+ * Tight rate limit: 2 sweeps / minute per IP, 4 / minute per user.
+ *
+ * DISABLED BY DEFAULT. Shodan InternetDB is "free for non-commercial use"
+ * (Shodan's FAQ allows use at a company, but not inside products you charge
+ * for). Overwatch is free to account holders, but enable only once that
+ * reading is confirmed: set the INTEL_SWEEP_ENABLED=true function secret.
+ * The old ip-api.com geolocation (non-commercial free tier) is replaced by
+ * the RDAP registry record, so `center.lat/lng` are 0 (no city-level geo).
  * Adapted from Osiris (github.com/simplifaisoul/osiris, MIT).
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireIntelUser } from "../_shared/intel-auth.ts";
 import { getClientIp } from "../_shared/ssrf-guard.ts";
+import { rdapIp } from "../_shared/rdap.ts";
 
 const sweepRateMap = new Map<string, number[]>();
 const SWEEP_RATE_WINDOW_MS = 60_000;
@@ -143,19 +152,18 @@ interface ShodanInternetDBResponse {
   cpes: string[]; hostnames: string[]; ip: string;
   ports: number[]; tags: string[]; vulns: string[];
 }
-interface IpApiSweepResponse {
-  status?: "success" | "fail";
-  message?: string;
-  lat?: number; lon?: number;
-  city?: string; regionName?: string;
-  country?: string; countryCode?: string;
-  isp?: string; as?: string; org?: string;
-}
 
 Deno.serve(async (req) => {
   const startTime = Date.now();
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders, { limit: 4 });
+  if (denied) return denied;
+  if (Deno.env.get("INTEL_SWEEP_ENABLED") !== "true") {
+    return new Response(JSON.stringify({ error: "Subnet sweep is disabled on this deployment" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const { searchParams } = new URL(req.url);
   const ip = searchParams.get("ip");
@@ -198,28 +206,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const geoRes = await fetch(
-      `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,lat,lon,isp,org,as,proxy,hosting`,
-      { signal: AbortSignal.timeout(5_000) },
-    );
-    if (!geoRes.ok) {
-      return new Response(JSON.stringify({ error: "Geolocation service unavailable" }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const geoData = (await geoRes.json()) as IpApiSweepResponse;
-    if (geoData.status === "fail") {
-      return new Response(
-        JSON.stringify({ error: `Geolocation failed: ${geoData.message ?? "Unknown error"}` }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
+    const net = await rdapIp(ip).catch(() => null);
     const center = {
-      lat: geoData.lat ?? 0, lng: geoData.lon ?? 0,
-      city: geoData.city ?? "", region: geoData.regionName ?? "",
-      country: geoData.country ?? "", countryCode: geoData.countryCode ?? "",
-      isp: geoData.isp ?? "", asn: geoData.as ?? "", org: geoData.org ?? "",
+      lat: 0, lng: 0, city: "", region: "",
+      country: net?.country ?? "", countryCode: net?.country ?? "",
+      isp: net?.org ?? "", asn: "", org: net?.name ?? "",
     };
 
     const ipNum = ipToNumber(octets);

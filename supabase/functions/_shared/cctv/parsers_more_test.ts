@@ -2,7 +2,7 @@ import { assert, assertEquals } from "jsr:@std/assert@1";
 import {
   fetchArcgisAll, parseAustin, parseDriveBC, parseHongKong, parseIllinois, parseIowa, parseNzta, parseTfl, parseTripCheck,
 } from "./parsers_more.ts";
-import { CCTV_SOURCES, enabledSources } from "./sources.ts";
+import { CCTV_SOURCES, disabledSourceIds, enabledSources } from "./sources.ts";
 
 Deno.test("Illinois: snapshot https, skips TooOld, direction suffix", () => {
   const cams = parseIllinois({ features: [
@@ -94,6 +94,14 @@ Deno.test("registry: unique ids, attribution on all, terms-pending gated", () =>
   const def = enabledSources(undefined).map((s) => s.id);
   assert(!def.includes("Iowa DOT") && !def.includes("Travel Midwest (IL)") && !def.includes("ODOT TripCheck"));
   assert(def.includes("TfL JamCams"));
-  assertEquals(enabledSources("all").length, CCTV_SOURCES.length);
+  assertEquals(enabledSources("all").length, CCTV_SOURCES.length - 1); // all but NYC DOT
   assert(enabledSources("Iowa DOT").some((s) => s.id === "Iowa DOT"));
+});
+
+Deno.test("registry: NYC DOT needs an explicit opt-in (agreement required)", () => {
+  assert(!enabledSources(undefined).some((s) => s.id === "NYC DOT"));
+  assert(!enabledSources("all").some((s) => s.id === "NYC DOT"));
+  assert(enabledSources("all,NYC DOT").some((s) => s.id === "NYC DOT"));
+  assert(disabledSourceIds(undefined).has("NYC DOT"));
+  assert(!disabledSourceIds("NYC DOT").has("NYC DOT"));
 });

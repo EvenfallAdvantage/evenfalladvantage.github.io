@@ -6,6 +6,8 @@ import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, defaultLayersFor } from "./map-layers-panel";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
+import { addFreeBaseImagery, createTerrainProvider, ionAssetsEnabled } from "@/lib/map/basemap-sources";
+import { setVisibleInterval } from "@/lib/visible-interval";
 import { MapToolsBar } from "./map-tools";
 import { SiteMapAligner } from "./site-map-aligner";
 import { saveSiteMapBounds } from "@/lib/supabase/db-operations";
@@ -44,6 +46,8 @@ import { useAuthStore } from "@/stores/auth-store";
 export type { StaffPin, OperationPin, IncidentPin } from "./types";
 
 const CONUS_CENTER = { lat: 39.8283, lng: -98.5795 };
+/** Idle render cadence under requestRenderMode (camera moves and tile loads render immediately). */
+const RENDER_PUMP_MS = 1000;
 
 export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, onSelectOperation, onMessageStaff: _onMessageStaff }: TacticalMapProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -70,6 +74,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     return defaults;
   });
   const initialTerrainRef = useRef(layers.terrain);
+  const renderPumpRef = useRef<(() => void) | null>(null);
   // One-time CCTV acknowledgement (per user, localStorage). Every path that
   // turns the CCTV layer on goes through setLayers, so gate it there.
   const userId = useAuthStore((s) => s.user?.id ?? null);
@@ -216,7 +221,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           navigationHelpButton: false,
           infoBox: false,
           creditContainer: creditRef.current ?? document.createElement("div"),
+          // No default ion/Bing base layer: free, commercially-usable imagery
+          // is added below (basemap-sources.ts).
+          baseLayer: false,
+          // Explicit rendering: only draw a frame when something changed
+          // (camera, tiles, entities). Saves GPU/battery when the map is idle.
+          requestRenderMode: true,
+          maximumRenderTimeChange: Infinity,
         });
+        entityGroupsRef.current.baseImagery = addFreeBaseImagery(viewer, Cesium);
 
         // Set terrain after construction: Terrain.fromWorldTerrain() returns a
         // Promise in Cesium 1.104+, so it cannot be passed inline to the Viewer
@@ -228,10 +241,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         // Skip the world-terrain fetch when the terrain layer starts off; the
         // terrain layer effect loads it if the user turns it on later.
         if (initialTerrainRef.current) try {
-          const terrainProvider = await Cesium.Terrain.fromWorldTerrain({
-            requestVertexNormals: true,
-            requestWaterMask: true,
-          });
+          const terrainProvider = await createTerrainProvider(Cesium);
           if (!destroyed) viewer.terrainProvider = terrainProvider;
         } catch (terrainErr) {
           logger.swallow("tactical-map:terrain", terrainErr, "debug");
@@ -269,7 +279,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
         // Add 3D buildings (only when terrain starts on; otherwise the terrain
         // layer effect loads them lazily the first time terrain is enabled).
-        if (initialTerrainRef.current) {
+        // OSM Buildings is a Cesium ion asset: only when ion is licensed.
+        if (initialTerrainRef.current && ionAssetsEnabled()) {
           const buildingsTileset = await Cesium.createOsmBuildingsAsync();
           viewer.scene.primitives.add(buildingsTileset);
           entityGroupsRef.current.buildings = [buildingsTileset];
@@ -315,6 +326,12 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           }, 500);
         });
 
+        // Data layers update on their own timers (≥15 s). A 1 Hz render pump
+        // keeps entity/property changes visible without continuous 60 fps.
+        renderPumpRef.current = setVisibleInterval(() => {
+          if (!viewer.isDestroyed()) viewer.scene.requestRender();
+        }, RENDER_PUMP_MS);
+
         viewer.scene.globe.depthTestAgainstTerrain = true;
         viewer.scene.fog.enabled = true;
         viewer.scene.fog.density = 0.0002;
@@ -335,6 +352,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
     return () => {
       destroyed = true;
+      renderPumpRef.current?.();
+      renderPumpRef.current = null;
       if (viewerRef.current && !viewerRef.current.isDestroyed()) {
         viewerRef.current.destroy();
       }

@@ -8,18 +8,6 @@
  * Functions are deployed at `${SUPABASE_FUNCTIONS_URL}/intel-<name>`.
  */
 
-// ─── Lightning (Blitzortung WebSocket → GeoJSON) ─────────────────
-export interface IntelLightningStrike {
-  type: "Feature";
-  geometry: { type: "Point"; coordinates: [number, number] };
-  properties: { time: number; id: number; src: number };
-}
-export interface IntelLightningResponse {
-  type: "FeatureCollection";
-  features: IntelLightningStrike[];
-  error?: string;
-}
-
 // ─── Earthquakes ─────────────────────────────────────────────────
 export interface IntelEarthquake {
   id: string;
@@ -384,31 +372,25 @@ export interface IntelWhoisResponse {
   timestamp: string;
 }
 
-// ─── OSINT: IP ───────────────────────────────────────────────────
+// ─── OSINT: IP (RIR RDAP + reverse DNS) ──────────────────────────
+export interface IntelRdapNetwork {
+  handle: string;
+  name: string;
+  cidr: string[];
+  start: string;
+  end: string;
+  type: string;
+  country: string;
+  org: string;
+  abuse_email: string;
+  registry_url: string;
+}
 export interface IntelIpResponse {
   ip: string;
-  geo?: {
-    country: string;
-    country_code: string;
-    region: string;
-    city: string;
-    lat: number;
-    lon: number;
-    timezone: string;
-    isp: string;
-    org: string;
-    as_number: string;
-    as_name: string;
-    is_mobile: boolean;
-    is_proxy: boolean;
-    is_hosting: boolean;
-  };
-  reputation: {
-    is_proxy: boolean;
-    is_hosting: boolean;
-    is_mobile: boolean;
-    risk_level: "HIGH" | "MEDIUM" | "LOW";
-  };
+  source?: "rdap";
+  network?: IntelRdapNetwork;
+  ptr?: string[];
+  error?: string;
   timestamp: string;
 }
 
@@ -451,19 +433,37 @@ export interface IntelThreatsResponse {
   timestamp: string;
 }
 
-// ─── OSINT: BGP ──────────────────────────────────────────────────
+// ─── OSINT: ASN (RIR RDAP + PeeringDB) ───────────────────────────
+export interface IntelRdapAutnum {
+  number: number;
+  handle: string;
+  name: string;
+  country: string;
+  org: string;
+  abuse_email: string;
+  registry_url: string;
+}
+export interface IntelPeeringDbNet {
+  name: string;
+  aka: string;
+  website: string;
+  type: string;
+  scope: string;
+  policy: string;
+  prefixes4: number | null;
+  prefixes6: number | null;
+  ix_count: number;
+  fac_count: number;
+  irr_as_set: string;
+  url: string;
+}
 export interface IntelBgpResponse {
   query: string;
   type: "ip" | "asn";
-  ip?: unknown;
-  asn?: unknown;
-  prefixes?: {
-    ipv4: unknown[];
-    ipv6: unknown[];
-    total_v4: number;
-    total_v6: number;
-  };
-  peers?: { upstream: unknown[]; total: number };
+  asn?: IntelRdapAutnum;
+  peeringdb?: IntelPeeringDbNet;
+  network?: IntelRdapNetwork;
+  error?: string;
   timestamp: string;
 }
 
