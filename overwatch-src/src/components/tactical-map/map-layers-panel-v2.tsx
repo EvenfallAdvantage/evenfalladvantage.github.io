@@ -21,7 +21,7 @@ import { SAR_AVAILABLE } from "./sentinel-layer";
 import { ionAssetsEnabled } from "@/lib/map/basemap-sources";
 import { AIRCRAFT_FILTER_LABELS } from "@/lib/map/aircraft-filter";
 import {
-  GROUPS, PRESET_IDS, PRESET_LABELS, BASEMAP_LABELS, LOOK_LABELS, MOBILE_LOOKS, MOBILE_MAX_DATA_GROUPS,
+  matchingPreset, GROUPS, PRESET_IDS, PRESET_LABELS, BASEMAP_LABELS, LOOK_LABELS, MOBILE_LOOKS, MOBILE_MAX_DATA_GROUPS,
   activeDataGroups, applyPreset, basemapOf, lookOf, setBasemap, setGroup, setLook, setSub, subOn,
   type BasemapId, type GroupId, type LookId, type PresetId,
 } from "@/lib/map/layer-registry";
@@ -81,12 +81,14 @@ function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; la
 
 function Segmented<T extends string>({ value, options, labels, onPick }: { value: T; options: readonly T[]; labels: Record<T, string>; onPick: (v: T) => void }) {
   return (
-    <div className="flex rounded-md bg-white/5 p-0.5 gap-0.5">
+    <div className="flex flex-wrap rounded-md bg-white/5 p-0.5 gap-0.5" role="radiogroup">
       {options.map((o) => (
         <button
           key={o}
           onClick={() => onPick(o)}
-          className={`flex-1 rounded px-1.5 py-1 text-[10px] font-mono transition-colors ${value === o ? "text-black font-bold" : "text-white/55 hover:text-white"}`}
+          role="radio"
+          aria-checked={value === o}
+          className={`flex-1 min-h-[34px] min-w-[44px] rounded px-1.5 py-1 text-[12px] font-mono transition-colors ${value === o ? "text-black font-bold" : "text-white/55 hover:text-white"}`}
           style={value === o ? { backgroundColor: ACCENT } : undefined}
         >
           {labels[o]}
@@ -103,6 +105,8 @@ function PanelBody(props: MapLayersPanelV2Props) {
 
   const basemaps: BasemapId[] = ["satellite", "streets", "dark", "daily", ...(SAR_AVAILABLE ? (["sar"] as BasemapId[]) : [])];
   const looks: readonly LookId[] = constrained ? MOBILE_LOOKS : ["normal", "nvg", "thermal", "noir", "crt"];
+
+  const activePreset = matchingPreset(layers, { constrained, cctvAcked });
 
   function pickPreset(id: PresetId) {
     onChange(applyPreset(layers, id, { constrained, cctvAcked }));
@@ -131,15 +135,15 @@ function PanelBody(props: MapLayersPanelV2Props) {
           <button
             key={id}
             role="radio"
-            aria-checked={layers.preset === id}
+            aria-checked={activePreset === id}
             onClick={() => pickPreset(id)}
-            className={`rounded-full px-2 py-0.5 text-[10px] font-mono border transition-colors ${layers.preset === id ? "text-black font-bold border-transparent" : "text-white/60 border-white/15 hover:text-white"}`}
-            style={layers.preset === id ? { backgroundColor: ACCENT } : undefined}
+            className={`min-h-[32px] rounded-full px-2.5 py-1 text-[12px] font-mono border transition-colors ${activePreset === id ? "text-black font-bold border-transparent" : "text-white/60 border-white/15 hover:text-white"}`}
+            style={activePreset === id ? { backgroundColor: ACCENT } : undefined}
           >
             {PRESET_LABELS[id]}
           </button>
         ))}
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono border ${layers.preset === "custom" ? "text-white border-white/40" : "text-white/30 border-white/10"}`}>Custom</span>
+        <span className={`inline-flex min-h-[32px] items-center rounded-full px-2.5 py-1 text-[12px] font-mono border ${activePreset === "custom" ? "text-white border-white/40" : "text-white/30 border-white/10"}`}>Custom</span>
       </div>
 
       {topSlot}
@@ -256,7 +260,7 @@ function PanelBody(props: MapLayersPanelV2Props) {
 
       {bottomSlot}
 
-      <button onClick={props.onUseClassic} className="w-full text-[9px] font-mono text-white/35 hover:text-white/70 underline underline-offset-2">
+      <button onClick={props.onUseClassic} className="w-full min-h-[40px] rounded text-[12px] font-mono text-white/65 hover:text-white hover:bg-white/5 underline underline-offset-2">
         Switch to the classic layers panel
       </button>
     </div>
