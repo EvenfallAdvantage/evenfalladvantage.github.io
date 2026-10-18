@@ -522,3 +522,34 @@ export interface SweepResult {
   };
   sweep_time_ms: number;
 }
+
+// ─── Natural hazards (intel-hazards, normalized) ─────────────────
+export type HazardKind =
+  | "warning" | "watch" | "advisory"
+  | "quake" | "fire" | "perimeter"
+  | "cyclone" | "cyclone_cone" | "cyclone_track"
+  | "volcano";
+export type HazardSource = "warnings" | "quakes" | "fires" | "perimeters" | "tropical" | "volcanoes";
+export type HazardGeometry =
+  | { type: "Point"; coordinates: [number, number] }
+  | { type: "LineString"; coordinates: [number, number][] }
+  | { type: "Polygon"; coordinates: [number, number][][] }
+  | { type: "MultiPolygon"; coordinates: [number, number][][][] };
+export interface IntelHazard {
+  id: string;
+  kind: HazardKind;
+  severity: 1 | 2 | 3 | 4;
+  title: string;
+  geometry: HazardGeometry;
+  starts_at: string | null;
+  ends_at: string | null;
+  source: string;
+  url: string | null;
+  updated_at: string | null;
+  props?: Record<string, string | number | boolean | null>;
+}
+export interface IntelHazardsResponse {
+  hazards: IntelHazard[];
+  sources: Partial<Record<HazardSource, { ok: boolean; count: number; stale?: boolean; error?: string }>>;
+  timestamp: string;
+}

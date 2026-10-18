@@ -42,7 +42,14 @@ export type IntelLayerKey =
   | "recon_bgp"
   | "recon_ip"
   | "recon_threats"
-  | "recon_sweep";
+  | "recon_sweep"
+  | "nws_warnings"
+  | "wildfire_perimeters"
+  | "tropical_cyclones"
+  | "weather_radar"
+  | "satellite_clouds"
+  | "surface_wind"
+  | "gnss_interference";
 
 export interface IntelFlag {
   enabled: boolean;
@@ -68,6 +75,35 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   eonet_weather: {
     enabled: true,
     attribution: "NASA EONET",
+    attributionRequired: true,
+  },
+  nws_warnings: {
+    enabled: true,
+    attribution: "NOAA/NWS watches, warnings & advisories (public domain)",
+  },
+  wildfire_perimeters: {
+    enabled: true,
+    attribution: "NIFC / WFIGS Interagency Fire Perimeters (public domain)",
+  },
+  tropical_cyclones: {
+    enabled: true,
+    attribution: "NOAA National Hurricane Center (public domain)",
+  },
+  weather_radar: {
+    enabled: true,
+    attribution: "NOAA/NWS nowCOAST MRMS radar (public domain)",
+  },
+  satellite_clouds: {
+    enabled: true,
+    attribution: "NOAA/NWS nowCOAST GOES/global infrared imagery (public domain)",
+  },
+  surface_wind: {
+    enabled: true,
+    attribution: "NOAA/NWS surface observations (public domain)",
+  },
+  gnss_interference: {
+    enabled: true,
+    attribution: "Derived from adsb.lol aircraft accuracy reports (ODbL 1.0)",
     attributionRequired: true,
   },
   space_weather: {

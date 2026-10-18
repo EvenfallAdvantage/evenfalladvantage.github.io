@@ -87,6 +87,9 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 // ─── Hazards & events ────────────────────────────────────────────
+export function fetchIntelHazards(kinds: readonly import("./intel-types").HazardSource[]) {
+  return call<import("./intel-types").IntelHazardsResponse>(`/intel-hazards?kinds=${encodeURIComponent(kinds.join(","))}`);
+}
 export function fetchIntelEarthquakes() {
   return call<IntelEarthquakesResponse>("/intel-earthquakes");
 }

@@ -33,6 +33,16 @@ export interface Aircraft {
   verticalRate: number; // m/s
   onGround: boolean;
   lastContact: number; // unix timestamp
+  /** Military airframe (readsb database flag). */
+  military?: boolean;
+  /** Emergency squawk (7500/7600/7700) or ADS-B emergency status. */
+  emergency?: boolean;
+  squawk?: string | null;
+  /** ADS-B emergency status text, e.g. "general", "nordo". */
+  emergencyStatus?: string | null;
+  /** Position accuracy category (NACp, 0–11); null if not reported. */
+  nacp?: number | null;
+  typeCode?: string | null;
 }
 
 function getProxyUrl(south: number, north: number, west: number, east: number): string {
@@ -40,7 +50,7 @@ function getProxyUrl(south: number, north: number, west: number, east: number): 
   return `${supabaseUrl}/functions/v1/opensky-proxy?lamin=${south}&lamax=${north}&lomin=${west}&lomax=${east}`;
 }
 
-function parseStates(data: { states?: (string | number | boolean | null)[][] }): Aircraft[] {
+export function parseStates(data: { states?: (string | number | boolean | null)[][] }): Aircraft[] {
   if (!data.states) return [];
   return data.states
     .filter((s) => s[5] != null && s[6] != null)
@@ -55,6 +65,13 @@ function parseStates(data: { states?: (string | number | boolean | null)[][] }):
       verticalRate: Number(s[11] ?? 0),
       onGround: Boolean(s[8]),
       lastContact: Number(s[4] ?? 0),
+      // Overwatch extensions from opensky-proxy (absent from plain OpenSky data).
+      military: (Number(s[17] ?? 0) & 1) === 1,
+      emergency: (Number(s[17] ?? 0) & 2) === 2,
+      squawk: s[14] == null ? null : String(s[14]),
+      emergencyStatus: s[21] == null ? null : String(s[21]),
+      nacp: typeof s[18] === "number" ? s[18] : null,
+      typeCode: s[20] == null ? null : String(s[20]),
     }));
 }
 
