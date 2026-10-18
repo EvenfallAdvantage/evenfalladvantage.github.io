@@ -8,9 +8,11 @@ import {
   Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
   Activity, Flame, Swords, Wind, Atom, Newspaper, Tv, Rss, Ship, Camera, TowerControl,
-  Radio, Film, Sparkles, Focus, Crosshair,
+  Radio, Film, Sparkles, Focus, Crosshair, Zap,
 } from "lucide-react";
 import type { OperationPin } from "./types";
+import { SiteMapsList } from "./site-maps-list";
+import type { GroupId, PresetId } from "@/lib/map/layer-registry";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 
@@ -57,6 +59,14 @@ export interface LayerVisibility {
   maritime: boolean;
   cctv: boolean;
   raws: boolean;
+  /** Lightning strike density (was bundled with Severe Weather). */
+  lightning: boolean;
+  /** Merged news (GDELT + RSS, de-duplicated); panel v2 only. */
+  news: boolean;
+  /** Panel v2: master switch per group; a sub-layer draws only if its group is on. */
+  groups: Record<GroupId, boolean>;
+  /** Panel v2: preset last applied, or "custom" once anything is changed by hand. */
+  preset: PresetId | "custom";
   // Site maps
   siteOverlays: Record<string, boolean>;
   siteOverlayOpacity: number;
@@ -100,6 +110,10 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   maritime: false,
   cctv: false,
   raws: false,
+  lightning: false,
+  news: false,
+  groups: { myOps: true, weather: true, security: true, airSea: true, cameras: true, infrastructure: true },
+  preset: "custom",
   siteOverlays: {},
   siteOverlayOpacity: 0.75,
 };
@@ -115,8 +129,10 @@ export function defaultLayersFor(constrained: boolean): LayerVisibility {
   return constrained ? MOBILE_DEFAULT_LAYERS : DEFAULT_LAYERS;
 }
 
+type BoolKey = { [K in keyof LayerVisibility]: LayerVisibility[K] extends boolean ? K : never }[keyof LayerVisibility];
+
 interface LayerToggle {
-  key: keyof Omit<LayerVisibility, "siteOverlays">;
+  key: BoolKey;
   label: string;
   icon: React.ReactNode;
   group: string;
@@ -141,11 +157,12 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "geofences", label: "Geofences", icon: <Target className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "annotations", label: "Drawings", icon: <PenTool className="h-3.5 w-3.5" />, group: "OPERATIONS" },
   { key: "nearbyPOIs", label: "Nearby Services", icon: <Hospital className="h-3.5 w-3.5" />, group: "OPERATIONS" },
-  { key: "radioFrequencies", label: "Radio Frequencies", icon: <Radio className="h-3.5 w-3.5" />, group: "OPERATIONS" },
+  { key: "radioFrequencies", label: "Radio Frequencies", icon: <Radio className="h-3.5 w-3.5" />, group: "OPERATIONS", hidden: true },
   // ─── ENVIRONMENT — natural phenomena & weather ─────────
   { key: "weather", label: "Weather Radar (US)", icon: <CloudRain className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
   { key: "raws", label: "Weather Stations", icon: <TowerControl className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
   { key: "eonetWeather", label: "Severe Weather", icon: <Wind className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
+  { key: "lightning", label: "Lightning", icon: <Zap className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
   { key: "fires", label: "Active Fires", icon: <Flame className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
   { key: "earthquakes", label: "Earthquakes", icon: <Activity className="h-3.5 w-3.5" />, group: "ENVIRONMENT", liveOnly: true },
   // ─── INTELLIGENCE — external data feeds ────────────────
@@ -194,9 +211,11 @@ interface MapLayersPanelProps {
    * toggle ready overlays on/off; only admins can toggle un-ready ones
    * (which would open the SiteMapAligner). */
   savedBounds?: Record<string, unknown>;
+  /** Offer a switch to the new grouped panel. */
+  onUseNewPanel?: () => void;
 }
 
-export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, onAdjustSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, isReplaying, savedBounds }: MapLayersPanelProps) {
+export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRealignSiteMap, onAdjustSiteMap, isAdmin, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, isReplaying, savedBounds, onUseNewPanel }: MapLayersPanelProps) {
   // Collapsed by default on phones so the globe is usable; desktop unchanged.
   const [open, setOpen] = useState(() => !isConstrainedDevice());
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -205,20 +224,12 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
     setCollapsedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   }
 
-  function toggle(key: keyof Omit<LayerVisibility, "siteOverlays">) {
+  function toggle(key: BoolKey) {
     onChange({ ...layers, [key]: !layers[key] });
-  }
-
-  function toggleSiteOverlay(eventId: string) {
-    onChange({
-      ...layers,
-      siteOverlays: { ...layers.siteOverlays, [eventId]: !layers.siteOverlays[eventId] },
-    });
   }
 
   const visibleToggles = LAYER_TOGGLES.filter((t) => !t.hidden);
   const groups = [...new Set(visibleToggles.map((t) => t.group))];
-  const opsWithSiteMaps = operations.filter((o) => o.siteMapUrl);
 
   return (
     <div className={`absolute top-3 right-3 z-10 transition-all duration-200 ${open ? "w-56 max-w-[calc(100vw-1.5rem)]" : "w-9"}`}>
@@ -277,54 +288,8 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
                   );
                 })}
                 {/* Site Map Overlays — inline after OPERATIONS group */}
-                {group === "OPERATIONS" && opsWithSiteMaps.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-[8px] font-mono text-white/25 uppercase tracking-wider mb-1">Site Maps</p>
-                    <div className="space-y-0.5">
-                      {opsWithSiteMaps.map((op) => {
-                        const userPref = layers.siteOverlays[op.id];
-                        const hasBounds = !!savedBounds?.[op.id];
-                        // Effective on = explicit user pref if set, otherwise auto-on when bounds exist
-                        const siteActive = userPref === undefined ? hasBounds : userPref;
-                        // Non-admins may toggle aligned (bounds-exist) overlays.
-                        // Only admins may toggle an un-aligned overlay (turning it on
-                        // would open the aligner UI which requires admin perms).
-                        const canToggle = isAdmin || hasBounds;
-                        const blockedTooltip = !canToggle
-                          ? "Admin access required to align this site map"
-                          : "";
-                        return (
-                          <div key={op.id} className="flex items-center gap-1">
-                            <button
-                              onClick={() => { if (!canToggle) return; toggleSiteOverlay(op.id); }}
-                              className={`flex-1 flex items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
-                                siteActive ? "bg-white/10 text-white" : "text-white/40 hover:text-white/60 hover:bg-white/5"
-                              } ${!canToggle ? "cursor-not-allowed opacity-60" : ""}`}
-                              title={blockedTooltip}
-                            >
-                              <Layers className="h-3 w-3" />
-                              <span className="flex-1 text-left truncate">{op.name}</span>
-                              {siteActive ? <Eye className="h-3 w-3 text-green-400" /> : <EyeOff className="h-3 w-3" />}
-                            </button>
-                            {siteActive && isAdmin && hasBounds && (
-                              <div className="flex gap-0.5">
-                                {onAdjustSiteMap && <button onClick={() => onAdjustSiteMap(op)} className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded" title="Fine-tune position">⇔</button>}
-                                {onRealignSiteMap && <button onClick={() => onRealignSiteMap(op)} className="text-[8px] text-white/30 hover:text-white/60 px-1 py-0.5 rounded" title="Re-align (3-point pick)">↻</button>}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {/* Site overlay opacity slider */}
-                    <div className="flex items-center gap-1.5 mt-1.5 px-1 max-w-full overflow-hidden">
-                      <span className="text-[7px] text-white/30 shrink-0">Opacity</span>
-                      <input type="range" min={0} max={100} value={Math.round(layers.siteOverlayOpacity * 100)}
-                        onChange={(e) => onChange({ ...layers, siteOverlayOpacity: parseInt(e.target.value) / 100 })}
-                        className="h-1 min-w-0 w-full max-w-[80px]" style={{ accentColor: "var(--brand-accent, #d59b3c)" }} />
-                      <span className="text-[7px] text-white/40 shrink-0">{Math.round(layers.siteOverlayOpacity * 100)}%</span>
-                    </div>
-                  </div>
+                {group === "OPERATIONS" && (
+                  <SiteMapsList layers={layers} onChange={onChange} operations={operations} isAdmin={isAdmin} savedBounds={savedBounds} onAdjustSiteMap={onAdjustSiteMap} onRealignSiteMap={onRealignSiteMap} />
                 )}
                 {/* S2 sub-layer feeds — inline under INTELLIGENCE group */}
                 {group === "INTELLIGENCE" && layers.s2Intel && s2ActiveLayers && onToggleS2Layer && (
@@ -355,7 +320,11 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
             );
           })}
 
-
+          {onUseNewPanel && (
+            <button onClick={onUseNewPanel} className="w-full text-[9px] font-mono text-white/40 hover:text-white/70 underline underline-offset-2">
+              Use the new grouped layers panel
+            </button>
+          )}
         </div>
       )}
     </div>

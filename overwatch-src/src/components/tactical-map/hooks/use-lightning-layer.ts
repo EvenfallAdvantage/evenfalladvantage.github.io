@@ -57,7 +57,7 @@ export function useLightningLayer(params: {
       }
     };
     remove();
-    if (!layers.eonetWeather) return;
+    if (!layers.lightning) return;
 
     const add = () => {
       try {
@@ -88,5 +88,5 @@ export function useLightningLayer(params: {
     add();
     const stop = isReplaying ? () => {} : setVisibleInterval(add, REFRESH_MS);
     return () => { stop(); remove(); };
-  }, [layers.eonetWeather, loading, viewerRef, cesiumRef, entityGroupsRef, isReplaying, debouncedReplayTime]);
+  }, [layers.lightning, loading, viewerRef, cesiumRef, entityGroupsRef, isReplaying, debouncedReplayTime]);
 }

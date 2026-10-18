@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { logger } from "@/lib/logger";
 import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, defaultLayersFor } from "./map-layers-panel";
+import { MapLayersPanelV2 } from "./map-layers-panel-v2";
+import { allGroups, applyPreset, classicLayers, defaultPresetFor, effectiveLayers, expandSharedLayers, flattenForClassic, migrateLayers } from "@/lib/map/layer-registry";
+import { readPanelV2Choice, resolvePanelV2, writePanelV2Choice } from "@/lib/map/panel-flag";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { addFreeBaseImagery, createTerrainProvider, ionAssetsEnabled } from "@/lib/map/basemap-sources";
 import { setVisibleInterval } from "@/lib/visible-interval";
@@ -72,9 +75,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     if (typeof window === "undefined") return defaults;
     try {
       const saved = localStorage.getItem(storageKey);
-      if (saved) return { ...defaults, ...JSON.parse(saved) };
+      if (saved) return migrateLayers(defaults, JSON.parse(saved));
     } catch (e) { logger.swallow("tactical-map:layers-read", e, "debug"); }
-    return defaults;
+    // First visit: desktop starts on Security Ops, phones on Clean.
+    return applyPreset(defaults, defaultPresetFor(constrained), { constrained, cctvAcked: false });
   });
   const initialTerrainRef = useRef(layers.terrain);
   const renderPumpRef = useRef<(() => void) | null>(null);
@@ -83,6 +87,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const userId = useAuthStore((s) => s.user?.id ?? null);
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
+  // Grouped layers panel (v2) is on by default; users can switch back to the classic panel.
+  const [panelV2Choice, setPanelV2Choice] = useState<boolean | null>(() => typeof window === "undefined" ? null : readPanelV2Choice(window.localStorage, userId));
+  useEffect(() => { setPanelV2Choice(readPanelV2Choice(window.localStorage, userId)); }, [userId]);
+  const panelV2 = resolvePanelV2(panelV2Choice, null);
   const [cctvAckOpen, setCctvAckOpen] = useState(false);
   // Click-to-track (aircraft): entity id + display label.
   const [tracked, setTracked] = useState<{ id: string; label: string } | null>(null);
@@ -96,6 +104,18 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       return next;
     });
   }, [storageKey]);
+  // What the map actually draws: v2 applies group master switches and retired keys.
+  const activeLayers = useMemo(
+    () => (panelV2 ? effectiveLayers(layers, { constrained }) : classicLayers(layers)),
+    [panelV2, layers, constrained],
+  );
+  const choosePanel = useCallback((v2: boolean) => {
+    writePanelV2Choice(window.localStorage, userIdRef.current, v2);
+    setPanelV2Choice(v2);
+    // Going back to classic: keep exactly what was on screen visible there.
+    if (!v2) setLayers((prev) => flattenForClassic(prev));
+    else setLayers((prev) => migrateLayers(defaultLayersFor(constrained), { ...prev, news: prev.news || prev.gdelt || prev.sigintNews, lightning: prev.lightning }));
+  }, [setLayers, constrained]);
   // Layer prefs saved before the acknowledgement existed may already have CCTV
   // on: switch it off and ask once.
   useEffect(() => {
@@ -181,7 +201,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     cesiumRef,
     entityGroupsRef,
     loading,
-    layers,
+    layers: activeLayers,
     operations,
     staff: effectiveStaff,
     incidents: effectiveIncidents,
@@ -307,7 +327,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
             cameraRestored = true;
             if (shared.layers) {
               const list = shared.layers;
-              setLayers((prev) => applySharedLayers(prev, list));
+              setLayers((prev) => ({ ...applySharedLayers(prev, expandSharedLayers(list)), groups: allGroups(true), preset: "custom" }));
             }
             history.replaceState(null, "", window.location.pathname + window.location.search);
           }
@@ -494,7 +514,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       altM: carto.height,
       headingDeg: Cesium.Math.toDegrees(viewer.camera.heading),
       pitchDeg: Cesium.Math.toDegrees(viewer.camera.pitch),
-      layers: activeBooleanLayers(layers),
+      layers: activeBooleanLayers(activeLayers),
     });
     const url = `${window.location.origin}${window.location.pathname}${window.location.search}${hash}`;
     try {
@@ -503,7 +523,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     } catch {
       window.prompt("Copy this map view link:", url);
     }
-  }, [layers]);
+  }, [activeLayers]);
 
   // Ops Mode: full screen + hide panels; leaving full screen leaves Ops Mode.
   const handleOpsMode = useCallback(() => {
@@ -628,6 +648,21 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     }
   }, [operations]);
 
+  const handleRealignSiteMap = useCallback((op: import("./types").OperationPin) => {
+    // Clear saved bounds to force re-alignment
+    setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
+    setAligningOp(op);
+  }, [setSavedBounds, setAligningOp]);
+  const handleAdjustSiteMap = useCallback((op: import("./types").OperationPin) => {
+    // Open the fine-tune adjuster with current saved bounds
+    const currentBounds = savedBounds[op.id];
+    if (currentBounds && op.siteMapUrl) {
+      setAdjustingOp({ id: op.id, name: op.name, imageUrl: op.siteMapUrl, bounds: currentBounds });
+    } else {
+      toast("No saved bounds to adjust. Use the ↻ button to align first.");
+    }
+  }, [savedBounds]);
+
   return (
     <div ref={wrapperRef} className="relative w-full rounded-xl overflow-hidden border border-border/50 bg-[#0b1422]" style={{ height: isFullscreen ? "100vh" : "calc(100vh - 180px)", minHeight: 500 }}>
       {loading && (
@@ -680,6 +715,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         onClose={() => setIntelDrawerOpen(false)}
         onLocate={handleFlyToCoords}
         forceTab={forcedIntelTab}
+        onOpenLiveFeed={panelV2 ? setActiveLiveFeed : undefined}
       />
 
       {/* Global status bar — bottom-center; admin-only by convention */}
@@ -732,8 +768,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
 
 
-      {layers.hud && !loading && !error && (
-        <TacticalHud viewerRef={viewerRef} cesiumRef={cesiumRef} mode={hudModeLabel(layers)} />
+      {activeLayers.hud && !loading && !error && (
+        <TacticalHud viewerRef={viewerRef} cesiumRef={cesiumRef} mode={hudModeLabel(activeLayers)} />
       )}
 
       {/* Custom entity popup — floating near selected point */}
@@ -753,7 +789,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         />
       )}
 
-      {tracked && layers.aircraft && (
+      {tracked && activeLayers.aircraft && (
         <TrackingChip
           key={tracked.id}
           viewerRef={viewerRef}
@@ -782,19 +818,27 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
 
-      {!error && !opsMode && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} s2ActiveLayers={s2Intel.activeLayers} onToggleS2Layer={s2Intel.toggleLayer} s2FeatureCount={s2Intel.featureCount} isReplaying={timeMachineOpen} onRealignSiteMap={(op) => {
-        // Clear saved bounds to force re-alignment
-        setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
-        setAligningOp(op);
-      }} onAdjustSiteMap={(op) => {
-        // Open the fine-tune adjuster with current saved bounds
-        const currentBounds = savedBounds[op.id];
-        if (currentBounds && op.siteMapUrl) {
-          setAdjustingOp({ id: op.id, name: op.name, imageUrl: op.siteMapUrl, bounds: currentBounds });
-        } else {
-          toast("No saved bounds to adjust. Use the ↻ button to align first.");
-        }
-      }} savedBounds={savedBounds} />}
+      {!error && !opsMode && (panelV2 ? (
+        <MapLayersPanelV2
+          layers={layers}
+          onChange={setLayers}
+          onFlyToAll={handleFlyToAll}
+          operations={operations}
+          isAdmin={isAdmin}
+          s2ActiveLayers={s2Intel.activeLayers}
+          onToggleS2Layer={s2Intel.toggleLayer}
+          s2FeatureCount={s2Intel.featureCount}
+          isReplaying={timeMachineOpen}
+          onRealignSiteMap={handleRealignSiteMap}
+          onAdjustSiteMap={handleAdjustSiteMap}
+          savedBounds={savedBounds}
+          constrained={constrained}
+          cctvAcked={typeof window !== "undefined" && hasCctvAck(window.localStorage, userId)}
+          onUseClassic={() => choosePanel(false)}
+        />
+      ) : (
+        <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} s2ActiveLayers={s2Intel.activeLayers} onToggleS2Layer={s2Intel.toggleLayer} s2FeatureCount={s2Intel.featureCount} isReplaying={timeMachineOpen} onRealignSiteMap={handleRealignSiteMap} onAdjustSiteMap={handleAdjustSiteMap} savedBounds={savedBounds} onUseNewPanel={() => choosePanel(true)} />
+      ))}
       {!error && !loading && (
         <MapToolsBar
           activeTool={activeTool}

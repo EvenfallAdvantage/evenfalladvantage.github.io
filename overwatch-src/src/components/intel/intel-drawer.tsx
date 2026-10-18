@@ -11,7 +11,7 @@
  */
 
 import { useState } from "react";
-import { X, Search, Bell, Info } from "lucide-react";
+import { X, Search, Bell, Info, Tv } from "lucide-react";
 import { AttributionModal } from "./attribution-modal";
 import { DnsTab } from "./recon-tabs/dns-tab";
 import { IpTab } from "./recon-tabs/ip-tab";
@@ -23,8 +23,10 @@ import { CertsTab } from "./recon-tabs/certs-tab";
 import { SweepTab } from "./recon-tabs/sweep-tab";
 import { INTEL_LAYER_FLAGS } from "@/lib/intel-feature-flags";
 import { LiveAlertsTab } from "./live-alerts-tab";
+import { WatchTab } from "./watch-tab";
+import type { IntelLiveNewsFeed } from "@/lib/intel-types";
 
-type TopTab = "recon" | "alerts" | "sources";
+type TopTab = "recon" | "alerts" | "watch" | "sources";
 type ReconTab = "dns" | "whois" | "ip" | "cve" | "threats" | "bgp" | "certs" | "sweep";
 
 interface IntelDrawerProps {
@@ -35,9 +37,11 @@ interface IntelDrawerProps {
   /** When set, switches the drawer to this tab on next render. The parent
    * is responsible for clearing it after handling (one-shot pattern). */
   forceTab?: TopTab | null;
+  /** Show the WATCH tab (live broadcasters) and open a stream from it. */
+  onOpenLiveFeed?: (feed: IntelLiveNewsFeed) => void;
 }
 
-export function IntelDrawer({ open, onClose, onLocate, forceTab }: IntelDrawerProps) {
+export function IntelDrawer({ open, onClose, onLocate, forceTab, onOpenLiveFeed }: IntelDrawerProps) {
   const [tab, setTab] = useState<TopTab>("recon");
   const [reconTab, setReconTab] = useState<ReconTab>("dns");
   const [showAttribution, setShowAttribution] = useState(false);
@@ -106,6 +110,14 @@ export function IntelDrawer({ open, onClose, onLocate, forceTab }: IntelDrawerPr
             icon={<Bell className="h-3 w-3" />}
             label="Alerts"
           />
+          {onOpenLiveFeed && (
+            <TopTabButton
+              active={tab === "watch"}
+              onClick={() => setTab("watch")}
+              icon={<Tv className="h-3 w-3" />}
+              label="Watch"
+            />
+          )}
           <TopTabButton
             active={tab === "sources"}
             onClick={() => setTab("sources")}
@@ -141,6 +153,7 @@ export function IntelDrawer({ open, onClose, onLocate, forceTab }: IntelDrawerPr
             </div>
           )}
           {tab === "alerts" && <LiveAlertsTab onLocate={onLocate} />}
+          {tab === "watch" && onOpenLiveFeed && <WatchTab onOpenLiveFeed={onOpenLiveFeed} />}
           {tab === "sources" && (
             <div className="text-[11px] font-mono text-white/60 space-y-2">
               <p>
