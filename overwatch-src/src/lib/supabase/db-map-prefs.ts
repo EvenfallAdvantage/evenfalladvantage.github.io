@@ -1,5 +1,5 @@
 /**
- * Ops map preferences (migration 20261018120000_map_layer_prefs.sql):
+ * Ops map preferences (migration 20261018132135_map_layer_prefs.sql):
  *   user_map_prefs        the signed-in user's own layer settings per company + device class
  *   company_map_defaults  company-wide defaults (admins write)
  * Every call tolerates the tables being absent (migration not applied yet)

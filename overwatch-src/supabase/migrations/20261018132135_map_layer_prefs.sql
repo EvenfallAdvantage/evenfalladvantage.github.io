@@ -1,9 +1,9 @@
 -- =============================================================================
--- 20261018120000_map_layer_prefs.sql   (Ops map layer consolidation, PR C)
+-- 20261018132135_map_layer_prefs.sql   (Ops map layer consolidation, PR C)
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY.
 -- Status: NOT APPLIED (draft). Safe to apply before or after the web deploy:
 --         the app falls back to browser storage while these tables are absent.
--- Rollback: rollback/20261018120000_map_layer_prefs.rollback.sql
+-- Rollback: rollback/20261018132135_map_layer_prefs.rollback.sql
 --
 -- New tables (RLS on):
 --   user_map_prefs        one row per (user, company, device class); the
