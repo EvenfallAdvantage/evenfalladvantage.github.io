@@ -1,6 +1,8 @@
 // Allowed origins for CORS.
 const allowedOrigins = [
   'https://www.evenfalladvantage.com',
+  // Bare domain: Cloudflare serves the site here too (no redirect to www).
+  'https://evenfalladvantage.com',
   'https://evenfalladvantage.github.io',
   'http://localhost:3000',
 ];
