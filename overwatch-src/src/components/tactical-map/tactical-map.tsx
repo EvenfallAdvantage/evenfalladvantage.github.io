@@ -643,9 +643,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       {/* Persistent legal footer + Cesium provider credits */}
       <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} />
 
-      {/* Compass + Fullscreen + Time Machine + Drone + Intel — top left */}
+      {/* Ops Mode bar — top right, above other overlays, so the top-centre
+          tracking chip (Phase 1A) can never cover Share / Exit. */}
       {!loading && !error && opsMode && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-mono text-white/80 bg-black/50 backdrop-blur-md border border-white/10">
+        <div className="absolute top-3 right-3 z-40 flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-mono text-white/80 bg-black/50 backdrop-blur-md border border-white/10">
           <span className="tracking-[0.2em]">OPS MODE</span>
           <button onClick={() => void handleShare()} className="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20">Share view</button>
           <button onClick={handleOpsMode} className="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20">Exit (Esc)</button>
