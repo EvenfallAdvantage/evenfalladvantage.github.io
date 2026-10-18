@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, defaultLayersFor } from "./map-layers-panel";
 import { MapLayersPanelV2 } from "./map-layers-panel-v2";
-import { allGroups, applyPreset, classicLayers, defaultPresetFor, effectiveLayers, expandSharedLayers, flattenForClassic, migrateLayers } from "@/lib/map/layer-registry";
+import { allGroups, applyPreset, classicLayers, defaultPresetFor, effectiveLayers, expandSharedLayers, flattenForClassic, matchingPreset, migrateLayers } from "@/lib/map/layer-registry";
 import { readPanelV2Choice, resolvePanelV2, writePanelV2Choice } from "@/lib/map/panel-flag";
 import { buildScopeFilters, resolveRadii, sitesFrom, type ViewRect } from "@/lib/map/site-proximity";
 import { DEFAULT_COMPANY_MAP_DEFAULTS, getCompanyMapDefaults, getUserMapPrefs, saveUserMapPrefs, saveUserPanelChoice, type CompanyMapDefaults } from "@/lib/supabase/db-map-prefs";
@@ -155,10 +155,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     if (!companyId || !userId || !dirtyRef.current) return;
     const t = setTimeout(() => {
       dirtyRef.current = false;
-      void saveUserMapPrefs(companyId, deviceClass, { preset: layers.preset, layers, view: { panelV2: panelV2Choice } });
+      void saveUserMapPrefs(companyId, deviceClass, { preset: matchingPreset(layers, { constrained, cctvAcked: hasCctvAck(window.localStorage, userId) }), layers, view: { panelV2: panelV2Choice } });
     }, 3000);
     return () => clearTimeout(t);
-  }, [layers, companyId, userId, deviceClass, panelV2Choice]);
+  }, [layers, companyId, userId, deviceClass, panelV2Choice, constrained]);
   const choosePanel = useCallback((v2: boolean) => {
     writePanelV2Choice(window.localStorage, userIdRef.current, v2);
     setPanelV2Choice(v2);
