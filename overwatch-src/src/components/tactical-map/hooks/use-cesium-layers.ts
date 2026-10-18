@@ -18,6 +18,7 @@ import { useOperationsLayer } from "./use-operations-layer";
 import { useStaffLayer } from "./use-staff-layer";
 import { useIncidentsLayer } from "./use-incidents-layer";
 import { useWeatherLayer } from "./use-weather-layer";
+import { useGevEffects } from "./use-gev-effects";
 import { useNightVision, applyGrade, NIGHT_GRADE } from "./use-night-vision";
 import { useAircraftLayer } from "./use-aircraft-layer";
 import { useOrbitLayer } from "./use-orbit-layer";
@@ -779,6 +780,9 @@ export function useCesiumLayers(params: {
       entityGroupsRef.current.flirStage = applyShader(viewer, Cesium, FLIR_SHADER);
     }
   }, [layers.flirThermal, loading, viewerRef, cesiumRef, entityGroupsRef]);
+
+  // ─── Phase 1B effects (NVG goggles, noir, bloom, sharpen — gods-eye-view ports) ──
+  useGevEffects({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
 
   // ─── CRT Mode Shader ──────────────────────────────
   useEffect(() => {

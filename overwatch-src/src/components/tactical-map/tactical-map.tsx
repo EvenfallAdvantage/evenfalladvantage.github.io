@@ -42,6 +42,8 @@ import { CctvAckModal } from "@/components/intel/cctv-ack-modal";
 import { MapLegalFooter } from "./map-legal-footer";
 import { gateCctvEnable, hasCctvAck, recordCctvAck } from "@/lib/map/cctv-ack";
 import { useAuthStore } from "@/stores/auth-store";
+import { TrackingChip } from "./tracking-chip";
+import { TacticalHud, hudModeLabel } from "./tactical-hud";
 import { activeBooleanLayers, applySharedLayers, decodeShareHash, encodeShareHash } from "@/lib/map/share-link";
 
 export type { StaffPin, OperationPin, IncidentPin } from "./types";
@@ -82,6 +84,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
   const [cctvAckOpen, setCctvAckOpen] = useState(false);
+  // Click-to-track (aircraft): entity id + display label.
+  const [tracked, setTracked] = useState<{ id: string; label: string } | null>(null);
   const setLayers = useCallback((update: LayerVisibility | ((prev: LayerVisibility) => LayerVisibility)) => {
     setLayersRaw(prev => {
       const requested = typeof update === "function" ? update(prev) : update;
@@ -728,12 +732,36 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
 
 
+      {layers.hud && !loading && !error && (
+        <TacticalHud viewerRef={viewerRef} cesiumRef={cesiumRef} mode={hudModeLabel(layers)} />
+      )}
+
       {/* Custom entity popup — floating near selected point */}
       {selectedEntity && (
         <EntityPopup
           entity={selectedEntity}
           containerWidth={containerWidth}
           onClose={() => setSelectedEntity(null)}
+          actions={selectedEntity.id.startsWith("plane-") ? (
+            <button
+              onClick={() => { setTracked({ id: selectedEntity.id, label: selectedEntity.name || selectedEntity.id.slice(6) }); setSelectedEntity(null); }}
+              className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30"
+            >
+              ⌖ Track
+            </button>
+          ) : undefined}
+        />
+      )}
+
+      {tracked && layers.aircraft && (
+        <TrackingChip
+          key={tracked.id}
+          viewerRef={viewerRef}
+          entityGroupsRef={entityGroupsRef}
+          trackedId={tracked.id}
+          label={tracked.label}
+          onStop={() => setTracked(null)}
+          onOpenCamera={setActiveCctvCamera}
         />
       )}
 
