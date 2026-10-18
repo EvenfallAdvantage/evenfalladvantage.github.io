@@ -6,6 +6,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireIntelUser } from "../_shared/intel-auth.ts";
 
 interface IntelFire {
   lat: number;
@@ -69,6 +70,8 @@ function parseFirmsCsv(csv: string): IntelFire[] {
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders);
+  if (denied) return denied;
 
   try {
     let fires: IntelFire[] = [];

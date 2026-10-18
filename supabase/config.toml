@@ -82,11 +82,15 @@ entrypoint = "./functions/legacy-bridge-write/index.ts"
 #      and would be rejected by the platform gateway before reaching the
 #      function (causing the "preflight does not have HTTP ok status" CORS
 #      error the user hit in production).
-#   2. The functions only proxy publicly-available data (USGS, NASA, NOAA,
-#      CISA KEV, ip-api.com, dns.google, crt.sh, etc.) — there is no
-#      sensitive user data to protect.
-#   3. Per-function rate limits + SSRF guards (in _shared/ssrf-guard.ts)
-#      provide the actual abuse protection.
+#   2. Auth is enforced IN CODE instead: every intel-* function (and
+#      opensky-proxy) calls requireIntelUser() from _shared/intel-auth.ts
+#      right after the OPTIONS short-circuit, which requires a signed-in
+#      user's session JWT (the anon key is rejected) and applies a basic
+#      per-user, per-isolate rate limit. (intel-cctv-ingest is cron-only and
+#      uses its x-ingest-secret instead.)
+#   3. The functions proxy public data (USGS, NASA, NOAA, CISA KEV, RIR
+#      RDAP, PeeringDB, dns.google, crt.sh, etc.); SSRF guards in
+#      _shared/ssrf-guard.ts still apply.
 
 [functions.intel-earthquakes]
 enabled = true
@@ -175,6 +179,7 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/intel-osint-whois/index.ts"
 
+# IP ownership via RIR RDAP + PTR (replaced ip-api.com, non-commercial).
 [functions.intel-osint-ip]
 enabled = true
 verify_jwt = false
@@ -190,6 +195,7 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/intel-osint-threats/index.ts"
 
+# ASN/network via RIR RDAP + PeeringDB (replaced bgpview.io, shut down 2025).
 [functions.intel-osint-bgp]
 enabled = true
 verify_jwt = false
@@ -200,14 +206,16 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/intel-osint-certs/index.ts"
 
+# Shodan InternetDB subnet sweep. Returns 403 unless the function secret
+# INTEL_SWEEP_ENABLED=true (InternetDB is "free for non-commercial use").
 [functions.intel-osint-sweep]
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/intel-osint-sweep/index.ts"
 
-# Public lightning strike data proxy. Connects to the Blitzortung WebSocket,
-# collects strikes for ~4 s, and returns GeoJSON. No JWT needed — data is
-# publicly available. Called from use-lightning-layer.ts every 15 s.
+# RETIRED: used to relay Blitzortung strikes (terms forbid commercial use).
+# Now returns 410 Gone; the map reads NOAA nowCOAST lightning density WMS
+# directly. Safe to delete from the project after this ships.
 [functions.intel-lightning]
 enabled = true
 verify_jwt = false

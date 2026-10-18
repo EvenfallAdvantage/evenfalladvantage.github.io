@@ -1,7 +1,32 @@
-import { useEffect, useRef } from "react";
-import { logger } from "@/lib/logger";
+import { useEffect } from "react";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+
+/**
+ * Night Mode: a dark "ops" look with no third-party dark tiles.
+ *
+ * Previously this swapped in CARTO Dark Matter tiles, which need a CARTO
+ * account/licence for commercial use. Now it re-grades the imagery we already
+ * load (EOX/USGS satellite, or OSM streets) with Cesium's per-layer colour
+ * controls and turns on real sun lighting — zero extra requests.
+ */
+export const NIGHT_GRADE = Object.freeze({ brightness: 0.35, contrast: 1.25, saturation: 0.15, gamma: 1.15, hue: 0.0 });
+const NEUTRAL = Object.freeze({ brightness: 1.0, contrast: 1.0, saturation: 1.0, gamma: 1.0, hue: 0.0 });
+
+type Gradable = { brightness: number; contrast: number; saturation: number; gamma: number; hue: number };
+
+export function applyGrade(layer: Gradable, grade: Readonly<Gradable>): void {
+  layer.brightness = grade.brightness;
+  layer.contrast = grade.contrast;
+  layer.saturation = grade.saturation;
+  layer.gamma = grade.gamma;
+  layer.hue = grade.hue;
+}
+
+/** Ion OSM Buildings (only present when ion is licensed). */
+function setTilesetStyle(tileset: { style?: unknown } | undefined, style: unknown): void {
+  if (tileset) tileset.style = style;
+}
 
 export function useNightVision(params: {
   viewerRef: CesiumRef;
@@ -12,82 +37,24 @@ export function useNightVision(params: {
 }) {
   const { viewerRef, cesiumRef, entityGroupsRef, loading, layers } = params;
 
-  // Track which imagery layers were visible before night mode was toggled on
-  // so we can restore only those layers when night mode is turned off
-  const savedLayerVisibility = useRef<boolean[]>([]);
-
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
-    // Delay slightly to ensure Cesium imagery layers are fully initialized
-    const timerId = setTimeout(() => {
-      if (!viewerRef.current || !cesiumRef.current) return;
+    const basemaps: Gradable[] = [
+      ...(entityGroupsRef.current.baseImagery ?? []),
+      ...(entityGroupsRef.current.osmLayerRef ?? []),
+    ];
+    const grade = layers.nightVision ? NIGHT_GRADE : NEUTRAL;
+    for (const l of basemaps) applyGrade(l, grade);
 
-      // Remove existing dark basemap layer
-      if (entityGroupsRef.current.nvDarkLayer) {
-        try { viewer.imageryLayers.remove(entityGroupsRef.current.nvDarkLayer, false); } catch (e) { logger.swallow("cesium-layers:remove-nv-dark", e); }
-        entityGroupsRef.current.nvDarkLayer = null;
-      }
-
-      const buildings = entityGroupsRef.current.buildings?.[0];
-
-      if (!layers.nightVision) {
-        // Restore only the layers that were visible before night mode
-        const saved = savedLayerVisibility.current;
-        for (let i = 0; i < viewer.imageryLayers.length; i++) {
-          // If we have saved state, use it; otherwise default to showing the base layer only
-          viewer.imageryLayers.get(i).show = saved.length > i ? saved[i] : (i === 0);
-        }
-        savedLayerVisibility.current = [];
-        if (buildings) {
-          buildings.style = undefined;
-        }
-        viewer.scene.globe.enableLighting = false;
-        return;
-      }
-
-      // Save current layer visibility state BEFORE hiding anything
-      savedLayerVisibility.current = [];
-      for (let i = 0; i < viewer.imageryLayers.length; i++) {
-        savedLayerVisibility.current.push(viewer.imageryLayers.get(i).show);
-      }
-
-      // Hide ALL existing imagery layers
-      for (let i = 0; i < viewer.imageryLayers.length; i++) {
-        viewer.imageryLayers.get(i).show = false;
-      }
-
-      // Add CartoDB Dark Matter tiles as the sole basemap
-      // The `key` query param is REQUIRED: without it basemaps.cartocdn.com
-      // returns an "API KEY REQUIRED" watermark tile (same 2,513 B PNG at every
-      // z/x/y). Do not strip it. (Regression in #75, restored in hotfix.)
-      const darkProvider = new Cesium.UrlTemplateImageryProvider({
-        url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png?key=cb1_3umn_1_b4fff84fdc4118a7bc7c88af",
-        credit: "CartoDB Dark Matter",
-        minimumLevel: 0,
-        maximumLevel: 18,
-      });
-      const darkLayer = viewer.imageryLayers.addImageryProvider(darkProvider, 0);
-      darkLayer.alpha = 1.0;
-      // Ensure the dark layer is the only visible one
-      for (let i = 1; i < viewer.imageryLayers.length; i++) {
-        viewer.imageryLayers.get(i).show = false;
-      }
-      entityGroupsRef.current.nvDarkLayer = darkLayer;
-
-      // Style 3D buildings with neon green edges
-      if (buildings) {
-        buildings.style = new Cesium.Cesium3DTileStyle({
-          color: "color('rgba(0, 255, 65, 0.15)')",
-          show: true,
-        });
-      }
-
-      viewer.scene.globe.enableLighting = true;
-    }, 300);
-
-    return () => clearTimeout(timerId);
-  }, [layers.nightVision, loading, viewerRef, cesiumRef, entityGroupsRef]);
+    setTilesetStyle(
+      entityGroupsRef.current.buildings?.[0],
+      layers.nightVision ? new Cesium.Cesium3DTileStyle({ color: "color('rgba(0, 255, 65, 0.15)')", show: true }) : undefined,
+    );
+    viewer.scene.globe.enableLighting = !!layers.nightVision;
+    viewer.scene.requestRender();
+    // layers.satellite: re-grade when the streets layer is created/swapped.
+  }, [layers.nightVision, layers.satellite, loading, viewerRef, cesiumRef, entityGroupsRef]);
 }

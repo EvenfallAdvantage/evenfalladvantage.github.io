@@ -5,6 +5,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireIntelUser } from "../_shared/intel-auth.ts";
 import { isRateLimited, getClientIp } from "../_shared/ssrf-guard.ts";
 
 interface OtxPulse {
@@ -25,6 +26,8 @@ interface OtxIndicatorGeneral {
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders, { limit: 30 });
+  if (denied) return denied;
 
   const { searchParams } = new URL(req.url);
   const query = searchParams.get("query");

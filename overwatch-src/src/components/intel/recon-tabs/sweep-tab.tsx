@@ -108,14 +108,13 @@ export function SweepTab({ onLocate, onVisualize }: SweepTabProps) {
             <div>
               <div className="text-white/90 font-bold">{result.subnet}</div>
               <div className="text-white/60">
-                {result.center.city}, {result.center.country} (
-                {result.center.countryCode})
+                {[result.center.city, result.center.country].filter(Boolean).join(", ") || "—"}
               </div>
               <div className="text-white/40 text-[10px]">
-                {result.center.asn} — {result.center.isp}
+                {[result.center.asn, result.center.isp, result.center.org].filter(Boolean).join(" — ")}
               </div>
             </div>
-            {onLocate && (
+            {onLocate && (result.center.lat !== 0 || result.center.lng !== 0) && (
               <button
                 onClick={() => onLocate(result.center.lat, result.center.lng)}
                 className="text-white/40 hover:text-white/80"

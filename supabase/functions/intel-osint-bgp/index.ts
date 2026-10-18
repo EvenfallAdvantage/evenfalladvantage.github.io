@@ -1,117 +1,84 @@
 /**
- * Intel OSINT — BGP / ASN lookups (bgpview.io).
- * Accepts IP or ASN.
- * Adapted from Osiris (github.com/simplifaisoul/osiris, MIT).
+ * Intel OSINT — ASN / network lookup via RDAP + PeeringDB.
+ * Accepts an IPv4 address or an ASN ("AS15169" or "15169").
+ *
+ *  - ASN: RIR RDAP autnum record (holder, country, abuse contact) plus the
+ *    PeeringDB network profile (type, scope, prefix counts, IX/facility
+ *    presence, peering policy) when the network has registered one.
+ *  - IP: RIR RDAP network record (block, holder, CIDR).
+ *
+ * Replaces bgpview.io, which shut down on 26 Nov 2025.
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { isRateLimited, getClientIp } from "../_shared/ssrf-guard.ts";
+import { requireIntelUser } from "../_shared/intel-auth.ts";
+import { rdapAutnum, rdapIp } from "../_shared/rdap.ts";
 
-interface BgpViewEnvelope<T> { status: "ok" | string; data?: T; }
+interface PeeringDbNet {
+  id?: number; name?: string; aka?: string; website?: string;
+  info_type?: string; info_scope?: string; policy_general?: string;
+  info_prefixes4?: number; info_prefixes6?: number;
+  ix_count?: number; fac_count?: number; irr_as_set?: string;
+}
+
+async function peeringDb(asn: number) {
+  try {
+    const res = await fetch(`https://www.peeringdb.com/api/net?asn=${asn}`, {
+      headers: { Accept: "application/json", "User-Agent": "EvenfallAdvantage-Overwatch/1.0" },
+      signal: AbortSignal.timeout(6_000),
+    });
+    if (!res.ok) { await res.body?.cancel(); return null; }
+    const n = ((await res.json())?.data ?? [])[0] as PeeringDbNet | undefined;
+    if (!n) return null;
+    return {
+      name: n.name ?? "", aka: n.aka ?? "", website: n.website ?? "",
+      type: n.info_type ?? "", scope: n.info_scope ?? "", policy: n.policy_general ?? "",
+      prefixes4: n.info_prefixes4 ?? null, prefixes6: n.info_prefixes6 ?? null,
+      ix_count: n.ix_count ?? 0, fac_count: n.fac_count ?? 0, irr_as_set: n.irr_as_set ?? "",
+      url: n.id ? `https://www.peeringdb.com/net/${n.id}` : "",
+    };
+  } catch (e) {
+    console.warn("[intel-osint-bgp] peeringdb", e);
+    return null;
+  }
+}
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders, { limit: 30 });
+  if (denied) return denied;
+  const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
-  const { searchParams } = new URL(req.url);
-  const query = searchParams.get("query");
+  const query = new URL(req.url).searchParams.get("query")?.trim() ?? "";
   if (!query) {
-    return new Response(
-      JSON.stringify({ error: "Missing query parameter (IP, ASN number, or prefix)" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: "Missing query parameter (IP or ASN)" }), { status: 400, headers: jsonHeaders });
   }
-
-  const clientIp = getClientIp(req);
-  if (isRateLimited(clientIp, 20, 60_000)) {
-    return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-      status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(query);
-  const isASN = /^(AS)?\d+$/i.test(query);
-  const asnNum = isASN ? query.replace(/^AS/i, "") : null;
+  const asnMatch = query.match(/^(?:AS)?(\d{1,10})$/i);
+  if (!isIP && !asnMatch) {
+    return new Response(JSON.stringify({ error: "Enter an IPv4 address or ASN (e.g. AS15169)" }), { status: 400, headers: jsonHeaders });
+  }
 
   try {
-    if (isIP) {
-      const res = await fetch(`https://api.bgpview.io/ip/${query}`, {
-        signal: AbortSignal.timeout(8_000),
-        headers: { Accept: "application/json" },
-      });
-      if (res.ok) {
-        const data = (await res.json()) as BgpViewEnvelope<unknown>;
-        if (data.status === "ok") {
-          return new Response(
-            JSON.stringify({
-              query, type: "ip", ip: data.data,
-              timestamp: new Date().toISOString(),
-            }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
-      }
-      return new Response(
-        JSON.stringify({
-          query, type: "ip", error: "BGP lookup failed",
-          timestamp: new Date().toISOString(),
-        }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    if (asnMatch) {
+      const asn = Number(asnMatch[1]);
+      const [rdap, pdb] = await Promise.all([rdapAutnum(asn).catch(() => null), peeringDb(asn)]);
+      return new Response(JSON.stringify({
+        query, type: "asn", asn: rdap ?? undefined, peeringdb: pdb ?? undefined,
+        error: rdap || pdb ? undefined : "No registry record found",
+        timestamp: new Date().toISOString(),
+      }), { headers: jsonHeaders });
     }
-
-    if (asnNum) {
-      const [asnRes, prefixRes, peersRes] = await Promise.allSettled([
-        fetch(`https://api.bgpview.io/asn/${asnNum}`, { signal: AbortSignal.timeout(8_000) }),
-        fetch(`https://api.bgpview.io/asn/${asnNum}/prefixes`, { signal: AbortSignal.timeout(8_000) }),
-        fetch(`https://api.bgpview.io/asn/${asnNum}/peers`, { signal: AbortSignal.timeout(8_000) }),
-      ]);
-
-      const response: Record<string, unknown> = {
-        query, type: "asn", timestamp: new Date().toISOString(),
-      };
-
-      if (asnRes.status === "fulfilled" && asnRes.value.ok) {
-        const d = (await asnRes.value.json()) as BgpViewEnvelope<unknown>;
-        if (d.status === "ok") response.asn = d.data;
-      }
-      if (prefixRes.status === "fulfilled" && prefixRes.value.ok) {
-        const d = (await prefixRes.value.json()) as BgpViewEnvelope<{
-          ipv4_prefixes?: unknown[]; ipv6_prefixes?: unknown[];
-        }>;
-        if (d.status === "ok" && d.data) {
-          response.prefixes = {
-            ipv4: (d.data.ipv4_prefixes ?? []).slice(0, 20),
-            ipv6: (d.data.ipv6_prefixes ?? []).slice(0, 10),
-            total_v4: d.data.ipv4_prefixes?.length ?? 0,
-            total_v6: d.data.ipv6_prefixes?.length ?? 0,
-          };
-        }
-      }
-      if (peersRes.status === "fulfilled" && peersRes.value.ok) {
-        const d = (await peersRes.value.json()) as BgpViewEnvelope<{ ipv4_peers?: unknown[] }>;
-        if (d.status === "ok" && d.data) {
-          response.peers = {
-            upstream: (d.data.ipv4_peers ?? []).slice(0, 10),
-            total: d.data.ipv4_peers?.length ?? 0,
-          };
-        }
-      }
-
-      return new Response(JSON.stringify(response), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(
-      JSON.stringify({ error: "Unrecognized query format. Use IP address or AS number." }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  } catch (err) {
-    console.error("[intel-osint-bgp]", err);
-    return new Response(JSON.stringify({ error: "BGP lookup failed" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const network = await rdapIp(query).catch(() => null);
+    return new Response(JSON.stringify({
+      query, type: "ip", network: network ?? undefined,
+      error: network ? undefined : "No registry record found",
+      timestamp: new Date().toISOString(),
+    }), { headers: jsonHeaders });
+  } catch (e) {
+    console.error("[intel-osint-bgp]", e);
+    return new Response(JSON.stringify({ error: "Lookup failed" }), { status: 502, headers: jsonHeaders });
   }
 });

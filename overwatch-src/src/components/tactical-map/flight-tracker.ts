@@ -1,11 +1,12 @@
 /**
  * Live Flight Tracking (OpenSky-format state vectors)
  *
- * The `opensky-proxy` Edge Function now sources adsb.lol (fallback adsb.fi)
- * because OpenSky blocks Supabase egress; it still returns OpenSky's
- * /states/all shape, so parsing below is unchanged.
+ * The `opensky-proxy` Edge Function sources adsb.lol (ODbL 1.0 data, free
+ * keyless API) because OpenSky blocks Supabase egress; it still returns
+ * OpenSky's /states/all shape, so parsing below is unchanged. (The adsb.fi
+ * fallback was removed: its open-data terms are personal/non-commercial.)
  *
- * Free API, no key required. Rate limited to ~100 requests/10 seconds.
+ * The proxy requires a signed-in user (session JWT) and is rate limited.
  * Returns all aircraft positions within a bounding box.
  *
  * Docs: https://openskynetwork.github.io/opensky-api/rest.html
@@ -19,6 +20,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { getAccessToken } from "@/lib/intel-client";
 
 export interface Aircraft {
   icao24: string;
@@ -68,7 +70,12 @@ export async function getAircraft(
 ): Promise<Aircraft[]> {
   try {
     const proxyUrl = getProxyUrl(south, north, west, east);
-    const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10_000) });
+    const headers: Record<string, string> = {};
+    const token = await getAccessToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (anon) headers["apikey"] = anon;
+    const res = await fetch(proxyUrl, { headers, signal: AbortSignal.timeout(10_000) });
     if (!res.ok) return [];
     const data = await res.json();
     return parseStates(data);

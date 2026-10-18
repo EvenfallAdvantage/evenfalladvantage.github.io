@@ -1,86 +1,54 @@
 /**
- * Sentinel Satellite Imagery Layers
+ * Satellite overlay layers.
  *
- * Sentinel-2 cloudless: EOX free tiles (no auth needed)
- * Sentinel-1 SAR: Copernicus Data Space Ecosystem Sentinel Hub WMS
- *   - Requires free registration at dataspace.copernicus.eu
- *   - Set NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID env var
- *   - Falls back to grayscale Sentinel-2 if no instance ID configured
+ * "Daily Satellite": NASA GIBS VIIRS (SNPP) corrected-reflectance true colour,
+ *   yesterday's global mosaic (~250 m). US public domain, keyless.
+ *   (Replaces the EOX s2cloudless-2021 mosaic, which is CC BY-NC-SA.)
+ * "SAR Imagery": real Sentinel-1 SAR via the Copernicus Data Space Ecosystem
+ *   Sentinel Hub WMS. Only offered when NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID is
+ *   configured; there is NO optical "SAR proxy" fallback any more.
  */
+
+import { GIBS_CREDIT, gibsDate, gibsTrueColorUrl } from "@/lib/map/basemap-sources";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CesiumRef = any;
 
 const SENTINEL_HUB_INSTANCE = process.env.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID || "";
 
-/**
- * Add Sentinel-2 cloudless mosaic layer (EOX — free, no auth).
- */
+/** True when a Sentinel Hub instance is configured, i.e. real SAR is available. */
+export const SAR_AVAILABLE = SENTINEL_HUB_INSTANCE.length > 0;
+
+/** NASA GIBS daily true-colour overlay (yesterday, UTC). */
 export function addSentinel2Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumRef {
-  // EOX Sentinel-2 cloudless is a 2021 annual mosaic — it NEVER changes.
-  // The browser HTTP cache handles this naturally since the URLs are
-  // completely static (no time parameter, no cache busters).
-  // EOX also sets Cache-Control headers with long TTLs.
   const provider = new Cesium.UrlTemplateImageryProvider({
-    url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2021_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg",
-    credit: "Sentinel-2 cloudless by EOX / Copernicus / ESA",
+    url: gibsTrueColorUrl(gibsDate()),
+    credit: new Cesium.Credit(GIBS_CREDIT, false),
     minimumLevel: 0,
-    maximumLevel: 14,
+    maximumLevel: 9,
   });
   const layer = viewer.imageryLayers.addImageryProvider(provider);
-  layer.alpha = 0.85;
+  layer.alpha = 0.9;
   return layer;
 }
 
-/**
- * Add Sentinel-1 SAR imagery layer.
- * If SENTINEL_HUB_INSTANCE_ID is configured, uses real SAR data from CDSE.
- * Otherwise falls back to grayscale Sentinel-2 as a visual proxy.
- */
-export function addSentinel1Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumRef {
-  if (SENTINEL_HUB_INSTANCE) {
-    // Real Sentinel-1 SAR via Copernicus Data Space Ecosystem
-    //
-    // Caching strategy: Sentinel-1 revisits every 6 days, so we snap the
-    // time parameter to the nearest 6-day boundary. This makes tile URLs
-    // deterministic for each revisit cycle, allowing the browser's HTTP
-    // cache to serve tiles without re-fetching.
-    const timeRange = getStableTimeRange();
-
-    const provider = new Cesium.WebMapServiceImageryProvider({
-      url: `https://sh.dataspace.copernicus.eu/ogc/wms/${SENTINEL_HUB_INSTANCE}`,
-      layers: "SAR-VV-20-TO-0-DB",
-      parameters: {
-        transparent: true,
-        format: "image/jpeg", // JPEG is smaller than PNG, faster loading
-        time: timeRange,
-      },
-      credit: "Sentinel-1 SAR / Copernicus / ESA",
-      // Limit to zoom level 10 (city-level) with larger tiles to minimize requests
-      // SAR resolution is 10m, so street-level zoom doesn't add detail
-      maximumLevel: 10,
-      tileWidth: 512,
-      tileHeight: 512,
-    });
-
-    const layer = viewer.imageryLayers.addImageryProvider(provider);
-    layer.alpha = 0.7;
-    return layer;
-  }
-
-  // Fallback: Sentinel-2 in grayscale mode to simulate SAR appearance
-  console.info("[Sentinel] No SENTINEL_HUB_INSTANCE_ID configured. Using grayscale Sentinel-2 as SAR proxy. Register free at dataspace.copernicus.eu for real SAR data.");
-  const provider = new Cesium.UrlTemplateImageryProvider({
-    url: "https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2021_3857/default/GoogleMapsCompatible/{z}/{y}/{x}.jpg",
-    credit: "Sentinel-2 (SAR-proxy) by EOX / Copernicus / ESA",
-    minimumLevel: 0,
-    maximumLevel: 14,
+/** Real Sentinel-1 SAR (CDSE). Returns null when no instance is configured. */
+export function addSentinel1Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumRef | null {
+  if (!SAR_AVAILABLE) return null;
+  // Sentinel-1 revisits every 6 days: snap the time range to the cycle so
+  // tile URLs stay cacheable for the whole cycle.
+  const timeRange = getStableTimeRange();
+  const provider = new Cesium.WebMapServiceImageryProvider({
+    url: `https://sh.dataspace.copernicus.eu/ogc/wms/${SENTINEL_HUB_INSTANCE}`,
+    layers: "SAR-VV-20-TO-0-DB",
+    parameters: { transparent: true, format: "image/jpeg", time: timeRange },
+    credit: "Contains modified Copernicus Sentinel data (Sentinel-1 SAR, CDSE)",
+    maximumLevel: 10,
+    tileWidth: 512,
+    tileHeight: 512,
   });
   const layer = viewer.imageryLayers.addImageryProvider(provider);
   layer.alpha = 0.7;
-  layer.brightness = 0.6;
-  layer.contrast = 1.8;
-  layer.saturation = 0.0;
   return layer;
 }
 
@@ -103,10 +71,4 @@ function getStableTimeRange(): string {
   const cycleEnd = new Date(now - cycleDay * 24 * 60 * 60 * 1000);
   const cycleStart = new Date(cycleEnd.getTime() - CYCLE_DAYS * 24 * 60 * 60 * 1000);
   return `${cycleStart.toISOString().split("T")[0]}/${cycleEnd.toISOString().split("T")[0]}`;
-}
-
-function _getRecentDateRange(daysBack: number): string {
-  const end = new Date();
-  const start = new Date(end.getTime() - daysBack * 24 * 60 * 60 * 1000);
-  return `${start.toISOString().split("T")[0]}/${end.toISOString().split("T")[0]}`;
 }

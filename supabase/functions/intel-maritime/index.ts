@@ -10,12 +10,15 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireIntelUser } from "../_shared/intel-auth.ts";
 import ports from "../_shared/intel-data/maritime-ports.json" with { type: "json" };
 import chokepoints from "../_shared/intel-data/maritime-chokepoints.json" with { type: "json" };
 
-Deno.serve((req) => {
+Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders);
+  if (denied) return denied;
 
   return new Response(
     JSON.stringify({

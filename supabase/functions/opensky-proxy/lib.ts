@@ -1,5 +1,5 @@
 // Pure helpers for opensky-proxy: convert readsb/ADSBExchange-v2 style
-// responses (adsb.lol, adsb.fi) into OpenSky /states/all state vectors so the
+// responses (adsb.lol) into OpenSky /states/all state vectors so the
 // browser client (flight-tracker.ts parseStates) needs no changes.
 
 export interface BBox { lamin: number; lamax: number; lomin: number; lomax: number }
@@ -78,7 +78,6 @@ export function upstreamUrls(b: BBox): { name: string; url: string }[] {
   const { lat, lon, radiusNm } = bboxToPointQuery(b);
   return [
     { name: "adsb.lol", url: `https://api.adsb.lol/v2/lat/${lat}/lon/${lon}/dist/${radiusNm}` },
-    { name: "adsb.fi", url: `https://opendata.adsb.fi/api/v2/lat/${lat}/lon/${lon}/dist/${radiusNm}` },
   ];
 }
 
@@ -126,7 +125,7 @@ export function toOpenSkyStates(aircraft: ReadsbAircraft[], b: BBox, nowSec: num
   return out;
 }
 
-/** readsb responses use `ac` (adsb.lol) or `aircraft` (adsb.fi). */
+/** readsb responses use `ac` (adsb.lol) or `aircraft` (other readsb aggregators). */
 export function extractAircraft(body: unknown): ReadsbAircraft[] | null {
   if (!body || typeof body !== "object") return null;
   const o = body as Record<string, unknown>;

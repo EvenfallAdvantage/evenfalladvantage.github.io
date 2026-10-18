@@ -25,8 +25,12 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireIntelUser } from "../_shared/intel-auth.ts";
 import { CALTRANS_DISTRICTS, caltransUrl, parseCaltrans, parseNyc, parseSingapore, type CctvCamera, attributionFor, bboxCacheKey, parseBBoxQuery, type BBoxQuery } from "./lib.ts";
-import { CCTV_ATTRIBUTION } from "../_shared/cctv/sources.ts";
+import { CCTV_ATTRIBUTION, CCTV_SOURCES, disabledSourceIds } from "../_shared/cctv/sources.ts";
+
+/** Sources hidden on this deployment (NYC DOT until its agreement is signed). */
+const DISABLED = disabledSourceIds(Deno.env.get("CCTV_ENABLE_PENDING_SOURCES"));
 
 const BBOX_TTL_MS = 60_000;
 const bboxCache = new Map<string, { at: number; body: string }>();
@@ -44,7 +48,20 @@ async function bboxBody(q: BBoxQuery): Promise<string> {
     signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) throw new Error(`rpc ${res.status} ${(await res.text()).slice(0, 200)}`);
-  const data = await res.json() as Record<string, unknown> & { sources?: Record<string, number> };
+  const data = await res.json() as Record<string, unknown> & {
+    sources?: Record<string, number>; cameras?: Array<{ source?: string }>; total?: number;
+  };
+  // Hide disabled sources even if their rows are still in cctv_cameras.
+  // (Cluster counts come from SQL and may still include them until the rows
+  // are purged — see the Phase 0 go-live checklist.)
+  if (DISABLED.size) {
+    if (Array.isArray(data.cameras)) {
+      const before = data.cameras.length;
+      data.cameras = data.cameras.filter((c) => !DISABLED.has(c.source ?? ""));
+      if (typeof data.total === "number") data.total -= before - data.cameras.length;
+    }
+    if (data.sources) for (const id of DISABLED) delete data.sources[id];
+  }
   const body = JSON.stringify({
     ...data, bbox: [q.west, q.south, q.east, q.north], zoom: q.zoom,
     attribution: attributionFor(data.sources, CCTV_ATTRIBUTION), timestamp: new Date().toISOString(),
@@ -81,15 +98,22 @@ async function fetchNycCameras(): Promise<CctvCamera[]> {
 
 // FL-511 removed: its open endpoint now 404s and the v2 API requires a key
 // (FL511_API_KEY). See PR notes for other keyed 511 feeds.
-const REGION_FETCHERS: Record<string, () => Promise<CctvCamera[]>> = {
+const ALL_REGION_FETCHERS: Record<string, () => Promise<CctvCamera[]>> = {
   "sg": fetchSingaporeCameras,
   "us-ca": fetchCaltransCameras,
   "us-ny": fetchNycCameras,
 };
+const REGION_FETCHERS: Record<string, () => Promise<CctvCamera[]>> = Object.fromEntries(
+  Object.entries(ALL_REGION_FETCHERS).filter(([region]) =>
+    !CCTV_SOURCES.some((s) => s.region === region && DISABLED.has(s.id))
+  ),
+);
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders, { limit: 240 });
+  if (denied) return denied;
 
   try {
     const { searchParams } = new URL(req.url);
