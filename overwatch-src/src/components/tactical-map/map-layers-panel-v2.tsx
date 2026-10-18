@@ -35,6 +35,8 @@ const GROUP_ICONS: Record<GroupId, ReactNode> = {
   infrastructure: <Factory className="h-3.5 w-3.5" />,
 };
 
+const SCOPE_SHORT = { sites: "Near my sites", view: "Map view", everywhere: "Everywhere" } as const;
+
 const PANEL_BG = { backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 92%, transparent)" };
 const ACCENT = "var(--brand-accent, #d59b3c)";
 
@@ -62,6 +64,10 @@ export interface MapLayersPanelV2Props {
   topSlot?: ReactNode;
   /** Rendered at the bottom of the panel (e.g. admin defaults). */
   bottomSlot?: ReactNode;
+  /** Groups the company hides for everyone. */
+  hiddenGroups?: readonly GroupId[];
+  /** Show the Near my sites / Map view / Everywhere switch. */
+  showScope?: boolean;
 }
 
 function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
@@ -97,7 +103,7 @@ function Segmented<T extends string>({ value, options, labels, onPick }: { value
 }
 
 function PanelBody(props: MapLayersPanelV2Props) {
-  const { layers, onChange, onFlyToAll, constrained, cctvAcked, isReplaying, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, groupExtras, topSlot, bottomSlot } = props;
+  const { layers, onChange, onFlyToAll, constrained, cctvAcked, isReplaying, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, groupExtras, topSlot, bottomSlot, hiddenGroups, showScope } = props;
   const [expanded, setExpanded] = useState<Partial<Record<GroupId, boolean>>>({});
   const [viewOpen, setViewOpen] = useState(false);
 
@@ -142,6 +148,13 @@ function PanelBody(props: MapLayersPanelV2Props) {
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono border ${layers.preset === "custom" ? "text-white border-white/40" : "text-white/30 border-white/10"}`}>Custom</span>
       </div>
 
+      {showScope && (
+        <div className="space-y-1">
+          <p className="text-[9px] font-mono text-white/35 uppercase tracking-wider">Show hazards, news &amp; cameras</p>
+          <Segmented value={layers.scope ?? "sites"} options={["sites", "view", "everywhere"] as const} labels={SCOPE_SHORT} onPick={(sc) => onChange({ ...layers, scope: sc })} />
+        </div>
+      )}
+
       {topSlot}
 
       {isReplaying && (
@@ -150,7 +163,7 @@ function PanelBody(props: MapLayersPanelV2Props) {
 
       {/* Groups */}
       <div className="space-y-1">
-        {GROUPS.map((g) => {
+        {GROUPS.filter((g) => !hiddenGroups?.includes(g.id)).map((g) => {
           const on = layers.groups[g.id] !== false;
           const subs = g.subs.filter((s) => !(constrained && s.desktopOnly));
           const activeCount = subs.filter((s) => subOn(layers, s)).length;
@@ -266,7 +279,7 @@ function PanelBody(props: MapLayersPanelV2Props) {
 export function MapLayersPanelV2(props: MapLayersPanelV2Props) {
   const [open, setOpen] = useState(() => !props.constrained);
   const [full, setFull] = useState(false);
-  const activeGroups = activeDataGroups(props.layers).length;
+  const activeGroups = activeDataGroups(props.layers).filter((g) => !props.hiddenGroups?.includes(g)).length;
 
   const launcher = (
     <button

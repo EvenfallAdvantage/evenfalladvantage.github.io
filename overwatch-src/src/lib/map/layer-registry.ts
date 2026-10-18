@@ -177,10 +177,10 @@ export function activeDataGroups(state: RegistryState): GroupId[] {
 }
 
 /** What the map hooks should draw under panel v2. */
-export function effectiveLayers<T extends RegistryState>(state: T, opts: { constrained?: boolean } = {}): T {
+export function effectiveLayers<T extends RegistryState>(state: T, opts: { constrained?: boolean; hiddenGroups?: readonly GroupId[] } = {}): T {
   const next = { ...state };
   for (const g of GROUPS) {
-    const groupOn = state.groups?.[g.id] !== false;
+    const groupOn = state.groups?.[g.id] !== false && (g.id === "myOps" || !opts.hiddenGroups?.includes(g.id));
     for (const s of g.subs) {
       const allowed = groupOn && !(opts.constrained && s.desktopOnly);
       if (!allowed) for (const k of s.keys) (next as RegistryState)[k] = false;
@@ -312,6 +312,8 @@ export function migrateLayers<T extends RegistryState>(defaults: T, saved: Parti
   if (!saved.groups || typeof saved.groups !== "object") {
     merged.groups = allGroups(true);
     merged.preset = "custom";
+    // Classic-panel users keep seeing what they saw (new users start near their sites).
+    if (saved.scope === undefined) (merged as RegistryState & { scope?: string }).scope = "everywhere";
   } else {
     merged.groups = { ...allGroups(true), ...(saved.groups as Record<GroupId, boolean>) };
   }
@@ -319,6 +321,9 @@ export function migrateLayers<T extends RegistryState>(defaults: T, saved: Parti
   if (saved.news === undefined) merged.news = !!(saved.gdelt || saved.sigintNews);
   if (saved.naturalHazards === undefined) merged.naturalHazards = !!(saved.earthquakes || saved.fires);
   if (!["all", "military", "emergency"].includes(merged.aircraftFilter as string)) merged.aircraftFilter = "all";
+  const m = merged as RegistryState & { scope?: string; siteWatch?: unknown };
+  if (!["sites", "view", "everywhere"].includes(m.scope as string)) m.scope = "sites";
+  if (typeof m.siteWatch !== "boolean") m.siteWatch = true;
   if (!PRESET_IDS.includes(merged.preset as PresetId)) merged.preset = "custom";
   merged.radioFrequencies = false;
   return merged;

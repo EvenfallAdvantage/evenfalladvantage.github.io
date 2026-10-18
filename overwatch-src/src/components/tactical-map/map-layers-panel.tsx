@@ -14,6 +14,7 @@ import type { OperationPin } from "./types";
 import { SiteMapsList } from "./site-maps-list";
 import type { GroupId, PresetId } from "@/lib/map/layer-registry";
 import type { AircraftFilter } from "@/lib/map/aircraft-filter";
+import type { Scope } from "@/lib/map/site-proximity";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 
@@ -72,6 +73,10 @@ export interface LayerVisibility {
   wind: boolean;
   gnss: boolean;
   aircraftFilter: AircraftFilter;
+  /** Panel v2: where hazards, news and cameras are shown. */
+  scope: Scope;
+  /** Panel v2: Site Watch (hazards near my sites, on the map only). */
+  siteWatch: boolean;
   /** Panel v2: master switch per group; a sub-layer draws only if its group is on. */
   groups: Record<GroupId, boolean>;
   /** Panel v2: preset last applied, or "custom" once anything is changed by hand. */
@@ -128,6 +133,8 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   wind: false,
   gnss: false,
   aircraftFilter: "all",
+  scope: "sites",
+  siteWatch: true,
   groups: { myOps: true, weather: true, security: true, airSea: true, cameras: true, infrastructure: true },
   preset: "custom",
   siteOverlays: {},

@@ -101,3 +101,16 @@ Deno.test("TtlCache expiry and stale fallback", () => {
   assertEquals(c.get("a", 1500), undefined);
   assertEquals(c.stale("a"), 1);
 });
+
+Deno.test("parseNear + filterNear", async () => {
+  const { parseNear, filterNear } = await import("./lib.ts");
+  assertEquals(parseNear(null, null), null);
+  assertEquals(parseNear("x;200,1", "50"), null);
+  const near = parseNear("34.05,-118.25;40.7,-74", "9999")!;
+  assertEquals(near.points.length, 2);
+  assertEquals(near.km, 500);
+  const pt = (id: string, lng: number, lat: number) => ({ id, kind: "quake" as const, severity: 1 as const, title: id, geometry: { type: "Point" as const, coordinates: [lng, lat] as [number, number] }, starts_at: null, ends_at: null, source: "t", url: null, updated_at: null });
+  const poly = { ...pt("poly", 0, 0), geometry: { type: "Polygon" as const, coordinates: [[[-119, 33], [-117, 33], [-117, 35], [-119, 35], [-119, 33]]] as [number, number][][] } };
+  const out = filterNear([pt("la", -118.3, 34.1), pt("far", -100, 30), pt("ny", -74.5, 40.9), poly], parseNear("34.05,-118.25;40.7,-74", "50")!);
+  assertEquals(out.map((h) => h.id), ["la", "ny", "poly"]);
+});

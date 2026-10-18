@@ -2,6 +2,7 @@
  * Intel — natural hazards in one normalized feed (see lib.ts for sources).
  *
  *   GET /intel-hazards?kinds=warnings,quakes,fires,perimeters,tropical,volcanoes
+ *        [&near=lat,lng;lat,lng&near_km=150]   optional coarse proximity filter (Site Watch)
  *
  * Response: { hazards: Hazard[], sources: { [kind]: { ok, count, stale?, error? } }, timestamp }
  * Requires a signed-in Overwatch user (deploy with verify_jwt = false; auth in code).
@@ -13,7 +14,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireIntelUser } from "../_shared/intel-auth.ts";
 import {
   CACHE_TTL_S, EONET_VOLCANOES_URL, FIRMS_URLS, NHC_STORMS_URL, NIFC_PERIMETERS_URL, USGS_URL, WWA_URL,
-  TtlCache, coneHazard, kmlFromKmz, kmlLongestLine, kmlPolygons, parseEonetVolcanoes, parseFirmsCsv, parseKinds,
+  TtlCache, coneHazard, filterNear, parseNear, kmlFromKmz, kmlLongestLine, kmlPolygons, parseEonetVolcanoes, parseFirmsCsv, parseKinds,
   parseNhcStorms, parsePerimeters, parseUsgs, parseWwa, trackHazard,
   type Hazard, type HazardSource,
 } from "./lib.ts";
@@ -101,15 +102,18 @@ Deno.serve(async (req) => {
   const denied = await requireIntelUser(req, corsHeaders, { limit: 30 });
   if (denied) return denied;
 
-  const kinds = parseKinds(new URL(req.url).searchParams.get("kinds"));
+  const params = new URL(req.url).searchParams;
+  const kinds = parseKinds(params.get("kinds"));
+  const near = parseNear(params.get("near"), params.get("near_km"));
   const results = await Promise.allSettled(kinds.map((k) => load(k)));
   const hazards: Hazard[] = [];
   const sources: Record<string, { ok: boolean; count: number; stale?: boolean; error?: string }> = {};
   results.forEach((r, i) => {
     const k = kinds[i];
     if (r.status === "fulfilled") {
-      hazards.push(...r.value.hazards);
-      sources[k] = { ok: true, count: r.value.hazards.length, ...(r.value.stale ? { stale: true } : {}) };
+      const list = near ? filterNear(r.value.hazards, near) : r.value.hazards;
+      hazards.push(...list);
+      sources[k] = { ok: true, count: list.length, ...(r.value.stale ? { stale: true } : {}) };
     } else {
       console.warn("[intel-hazards]", k, r.reason);
       sources[k] = { ok: false, count: 0, error: "upstream unavailable" };
