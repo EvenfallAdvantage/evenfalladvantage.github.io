@@ -1,12 +1,13 @@
 -- =============================================================================
--- integration_cron (OverwatchDB nneueuvyeohwnspbwfub ONLY), PR #69 follow-up.
+-- 20261018004232_integration_cron (OverwatchDB nneueuvyeohwnspbwfub ONLY), PR #69 follow-up.
+-- APPLIED 2026-10-17 17:42 PT, version 20261018004232.
 -- Apply AFTER integration_framework and 20261018004108_integration_cron_secret_vault (which
 -- generates the Vault secret 'integrations_cron_secret' in-database). The jobs
 -- send it as x-integrations-cron-secret; the Edge functions check it against
 -- Vault via integration_cron_secret_matches(). No Edge secret is involved.
 --   pg_cron 1.6.4 and pg_net 0.20.0 are already installed on OverwatchDB
 --   (checked 2026-10-17), so the CREATE EXTENSION lines are no-ops.
--- Rollback: rollback/pending_integration_cron.rollback.sql
+-- Rollback: rollback/20261018004232_integration_cron.rollback.sql
 -- Schedules: token refresh every 10 min, jobs worker every minute,
 --            purge expired oauth states daily.
 -- =============================================================================
