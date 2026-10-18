@@ -36,6 +36,8 @@ export interface LayerVisibility {
   // Satellite intel
   sentinel1: boolean;
   sentinel2: boolean;
+  /** 3D Cities: Google Photorealistic 3D Tiles basemap (only when a Map Tiles key is configured). */
+  google3d: boolean;
   flirThermal: boolean;
   crtMode: boolean;
   // Phase 1B effects (gods-eye-view ports) + HUD
@@ -103,6 +105,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   sunPosition: false,
   sentinel1: false,
   sentinel2: false,
+  google3d: false,
   flirThermal: false,
   crtMode: false,
   nvgGoggles: false,

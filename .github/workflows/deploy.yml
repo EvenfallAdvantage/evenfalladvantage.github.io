@@ -61,6 +61,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_CESIUM_TOKEN: ${{ secrets.NEXT_PUBLIC_CESIUM_TOKEN }}
           NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID: ${{ secrets.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID }}
+          # Public browser key for Google Photorealistic 3D Tiles (3D Cities). Empty = option hidden.
+          NEXT_PUBLIC_GOOGLE_MAP_TILES_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAP_TILES_KEY }}
         run: npm run build
 
       - name: Inject build hash into service worker

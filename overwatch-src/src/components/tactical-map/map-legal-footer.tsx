@@ -8,10 +8,12 @@ interface MapLegalFooterProps {
   /** Container Cesium renders data credits into. */
   creditRef: Ref<HTMLDivElement>;
   onOpenSources: () => void;
+  /** 3D Cities is drawing Google Maps content: keep Google's logo/attributions fully visible. */
+  googleMaps?: boolean;
 }
 
 /** Persistent bottom strip: emergency-use disclaimer, sources link and provider credits. */
-export function MapLegalFooter({ creditRef, onOpenSources }: MapLegalFooterProps) {
+export function MapLegalFooter({ creditRef, onOpenSources, googleMaps }: MapLegalFooterProps) {
   return (
     <div
       className="absolute bottom-0 left-0 right-0 z-[5] flex items-center gap-2 px-2 py-0.5 text-[9px] leading-tight text-white/60 pointer-events-none"
@@ -34,7 +36,11 @@ export function MapLegalFooter({ creditRef, onOpenSources }: MapLegalFooterProps
       >
         Licences
       </a>
-      <div ref={creditRef} className="map-credit-container pointer-events-auto ml-auto min-w-0 truncate text-right" />
+      {googleMaps && (
+        <span className="shrink-0 text-[11px] font-medium text-white/90" aria-label="Google Maps">Google Maps</span>
+      )}
+      {/* While Google content is on screen the credits wrap instead of truncating, so the Google logo and data attributions are never cut off. */}
+      <div ref={creditRef} className={`map-credit-container pointer-events-auto ml-auto min-w-0 text-right ${googleMaps ? "whitespace-normal break-words" : "truncate"}`} />
     </div>
   );
 }

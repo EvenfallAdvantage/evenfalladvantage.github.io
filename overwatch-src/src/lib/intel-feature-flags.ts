@@ -49,7 +49,8 @@ export type IntelLayerKey =
   | "weather_radar"
   | "satellite_clouds"
   | "surface_wind"
-  | "gnss_interference";
+  | "gnss_interference"
+  | "google_3d_cities";
 
 export interface IntelFlag {
   enabled: boolean;
@@ -104,6 +105,12 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   gnss_interference: {
     enabled: true,
     attribution: "Derived from adsb.lol aircraft accuracy reports (ODbL 1.0)",
+    attributionRequired: true,
+  },
+  google_3d_cities: {
+    enabled: true,
+    attribution: "Google Maps Photorealistic 3D Tiles (Map Tiles API). Google logo and per-tile data providers shown on the map; subject to the Google Maps Platform terms",
+    commercialUseRequiresApiKey: true,
     attributionRequired: true,
   },
   space_weather: {

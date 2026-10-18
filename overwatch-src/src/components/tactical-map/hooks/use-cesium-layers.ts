@@ -251,7 +251,8 @@ export function useCesiumLayers(params: {
       viewer.scene.setTerrain(new Cesium.Terrain(createTerrainProvider(Cesium)));
       viewer.scene.globe.depthTestAgainstTerrain = true;
       // Show buildings — they require terrain to render at correct elevation
-      if (buildings) buildings.show = true;
+      // (not while 3D Cities draws Google's own buildings).
+      if (buildings) buildings.show = !layers.google3d;
       else if (ionAssetsEnabled() && !entityGroupsRef.current.buildingsLoading) {
         // Lazy-load (phones start with terrain off and never fetch them up front).
         entityGroupsRef.current.buildingsLoading = true;
@@ -270,7 +271,7 @@ export function useCesiumLayers(params: {
       // Hide buildings — they float without terrain
       if (buildings) buildings.show = false;
     }
-  }, [layers.terrain, loading, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.terrain, layers.google3d, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Bulk-load all saved bounds for the company on mount ────
   // Loaded once per (companyId × operation set). Every op with bounds is
