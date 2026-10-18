@@ -42,6 +42,7 @@ import { CctvAckModal } from "@/components/intel/cctv-ack-modal";
 import { MapLegalFooter } from "./map-legal-footer";
 import { gateCctvEnable, hasCctvAck, recordCctvAck } from "@/lib/map/cctv-ack";
 import { useAuthStore } from "@/stores/auth-store";
+import { activeBooleanLayers, applySharedLayers, decodeShareHash, encodeShareHash } from "@/lib/map/share-link";
 
 export type { StaffPin, OperationPin, IncidentPin } from "./types";
 
@@ -122,6 +123,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [_cameraPitch, setCameraPitch] = useState(-0.5);
   const [containerWidth, setContainerWidth] = useState(800);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // Ops Mode: full-screen, chrome-free map (exit with Esc / the pill).
+  const [opsMode, setOpsMode] = useState(false);
   const [adjustingOp, setAdjustingOp] = useState<{ id: string; name: string; imageUrl: string; bounds: import("@/lib/supabase/db-operations").SiteMapBounds } | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -289,7 +292,23 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         // Restore saved camera position or fly to CONUS
         const cameraKey = `tactical-cam-${companyId}`;
         let cameraRestored = false;
+        // A share link (#lat=…&lon=…&alt=…) wins over the saved camera.
         try {
+          const shared = decodeShareHash(window.location.hash, new Set(Object.keys(defaultLayersFor(false))));
+          if (shared) {
+            viewer.camera.setView({
+              destination: Cesium.Cartesian3.fromDegrees(shared.lng, shared.lat, shared.altM),
+              orientation: { heading: Cesium.Math.toRadians(shared.headingDeg), pitch: Cesium.Math.toRadians(shared.pitchDeg), roll: 0 },
+            });
+            cameraRestored = true;
+            if (shared.layers) {
+              const list = shared.layers;
+              setLayers((prev) => applySharedLayers(prev, list));
+            }
+            history.replaceState(null, "", window.location.pathname + window.location.search);
+          }
+        } catch (e) { logger.swallow("tactical-map:share-restore", e, "debug"); }
+        if (!cameraRestored) try {
           const savedCam = localStorage.getItem(cameraKey);
           if (savedCam) {
             const cam = JSON.parse(savedCam);
@@ -459,9 +478,48 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     }
   }, []);
 
+  // Copy a link to the current view (camera + visible layers).
+  const handleShare = useCallback(async () => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium) return;
+    const carto = Cesium.Cartographic.fromCartesian(viewer.camera.position);
+    const hash = encodeShareHash({
+      lat: Cesium.Math.toDegrees(carto.latitude),
+      lng: Cesium.Math.toDegrees(carto.longitude),
+      altM: carto.height,
+      headingDeg: Cesium.Math.toDegrees(viewer.camera.heading),
+      pitchDeg: Cesium.Math.toDegrees(viewer.camera.pitch),
+      layers: activeBooleanLayers(layers),
+    });
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${hash}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Map view link copied (recipients must be signed in)");
+    } catch {
+      window.prompt("Copy this map view link:", url);
+    }
+  }, [layers]);
+
+  // Ops Mode: full screen + hide panels; leaving full screen leaves Ops Mode.
+  const handleOpsMode = useCallback(() => {
+    const el = wrapperRef.current;
+    if (opsMode) {
+      setOpsMode(false);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      return;
+    }
+    setOpsMode(true);
+    if (el && !document.fullscreenElement) el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+  }, [opsMode]);
+
   // Listen for fullscreen changes (e.g. user presses Escape)
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    const handler = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      if (!fs) setOpsMode(false);
+    };
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
@@ -520,6 +578,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         case "f":
           handleFullscreen();
           break;
+        case "o":
+          handleOpsMode();
+          break;
         case "n":
           handleResetNorth();
           break;
@@ -542,6 +603,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     activeLiveFeed,
     intelDrawerOpen,
     timeMachineOpen,
+    handleOpsMode,
     handleFullscreen,
     handleResetNorth,
     setTimeMachineOpen,
@@ -582,7 +644,14 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} />
 
       {/* Compass + Fullscreen + Time Machine + Drone + Intel — top left */}
-      {!loading && !error && (
+      {!loading && !error && opsMode && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-mono text-white/80 bg-black/50 backdrop-blur-md border border-white/10">
+          <span className="tracking-[0.2em]">OPS MODE</span>
+          <button onClick={() => void handleShare()} className="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20">Share view</button>
+          <button onClick={handleOpsMode} className="px-2 py-0.5 rounded-full bg-white/10 hover:bg-white/20">Exit (Esc)</button>
+        </div>
+      )}
+      {!loading && !error && !opsMode && (
         <MapControlButtons
           cameraHeading={cameraHeading}
           isFullscreen={isFullscreen}
@@ -595,6 +664,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           onToggleTimeMachine={() => setTimeMachineOpen(!timeMachineOpen)}
           onToggleDronePlanner={() => setDronePlannerOpen(!dronePlannerOpen)}
           onToggleIntelDrawer={() => setIntelDrawerOpen((o) => !o)}
+          onShare={() => void handleShare()}
+          onOpsMode={handleOpsMode}
         />
       )}
 
@@ -607,7 +678,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       />
 
       {/* Global status bar — bottom-center; admin-only by convention */}
-      {isAdmin && (
+      {isAdmin && !opsMode && (
         <GlobalStatusBar
           enabled={!loading && !error}
           onOpenAttribution={() => setAttributionOpen(true)}
@@ -682,7 +753,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
 
-      {!error && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} s2ActiveLayers={s2Intel.activeLayers} onToggleS2Layer={s2Intel.toggleLayer} s2FeatureCount={s2Intel.featureCount} isReplaying={timeMachineOpen} onRealignSiteMap={(op) => {
+      {!error && !opsMode && <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} s2ActiveLayers={s2Intel.activeLayers} onToggleS2Layer={s2Intel.toggleLayer} s2FeatureCount={s2Intel.featureCount} isReplaying={timeMachineOpen} onRealignSiteMap={(op) => {
         // Clear saved bounds to force re-alignment
         setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
         setAligningOp(op);
