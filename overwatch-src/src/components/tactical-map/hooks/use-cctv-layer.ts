@@ -106,8 +106,10 @@ export function useCctvLayer(params: {
   loading: boolean;
   layers: LayerVisibility;
   onOpenCamera: (cam: CctvCamera) => void;
+  /** Optional scope filter (near my sites / map view) for individual cameras. */
+  filter?: (lat: number, lng: number) => boolean;
 }) {
-  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenCamera } = params;
+  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenCamera, filter } = params;
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -230,6 +232,7 @@ export function useCctvLayer(params: {
           const cams = data.cameras ?? [];
           const credits = data.attribution ?? {};
           for (const cam of legacy ? cams : cams.slice(0, budget)) {
+            if (filter && !filter(cam.lat, cam.lng)) continue;
             next.set(`cctv-${cam.id}`, { kind: "cam", cam: { ...cam, attribution: cam.attribution ?? credits[cam.source] } });
           }
         }
@@ -277,5 +280,5 @@ export function useCctvLayer(params: {
         entityGroups.cctvClickHandler = null;
       }
     };
-  }, [layers.cctv, loading, onOpenCamera, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.cctv, loading, onOpenCamera, filter, viewerRef, cesiumRef, entityGroupsRef]);
 }

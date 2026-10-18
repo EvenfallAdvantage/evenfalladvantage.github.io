@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { createTerrainProvider, ionAssetsEnabled, OSM_STREETS_CREDIT, OSM_STREETS_URL } from "@/lib/map/basemap-sources";
 import { logger } from "@/lib/logger";
@@ -72,6 +72,11 @@ export function useCesiumLayers(params: {
   onOpenLiveFeed?: (feed: IntelLiveNewsFeed) => void;
   /** Click-handler for CCTV camera pins. */
   onOpenCctvCamera?: (cam: CctvCamera) => void;
+  /** Panel v2 scope (near my sites / map view); undefined = everywhere. */
+  scopeFilters?: {
+    hazard?: (h: import("@/lib/intel-types").IntelHazard) => boolean;
+    point?: (lat: number, lng: number, key?: import("@/lib/map/site-proximity").NearRadiusKey) => boolean;
+  };
 }) {
   const {
     viewerRef,
@@ -91,7 +96,11 @@ export function useCesiumLayers(params: {
     adjustingOpId,
     onOpenLiveFeed,
     onOpenCctvCamera,
+    scopeFilters,
   } = params;
+  const scopePoint = scopeFilters?.point;
+  const newsFilter = useMemo(() => (scopePoint ? (n: { lat: number; lng: number }) => scopePoint(n.lat, n.lng, "news") : undefined), [scopePoint]);
+  const cameraFilter = useMemo(() => (scopePoint ? (lat: number, lng: number) => scopePoint(lat, lng, "cameras") : undefined), [scopePoint]);
 
   // Site overlay / storyboard state remains here — shared between the
   // site overlay and storyboard pin effects and surfaced to callers so
@@ -196,9 +205,9 @@ export function useCesiumLayers(params: {
   });
 
   // ─── Sub-hook: SIGINT RSS news (geo-mapped by keyword, deterministic risk) ──
-  useNewsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen });
+  useNewsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen, filter: newsFilter });
 
-  const { hazards } = useHazardsLayer({ viewerRef, cesiumRef, loading, layers, debouncedReplayTime, timeMachineOpen });
+  const { hazards } = useHazardsLayer({ viewerRef, cesiumRef, loading, layers, debouncedReplayTime, timeMachineOpen, filter: scopeFilters?.hazard });
 
   useCloudsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen });
 
@@ -216,6 +225,7 @@ export function useCesiumLayers(params: {
   useCctvLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
     onOpenCamera: onOpenCctvCamera ?? (() => {}),
+    filter: cameraFilter,
   });
 
   // ─── Sub-hook: RAWS weather stations (ArcGIS, viewport-filtered) ──────

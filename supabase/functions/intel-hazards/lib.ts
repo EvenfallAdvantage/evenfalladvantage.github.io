@@ -424,3 +424,42 @@ export class TtlCache<T> {
     this.m.set(k, { v, until: now + ttlMs });
   }
 }
+
+// ─── Optional proximity pre-filter (?near=lat,lng;lat,lng&near_km=150) ─────
+
+export const MAX_NEAR_POINTS = 100;
+export const MAX_NEAR_KM = 500;
+
+export function parseNear(near: string | null, nearKm: string | null): { points: [number, number][]; km: number } | null {
+  if (!near) return null;
+  const points: [number, number][] = [];
+  for (const part of near.split(";").slice(0, MAX_NEAR_POINTS)) {
+    const [lat, lng] = part.split(",").map(Number);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) points.push([lat, lng]);
+  }
+  if (!points.length) return null;
+  const km = Math.min(MAX_NEAR_KM, Math.max(1, Number(nearKm) || 150));
+  return { points, km };
+}
+
+function geomBBox(g: Geometry): [number, number, number, number] {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const visit = (c: [number, number]) => { if (c[0] < minX) minX = c[0]; if (c[0] > maxX) maxX = c[0]; if (c[1] < minY) minY = c[1]; if (c[1] > maxY) maxY = c[1]; };
+  if (g.type === "Point") visit(g.coordinates);
+  else if (g.type === "LineString") g.coordinates.forEach(visit);
+  else if (g.type === "Polygon") g.coordinates.forEach((r) => r.forEach(visit));
+  else g.coordinates.forEach((p) => p.forEach((r) => r.forEach(visit)));
+  return [minX, minY, maxX, maxY];
+}
+
+/** Keep hazards whose bounding box comes within `km` of any point (coarse; the client refines). */
+export function filterNear(hazards: Hazard[], near: { points: [number, number][]; km: number }): Hazard[] {
+  const dLat = near.km / 111.32;
+  return hazards.filter((h) => {
+    const [minX, minY, maxX, maxY] = geomBBox(h.geometry);
+    return near.points.some(([lat, lng]) => {
+      const dLng = near.km / (111.32 * Math.max(0.05, Math.cos((lat * Math.PI) / 180)));
+      return lat >= minY - dLat && lat <= maxY + dLat && lng >= minX - dLng && lng <= maxX + dLng;
+    });
+  });
+}

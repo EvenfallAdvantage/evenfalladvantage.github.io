@@ -6,8 +6,13 @@ import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, defaultLayersFor } from "./map-layers-panel";
 import { MapLayersPanelV2 } from "./map-layers-panel-v2";
-import { allGroups, applyPreset, classicLayers, defaultPresetFor, effectiveLayers, expandSharedLayers, flattenForClassic, migrateLayers } from "@/lib/map/layer-registry";
+import { allGroups, applyPreset, classicLayers, defaultPresetFor, effectiveLayers, expandSharedLayers, flattenForClassic, matchingPreset, migrateLayers } from "@/lib/map/layer-registry";
 import { readPanelV2Choice, resolvePanelV2, writePanelV2Choice } from "@/lib/map/panel-flag";
+import { buildScopeFilters, resolveRadii, sitesFrom, type ViewRect } from "@/lib/map/site-proximity";
+import { DEFAULT_COMPANY_MAP_DEFAULTS, getCompanyMapDefaults, getUserMapPrefs, saveUserMapPrefs, saveUserPanelChoice, type CompanyMapDefaults } from "@/lib/supabase/db-map-prefs";
+import { useSiteWatch } from "./hooks/use-site-watch";
+import { SiteWatchStrip } from "./site-watch-strip";
+import { CompanyMapDefaultsEditor } from "./company-map-defaults";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { addFreeBaseImagery, createTerrainProvider, ionAssetsEnabled } from "@/lib/map/basemap-sources";
 import { setVisibleInterval } from "@/lib/visible-interval";
@@ -70,12 +75,14 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // terrain on) don't follow the user onto a phone.
   const constrained = typeof window !== "undefined" && isConstrainedDevice();
   const storageKey = `tactical-map-${companyId}${constrained ? "-mobile" : ""}`;
+  // True until this user has any saved layer state (local or synced).
+  const freshRef = useRef(true);
   const [layers, setLayersRaw] = useState<LayerVisibility>(() => {
     const defaults = defaultLayersFor(constrained);
     if (typeof window === "undefined") return defaults;
     try {
       const saved = localStorage.getItem(storageKey);
-      if (saved) return migrateLayers(defaults, JSON.parse(saved));
+      if (saved) { freshRef.current = false; return migrateLayers(defaults, JSON.parse(saved)); }
     } catch (e) { logger.swallow("tactical-map:layers-read", e, "debug"); }
     // First visit: desktop starts on Security Ops, phones on Clean.
     return applyPreset(defaults, defaultPresetFor(constrained), { constrained, cctvAcked: false });
@@ -90,7 +97,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Grouped layers panel (v2) is on by default; users can switch back to the classic panel.
   const [panelV2Choice, setPanelV2Choice] = useState<boolean | null>(() => typeof window === "undefined" ? null : readPanelV2Choice(window.localStorage, userId));
   useEffect(() => { setPanelV2Choice(readPanelV2Choice(window.localStorage, userId)); }, [userId]);
-  const panelV2 = resolvePanelV2(panelV2Choice, null);
+  // Company defaults (company_map_defaults) and cross-device prefs (user_map_prefs).
+  const [companyDefaults, setCompanyDefaults] = useState<CompanyMapDefaults>(DEFAULT_COMPANY_MAP_DEFAULTS);
+  const panelV2 = resolvePanelV2(panelV2Choice, companyDefaults.panelV2);
+  const dirtyRef = useRef(false);
   const [cctvAckOpen, setCctvAckOpen] = useState(false);
   // Click-to-track (aircraft): entity id + display label.
   const [tracked, setTracked] = useState<{ id: string; label: string } | null>(null);
@@ -100,22 +110,63 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       const acked = typeof window !== "undefined" && hasCctvAck(window.localStorage, userIdRef.current);
       const { next, needsAck } = gateCctvEnable(prev, requested, acked);
       if (needsAck) queueMicrotask(() => setCctvAckOpen(true));
-      try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch (e) { logger.swallow("tactical-map:layers-write", e, "debug"); }
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(next));
+        localStorage.setItem(`${storageKey}:at`, new Date().toISOString());
+      } catch (e) { logger.swallow("tactical-map:layers-write", e, "debug"); }
+      freshRef.current = false;
+      dirtyRef.current = true;
       return next;
     });
   }, [storageKey]);
   // What the map actually draws: v2 applies group master switches and retired keys.
   const activeLayers = useMemo(
-    () => (panelV2 ? effectiveLayers(layers, { constrained }) : classicLayers(layers)),
-    [panelV2, layers, constrained],
+    () => (panelV2 ? effectiveLayers(layers, { constrained, hiddenGroups: companyDefaults.hiddenGroups }) : classicLayers(layers)),
+    [panelV2, layers, constrained, companyDefaults.hiddenGroups],
   );
+  const deviceClass = constrained ? "mobile" : "desktop";
+  // Load company defaults + this user's synced prefs once per company/user.
+  useEffect(() => {
+    if (!companyId || !userId) return;
+    let cancelled = false;
+    void (async () => {
+      const [defaults, remote] = await Promise.all([getCompanyMapDefaults(companyId), getUserMapPrefs(companyId, deviceClass)]);
+      if (cancelled) return;
+      if (defaults) setCompanyDefaults(defaults);
+      if (remote && remote.view?.panelV2 != null && readPanelV2Choice(window.localStorage, userId) === null) {
+        writePanelV2Choice(window.localStorage, userId, remote.view.panelV2);
+        setPanelV2Choice(remote.view.panelV2);
+      }
+      let localAt = "";
+      try { localAt = localStorage.getItem(`${storageKey}:at`) ?? ""; } catch { /* ignore */ }
+      if (remote && Object.keys(remote.layers).length && (freshRef.current || remote.updatedAt > localAt)) {
+        // Newer settings from another device win; site overlays stay per device.
+        setLayersRaw((prev) => ({ ...migrateLayers(defaultLayersFor(constrained), remote.layers as Partial<LayerVisibility>), siteOverlays: prev.siteOverlays }));
+        freshRef.current = false;
+      } else if (freshRef.current && defaults) {
+        const preset = constrained ? defaults.defaultPresetMobile : defaults.defaultPreset;
+        setLayersRaw((prev) => applyPreset(prev, preset, { constrained, cctvAcked: hasCctvAck(window.localStorage, userId) }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [companyId, userId, deviceClass, storageKey, constrained]);
+  // Save to user_map_prefs a few seconds after the user changes something.
+  useEffect(() => {
+    if (!companyId || !userId || !dirtyRef.current) return;
+    const t = setTimeout(() => {
+      dirtyRef.current = false;
+      void saveUserMapPrefs(companyId, deviceClass, { preset: matchingPreset(layers, { constrained, cctvAcked: hasCctvAck(window.localStorage, userId) }), layers, view: { panelV2: panelV2Choice } });
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [layers, companyId, userId, deviceClass, panelV2Choice, constrained]);
   const choosePanel = useCallback((v2: boolean) => {
     writePanelV2Choice(window.localStorage, userIdRef.current, v2);
     setPanelV2Choice(v2);
+    void saveUserPanelChoice(companyId, v2);
     // Going back to classic: keep exactly what was on screen visible there.
     if (!v2) setLayers((prev) => flattenForClassic(prev));
     else setLayers((prev) => migrateLayers(defaultLayersFor(constrained), { ...prev, news: prev.news || prev.gdelt || prev.sigintNews, lightning: prev.lightning }));
-  }, [setLayers, constrained]);
+  }, [setLayers, constrained, companyId]);
   // Layer prefs saved before the acknowledgement existed may already have CCTV
   // on: switch it off and ask once.
   useEffect(() => {
@@ -195,8 +246,20 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Quick DM modal (opens on map instead of navigating away)
   const { dmTarget, setDmTarget, dmText, setDmText, dmSending, sendMessage: sendDmMessage } = useDirectMessage(companyId);
 
+  // Near my sites: sites = active operations + active geofences (geofences
+  // arrive from the layer hook below, so the previous render's list is used).
+  const [siteGeofences, setSiteGeofences] = useState<import("@/lib/supabase/db-geofences").Geofence[]>([]);
+  const sites = useMemo(() => sitesFrom(operations, siteGeofences), [operations, siteGeofences]);
+  const radii = useMemo(() => resolveRadii(companyDefaults.nearRadiiKm), [companyDefaults.nearRadiiKm]);
+  const [viewRect, setViewRect] = useState<ViewRect | null>(null);
+  const scopeFilters = useMemo(() => {
+    if (!panelV2) return undefined;
+    const f = buildScopeFilters(layers.scope ?? "sites", sites, viewRect, radii);
+    return { hazard: f.hazard, point: f.point };
+  }, [panelV2, layers.scope, sites, viewRect, radii]);
+
   // Cesium layer plotting/toggling effects
-  const { nearbyPOIs: _nearbyPOIs, geofenceAlerts, aligningOp, setAligningOp, savedBounds, setSavedBounds, s2Intel } = useCesiumLayers({
+  const { nearbyPOIs: _nearbyPOIs, geofenceAlerts, aligningOp, setAligningOp, savedBounds, setSavedBounds, s2Intel, geofences: layerGeofences } = useCesiumLayers({
     viewerRef,
     cesiumRef,
     entityGroupsRef,
@@ -217,7 +280,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     adjustingOpId: adjustingOp?.id ?? null,
     onOpenLiveFeed: setActiveLiveFeed,
     onOpenCctvCamera: setActiveCctvCamera,
+    scopeFilters,
   });
+  const [lastLayerGeofences, setLastLayerGeofences] = useState(layerGeofences);
+  if (layerGeofences !== lastLayerGeofences) {
+    setLastLayerGeofences(layerGeofences);
+    setSiteGeofences(layerGeofences ?? []);
+  }
+  const siteWatch = useSiteWatch({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: panelV2 && layers.siteWatch !== false, sites, radii });
+  const [sitePillOpen, setSitePillOpen] = useState(false);
 
   // Ref to hold setSelectedEntity — declared before the init effect but
   // assigned after useCesiumClickHandler, so the init effect can reference it
@@ -425,6 +496,26 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     companyId, isAdmin, onSelectOperation,
   });
   useEffect(() => { setSelectedEntityRef.current = setSelectedEntity; });
+
+  // "Map view" scope: track the visible rectangle (debounced on camera stop).
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || loading || !panelV2 || layers.scope !== "view") return;
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const update = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        const r = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+        if (!r) { setViewRect(null); return; }
+        const d = Cesium.Math.toDegrees;
+        setViewRect({ west: d(r.west), south: d(r.south), east: d(r.east), north: d(r.north) });
+      }, 400);
+    };
+    update();
+    const remove = viewer.camera.moveEnd.addEventListener(update);
+    return () => { if (t) clearTimeout(t); remove(); };
+  }, [loading, panelV2, layers.scope]);
 
   // Right-click → open Region Dossier modal at the picked coordinates.
   useEffect(() => {
@@ -648,6 +739,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     }
   }, [operations]);
 
+  const flyToSite = useCallback((lat: number, lng: number) => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium) return;
+    viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(lng, lat, 25_000), duration: 1.2 });
+  }, []);
+
   const handleRealignSiteMap = useCallback((op: import("./types").OperationPin) => {
     // Clear saved bounds to force re-alignment
     setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
@@ -835,6 +933,18 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           constrained={constrained}
           cctvAcked={typeof window !== "undefined" && hasCctvAck(window.localStorage, userId)}
           onUseClassic={() => choosePanel(false)}
+          hiddenGroups={companyDefaults.hiddenGroups}
+          showScope
+          topSlot={
+            <SiteWatchStrip
+              alerts={siteWatch.alerts}
+              enabled={layers.siteWatch !== false}
+              siteCount={sites.length}
+              onToggle={() => setLayers((prev) => ({ ...prev, siteWatch: prev.siteWatch === false }))}
+              onLocate={(lat, lng) => flyToSite(lat, lng)}
+            />
+          }
+          bottomSlot={isAdmin ? <CompanyMapDefaultsEditor companyId={companyId} value={companyDefaults} onSaved={setCompanyDefaults} /> : undefined}
         />
       ) : (
         <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} s2ActiveLayers={s2Intel.activeLayers} onToggleS2Layer={s2Intel.toggleLayer} s2FeatureCount={s2Intel.featureCount} isReplaying={timeMachineOpen} onRealignSiteMap={handleRealignSiteMap} onAdjustSiteMap={handleAdjustSiteMap} savedBounds={savedBounds} onUseNewPanel={() => choosePanel(true)} />
@@ -873,6 +983,24 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         onWaypointsChange={setDroneWaypoints}
         isAdmin={isAdmin ?? false}
       />
+
+      {/* Site Watch pill on phones (the panel is a closed bottom sheet there) */}
+      {constrained && panelV2 && !opsMode && !error && siteWatch.alerts.length > 0 && (
+        <div className="absolute top-14 right-3 z-10 flex flex-col items-end gap-1">
+          <button
+            onClick={() => setSitePillOpen((o) => !o)}
+            className={`rounded-full px-2.5 py-1 text-[11px] font-bold font-mono text-white shadow ${siteWatch.alerts.some((a) => a.level === "warning") ? "bg-red-600" : "bg-amber-600"}`}
+            aria-label={`Site Watch: ${siteWatch.alerts.length} alerts`}
+          >
+            ⚠ {siteWatch.alerts.length}
+          </button>
+          {sitePillOpen && (
+            <div className="w-72 max-w-[calc(100vw-1.5rem)] rounded-xl backdrop-blur-md border border-white/10 p-2" style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 92%, transparent)" }}>
+              <SiteWatchStrip alerts={siteWatch.alerts} enabled siteCount={sites.length} onToggle={() => { setLayers((prev) => ({ ...prev, siteWatch: false })); setSitePillOpen(false); }} onLocate={(lat, lng) => { flyToSite(lat, lng); setSitePillOpen(false); }} max={8} />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Geofence Alert Ticker */}
       <GeofenceAlertTicker alerts={geofenceAlerts} />

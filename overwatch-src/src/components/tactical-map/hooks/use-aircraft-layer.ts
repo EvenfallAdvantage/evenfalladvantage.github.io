@@ -221,6 +221,8 @@ export function useAircraftLayer(params: {
         }
       }
       activeIds = newIds;
+      // Latest positions for Site Watch (emergency aircraft near sites).
+      entityGroupsRef.current.aircraftLatest = [...merged.values()];
       renderGnss();
     }
     redrawRef.current = renderAll;
@@ -308,9 +310,11 @@ export function useAircraftLayer(params: {
 
     fetchOpenSky();
     const stopOpenSkyPolling = setVisibleInterval(fetchOpenSky, 15000);
+    const groups = entityGroupsRef.current;
 
     return () => {
       redrawRef.current = null;
+      groups.aircraftLatest = [];
       try { viewer.dataSources.remove(gnssSource, true); } catch (e_) { logger.swallow("aircraft-layer:gnss", e_, "debug"); }
       unsubAdsb();
       stopOpenSkyPolling();
