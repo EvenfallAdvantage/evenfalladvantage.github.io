@@ -30,7 +30,7 @@ Set to `https://api.evenfalladvantage.com/integrations` → `…/oauth/callback/
 
 | Secret | Needed for |
 |---|---|
-| `INTEGRATIONS_CRON_SECRET` | token-refresh + jobs-worker (same value in Vault as `integrations_cron_secret`) |
+| (none, Vault only) | token-refresh + jobs-worker check `x-integrations-cron-secret` against Vault `integrations_cron_secret` via `integration_cron_secret_matches()`; the value is generated in-database and never exported. |
 | `OVERWATCH_APP_URL` | post-OAuth redirect (default `https://www.evenfalladvantage.com/overwatch`) |
 | `INTEGRATIONS_PUBLIC_BASE` | only once the custom domain is live |
 | `INTEGRATIONS_ENABLE_MOCK` | leave unset in production |

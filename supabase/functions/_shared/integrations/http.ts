@@ -1,7 +1,6 @@
 /** Request plumbing shared by the integration-* Edge Functions. */
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../cors.ts";
-import { timingSafeEqual } from "./crypto.ts";
 import type { AdapterCtx } from "./types.ts";
 
 export const env = (n: string) => Deno.env.get(n);
@@ -31,9 +30,21 @@ export function adapterCtx(fn: string): AdapterCtx {
   };
 }
 
-/** Scheduled callers (pg_cron via pg_net) send x-integrations-cron-secret. */
-export function isCronCall(req: Request): boolean {
-  return timingSafeEqual(req.headers.get("x-integrations-cron-secret"), env("INTEGRATIONS_CRON_SECRET"));
+/**
+ * Scheduled callers (pg_cron via pg_net) send x-integrations-cron-secret.
+ * The secret lives only in Vault ('integrations_cron_secret'); the database
+ * compares it (service-role-only RPC, sha256 digests) and returns a boolean.
+ * Missing header, short header or any RPC error -> false (caller returns 401).
+ */
+export async function isCronCall(req: Request, admin: ReturnType<typeof serviceClient>): Promise<boolean> {
+  const candidate = req.headers.get("x-integrations-cron-secret");
+  if (!candidate || candidate.length < 32 || candidate.length > 256) return false;
+  try {
+    const { data, error } = await admin.rpc("integration_cron_secret_matches", { candidate });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
 }
 
 /**

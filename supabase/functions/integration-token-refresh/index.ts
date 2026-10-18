@@ -1,6 +1,6 @@
 /**
  * integration-token-refresh (PR V0). Replaces the undeployed oauth-refresh.
- * Auth: verify_jwt = false; requires x-integrations-cron-secret
+ * Auth: verify_jwt = false; requires x-integrations-cron-secret (checked against Vault)
  *       (pg_cron every 10 min, see migrations/pending/integration_cron.sql).
  * Refreshes connected tokens expiring within 15 min, one refresher per
  * connection (lease lock), and flips a connection to "error" after 3
@@ -17,8 +17,8 @@ const json = (status: number, body: unknown) => new Response(JSON.stringify(body
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
-  if (!isCronCall(req)) return json(401, { error: "Unauthorized" });
   const admin = serviceClient();
+  if (!(await isCronCall(req, admin))) return json(401, { error: "Unauthorized" });
   const ctx = adapterCtx("integration-token-refresh");
   const horizon = new Date(Date.now() + 15 * 60_000).toISOString();
   const { data, error } = await admin.from("integration_connections").select(CONNECTION_COLUMNS)
