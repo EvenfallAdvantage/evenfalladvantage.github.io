@@ -1,6 +1,6 @@
 -- =============================================================================
 -- integration_cron (OverwatchDB nneueuvyeohwnspbwfub ONLY), PR #69 follow-up.
--- Apply AFTER integration_framework and integration_cron_secret_vault (which
+-- Apply AFTER integration_framework and 20261018004108_integration_cron_secret_vault (which
 -- generates the Vault secret 'integrations_cron_secret' in-database). The jobs
 -- send it as x-integrations-cron-secret; the Edge functions check it against
 -- Vault via integration_cron_secret_matches(). No Edge secret is involved.

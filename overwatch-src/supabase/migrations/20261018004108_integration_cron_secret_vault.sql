@@ -1,5 +1,6 @@
 -- =============================================================================
--- integration_cron_secret_vault (OverwatchDB nneueuvyeohwnspbwfub ONLY)
+-- 20261018004108_integration_cron_secret_vault (OverwatchDB nneueuvyeohwnspbwfub ONLY)
+-- APPLIED 2026-10-17 17:41 PT, version 20261018004108.
 -- Vault-only secret for the integration cron calls, mirroring intel-cctv-ingest:
 --   * generates a random secret INSIDE the database and stores it in Vault as
 --     'integrations_cron_secret' (only if absent). The value is never returned,
@@ -9,7 +10,7 @@
 --     Compares sha256 digests, so timing does not depend on how many leading
 --     characters of the secret match.
 -- There is no INTEGRATIONS_CRON_SECRET Edge secret any more.
--- Rollback: rollback/<version>_integration_cron_secret_vault.rollback.sql
+-- Rollback: rollback/20261018004108_integration_cron_secret_vault.rollback.sql
 -- =============================================================================
 BEGIN;
 DO $gen$
