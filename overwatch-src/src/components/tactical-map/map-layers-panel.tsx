@@ -8,7 +8,7 @@ import {
   Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
   Activity, Flame, Swords, Wind, Atom, Newspaper, Tv, Rss, Ship, Camera, TowerControl,
-  Radio,
+  Radio, Film, Sparkles, Focus, Crosshair,
 } from "lucide-react";
 import type { OperationPin } from "./types";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
@@ -34,6 +34,12 @@ export interface LayerVisibility {
   sentinel2: boolean;
   flirThermal: boolean;
   crtMode: boolean;
+  // Phase 1B effects (gods-eye-view ports) + HUD
+  nvgGoggles: boolean;
+  noir: boolean;
+  bloom: boolean;
+  sharpen: boolean;
+  hud: boolean;
   // Live feeds
   aircraft: boolean;
   satelliteOrbits: boolean;
@@ -75,6 +81,11 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   sentinel2: false,
   flirThermal: false,
   crtMode: false,
+  nvgGoggles: false,
+  noir: false,
+  bloom: false,
+  sharpen: false,
+  hud: false,
   aircraft: false,
   satelliteOrbits: false,
   s2Intel: false,
@@ -156,6 +167,11 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "nightVision", label: "Night Mode", icon: <Moon className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "flirThermal", label: "FLIR Thermal", icon: <Scan className="h-3.5 w-3.5" />, group: "EFFECTS" },
   { key: "crtMode", label: "CRT Mode", icon: <Monitor className="h-3.5 w-3.5" />, group: "EFFECTS" },
+  { key: "nvgGoggles", label: "NVG Goggles", icon: <Eye className="h-3.5 w-3.5" />, group: "EFFECTS" },
+  { key: "noir", label: "Noir", icon: <Film className="h-3.5 w-3.5" />, group: "EFFECTS" },
+  { key: "bloom", label: "Bloom", icon: <Sparkles className="h-3.5 w-3.5" />, group: "EFFECTS" },
+  { key: "sharpen", label: "Sharpen", icon: <Focus className="h-3.5 w-3.5" />, group: "EFFECTS" },
+  { key: "hud", label: "Tactical HUD", icon: <Crosshair className="h-3.5 w-3.5" />, group: "EFFECTS" },
 ];
 
 interface MapLayersPanelProps {
