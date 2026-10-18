@@ -21,6 +21,11 @@ export interface CctvSource {
   attribution: string;
   /** Terms still need the user's confirmation before go-live. */
   termsPending?: boolean;
+  /**
+   * Needs a signed agreement with the provider: enabled only when listed by
+   * id in CCTV_ENABLE_PENDING_SOURCES ("all" does NOT include it).
+   */
+  agreementRequired?: boolean;
   fetch: (f: Fetchers) => Promise<CctvCamera[]>;
 }
 
@@ -39,7 +44,9 @@ export const CCTV_SOURCES: CctvSource[] = [
     },
   },
   {
-    id: "NYC DOT", region: "us-ny",
+    // Disabled by default: NYC DOT's camera feed requires a signed data-sharing
+    // agreement. Enable with CCTV_ENABLE_PENDING_SOURCES="NYC DOT" once signed.
+    id: "NYC DOT", region: "us-ny", termsPending: true, agreementRequired: true,
     attribution: "NYC DOT traffic cameras (webcams.nyctmc.org)",
     fetch: async ({ json }) => parseNyc(await json("https://webcams.nyctmc.org/api/cameras", 10_000)),
   },
@@ -104,11 +111,20 @@ export const KEY_GATED_SOURCE_SECRETS = [
 
 /**
  * Sources the ingest runs. Terms-pending sources are skipped unless
- * CCTV_ENABLE_PENDING_SOURCES lists them (comma ids) or is "all".
+ * CCTV_ENABLE_PENDING_SOURCES lists them (comma ids) or is "all";
+ * agreement-required sources must be listed by id explicitly.
  */
 export function enabledSources(pendingEnv: string | undefined): CctvSource[] {
   const allow = new Set((pendingEnv ?? "").split(",").map((s) => s.trim()).filter(Boolean));
-  return CCTV_SOURCES.filter((s) => !s.termsPending || allow.has("all") || allow.has(s.id));
+  return CCTV_SOURCES.filter((s) =>
+    !s.termsPending || allow.has(s.id) || (allow.has("all") && !s.agreementRequired)
+  );
+}
+
+/** Source ids that must not be served (so stale DB rows are hidden too). */
+export function disabledSourceIds(pendingEnv: string | undefined): Set<string> {
+  const on = new Set(enabledSources(pendingEnv).map((s) => s.id));
+  return new Set(CCTV_SOURCES.filter((s) => !on.has(s.id)).map((s) => s.id));
 }
 
 export const CCTV_ATTRIBUTION: Record<string, string> = Object.fromEntries(CCTV_SOURCES.map((s) => [s.id, s.attribution]));

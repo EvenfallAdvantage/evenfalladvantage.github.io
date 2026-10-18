@@ -5,6 +5,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { requireIntelUser } from "../_shared/intel-auth.ts";
 
 const RISK_FACTORS: Record<string, { base: number; tags: string[] }> = {
   UA: { base: 85, tags: ["active_conflict", "infrastructure_damage"] },
@@ -69,6 +70,8 @@ function isExchangeOpen(ex: (typeof EXCHANGES)[number]): boolean {
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders);
+  if (denied) return denied;
 
   try {
     const exchangeStatus = EXCHANGES.map((ex) => ({

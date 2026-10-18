@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
+import { createTerrainProvider, ionAssetsEnabled, OSM_STREETS_CREDIT, OSM_STREETS_URL } from "@/lib/map/basemap-sources";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { getSiteMapBounds, getSiteMapBoundsByCompany, migrateLegacyLocalStorageBounds, loadStoryboard, type SiteMapBounds } from "@/lib/supabase/db-operations";
@@ -17,7 +18,7 @@ import { useOperationsLayer } from "./use-operations-layer";
 import { useStaffLayer } from "./use-staff-layer";
 import { useIncidentsLayer } from "./use-incidents-layer";
 import { useWeatherLayer } from "./use-weather-layer";
-import { useNightVision } from "./use-night-vision";
+import { useNightVision, applyGrade, NIGHT_GRADE } from "./use-night-vision";
 import { useAircraftLayer } from "./use-aircraft-layer";
 import { useOrbitLayer } from "./use-orbit-layer";
 import { useTrailsLayer } from "./use-trails-layer";
@@ -168,7 +169,7 @@ export function useCesiumLayers(params: {
     debouncedReplayTime, timeMachineOpen,
   });
 
-  // ─── Sub-hook: Real-time lightning (Blitzortung WebSocket, under Severe Weather toggle) ─────
+  // ─── Sub-hook: Lightning density (NOAA nowCOAST WMS, under Severe Weather toggle) ─────
   useLightningLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
     debouncedReplayTime, timeMachineOpen,
@@ -216,22 +217,19 @@ export function useCesiumLayers(params: {
     companyId: companyId ?? "",
   });
 
-  // ─── 3D Terrain & Buildings Toggle (combined) ────────
+  // ─── 3D Terrain (+ ion OSM Buildings only when ion is licensed) ────────
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
     const buildings = entityGroupsRef.current.buildings?.[0];
     if (layers.terrain) {
-      // Enable world terrain with normals + water mask
-      viewer.scene.setTerrain(Cesium.Terrain.fromWorldTerrain({
-        requestVertexNormals: true,
-        requestWaterMask: true,
-      }));
+      // Keyless Re:Earth/Mapterhorn terrain (ion World Terrain only if licensed)
+      viewer.scene.setTerrain(new Cesium.Terrain(createTerrainProvider(Cesium)));
       viewer.scene.globe.depthTestAgainstTerrain = true;
       // Show buildings — they require terrain to render at correct elevation
       if (buildings) buildings.show = true;
-      else if (!entityGroupsRef.current.buildingsLoading) {
+      else if (ionAssetsEnabled() && !entityGroupsRef.current.buildingsLoading) {
         // Lazy-load (phones start with terrain off and never fetch them up front).
         entityGroupsRef.current.buildingsLoading = true;
         Cesium.createOsmBuildingsAsync().then((tileset: { show: boolean }) => {
@@ -709,39 +707,32 @@ export function useCesiumLayers(params: {
   }, [operations, layers.siteOverlays, savedBounds, loading, incidents, viewerRef, cesiumRef, entityGroupsRef, companyId, adjustingOpId]);
 
   // ─── Satellite Imagery Toggle ───────────────────────
+  // Satellite = EOX Sentinel-2 2016 + USGS (basemap-sources.ts).
+  // Streets = OpenStreetMap standard tiles, fetched only while selected
+  // (light, user-initiated use within the OSMF Tile Usage Policy).
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
     if (!viewer || !Cesium || loading) return;
 
-    // The base imagery layer (index 0) is the default Cesium ion imagery
-    const baseLayer = viewer.imageryLayers.get(0);
-    if (baseLayer) {
-      // When satellite is on, show full opacity; when off, keep default
-      baseLayer.alpha = layers.satellite ? 1.0 : 1.0;
-    }
+    const base: { show: boolean }[] = entityGroupsRef.current.baseImagery ?? [];
+    for (const l of base) l.show = layers.satellite;
 
-    // Toggle between Cesium default (satellite) and OSM streets
-    if (!layers.satellite) {
-      // Add OSM street tiles on top with full opacity
-      if (!entityGroupsRef.current.osmLayerRef) {
-        // Use UrlTemplateImageryProvider instead of OpenStreetMapImageryProvider
-        // OSM blocks CORS XHR requests; UrlTemplate uses <img> tags which bypass CORS
-        const osm = new Cesium.UrlTemplateImageryProvider({
-          url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-          credit: "OpenStreetMap contributors",
-          maximumLevel: 19,
-        });
-        const osmLayer = viewer.imageryLayers.addImageryProvider(osm, 1);
-        entityGroupsRef.current.osmLayerRef = [osmLayer];
-      }
-      const osmRef = entityGroupsRef.current.osmLayerRef;
-      if (osmRef?.[0]) osmRef[0].show = true;
-    } else {
-      // Hide OSM layer to reveal satellite
-      const osmRef = entityGroupsRef.current.osmLayerRef;
-      if (osmRef?.[0]) osmRef[0].show = false;
+    if (!layers.satellite && !entityGroupsRef.current.osmLayerRef) {
+      // UrlTemplateImageryProvider loads tiles via <img>, which OSM allows cross-origin.
+      const osm = new Cesium.UrlTemplateImageryProvider({
+        url: OSM_STREETS_URL,
+        credit: new Cesium.Credit(OSM_STREETS_CREDIT, true),
+        maximumLevel: 19,
+      });
+      const osmLayer = viewer.imageryLayers.addImageryProvider(osm, 0);
+      if (layers.nightVision) applyGrade(osmLayer, NIGHT_GRADE);
+      entityGroupsRef.current.osmLayerRef = [osmLayer];
     }
+    const osmRef = entityGroupsRef.current.osmLayerRef;
+    if (osmRef?.[0]) osmRef[0].show = !layers.satellite;
+    viewer.scene.requestRender();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nightVision only read when creating the layer
   }, [layers.satellite, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── Sentinel-1 SAR Layer ────────────────────────────

@@ -30,6 +30,7 @@ export type IntelLayerKey =
   | "maritime_static"
   | "maritime_ais"
   | "flights"
+  | "lightning"
   | "satellites"
   | "country_risk"
   | "cyber_threats"
@@ -97,8 +98,10 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   },
 
   // ─── Surveillance: legal review cleared (May 2026) ────────────────
-  // Enabled scope: Singapore LTA traffic-images, NYC DOT webcams (approved Oct 16 2026),
-  // Caltrans California districts 1–12. (FL-511 dropped: needs an API key.) All are public open-data sources cleared
+  // Enabled scope: Singapore LTA traffic-images, Caltrans California
+  // districts 1–12, and the other open-data sources below. NYC DOT webcams
+  // are OFF by default (Phase 0) until a signed NYC DOT data-sharing
+  // agreement exists; enable server-side with CCTV_ENABLE_PENDING_SOURCES. (FL-511 dropped: needs an API key.) All are public open-data sources cleared
   // for the Overwatch user base. Additional regions (TfL JamCams, WSDOT, NYC
   // DOT, ASFINAG, Bulgaria, Greece, Serbia, Macedonia, Romania, Turkey) are
   // available in the upstream Osiris implementation and can be added per
@@ -106,7 +109,7 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   cctv: {
     enabled: true,
     attribution:
-      "Caltrans, NYC DOT, LTA Singapore (data.gov.sg, SODL 1.0), DriveBC (OGL-BC), HK Transport Dept (DATA.GOV.HK), City of Austin, Powered by TfL Open Data, NZ Transport Agency Waka Kotahi",
+      "Caltrans, LTA Singapore (data.gov.sg, SODL 1.0), DriveBC (OGL-BC), HK Transport Dept (DATA.GOV.HK), City of Austin, Powered by TfL Open Data, NZ Transport Agency Waka Kotahi",
     attributionRequired: true,
   },
 
@@ -126,7 +129,12 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   // ─── Aviation / Space ─────────────────────────────────────────────
   flights: {
     enabled: true,
-    attribution: "Aircraft data © adsb.lol / adsb.fi contributors (ODbL)",
+    attribution: "Aircraft data © adsb.lol contributors (ODbL 1.0)",
+    attributionRequired: true,
+  },
+  lightning: {
+    enabled: true,
+    attribution: "Lightning strike density: NOAA/NWS nowCOAST",
     attributionRequired: true,
   },
   satellites: {
@@ -170,19 +178,23 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   },
   recon_bgp: {
     enabled: true,
-    attribution: "bgpview.io",
+    attribution: "Regional Internet Registries (RDAP) + PeeringDB",
   },
   recon_ip: {
     enabled: true,
-    attribution: "ip-api.com",
+    attribution: "Regional Internet Registries (RDAP) + Google DNS-over-HTTPS",
   },
   recon_threats: {
     enabled: true,
     attribution: "AlienVault OTX + Tor exit list",
   },
   recon_sweep: {
-    enabled: true,
-    attribution: "Shodan InternetDB + ip-api.com",
+    // Off unless NEXT_PUBLIC_INTEL_SWEEP_ENABLED=true (and the function's
+    // INTEL_SWEEP_ENABLED secret) — Shodan InternetDB is "free for
+    // non-commercial use"; confirm before enabling.
+    enabled: process.env.NEXT_PUBLIC_INTEL_SWEEP_ENABLED === "true",
+    gatedBy: "Shodan InternetDB terms are non-commercial; pending confirmation",
+    attribution: "Shodan InternetDB + RDAP",
   },
 };
 

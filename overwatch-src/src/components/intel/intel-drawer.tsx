@@ -21,6 +21,7 @@ import { WhoisTab } from "./recon-tabs/whois-tab";
 import { BgpTab } from "./recon-tabs/bgp-tab";
 import { CertsTab } from "./recon-tabs/certs-tab";
 import { SweepTab } from "./recon-tabs/sweep-tab";
+import { INTEL_LAYER_FLAGS } from "@/lib/intel-feature-flags";
 import { LiveAlertsTab } from "./live-alerts-tab";
 
 type TopTab = "recon" | "alerts" | "sources";
@@ -123,9 +124,9 @@ export function IntelDrawer({ open, onClose, onLocate, forceTab }: IntelDrawerPr
                 <ReconTabButton active={reconTab === "ip"} onClick={() => setReconTab("ip")} label="IP" />
                 <ReconTabButton active={reconTab === "cve"} onClick={() => setReconTab("cve")} label="CVE" />
                 <ReconTabButton active={reconTab === "threats"} onClick={() => setReconTab("threats")} label="Threats" />
-                <ReconTabButton active={reconTab === "bgp"} onClick={() => setReconTab("bgp")} label="BGP" />
+                <ReconTabButton active={reconTab === "bgp"} onClick={() => setReconTab("bgp")} label="ASN" />
                 <ReconTabButton active={reconTab === "certs"} onClick={() => setReconTab("certs")} label="Certs" />
-                <ReconTabButton active={reconTab === "sweep"} onClick={() => setReconTab("sweep")} label="Sweep" />
+                {INTEL_LAYER_FLAGS.recon_sweep.enabled && <ReconTabButton active={reconTab === "sweep"} onClick={() => setReconTab("sweep")} label="Sweep" />}
               </div>
               <div className="border-t border-white/5 pt-3">
                 {reconTab === "dns" && <DnsTab />}
@@ -135,7 +136,7 @@ export function IntelDrawer({ open, onClose, onLocate, forceTab }: IntelDrawerPr
                 {reconTab === "threats" && <ThreatsTab />}
                 {reconTab === "bgp" && <BgpTab />}
                 {reconTab === "certs" && <CertsTab />}
-                {reconTab === "sweep" && <SweepTab onLocate={onLocate} />}
+                {reconTab === "sweep" && INTEL_LAYER_FLAGS.recon_sweep.enabled && <SweepTab onLocate={onLocate} />}
               </div>
             </div>
           )}

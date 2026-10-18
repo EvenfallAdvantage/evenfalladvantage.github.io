@@ -166,7 +166,7 @@ export async function generateAssessmentPDF(opts: PdfOptions): Promise<void> {
       const mapW = 640;
       const mapHPx = 504;
       const tileSize = 256;
-      const tileTemplate = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png";
+      const tileTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
       const n = Math.pow(2, zoom);
       const latRad = (lat * Math.PI) / 180;

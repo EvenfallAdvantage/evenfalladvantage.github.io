@@ -215,6 +215,6 @@ function buildDesc(plane: MergedAircraft): string {
     <div>Speed: ${formatSpeedKt(plane.velocity)}</div>
     <div>Heading: ${plane.heading.toFixed(0)}&deg;</div>
     <div>V/S: ${vs > 0 ? "+" : ""}${(vs * 196.85).toFixed(0)} fpm</div>
-    <div style="font-size:9px;opacity:0.5;margin-top:4px">Source: ${plane.source === "adsb" ? "Local ADS-B receiver" : "adsb.lol / adsb.fi (ODbL)"}</div>
+    <div style="font-size:9px;opacity:0.5;margin-top:4px">Source: ${plane.source === "adsb" ? "Local ADS-B receiver" : "adsb.lol (ODbL 1.0)"}</div>
   </div>`;
 }

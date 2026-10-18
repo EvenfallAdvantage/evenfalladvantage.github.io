@@ -5,20 +5,6 @@ import { Loader2 } from "lucide-react";
 import { fetchOsintBgp } from "@/lib/intel-client";
 import type { IntelBgpResponse } from "@/lib/intel-types";
 
-interface AsnDetail {
-  name?: string;
-  description_short?: string;
-  country_code?: string;
-  asn?: number;
-}
-interface BgpPrefix {
-  prefix?: string;
-  ip?: string;
-  cidr?: number;
-  name?: string;
-  description?: string;
-}
-
 export function BgpTab() {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,13 +21,11 @@ export function BgpTab() {
       const r = await fetchOsintBgp(query.trim());
       setResult(r);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "BGP lookup failed");
+      setError(err instanceof Error ? err.message : "ASN lookup failed");
     } finally {
       setBusy(false);
     }
   }
-
-  const asnDetail = result?.asn as AsnDetail | undefined;
 
   return (
     <div className="space-y-3">
@@ -72,64 +56,48 @@ export function BgpTab() {
         <div className="text-[11px] text-red-300 font-mono">{error}</div>
       )}
 
+      {result?.error && !result.asn && !result.peeringdb && !result.network && (
+        <div className="text-[11px] text-white/50 font-mono">{result.error}</div>
+      )}
+
       {result && (
         <div className="space-y-2 text-[11px] font-mono">
-          {result.type === "asn" && asnDetail && (
+          {result.type === "asn" && (result.asn || result.peeringdb) && (
             <div>
               <div className="text-white/90 font-bold">
-                AS{asnDetail.asn} — {asnDetail.name}
+                AS{result.asn?.number ?? result.query.replace(/^AS/i, "")} — {result.peeringdb?.name || result.asn?.org || result.asn?.name}
               </div>
-              {asnDetail.description_short && (
+              {result.asn && (
                 <div className="text-white/60">
-                  {asnDetail.description_short}
+                  {result.asn.name}{result.asn.country ? ` · ${result.asn.country}` : ""}
                 </div>
               )}
-              {asnDetail.country_code && (
-                <div className="text-white/40 text-[10px]">
-                  {asnDetail.country_code}
-                </div>
+              {result.asn?.abuse_email && <div className="text-white/50">Abuse: {result.asn.abuse_email}</div>}
+            </div>
+          )}
+
+          {result.peeringdb && (
+            <div className="border-t border-white/10 pt-1.5 space-y-0.5">
+              <div className="text-white/40 text-[10px] uppercase tracking-wider">PeeringDB</div>
+              {result.peeringdb.aka && <div className="text-white/60">{result.peeringdb.aka}</div>}
+              <div className="text-white/70">
+                {[result.peeringdb.type, result.peeringdb.scope, result.peeringdb.policy && `${result.peeringdb.policy} peering`].filter(Boolean).join(" · ")}
+              </div>
+              <div className="text-white/60">
+                ~{result.peeringdb.prefixes4 ?? "?"} IPv4 / ~{result.peeringdb.prefixes6 ?? "?"} IPv6 prefixes ·{" "}
+                {result.peeringdb.ix_count} IXs · {result.peeringdb.fac_count} facilities
+              </div>
+              {result.peeringdb.url && (
+                <a href={result.peeringdb.url} target="_blank" rel="noreferrer" className="text-[10px] text-white/40 underline">View on PeeringDB</a>
               )}
             </div>
           )}
 
-          {result.prefixes && (
-            <div className="border-t border-white/10 pt-1.5">
-              <div className="text-white/40 text-[10px] uppercase tracking-wider">
-                Prefixes ({result.prefixes.total_v4} IPv4
-                {result.prefixes.total_v6 > 0
-                  ? `, ${result.prefixes.total_v6} IPv6`
-                  : ""}
-                )
-              </div>
-              <div className="max-h-40 overflow-y-auto pr-1">
-                {(result.prefixes.ipv4 as BgpPrefix[]).map((p, i) => (
-                  <div key={i} className="text-white/70">
-                    {p.prefix ?? `${p.ip}/${p.cidr}`}
-                    {p.description && (
-                      <span className="text-white/40">
-                        {" "}
-                        — {p.description}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {result.peers && (
-            <div className="border-t border-white/10 pt-1.5">
-              <div className="text-white/40 text-[10px] uppercase tracking-wider">
-                Peers ({result.peers.total})
-              </div>
-              {(result.peers.upstream as AsnDetail[])
-                .slice(0, 10)
-                .map((peer, i) => (
-                  <div key={i} className="text-white/70">
-                    AS{peer.asn}
-                    {peer.name ? ` — ${peer.name}` : ""}
-                  </div>
-                ))}
+          {result.type === "ip" && result.network && (
+            <div>
+              <div className="text-white/90 font-bold">{result.network.org || result.network.name}</div>
+              <div className="text-white/70">{result.network.cidr.join(", ") || `${result.network.start} – ${result.network.end}`}</div>
+              <div className="text-white/50">{result.network.handle}{result.network.country ? ` · ${result.network.country}` : ""}</div>
             </div>
           )}
         </div>

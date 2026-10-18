@@ -3,14 +3,17 @@
 // OpenSky blocks Supabase/cloud egress (every call timed out), so this now
 // reads the free, keyless community ADS-B aggregators and returns OpenSky's
 // /states/all shape: { time, states: [...], source }.
-//   primary:  adsb.lol  (https://api.adsb.lol, ODbL)
-//   fallback: adsb.fi   (https://opendata.adsb.fi)
+//   source: adsb.lol (https://api.adsb.lol, data ODbL 1.0, free keyless API)
+// adsb.fi was removed as a fallback: its open-data terms are personal /
+// non-commercial use only.
+// Requires a signed-in user (see _shared/intel-auth.ts), 60 req/min/user.
 // airplanes.live was evaluated but now requires registration (403).
 //
 // Usage: GET /opensky-proxy?lamin=38&lamax=42&lomin=-80&lomax=-75 (max 10° per axis)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { requireIntelUser } from '../_shared/intel-auth.ts';
 import { cacheKey, extractAircraft, parseBBox, toOpenSkyStates, upstreamUrls } from './lib.ts'
 
 const CACHE_TTL_MS = 10_000;
@@ -28,6 +31,8 @@ function json(body: unknown, corsHeaders: Record<string, string>, extra: Record<
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('origin'));
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  const denied = await requireIntelUser(req, corsHeaders, { limit: 60 });
+  if (denied) return denied;
 
   const bbox = parseBBox(new URL(req.url).searchParams);
   if ('error' in bbox) return json({ error: bbox.error, states: [] }, corsHeaders, {}, 400);

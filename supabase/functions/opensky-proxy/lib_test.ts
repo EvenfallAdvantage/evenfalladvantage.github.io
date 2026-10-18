@@ -19,7 +19,7 @@ Deno.test("point query covers bbox, capped at 250nm", () => {
   assert(q.radiusNm >= 75 && q.radiusNm <= 85, String(q.radiusNm));
   assertEquals(bboxToPointQuery({ lamin: 30, lamax: 40, lomin: -120, lomax: -110 }).radiusNm, 250);
   assertEquals(upstreamUrls(LA)[0].url, `https://api.adsb.lol/v2/lat/34/lon/-118/dist/${q.radiusNm}`);
-  assert(upstreamUrls(LA)[1].url.startsWith("https://opendata.adsb.fi/api/v2/lat/34/lon/-118/dist/"));
+  assertEquals(upstreamUrls(LA).length, 1); // adsb.fi (non-commercial terms) removed
 });
 
 Deno.test("cacheKey rounds", () => {
@@ -50,7 +50,7 @@ Deno.test("toOpenSkyStates maps units and indices like OpenSky", () => {
   assertEquals(states[1][7], 0);
 });
 
-Deno.test("extractAircraft handles adsb.lol and adsb.fi shapes", () => {
+Deno.test("extractAircraft handles `ac` and `aircraft` readsb shapes", () => {
   assertEquals(extractAircraft({ ac: [{ hex: "a" }] })?.length, 1);
   assertEquals(extractAircraft({ aircraft: [{ hex: "a" }, { hex: "b" }] })?.length, 2);
   assertEquals(extractAircraft({ msg: "err" }), null);
