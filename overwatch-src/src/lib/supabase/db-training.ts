@@ -642,65 +642,22 @@ export async function issueCertificate(params: {
 
 // ─── Payment Transactions ───────────────────────────
 
+/**
+ * The signed-in user's course payments (read-only). payment_transactions.user_id
+ * is the auth user id. Rows are written only by the course-checkout and
+ * course-payment-webhook Edge Functions; the browser can't insert or update them.
+ */
 export async function getUserPayments() {
-  const userId = await ensureInternalUser();
-  if (!userId) return [];
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from("payment_transactions")
     .select("*")
-    .eq("user_id", userId)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
   if (error) { logDbReadError("payment transactions", error); return []; }
   return data ?? [];
-}
-
-export async function createPaymentTransaction(params: {
-  companyId?: string;
-  courseId?: string;
-  stripePaymentIntentId?: string;
-  stripeCustomerId?: string;
-  amount: number;
-  currency?: string;
-  status?: string;
-  description?: string;
-  metadata?: Record<string, unknown>;
-}) {
-  const userId = await ensureInternalUser();
-  if (!userId) throw new Error("Not authenticated");
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("payment_transactions")
-    .insert({
-      id: crypto.randomUUID(),
-      user_id: userId,
-      company_id: params.companyId ?? null,
-      course_id: params.courseId ?? null,
-      stripe_payment_intent_id: params.stripePaymentIntentId ?? null,
-      stripe_customer_id: params.stripeCustomerId ?? null,
-      amount: params.amount,
-      currency: params.currency ?? "usd",
-      status: params.status ?? "pending",
-      description: params.description ?? null,
-      metadata: params.metadata ?? {},
-      ...ts(),
-    })
-    .select()
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
-export async function updatePaymentStatus(paymentId: string, status: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from("payment_transactions")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", paymentId)
-    .select()
-    .maybeSingle();
-  if (error) throw error;
-  return data;
 }
 
 // ─── Courses ────────────────────────────────────────

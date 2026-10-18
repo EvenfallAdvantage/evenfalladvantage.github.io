@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
-import { getUserPayments } from "@/lib/supabase/db";
+import { checkoutReturnState, startCourseCheckout } from "@/lib/services/course-checkout";
 import { getLegacyCourses, getLegacyEnrollments } from "@/lib/training";
 import { PageShell } from "@/components/layout/page-shell";
 
@@ -99,23 +99,21 @@ function CoursesContent() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const status = searchParams.get("status");
+  const { state: status, courseId: returnedCourseId } = checkoutReturnState(searchParams);
+  const [awaitingEnrollment, setAwaitingEnrollment] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
-      const [rawCourses, payments, enrollments] = await Promise.all([
+      const [rawCourses, enrollments] = await Promise.all([
         getLegacyCourses().catch(() => []),
-        getUserPayments().catch(() => []),
         getLegacyEnrollments().catch(() => []),
       ]);
       setCourses(rawCourses.map(normalizeCourse));
-      // Owned = a completed payment, or an enrollment (incl. purchases imported from the old portal).
+      // Owned = an active enrollment (cancelled/refunded ones are excluded by the query).
+      // Paid enrollments are created only by the Stripe webhook, so this is the source of truth.
       const purchased = new Set<string>(enrollments.map((e) => e.course_id));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const p of payments as any[]) {
-        if (p.status === "completed" && p.course_id) purchased.add(p.course_id);
-      }
       setPurchasedCourses(purchased);
+      return purchased;
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   // Re-run when the company changes: the training layer reads the active company from the store.
@@ -124,38 +122,34 @@ function CoursesContent() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // After Stripe redirects back, the webhook may land a few seconds later: poll briefly.
+  useEffect(() => {
+    if (status !== "success" || !returnedCourseId) return;
+    let cancelled = false;
+    let tries = 0;
+    setAwaitingEnrollment(true);
+    const tick = async () => {
+      if (cancelled) return;
+      const owned = await loadData();
+      tries += 1;
+      if (owned?.has(returnedCourseId) || tries >= 10) { setAwaitingEnrollment(false); return; }
+      setTimeout(tick, 3000);
+    };
+    const t = setTimeout(tick, 1500);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [status, returnedCourseId, loadData]);
+
   async function handlePurchase(course: Course) {
     setPurchasing(course.id);
     try {
-      // Checkout requires a server-side Stripe session. In the static export,
-      // this must be handled by a Supabase Edge Function (not a Next.js API route).
-      const checkoutUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-        ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`
-        : null;
-
-      if (!checkoutUrl) {
-        toast.error("Course purchases are not available yet.");
+      // Server-side checkout (OverwatchDB Edge Function). Only the course id is sent;
+      // price and enrollment are decided on the server and by the Stripe webhook.
+      const result = await startCourseCheckout(course.id);
+      if (result.ok) {
+        window.location.assign(result.url);
         return;
       }
-
-      const res = await fetch(checkoutUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          courseId: course.id,
-          courseTitle: course.title,
-          priceInCents: Math.round(course.price * 100),
-          userId: user?.id || "",
-          companyId: activeCompanyId ?? "",
-        }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error("Unable to start checkout. Please try again.");
-        console.error("No checkout URL returned:", data);
-      }
+      toast.error(result.error);
     } catch (err) {
       toast.error("Purchase failed. Please try again.");
       console.error("Purchase error:", err);
@@ -172,7 +166,12 @@ function CoursesContent() {
         {/* Status banners from Stripe redirect */}
         {status === "success" && (
           <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-3 flex items-center gap-2 text-sm text-green-600">
-            <CheckCircle2 className="h-4 w-4" /> Payment successful! You&apos;ve been enrolled in the course.
+            {awaitingEnrollment ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            {awaitingEnrollment
+              ? "Payment received. Finishing your enrollment…"
+              : returnedCourseId && !purchasedCourses.has(returnedCourseId)
+                ? "Payment received. Your enrollment is still processing; refresh in a minute or contact your admin if it doesn't appear."
+                : "Payment successful! You're enrolled in the course."}
           </div>
         )}
         {status === "cancelled" && (

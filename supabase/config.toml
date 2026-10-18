@@ -343,3 +343,20 @@ verify_jwt = true
 enabled = true
 verify_jwt = false
 # pg_cron caller; authenticated by x-integrations-cron-secret
+
+# ── Course checkout (OverwatchDB only; supersedes EADB create-checkout-session /
+#    process-course-payment and PR #70) ──
+# User-callable. verify_jwt=false so the browser preflight passes; the caller's
+# session is verified in code (auth.getUser) and the price comes from courses.
+# Secret: STRIPE_SECRET_KEY.
+[functions.course-checkout]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/course-checkout/index.ts"
+
+# Stripe servers only. Fail-closed Stripe-Signature check with
+# STRIPE_WEBHOOK_SECRET; writes via service-role-only SQL functions.
+[functions.course-payment-webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/course-payment-webhook/index.ts"
