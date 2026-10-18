@@ -85,6 +85,97 @@ export function lightningCacheKey(now: Date = new Date()): string {
   return new Date(Math.floor(now.getTime() / q) * q).toISOString();
 }
 
+/** Pixels at or above this on every channel count as USGS no-data fill (JPEG keeps it at 250–255). */
+export const NO_DATA_WHITE_MIN = 250;
+
+/**
+ * True when a sampled RGBA tile is a USGS "no data" fill: every pixel opaque
+ * pure white, or every pixel fully transparent. The National Map returns
+ * solid-white JPEGs outside NAIP/HRO coverage (e.g. Mexico and Canada inside
+ * the CONUS rectangle) and transparent PNGs over water.
+ */
+export function isNoDataTile(rgba: ArrayLike<number>): boolean {
+  if (rgba.length < 4) return false;
+  let white = true, clear = true;
+  for (let i = 0; i < rgba.length; i += 4) {
+    const a = rgba[i + 3];
+    if (a !== 0) clear = false;
+    if (a !== 255 || rgba[i] < NO_DATA_WHITE_MIN || rgba[i + 1] < NO_DATA_WHITE_MIN || rgba[i + 2] < NO_DATA_WHITE_MIN) white = false;
+    if (!white && !clear) return false;
+  }
+  return white || clear;
+}
+
+/**
+ * Cesium TileDiscardPolicy that drops USGS no-data tiles so the EOX layer
+ * underneath shows through instead of white patches. Samples the tile on an
+ * 8x8 canvas (the tile is CORS-enabled, so the canvas stays readable).
+ */
+export function createNoDataDiscardPolicy(): { isReady(): boolean; shouldDiscardImage(image: CanvasImageSource): boolean } {
+  let ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null = null;
+  return {
+    isReady: () => true,
+    shouldDiscardImage(image) {
+      try {
+        if (!ctx) {
+          const c = typeof OffscreenCanvas !== "undefined" ? new OffscreenCanvas(8, 8) : Object.assign(document.createElement("canvas"), { width: 8, height: 8 });
+          ctx = (c.getContext("2d", { willReadFrequently: true }) as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null);
+          if (!ctx) return false;
+        }
+        ctx.clearRect(0, 0, 8, 8);
+        ctx.drawImage(image, 0, 0, 8, 8);
+        return isNoDataTile(ctx.getImageData(0, 0, 8, 8).data);
+      } catch {
+        return false;
+      }
+    },
+  };
+}
+
+/**
+ * Make USGS no-data fill transparent in place (RGBA). Returns how many pixels
+ * were cleared. Tiles that straddle the coverage edge (border, coastline) are
+ * part imagery, part solid white; clearing the white lets EOX show through.
+ */
+export function clearNoDataPixels(rgba: Uint8ClampedArray, min = NO_DATA_WHITE_MIN): number {
+  let n = 0;
+  for (let i = 0; i < rgba.length; i += 4) {
+    if (rgba[i] >= min && rgba[i + 1] >= min && rgba[i + 2] >= min && rgba[i + 3] !== 0) {
+      rgba[i + 3] = 0;
+      n++;
+    }
+  }
+  return n;
+}
+
+/** Wrap a Cesium imagery provider so each tile's white no-data fill becomes transparent. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withNoDataMask<P extends { requestImage?: (...a: any[]) => any }>(provider: P): P {
+  if (typeof provider.requestImage !== "function" || typeof document === "undefined") return provider;
+  const original = provider.requestImage.bind(provider);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  provider.requestImage = (...args: any[]) => {
+    const pending = original(...args);
+    if (!pending || typeof pending.then !== "function") return pending;
+    return pending.then((img: CanvasImageSource & { width: number; height: number }) => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = img.width; c.height = img.height;
+        const ctx = c.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return img;
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, c.width, c.height);
+        if (clearNoDataPixels(data.data) === 0) return img;
+        ctx.putImageData(data, 0, 0);
+        return c;
+      } catch {
+        return img;
+      }
+    });
+  };
+  return provider;
+}
+
 /** Base satellite imagery: EOX global + USGS high-res over the US. */
 export function addFreeBaseImagery(viewer: CesiumNs, Cesium: CesiumNs): unknown[] {
   const base = viewer.imageryLayers.addImageryProvider(
@@ -97,14 +188,19 @@ export function addFreeBaseImagery(viewer: CesiumNs, Cesium: CesiumNs): unknown[
     0,
   );
   const layers: unknown[] = [base];
+  const discardPolicy = createNoDataDiscardPolicy();
   for (const [w, s, e, n] of USGS_IMAGERY_EXTENTS) {
-    const provider = new Cesium.UrlTemplateImageryProvider({
+    const provider = withNoDataMask(new Cesium.UrlTemplateImageryProvider({
       url: USGS_IMAGERY_URL,
       credit: new Cesium.Credit(USGS_IMAGERY_CREDIT, false),
       rectangle: Cesium.Rectangle.fromDegrees(w, s, e, n),
       minimumLevel: 0,
       maximumLevel: 16,
-    });
+      // Outside NAIP coverage the service answers with solid-white tiles:
+      // fully blank ones are discarded, part-blank ones (borders, coast) get
+      // their white fill cleared, so the EOX base shows through.
+      tileDiscardPolicy: discardPolicy,
+    }));
     // Below ~z8 the 10 m Sentinel-2 mosaic looks better and costs fewer requests.
     const l = new Cesium.ImageryLayer(provider, { minimumTerrainLevel: 8 });
     viewer.imageryLayers.add(l);
