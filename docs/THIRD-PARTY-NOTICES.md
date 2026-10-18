@@ -121,3 +121,39 @@ set of active layers.
 - Privacy Policy §8A (map data, no camera image archiving): `/privacy-policy.html#overwatch-map-data`
 - In-app: map footer "Not for emergency use", Data Sources modal link, and a
   one-time CCTV acknowledgement (`src/lib/map/cctv-ack.ts`).
+
+---
+
+## gods-eye-view
+
+- Source: https://github.com/bilawalsidhu/gods-eye-view
+- License: MIT (source code only; its bundled datasets and runtime data are
+  NOT covered and are not used by Overwatch)
+- Used in: `overwatch-src/src/lib/map/aircraft-motion.ts` (dead-reckoning and
+  correction-blend approach, angle lerp), `overwatch-src/src/components/tactical-map/tracking-chip.tsx`
+  (tracking HUD pattern), and the Phase 1 effects / share-link modules that
+  reference this notice.
+
+```
+MIT License
+
+Copyright (c) 2026 Bilawal Sidhu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

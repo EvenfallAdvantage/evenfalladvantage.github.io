@@ -42,6 +42,7 @@ import { CctvAckModal } from "@/components/intel/cctv-ack-modal";
 import { MapLegalFooter } from "./map-legal-footer";
 import { gateCctvEnable, hasCctvAck, recordCctvAck } from "@/lib/map/cctv-ack";
 import { useAuthStore } from "@/stores/auth-store";
+import { TacticalHud, hudModeLabel } from "./tactical-hud";
 
 export type { StaffPin, OperationPin, IncidentPin } from "./types";
 
@@ -655,6 +656,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       )}
 
 
+
+      {layers.hud && !loading && !error && (
+        <TacticalHud viewerRef={viewerRef} cesiumRef={cesiumRef} mode={hudModeLabel(layers)} />
+      )}
 
       {/* Custom entity popup — floating near selected point */}
       {selectedEntity && (
