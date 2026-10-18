@@ -1,4 +1,4 @@
--- Rollback for pending/integration_cron.sql. Leaves the extensions installed
+-- Rollback for 20261018004232_integration_cron.sql. Leaves the extensions installed
 -- (drop them by hand only if nothing else uses them) and the Vault secret in place.
 BEGIN;
 DO $u$
