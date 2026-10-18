@@ -11,6 +11,7 @@ import { readPanelV2Choice, resolvePanelV2, writePanelV2Choice } from "@/lib/map
 import { buildScopeFilters, resolveRadii, sitesFrom, type ViewRect } from "@/lib/map/site-proximity";
 import { DEFAULT_COMPANY_MAP_DEFAULTS, getCompanyMapDefaults, getUserMapPrefs, saveUserMapPrefs, saveUserPanelChoice, type CompanyMapDefaults } from "@/lib/supabase/db-map-prefs";
 import { useSiteWatch } from "./hooks/use-site-watch";
+import { useOsmBuildingsLayer } from "./hooks/use-osm-buildings-layer";
 import { SiteWatchStrip } from "./site-watch-strip";
 import { CompanyMapDefaultsEditor } from "./company-map-defaults";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
@@ -287,6 +288,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     setLastLayerGeofences(layerGeofences);
     setSiteGeofences(layerGeofences ?? []);
   }
+  const osmBuildingsStatus = useOsmBuildingsLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading,
+    enabled: !!activeLayers.osmBuildings,
+    terrain: !!activeLayers.terrain,
+    dark: !!activeLayers.nightVision,
+    constrained,
+  });
   const siteWatch = useSiteWatch({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: panelV2 && layers.siteWatch !== false, sites, radii });
   const [sitePillOpen, setSitePillOpen] = useState(false);
 
@@ -778,7 +786,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       <div ref={containerRef} className="w-full h-full" />
 
       {/* Persistent legal footer + Cesium provider credits */}
-      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} />
+      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} osmBuildings={osmBuildingsStatus.state !== "off"} />
 
       {/* Ops Mode bar — top right, above other overlays, so the top-centre
           tracking chip (Phase 1A) can never cover Share / Exit. */}
@@ -918,6 +926,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
       {!error && !opsMode && (panelV2 ? (
         <MapLayersPanelV2
+          osmBuildingsStatus={osmBuildingsStatus}
           layers={layers}
           onChange={setLayers}
           onFlyToAll={handleFlyToAll}

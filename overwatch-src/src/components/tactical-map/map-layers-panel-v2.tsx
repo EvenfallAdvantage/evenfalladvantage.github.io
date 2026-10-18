@@ -19,6 +19,7 @@ import { SiteMapsList } from "./site-maps-list";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
 import { SAR_AVAILABLE } from "./sentinel-layer";
 import { ionAssetsEnabled } from "@/lib/map/basemap-sources";
+import type { OsmBuildingsStatus } from "./hooks/use-osm-buildings-layer";
 import { AIRCRAFT_FILTER_LABELS } from "@/lib/map/aircraft-filter";
 import {
   matchingPreset, GROUPS, PRESET_IDS, PRESET_LABELS, BASEMAP_LABELS, LOOK_LABELS, MOBILE_LOOKS, MOBILE_MAX_DATA_GROUPS,
@@ -72,6 +73,18 @@ export interface MapLayersPanelV2Props {
   hiddenGroups?: readonly GroupId[];
   /** Show the Near my sites / Map view / Everywhere switch. */
   showScope?: boolean;
+  /** Live state of the OSM 3D buildings layer (for the hint under its switch). */
+  osmBuildingsStatus?: OsmBuildingsStatus;
+}
+
+function osmBuildingsHint(st: OsmBuildingsStatus | undefined): string | null {
+  switch (st?.state) {
+    case "zoomIn": return "Zoom in to city scale to see buildings";
+    case "loading": return "Loading buildings…";
+    case "error": return "Building data unavailable right now; retrying shortly";
+    case "on": return st.buildings > 0 ? `${st.buildings.toLocaleString()} buildings · © OpenStreetMap contributors` : "No mapped buildings here";
+    default: return null;
+  }
 }
 
 function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
@@ -130,6 +143,12 @@ function PanelBody(props: MapLayersPanelV2Props) {
       return;
     }
     onChange(setGroup(layers, id, on));
+  }
+
+  function toggleOsmBuildings() {
+    const on = !layers.osmBuildings;
+    if (on && constrained) toast("3D buildings use more data and battery on phones. They appear when you zoom in to a city.");
+    onChange({ ...layers, osmBuildings: on });
   }
 
   return (
@@ -250,6 +269,13 @@ function PanelBody(props: MapLayersPanelV2Props) {
           <span>{ionAssetsEnabled() ? "3D terrain & buildings" : "3D terrain"}</span>
           <Switch on={layers.terrain} onToggle={() => onChange({ ...layers, terrain: !layers.terrain })} label="3D terrain" />
         </label>
+        <label className="flex items-center justify-between text-[11px] text-white/70">
+          <span>3D buildings</span>
+          <Switch on={layers.osmBuildings} onToggle={toggleOsmBuildings} label="3D buildings" />
+        </label>
+        {layers.osmBuildings && osmBuildingsHint(props.osmBuildingsStatus) && (
+          <p className="text-[10px] leading-snug text-white/45">{osmBuildingsHint(props.osmBuildingsStatus)}</p>
+        )}
       </div>
 
       {/* View menu */}

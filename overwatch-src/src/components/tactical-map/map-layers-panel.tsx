@@ -4,7 +4,7 @@ import { SAR_AVAILABLE } from "./sentinel-layer";
 
 import { useState } from "react";
 import {
-  Layers, Users, CloudRain, Mountain,
+  Layers, Users, CloudRain, Mountain, Building2,
   Eye, EyeOff, ChevronRight, ChevronDown, Target, AlertTriangle, Moon, Satellite,
   Hospital, Plane, Scan, Monitor, Orbit, Radar, Shield, MapPin, PenTool,
   Activity, Flame, Swords, Wind, Atom, Newspaper, Tv, Rss, Ship, Camera, TowerControl,
@@ -25,6 +25,8 @@ export interface LayerVisibility {
   weather: boolean;
   buildings: boolean;
   terrain: boolean;
+  /** 3D buildings from OpenStreetMap (OpenFreeMap vector tiles, free, no key). */
+  osmBuildings: boolean;
   geofences: boolean;
   nightVision: boolean;
   satellite: boolean;
@@ -93,6 +95,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   weather: false,
   buildings: true,
   terrain: true,
+  osmBuildings: true,
   geofences: false,
   nightVision: false,
   satellite: true,
@@ -141,11 +144,12 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   siteOverlayOpacity: 0.75,
 };
 
-/** Phones/tablets: skip 3D terrain + OSM buildings by default (biggest GPU/network cost). */
+/** Phones/tablets: skip 3D terrain + 3D buildings by default (biggest GPU/network cost). */
 export const MOBILE_DEFAULT_LAYERS: LayerVisibility = {
   ...DEFAULT_LAYERS,
   terrain: false,
   buildings: false,
+  osmBuildings: false,
 };
 
 export function defaultLayersFor(constrained: boolean): LayerVisibility {
@@ -169,6 +173,7 @@ const LAYER_TOGGLES: LayerToggle[] = [
   // ─── MAP — how the basemap renders (basemap + imagery overlays) ──
   { key: "satellite", label: "Satellite View", icon: <Satellite className="h-3.5 w-3.5" />, group: "MAP" },
   { key: "terrain", label: ionAssetsEnabled() ? "3D Terrain & Buildings" : "3D Terrain", icon: <Mountain className="h-3.5 w-3.5" />, group: "MAP" },
+  { key: "osmBuildings", label: "3D Buildings (OSM)", icon: <Building2 className="h-3.5 w-3.5" />, group: "MAP" },
   // Real Sentinel-1 SAR only; hidden when no Sentinel Hub instance is configured.
   { key: "sentinel1", label: "SAR Imagery", icon: <Scan className="h-3.5 w-3.5" />, group: "MAP", liveOnly: true, hidden: !SAR_AVAILABLE },
   { key: "sentinel2", label: "Daily Satellite (NASA)", icon: <Layers className="h-3.5 w-3.5" />, group: "MAP", liveOnly: true },
