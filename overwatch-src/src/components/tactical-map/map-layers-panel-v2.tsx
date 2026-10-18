@@ -196,7 +196,7 @@ function PanelBody(props: MapLayersPanelV2Props) {
                         </label>
                         {g.id === "airSea" && s.id === "aircraft" && checked && (
                           <div className="ml-6 mb-1">
-                            <Segmented value={layers.aircraftFilter ?? "all"} options={["all", "military", "emergency"] as const} labels={AIRCRAFT_FILTER_LABELS} onPick={(f) => onChange({ ...layers, aircraftFilter: f, preset: "custom" })} />
+                            <Segmented value={layers.aircraftFilter ?? "all"} options={["all", "military", "emergency"] as const} labels={AIRCRAFT_FILTER_LABELS} onPick={(f) => onChange({ ...layers, aircraftFilter: f })} />
                           </div>
                         )}
                         {g.id === "security" && s.id === "events" && checked && s2ActiveLayers && onToggleS2Layer && (

@@ -315,8 +315,9 @@ function effectiveSubIds(state: RegistryState): Set<string> {
 /**
  * The preset the current state matches, or "custom". Derived from what is on
  * screen (not from history), so it survives a classic/grouped round trip.
- * Compared: which sub-options draw and the basemap. Looks/HUD/terrain are
- * not part of a preset.
+ * Compared: which sub-options draw, the basemap, and - only when the preset
+ * includes aircraft - the aircraft filter (Security Ops = Emergency,
+ * Air Watch = All). Looks/HUD/terrain are not part of a preset.
  */
 export function matchingPreset(state: RegistryState, opts: { constrained?: boolean; cctvAcked?: boolean } = {}): PresetId | "custom" {
   const mine = effectiveSubIds(state);
@@ -325,6 +326,7 @@ export function matchingPreset(state: RegistryState, opts: { constrained?: boole
     const theirs = effectiveSubIds(want);
     if (theirs.size !== mine.size || [...theirs].some((x) => !mine.has(x))) continue;
     if (basemapOf(want) !== basemapOf(state)) continue;
+    if (theirs.has("airSea:aircraft") && (state.aircraftFilter ?? "all") !== (want.aircraftFilter ?? "all")) continue;
     return id;
   }
   return "custom";
