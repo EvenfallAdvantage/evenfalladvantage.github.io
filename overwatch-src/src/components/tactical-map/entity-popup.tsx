@@ -14,9 +14,11 @@ interface EntityPopupProps {
   };
   containerWidth: number;
   onClose: () => void;
+  /** Optional action row under the body (e.g. "Track" for aircraft). */
+  actions?: React.ReactNode;
 }
 
-export function EntityPopup({ entity, containerWidth, onClose }: EntityPopupProps) {
+export function EntityPopup({ entity, containerWidth, onClose, actions }: EntityPopupProps) {
   return (
     <div
       className="absolute z-20 pointer-events-auto"
@@ -60,6 +62,7 @@ export function EntityPopup({ entity, containerWidth, onClose }: EntityPopupProp
               : `<b>${escapeHtml(entity.name)}</b>`,
           }}
         />
+        {actions && <div className="px-3 pb-2.5 flex gap-2">{actions}</div>}
       </div>
     </div>
   );
