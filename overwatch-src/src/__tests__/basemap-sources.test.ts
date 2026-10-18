@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   addFreeBaseImagery, EOX_S2_2016_URL, gibsDate, gibsTrueColorUrl, ionAssetsEnabled,
-  isNoDataTile, lightningCacheKey, USGS_IMAGERY_EXTENTS,
+  clearNoDataPixels, isNoDataTile, lightningCacheKey, USGS_IMAGERY_EXTENTS,
 } from "@/lib/map/basemap-sources";
 import { lightningWmsTime } from "@/components/tactical-map/hooks/use-lightning-layer";
 import { applyGrade, NIGHT_GRADE } from "@/components/tactical-map/hooks/use-night-vision";
@@ -74,6 +74,13 @@ describe("USGS no-data tiles", () => {
     expect(isNoDataTile(tile([0, 0, 0, 0], 64, (i) => (i === 5 ? [10, 40, 80, 255] : null)))).toBe(false);
     expect(isNoDataTile(tile([0, 0, 0, 255]))).toBe(false);
     expect(isNoDataTile(new Uint8ClampedArray(0))).toBe(false);
+  });
+  it("clears only the white fill on tiles that straddle the coverage edge", () => {
+    const a = tile([90, 100, 80, 255], 64, (i) => (i >= 32 ? [255, 253, 251, 255] : null));
+    expect(clearNoDataPixels(a)).toBe(32);
+    expect(a[3]).toBe(255);          // imagery pixel kept
+    expect(a[40 * 4 + 3]).toBe(0);   // white fill now transparent
+    expect(clearNoDataPixels(tile([200, 230, 249, 255]))).toBe(0);
   });
 });
 
