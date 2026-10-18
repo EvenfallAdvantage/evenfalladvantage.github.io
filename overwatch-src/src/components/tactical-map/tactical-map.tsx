@@ -292,7 +292,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     viewerRef, cesiumRef, entityGroupsRef, loading,
     enabled: !!activeLayers.osmBuildings,
     terrain: !!activeLayers.terrain,
-    dark: !!activeLayers.nightVision,
+    // Dark basemap, or NVG (its gain blows light buildings out to flat green).
+    dark: !!activeLayers.nightVision || !!activeLayers.nvgGoggles,
     constrained,
   });
   const siteWatch = useSiteWatch({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: panelV2 && layers.siteWatch !== false, sites, radii });

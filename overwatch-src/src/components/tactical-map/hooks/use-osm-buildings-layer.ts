@@ -71,7 +71,7 @@ export function useOsmBuildingsLayer(params: {
   loading: boolean;
   enabled: boolean;
   terrain: boolean;
-  /** Dark basemap: dim the buildings to match. */
+  /** Dark basemap or NVG look: dim the buildings to match. */
   dark: boolean;
   constrained: boolean;
 }): OsmBuildingsStatus {

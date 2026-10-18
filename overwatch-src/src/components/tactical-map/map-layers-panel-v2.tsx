@@ -358,10 +358,12 @@ export function MapLayersPanelV2(props: MapLayersPanelV2Props) {
   }
 
   return (
-    <div className={`absolute top-3 right-3 z-10 transition-all duration-200 ${open ? "w-72 max-w-[calc(100vw-1.5rem)]" : "w-9"}`}>
-      <div className="absolute top-0 left-0 z-20">{launcher}</div>
+    // bottom-7 keeps the panel clear of the legal footer strip (attribution must stay visible);
+    // the wrapper passes clicks through to the map outside the panel itself.
+    <div className={`absolute top-3 right-3 bottom-7 z-10 pointer-events-none transition-all duration-200 ${open ? "w-72 max-w-[calc(100vw-1.5rem)]" : "w-9"}`}>
+      <div className="absolute top-0 left-0 z-20 pointer-events-auto">{launcher}</div>
       {open && (
-        <div className="ml-11 rounded-xl backdrop-blur-sm border border-white/10 p-3 max-h-[calc(100dvh-240px)] overflow-y-auto overscroll-contain" style={PANEL_BG}>
+        <div className="ml-11 rounded-xl backdrop-blur-sm border border-white/10 p-3 overflow-y-auto overscroll-contain pointer-events-auto" style={{ ...PANEL_BG, maxHeight: "min(100%, calc(100dvh - 240px))" }}>
           <PanelBody {...props} />
         </div>
       )}

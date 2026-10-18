@@ -37,15 +37,16 @@ export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings }: MapLe
       >
         Licences
       </a>
+      <div ref={creditRef} className="map-credit-container pointer-events-auto ml-auto min-w-0 truncate text-right" />
       {osmBuildings && (
-        <span className="pointer-events-auto shrink-0 whitespace-nowrap" data-testid="osm-buildings-attribution">
+        <span className="pointer-events-auto shrink-0 whitespace-nowrap"
+          title="Required attribution for the 3D buildings layer (kept at the right edge, clear of the map toolbars)" data-testid="osm-buildings-attribution">
           3D buildings:{" "}
           <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">© OpenMapTiles</a>{" "}
           <a href={OSM_COPYRIGHT_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-white">© OpenStreetMap contributors</a>
           <a href={OPENFREEMAP_URL} target="_blank" rel="noopener noreferrer" className="hidden sm:inline underline hover:text-white ml-1">OpenFreeMap</a>
         </span>
       )}
-      <div ref={creditRef} className="map-credit-container pointer-events-auto ml-auto min-w-0 truncate text-right" />
     </div>
   );
 }
