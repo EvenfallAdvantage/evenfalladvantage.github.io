@@ -63,7 +63,7 @@ export function JoinCompanyModal({ open, onClose, onSwitchToRegister, onSwitchTo
         </button>
 
         <div className="flex flex-col items-center mb-5">
-          <Image src="/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
+          <Image src="/overwatch/images/overwatch_logo.png?v=2" alt="Overwatch" width={64} height={64} style={{ width: 64, height: "auto" }} />
           <h2 className="mt-2 text-lg font-bold font-mono text-white">JOIN A COMPANY</h2>
           <p className="mt-1 text-xs text-white/50 text-center">Enter the company code provided by your manager</p>
         </div>
