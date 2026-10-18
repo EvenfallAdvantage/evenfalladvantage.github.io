@@ -8,8 +8,19 @@ import { createPinCanvas } from "../pin-canvas";
 import { getAircraft, getBoundingBox } from "../flight-tracker";
 import type { OperationPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+import { AircraftTrack, type AircraftFix } from "@/lib/map/aircraft-motion";
+
+/** Render cadence while aircraft are moving (requestRenderMode is on). */
+const MOTION_FRAME_MS = 66;
 
 function currentTimestamp() { return Date.now(); }
+
+/** Feed timestamps are epoch seconds (OpenSky shape) or ms; fall back to "now" if implausible. */
+export function fixTimeMs(lastContact: number, now: number): number {
+  if (!(lastContact > 0)) return now;
+  const ms = lastContact > 1e12 ? lastContact : lastContact * 1000;
+  return ms > now + 5_000 || now - ms > 10 * 60_000 ? now : ms;
+}
 
 function formatAltFt(m: number | null): string {
   if (m == null) return "";
@@ -78,6 +89,32 @@ export function useAircraftLayer(params: {
 
     // Combined aircraft map: ADSB entries take priority over OpenSky
     const merged = new Map<string, MergedAircraft>();
+    // Motion state per aircraft (shared with the tracking UI via entityGroups).
+    const tracks = new Map<string, AircraftTrack>();
+    entityGroups.aircraftTracks = tracks;
+
+    // Trail for the tracked aircraft (click-to-track), drawn from its fix history.
+    const trailEntity = viewer.entities.add({
+      id: "aircraft-track-trail",
+      polyline: {
+        positions: new Cesium.CallbackProperty(() => {
+          const id = entityGroupsRef.current.trackedAircraftId as string | undefined;
+          const t = id ? tracks.get(id.replace(/^plane-/, "")) : undefined;
+          if (!t) return [];
+          const pts = t.trail.map((p) => Cesium.Cartesian3.fromDegrees(p.lng, p.lat, p.altM));
+          const head = t.position(currentTimestamp());
+          pts.push(Cesium.Cartesian3.fromDegrees(head.lng, head.lat, head.altM));
+          return pts;
+        }, false),
+        width: 2,
+        material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.25, color: Cesium.Color.fromCssColorString("#22d3ee") }),
+      },
+    });
+
+    // requestRenderMode is on: keep frames coming while aircraft are moving.
+    const stopMotionPump = setVisibleInterval(() => {
+      if (tracks.size > 0 && !viewer.isDestroyed?.()) viewer.scene.requestRender();
+    }, MOTION_FRAME_MS);
 
     function renderAll() {
       const v = viewerRef.current;
@@ -86,18 +123,26 @@ export function useAircraftLayer(params: {
 
       const newIds = new Set<string>();
 
+      const now = currentTimestamp();
       for (const [icao24, plane] of merged) {
         if (plane.onGround) continue;
         const entityId = `plane-${icao24}`;
         newIds.add(entityId);
 
+        const fix: AircraftFix = {
+          lat: plane.lat, lng: plane.lng, altM: plane.altitude,
+          speedMps: plane.velocity, trackDeg: plane.heading, vsMps: plane.verticalRate,
+          tMs: fixTimeMs(plane.lastContact, now),
+        };
+        let track = tracks.get(icao24);
+        if (track) track.update(fix, now);
+        else { track = new AircraftTrack(fix); tracks.set(icao24, track); }
+
         const existing = v.entities.getById(entityId);
-        const pos = C.Cartesian3.fromDegrees(plane.lng, plane.lat, plane.altitude);
         const color = plane.source === "adsb" ? "#22d3ee" : "#38bdf8";
         const scale = plane.source === "adsb" ? 0.45 : 0.35;
 
         if (existing) {
-          existing.position = new C.ConstantPositionProperty(pos);
           if (existing.billboard) {
             existing.billboard.rotation = -plane.heading * (Math.PI / 180);
             existing.billboard.scale = scale;
@@ -105,10 +150,16 @@ export function useAircraftLayer(params: {
           if (existing.label) existing.label.text = `${plane.callsign || plane.icao24}\n${formatAltFt(plane.altitude)}`;
           existing.description = buildDesc(plane);
         } else {
+          const t = track;
+          const scratch = new C.Cartesian3();
           const entity = v.entities.add({
             id: entityId,
             name: plane.callsign || plane.icao24,
-            position: pos,
+            // Dead-reckoned between fixes (aircraft-motion.ts, adapted from gods-eye-view).
+            position: new C.CallbackPositionProperty((_time: unknown, result?: unknown) => {
+              const p = t.position(currentTimestamp());
+              return C.Cartesian3.fromDegrees(p.lng, p.lat, p.altM, undefined, result ?? scratch);
+            }, false),
             billboard: {
               image: createPinCanvas(color, "flag"),
               scale,
@@ -131,6 +182,11 @@ export function useAircraftLayer(params: {
           });
           entityGroupsRef.current.aircraft.push(entity);
         }
+      }
+
+      // Drop aircraft whose last fix is too old to keep coasting.
+      for (const [icao24, t] of tracks) {
+        if (t.isStale(now)) { tracks.delete(icao24); merged.delete(icao24); newIds.delete(`plane-${icao24}`); }
       }
 
       for (const id of activeIds) {
@@ -198,6 +254,10 @@ export function useAircraftLayer(params: {
     return () => {
       unsubAdsb();
       stopOpenSkyPolling();
+      stopMotionPump();
+      try { viewer.entities.remove(trailEntity); } catch (e_) { logger.swallow("aircraft-layer:trail", e_, "debug"); }
+      tracks.clear();
+      if (entityGroups.aircraftTracks === tracks) entityGroups.aircraftTracks = undefined;
       (entityGroups.aircraft ?? []).forEach((e: { id: string }) => {
         try { viewer.entities.removeById(e.id); } catch (e_) { logger.swallow("aircraft-layer:remove", e_, "debug"); }
       });

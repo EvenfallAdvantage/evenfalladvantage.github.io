@@ -195,6 +195,8 @@ export function useCctvLayer(params: {
         }
       });
       entityGroups.cctv = [...live.values()].map((v) => v.entity);
+      // Plain camera list for aircraft→camera hand-off (tracking chip).
+      entityGroups.cctvCams = [...live.values()].flatMap((v) => (v.item.kind === "cam" ? [v.item.cam] : []));
     };
 
     const load = async () => {
