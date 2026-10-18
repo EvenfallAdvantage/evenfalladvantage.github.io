@@ -35,6 +35,10 @@ const GROUP_ICONS: Record<GroupId, ReactNode> = {
   infrastructure: <Factory className="h-3.5 w-3.5" />,
 };
 
+// Inline because the global WCAG rule (button { min-height: 24px }) in
+// globals.css is unlayered and beats Tailwind's layered min-h-* utilities.
+const TAP_36 = { minHeight: 36, minWidth: 40 } as const;
+
 const SCOPE_SHORT = { sites: "Near my sites", view: "Map view", everywhere: "Everywhere" } as const;
 
 const PANEL_BG = { backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 92%, transparent)" };
@@ -94,8 +98,8 @@ function Segmented<T extends string>({ value, options, labels, onPick }: { value
           onClick={() => onPick(o)}
           role="radio"
           aria-checked={value === o}
-          className={`flex-1 min-h-[34px] min-w-[44px] rounded px-1.5 py-1 text-[12px] font-mono transition-colors ${value === o ? "text-black font-bold" : "text-white/55 hover:text-white"}`}
-          style={value === o ? { backgroundColor: ACCENT } : undefined}
+          className={`flex-1 rounded px-1 py-1 text-[12px] font-mono transition-colors ${value === o ? "text-black font-bold" : "text-white/55 hover:text-white"}`}
+          style={{ ...TAP_36, ...(value === o ? { backgroundColor: ACCENT } : {}) }}
         >
           {labels[o]}
         </button>
@@ -143,8 +147,8 @@ function PanelBody(props: MapLayersPanelV2Props) {
             role="radio"
             aria-checked={activePreset === id}
             onClick={() => pickPreset(id)}
-            className={`min-h-[32px] rounded-full px-2.5 py-1 text-[12px] font-mono border transition-colors ${activePreset === id ? "text-black font-bold border-transparent" : "text-white/60 border-white/15 hover:text-white"}`}
-            style={activePreset === id ? { backgroundColor: ACCENT } : undefined}
+            className={`rounded-full px-2.5 py-1 text-[12px] font-mono border transition-colors ${activePreset === id ? "text-black font-bold border-transparent" : "text-white/60 border-white/15 hover:text-white"}`}
+            style={{ minHeight: 32, ...(activePreset === id ? { backgroundColor: ACCENT } : {}) }}
           >
             {PRESET_LABELS[id]}
           </button>
@@ -273,7 +277,7 @@ function PanelBody(props: MapLayersPanelV2Props) {
 
       {bottomSlot}
 
-      <button onClick={props.onUseClassic} className="w-full min-h-[40px] rounded text-[12px] font-mono text-white/65 hover:text-white hover:bg-white/5 underline underline-offset-2">
+      <button onClick={props.onUseClassic} style={{ minHeight: 40 }} className="w-full rounded text-[12px] font-mono text-white/65 hover:text-white hover:bg-white/5 underline underline-offset-2">
         Switch to the classic layers panel
       </button>
     </div>
