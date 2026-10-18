@@ -28,6 +28,7 @@ const SHORTCUTS: Shortcut[] = [
   { keys: ["R"],   description: "Switch Intel drawer to RECON tab",  category: "Intel" },
   { keys: ["S"],   description: "Switch Intel drawer to Sources tab", category: "Intel" },
   { keys: ["F"],   description: "Toggle fullscreen map",       category: "View" },
+  { keys: ["O"],   description: "Ops Mode (full screen, no panels)", category: "View" },
   { keys: ["N"],   description: "Reset camera to north (top-down)", category: "View" },
   { keys: ["T"],   description: "Toggle Time Machine",         category: "View" },
   { keys: ["Right-click"], description: "Open region dossier at point", category: "Intel" },

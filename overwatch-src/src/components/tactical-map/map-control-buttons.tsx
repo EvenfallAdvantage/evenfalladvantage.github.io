@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Minimize2, Loader2, Radar } from "lucide-react";
+import { Maximize2, Minimize2, Loader2, Radar, Link2, MonitorPlay } from "lucide-react";
 
 interface MapControlButtonsProps {
   cameraHeading: number;
@@ -14,6 +14,10 @@ interface MapControlButtonsProps {
   onToggleTimeMachine: () => void;
   onToggleDronePlanner: () => void;
   onToggleIntelDrawer: () => void;
+  /** Copy a link to the current view. */
+  onShare?: () => void;
+  /** Enter full-screen Ops Mode. */
+  onOpsMode?: () => void;
 }
 
 const btnBase = "w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center transition-colors";
@@ -23,6 +27,7 @@ const btnBgActive = "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, color-
 export function MapControlButtons({
   cameraHeading, isFullscreen, timeMachineOpen, dronePlannerOpen, intelDrawerOpen, isAdmin,
   onResetNorth, onToggleFullscreen, onToggleTimeMachine, onToggleDronePlanner, onToggleIntelDrawer,
+  onShare, onOpsMode,
 }: MapControlButtonsProps) {
   return (
     <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
@@ -68,6 +73,22 @@ export function MapControlButtons({
         style={{ backgroundColor: intelDrawerOpen ? btnBgActive : btnBg }}>
         <Radar className="h-4 w-4" />
       </button>
+
+      {/* Ops Mode (full-screen, chrome-free) */}
+      {onOpsMode && (
+        <button onClick={onOpsMode} title="Ops Mode — full-screen map (O)"
+          className={btnBase + " text-white/60 hover:text-white hover:border-white/30"} style={{ backgroundColor: btnBg }}>
+          <MonitorPlay className="h-4 w-4" />
+        </button>
+      )}
+
+      {/* Share view link */}
+      {onShare && (
+        <button onClick={onShare} title="Copy a link to this view"
+          className={btnBase + " text-white/60 hover:text-white hover:border-white/30"} style={{ backgroundColor: btnBg }}>
+          <Link2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
