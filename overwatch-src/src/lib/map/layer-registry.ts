@@ -285,6 +285,34 @@ export function applyPreset<T extends RegistryState>(state: T, id: PresetId, opt
   return next;
 }
 
+/** Sub-options actually drawing (group master on and every key on). */
+function effectiveSubIds(state: RegistryState): Set<string> {
+  const on = new Set<string>();
+  for (const g of GROUPS) {
+    if (state.groups?.[g.id] === false) continue;
+    for (const s of g.subs) if (subOn(state, s)) on.add(`${g.id}:${s.id}`);
+  }
+  return on;
+}
+
+/**
+ * The preset the current state matches, or "custom". Derived from what is on
+ * screen (not from history), so it survives a classic/grouped round trip.
+ * Compared: which sub-options draw and the basemap. Looks/HUD/terrain are
+ * not part of a preset.
+ */
+export function matchingPreset(state: RegistryState, opts: { constrained?: boolean; cctvAcked?: boolean } = {}): PresetId | "custom" {
+  const mine = effectiveSubIds(state);
+  for (const id of PRESET_IDS) {
+    const want = applyPreset(state, id, opts);
+    const theirs = effectiveSubIds(want);
+    if (theirs.size !== mine.size || [...theirs].some((x) => !mine.has(x))) continue;
+    if (basemapOf(want) !== basemapOf(state)) continue;
+    return id;
+  }
+  return "custom";
+}
+
 /**
  * Bring saved state from any earlier version up to date. `saved` may be
  * classic-panel state (no `groups`), in which case everything the user had

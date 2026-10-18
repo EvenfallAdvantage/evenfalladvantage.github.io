@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_LAYERS, MOBILE_DEFAULT_LAYERS, type LayerVisibility } from "@/components/tactical-map/map-layers-panel";
 import {
   GROUPS, GROUP_IDS, V2_RETIRED_KEYS, activeDataGroups, allGroups, applyPreset, basemapOf, classicLayers, defaultPresetFor,
-  effectiveLayers, expandSharedLayers, flattenForClassic, groupDef, lookOf, migrateLayers, setBasemap, setGroup, setLook, setSub, subOn,
+  effectiveLayers, expandSharedLayers, flattenForClassic, groupDef, lookOf, matchingPreset, migrateLayers, setBasemap, setGroup, setLook, setSub, subOn,
 } from "@/lib/map/layer-registry";
 import { activeBooleanLayers, applySharedLayers } from "@/lib/map/share-link";
 
@@ -166,5 +166,32 @@ describe("migration and share links", () => {
     expect(c.aircraft).toBe(true);
     expect(c.earthquakes).toBe(false);
     expect(c.gdelt && c.sigintNews).toBe(true);
+  });
+});
+
+describe("matchingPreset (derived preset chip)", () => {
+  it("recognises each preset right after applying it", () => {
+    for (const id of ["clean", "securityOps", "weatherWatch", "airWatch"] as const) {
+      expect(matchingPreset(applyPreset(base(), id, { cctvAcked: true }), { cctvAcked: true })).toBe(id);
+      expect(matchingPreset(applyPreset(base(), id, { constrained: true }), { constrained: true })).toBe(id);
+    }
+  });
+  it("still matches after a classic -> grouped round trip", () => {
+    const start = applyPreset(base(), "securityOps", { cctvAcked: true });
+    const classic = flattenForClassic(start);
+    const back = migrateLayers(base(), { ...classic, news: classic.news || classic.gdelt || classic.sigintNews } as never);
+    expect(back.preset).toBe("custom"); // stored history says custom...
+    expect(matchingPreset(back, { cctvAcked: true })).toBe("securityOps"); // ...but the chip reflects the screen
+  });
+  it("turning a sub-option off makes it custom; turning it back re-matches", () => {
+    const start = applyPreset(base(), "weatherWatch");
+    const radar = groupDef("weather").subs.find((s) => s.id === "radar")!;
+    const off = setSub(start, radar, false);
+    expect(matchingPreset(off)).toBe("custom");
+    expect(matchingPreset(setSub(off, radar, true))).toBe("weatherWatch");
+  });
+  it("looks and HUD never break a preset match", () => {
+    const start = applyPreset(base(), "clean");
+    expect(matchingPreset({ ...setLook(start, "crt"), hud: true })).toBe("clean");
   });
 });
