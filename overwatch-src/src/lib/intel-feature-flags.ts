@@ -49,7 +49,8 @@ export type IntelLayerKey =
   | "weather_radar"
   | "satellite_clouds"
   | "surface_wind"
-  | "gnss_interference";
+  | "gnss_interference"
+  | "osm_3d_buildings";
 
 export interface IntelFlag {
   enabled: boolean;
@@ -104,6 +105,11 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   gnss_interference: {
     enabled: true,
     attribution: "Derived from adsb.lol aircraft accuracy reports (ODbL 1.0)",
+    attributionRequired: true,
+  },
+  osm_3d_buildings: {
+    enabled: true,
+    attribution: "3D buildings: © OpenMapTiles © OpenStreetMap contributors (ODbL 1.0), tiles by OpenFreeMap",
     attributionRequired: true,
   },
   space_weather: {

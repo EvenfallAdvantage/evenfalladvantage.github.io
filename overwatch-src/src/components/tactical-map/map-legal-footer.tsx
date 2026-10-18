@@ -3,15 +3,18 @@
 import type { Ref } from "react";
 import { Info } from "lucide-react";
 import { DATA_SOURCES_URL, MAP_DISCLAIMER } from "@/lib/legal/links";
+import { OPENFREEMAP_URL, OSM_COPYRIGHT_URL } from "@/lib/map/osm-buildings";
 
 interface MapLegalFooterProps {
   /** Container Cesium renders data credits into. */
   creditRef: Ref<HTMLDivElement>;
   onOpenSources: () => void;
+  /** OSM 3D buildings are on: show their required attribution (never truncated). */
+  osmBuildings?: boolean;
 }
 
 /** Persistent bottom strip: emergency-use disclaimer, sources link and provider credits. */
-export function MapLegalFooter({ creditRef, onOpenSources }: MapLegalFooterProps) {
+export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings }: MapLegalFooterProps) {
   return (
     <div
       className="absolute bottom-0 left-0 right-0 z-[5] flex items-center gap-2 px-2 py-0.5 text-[9px] leading-tight text-white/60 pointer-events-none"
@@ -35,6 +38,15 @@ export function MapLegalFooter({ creditRef, onOpenSources }: MapLegalFooterProps
         Licences
       </a>
       <div ref={creditRef} className="map-credit-container pointer-events-auto ml-auto min-w-0 truncate text-right" />
+      {osmBuildings && (
+        <span className="pointer-events-auto shrink-0 whitespace-nowrap"
+          title="Required attribution for the 3D buildings layer (kept at the right edge, clear of the map toolbars)" data-testid="osm-buildings-attribution">
+          3D buildings:{" "}
+          <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">© OpenMapTiles</a>{" "}
+          <a href={OSM_COPYRIGHT_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-white">© OpenStreetMap contributors</a>
+          <a href={OPENFREEMAP_URL} target="_blank" rel="noopener noreferrer" className="hidden sm:inline underline hover:text-white ml-1">OpenFreeMap</a>
+        </span>
+      )}
     </div>
   );
 }
