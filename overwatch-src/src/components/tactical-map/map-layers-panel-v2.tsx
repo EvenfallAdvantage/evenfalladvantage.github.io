@@ -18,6 +18,7 @@ import type { OperationPin } from "./types";
 import { SiteMapsList } from "./site-maps-list";
 import { S2_LAYERS, type S2Layer } from "./s2-underground";
 import { SAR_AVAILABLE } from "./sentinel-layer";
+import { GOOGLE_3D_AVAILABLE, type Google3dStatus } from "@/lib/map/google-3d";
 import { ionAssetsEnabled } from "@/lib/map/basemap-sources";
 import { AIRCRAFT_FILTER_LABELS } from "@/lib/map/aircraft-filter";
 import {
@@ -72,6 +73,8 @@ export interface MapLayersPanelV2Props {
   hiddenGroups?: readonly GroupId[];
   /** Show the Near my sites / Map view / Everywhere switch. */
   showScope?: boolean;
+  /** 3D Cities (Google Photorealistic 3D Tiles) state; option hidden when the key isn't set. */
+  google3dStatus?: Google3dStatus;
 }
 
 function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
@@ -109,11 +112,20 @@ function Segmented<T extends string>({ value, options, labels, onPick }: { value
 }
 
 function PanelBody(props: MapLayersPanelV2Props) {
-  const { layers, onChange, onFlyToAll, constrained, cctvAcked, isReplaying, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, groupExtras, topSlot, bottomSlot, hiddenGroups, showScope } = props;
+  const { layers, onChange, onFlyToAll, constrained, cctvAcked, isReplaying, s2ActiveLayers, onToggleS2Layer, s2FeatureCount, groupExtras, topSlot, bottomSlot, hiddenGroups, showScope, google3dStatus } = props;
   const [expanded, setExpanded] = useState<Partial<Record<GroupId, boolean>>>({});
   const [viewOpen, setViewOpen] = useState(false);
 
-  const basemaps: BasemapId[] = ["satellite", "streets", "dark", "daily", ...(SAR_AVAILABLE ? (["sar"] as BasemapId[]) : [])];
+  const basemaps: BasemapId[] = [
+    "satellite", "streets", "dark", "daily",
+    ...(SAR_AVAILABLE ? (["sar"] as BasemapId[]) : []),
+    ...(GOOGLE_3D_AVAILABLE ? (["cities3d"] as BasemapId[]) : []),
+  ];
+  const google3dOn = GOOGLE_3D_AVAILABLE && layers.google3d && google3dStatus !== "failed";
+  function pickBasemap(b: BasemapId) {
+    if (b === "cities3d" && constrained && !layers.google3d) toast("3D Cities uses more data and battery on phones. Switch back any time.");
+    onChange(setBasemap(layers, b));
+  }
   const looks: readonly LookId[] = constrained ? MOBILE_LOOKS : ["normal", "nvg", "thermal", "noir", "crt"];
 
   const activePreset = matchingPreset(layers, { constrained, cctvAcked });
@@ -245,7 +257,16 @@ function PanelBody(props: MapLayersPanelV2Props) {
       {/* Basemap */}
       <div className="space-y-1.5 pt-1 border-t border-white/10">
         <p className="text-[9px] font-mono text-white/35 uppercase tracking-wider">Basemap</p>
-        <Segmented value={basemapOf(layers)} options={basemaps} labels={BASEMAP_LABELS} onPick={(b) => onChange(setBasemap(layers, b))} />
+        <Segmented value={basemaps.includes(basemapOf(layers)) ? basemapOf(layers) : "satellite"} options={basemaps} labels={BASEMAP_LABELS} onPick={pickBasemap} />
+        {GOOGLE_3D_AVAILABLE && layers.google3d && (
+          <p className="text-[11px] leading-snug text-white/55">
+            {google3dStatus === "failed"
+              ? "3D Cities isn't available right now (quota or key). Showing standard imagery."
+              : google3dStatus === "loading"
+                ? "Loading Google 3D Cities…"
+                : "Google Photorealistic 3D Tiles. Radar, clouds and other imagery overlays need the standard globe and are hidden while it's on."}
+          </p>
+        )}
         <label className="flex items-center justify-between text-[11px] text-white/70">
           <span>{ionAssetsEnabled() ? "3D terrain & buildings" : "3D terrain"}</span>
           <Switch on={layers.terrain} onToggle={() => onChange({ ...layers, terrain: !layers.terrain })} label="3D terrain" />
@@ -258,10 +279,13 @@ function PanelBody(props: MapLayersPanelV2Props) {
           <Eye className="h-3 w-3" /> <span className="flex-1 text-left">View · {LOOK_LABELS[lookOf(layers)]}{layers.hud ? " · HUD" : ""}</span>
           {viewOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         </button>
+        {viewOpen && google3dOn && (
+          <p className="mt-1.5 text-[11px] leading-snug text-white/55">Visual looks (FLIR, NVG, noir, CRT, bloom, sharpen) are off while 3D Cities shows Google imagery. The HUD still works.</p>
+        )}
         {viewOpen && (
           <div className="mt-1.5 space-y-1.5">
-            <Segmented value={looks.includes(lookOf(layers)) ? lookOf(layers) : "normal"} options={looks} labels={LOOK_LABELS} onPick={(l) => onChange(setLook(layers, l))} />
-            {!constrained && (
+            {!google3dOn && <Segmented value={looks.includes(lookOf(layers)) ? lookOf(layers) : "normal"} options={looks} labels={LOOK_LABELS} onPick={(l) => onChange(setLook(layers, l))} />}
+            {!constrained && !google3dOn && (
               <div className="flex gap-3 text-[11px] text-white/70">
                 <label className="flex items-center gap-1.5"><input type="checkbox" checked={layers.sharpen} onChange={() => onChange({ ...layers, sharpen: !layers.sharpen })} className="h-3 w-3" style={{ accentColor: ACCENT }} />Sharpen</label>
                 <label className="flex items-center gap-1.5"><input type="checkbox" checked={layers.bloom} onChange={() => onChange({ ...layers, bloom: !layers.bloom })} className="h-3 w-3" style={{ accentColor: ACCENT }} />Bloom</label>

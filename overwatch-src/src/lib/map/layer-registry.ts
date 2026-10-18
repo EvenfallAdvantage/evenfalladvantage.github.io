@@ -19,7 +19,7 @@ export const GROUP_IDS: readonly GroupId[] = ["myOps", "weather", "security", "a
 export type PresetId = "clean" | "securityOps" | "weatherWatch" | "airWatch";
 export const PRESET_IDS: readonly PresetId[] = ["clean", "securityOps", "weatherWatch", "airWatch"];
 
-export type BasemapId = "satellite" | "streets" | "dark" | "daily" | "sar";
+export type BasemapId = "satellite" | "streets" | "dark" | "daily" | "sar" | "cities3d";
 export type LookId = "normal" | "nvg" | "thermal" | "noir" | "crt";
 
 /** The flat boolean keys the registry manipulates (subset of LayerVisibility). */
@@ -30,7 +30,8 @@ export type FlatKey =
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
   | "satellite" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
   | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud"
-  | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss";
+  | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss"
+  | "google3d";
 
 /** Minimal shape the registry needs; LayerVisibility satisfies it. */
 export type RegistryState = Record<FlatKey, boolean> & {
@@ -115,7 +116,7 @@ export const GROUPS: readonly GroupDef[] = [
 /** Flat keys that panel v2 never draws (dropped, merged or moved). */
 export const V2_RETIRED_KEYS: readonly FlatKey[] = ["eonetWeather", "gdelt", "sigintNews", "liveNews", "radioFrequencies", "earthquakes", "fires"];
 /** Flat keys the classic panel never draws (v2-only merges). */
-export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss"];
+export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "google3d"];
 
 export const PRESET_LABELS: Record<PresetId, string> = {
   clean: "Clean",
@@ -130,6 +131,7 @@ export const BASEMAP_LABELS: Record<BasemapId, string> = {
   dark: "Dark",
   daily: "Daily",
   sar: "SAR",
+  cities3d: "3D Cities",
 };
 
 export const LOOK_LABELS: Record<LookId, string> = {
@@ -211,6 +213,7 @@ export function flattenForClassic<T extends RegistryState>(state: T): T {
 // ─── Basemap + look ────────────────────────────────────────────────
 
 export function basemapOf(s: RegistryState): BasemapId {
+  if (s.google3d) return "cities3d";
   if (s.sentinel1) return "sar";
   if (s.sentinel2) return "daily";
   if (!s.satellite) return "streets";
@@ -219,8 +222,12 @@ export function basemapOf(s: RegistryState): BasemapId {
 }
 
 export function setBasemap<T extends RegistryState>(s: T, b: BasemapId): T {
+  // 3D Cities draws Google Photorealistic 3D Tiles over a hidden globe; the
+  // satellite imagery stays configured underneath as the fallback.
+  if (b === "cities3d") return { ...s, google3d: true, satellite: true, nightVision: false, sentinel1: false, sentinel2: false };
   return {
     ...s,
+    google3d: false,
     satellite: b !== "streets",
     nightVision: b === "dark",
     sentinel1: b === "sar",
@@ -238,6 +245,20 @@ export function lookOf(s: RegistryState): LookId {
 
 export function setLook<T extends RegistryState>(s: T, look: LookId): T {
   return { ...s, nvgGoggles: look === "nvg", flirThermal: look === "thermal", noir: look === "noir", crtMode: look === "crt" };
+}
+
+/**
+ * While 3D Cities (Google Photorealistic 3D Tiles) is drawing, visual looks
+ * and post-processing are switched off: the Google Maps Platform terms bar
+ * modifying Google Maps Content (ToS 3.2.1(a)) and don't clearly allow
+ * re-tinting it, so we treat FLIR/NVG/noir/CRT/bloom/sharpen as not allowed.
+ * The HUD is our own overlay UI and stays available. Also forced off when the
+ * key isn't configured.
+ */
+export function applyGoogle3dRules<T extends RegistryState>(state: T, opts: { available: boolean }): T {
+  if (!state.google3d) return state;
+  if (!opts.available) return { ...state, google3d: false };
+  return { ...state, nvgGoggles: false, flirThermal: false, noir: false, crtMode: false, bloom: false, sharpen: false };
 }
 
 // ─── Presets ───────────────────────────────────────────────────────

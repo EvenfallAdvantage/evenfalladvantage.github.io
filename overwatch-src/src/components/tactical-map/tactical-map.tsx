@@ -6,11 +6,13 @@ import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, defaultLayersFor } from "./map-layers-panel";
 import { MapLayersPanelV2 } from "./map-layers-panel-v2";
-import { allGroups, applyPreset, classicLayers, defaultPresetFor, effectiveLayers, expandSharedLayers, flattenForClassic, matchingPreset, migrateLayers } from "@/lib/map/layer-registry";
+import { applyGoogle3dRules, allGroups, applyPreset, classicLayers, defaultPresetFor, effectiveLayers, expandSharedLayers, flattenForClassic, matchingPreset, migrateLayers } from "@/lib/map/layer-registry";
 import { readPanelV2Choice, resolvePanelV2, writePanelV2Choice } from "@/lib/map/panel-flag";
 import { buildScopeFilters, resolveRadii, sitesFrom, type ViewRect } from "@/lib/map/site-proximity";
 import { DEFAULT_COMPANY_MAP_DEFAULTS, getCompanyMapDefaults, getUserMapPrefs, saveUserMapPrefs, saveUserPanelChoice, type CompanyMapDefaults } from "@/lib/supabase/db-map-prefs";
 import { useSiteWatch } from "./hooks/use-site-watch";
+import { useGoogle3dTiles } from "./hooks/use-google-3d-tiles";
+import { GOOGLE_3D_AVAILABLE } from "@/lib/map/google-3d";
 import { SiteWatchStrip } from "./site-watch-strip";
 import { CompanyMapDefaultsEditor } from "./company-map-defaults";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
@@ -67,6 +69,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const viewerRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cesiumRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const entityGroupsRef = useRef<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,10 +124,12 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     });
   }, [storageKey]);
   // What the map actually draws: v2 applies group master switches and retired keys.
-  const activeLayers = useMemo(
-    () => (panelV2 ? effectiveLayers(layers, { constrained, hiddenGroups: companyDefaults.hiddenGroups }) : classicLayers(layers)),
-    [panelV2, layers, constrained, companyDefaults.hiddenGroups],
-  );
+  // 3D Cities (Google Photorealistic 3D Tiles): new panel only, key required.
+  const google3dStatus = useGoogle3dTiles({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: panelV2 && GOOGLE_3D_AVAILABLE && layers.google3d, constrained });
+  const activeLayers = useMemo(() => {
+    const base = panelV2 ? effectiveLayers(layers, { constrained, hiddenGroups: companyDefaults.hiddenGroups }) : classicLayers(layers);
+    return applyGoogle3dRules(base, { available: GOOGLE_3D_AVAILABLE && google3dStatus !== "failed" });
+  }, [panelV2, layers, constrained, companyDefaults.hiddenGroups, google3dStatus]);
   const deviceClass = constrained ? "mobile" : "desktop";
   // Load company defaults + this user's synced prefs once per company/user.
   useEffect(() => {
@@ -202,8 +208,6 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [opsMode, setOpsMode] = useState(false);
   const [adjustingOp, setAdjustingOp] = useState<{ id: string; name: string; imageUrl: string; bounds: import("@/lib/supabase/db-operations").SiteMapBounds } | null>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const entityGroupsRef = useRef<Record<string, any>>({});
   // Annotations (tactical drawings)
   const {
     drawMode, setDrawMode,
@@ -398,7 +402,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
             cameraRestored = true;
             if (shared.layers) {
               const list = shared.layers;
-              setLayers((prev) => ({ ...applySharedLayers(prev, expandSharedLayers(list)), groups: allGroups(true), preset: "custom" }));
+              setLayers((prev) => ({ ...applySharedLayers(prev, expandSharedLayers(list.filter((k) => k !== "google3d"))), groups: allGroups(true), preset: "custom" }));
             }
             history.replaceState(null, "", window.location.pathname + window.location.search);
           }
@@ -605,7 +609,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       altM: carto.height,
       headingDeg: Cesium.Math.toDegrees(viewer.camera.heading),
       pitchDeg: Cesium.Math.toDegrees(viewer.camera.pitch),
-      layers: activeBooleanLayers(activeLayers),
+      layers: activeBooleanLayers(activeLayers).filter((k) => k !== "google3d"),
     });
     const url = `${window.location.origin}${window.location.pathname}${window.location.search}${hash}`;
     try {
@@ -778,7 +782,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       <div ref={containerRef} className="w-full h-full" />
 
       {/* Persistent legal footer + Cesium provider credits */}
-      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} />
+      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} googleMaps={activeLayers.google3d && google3dStatus === "on"} />
 
       {/* Ops Mode bar — top right, above other overlays, so the top-centre
           tracking chip (Phase 1A) can never cover Share / Exit. */}
@@ -918,6 +922,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
       {!error && !opsMode && (panelV2 ? (
         <MapLayersPanelV2
+          google3dStatus={google3dStatus}
           layers={layers}
           onChange={setLayers}
           onFlyToAll={handleFlyToAll}
