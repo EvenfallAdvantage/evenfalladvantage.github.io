@@ -52,6 +52,10 @@ import { MapLegalFooter } from "./map-legal-footer";
 import { gateCctvEnable, hasCctvAck, recordCctvAck } from "@/lib/map/cctv-ack";
 import { useAuthStore } from "@/stores/auth-store";
 import { TrackingChip } from "./tracking-chip";
+import { MapSearch } from "./map-search";
+import { escapeHtml } from "@/lib/security";
+import { SatPassesPanel } from "./sat-passes-panel";
+import type { PlaceResult } from "@/lib/map/geocode";
 import { TacticalHud, hudModeLabel } from "./tactical-hud";
 import { activeBooleanLayers, applySharedLayers, decodeShareHash, encodeShareHash } from "@/lib/map/share-link";
 
@@ -105,6 +109,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [cctvAckOpen, setCctvAckOpen] = useState(false);
   // Click-to-track (aircraft): entity id + display label.
   const [tracked, setTracked] = useState<{ id: string; label: string } | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchPin, setSearchPin] = useState<PlaceResult | null>(null);
+  const [passesTarget, setPassesTarget] = useState<{ label: string; lat: number; lng: number } | null>(null);
   const setLayers = useCallback((update: LayerVisibility | ((prev: LayerVisibility) => LayerVisibility)) => {
     setLayersRaw(prev => {
       const requested = typeof update === "function" ? update(prev) : update;
@@ -755,6 +762,36 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(lng, lat, 25_000), duration: 1.2 });
   }, []);
 
+  // Search result: fly there and drop a temporary pin (removed on close / next search).
+  const handleSearchPick = useCallback((p: PlaceResult) => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium) return;
+    setSearchPin(p);
+    const b = p.bbox;
+    if (b && (b[2] - b[0]) > 0.005 && (b[2] - b[0]) < 20 && (b[3] - b[1]) < 20) {
+      viewer.camera.flyTo({ destination: Cesium.Rectangle.fromDegrees(b[1], b[0], b[3], b[2]), duration: 1.4 });
+    } else {
+      viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 6_000), duration: 1.4 });
+    }
+  }, []);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    const Cesium = cesiumRef.current;
+    if (!viewer || !Cesium || !searchPin) return;
+    const entity = viewer.entities.add({
+      id: "search-pin",
+      name: searchPin.label,
+      position: Cesium.Cartesian3.fromDegrees(searchPin.lng, searchPin.lat),
+      point: { pixelSize: 11, color: Cesium.Color.fromCssColorString("#fbbf24"), outlineColor: Cesium.Color.BLACK, outlineWidth: 2, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+      label: { text: searchPin.label.slice(0, 40), font: "12px monospace", fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, -18), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+      description: `${escapeHtml(searchPin.detail || "")}<br/><span style="opacity:.6">${searchPin.lat.toFixed(5)}, ${searchPin.lng.toFixed(5)}${searchPin.source === "coordinates" ? "" : " · © OpenStreetMap contributors"}</span>`,
+    });
+    viewer.scene.requestRender();
+    return () => { if (!viewer.isDestroyed?.()) { viewer.entities.remove(entity); viewer.scene.requestRender(); } };
+  }, [searchPin]);
+
   const handleRealignSiteMap = useCallback((op: import("./types").OperationPin) => {
     // Clear saved bounds to force re-alignment
     setSavedBounds((prev) => { const next = { ...prev }; delete next[op.id]; return next; });
@@ -813,7 +850,23 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           onToggleIntelDrawer={() => setIntelDrawerOpen((o) => !o)}
           onShare={() => void handleShare()}
           onOpsMode={handleOpsMode}
+          searchOpen={searchOpen}
+          onToggleSearch={() => setSearchOpen((o) => { if (o) setSearchPin(null); return !o; })}
         />
+      )}
+
+      {/* Search box + satellite passes — beside the control column */}
+      {!loading && !error && !opsMode && (searchOpen || passesTarget) && (
+        <div className="absolute top-3 left-16 z-20 flex flex-col gap-2 max-w-[calc(100%-5rem)] pointer-events-none">
+          {searchOpen && (
+            <MapSearch
+              onPick={handleSearchPick}
+              onPasses={setPassesTarget}
+              onClose={() => { setSearchOpen(false); setSearchPin(null); }}
+            />
+          )}
+          {passesTarget && <SatPassesPanel key={`${passesTarget.lat},${passesTarget.lng}`} target={passesTarget} onClose={() => setPassesTarget(null)} />}
+        </div>
       )}
 
       {/* Intel drawer (RECON + alerts + sources) */}
@@ -885,14 +938,28 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           entity={selectedEntity}
           containerWidth={containerWidth}
           onClose={() => setSelectedEntity(null)}
-          actions={selectedEntity.id.startsWith("plane-") ? (
+          actions={(() => {
+            const sid = selectedEntity.id;
+            const op = sid.startsWith("op-") ? operations.find((o) => `op-${o.id}` === sid) : undefined;
+            const site = op ? { label: op.name, lat: op.lat, lng: op.lng }
+              : sid === "search-pin" && searchPin ? { label: searchPin.label, lat: searchPin.lat, lng: searchPin.lng } : null;
+            if (!site) return undefined;
+            return (
+              <button
+                onClick={() => { setPassesTarget(site); setSelectedEntity(null); }}
+                className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30"
+              >
+                🛰 Satellite passes
+              </button>
+            );
+          })() ?? (selectedEntity.id.startsWith("plane-") ? (
             <button
               onClick={() => { setTracked({ id: selectedEntity.id, label: selectedEntity.name || selectedEntity.id.slice(6) }); setSelectedEntity(null); }}
               className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30"
             >
               ⌖ Track
             </button>
-          ) : undefined}
+          ) : undefined)}
         />
       )}
 
@@ -900,11 +967,13 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         <TrackingChip
           key={tracked.id}
           viewerRef={viewerRef}
+          cesiumRef={cesiumRef}
           entityGroupsRef={entityGroupsRef}
           trackedId={tracked.id}
           label={tracked.label}
           onStop={() => setTracked(null)}
           onOpenCamera={setActiveCctvCamera}
+          onJump={setTracked}
         />
       )}
 

@@ -6,6 +6,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { elevationFn, findPasses, type SatLib, type SatPass } from "@/lib/map/sat-passes";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- satellite.js has no TS types
 let satLib: any = null;
@@ -171,4 +172,61 @@ export async function computeGroundTrack(
   } catch {
     return [];
   }
+}
+
+// ── Pass prediction over a site ──────────────────────────────────────────
+// Imaging satellites from the cached CelesTrak "resource" group plus crewed
+// stations (ISS, Tiangong) fetched by catalog number. CelesTrak asks clients
+// not to refetch unchanged data; both lists are cached for 12 h.
+
+const STATIONS: { catnr: number; name: string }[] = [
+  { catnr: 25544, name: "ISS (ZARYA)" },
+  { catnr: 48274, name: "CSS (TIANHE)" },
+];
+const STATION_CACHE_KEY = "tle-stations-cache";
+
+async function fetchStationTLEs(): Promise<{ name: string; tle1: string; tle2: string }[]> {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STATION_CACHE_KEY) ?? "null");
+    if (stored?.ts && Date.now() - stored.ts < 43_200_000 && Array.isArray(stored.data)) return stored.data;
+  } catch (e) { logger.swallow("orbit-tracker:station-cache-read", e, "debug"); }
+  const out: { name: string; tle1: string; tle2: string }[] = [];
+  for (const s of STATIONS) {
+    try {
+      const res = await fetch(`https://celestrak.org/NORAD/elements/gp.php?CATNR=${s.catnr}&FORMAT=tle`, { signal: AbortSignal.timeout(10_000) });
+      const lines = (await res.text()).trim().split("\n").map((l) => l.trim());
+      if (lines[1]?.startsWith("1 ") && lines[2]?.startsWith("2 ")) out.push({ name: lines[0] || s.name, tle1: lines[1], tle2: lines[2] });
+    } catch (e) { logger.swallow("orbit-tracker:station-fetch", e, "debug"); }
+  }
+  if (out.length) {
+    try { localStorage.setItem(STATION_CACHE_KEY, JSON.stringify({ data: out, ts: Date.now() })); }
+    catch (e) { logger.swallow("orbit-tracker:station-cache-write", e, "debug"); }
+  }
+  return out;
+}
+
+/**
+ * Passes above `minElDeg` over a site in the next `hours`, soonest first.
+ * Imaging satellites are the curated HIGHLIGHT_SATS (Sentinel, Landsat,
+ * WorldView, GeoEye, Pléiades) — i.e. "who could image this site, and when".
+ */
+export async function predictSitePasses(
+  site: { lat: number; lng: number }, hours = 24, minElDeg = 10,
+): Promise<{ passes: SatPass[]; satellites: number }> {
+  const [tles, stations, s] = await Promise.all([fetchTLEs(), fetchStationTLEs(), loadSatelliteLib()]);
+  const list: { name: string; tle1: string; tle2: string; kind: SatPass["kind"] }[] = [
+    ...stations.map((t) => ({ ...t, kind: "station" as const })),
+    ...tles.filter((t) => HIGHLIGHT_SATS.has(t.name)).map((t) => ({ name: t.name, tle1: t.tle1, tle2: t.tle2, kind: "imaging" as const })),
+  ];
+  const start = Date.now();
+  const end = start + hours * 3_600_000;
+  const passes: SatPass[] = [];
+  for (const sat of list) {
+    try {
+      const el = elevationFn(s as SatLib, sat.tle1, sat.tle2, site);
+      for (const p of findPasses(el, start, end, { minElDeg })) passes.push({ ...p, name: sat.name, kind: sat.kind });
+    } catch (e) { logger.swallow("orbit-tracker:passes", e, "debug"); }
+  }
+  passes.sort((a, b) => a.riseMs - b.riseMs);
+  return { passes, satellites: list.length };
 }

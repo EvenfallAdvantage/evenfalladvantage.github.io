@@ -162,3 +162,55 @@ export function extractAircraft(body: unknown): ReadsbAircraft[] | null {
   const list = Array.isArray(o.ac) ? o.ac : Array.isArray(o.aircraft) ? o.aircraft : null;
   return list as ReadsbAircraft[] | null;
 }
+
+// ── 24 h track history (trace) ────────────────────────────────────────────
+// adsb.lol publishes per-aircraft readsb traces (ODbL 1.0) at
+//   https://adsb.lol/data/traces/<last 2 hex>/trace_full_<hex>.json
+// They send no browser CORS headers, so the map reads them through this proxy.
+// Pattern from gods-eye-view server/providers/aircraft/tracks.js (© 2026
+// Bilawal Sidhu, MIT). Best effort: any failure returns an empty list.
+
+/** One normalized history point: [epoch ms, lat, lon, altitude m (barometric) | null]. */
+export type TracePoint = [number, number, number, number | null];
+
+export const TRACE_WINDOW_MS = 24 * 3600_000;
+export const TRACE_MAX_POINTS = 1_500;
+export const TRACE_MAX_BYTES = 5 * 1024 * 1024;
+
+/** Validate ?trace=<hex>: 6 hex chars, optionally prefixed by "~" (non-ICAO / TIS-B address). */
+export function parseTraceParam(params: URLSearchParams): string | null {
+  const raw = (params.get("trace") ?? "").trim().toLowerCase();
+  return /^~?[0-9a-f]{6}$/.test(raw) ? raw : null;
+}
+
+export function traceUrl(hex: string): string {
+  return `https://adsb.lol/data/traces/${hex.slice(-2)}/trace_full_${hex}.json`;
+}
+
+/**
+ * readsb trace_full: { timestamp: epoch s, trace: [[secondsAfter, lat, lon, alt_baro_ft | "ground" | null, ...], ...] }.
+ * Keeps the last `windowMs`, stride-thins to `maxPoints` (always keeping the newest point).
+ */
+export function normalizeTrace(body: unknown, nowMs: number, windowMs = TRACE_WINDOW_MS, maxPoints = TRACE_MAX_POINTS): TracePoint[] {
+  if (!body || typeof body !== "object") return [];
+  const o = body as { timestamp?: unknown; trace?: unknown };
+  const base = typeof o.timestamp === "number" ? o.timestamp : NaN;
+  if (!Number.isFinite(base) || !Array.isArray(o.trace)) return [];
+  const pts: TracePoint[] = [];
+  for (const row of o.trace) {
+    if (!Array.isArray(row)) continue;
+    const [dt, lat, lon, alt] = row as unknown[];
+    if (typeof dt !== "number" || typeof lat !== "number" || typeof lon !== "number") continue;
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    const t = Math.round((base + dt) * 1000);
+    if (t < nowMs - windowMs || t > nowMs + 60_000) continue;
+    const altM = typeof alt === "number" ? +(alt * FT_TO_M).toFixed(0) : alt === "ground" ? 0 : null;
+    pts.push([t, +lat.toFixed(5), +lon.toFixed(5), altM]);
+  }
+  pts.sort((a, b) => a[0] - b[0]);
+  if (pts.length <= maxPoints) return pts;
+  const stride = (pts.length - 1) / (maxPoints - 1);
+  const out: TracePoint[] = [];
+  for (let i = 0; i < maxPoints; i++) out.push(pts[Math.round(i * stride)]);
+  return out;
+}

@@ -10,11 +10,12 @@
 // airplanes.live was evaluated but now requires registration (403).
 //
 // Usage: GET /opensky-proxy?lamin=38&lamax=42&lomin=-80&lomax=-75 (max 10° per axis)
+//        GET /opensky-proxy?trace=<icao hex>  → last 24 h of positions (adsb.lol trace, ODbL)
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { requireIntelUser } from '../_shared/intel-auth.ts';
-import { cacheKey, extractAircraft, parseBBox, toOpenSkyStates, upstreamUrls } from './lib.ts'
+import { cacheKey, extractAircraft, normalizeTrace, parseBBox, parseTraceParam, toOpenSkyStates, TRACE_MAX_BYTES, traceUrl, upstreamUrls } from './lib.ts'
 
 const CACHE_TTL_MS = 10_000;
 const CACHE_MAX = 64;
@@ -34,7 +35,10 @@ Deno.serve(async (req) => {
   const denied = await requireIntelUser(req, corsHeaders, { limit: 60 });
   if (denied) return denied;
 
-  const bbox = parseBBox(new URL(req.url).searchParams);
+  const params = new URL(req.url).searchParams;
+  if (params.has('trace')) return handleTrace(params, corsHeaders);
+
+  const bbox = parseBBox(params);
   if ('error' in bbox) return json({ error: bbox.error, states: [] }, corsHeaders, {}, 400);
 
   const key = cacheKey(bbox);
@@ -66,3 +70,35 @@ Deno.serve(async (req) => {
   if (hit) return json(hit.body, corsHeaders, { 'X-Cache': 'STALE' });
   return json({ error: 'Aircraft feeds unreachable', states: [] }, corsHeaders, { 'X-Cache': 'ERROR' });
 });
+
+// ── Track history ─────────────────────────────────────────────────────────
+const TRACE_CACHE_MS = 60_000;
+const TRACE_CACHE_MAX = 200;
+const traceCache = new Map<string, { body: string; ts: number }>();
+
+async function handleTrace(params: URLSearchParams, corsHeaders: Record<string, string>): Promise<Response> {
+  const hex = parseTraceParam(params);
+  if (!hex) return json({ error: 'trace must be a 6-character ICAO hex', points: [] }, corsHeaders, {}, 400);
+  const hit = traceCache.get(hex);
+  if (hit && Date.now() - hit.ts < TRACE_CACHE_MS) return json(hit.body, corsHeaders, { 'X-Cache': 'HIT', 'Cache-Control': 'private, max-age=60' });
+  let body: string;
+  try {
+    const res = await fetch(traceUrl(hex), {
+      headers: { Accept: 'application/json', 'User-Agent': 'EvenfallOverwatch/1.0 (+https://www.evenfalladvantage.com)' },
+      signal: AbortSignal.timeout(8_000),
+    });
+    const len = Number(res.headers.get('content-length') ?? 0);
+    if (!res.ok || len > TRACE_MAX_BYTES) {
+      body = JSON.stringify({ hex, points: [], source: 'adsb.lol', error: `history unavailable (${res.ok ? 'too large' : res.status})` });
+    } else {
+      const text = await res.text();
+      const points = text.length > TRACE_MAX_BYTES ? [] : normalizeTrace(JSON.parse(text), Date.now());
+      body = JSON.stringify({ hex, points, source: 'adsb.lol' });
+    }
+  } catch (err) {
+    body = JSON.stringify({ hex, points: [], source: 'adsb.lol', error: `history unavailable (${err instanceof Error ? err.name : 'error'})` });
+  }
+  if (traceCache.size >= TRACE_CACHE_MAX) traceCache.delete(traceCache.keys().next().value as string);
+  traceCache.set(hex, { body, ts: Date.now() });
+  return json(body, corsHeaders, { 'X-Cache': 'MISS', 'Cache-Control': 'private, max-age=60' });
+}
