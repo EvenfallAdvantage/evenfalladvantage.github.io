@@ -5,13 +5,14 @@ import { subscribeAdsb } from "@/lib/sdr/adsb-store";
 import type { AdsbAircraftMap } from "@/lib/sdr/adsb-types";
 import type { LayerVisibility } from "../map-layers-panel";
 import { createPinCanvas } from "../pin-canvas";
-import { getAircraft, getBoundingBox } from "../flight-tracker";
+import { getAircraft } from "../flight-tracker";
 import type { OperationPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 import { AircraftTrack, type AircraftFix } from "@/lib/map/aircraft-motion";
 import { aggregateGnss, matchesAircraftFilter, type AircraftFilter } from "@/lib/map/aircraft-filter";
 import { escapeHtml } from "@/lib/security";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
+import { aircraftQueryBox, boxKey, inBox, type GeoBox } from "@/lib/map/aircraft-viewport";
 
 /** Render cadence while aircraft are moving (requestRenderMode is on). */
 const MOTION_FRAME_MS = 66;
@@ -107,7 +108,16 @@ export function useAircraftLayer(params: {
     const gnssSource = new Cesium.CustomDataSource("gnss-interference");
     viewer.dataSources.add(gnssSource);
 
-    const bbox = getBoundingBox(centerRef.current.lat, centerRef.current.lng, 200);
+    // Query box follows the camera (was a fixed box around the first site / Kansas).
+    const toDeg = (r: number) => (r * 180) / Math.PI;
+    const readView = (): GeoBox | null => {
+      try {
+        const r = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid);
+        return r ? { south: toDeg(r.south), north: toDeg(r.north), west: toDeg(r.west), east: toDeg(r.east) } : null;
+      } catch { return null; }
+    };
+    let bbox = aircraftQueryBox(readView(), centerRef.current);
+    let bboxId = boxKey(bbox);
     let activeIds = new Set<string>();
 
     // Combined aircraft map: ADSB entries take priority over OpenSky
@@ -276,9 +286,12 @@ export function useAircraftLayer(params: {
 
     // ── OpenSky polling (broad coverage, 15s) ──
     function fetchOpenSky() {
-      getAircraft(bbox.south, bbox.north, bbox.west, bbox.east).then(planes => {
+      const box = bbox;
+      getAircraft(box.south, box.north, box.west, box.east).then(planes => {
         for (const plane of planes) {
           if (plane.onGround) continue;
+          // A slow reply for an old box: keep only what is still in view.
+          if (!inBox(bbox, plane.lat, plane.lng)) continue;
           const icao24 = plane.icao24;
           // Only add if not already tracked by ADSB
           if (!merged.has(icao24) || merged.get(icao24)!.source !== "adsb") {
@@ -311,6 +324,26 @@ export function useAircraftLayer(params: {
 
     fetchOpenSky();
     const stopOpenSkyPolling = setVisibleInterval(fetchOpenSky, 15000);
+
+    // Re-query when the camera settles on a different 1° grid box.
+    let moveTimer: ReturnType<typeof setTimeout> | null = null;
+    const onMoveEnd = () => {
+      if (moveTimer) clearTimeout(moveTimer);
+      moveTimer = setTimeout(() => {
+        moveTimer = null;
+        const next = aircraftQueryBox(readView(), centerRef.current);
+        const id = boxKey(next);
+        if (id === bboxId) return;
+        bbox = next; bboxId = id;
+        const trackedId = String(entityGroupsRef.current.trackedAircraftId ?? "").replace(/^plane-/, "");
+        for (const [icao24, p] of merged) {
+          if (p.source === "opensky" && icao24 !== trackedId && !inBox(bbox, p.lat, p.lng)) { merged.delete(icao24); tracks.delete(icao24); }
+        }
+        renderAll();
+        fetchOpenSky();
+      }, 600);
+    };
+    const removeMoveEnd = viewer.camera.moveEnd.addEventListener(onMoveEnd);
     const groups = entityGroupsRef.current;
 
     return () => {
@@ -319,6 +352,8 @@ export function useAircraftLayer(params: {
       try { viewer.dataSources.remove(gnssSource, true); } catch (e_) { logger.swallow("aircraft-layer:gnss", e_, "debug"); }
       unsubAdsb();
       stopOpenSkyPolling();
+      if (moveTimer) clearTimeout(moveTimer);
+      try { removeMoveEnd(); } catch (e_) { logger.swallow("aircraft-layer:move-end", e_, "debug"); }
       stopMotionPump();
       try { viewer.entities.remove(trailEntity); } catch (e_) { logger.swallow("aircraft-layer:trail", e_, "debug"); }
       tracks.clear();
