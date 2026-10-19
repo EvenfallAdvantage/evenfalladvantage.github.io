@@ -1,6 +1,6 @@
 // ais-collector: live AIS ships for the Air & Sea layer.
 //
-// Called by pg_cron every minute (migration 20261019160000_live_ships) with the
+// Called by pg_cron every minute (migration 20261019155428_live_ships) with the
 // Vault cron secret (x-integrations-cron-secret, checked by
 // integration_cron_secret_matches). Replies 202 at once, then in the
 // background (EdgeRuntime.waitUntil):

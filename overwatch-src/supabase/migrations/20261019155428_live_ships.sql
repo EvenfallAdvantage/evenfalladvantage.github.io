@@ -1,5 +1,6 @@
 -- =============================================================================
--- 20261019160000_live_ships (OverwatchDB nneueuvyeohwnspbwfub ONLY). NOT APPLIED.
+-- 20261019155428_live_ships (OverwatchDB nneueuvyeohwnspbwfub ONLY).
+-- APPLIED 2026-10-19 08:54 PT via apply_migration, recorded version 20261019155428.
 -- Live AIS ships for the Air & Sea layer (plan: SHIPS_PLAN.md).
 --   * public.ships: one row per MMSI (latest fix), written only by the
 --     ais-collector Edge function (service role) through ships_upsert().
@@ -9,7 +10,7 @@
 --     with integration_cron_secret_matches()), TTL cleanup every 10 minutes.
 -- Requires 20261018004108_integration_cron_secret_vault and 20261018004232_integration_cron.
 -- Deploy the ais-collector function BEFORE applying, or the first runs 404 (harmless).
--- Rollback: rollback/20261019160000_live_ships.rollback.sql
+-- Rollback: rollback/20261019155428_live_ships.rollback.sql
 -- =============================================================================
 BEGIN;
 
