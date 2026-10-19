@@ -343,3 +343,9 @@ verify_jwt = true
 enabled = true
 verify_jwt = false
 # pg_cron caller; authenticated by x-integrations-cron-secret
+
+[functions.ais-collector]
+enabled = true
+verify_jwt = false
+# pg_cron caller (every minute); authenticated by x-integrations-cron-secret (Vault).
+# Optional Edge secret AISSTREAM_API_KEY (set by the owner); without it, Digitraffic only.
