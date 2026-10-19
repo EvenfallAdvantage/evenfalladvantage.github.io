@@ -46,6 +46,8 @@ export interface LayerVisibility {
   bloom: boolean;
   sharpen: boolean;
   hud: boolean;
+  /** Street-level photos (Panoramax, KartaView, Mapillary) in the Cameras group. */
+  streetPhotos: boolean;
   /** Screen overlays (View menu): rotating sonar sweep, circular scope mask. */
   sonarSweep: boolean;
   scopeMask: boolean;
@@ -122,6 +124,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   bloom: false,
   sharpen: false,
   hud: false,
+  streetPhotos: false,
   sonarSweep: false,
   scopeMask: false,
   cityLights: false,

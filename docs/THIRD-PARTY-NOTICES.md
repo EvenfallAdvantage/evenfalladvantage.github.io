@@ -49,10 +49,14 @@ sources are currently enabled and any gating reasons.
 | Wikipedia / Wikidata | Region dossier | `*.wikipedia.org`, `query.wikidata.org` |
 | Nominatim | Reverse geocoding, region dossier | `nominatim.openstreetmap.org` |
 | RDAP via rdap.org | WHOIS lookups (RECON tab) | `rdap.org` |
+| Panoramax | Street-level photos (Operations map, Cameras) | `api.panoramax.xyz` STAC search (keyless; licence per photo, mostly CC BY-SA 4.0 / Licence Ouverte 2.0; faces and plates blurred on upload) |
+| KartaView | Street-level photos (Operations map, Cameras) | `api.kartaview.org` (keyless; CC BY-SA 4.0; only photos KartaView reports as BLURRED, processed image) |
 | NOAA/NCEP GFS via PacIOOS ERDDAP | Animated wind particles (Operations map, Wind) | `pae-paha.pacioos.hawaii.edu/erddap` (U.S. Government public domain; keyless, CORS) |
 | NASA GIBS — Black Marble (VIIRS 2016) | City lights on the night side (Operations map, View menu) | `gibs.earthdata.nasa.gov` WMTS `VIIRS_Black_Marble` (NASA data policy, public domain; keyless) |
 
 ### Free with attribution required
+
+- **Mapillary** — street-level photos (Operations map, Cameras), `graph.mapillary.com`; imagery CC BY-SA 4.0, Mapillary terms; needs a free client token in the `NEXT_PUBLIC_MAPILLARY_CLIENT_TOKEN` build secret (skipped when unset); every image is auto-blurred by Mapillary.
 
 The public, user-facing list (exact credit strings + licence links) is
 `/data-sources.html` at the site root (https://www.evenfalladvantage.com/data-sources.html).
@@ -164,6 +168,10 @@ set of active layers.
   - `overwatch-src/src/lib/map/site-imagery.ts` — HLS product table, CMR
     query and GIBS URL pattern from `src/layers/recentImagery/` (trimmed to a
     fixed site box)
+- Also used in (street-level photos):
+  - `overwatch-src/src/lib/map/street-level.ts` — provider endpoints and
+    record shapes from `src/layers/streetLevel/providers/{panoramax,kartaview,mapillary}/`
+    (rewritten; KartaView blurred-only filter and storage-host check kept)
 - Also used in (animated wind):
   - `overwatch-src/src/lib/map/wind-field.ts` and
     `overwatch-src/src/components/tactical-map/hooks/use-wind-particles.ts` —

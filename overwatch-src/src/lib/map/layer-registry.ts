@@ -29,7 +29,7 @@ export type FlatKey =
   | "conflictZones" | "gdelt" | "sigintNews" | "news" | "nuclearInfrastructure" | "cctv" | "liveNews"
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
   | "satellite" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
-  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud" | "sonarSweep" | "scopeMask" | "cityLights"
+  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud" | "sonarSweep" | "scopeMask" | "cityLights" | "streetPhotos"
   | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure" | "ships";
 
 /** Minimal shape the registry needs; LayerVisibility satisfies it. */
@@ -101,8 +101,11 @@ export const GROUPS: readonly GroupDef[] = [
     ],
   },
   {
-    id: "cameras", label: "Cameras", blurb: "Public traffic cameras",
-    subs: [{ id: "cctv", label: "Traffic cameras", keys: ["cctv"] }],
+    id: "cameras", label: "Cameras", blurb: "Traffic cameras, street-level photos",
+    subs: [
+      { id: "cctv", label: "Traffic cameras", keys: ["cctv"] },
+      { id: "street", label: "Street-level photos", keys: ["streetPhotos"], hint: "Crowd-sourced street photos (Panoramax, KartaView, Mapillary), faces and plates blurred by each provider. Shown when zoomed in to street level" },
+    ],
   },
   {
     id: "infrastructure", label: "Infrastructure", blurb: "Nuclear, data centres, dams, power, military, space",
@@ -117,7 +120,7 @@ export const GROUPS: readonly GroupDef[] = [
 /** Flat keys that panel v2 never draws (dropped, merged or moved). */
 export const V2_RETIRED_KEYS: readonly FlatKey[] = ["eonetWeather", "gdelt", "sigintNews", "liveNews", "radioFrequencies", "earthquakes", "fires"];
 /** Flat keys the classic panel never draws (v2-only merges). */
-export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["sonarSweep", "scopeMask", "cityLights", "news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure", "ships"];
+export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["sonarSweep", "scopeMask", "cityLights", "streetPhotos", "news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure", "ships"];
 
 export const PRESET_LABELS: Record<PresetId, string> = {
   clean: "Clean",

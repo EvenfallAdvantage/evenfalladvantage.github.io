@@ -1,0 +1,23 @@
+{
+ "feature": "street",
+ "mode": "phone",
+ "cctvAckPrompt": false,
+ "paris": {
+  "panoramax": 12
+ },
+ "nyc": {
+  "kartaview": 6,
+  "panoramax": 3
+ },
+ "zoomedOut": {},
+ "credits": [],
+ "reqs": [
+  "https://api.panoramax.xyz/api/search?bbox=2.342053%2C48.853000%2C2.355547%2C48.867021&limit=30",
+  "https://api.kartaview.org/2.0/photo/?lat=48.8600103&lng=2.3488000&zoomLevel=18&itemsPerPage=30",
+  "https://api.panoramax.xyz/api/search?bbox=2.342047%2C48.853000%2C2.355553%2C48.867021&limit=30",
+  "https://api.panoramax.xyz/api/search?bbox=-73.988162%2C40.754506%2C-73.982838%2C40.761788&limit=30",
+  "https://api.kartaview.org/2.0/photo/?lat=40.7581467&lng=-73.9855000&zoomLevel=18&itemsPerPage=30"
+ ],
+ "errs": [],
+ "blockedPrefWrites": 1
+}
