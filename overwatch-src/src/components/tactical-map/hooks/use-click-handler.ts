@@ -6,6 +6,7 @@ import type { OperationPin } from "../types";
 import { checkLineOfSight, renderLineOfSight, clearLineOfSight, getElevationProfile } from "../terrain-tools";
 import { escapeHtml } from "@/lib/security";
 import { createAnnotation } from "@/lib/supabase/db-annotations";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium viewer/module refs have no published TS types
 type CesiumRef = React.MutableRefObject<any>;
@@ -152,7 +153,7 @@ export function useCesiumClickHandler(params: {
           id: `drone-wp-${wpIdx}`,
           position: Cesium.Cartesian3.fromDegrees(lng, lat, 120),
           point: { pixelSize: 8, color: Cesium.Color.fromCssColorString("#8b5cf6"), outlineColor: Cesium.Color.WHITE, outlineWidth: 2 },
-          label: { text: `WP${wpIdx + 1}`, font: "bold 9px monospace", fillColor: Cesium.Color.fromCssColorString("#8b5cf6"), pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+          label: { text: `WP${wpIdx + 1}`, font: "bold 9px monospace", fillColor: Cesium.Color.fromCssColorString("#8b5cf6"), pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
         });
         // Draw path line
         if (wpIdx > 0) {
@@ -197,7 +198,7 @@ export function useCesiumClickHandler(params: {
             outlineColor: Cesium.Color.WHITE,
             outlineWidth: 1,
             heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
           },
         });
         return;
@@ -215,7 +216,7 @@ export function useCesiumClickHandler(params: {
           viewer.entities.add({
             id: "measure-p1",
             position: Cesium.Cartesian3.fromDegrees(lng, lat),
-            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
           });
         } else {
           // Point 2 — compute distance
@@ -228,7 +229,7 @@ export function useCesiumClickHandler(params: {
           viewer.entities.add({
             id: "measure-p2",
             position: Cesium.Cartesian3.fromDegrees(lng, lat),
-            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
           });
           viewer.entities.add({
             id: "measure-line",
@@ -256,7 +257,7 @@ export function useCesiumClickHandler(params: {
         viewer.entities.add({
           id: "ring-center",
           position: Cesium.Cartesian3.fromDegrees(lng, lat),
-          point: { pixelSize: 8, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+          point: { pixelSize: 8, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
         });
 
         // Draw concentric rings
@@ -287,7 +288,7 @@ export function useCesiumClickHandler(params: {
               outlineWidth: 2,
               style: Cesium.LabelStyle.FILL_AND_OUTLINE,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
             },
           });
         });
@@ -306,8 +307,8 @@ export function useCesiumClickHandler(params: {
           viewer.entities.add({
             id: "los-click-1",
             position: Cesium.Cartesian3.fromDegrees(lng, lat, 2),
-            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-            label: { text: "A", font: "bold 10px monospace", fillColor: Cesium.Color.LIME, pixelOffset: new Cesium.Cartesian2(0, -14), heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            point: { pixelSize: 8, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
+            label: { text: "A", font: "bold 10px monospace", fillColor: Cesium.Color.LIME, pixelOffset: new Cesium.Cartesian2(0, -14), heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
           });
         } else {
           viewer.entities.removeById("los-click-1");
@@ -335,8 +336,8 @@ export function useCesiumClickHandler(params: {
           viewer.entities.add({
             id: "elev-click-1",
             position: Cesium.Cartesian3.fromDegrees(lng, lat, 2),
-            point: { pixelSize: 8, color: Cesium.Color.YELLOW, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-            label: { text: "START", font: "bold 9px monospace", fillColor: Cesium.Color.YELLOW, pixelOffset: new Cesium.Cartesian2(0, -14), heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+            point: { pixelSize: 8, color: Cesium.Color.YELLOW, outlineColor: Cesium.Color.BLACK, outlineWidth: 1, heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
+            label: { text: "START", font: "bold 9px monospace", fillColor: Cesium.Color.YELLOW, pixelOffset: new Cesium.Cartesian2(0, -14), heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND, disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
           });
         } else {
           viewer.entities.removeById("elev-click-1");

@@ -6,6 +6,7 @@ import { createPinCanvas } from "../pin-canvas";
 import type { OperationPin } from "../types";
 import type { OperationDocument } from "@/types/operations";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 export function useOperationsLayer(params: {
   viewerRef: CesiumRef;
@@ -48,7 +49,7 @@ export function useOperationsLayer(params: {
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.
-          disableDepthTestDistance: 500_000,
+          disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
         },
         label: {
           text: op.name,
@@ -63,7 +64,7 @@ export function useOperationsLayer(params: {
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.
-          disableDepthTestDistance: 500_000,
+          disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
           // Operations labels always visible — key info at any zoom level
         },
         description: `<div style="font-family:monospace;font-size:11px;line-height:1.7">

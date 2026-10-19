@@ -9,6 +9,7 @@
  */
 
 import { logger } from "@/lib/logger";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CesiumRef = any;
@@ -159,7 +160,7 @@ export function renderLineOfSight(
         outlineColor: Cesium.Color.BLACK,
         outlineWidth: 2,
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
       },
     });
     entityIds.push(obsEntity.id);

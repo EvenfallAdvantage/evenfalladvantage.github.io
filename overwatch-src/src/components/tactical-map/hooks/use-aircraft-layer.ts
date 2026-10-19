@@ -11,6 +11,7 @@ import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 import { AircraftTrack, type AircraftFix } from "@/lib/map/aircraft-motion";
 import { aggregateGnss, matchesAircraftFilter, type AircraftFilter } from "@/lib/map/aircraft-filter";
 import { escapeHtml } from "@/lib/security";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 /** Render cadence while aircraft are moving (requestRenderMode is on). */
 const MOTION_FRAME_MS = 66;
@@ -190,7 +191,7 @@ export function useAircraftLayer(params: {
               image: createPinCanvas(color, "flag"),
               scale,
               rotation: -plane.heading * (Math.PI / 180),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: nearSideDepthProperty(v, C),
             },
             label: {
               text: planeLabel(plane),
@@ -200,7 +201,7 @@ export function useAircraftLayer(params: {
               outlineWidth: 2,
               style: C.LabelStyle.FILL_AND_OUTLINE,
               pixelOffset: new C.Cartesian2(0, -18),
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: nearSideDepthProperty(v, C),
               scale: 0.8,
               distanceDisplayCondition: new C.DistanceDisplayCondition(0, 500000),
             },

@@ -5,6 +5,7 @@ import { createPinCanvas } from "../pin-canvas";
 import { getPOIsInBbox, getNearbyPOIs, countTilesForBbox, type NearbyPOI, type PoiType } from "../env-intel";
 import type { OperationPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 /**
  * POI ("Nearby Services") layer.
@@ -155,7 +156,7 @@ export function usePoiLayer(params: {
             // Always render through buildings at venue scale (camera < 500 km).
             // Beyond that, depth-test against the globe so far-side pins are
             // hidden when viewing the whole earth.
-            disableDepthTestDistance: 500_000,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
           },
           label: {
             text: poi.name,
@@ -170,7 +171,7 @@ export function usePoiLayer(params: {
             // Always render through buildings at venue scale (camera < 500 km).
             // Beyond that, depth-test against the globe so far-side pins are
             // hidden when viewing the whole earth.
-            disableDepthTestDistance: 500_000,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
             scale: 0.8,
             distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
           },

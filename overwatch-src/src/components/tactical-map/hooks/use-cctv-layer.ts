@@ -26,6 +26,7 @@ import {
   attributionLine, bboxKey, clusterLabel, diffIds, rectToBBox, roundBBox, zoomFromHeight,
 } from "@/lib/map/cctv-viewport";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 let iconCacheValue: HTMLCanvasElement | null = null;
 
@@ -190,7 +191,7 @@ export function useCctvLayer(params: {
                 billboard: {
                   image: buildClusterIcon(item.cl.count),
                   heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                  disableDepthTestDistance: Number.POSITIVE_INFINITY,
+                  disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
                 },
               });
           live.set(id, { entity, item });

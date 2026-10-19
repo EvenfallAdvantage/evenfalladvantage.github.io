@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { X, Check, RotateCcw, MapPin, Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { SiteMapBounds, SiteMapQuad } from "@/lib/supabase/db-site-bounds";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 /**
  * 3-Point Site Map Alignment Tool
@@ -210,7 +211,7 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
             outlineColor: Cesium.Color.WHITE,
             outlineWidth: 2,
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
           },
           label: {
             text: String(idx + 1),
@@ -221,7 +222,7 @@ export function SiteMapAligner({ imageUrl, operationName, onAlign, onCancel }: S
             style: Cesium.LabelStyle.FILL_AND_OUTLINE,
             pixelOffset: new Cesium.Cartesian2(0, -16),
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
           },
         });
       }

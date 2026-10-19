@@ -17,6 +17,7 @@ import { HAZARD_KIND_LABELS, hazardColor, hazardSourcesFor, hazardVisible } from
 import { pointBudget, topN, withSuspendedEvents } from "@/lib/map/device-profile";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef } from "./cesium-layer-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 const REFRESH_MS = 5 * 60_000;
 const NO_HAZARDS: IntelHazard[] = [];
@@ -109,8 +110,8 @@ export function useHazardsLayer(params: {
               id: `hz-${h.id}`,
               name: h.title,
               position: C.Cartesian3.fromDegrees(lng, lat),
-              point: { pixelSize: size, color: color.withAlpha(h.kind === "fire" ? 0.85 : 0.9), outlineColor: C.Color.BLACK.withAlpha(0.7), outlineWidth: 1, disableDepthTestDistance: Number.POSITIVE_INFINITY, heightReference: C.HeightReference.CLAMP_TO_GROUND },
-              label: h.kind === "cyclone" ? { text: h.title.split(" · ")[0], font: "11px monospace", fillColor: color, outlineColor: C.Color.BLACK, outlineWidth: 2, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -18), disableDepthTestDistance: Number.POSITIVE_INFINITY } : undefined,
+              point: { pixelSize: size, color: color.withAlpha(h.kind === "fire" ? 0.85 : 0.9), outlineColor: C.Color.BLACK.withAlpha(0.7), outlineWidth: 1, disableDepthTestDistance: nearSideDepthProperty(viewer, C), heightReference: C.HeightReference.CLAMP_TO_GROUND },
+              label: h.kind === "cyclone" ? { text: h.title.split(" · ")[0], font: "11px monospace", fillColor: color, outlineColor: C.Color.BLACK, outlineWidth: 2, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -18), disableDepthTestDistance: nearSideDepthProperty(viewer, C) } : undefined,
               description,
             });
           } else if (g.type === "LineString") {
