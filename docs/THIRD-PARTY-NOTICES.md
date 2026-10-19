@@ -61,6 +61,8 @@ Keep this table and that page in sync.
 | NASA FIRMS (VIIRS/MODIS) | Active fires layer | "NASA FIRMS" (NASA data policy) |
 | NASA EONET imagery | EONET events layer | "NASA EONET" |
 | CelesTrak TLE catalog | Satellite orbits, satellite pass times for a site | "CelesTrak" |
+| NASA GIBS + CMR (HLS, VIIRS) | Imagery by date for a site; Daily imagery date picker | GIBS acknowledgement (see `/data-sources.html`); NASA data, public domain |
+| OpenStreetMap infrastructure extract (`overwatch-src/public/data/infra/`) | Infrastructure > data centres, dams, military areas, high-voltage power | "© OpenStreetMap contributors (ODbL)" on the map; extract offered under ODbL 1.0 (`public/data/infra/README.md`) |
 | Photon (komoot) / OSM Nominatim | Map search box (search on Enter, ≤ 1 req/s, cached) | "© OpenStreetMap contributors · Photon / Nominatim" (ODbL 1.0) |
 | ADSB.lol traces | 24 h track history of the tracked aircraft (via `opensky-proxy?trace=`) | "Track history: adsb.lol (ODbL 1.0)" |
 | ADSB.lol (primary) / adsb.fi (fallback) | Flight tracking layer (`opensky-proxy`) | "Aircraft data © adsb.lol / adsb.fi contributors (ODbL)"; adsb.lol ODbL 1.0; adsb.fi open-data terms (non-commercial; permission requested 2026-10-16) |
@@ -130,7 +132,10 @@ set of active layers.
 
 - Source: https://github.com/bilawalsidhu/gods-eye-view
 - License: MIT (source code only; its bundled datasets and runtime data are
-  NOT covered and are not used by Overwatch)
+  NOT covered by MIT). Only its ODbL OpenStreetMap datasets (datacenters,
+  dams, military area names) are used, re-packed into
+  `overwatch-src/public/data/infra/` under ODbL 1.0. Its non-commercial data
+  (e.g. TeleGeography submarine cables, CC BY-NC-SA) is NOT used.
 - Used in: `overwatch-src/src/lib/map/aircraft-motion.ts` (dead-reckoning and
   correction-blend approach, angle lerp), `overwatch-src/src/components/tactical-map/tracking-chip.tsx`
   (tracking HUD pattern), and the Phase 1 effects / share-link modules that
@@ -150,6 +155,13 @@ set of active layers.
   - `overwatch-src/public/models/*.glb` — CC BY 4.0 models (NOT MIT); credits
     and modification notes in `overwatch-src/public/models/README.md` and
     `/data-sources.html#models`
+- Also used in (infrastructure, imagery, camera cones):
+  - `overwatch-src/src/lib/map/camera-cone.ts` — ports of
+    `src/data/directionText.js` (`directionToHeading`) and the spherical
+    `projectPoint` from `src/data/cctvFootprint.js`
+  - `overwatch-src/src/lib/map/site-imagery.ts` — HLS product table, CMR
+    query and GIBS URL pattern from `src/layers/recentImagery/` (trimmed to a
+    fixed site box)
 
 ```
 MIT License

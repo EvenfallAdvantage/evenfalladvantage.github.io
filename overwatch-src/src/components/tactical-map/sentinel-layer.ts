@@ -9,7 +9,7 @@
  *   configured; there is NO optical "SAR proxy" fallback any more.
  */
 
-import { GIBS_CREDIT, gibsDate, gibsTrueColorUrl } from "@/lib/map/basemap-sources";
+import { GIBS_CREDIT, clampGibsDay, gibsDate, gibsTrueColorUrl } from "@/lib/map/basemap-sources";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CesiumRef = any;
@@ -19,11 +19,12 @@ const SENTINEL_HUB_INSTANCE = process.env.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID |
 /** True when a Sentinel Hub instance is configured, i.e. real SAR is available. */
 export const SAR_AVAILABLE = SENTINEL_HUB_INSTANCE.length > 0;
 
-/** NASA GIBS daily true-colour overlay (yesterday, UTC). */
-export function addSentinel2Layer(viewer: CesiumRef, Cesium: CesiumRef): CesiumRef {
+/** NASA GIBS daily true-colour overlay for `day` (default: yesterday, UTC). */
+export function addSentinel2Layer(viewer: CesiumRef, Cesium: CesiumRef, day?: string): CesiumRef {
+  const date = day ? clampGibsDay(day) : gibsDate();
   const provider = new Cesium.UrlTemplateImageryProvider({
-    url: gibsTrueColorUrl(gibsDate()),
-    credit: new Cesium.Credit(GIBS_CREDIT, false),
+    url: gibsTrueColorUrl(date),
+    credit: new Cesium.Credit(`${GIBS_CREDIT}, ${date}`, false),
     minimumLevel: 0,
     maximumLevel: 9,
   });

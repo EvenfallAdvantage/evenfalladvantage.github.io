@@ -84,6 +84,21 @@ export function gibsDate(now: Date = new Date()): string {
   return d.toISOString().slice(0, 10);
 }
 
+/** First day of the VIIRS SNPP true-colour record in GIBS. */
+export const GIBS_FIRST_DAY = "2015-11-24";
+
+/**
+ * A user-picked GIBS day, clamped to the record (first day … yesterday UTC).
+ * Anything that is not a valid YYYY-MM-DD gives the latest day.
+ */
+export function clampGibsDay(day: string | null | undefined, now: Date = new Date()): string {
+  const latest = gibsDate(now);
+  if (!day || !/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(`${day}T00:00:00Z`))) return latest;
+  if (day > latest) return latest;
+  if (day < GIBS_FIRST_DAY) return GIBS_FIRST_DAY;
+  return day;
+}
+
 export function gibsTrueColorUrl(date: string): string {
   return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${GIBS_TRUECOLOR_LAYER}/default/${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
 }
