@@ -73,6 +73,8 @@ export function useCesiumLayers(params: {
   onOpenLiveFeed?: (feed: IntelLiveNewsFeed) => void;
   /** Click-handler for CCTV camera pins. */
   onOpenCctvCamera?: (cam: CctvCamera) => void;
+  /** Day shown by the NASA daily imagery (YYYY-MM-DD); undefined = latest. */
+  gibsDay?: string;
   /** Panel v2 scope (near my sites / map view); undefined = everywhere. */
   scopeFilters?: {
     hazard?: (h: import("@/lib/intel-types").IntelHazard) => boolean;
@@ -97,6 +99,7 @@ export function useCesiumLayers(params: {
     adjustingOpId,
     onOpenLiveFeed,
     onOpenCctvCamera,
+    gibsDay,
     scopeFilters,
   } = params;
   const scopePoint = scopeFilters?.point;
@@ -786,9 +789,9 @@ export function useCesiumLayers(params: {
       entityGroupsRef.current.sentinel2Layer = null;
     }
     if (layers.sentinel2) {
-      entityGroupsRef.current.sentinel2Layer = addSentinel2Layer(viewer, Cesium);
+      entityGroupsRef.current.sentinel2Layer = addSentinel2Layer(viewer, Cesium, gibsDay);
     }
-  }, [layers.sentinel2, loading, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.sentinel2, gibsDay, loading, viewerRef, cesiumRef, entityGroupsRef]);
 
   // ─── FLIR Thermal Shader ───────────────────────────
   useEffect(() => {

@@ -30,7 +30,7 @@ export type FlatKey =
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
   | "satellite" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
   | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud"
-  | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss";
+  | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure";
 
 /** Minimal shape the registry needs; LayerVisibility satisfies it. */
 export type RegistryState = Record<FlatKey, boolean> & {
@@ -104,9 +104,10 @@ export const GROUPS: readonly GroupDef[] = [
     subs: [{ id: "cctv", label: "Traffic cameras", keys: ["cctv"] }],
   },
   {
-    id: "infrastructure", label: "Infrastructure", blurb: "Nuclear facilities, space",
+    id: "infrastructure", label: "Infrastructure", blurb: "Nuclear, data centres, dams, military, space",
     subs: [
       { id: "nuclear", label: "Nuclear facilities", keys: ["nuclearInfrastructure"] },
+      { id: "osm", label: "Data centres, dams & military areas", keys: ["osmInfrastructure"], hint: "OpenStreetMap extract (ODbL), shown when zoomed in; high-voltage substations when built" },
       { id: "space", label: "Space (satellite orbits)", keys: ["satelliteOrbits"], desktopOnly: true },
     ],
   },
@@ -115,7 +116,7 @@ export const GROUPS: readonly GroupDef[] = [
 /** Flat keys that panel v2 never draws (dropped, merged or moved). */
 export const V2_RETIRED_KEYS: readonly FlatKey[] = ["eonetWeather", "gdelt", "sigintNews", "liveNews", "radioFrequencies", "earthquakes", "fires"];
 /** Flat keys the classic panel never draws (v2-only merges). */
-export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss"];
+export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure"];
 
 export const PRESET_LABELS: Record<PresetId, string> = {
   clean: "Clean",

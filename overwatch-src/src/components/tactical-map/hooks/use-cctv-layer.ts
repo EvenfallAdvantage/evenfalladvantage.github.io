@@ -25,6 +25,8 @@ import { pointBudget, withSuspendedEvents } from "@/lib/map/device-profile";
 import {
   attributionLine, bboxKey, clusterLabel, diffIds, rectToBBox, roundBBox, zoomFromHeight,
 } from "@/lib/map/cctv-viewport";
+import { isConstrainedDevice } from "@/lib/map/device-profile";
+import { CONE_MOUNT_M, cameraPose, coneArc } from "@/lib/map/camera-cone";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
@@ -96,6 +98,47 @@ function buildPopup(cam: CctvCamera): string {
 }
 
 const DEBOUNCE_MS = 400;
+const CONE_SUFFIX = "-cone";
+/** Cones only draw when the camera is this close (keeps city views clean). */
+const CONE_MAX_DISTANCE_M = 12_000;
+
+/**
+ * Field-of-view cone for one camera (desktop only): a translucent wedge on
+ * the ground plus a 3D fan from a mount point above the camera. Null when
+ * the facing is unknown. See camera-cone.ts for where the facing comes from.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium module/viewer have no published types
+function coneEntity(Cesium: any, viewer: any, id: string, cam: CctvCamera): Record<string, unknown> | null {
+  const pose = cameraPose(cam);
+  if (!pose) return null;
+  const arc = coneArc(cam.lat, cam.lng, pose);
+  let ground = 0;
+  try {
+    const h = viewer.scene?.globe?.getHeight?.(Cesium.Cartographic.fromDegrees(cam.lng, cam.lat));
+    if (Number.isFinite(h)) ground = h;
+  } catch (err) { logger.swallow("cesium-layers:cctv-cone-height", err, "debug"); }
+  const fan = [cam.lng, cam.lat, ground + CONE_MOUNT_M, ...arc.flatMap(([x, y]) => [x, y, ground + 1])];
+  const color = Cesium.Color.fromCssColorString("#34d399");
+  const show = new Cesium.DistanceDisplayCondition(0, CONE_MAX_DISTANCE_M);
+  return {
+    id,
+    name: `${cam.name} (field of view${pose.source === "name" ? ", from the direction in its name" : ""})`,
+    polygon: {
+      hierarchy: Cesium.Cartesian3.fromDegreesArrayHeights(fan),
+      perPositionHeight: true,
+      material: color.withAlpha(0.22),
+      outline: false,
+      distanceDisplayCondition: show,
+    },
+    polyline: {
+      positions: Cesium.Cartesian3.fromDegreesArrayHeights([...fan, cam.lng, cam.lat, ground + CONE_MOUNT_M]),
+      // Light outline so the cone still reads under NVG/thermal looks.
+      width: 2,
+      material: Cesium.Color.fromCssColorString("#d1fae5").withAlpha(0.9),
+      distanceDisplayCondition: show,
+    },
+  };
+}
 const CLUSTER_PREFIX = "cctv-cl-";
 
 type Item = { kind: "cam"; cam: CctvCamera } | { kind: "cluster"; cl: CctvCluster };
@@ -149,7 +192,9 @@ export function useCctvLayer(params: {
     let inflight: AbortController | null = null;
     let credit: unknown = null;
     const live = new Map<string, { entity: { id: string }; item: Item }>();
+    const cones = new Map<string, { id: string }>();
     const budget = pointBudget("cctv");
+    const conesOn = !isConstrainedDevice();
 
     const setCredit = (text: string) => {
       const cd = viewer.creditDisplay;
@@ -168,6 +213,11 @@ export function useCctvLayer(params: {
           try { viewer.entities.removeById(id); }
           catch (err) { logger.swallow("cesium-layers:remove-cctv", err); }
           live.delete(id);
+          if (cones.has(id)) {
+            try { viewer.entities.removeById(id + CONE_SUFFIX); }
+            catch (err) { logger.swallow("cesium-layers:remove-cctv-cone", err); }
+            cones.delete(id);
+          }
         }
         for (const id of add) {
           const item = next.get(id)!;
@@ -195,9 +245,13 @@ export function useCctvLayer(params: {
                 },
               });
           live.set(id, { entity, item });
+          if (conesOn && item.kind === "cam") {
+            const cone = coneEntity(Cesium, viewer, id + CONE_SUFFIX, item.cam);
+            if (cone) cones.set(id, viewer.entities.add(cone));
+          }
         }
       });
-      entityGroups.cctv = [...live.values()].map((v) => v.entity);
+      entityGroups.cctv = [...live.values()].map((v) => v.entity).concat([...cones.values()]);
       // Plain camera list for aircraft→camera hand-off (tracking chip).
       entityGroups.cctvCams = [...live.values()].flatMap((v) => (v.item.kind === "cam" ? [v.item.cam] : []));
     };
@@ -258,8 +312,9 @@ export function useCctvLayer(params: {
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
     handler.setInputAction((click: { position: { x: number; y: number } }) => {
       const picked = viewer.scene.pick(click.position);
-      const pickedId = picked?.id?.id as string | undefined;
-      if (!pickedId) return;
+      const rawId = picked?.id?.id as string | undefined;
+      if (!rawId) return;
+      const pickedId = rawId.endsWith(CONE_SUFFIX) ? rawId.slice(0, -CONE_SUFFIX.length) : rawId;
       const hit = live.get(pickedId);
       if (!hit) return;
       if (hit.item.kind === "cam") { onOpenCamera(hit.item.cam); return; }

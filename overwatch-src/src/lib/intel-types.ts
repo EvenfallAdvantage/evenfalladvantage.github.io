@@ -300,6 +300,10 @@ export interface CctvCamera {
   source: string;
   /** Provider credit (client-attached from the bbox response's attribution map). */
   attribution?: string;
+  /** Compass facing, when the catalog serves one (not yet: see camera-cone.ts). */
+  heading_deg?: number | null;
+  /** Horizontal field of view in degrees, when served. */
+  fov_deg?: number | null;
 }
 export interface IntelCctvResponse {
   cameras: CctvCamera[];

@@ -74,6 +74,8 @@ export interface LayerVisibility {
   clouds: boolean;
   wind: boolean;
   gnss: boolean;
+  /** Panel v2: OSM infrastructure extract (data centres, dams, military areas, substations). */
+  osmInfrastructure: boolean;
   aircraftFilter: AircraftFilter;
   /** Panel v2: where hazards, news and cameras are shown. */
   scope: Scope;
@@ -135,6 +137,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   clouds: false,
   wind: false,
   gnss: false,
+  osmInfrastructure: false,
   aircraftFilter: "all",
   scope: "sites",
   siteWatch: true,

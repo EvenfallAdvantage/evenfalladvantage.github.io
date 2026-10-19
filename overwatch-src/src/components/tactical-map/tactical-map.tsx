@@ -59,6 +59,8 @@ import { isHighContrastLook } from "@/lib/map/contact-models";
 import { escapeHtml } from "@/lib/security";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import { SatPassesPanel } from "./sat-passes-panel";
+import { GibsDateChip } from "./gibs-date-chip";
+import { useInfraLayer } from "./hooks/use-infra-layer";
 import type { PlaceResult } from "@/lib/map/geocode";
 import { TacticalHud, hudModeLabel } from "./tactical-hud";
 import { activeBooleanLayers, applySharedLayers, decodeShareHash, encodeShareHash } from "@/lib/map/share-link";
@@ -78,6 +80,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const cesiumRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** NASA daily imagery day (null = latest); session only, not saved to prefs. */
+  const [gibsDay, setGibsDay] = useState<string | null>(null);
 
   // Persist layer visibility to localStorage per company
   // Phones keep their own saved layer prefs so desktop choices (e.g. 3D
@@ -292,6 +296,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     adjustingOpId: adjustingOp?.id ?? null,
     onOpenLiveFeed: setActiveLiveFeed,
     onOpenCctvCamera: setActiveCctvCamera,
+    gibsDay: gibsDay ?? undefined,
     scopeFilters,
   });
   const [lastLayerGeofences, setLastLayerGeofences] = useState(layerGeofences);
@@ -305,6 +310,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Shared with layers that restyle under NVG/thermal (camera cones read it live).
   useEffect(() => { entityGroupsRef.current.highContrastLook = highContrastLook; }, [highContrastLook]);
   const modelsShown = useContactModels({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.aircraft, highContrast: highContrastLook });
+  useInfraLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.osmInfrastructure });
   const osmBuildingsStatus = useOsmBuildingsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading,
     enabled: !!activeLayers.osmBuildings,
@@ -972,6 +978,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           ) : undefined)}
         />
       )}
+
+      {activeLayers.sentinel2 && !loading && !error && <GibsDateChip day={gibsDay} onChange={setGibsDay} />}
 
       {perfLevel > 0 && !loading && !error && (
         <button
