@@ -54,6 +54,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { TrackingChip } from "./tracking-chip";
 import { MapSearch } from "./map-search";
 import { escapeHtml } from "@/lib/security";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import { SatPassesPanel } from "./sat-passes-panel";
 import type { PlaceResult } from "@/lib/map/geocode";
 import { TacticalHud, hudModeLabel } from "./tactical-hud";
@@ -784,8 +785,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       id: "search-pin",
       name: searchPin.label,
       position: Cesium.Cartesian3.fromDegrees(searchPin.lng, searchPin.lat),
-      point: { pixelSize: 11, color: Cesium.Color.fromCssColorString("#fbbf24"), outlineColor: Cesium.Color.BLACK, outlineWidth: 2, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
-      label: { text: searchPin.label.slice(0, 40), font: "12px monospace", fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, -18), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY },
+      point: { pixelSize: 11, color: Cesium.Color.fromCssColorString("#fbbf24"), outlineColor: Cesium.Color.BLACK, outlineWidth: 2, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
+      label: { text: searchPin.label.slice(0, 40), font: "12px monospace", fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, -18), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium) },
       description: `${escapeHtml(searchPin.detail || "")}<br/><span style="opacity:.6">${searchPin.lat.toFixed(5)}, ${searchPin.lng.toFixed(5)}${searchPin.source === "coordinates" ? "" : " · © OpenStreetMap contributors"}</span>`,
     });
     viewer.scene.requestRender();
