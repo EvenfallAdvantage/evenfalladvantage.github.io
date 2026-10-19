@@ -28,6 +28,8 @@ export interface WindField {
   dy: number;
   u: Float32Array;
   v: Float32Array;
+  /** True when this is the last saved field, used because the source is down. */
+  stale?: boolean;
 }
 
 const STEP_MS = 3 * 3600_000;
@@ -132,7 +134,42 @@ export function deserializeWindField(s: string): WindField | null {
 
 const CACHE_KEY = "ow:wind-field:v1";
 
-/** Fetch the newest available field (tries the current and previous 3-hour slots), cached per session. */
+const LAST_KEY = "ow:wind-field:last:v1";
+/** Last good field kept across sessions, used only when the source is down. */
+export const WIND_LAST_MAX_AGE_MS = 24 * 3600_000;
+const FETCH_TIMEOUT_MS = 20_000;
+/** Background retries after a failed load: 1, 3, then 10 minutes. */
+export const WIND_RETRY_MS = [60_000, 180_000, 600_000] as const;
+
+function saveLast(stride: number, f: WindField, nowMs: number) {
+  try { if (typeof localStorage !== "undefined") localStorage.setItem(`${LAST_KEY}:${stride}`, JSON.stringify({ at: nowMs, f: serializeWindField(f) })); } catch { /* quota */ }
+}
+/** Last good field from localStorage if younger than maxAge, flagged stale. */
+export function loadLastWindField(stride: number, nowMs = Date.now(), maxAgeMs = WIND_LAST_MAX_AGE_MS): WindField | null {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(`${LAST_KEY}:${stride}`) : null;
+    if (!raw) return null;
+    const o = JSON.parse(raw) as { at: number; f: string };
+    const fieldMs = Date.parse(deserializeWindField(o.f)?.time ?? "");
+    if (!Number.isFinite(o.at) || nowMs - o.at > maxAgeMs || (Number.isFinite(fieldMs) && nowMs - fieldMs > maxAgeMs)) return null;
+    const f = deserializeWindField(o.f);
+    return f ? { ...f, stale: true } : null;
+  } catch { return null; }
+}
+
+async function fetchWithTimeout(url: string, signal?: AbortSignal): Promise<Response> {
+  const t = new AbortController();
+  const onAbort = () => t.abort();
+  signal?.addEventListener("abort", onAbort);
+  const timer = setTimeout(() => t.abort(), FETCH_TIMEOUT_MS);
+  try { return await fetch(url, { signal: t.signal }); } finally { clearTimeout(timer); signal?.removeEventListener("abort", onAbort); }
+}
+
+/**
+ * Fetch the newest available field (tries the current and previous 3-hour
+ * slots), cached per session. If the source is down, falls back to the last
+ * good field from an earlier visit (up to 24 h old, flagged `stale`).
+ */
 export async function loadWindField(constrained: boolean, signal?: AbortSignal, nowMs = Date.now()): Promise<WindField | null> {
   const stride = windStride(constrained);
   for (let back = 0; back < 3; back++) {
@@ -143,7 +180,7 @@ export async function loadWindField(constrained: boolean, signal?: AbortSignal, 
       if (hit) { const f = deserializeWindField(hit); if (f) return f; }
     } catch { /* storage unavailable */ }
     try {
-      const res = await fetch(windFieldUrl(time, stride), { signal });
+      const res = await fetchWithTimeout(windFieldUrl(time, stride), signal);
       if (!res.ok) continue;
       const f = parseWindCsv(await res.text());
       if (!f) continue;
@@ -151,12 +188,13 @@ export async function loadWindField(constrained: boolean, signal?: AbortSignal, 
         for (let i = sessionStorage.length - 1; i >= 0; i--) { const k = sessionStorage.key(i); if (k?.startsWith(CACHE_KEY)) sessionStorage.removeItem(k); }
         sessionStorage.setItem(key, serializeWindField(f));
       } catch { /* quota: keep in memory only */ }
+      saveLast(stride, f, nowMs);
       return f;
-    } catch (e) {
-      if ((e as Error)?.name === "AbortError") return null;
+    } catch {
+      if (signal?.aborted) return null;
     }
   }
-  return null;
+  return loadLastWindField(stride, nowMs);
 }
 
 /** Particle budget: phones get fewer, the performance governor trims further. */

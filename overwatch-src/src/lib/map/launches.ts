@@ -145,3 +145,17 @@ export function estimatedAscent(l: Pick<Launch, "lat" | "lng" | "orbitAbbrev" | 
 /** Replay length on screen (seconds) at 1× speed. */
 export const REPLAY_SECONDS = 14;
 export const REPLAY_SPEEDS = [0.5, 1, 2, 4] as const;
+
+/** Seconds of flight covered by the replay (label scale). */
+export const REPLAY_FLIGHT_S = 540;
+/**
+ * Fixed-width replay label ("T+045s ·  86 km"). Quantized to 5 s so the
+ * label text changes a few times a second at most; the old per-frame text
+ * made Cesium re-lay out glyphs every frame, which showed up as garbled digits.
+ */
+export function ascentLabel(f: number): string {
+  const c = Math.max(0, Math.min(1, f));
+  const t = Math.round((c * REPLAY_FLIGHT_S) / 5) * 5;
+  const km = Math.round(ascentAt(t / REPLAY_FLIGHT_S).altM / 1000);
+  return `T+${String(t).padStart(3, "0")}s · ${String(km).padStart(3, " ")} km`;
+}
