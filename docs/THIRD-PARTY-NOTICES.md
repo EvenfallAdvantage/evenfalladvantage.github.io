@@ -49,6 +49,7 @@ sources are currently enabled and any gating reasons.
 | Wikipedia / Wikidata | Region dossier | `*.wikipedia.org`, `query.wikidata.org` |
 | Nominatim | Reverse geocoding, region dossier | `nominatim.openstreetmap.org` |
 | RDAP via rdap.org | WHOIS lookups (RECON tab) | `rdap.org` |
+| NASA GIBS — Black Marble (VIIRS 2016) | City lights on the night side (Operations map, View menu) | `gibs.earthdata.nasa.gov` WMTS `VIIRS_Black_Marble` (NASA data policy, public domain; keyless) |
 
 ### Free with attribution required
 

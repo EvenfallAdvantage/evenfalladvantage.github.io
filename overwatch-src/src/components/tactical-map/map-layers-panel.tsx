@@ -46,6 +46,8 @@ export interface LayerVisibility {
   bloom: boolean;
   sharpen: boolean;
   hud: boolean;
+  /** NASA Black Marble city lights on the night side of the globe (View menu). */
+  cityLights: boolean;
   // Live feeds
   aircraft: boolean;
   satelliteOrbits: boolean;
@@ -117,6 +119,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   bloom: false,
   sharpen: false,
   hud: false,
+  cityLights: false,
   aircraft: false,
   satelliteOrbits: false,
   s2Intel: false,

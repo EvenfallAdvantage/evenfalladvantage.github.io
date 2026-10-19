@@ -29,7 +29,7 @@ export type FlatKey =
   | "conflictZones" | "gdelt" | "sigintNews" | "news" | "nuclearInfrastructure" | "cctv" | "liveNews"
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
   | "satellite" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
-  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud"
+  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud" | "cityLights"
   | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure" | "ships";
 
 /** Minimal shape the registry needs; LayerVisibility satisfies it. */
@@ -117,7 +117,7 @@ export const GROUPS: readonly GroupDef[] = [
 /** Flat keys that panel v2 never draws (dropped, merged or moved). */
 export const V2_RETIRED_KEYS: readonly FlatKey[] = ["eonetWeather", "gdelt", "sigintNews", "liveNews", "radioFrequencies", "earthquakes", "fires"];
 /** Flat keys the classic panel never draws (v2-only merges). */
-export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure", "ships"];
+export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["cityLights", "news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure", "ships"];
 
 export const PRESET_LABELS: Record<PresetId, string> = {
   clean: "Clean",
