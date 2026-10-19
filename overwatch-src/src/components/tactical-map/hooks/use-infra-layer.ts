@@ -13,7 +13,8 @@ import { escapeHtml } from "@/lib/security";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import {
-  INFRA_CREDIT, INFRA_KINDS, INFRA_LABEL_DISTANCE_M, decodeInfraLine, infraLimits, keepInfraFeature, lineInView, lineStyle, nearestLines,
+  INFRA_CREDIT, INFRA_KINDS, INFRA_LABEL_DISTANCE_M, INFRA_LINE_LIFT_M, INFRA_LINE_TERRAIN_LEVEL, INFRA_MAX_SAMPLED_VERTICES,
+  decodeInfraLine, densifyLine, infraLimits, keepInfraFeature, lineInView, lineStyle, nearestLines,
   decodeInfraRow, infraCellsForView, type InfraCell, type InfraFeature, type InfraIndex,
 } from "@/lib/map/infra-extract";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -88,6 +89,7 @@ export function useInfraLayer(params: {
       }, SETTLE_INTERVAL_MS);
     };
     let shown = "";
+    let drawGeneration = 0;
     const source = new Cesium.CustomDataSource("osm-infrastructure");
     viewer.dataSources.add(source);
     groups.osmInfraSource = source;
@@ -130,6 +132,8 @@ export function useInfraLayer(params: {
       const cells = await Promise.all(keys.map(loadCell));
       if (disposed) return;
       shown = key;
+      const generation = ++drawGeneration;
+      const lineEntities: Array<{ entity: { polyline?: { positions?: unknown } }; pts: Array<[number, number]> }> = [];
       source.entities.suspendEvents();
       try {
         source.entities.removeAll();
@@ -186,15 +190,16 @@ export function useInfraLayer(params: {
             ? Cesium.Cartographic.fromCartesian(centre)
             : viewer.camera.positionCartographic;
           const focus = { lng: Cesium.Math.toDegrees(cg.longitude), lat: Cesium.Math.toDegrees(cg.latitude) };
-          for (const line of nearestLines(inView, focus, limits.maxLines)) {
+          const drawn = nearestLines(inView, focus, limits.maxLines);
+          for (const line of drawn) {
             const st = lineStyle(line.kv);
             const label = line.kv > 0 ? `${line.kv} kV transmission line` : "Transmission line";
-            source.entities.add({
+            const entity = source.entities.add({
               id: `infra-l-${n++}`,
               name: label,
               // Not ground-clamped: clamped (ground-primitive) lines hid the layer's clamped
-              // points under the reduced-quality renderer, and cost far more. Lines sit on the
-              // ellipsoid; where terrain covers them they still show, dimmer (depth-fail).
+              // points under the reduced-quality renderer, and cost far more. Lines start on the
+              // ellipsoid and are lifted onto sampled terrain heights below (3D terrain on).
               // Only lines inside the current view are drawn, so none reach the far side.
               polyline: {
                 positions: Cesium.Cartesian3.fromDegreesArray(line.pts.flat()),
@@ -205,6 +210,7 @@ export function useInfraLayer(params: {
               },
               description: `<div style="font-family:monospace;font-size:11px">${escapeHtml(label)}<br/><span style="color:#94a3b8">${escapeHtml(INFRA_CREDIT)} · extract ${escapeHtml(index.built)}</span></div>`,
             });
+            lineEntities.push({ entity, pts: line.pts });
           }
         }
         setCredit(n > 0);
@@ -212,6 +218,42 @@ export function useInfraLayer(params: {
         source.entities.resumeEvents();
       }
       settleRenders();
+      if (lineEntities.length) void liftLines(lineEntities, generation);
+    };
+
+    // With 3D terrain on, lines on the ellipsoid sink under hills and mountains. Sample the
+    // ground once per drawn view (coarse level, densified vertices) and lift them onto it.
+    const liftLines = async (
+      items: Array<{ entity: { polyline?: { positions?: unknown } }; pts: Array<[number, number]> }>,
+      generation: number,
+    ) => {
+      const tp = viewer.terrainProvider;
+      if (!tp || tp instanceof Cesium.EllipsoidTerrainProvider) return;
+      let dense = items.map((it) => densifyLine(it.pts));
+      if (dense.reduce((a, d) => a + d.length, 0) > INFRA_MAX_SAMPLED_VERTICES) dense = items.map((it) => it.pts);
+      const cartos = dense.flat().map(([lng, lat]) => Cesium.Cartographic.fromDegrees(lng, lat));
+      try {
+        const sampled = await Cesium.sampleTerrain(tp, INFRA_LINE_TERRAIN_LEVEL, cartos);
+        if (disposed || generation !== drawGeneration) return;
+        let i = 0;
+        source.entities.suspendEvents();
+        try {
+          dense.forEach((pts, k) => {
+            const flat: number[] = [];
+            for (const [lng, lat] of pts) {
+              const h = sampled[i++]?.height;
+              flat.push(lng, lat, (Number.isFinite(h) ? h : 0) + INFRA_LINE_LIFT_M);
+            }
+            const pl = items[k].entity.polyline;
+            if (pl) pl.positions = Cesium.Cartesian3.fromDegreesArrayHeights(flat);
+          });
+        } finally {
+          source.entities.resumeEvents();
+        }
+        viewer.scene.requestRender();
+      } catch (err) {
+        logger.swallow("infra-layer:terrain", err, "debug");
+      }
     };
 
     const schedule = () => {

@@ -41,6 +41,7 @@ declare namespace Cesium {
   // Types kept loose (any) — full type defs live in @cesium/engine but
   // we load Cesium from CDN, not bundled.
   function sampleTerrainMostDetailed(terrainProvider: any, positions: any[]): Promise<Array<{ height: number }>>;
+  function sampleTerrain(terrainProvider: any, level: number, positions: any[]): Promise<Array<{ height: number }>>;
   class PolygonHierarchy { constructor(positions: any[], holes?: any[]); }
   class PolygonGeometry { constructor(opts: any); }
   class GeometryInstance { constructor(opts: any); }

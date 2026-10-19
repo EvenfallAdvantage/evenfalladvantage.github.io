@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cloudLabel, cmrUrl, hlsTileUrl, imageryDays, parseCmr, pickDefaultDay, siteBox,
 } from "@/lib/map/site-imagery";
-import { decodeInfraLine, decodeInfraRow, infraLimits, INFRA_MAX_CELLS, keepInfraFeature, lineInView, lineStyle, nearestLines } from "@/lib/map/infra-extract";
+import { decodeInfraLine, decodeInfraRow, densifyLine, infraLimits, INFRA_MAX_CELLS, keepInfraFeature, lineInView, lineStyle, nearestLines } from "@/lib/map/infra-extract";
 
 const granule = (start: string, cloud?: string | number) => ({
   umm: {
@@ -112,5 +112,15 @@ describe("infra limits", () => {
     const focus = { lng: -97, lat: 32.8 };
     expect(nearestLines([far, mid, near], focus, 2).map((l) => l.id)).toEqual(["near", "mid"]);
     expect(nearestLines([far, near], focus, 5)).toHaveLength(2);
+  });
+
+  it("densifies long segments so lifted lines follow the ground", () => {
+    const short = densifyLine([[-97, 30], [-97.01, 30]]);
+    expect(short).toEqual([[-97, 30], [-97.01, 30]]);
+    const long = densifyLine([[-97, 30], [-97, 30.3]], 0.03);
+    expect(long[0]).toEqual([-97, 30]);
+    expect(long.at(-1)).toEqual([-97, 30.3]);
+    expect(long.length).toBeGreaterThanOrEqual(10);
+    for (let i = 1; i < long.length; i++) expect(long[i][1] - long[i - 1][1]).toBeLessThanOrEqual(0.0301);
   });
 });

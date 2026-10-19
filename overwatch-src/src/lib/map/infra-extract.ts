@@ -213,3 +213,33 @@ export function decodeInfraLine(row: unknown): { kv: number; pts: Array<[number,
     Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Math.abs(p[0] as number) <= 180 && Math.abs(p[1] as number) <= 90);
   return pts.length >= 2 ? { kv: Number.isFinite(kv) ? kv : 0, pts } : null;
 }
+
+/** Terrain level sampled for line heights (~300 m posts): cheap, and lines hug ridges well enough. */
+export const INFRA_LINE_TERRAIN_LEVEL = 9;
+/** Lines float this far above the sampled ground so terrain does not swallow them. */
+export const INFRA_LINE_LIFT_M = 40;
+/** Most vertices sampled for one view; above this the lines keep their stored vertices only. */
+export const INFRA_MAX_SAMPLED_VERTICES = 40_000;
+
+/**
+ * Add vertices so no segment is longer than `stepDeg` (longitude scaled by latitude),
+ * so terrain-sampled lines follow the ground between their simplified vertices.
+ */
+export function densifyLine(pts: ReadonlyArray<readonly [number, number]>, stepDeg = 0.03): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  for (let i = 0; i < pts.length; i++) {
+    const [lng, lat] = pts[i];
+    if (i > 0) {
+      const [plng, plat] = pts[i - 1];
+      const k = Math.cos((lat * Math.PI) / 180);
+      const d = Math.hypot((lng - plng) * k, lat - plat);
+      const n = Math.min(200, Math.floor(d / stepDeg));
+      for (let j = 1; j <= n; j++) {
+        const t = j / (n + 1);
+        out.push([plng + (lng - plng) * t, plat + (lat - plat) * t]);
+      }
+    }
+    out.push([lng, lat]);
+  }
+  return out;
+}
