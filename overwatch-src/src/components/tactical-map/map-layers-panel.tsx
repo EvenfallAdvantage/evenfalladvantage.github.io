@@ -46,6 +46,9 @@ export interface LayerVisibility {
   bloom: boolean;
   sharpen: boolean;
   hud: boolean;
+  /** Screen overlays (View menu): rotating sonar sweep, circular scope mask. */
+  sonarSweep: boolean;
+  scopeMask: boolean;
   // Live feeds
   aircraft: boolean;
   satelliteOrbits: boolean;
@@ -117,6 +120,8 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   bloom: false,
   sharpen: false,
   hud: false,
+  sonarSweep: false,
+  scopeMask: false,
   aircraft: false,
   satelliteOrbits: false,
   s2Intel: false,

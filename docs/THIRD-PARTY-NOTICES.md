@@ -162,6 +162,14 @@ set of active layers.
   - `overwatch-src/src/lib/map/site-imagery.ts` — HLS product table, CMR
     query and GIBS URL pattern from `src/layers/recentImagery/` (trimmed to a
     fixed site box)
+- Also used in (screen overlays):
+  - `overwatch-src/src/components/tactical-map/split-flap.tsx` — behaviour of
+    `src/splitFlap.js` (timings, cascade cap, textContent-is-truth), rewritten
+    as a React component
+  - `SONAR_EFFECT` / `SCOPE_EFFECT` in
+    `overwatch-src/src/components/tactical-map/effects.ts` — Overwatch GLSL
+    modelled on `src/cyberSonar.js` (period, sector, dimming) and
+    `src/scopeMask.js` (circular feathered aperture)
 
 ```
 MIT License
