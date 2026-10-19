@@ -29,8 +29,8 @@ export const SHIP_MODEL_NEAR_M = 25_000;
 export const SHIP_MODEL_MAX_CAMERA_M = 60_000;
 export const SHIP_MODEL_CAP_BY_LEVEL = [30, 10, 0] as const;
 export const SHIP_MODEL_URL = "/overwatch/models/ship.glb";
-/** ship.glb's bow is along the model's local axis 90° from Cesium heading 0 (checked visually). */
-export const SHIP_MODEL_HEADING_OFFSET_DEG = 90;
+/** ship.glb faces Cesium heading 0 with no offset (live check 2026-10-19: 90° showed ships broadside). */
+export const SHIP_MODEL_HEADING_OFFSET_DEG = 0;
 /** ship.glb is ~4000 model units long; scale to the AIS length (default 150 m), clamped. */
 export const SHIP_MODEL_UNITS_LONG = 4000;
 export function shipModelScale(lengthM: number | null | undefined): number {
