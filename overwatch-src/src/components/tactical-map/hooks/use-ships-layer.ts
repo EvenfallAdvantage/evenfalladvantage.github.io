@@ -21,7 +21,7 @@ import { modelStyle } from "@/lib/map/contact-models";
 import { boxKey, type GeoBox } from "@/lib/map/aircraft-viewport";
 import {
   CATEGORY_COLOR, CATEGORY_LABEL, SHIP_CAP_DESKTOP, SHIP_CAP_PHONE, SHIP_MODEL_URL, SHIP_POLL_MS, SHIP_POLL_MS_PHONE,
-  capShips, inShipBox, navStatusLabel, selectShipModelIds, shipCategory, shipHeadingDeg, shipModelHeadingDeg, shipQueryBox, type Ship,
+  capShips, inShipBox, navStatusLabel, selectShipModelIds, shipCategory, shipHeadingDeg, shipModelHeadingDeg, shipModelScale, shipQueryBox, type Ship,
 } from "@/lib/map/ships";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -176,7 +176,7 @@ export function useShipsLayer(params: {
           e.orientation = C.Transforms.headingPitchRollQuaternion(pos, new C.HeadingPitchRoll(C.Math.toRadians(shipModelHeadingDeg(shipHeadingDeg(s))), 0, 0));
           const st = modelStyle(contrastRef.current);
           e.model = new C.ModelGraphics({
-            uri: SHIP_MODEL_URL, minimumPixelSize: 40, maximumScale: 20, shadows: C.ShadowMode.DISABLED,
+            uri: SHIP_MODEL_URL, scale: shipModelScale(s.length_m), minimumPixelSize: 40, maximumScale: 20, shadows: C.ShadowMode.DISABLED,
             heightReference: C.HeightReference.CLAMP_TO_GROUND,
             color: C.Color.fromCssColorString(st.color), colorBlendMode: C.ColorBlendMode.MIX, colorBlendAmount: st.blend,
             silhouetteColor: C.Color.fromCssColorString(st.silhouette).withAlpha(st.silhouetteAlpha), silhouetteSize: st.silhouetteSize,

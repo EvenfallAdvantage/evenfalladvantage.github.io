@@ -31,6 +31,12 @@ export const SHIP_MODEL_CAP_BY_LEVEL = [30, 10, 0] as const;
 export const SHIP_MODEL_URL = "/overwatch/models/ship.glb";
 /** ship.glb's bow is along the model's local axis 90° from Cesium heading 0 (checked visually). */
 export const SHIP_MODEL_HEADING_OFFSET_DEG = 90;
+/** ship.glb is ~4000 model units long; scale to the AIS length (default 150 m), clamped. */
+export const SHIP_MODEL_UNITS_LONG = 4000;
+export function shipModelScale(lengthM: number | null | undefined): number {
+  const len = lengthM && lengthM > 5 && lengthM <= 450 ? lengthM : 150;
+  return Math.max(20, len) / SHIP_MODEL_UNITS_LONG;
+}
 export const SHIP_CREDIT = "AIS: aisstream.io · Fintraffic Digitraffic (CC BY 4.0)";
 
 const MAX_LAT = 85;

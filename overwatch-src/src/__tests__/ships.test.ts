@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  SHIP_MAX_SPAN_DEG, capShips, inShipBox, selectShipModelIds, shipCategory, shipHeadingDeg, shipQueryBox, shipModelHeadingDeg, type Ship,
+  SHIP_MAX_SPAN_DEG, capShips, inShipBox, selectShipModelIds, shipCategory, shipHeadingDeg, shipQueryBox, shipModelHeadingDeg, shipModelScale, type Ship,
 } from "@/lib/map/ships";
 
 const ship = (mmsi: number, lat: number, lon: number, extra: Partial<Ship> = {}): Ship => ({
@@ -42,6 +42,9 @@ describe("ship helpers", () => {
     expect(shipHeadingDeg({ heading: null, cog: 90, sog: 5 })).toBe(90);
     expect(shipHeadingDeg({ heading: null, cog: 90, sog: 0 })).toBe(0);
     expect(shipModelHeadingDeg(300)).toBe(30);
+    expect(shipModelScale(400)).toBeCloseTo(0.1);
+    expect(shipModelScale(null)).toBeCloseTo(150 / 4000);
+    expect(shipModelScale(2)).toBeCloseTo(150 / 4000);
   });
   it("caps newest first (phone cap)", () => {
     const list = Array.from({ length: 600 }, (_, i) => ship(200000000 + i, 0, 0, { updated_at: `2026-10-19T15:${String(i % 60).padStart(2, "0")}:00Z` }));
