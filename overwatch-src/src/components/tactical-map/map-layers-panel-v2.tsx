@@ -293,6 +293,10 @@ function PanelBody(props: MapLayersPanelV2Props) {
                 <label className="flex items-center gap-1.5"><input type="checkbox" checked={layers.bloom} onChange={() => onChange({ ...layers, bloom: !layers.bloom })} className="h-3 w-3" style={{ accentColor: ACCENT }} />Bloom</label>
               </div>
             )}
+            <label className="flex items-center justify-between text-[11px] text-white/70" title="NASA Black Marble (VIIRS) city lights, shown on the night side of the globe">
+              <span>City lights at night</span>
+              <Switch on={layers.cityLights} onToggle={() => onChange({ ...layers, cityLights: !layers.cityLights })} label="City lights at night" />
+            </label>
             <label className="flex items-center justify-between text-[11px] text-white/70">
               <span>Tactical HUD</span>
               <Switch on={layers.hud} onToggle={() => onChange({ ...layers, hud: !layers.hud })} label="Tactical HUD" />
