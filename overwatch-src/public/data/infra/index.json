@@ -7,18 +7,16 @@
   "datacenter": "OpenStreetMap via gods-eye-view (ODbL)",
   "dam": "OpenStreetMap via Open Infrastructure Map / gods-eye-view (ODbL)",
   "military": "OpenStreetMap via Overture Maps 2026-09-23.1 / gods-eye-view (ODbL)",
-  "power": "partial: 1 US tiles pending (Overpass unavailable)"
+  "power": "OpenStreetMap via Overpass API (ODbL), US"
  },
  "counts": {
   "datacenter": 4351,
   "dam": 704,
   "military": 36466,
-  "substation": 30426,
-  "line": 24172
+  "substation": 31997,
+  "line": 25395
  },
- "pendingTiles": [
-  "24,-105,30,-95"
- ],
+ "pendingTiles": [],
  "cells": {
   "-10_-100": 5,
   "-10_-20": 7,
@@ -144,8 +142,8 @@
   "10_80": 84,
   "10_90": 180,
   "20_-10": 43,
-  "20_-100": 393,
-  "20_-110": 296,
+  "20_-100": 2647,
+  "20_-110": 829,
   "20_-120": 113,
   "20_-160": 70,
   "20_-170": 1,
@@ -169,7 +167,7 @@
   "20_80": 245,
   "20_90": 479,
   "30_-10": 559,
-  "30_-100": 10472,
+  "30_-100": 10479,
   "30_-110": 4538,
   "30_-120": 4109,
   "30_-130": 832,
