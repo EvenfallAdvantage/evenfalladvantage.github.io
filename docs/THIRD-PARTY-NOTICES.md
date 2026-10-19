@@ -52,6 +52,8 @@ sources are currently enabled and any gating reasons.
 
 ### Free with attribution required
 
+- **Launch Library 2 — The Space Devs** — rocket launches, last 30 days (Operations map, Infrastructure → Space), `ll.thespacedevs.com/2.3.0` keyless (15 calls/hour per client; cached 15 min per browser session). Terms permit use and sharing in any form; attribution encouraged and shown. Ascent replay paths are Overwatch's own coarse estimates, not LL2 data.
+
 The public, user-facing list (exact credit strings + licence links) is
 `/data-sources.html` at the site root (https://www.evenfalladvantage.com/data-sources.html).
 Keep this table and that page in sync.
@@ -162,6 +164,13 @@ set of active layers.
   - `overwatch-src/src/lib/map/site-imagery.ts` — HLS product table, CMR
     query and GIBS URL pattern from `src/layers/recentImagery/` (trimmed to a
     fixed site box)
+- Also used in (rocket launches):
+  - `overwatch-src/src/lib/map/launches.ts`,
+    `overwatch-src/src/components/tactical-map/hooks/use-launches-layer.ts`,
+    `overwatch-src/src/components/tactical-map/launch-panel.tsx` — LL2 v2.3
+    30-day query and the estimated-ascent replay idea (failed launches get no
+    path; labelled as an estimate) from `src/layers/launches/` (rewritten,
+    much simpler profile)
 
 ```
 MIT License

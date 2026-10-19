@@ -46,6 +46,8 @@ export interface LayerVisibility {
   bloom: boolean;
   sharpen: boolean;
   hud: boolean;
+  /** Rocket launches, last 30 days (Launch Library 2), Infrastructure → Space. */
+  rocketLaunches: boolean;
   // Live feeds
   aircraft: boolean;
   satelliteOrbits: boolean;
@@ -117,6 +119,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   bloom: false,
   sharpen: false,
   hud: false,
+  rocketLaunches: false,
   aircraft: false,
   satelliteOrbits: false,
   s2Intel: false,

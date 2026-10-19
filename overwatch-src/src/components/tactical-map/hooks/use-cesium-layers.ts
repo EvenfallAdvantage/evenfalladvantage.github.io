@@ -42,6 +42,7 @@ import { useCloudsLayer } from "./use-clouds-layer";
 import { useWindLayer } from "./use-wind-layer";
 import { useMaritimeLayer } from "./use-maritime-layer";
 import { useCctvLayer } from "./use-cctv-layer";
+import { useLaunchesLayer } from "./use-launches-layer";
 import { useGeofencesLayer } from "./use-geofences-layer";
 import { useRawsLayer } from "./use-raws-layer";
 import { useFrequencyLayer } from "./use-frequency-layer";
@@ -49,6 +50,8 @@ import type { IntelLiveNewsFeed, CctvCamera } from "@/lib/intel-types";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+
+const NOOP_LAUNCH = () => {};
 
 export function useCesiumLayers(params: {
   viewerRef: CesiumRef;
@@ -73,6 +76,8 @@ export function useCesiumLayers(params: {
   onOpenLiveFeed?: (feed: IntelLiveNewsFeed) => void;
   /** Click-handler for CCTV camera pins. */
   onOpenCctvCamera?: (cam: CctvCamera) => void;
+  /** Click-handler for rocket-launch pad markers. */
+  onOpenLaunch?: (l: import("@/lib/map/launches").Launch) => void;
   /** Day shown by the NASA daily imagery (YYYY-MM-DD); undefined = latest. */
   gibsDay?: string;
   /** Panel v2 scope (near my sites / map view); undefined = everywhere. */
@@ -99,6 +104,7 @@ export function useCesiumLayers(params: {
     adjustingOpId,
     onOpenLiveFeed,
     onOpenCctvCamera,
+    onOpenLaunch,
     gibsDay,
     scopeFilters,
   } = params;
@@ -231,6 +237,9 @@ export function useCesiumLayers(params: {
     onOpenCamera: onOpenCctvCamera ?? (() => {}),
     filter: cameraFilter,
   });
+
+  // ─── Sub-hook: Rocket launches (Infrastructure → Space) ──
+  useLaunchesLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenLaunch: onOpenLaunch ?? NOOP_LAUNCH });
 
   // ─── Sub-hook: RAWS weather stations (ArcGIS, viewport-filtered) ──────
   useRawsLayer({
