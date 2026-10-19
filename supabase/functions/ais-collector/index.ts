@@ -10,7 +10,6 @@
 // and writes the latest fix per MMSI with ships_upsert / ships_static_upsert.
 // Without AISSTREAM_API_KEY it runs Digitraffic-only. The key is never logged.
 
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { env, isCronCall, serviceClient } from "../_shared/integrations/http.ts";
 import { ShipBuffer } from "./lib.ts";
 import { collectAisstream, collectDigitraffic } from "./collect.ts";
