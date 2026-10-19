@@ -1,9 +1,11 @@
 /**
  * 24 h track history for the tracked aircraft.
  *
- * adsb.lol publishes per-aircraft readsb traces (ODbL 1.0). They have no
- * browser CORS, so the `opensky-proxy` Edge Function fetches and normalizes
- * them (`?trace=<hex>`). Pattern from gods-eye-view
+ * Recorded by Overwatch itself: the `opensky-proxy` Edge Function stores one
+ * point per aircraft per minute from the areas users view (OverwatchDB
+ * aircraft_positions, 24 h TTL) and serves it back via `?trace=<hex>`.
+ * Coverage is limited to where Overwatch users have looked. Positions are
+ * derived from adsb.lol data (ODbL 1.0). Line-splitting pattern from gods-eye-view
  * (server/providers/aircraft/tracks.js), © 2026 Bilawal Sidhu, MIT — see
  * docs/THIRD-PARTY-NOTICES.md. Best effort: when history is unavailable the
  * map simply keeps the live trail.
@@ -14,7 +16,9 @@ import { distanceM } from "./aircraft-motion";
 /** [epoch ms, lat, lon, altitude m | null] */
 export type TracePoint = [number, number, number, number | null];
 
-export const TRACE_CREDIT = "Track history: adsb.lol (ODbL 1.0)";
+export const TRACE_CREDIT = "Track history: recorded by Overwatch from adsb.lol data (ODbL 1.0)";
+/** Shown with the history badge: our history only covers areas users have viewed. */
+export const TRACE_COVERAGE_HINT = "History is recorded only where Overwatch users have viewed the map (last 24 h), so it may be partial or missing.";
 /** A gap longer than this (no reports) breaks the line instead of drawing a straight jump. */
 export const TRACE_GAP_MS = 10 * 60_000;
 /** ...as does an implausible jump (bad position) between two consecutive points. */

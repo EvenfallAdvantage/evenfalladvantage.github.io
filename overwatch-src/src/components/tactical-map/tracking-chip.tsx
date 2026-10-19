@@ -3,7 +3,7 @@
 /**
  * Click-to-track overlay for aircraft: follows the target with the camera,
  * shows its live trail (drawn by use-aircraft-layer) plus up to 24 h of
- * adsb.lol track history, a nearby-contacts list (~250 km, click to jump),
+ * Overwatch-recorded track history (viewed areas only), a nearby-contacts list (~250 km, click to jump),
  * and a hand-off to the nearest public traffic camera under its flight path.
  * Interaction pattern inspired by gods-eye-view's tracking HUD (MIT).
  */
@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, Crosshair, History, Video, X } from "lucide-react";
 import type { CctvCamera } from "@/lib/intel-types";
 import { nearestWithin, type AircraftTrack } from "@/lib/map/aircraft-motion";
-import { fetchAircraftTrace, splitTraceSegments, TRACE_CREDIT } from "@/lib/map/aircraft-trace";
+import { fetchAircraftTrace, splitTraceSegments, TRACE_COVERAGE_HINT, TRACE_CREDIT } from "@/lib/map/aircraft-trace";
 import { compass, nearbyContacts, type ContactLike, type Contact } from "@/lib/map/nearby-contacts";
 import type { CesiumRef, EntityGroupsRef } from "./hooks/cesium-layer-types";
 
@@ -76,7 +76,7 @@ export function TrackingChip({ viewerRef, cesiumRef, entityGroupsRef, trackedId,
       if (ctrl.signal.aborted) return;
       const segs = splitTraceSegments(points);
       if (!segs.length || !viewer || !Cesium || viewer.isDestroyed?.()) {
-        setHistory({ status: "none", reason: error ?? "no history in the last 24 h" });
+        setHistory({ status: "none", reason: error ?? "no recorded history (only areas Overwatch users viewed in the last 24 h)" });
         return;
       }
       const color = Cesium.Color.fromCssColorString("#67e8f9").withAlpha(0.45);
@@ -110,8 +110,13 @@ export function TrackingChip({ viewerRef, cesiumRef, entityGroupsRef, trackedId,
         <span className="truncate min-w-0" title={`Tracking ${label}`}>TRACKING {label}</span>
         {lost && <span className="shrink-0 text-amber-300">· signal lost</span>}
         {history.status === "ok" && (
-          <span className="shrink-0 flex items-center gap-1 text-cyan-200/70" title={`${TRACE_CREDIT} · ${history.points} points`}>
-            <History className="h-3 w-3" />{history.hours}h · adsb.lol ODbL
+          <span className="shrink-0 flex items-center gap-1 text-cyan-200/70" title={`${TRACE_CREDIT} · ${history.points} points. ${TRACE_COVERAGE_HINT}`} data-testid="tracking-history">
+            <History className="h-3 w-3" />{history.hours}h · partial · ODbL
+          </span>
+        )}
+        {history.status === "none" && (
+          <span className="shrink-0 flex items-center gap-1 text-white/40" title={`${history.reason}. ${TRACE_COVERAGE_HINT}`} data-testid="tracking-history">
+            <History className="h-3 w-3" />no history
           </span>
         )}
         {nearest && (
