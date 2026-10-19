@@ -30,7 +30,7 @@ export type FlatKey =
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
   | "satellite" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
   | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud"
-  | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure";
+  | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure" | "ships";
 
 /** Minimal shape the registry needs; LayerVisibility satisfies it. */
 export type RegistryState = Record<FlatKey, boolean> & {
@@ -92,10 +92,11 @@ export const GROUPS: readonly GroupDef[] = [
     ],
   },
   {
-    id: "airSea", label: "Air & Sea", blurb: "Aircraft, ports",
+    id: "airSea", label: "Air & Sea", blurb: "Aircraft, ships, ports",
     subs: [
       { id: "aircraft", label: "Aircraft", keys: ["aircraft"] },
       { id: "gnss", label: "GPS interference", keys: ["gnss"], hint: "Areas where many aircraft report poor GPS accuracy (an anomaly, not confirmed jamming)" },
+      { id: "ships", label: "Ships (live AIS)", keys: ["ships"], hint: "Live vessel positions from AIS (aisstream.io, Fintraffic Digitraffic). Self-reported, can be minutes old." },
       { id: "ports", label: "Ports & chokepoints", keys: ["maritime"] },
     ],
   },
@@ -116,7 +117,7 @@ export const GROUPS: readonly GroupDef[] = [
 /** Flat keys that panel v2 never draws (dropped, merged or moved). */
 export const V2_RETIRED_KEYS: readonly FlatKey[] = ["eonetWeather", "gdelt", "sigintNews", "liveNews", "radioFrequencies", "earthquakes", "fires"];
 /** Flat keys the classic panel never draws (v2-only merges). */
-export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure"];
+export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure", "ships"];
 
 export const PRESET_LABELS: Record<PresetId, string> = {
   clean: "Clean",
@@ -269,7 +270,7 @@ export const PRESETS: Record<PresetId, PresetSpec> = {
   },
   airWatch: {
     groups: ["myOps", "airSea"],
-    subs: ["myOps:sites", "airSea:aircraft"],
+    subs: ["myOps:sites", "airSea:aircraft", "airSea:ships"],
     desktopSubs: ["airSea:gnss"],
     basemap: "satellite",
     aircraftFilter: "all",

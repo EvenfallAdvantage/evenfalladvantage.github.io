@@ -164,6 +164,13 @@ describe("guard: no map marker may disable the depth test unconditionally", () =
     expect(files.some((f) => f.endsWith(path.join("tactical-map", "hooks", "use-hazards-layer.ts")))).toBe(true);
   });
 
+  it("covers the live ships layer (markers and labels use the near-side rule)", () => {
+    const f = files.find((x) => x.endsWith(path.join("tactical-map", "hooks", "use-ships-layer.ts")));
+    expect(f).toBeTruthy();
+    const src = fs.readFileSync(f!, "utf8");
+    expect((src.match(/disableDepthTestDistance:\s*nearSideDepthProperty\(/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+
   it("uses nearSideDepthProperty/nearSideDepthDistance instead of Infinity or a fixed distance", () => {
     const offenders: string[] = [];
     for (const f of files) {
