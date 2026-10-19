@@ -1,6 +1,6 @@
 -- =============================================================================
--- 20261019173000_aircraft_history (OverwatchDB nneueuvyeohwnspbwfub ONLY).
--- NOT APPLIED. Our own 24 h aircraft track history, replacing adsb.lol
+-- 20261019181654_aircraft_history (OverwatchDB nneueuvyeohwnspbwfub ONLY).
+-- APPLIED 2026-10-19 11:16 PT as version 20261019181654. Our own 24 h aircraft track history, replacing adsb.lol
 -- trace_full files (adsb.lol: "not an api").
 --   * public.aircraft_positions: positions recorded by the opensky-proxy Edge
 --     function (service role) from the area responses it already fetches,
@@ -11,7 +11,7 @@
 --   * aircraft_track(hex): read path for any signed-in user (map stays free).
 --   * pg_cron: hourly cleanup of rows older than 24 h.
 -- RLS on, no policies: no direct table access for anon/authenticated.
--- Rollback: rollback/20261019173000_aircraft_history.rollback.sql
+-- Rollback: rollback/20261019181654_aircraft_history.rollback.sql
 -- =============================================================================
 BEGIN;
 
