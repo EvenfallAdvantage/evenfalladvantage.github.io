@@ -126,15 +126,20 @@ function coneEntity(Cesium: any, viewer: any, id: string, cam: CctvCamera): Reco
     polygon: {
       hierarchy: Cesium.Cartesian3.fromDegreesArrayHeights(fan),
       perPositionHeight: true,
-      material: color.withAlpha(0.22),
+      material: color.withAlpha(0.28),
       outline: false,
       distanceDisplayCondition: show,
     },
     polyline: {
       positions: Cesium.Cartesian3.fromDegreesArrayHeights([...fan, cam.lng, cam.lat, ground + CONE_MOUNT_M]),
-      // Light outline so the cone still reads under NVG/thermal looks.
-      width: 2,
-      material: Cesium.Color.fromCssColorString("#d1fae5").withAlpha(0.9),
+      // Light edge with a dark rim: the dark rim is what still reads under the
+      // NVG/thermal post-processing, which flattens colour to brightness.
+      width: 3.5,
+      material: new Cesium.PolylineOutlineMaterialProperty({
+        color: Cesium.Color.fromCssColorString("#d1fae5").withAlpha(0.95),
+        outlineColor: Cesium.Color.BLACK.withAlpha(0.85),
+        outlineWidth: 1,
+      }),
       distanceDisplayCondition: show,
     },
   };
