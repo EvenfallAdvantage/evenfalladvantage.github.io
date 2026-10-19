@@ -14,7 +14,7 @@ import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import {
   INFRA_CREDIT, INFRA_KINDS, INFRA_LABEL_DISTANCE_M, INFRA_LINE_LIFT_M, INFRA_LINE_TERRAIN_LEVEL, INFRA_MAX_SAMPLED_VERTICES,
-  decodeInfraLine, densifyLine, infraLimits, keepInfraFeature, lineInView, lineStyle, nearestLines,
+  decodeInfraLine, densifyLine, infraContrastStyle, infraLimits, keepInfraFeature, lineInView, lineStyle, nearestLines,
   decodeInfraRow, infraCellsForView, type InfraCell, type InfraFeature, type InfraIndex,
 } from "@/lib/map/infra-extract";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -65,8 +65,10 @@ export function useInfraLayer(params: {
   entityGroupsRef: EntityGroupsRef;
   loading: boolean;
   enabled: boolean;
+  /** NVG/thermal look: draw dark so the layer reads after brightness-only post-processing. */
+  highContrast?: boolean;
 }) {
-  const { viewerRef, cesiumRef, entityGroupsRef, loading, enabled } = params;
+  const { viewerRef, cesiumRef, entityGroupsRef, loading, enabled, highContrast = false } = params;
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -106,6 +108,11 @@ export function useInfraLayer(params: {
       } catch (err) { logger.swallow("infra-layer:credit", err, "debug"); }
     };
 
+    const look = infraContrastStyle(highContrast);
+    const pointOutline = Cesium.Color.fromCssColorString(look.pointOutline).withAlpha(highContrast ? 0.9 : 0.8);
+    const pointFill = look.pointFill ? Cesium.Color.fromCssColorString(look.pointFill) : null;
+    const labelFill = look.labelFill ? Cesium.Color.fromCssColorString(look.labelFill) : null;
+    const labelOutline = Cesium.Color.fromCssColorString(look.labelOutline);
     const colors = Object.fromEntries(
       Object.entries(INFRA_KINDS).map(([k, v]) => [k, Cesium.Color.fromCssColorString(v.color)]),
     );
@@ -154,9 +161,9 @@ export function useInfraLayer(params: {
               position: Cesium.Cartesian3.fromDegrees(f.lng, f.lat, 0),
               point: {
                 pixelSize: f.kind === "m" ? 7 : f.kind === "s" && (f.kv ?? 0) < 230 ? 4 : 6,
-                color: colors[f.kind],
-                outlineColor: Cesium.Color.BLACK.withAlpha(0.8),
-                outlineWidth: 1,
+                color: pointFill ?? colors[f.kind],
+                outlineColor: pointOutline,
+                outlineWidth: look.pointOutlineWidth,
                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
                 // Near side reads over terrain; the globe hides the far side (#107). Shared per viewer.
                 disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
@@ -165,8 +172,8 @@ export function useInfraLayer(params: {
               label: limits.labels && !(f.kind === "s" && (f.kv ?? 0) < 230) ? {
                 text: f.name,
                 font: "10px sans-serif",
-                fillColor: colors[f.kind],
-                outlineColor: Cesium.Color.BLACK,
+                fillColor: labelFill ?? colors[f.kind],
+                outlineColor: labelOutline,
                 outlineWidth: 2,
                 style: Cesium.LabelStyle.FILL_AND_OUTLINE,
                 pixelOffset: new Cesium.Cartesian2(0, -12),
@@ -198,7 +205,8 @@ export function useInfraLayer(params: {
           const focus = { lng: Cesium.Math.toDegrees(cg.longitude), lat: Cesium.Math.toDegrees(cg.latitude) };
           const drawn = nearestLines(inView, focus, limits.maxLines);
           for (const line of drawn) {
-            const st = lineStyle(line.kv);
+            const base = lineStyle(line.kv);
+            const st = { width: base.width + look.lineWidthBoost, color: look.lineColor ?? base.color };
             const label = line.kv > 0 ? `${line.kv} kV transmission line` : "Transmission line";
             const entity = lineSource.entities.add({
               id: `infra-l-${n++}`,
@@ -213,7 +221,7 @@ export function useInfraLayer(params: {
                 positions: Cesium.Cartesian3.fromDegreesArrayHeights(line.pts.flatMap(([lng, lat]) => [lng, lat, INFRA_LINE_LIFT_M])),
                 width: st.width,
                 arcType: Cesium.ArcType.GEODESIC,
-                material: (lineColors[st.color] ??= Cesium.Color.fromCssColorString(st.color).withAlpha(0.85)),
+                material: (lineColors[st.color] ??= Cesium.Color.fromCssColorString(st.color).withAlpha(look.lineAlpha)),
                 depthFailMaterial: (lineColors[`${st.color}-df`] ??= Cesium.Color.fromCssColorString(st.color).withAlpha(0.4)),
               },
               description: `<div style="font-family:monospace;font-size:11px">${escapeHtml(label)}<br/><span style="color:#94a3b8">${escapeHtml(INFRA_CREDIT)} · extract ${escapeHtml(index.built)}</span></div>`,
@@ -282,5 +290,6 @@ export function useInfraLayer(params: {
       try { viewer.dataSources.remove(lineSource, true); } catch (err) { logger.swallow("infra-layer:remove-lines", err, "debug"); }
       groups.osmInfraSource = null;
     };
-  }, [enabled, loading, viewerRef, cesiumRef, entityGroupsRef]);
+    // highContrast rebuilds the layer in the new look (cells are cached, so it is quick).
+  }, [enabled, loading, highContrast, viewerRef, cesiumRef, entityGroupsRef]);
 }

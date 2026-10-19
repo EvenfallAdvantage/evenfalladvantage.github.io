@@ -315,7 +315,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Shared with layers that restyle under NVG/thermal (camera cones read it live).
   useEffect(() => { entityGroupsRef.current.highContrastLook = highContrastLook; }, [highContrastLook]);
   const modelsShown = useContactModels({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.aircraft, highContrast: highContrastLook });
-  useInfraLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.osmInfrastructure });
+  useInfraLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.osmInfrastructure, highContrast: highContrastLook });
   useSiteImagery({ viewerRef, cesiumRef, loading, selection: siteImagery });
   const osmBuildingsStatus = useOsmBuildingsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading,
