@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Minimize2, Loader2, Radar, Link2, MonitorPlay } from "lucide-react";
+import { Maximize2, Minimize2, Loader2, Radar, Link2, MonitorPlay, Search } from "lucide-react";
 
 interface MapControlButtonsProps {
   cameraHeading: number;
@@ -18,6 +18,9 @@ interface MapControlButtonsProps {
   onShare?: () => void;
   /** Enter full-screen Ops Mode. */
   onOpsMode?: () => void;
+  /** Toggle the map search box. */
+  searchOpen?: boolean;
+  onToggleSearch?: () => void;
 }
 
 const btnBase = "w-10 h-10 rounded-full backdrop-blur-sm border border-white/10 flex items-center justify-center transition-colors";
@@ -27,7 +30,7 @@ const btnBgActive = "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, color-
 export function MapControlButtons({
   cameraHeading, isFullscreen, timeMachineOpen, dronePlannerOpen, intelDrawerOpen, isAdmin,
   onResetNorth, onToggleFullscreen, onToggleTimeMachine, onToggleDronePlanner, onToggleIntelDrawer,
-  onShare, onOpsMode,
+  onShare, onOpsMode, searchOpen, onToggleSearch,
 }: MapControlButtonsProps) {
   return (
     <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
@@ -42,6 +45,15 @@ export function MapControlButtons({
           <text x="14" y="9" textAnchor="middle" fontSize="6" fontWeight="bold" fontFamily="monospace" fill="#ef4444">N</text>
         </svg>
       </button>
+
+      {/* Search places / coordinates */}
+      {onToggleSearch && (
+        <button onClick={onToggleSearch} title="Search places or coordinates" aria-pressed={Boolean(searchOpen)}
+          className={`${btnBase} ${searchOpen ? "text-white border-white/30" : "text-white/60 hover:text-white hover:border-white/30"}`}
+          style={{ backgroundColor: searchOpen ? btnBgActive : btnBg }}>
+          <Search className="h-4 w-4" />
+        </button>
+      )}
 
       {/* Fullscreen */}
       <button onClick={onToggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}

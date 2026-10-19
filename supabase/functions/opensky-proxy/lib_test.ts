@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { aircraftFlags, bboxToPointQuery, cacheKey, extractAircraft, FLAG_EMERGENCY, FLAG_MILITARY, parseBBox, toOpenSkyStates, upstreamUrls, type BBox } from "./lib.ts";
+import { aircraftFlags, bboxToPointQuery, cacheKey, extractAircraft, FLAG_EMERGENCY, FLAG_MILITARY, normalizeTrace, parseBBox, parseTraceParam, toOpenSkyStates, traceUrl, upstreamUrls, type BBox } from "./lib.ts";
 
 const LA: BBox = { lamin: 33, lamax: 35, lomin: -119, lomax: -117 };
 const p = (q: string) => new URLSearchParams(q);
@@ -68,4 +68,28 @@ Deno.test("military / emergency flags and accuracy fields are appended at 17-21"
   assertEquals(s[14], "7600");
   const [plain] = toOpenSkyStates([{ hex: "a1", lat: 34, lon: -118, alt_baro: 1000 }], LA, 0);
   assertEquals(plain.slice(17), [0, null, null, null, null]);
+});
+
+Deno.test("trace param + url", () => {
+  assertEquals(parseTraceParam(p("trace=A1B21F")), "a1b21f");
+  assertEquals(parseTraceParam(p("trace=~a1b21f")), "~a1b21f");
+  assertEquals(parseTraceParam(p("trace=../etc")), null);
+  assertEquals(parseTraceParam(p("trace=a1b2")), null);
+  assertEquals(traceUrl("a1b21f"), "https://adsb.lol/data/traces/1f/trace_full_a1b21f.json");
+});
+
+Deno.test("normalizeTrace keeps the last 24 h, converts feet, thins to the cap", () => {
+  const now = 1_800_000_000_000;
+  const base = now / 1000 - 30 * 3600; // trace starts 30 h ago
+  const trace: unknown[] = [];
+  for (let s = 0; s <= 30 * 3600; s += 60) trace.push([s, 40 + s / 1e6, -74, s % 120 === 0 ? 10000 : "ground"]);
+  trace.push(["bad", 1, 2, 3], [5, 999, 0, 0]);
+  const pts = normalizeTrace({ timestamp: base, trace }, now, undefined, 500);
+  assertEquals(pts.length, 500);
+  assert(pts[0][0] >= now - 24 * 3600_000);
+  assertEquals(pts[pts.length - 1][0], now);
+  assert(pts.every((q, i) => i === 0 || q[0] > pts[i - 1][0]));
+  assert(pts.some((q) => q[3] === 3048) && pts.some((q) => q[3] === 0));
+  assertEquals(normalizeTrace(null, now), []);
+  assertEquals(normalizeTrace({ timestamp: "x", trace: [] }, now), []);
 });

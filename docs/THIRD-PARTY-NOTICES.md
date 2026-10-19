@@ -60,7 +60,9 @@ Keep this table and that page in sync.
 |---|---|---|
 | NASA FIRMS (VIIRS/MODIS) | Active fires layer | "NASA FIRMS" (NASA data policy) |
 | NASA EONET imagery | EONET events layer | "NASA EONET" |
-| CelesTrak TLE catalog | Satellite orbits | "CelesTrak" |
+| CelesTrak TLE catalog | Satellite orbits, satellite pass times for a site | "CelesTrak" |
+| Photon (komoot) / OSM Nominatim | Map search box (search on Enter, ≤ 1 req/s, cached) | "© OpenStreetMap contributors · Photon / Nominatim" (ODbL 1.0) |
+| ADSB.lol traces | 24 h track history of the tracked aircraft (via `opensky-proxy?trace=`) | "Track history: adsb.lol (ODbL 1.0)" |
 | ADSB.lol (primary) / adsb.fi (fallback) | Flight tracking layer (`opensky-proxy`) | "Aircraft data © adsb.lol / adsb.fi contributors (ODbL)"; adsb.lol ODbL 1.0; adsb.fi open-data terms (non-commercial; permission requested 2026-10-16) |
 | CARTO / OpenStreetMap | Basemap | "© OpenStreetMap contributors, © CARTO" (ODbL + CARTO basemap terms) |
 | EOX EOxCloudless 2021 | Sentinel-2 mosaic | "EOxCloudless … by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2021)" CC BY-NC-SA 4.0; licensing enquiry sent 2026-10-16 |
@@ -133,6 +135,14 @@ set of active layers.
   correction-blend approach, angle lerp), `overwatch-src/src/components/tactical-map/tracking-chip.tsx`
   (tracking HUD pattern), and the Phase 1 effects / share-link modules that
   reference this notice.
+- Also used in (map tracking + search):
+  - `overwatch-src/src/lib/map/coordinate-parser.ts` — port of
+    `src/search/coordinateParser.js` (TypeScript, plus DMS parsing)
+  - `overwatch-src/src/lib/map/geocode.ts` — keyless Photon/Nominatim adapter
+    shape from `src/keylessGeocoder.js` (rewritten; adds a 1 req/s throttle)
+  - `overwatch-src/src/lib/map/aircraft-trace.ts` and
+    `supabase/functions/opensky-proxy` (`?trace=`) — adsb.lol trace proxy
+    pattern from `server/providers/aircraft/tracks.js`
 
 ```
 MIT License
