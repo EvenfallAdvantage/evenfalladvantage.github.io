@@ -74,6 +74,8 @@ export interface LayerVisibility {
   clouds: boolean;
   wind: boolean;
   gnss: boolean;
+  /** Live AIS ships (Air & Sea; panel v2 only). */
+  ships: boolean;
   /** Panel v2: OSM infrastructure extract (data centres, dams, military areas, substations). */
   osmInfrastructure: boolean;
   aircraftFilter: AircraftFilter;
@@ -137,6 +139,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   clouds: false,
   wind: false,
   gnss: false,
+  ships: false,
   osmInfrastructure: false,
   aircraftFilter: "all",
   scope: "sites",

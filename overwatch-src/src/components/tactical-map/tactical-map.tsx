@@ -55,6 +55,7 @@ import { TrackingChip } from "./tracking-chip";
 import { MapSearch } from "./map-search";
 import { usePerfGovernor } from "./hooks/use-perf-governor";
 import { useContactModels } from "./hooks/use-contact-models";
+import { useShipsLayer } from "./hooks/use-ships-layer";
 import { isHighContrastLook } from "@/lib/map/contact-models";
 import { escapeHtml } from "@/lib/security";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
@@ -315,6 +316,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Shared with layers that restyle under NVG/thermal (camera cones read it live).
   useEffect(() => { entityGroupsRef.current.highContrastLook = highContrastLook; }, [highContrastLook]);
   const modelsShown = useContactModels({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.aircraft, highContrast: highContrastLook });
+  // Live AIS ships (Air & Sea), desktop 3D models near the camera.
+  const shipsLayer = useShipsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.ships, highContrast: highContrastLook });
   useInfraLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.osmInfrastructure });
   useSiteImagery({ viewerRef, cesiumRef, loading, selection: siteImagery });
   const osmBuildingsStatus = useOsmBuildingsLayer({
@@ -846,7 +849,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       <div ref={containerRef} className="w-full h-full" />
 
       {/* Persistent legal footer + Cesium provider credits */}
-      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} osmBuildings={osmBuildingsStatus.state !== "off"} models={modelsShown} />
+      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} osmBuildings={osmBuildingsStatus.state !== "off"} models={modelsShown || shipsLayer.modelsShown} ais={!!activeLayers.ships} />
 
       {/* Ops Mode bar — top right, above other overlays, so the top-centre
           tracking chip (Phase 1A) can never cover Share / Exit. */}

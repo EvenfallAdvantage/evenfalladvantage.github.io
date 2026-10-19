@@ -13,10 +13,12 @@ interface MapLegalFooterProps {
   osmBuildings?: boolean;
   /** CC BY 4.0 3D aircraft models are on screen: show their credit. */
   models?: boolean;
+  /** Live AIS ships layer is on: credit its sources (Digitraffic is CC BY 4.0). */
+  ais?: boolean;
 }
 
 /** Persistent bottom strip: emergency-use disclaimer, sources link and provider credits. */
-export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings, models }: MapLegalFooterProps) {
+export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings, models, ais }: MapLegalFooterProps) {
   return (
     <div
       className="absolute bottom-0 left-0 right-0 z-[5] flex items-center gap-2 px-2 py-0.5 text-[9px] leading-tight text-white/60 pointer-events-none"
@@ -43,8 +45,15 @@ export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings, models 
       {models && (
         <a href={`${DATA_SOURCES_URL}#models`} target="_blank" rel="noopener noreferrer" data-testid="models-attribution"
           className="pointer-events-auto shrink-0 whitespace-nowrap underline hover:text-white"
-          title="3D aircraft models by their creators on Sketchfab, CC BY 4.0, modified (see credits)">
+          title="3D aircraft and ship models by their creators on Sketchfab, CC BY 4.0, modified (see credits)">
           3D models: CC BY 4.0 · modified · credits
+        </a>
+      )}
+      {ais && (
+        <a href={`${DATA_SOURCES_URL}#ais`} target="_blank" rel="noopener noreferrer" data-testid="ais-attribution"
+          className="pointer-events-auto shrink-0 whitespace-nowrap underline hover:text-white"
+          title="Live ship positions: aisstream.io and Fintraffic Digitraffic (CC BY 4.0)">
+          AIS: aisstream.io · Fintraffic (CC BY 4.0)
         </a>
       )}
       {osmBuildings && (
