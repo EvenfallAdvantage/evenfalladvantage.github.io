@@ -1,7 +1,7 @@
 # Overwatch infrastructure extract
 
 Pre-built, static extract used by the Operations map layer
-Infrastructure > "Data centres, dams & military areas".
+Infrastructure > "Data centres, dams, power & military".
 
 **Licence:** this extract is a database derived from OpenStreetMap and is
 made available under the [Open Database License 1.0](https://opendatacommons.org/licenses/odbl/1-0/).

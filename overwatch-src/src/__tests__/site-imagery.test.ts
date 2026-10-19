@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cloudLabel, cmrUrl, hlsTileUrl, imageryDays, parseCmr, pickDefaultDay, siteBox,
 } from "@/lib/map/site-imagery";
-import { infraLimits, INFRA_MAX_CELLS } from "@/lib/map/infra-extract";
+import { decodeInfraLine, decodeInfraRow, infraLimits, INFRA_MAX_CELLS, keepInfraFeature, lineInView, lineStyle, nearestLines } from "@/lib/map/infra-extract";
 
 const granule = (start: string, cloud?: string | number) => ({
   umm: {
@@ -67,9 +67,50 @@ describe("site imagery", () => {
 
 describe("infra limits", () => {
   it("degrades on phones", () => {
-    expect(infraLimits(false)).toEqual({ maxCells: INFRA_MAX_CELLS, maxHeightM: 2_500_000, labels: true });
+    expect(infraLimits(false)).toMatchObject({ maxCells: INFRA_MAX_CELLS, maxHeightM: 2_500_000, labels: true, minSubstationKv: 0 });
     const phone = infraLimits(true);
     expect(phone.maxCells).toBeLessThan(INFRA_MAX_CELLS);
     expect(phone.labels).toBe(false);
+    expect(phone.powerMaxHeightM).toBeLessThan(infraLimits(false).powerMaxHeightM);
+    expect(phone.maxLines).toBeLessThan(infraLimits(false).maxLines);
+  });
+
+  it("filters small substations on phones only", () => {
+    const small = decodeInfraRow(["s", -97, 30, "Sub A", "138"])!;
+    const big = decodeInfraRow(["s", -97, 30, "Sub B", "345"])!;
+    const unknown = decodeInfraRow(["s", -97, 30, "Sub C"])!;
+    const dc = decodeInfraRow(["d", -97, 30, "DC"])!;
+    expect(small.kv).toBe(138);
+    expect(keepInfraFeature(small, infraLimits(false))).toBe(true);
+    expect(keepInfraFeature(small, infraLimits(true))).toBe(false);
+    expect(keepInfraFeature(big, infraLimits(true))).toBe(true);
+    expect(keepInfraFeature(unknown, infraLimits(true))).toBe(false);
+    expect(keepInfraFeature(dc, infraLimits(true))).toBe(true);
+    // Substations hide when zoomed out (lines do too); other kinds are untouched.
+    expect(keepInfraFeature(big, infraLimits(false), 2_000_000)).toBe(false);
+    expect(keepInfraFeature(big, infraLimits(false), 500_000)).toBe(true);
+    expect(keepInfraFeature(dc, infraLimits(false), 2_000_000)).toBe(true);
+  });
+
+  it("decodes and styles transmission lines", () => {
+    expect(decodeInfraLine([500, [[-97, 30], [-97.1, 30.2]]])).toEqual({ kv: 500, pts: [[-97, 30], [-97.1, 30.2]] });
+    expect(decodeInfraLine([345, [[-97, 30]]])).toBeNull();
+    expect(decodeInfraLine([345, [[-97, 30], [999, 1], [-96, 31]]])?.pts).toHaveLength(2);
+    expect(decodeInfraLine("x")).toBeNull();
+    expect(lineStyle(765).width).toBeGreaterThan(lineStyle(345).width);
+    const view = { west: -98, south: 32, east: -96, north: 34 };
+    expect(lineInView([[-97, 33], [-96.5, 33.5]], view)).toBe(true);
+    expect(lineInView([[-90, 33], [-89, 33.5]], view)).toBe(false);
+    expect(lineInView([[-100, 33], [-90, 33]], view)).toBe(true); // crosses the view
+    expect(lineInView([[-90, 33], [-89, 33]], { west: 170, south: 0, east: -170, north: 10 })).toBe(true);
+  });
+
+  it("keeps the lines nearest the focus when over the cap", () => {
+    const far = { id: "far", pts: [[-90, 33], [-89, 33]] as Array<[number, number]> };
+    const near = { id: "near", pts: [[-97.1, 32.9], [-96.9, 32.7]] as Array<[number, number]> };
+    const mid = { id: "mid", pts: [[-95, 33], [-94, 33]] as Array<[number, number]> };
+    const focus = { lng: -97, lat: 32.8 };
+    expect(nearestLines([far, mid, near], focus, 2).map((l) => l.id)).toEqual(["near", "mid"]);
+    expect(nearestLines([far, near], focus, 5)).toHaveLength(2);
   });
 });

@@ -34,6 +34,8 @@ export interface InfraFeature {
   name: string;
   detail: string;
   osmUrl?: string;
+  /** Substation voltage in kV, when known. */
+  kv?: number;
 }
 
 export const INFRA_CREDIT = "© OpenStreetMap contributors (ODbL)";
@@ -67,14 +69,15 @@ export function decodeInfraRow(row: unknown): InfraFeature | null {
   let detail = label;
   let osmUrl: string | undefined;
   if (kind === "d" && extra) detail = `${label} · ${extra}`;
-  if (kind === "s" && extra && Number(extra) > 0) detail = `${label} · ${extra} kV`;
+  let kv: number | undefined;
+  if (kind === "s" && extra && Number(extra) > 0) { kv = Number(extra); detail = `${label} · ${extra} kV`; }
   if (kind === "m" && extra) {
     const [cls, id] = extra.split("|");
     detail = MILITARY_CLASS[cls] ?? label;
     const m = /^([nwr])(\d+)$/.exec(id ?? "");
     if (m) osmUrl = `https://www.openstreetmap.org/${OSM_TYPES[m[1]]}/${m[2]}`;
   }
-  return { kind, lng, lat, name: String(name ?? label).slice(0, 80) || label, detail, osmUrl };
+  return { kind, lng, lat, name: String(name ?? label).slice(0, 80) || label, detail, osmUrl, ...(kv ? { kv } : {}) };
 }
 
 /** Cell key the builder uses for a point. */
@@ -119,8 +122,94 @@ export const INFRA_LABEL_DISTANCE_M = 12_000;
 export const INFRA_MAX_CELLS = 9;
 
 /** View limits per device class: phones load fewer cells, only closer in, without labels. */
-export function infraLimits(constrained: boolean): { maxCells: number; maxHeightM: number; labels: boolean } {
+export interface InfraLimits {
+  maxCells: number;
+  maxHeightM: number;
+  labels: boolean;
+  /** Substations below this voltage are skipped (phones keep only the big ones). */
+  minSubstationKv: number;
+  /** Substations and transmission lines draw only below this camera height (there are many). */
+  powerMaxHeightM: number;
+  /** Most transmission lines drawn for one view. */
+  maxLines: number;
+}
+export function infraLimits(constrained: boolean): InfraLimits {
   return constrained
-    ? { maxCells: 4, maxHeightM: 800_000, labels: false }
-    : { maxCells: INFRA_MAX_CELLS, maxHeightM: INFRA_MAX_HEIGHT_M, labels: true };
+    ? { maxCells: 4, maxHeightM: 800_000, labels: false, minSubstationKv: 230, powerMaxHeightM: 400_000, maxLines: 800 }
+    : { maxCells: INFRA_MAX_CELLS, maxHeightM: INFRA_MAX_HEIGHT_M, labels: true, minSubstationKv: 0, powerMaxHeightM: 1_000_000, maxLines: 3_000 };
+}
+
+/** Whether a decoded row passes the device's limits at this camera height (only substations are filtered). */
+export function keepInfraFeature(
+  f: InfraFeature,
+  limits: Pick<InfraLimits, "minSubstationKv" | "powerMaxHeightM">,
+  heightM = 0,
+): boolean {
+  if (f.kind !== "s") return true;
+  if (heightM > limits.powerMaxHeightM) return false;
+  return limits.minSubstationKv <= 0 || (f.kv ?? 0) >= limits.minSubstationKv;
+}
+
+/** Transmission line styling by voltage: wider and warmer for the backbone. */
+export function lineStyle(kv: number): { width: number; color: string } {
+  if (kv >= 700) return { width: 2.6, color: "#f97316" };
+  if (kv >= 500) return { width: 2.1, color: "#fb923c" };
+  return { width: 1.5, color: "#fbbf24" };
+}
+
+/**
+ * Whether a line's bounding box touches the view (padded by `padDeg`). Cells are
+ * 10° wide, so this keeps far-off lines in a loaded cell from being drawn. Views
+ * across the antimeridian are not filtered.
+ */
+export function lineInView(
+  pts: ReadonlyArray<readonly [number, number]>,
+  view: { west: number; south: number; east: number; north: number },
+  padDeg = 0.5,
+): boolean {
+  if (view.west > view.east) return true;
+  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+  for (const [lng, lat] of pts) {
+    if (lng < w) w = lng; if (lng > e) e = lng;
+    if (lat < s) s = lat; if (lat > n) n = lat;
+  }
+  return e >= view.west - padDeg && w <= view.east + padDeg && n >= view.south - padDeg && s <= view.north + padDeg;
+}
+
+/**
+ * Pick at most `max` lines, nearest to `focus` first (by bounding-box distance, in
+ * degrees with longitude scaled by latitude), so a capped view keeps the lines
+ * around where the user is looking rather than whichever cell loaded first.
+ */
+export function nearestLines<T extends { pts: ReadonlyArray<readonly [number, number]> }>(
+  lines: T[],
+  focus: { lng: number; lat: number },
+  max: number,
+): T[] {
+  if (lines.length <= max) return lines;
+  const k = Math.cos((focus.lat * Math.PI) / 180);
+  const dist = (pts: ReadonlyArray<readonly [number, number]>) => {
+    let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+    for (const [lng, lat] of pts) {
+      if (lng < w) w = lng; if (lng > e) e = lng;
+      if (lat < s) s = lat; if (lat > n) n = lat;
+    }
+    const dx = focus.lng < w ? w - focus.lng : focus.lng > e ? focus.lng - e : 0;
+    const dy = focus.lat < s ? s - focus.lat : focus.lat > n ? focus.lat - n : 0;
+    return (dx * k) ** 2 + dy ** 2;
+  };
+  return lines
+    .map((l) => ({ l, d: dist(l.pts) }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, max)
+    .map((x) => x.l);
+}
+
+/** Decode a stored line row; null for junk. */
+export function decodeInfraLine(row: unknown): { kv: number; pts: Array<[number, number]> } | null {
+  if (!Array.isArray(row) || row.length < 2 || !Array.isArray(row[1])) return null;
+  const kv = Number(row[0]);
+  const pts = (row[1] as unknown[]).filter((p): p is [number, number] =>
+    Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Math.abs(p[0] as number) <= 180 && Math.abs(p[1] as number) <= 90);
+  return pts.length >= 2 ? { kv: Number.isFinite(kv) ? kv : 0, pts } : null;
 }

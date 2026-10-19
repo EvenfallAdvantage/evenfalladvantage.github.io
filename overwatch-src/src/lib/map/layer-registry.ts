@@ -104,10 +104,10 @@ export const GROUPS: readonly GroupDef[] = [
     subs: [{ id: "cctv", label: "Traffic cameras", keys: ["cctv"] }],
   },
   {
-    id: "infrastructure", label: "Infrastructure", blurb: "Nuclear, data centres, dams, military, space",
+    id: "infrastructure", label: "Infrastructure", blurb: "Nuclear, data centres, dams, power, military, space",
     subs: [
       { id: "nuclear", label: "Nuclear facilities", keys: ["nuclearInfrastructure"] },
-      { id: "osm", label: "Data centres, dams & military areas", keys: ["osmInfrastructure"], hint: "OpenStreetMap extract (ODbL), shown when zoomed in; high-voltage substations when built" },
+      { id: "osm", label: "Data centres, dams, power & military", keys: ["osmInfrastructure"], hint: "OpenStreetMap extract (ODbL), shown when zoomed in; US high-voltage substations and transmission lines" },
       { id: "space", label: "Space (satellite orbits)", keys: ["satelliteOrbits"], desktopOnly: true },
     ],
   },
