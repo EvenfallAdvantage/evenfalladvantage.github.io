@@ -78,3 +78,17 @@ describe("selectModelIds", () => {
     expect(selectModelIds({ ...cam, heightM: 200_000 }, items, null)).toEqual([]);
   });
 });
+
+import { isHighContrastLook, modelStyle } from "@/lib/map/contact-models";
+describe("model style under NVG/thermal", () => {
+  it("goes dark with a thick black silhouette only for brightness-only looks", () => {
+    expect(isHighContrastLook({ nvgGoggles: true })).toBe(true);
+    expect(isHighContrastLook({ flirThermal: true })).toBe(true);
+    expect(isHighContrastLook({})).toBe(false);
+    const nvg = modelStyle(true), normal = modelStyle(false);
+    expect(nvg.silhouette).toBe("#000000");
+    expect(nvg.silhouetteSize).toBeGreaterThan(normal.silhouetteSize);
+    expect(nvg.blend).toBeGreaterThan(normal.blend);
+    expect(normal.color).toBe("#ffffff");
+  });
+});

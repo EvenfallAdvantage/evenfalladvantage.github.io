@@ -62,3 +62,20 @@ export function selectModelIds(
   for (const n of near) { if (out.length >= cap) break; out.push(n.id); }
   return out;
 }
+
+/**
+ * Model look per map style. The NVG and thermal looks post-process the frame
+ * to brightness only, so a light model vanishes into lit terrain: there the
+ * model is blended almost black with a thick black silhouette, which reads as
+ * a dark shape on the green/white image.
+ */
+export interface ModelStyle { color: string; blend: number; silhouette: string; silhouetteAlpha: number; silhouetteSize: number }
+export function modelStyle(highContrast: boolean): ModelStyle {
+  return highContrast
+    ? { color: "#050805", blend: 0.85, silhouette: "#000000", silhouetteAlpha: 1, silhouetteSize: 2.5 }
+    : { color: "#ffffff", blend: 0.35, silhouette: "#22d3ee", silhouetteAlpha: 0.6, silhouetteSize: 1 };
+}
+/** True for the map looks that flatten colour to brightness (NVG, thermal). */
+export function isHighContrastLook(layers: { nvgGoggles?: boolean; flirThermal?: boolean }): boolean {
+  return !!(layers.nvgGoggles || layers.flirThermal);
+}

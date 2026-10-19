@@ -1,22 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { classifyAircraft } from "@/lib/map/aircraft-class";
 import type { AircraftTrack } from "@/lib/map/aircraft-motion";
-import { CLASS_MODEL, MODEL_BASE, modelHeadingDeg, selectModelIds, type ModelCandidate } from "@/lib/map/contact-models";
+import { CLASS_MODEL, MODEL_BASE, modelHeadingDeg, modelStyle, selectModelIds, type ModelCandidate } from "@/lib/map/contact-models";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 const TICK_MS = 1_000;
+
+/** Apply a model style to every aircraft model already on the map. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium viewer/module have no published types
+function restyleModels(viewer: any, C: any, st: ReturnType<typeof modelStyle>): void {
+  for (const e of viewer.entities.values) {
+    if (!e.model || !String(e.id).startsWith("plane-")) continue;
+    e.model.color = C.Color.fromCssColorString(st.color);
+    e.model.colorBlendAmount = st.blend;
+    e.model.silhouetteColor = C.Color.fromCssColorString(st.silhouette).withAlpha(st.silhouetteAlpha);
+    e.model.silhouetteSize = st.silhouetteSize;
+  }
+  viewer.scene.requestRender();
+}
 
 /**
  * Desktop only: swap the flat aircraft icon for a CC BY 4.0 3D model on
  * contacts near the camera and on the tracked aircraft (see contact-models.ts).
  * The governor level (entityGroups.perfLevel) lowers the model cap.
  */
-export function useContactModels(params: { viewerRef: CesiumRef; cesiumRef: CesiumRef; entityGroupsRef: EntityGroupsRef; loading: boolean; enabled: boolean }) {
-  const { viewerRef, cesiumRef, entityGroupsRef, loading, enabled } = params;
+export function useContactModels(params: { viewerRef: CesiumRef; cesiumRef: CesiumRef; entityGroupsRef: EntityGroupsRef; loading: boolean; enabled: boolean; highContrast?: boolean }) {
+  const { viewerRef, cesiumRef, entityGroupsRef, loading, enabled, highContrast = false } = params;
   const [shown, setShown] = useState(false);
+  const contrastRef = useRef(highContrast);
+  // Restyle models already on screen when the look changes (NVG/thermal on/off).
+  useEffect(() => {
+    contrastRef.current = highContrast;
+    const viewer = viewerRef.current;
+    const C = cesiumRef.current;
+    if (!viewer || !C || viewer.isDestroyed?.()) return;
+    restyleModels(viewer, C, modelStyle(highContrast));
+  }, [highContrast, viewerRef, cesiumRef]);
   useEffect(() => {
     const viewer = viewerRef.current;
     const C = cesiumRef.current;
@@ -65,17 +87,18 @@ export function useContactModels(params: { viewerRef: CesiumRef; cesiumRef: Cesi
             hpr.heading = C.Math.toRadians(modelHeadingDeg(t.fix.trackDeg || 0));
             return C.Transforms.headingPitchRollQuaternion(pos, hpr, C.Ellipsoid.WGS84, undefined, result);
           }, false);
+          const st = modelStyle(contrastRef.current);
           e.model = new C.ModelGraphics({
             uri: url,
             minimumPixelSize: 48,
             // Low cap: a large scale inflates the bounding sphere that trackedEntity zooms to.
             maximumScale: 20,
             shadows: C.ShadowMode.DISABLED,
-            color: C.Color.WHITE,
+            color: C.Color.fromCssColorString(st.color),
             colorBlendMode: C.ColorBlendMode.MIX,
-            colorBlendAmount: 0.35,
-            silhouetteColor: C.Color.fromCssColorString("#22d3ee").withAlpha(0.6),
-            silhouetteSize: 1,
+            colorBlendAmount: st.blend,
+            silhouetteColor: C.Color.fromCssColorString(st.silhouette).withAlpha(st.silhouetteAlpha),
+            silhouetteSize: st.silhouetteSize,
           });
           if (e.billboard) e.billboard.show = false;
           modelled.set(id, url);

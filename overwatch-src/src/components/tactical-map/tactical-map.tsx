@@ -55,6 +55,7 @@ import { TrackingChip } from "./tracking-chip";
 import { MapSearch } from "./map-search";
 import { usePerfGovernor } from "./hooks/use-perf-governor";
 import { useContactModels } from "./hooks/use-contact-models";
+import { isHighContrastLook } from "@/lib/map/contact-models";
 import { escapeHtml } from "@/lib/security";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import { SatPassesPanel } from "./sat-passes-panel";
@@ -300,7 +301,10 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   }
   // Auto performance governor (all devices) + 3D contact models (desktop only).
   const { perfLevel, resetPerf } = usePerfGovernor({ viewerRef, entityGroupsRef, loading, bloom: !!activeLayers.bloom });
-  const modelsShown = useContactModels({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.aircraft });
+  const highContrastLook = isHighContrastLook(activeLayers);
+  // Shared with layers that restyle under NVG/thermal (camera cones read it live).
+  useEffect(() => { entityGroupsRef.current.highContrastLook = highContrastLook; }, [highContrastLook]);
+  const modelsShown = useContactModels({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.aircraft, highContrast: highContrastLook });
   const osmBuildingsStatus = useOsmBuildingsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading,
     enabled: !!activeLayers.osmBuildings,
