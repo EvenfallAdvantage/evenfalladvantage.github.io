@@ -21,7 +21,8 @@
  * Contact-type tags are never copied. The output is a derived database
  * under ODbL 1.0; keep the "© OpenStreetMap contributors (ODbL)" credit.
  *
- * Usage: node scripts/build-infra-extract.mjs --gev /tmp/gev/src/data/local_data [--overpass] [--cache <dir>]
+ * Usage: node scripts/build-infra-extract.mjs --gev /tmp/gev/src/data/local_data [--overpass] [--cache <dir>] [--offline]
+ *   --offline     with --cache: build from cached tiles only, no Overpass calls.
  *   --cache <dir> keeps each Overpass tile's JSON so a re-run only fetches
  *                 the tiles that failed (public Overpass is often at capacity).
  */
@@ -38,11 +39,38 @@ const OUT = args.includes("--out")
   : path.resolve(path.dirname(new URL(import.meta.url).pathname), "../public/data/infra");
 const gevDir = args[args.indexOf("--gev") + 1];
 const withOverpass = args.includes("--overpass");
+// --offline: use only the --cache tiles; missing tiles are recorded as pending (no Overpass calls).
+const offline = args.includes("--offline");
 const cacheDir = args.includes("--cache") ? path.resolve(args[args.indexOf("--cache") + 1]) : null;
 if (cacheDir) fs.mkdirSync(cacheDir, { recursive: true });
 if (!args.includes("--gev") || !gevDir) { console.error("usage: --gev <local_data dir> [--overpass]"); process.exit(2); }
 
 const r5 = (n) => Math.round(n * 1e5) / 1e5;
+// Line vertices: 4 decimals (~11 m) after Douglas-Peucker at ~0.0015° (~150 m). Transmission
+// lines draw only below ~1,000 km camera height, where that is under a pixel or two.
+const r4 = (n) => Math.round(n * 1e4) / 1e4;
+const LINE_TOLERANCE_DEG = 0.0015;
+/** Douglas-Peucker on [lng, lat] (longitude scaled by cos(lat)); keeps both ends. */
+function simplify(pts, tol) {
+  if (pts.length <= 2) return pts;
+  const k = Math.cos((pts[0][1] * Math.PI) / 180);
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop();
+    const ax = pts[a][0] * k, ay = pts[a][1], bx = pts[b][0] * k, by = pts[b][1];
+    const dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+    let worst = -1, wd = 0;
+    for (let i = a + 1; i < b; i++) {
+      const px = pts[i][0] * k, py = pts[i][1];
+      let t = len2 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0; t = Math.max(0, Math.min(1, t));
+      const d = (px - ax - t * dx) ** 2 + (py - ay - t * dy) ** 2;
+      if (d > wd) { wd = d; worst = i; }
+    }
+    if (worst > 0 && wd > tol * tol) { keep[worst] = 1; stack.push([a, worst], [worst, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
 const clean = (s) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim().slice(0, 80) : "");
 
 function ringCentroid(coords) {
@@ -131,7 +159,7 @@ if (withOverpass) {
     const cacheFile = cacheDir ? path.join(cacheDir, `power_${bb.replace(/,/g, "_")}.json`) : null;
     let data = cacheFile && fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, "utf8")) : null;
     const cached = !!data;
-    if (!data) data = await overpass(q);
+    if (!data && !offline) data = await overpass(q);
     if (!data) { pending.push(bb); continue; }
     if (cacheFile && !cached) fs.writeFileSync(cacheFile, JSON.stringify(data));
     for (const el of data.elements ?? []) {
@@ -140,7 +168,8 @@ if (withOverpass) {
         const lat = el.lat ?? el.center?.lat, lng = el.lon ?? el.center?.lon;
         if (put(["s", r5(lng), r5(lat), clean(t.name) || "Substation", String(kv(t.voltage))])) counts.substation++;
       } else if (t.power === "line" && el.geometry?.length > 1) {
-        const pts = el.geometry.filter((_, i, a) => i % 4 === 0 || i === a.length - 1).map((g) => [r5(g.lon), r5(g.lat)]);
+        const pts = simplify(el.geometry.map((g) => [g.lon, g.lat]), LINE_TOLERANCE_DEG).map(([lng, lat]) => [r4(lng), r4(lat)]);
+        if (pts.length < 2) continue;
         const k = cellKey(pts[0][0], pts[0][1]);
         if (!cells.has(k)) cells.set(k, { f: [], l: [] });
         cells.get(k).l.push([kv(t.voltage), pts]);
