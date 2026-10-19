@@ -199,10 +199,12 @@ export function useInfraLayer(params: {
               name: label,
               // Not ground-clamped: clamped (ground-primitive) lines hid the layer's clamped
               // points under the reduced-quality renderer, and cost far more. Lines start on the
-              // ellipsoid and are lifted onto sampled terrain heights below (3D terrain on).
+              // ellipsoid (+ a small lift) and are lifted onto sampled terrain below (3D terrain on).
               // Only lines inside the current view are drawn, so none reach the far side.
               polyline: {
-                positions: Cesium.Cartesian3.fromDegreesArray(line.pts.flat()),
+                // Start slightly above the ellipsoid: lines at height 0 lose the depth test to the
+                // globe surface in tilted views (seen with terrain off on phones).
+                positions: Cesium.Cartesian3.fromDegreesArrayHeights(line.pts.flatMap(([lng, lat]) => [lng, lat, INFRA_LINE_LIFT_M])),
                 width: st.width,
                 arcType: Cesium.ArcType.GEODESIC,
                 material: (lineColors[st.color] ??= Cesium.Color.fromCssColorString(st.color).withAlpha(0.85)),
