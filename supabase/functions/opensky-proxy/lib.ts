@@ -163,19 +163,21 @@ export function extractAircraft(body: unknown): ReadsbAircraft[] | null {
   return list as ReadsbAircraft[] | null;
 }
 
-// ── 24 h track history (trace) ────────────────────────────────────────────
-// adsb.lol publishes per-aircraft readsb traces (ODbL 1.0) at
-//   https://adsb.lol/data/traces/<last 2 hex>/trace_full_<hex>.json
-// They send no browser CORS headers, so the map reads them through this proxy.
-// Pattern from gods-eye-view server/providers/aircraft/tracks.js (© 2026
-// Bilawal Sidhu, MIT). Best effort: any failure returns an empty list.
+// ── 24 h track history (our own, OverwatchDB) ─────────────────────────────
+// adsb.lol asked that trace_full files not be used as an API, so history is
+// now recorded by this proxy: every area cache miss stores one point per
+// aircraft per minute in public.aircraft_positions (24 h TTL), and ?trace=
+// reads it back via the signed-in-only aircraft_track RPC. Positions are
+// derived from adsb.lol data (ODbL 1.0). Coverage: only areas Overwatch
+// users have viewed.
 
 /** One normalized history point: [epoch ms, lat, lon, altitude m (barometric) | null]. */
 export type TracePoint = [number, number, number, number | null];
 
 export const TRACE_WINDOW_MS = 24 * 3600_000;
-export const TRACE_MAX_POINTS = 1_500;
-export const TRACE_MAX_BYTES = 5 * 1024 * 1024;
+export const TRACE_MAX_POINTS = 1_440;
+/** Matches aircraft_positions_record's batch cap. */
+export const RECORD_MAX_ROWS = 5_000;
 
 /** Validate ?trace=<hex>: 6 hex chars, optionally prefixed by "~" (non-ICAO / TIS-B address). */
 export function parseTraceParam(params: URLSearchParams): string | null {
@@ -183,34 +185,38 @@ export function parseTraceParam(params: URLSearchParams): string | null {
   return /^~?[0-9a-f]{6}$/.test(raw) ? raw : null;
 }
 
-export function traceUrl(hex: string): string {
-  return `https://adsb.lol/data/traces/${hex.slice(-2)}/trace_full_${hex}.json`;
+export interface PositionRow { hex: string; ts: number; lat: number; lon: number; alt_m: number | null; flags: number }
+
+/** OpenSky-shaped state vectors → rows for aircraft_positions_record (deduped per hex, capped). */
+export function statesToPositionRows(states: StateVector[], maxRows = RECORD_MAX_ROWS): PositionRow[] {
+  const seen = new Set<string>();
+  const out: PositionRow[] = [];
+  for (const s of states) {
+    const hex = typeof s[0] === "string" ? s[0] : "";
+    const ts = s[3], lon = s[5], lat = s[6], alt = s[7], flags = s[17];
+    if (!/^~?[0-9a-f]{6}$/.test(hex) || seen.has(hex)) continue;
+    if (typeof ts !== "number" || typeof lat !== "number" || typeof lon !== "number") continue;
+    if (Math.abs(lat) > 90 || Math.abs(lon) > 180 || (lat === 0 && lon === 0)) continue;
+    const altM = typeof alt === "number" && alt >= -500 && alt <= 30000 ? Math.round(alt) : null;
+    seen.add(hex);
+    out.push({ hex, ts, lat: +lat.toFixed(5), lon: +lon.toFixed(5), alt_m: altM, flags: typeof flags === "number" ? flags : 0 });
+    if (out.length >= maxRows) break;
+  }
+  return out;
 }
 
-/**
- * readsb trace_full: { timestamp: epoch s, trace: [[secondsAfter, lat, lon, alt_baro_ft | "ground" | null, ...], ...] }.
- * Keeps the last `windowMs`, stride-thins to `maxPoints` (always keeping the newest point).
- */
-export function normalizeTrace(body: unknown, nowMs: number, windowMs = TRACE_WINDOW_MS, maxPoints = TRACE_MAX_POINTS): TracePoint[] {
-  if (!body || typeof body !== "object") return [];
-  const o = body as { timestamp?: unknown; trace?: unknown };
-  const base = typeof o.timestamp === "number" ? o.timestamp : NaN;
-  if (!Number.isFinite(base) || !Array.isArray(o.trace)) return [];
+/** aircraft_track RPC rows → TracePoints (sorted, last 24 h, capped). */
+export function rowsToTrace(rows: unknown, nowMs: number, windowMs = TRACE_WINDOW_MS, maxPoints = TRACE_MAX_POINTS): TracePoint[] {
+  if (!Array.isArray(rows)) return [];
   const pts: TracePoint[] = [];
-  for (const row of o.trace) {
-    if (!Array.isArray(row)) continue;
-    const [dt, lat, lon, alt] = row as unknown[];
-    if (typeof dt !== "number" || typeof lat !== "number" || typeof lon !== "number") continue;
-    if (Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
-    const t = Math.round((base + dt) * 1000);
+  for (const r of rows as Record<string, unknown>[]) {
+    if (!r || typeof r !== "object") continue;
+    const t = typeof r.ts === "string" ? Date.parse(r.ts) : NaN;
+    const lat = Number(r.lat), lon = Number(r.lon);
+    if (!Number.isFinite(t) || !Number.isFinite(lat) || !Number.isFinite(lon)) continue;
     if (t < nowMs - windowMs || t > nowMs + 60_000) continue;
-    const altM = typeof alt === "number" ? +(alt * FT_TO_M).toFixed(0) : alt === "ground" ? 0 : null;
-    pts.push([t, +lat.toFixed(5), +lon.toFixed(5), altM]);
+    pts.push([t, lat, lon, typeof r.alt_m === "number" ? r.alt_m : null]);
   }
   pts.sort((a, b) => a[0] - b[0]);
-  if (pts.length <= maxPoints) return pts;
-  const stride = (pts.length - 1) / (maxPoints - 1);
-  const out: TracePoint[] = [];
-  for (let i = 0; i < maxPoints; i++) out.push(pts[Math.round(i * stride)]);
-  return out;
+  return pts.length > maxPoints ? pts.slice(-maxPoints) : pts;
 }
