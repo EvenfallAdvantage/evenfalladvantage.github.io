@@ -1,0 +1,14 @@
+{
+ "target": "plane-a5ea5c",
+ "chipOk": "TRACKING UAL13505h · partial · ODbL15 nearby ",
+ "hintOk": "Track history: recorded by Overwatch from adsb.lol data (ODbL 1.0) · 241 points. History is recorded only where Overwatch users have viewed the map (last 24 h), so it may be partial or missing.",
+ "historyEntities": 2,
+ "chipNone": "TRACKING DAL329no history12 nearby ",
+ "hintNone": "no recorded history (only areas Overwatch users viewed in the last 24 h). History is recorded only where Overwatch users have viewed the map (last 24 h), so it may be partial or missing.",
+ "traceReqs": [
+  "trace=a5ea5c",
+  "trace=a9704d"
+ ],
+ "errs": [],
+ "blockedPrefWrites": 1
+}

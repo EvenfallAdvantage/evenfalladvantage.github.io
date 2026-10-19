@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { aircraftFlags, bboxToPointQuery, cacheKey, extractAircraft, FLAG_EMERGENCY, FLAG_MILITARY, normalizeTrace, parseBBox, parseTraceParam, toOpenSkyStates, traceUrl, upstreamUrls, type BBox } from "./lib.ts";
+import { aircraftFlags, bboxToPointQuery, cacheKey, extractAircraft, FLAG_EMERGENCY, FLAG_MILITARY, parseBBox, parseTraceParam, rowsToTrace, statesToPositionRows, toOpenSkyStates, upstreamUrls, type BBox } from "./lib.ts";
 
 const LA: BBox = { lamin: 33, lamax: 35, lomin: -119, lomax: -117 };
 const p = (q: string) => new URLSearchParams(q);
@@ -70,26 +70,46 @@ Deno.test("military / emergency flags and accuracy fields are appended at 17-21"
   assertEquals(plain.slice(17), [0, null, null, null, null]);
 });
 
-Deno.test("trace param + url", () => {
+Deno.test("trace param", () => {
   assertEquals(parseTraceParam(p("trace=A1B21F")), "a1b21f");
   assertEquals(parseTraceParam(p("trace=~a1b21f")), "~a1b21f");
   assertEquals(parseTraceParam(p("trace=../etc")), null);
   assertEquals(parseTraceParam(p("trace=a1b2")), null);
-  assertEquals(traceUrl("a1b21f"), "https://adsb.lol/data/traces/1f/trace_full_a1b21f.json");
 });
 
-Deno.test("normalizeTrace keeps the last 24 h, converts feet, thins to the cap", () => {
-  const now = 1_800_000_000_000;
-  const base = now / 1000 - 30 * 3600; // trace starts 30 h ago
-  const trace: unknown[] = [];
-  for (let s = 0; s <= 30 * 3600; s += 60) trace.push([s, 40 + s / 1e6, -74, s % 120 === 0 ? 10000 : "ground"]);
-  trace.push(["bad", 1, 2, 3], [5, 999, 0, 0]);
-  const pts = normalizeTrace({ timestamp: base, trace }, now, undefined, 500);
-  assertEquals(pts.length, 500);
-  assert(pts[0][0] >= now - 24 * 3600_000);
-  assertEquals(pts[pts.length - 1][0], now);
-  assert(pts.every((q, i) => i === 0 || q[0] > pts[i - 1][0]));
-  assert(pts.some((q) => q[3] === 3048) && pts.some((q) => q[3] === 0));
-  assertEquals(normalizeTrace(null, now), []);
-  assertEquals(normalizeTrace({ timestamp: "x", trace: [] }, now), []);
+Deno.test("statesToPositionRows dedups, validates, caps", () => {
+  const st = (hex: string, lat: unknown, lon: unknown, alt: unknown, flags = 0) =>
+    [hex, "", "", 1000, 1000, lon, lat, alt, false, null, null, null, null, null, null, false, 0, flags] as (string | number | boolean | null)[];
+  const rows = statesToPositionRows([
+    st("a1b21f", 40.123456, -74.5, 10000.4, 1),
+    st("a1b21f", 41, -75, 1), // duplicate hex
+    st("bad", 1, 1, 1),
+    st("c0ffee", 0, 0, 1), // null island
+    st("abcdef", 95, 0, 1), // bad lat
+    st("123456", 33, -97, 99999), // alt out of range → null
+    st("654321", 33, -97, null),
+  ]);
+  assertEquals(rows, [
+    { hex: "a1b21f", ts: 1000, lat: 40.12346, lon: -74.5, alt_m: 10000, flags: 1 },
+    { hex: "123456", ts: 1000, lat: 33, lon: -97, alt_m: null, flags: 0 },
+    { hex: "654321", ts: 1000, lat: 33, lon: -97, alt_m: null, flags: 0 },
+  ]);
+  const many = Array.from({ length: 20 }, (_, i) => st(i.toString(16).padStart(6, "0"), 30, -90, 1));
+  assertEquals(statesToPositionRows(many, 5).length, 5);
+});
+
+Deno.test("rowsToTrace sorts, windows, caps", () => {
+  const now = Date.parse("2026-10-19T12:00:00Z");
+  const iso = (ms: number) => new Date(ms).toISOString();
+  const pts = rowsToTrace([
+    { ts: iso(now - 60_000), lat: 1, lon: 2, alt_m: 300 },
+    { ts: iso(now - 120_000), lat: 3, lon: 4, alt_m: null },
+    { ts: iso(now - 25 * 3600_000), lat: 5, lon: 6, alt_m: 1 },
+    { ts: "nope", lat: 1, lon: 1 },
+    null,
+  ], now);
+  assertEquals(pts, [[now - 120_000, 3, 4, null], [now - 60_000, 1, 2, 300]]);
+  assertEquals(rowsToTrace(null, now), []);
+  const lots = Array.from({ length: 10 }, (_, i) => ({ ts: iso(now - i * 60_000), lat: i, lon: 0, alt_m: 0 }));
+  assertEquals(rowsToTrace(lots, now, undefined, 3).map((x) => x[1]), [2, 1, 0]);
 });
