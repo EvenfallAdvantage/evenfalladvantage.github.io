@@ -60,6 +60,8 @@ import { escapeHtml } from "@/lib/security";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import { SatPassesPanel } from "./sat-passes-panel";
 import { GibsDateChip } from "./gibs-date-chip";
+import { SiteImageryPanel, type SiteImagerySelection } from "./site-imagery-panel";
+import { useSiteImagery } from "./hooks/use-site-imagery";
 import { useInfraLayer } from "./hooks/use-infra-layer";
 import type { PlaceResult } from "@/lib/map/geocode";
 import { TacticalHud, hudModeLabel } from "./tactical-hud";
@@ -120,6 +122,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchPin, setSearchPin] = useState<PlaceResult | null>(null);
   const [passesTarget, setPassesTarget] = useState<{ label: string; lat: number; lng: number } | null>(null);
+  /** "Imagery by date" site and the day drawn for it (session only). */
+  const [imageryTarget, setImageryTarget] = useState<{ label: string; lat: number; lng: number } | null>(null);
+  const [siteImagery, setSiteImagery] = useState<SiteImagerySelection | null>(null);
   const setLayers = useCallback((update: LayerVisibility | ((prev: LayerVisibility) => LayerVisibility)) => {
     setLayersRaw(prev => {
       const requested = typeof update === "function" ? update(prev) : update;
@@ -311,6 +316,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   useEffect(() => { entityGroupsRef.current.highContrastLook = highContrastLook; }, [highContrastLook]);
   const modelsShown = useContactModels({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.aircraft, highContrast: highContrastLook });
   useInfraLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.osmInfrastructure });
+  useSiteImagery({ viewerRef, cesiumRef, loading, selection: siteImagery });
   const osmBuildingsStatus = useOsmBuildingsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading,
     enabled: !!activeLayers.osmBuildings,
@@ -872,7 +878,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       )}
 
       {/* Search box + satellite passes — beside the control column */}
-      {!loading && !error && !opsMode && (searchOpen || passesTarget) && (
+      {!loading && !error && !opsMode && (searchOpen || passesTarget || imageryTarget) && (
         <div className="absolute top-3 left-16 z-20 flex flex-col gap-2 max-w-[calc(100%-5rem)] pointer-events-none">
           {searchOpen && (
             <MapSearch
@@ -882,6 +888,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
             />
           )}
           {passesTarget && <SatPassesPanel key={`${passesTarget.lat},${passesTarget.lng}`} target={passesTarget} onClose={() => setPassesTarget(null)} />}
+          {imageryTarget && (
+            <SiteImageryPanel
+              key={`${imageryTarget.lat},${imageryTarget.lng}`}
+              target={imageryTarget}
+              selected={siteImagery}
+              onSelect={setSiteImagery}
+              onClose={() => { setImageryTarget(null); setSiteImagery(null); }}
+            />
+          )}
         </div>
       )}
 
@@ -961,12 +976,20 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
               : sid === "search-pin" && searchPin ? { label: searchPin.label, lat: searchPin.lat, lng: searchPin.lng } : null;
             if (!site) return undefined;
             return (
-              <button
-                onClick={() => { setPassesTarget(site); setSelectedEntity(null); }}
-                className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30"
-              >
-                🛰 Satellite passes
-              </button>
+              <span className="flex flex-wrap gap-1">
+                <button
+                  onClick={() => { setPassesTarget(site); setSelectedEntity(null); }}
+                  className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-cyan-500/20 text-cyan-200 hover:bg-cyan-500/30"
+                >
+                  🛰 Satellite passes
+                </button>
+                <button
+                  onClick={() => { setSiteImagery(null); setImageryTarget(site); setSelectedEntity(null); }}
+                  className="text-[10px] font-mono uppercase tracking-wider px-2 py-1 rounded bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
+                >
+                  📅 Imagery by date
+                </button>
+              </span>
             );
           })() ?? (selectedEntity.id.startsWith("plane-") ? (
             <button

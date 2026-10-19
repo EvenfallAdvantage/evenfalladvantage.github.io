@@ -10,14 +10,21 @@
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { escapeHtml } from "@/lib/security";
+import { isConstrainedDevice } from "@/lib/map/device-profile";
 import {
-  INFRA_CREDIT, INFRA_KINDS, INFRA_LABEL_DISTANCE_M, INFRA_MAX_CELLS, INFRA_MAX_HEIGHT_M,
+  INFRA_CREDIT, INFRA_KINDS, INFRA_LABEL_DISTANCE_M, infraLimits,
   decodeInfraRow, infraCellsForView, type InfraCell, type InfraFeature, type InfraIndex,
 } from "@/lib/map/infra-extract";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 export const INFRA_BASE = "/overwatch/data/infra";
 const DEBOUNCE_MS = 450;
+/**
+ * Points stay readable over terrain out to this distance. TODO(#107): switch
+ * to nearSideDepthProperty() from src/lib/map/near-side-depth.ts once #107 is
+ * merged (its guard test requires it).
+ */
+const INFRA_DEPTH_BYPASS_M = 50_000;
 
 let indexPromise: Promise<InfraIndex | null> | null = null;
 const cellCache = new Map<string, Promise<InfraCell | null>>();
@@ -85,6 +92,8 @@ export function useInfraLayer(params: {
     const colors = Object.fromEntries(
       Object.entries(INFRA_KINDS).map(([k, v]) => [k, Cesium.Color.fromCssColorString(v.color)]),
     );
+    // Phones: fewer cells, closer zoom, no labels (tap a point for its name).
+    const limits = infraLimits(isConstrainedDevice());
     const labelShow = new Cesium.DistanceDisplayCondition(0, INFRA_LABEL_DISTANCE_M);
 
     const refresh = async () => {
@@ -94,12 +103,12 @@ export function useInfraLayer(params: {
       if (disposed || !index) return;
       const rect = viewer.camera.computeViewRectangle?.(viewer.scene.globe.ellipsoid);
       let keys: string[] = [];
-      if (rect && height <= INFRA_MAX_HEIGHT_M) {
+      if (rect && height <= limits.maxHeightM) {
         const deg = Cesium.Math.toDegrees;
         keys = infraCellsForView(
           { west: deg(rect.west), south: deg(rect.south), east: deg(rect.east), north: deg(rect.north) },
           index.cells, index.cell,
-        ).slice(0, INFRA_MAX_CELLS);
+        ).slice(0, limits.maxCells);
       }
       const key = keys.join(",");
       if (key === shown) return;
@@ -124,9 +133,9 @@ export function useInfraLayer(params: {
                 outlineColor: Cesium.Color.BLACK.withAlpha(0.8),
                 outlineWidth: 1,
                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                disableDepthTestDistance: 50_000,
+                disableDepthTestDistance: INFRA_DEPTH_BYPASS_M,
               },
-              label: {
+              label: limits.labels ? {
                 text: f.name,
                 font: "10px sans-serif",
                 fillColor: colors[f.kind],
@@ -136,7 +145,7 @@ export function useInfraLayer(params: {
                 pixelOffset: new Cesium.Cartesian2(0, -12),
                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
                 distanceDisplayCondition: labelShow,
-              },
+              } : undefined,
               description: popup(f, index.built),
             });
           }

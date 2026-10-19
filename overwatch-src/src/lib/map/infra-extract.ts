@@ -117,3 +117,10 @@ export const INFRA_MAX_HEIGHT_M = 2_500_000;
 export const INFRA_LABEL_DISTANCE_M = 12_000;
 /** Most cells loaded for one view. */
 export const INFRA_MAX_CELLS = 9;
+
+/** View limits per device class: phones load fewer cells, only closer in, without labels. */
+export function infraLimits(constrained: boolean): { maxCells: number; maxHeightM: number; labels: boolean } {
+  return constrained
+    ? { maxCells: 4, maxHeightM: 800_000, labels: false }
+    : { maxCells: INFRA_MAX_CELLS, maxHeightM: INFRA_MAX_HEIGHT_M, labels: true };
+}
