@@ -18,7 +18,7 @@
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
-import { loadWindField, sampleWind, windFrameMs, windParticleBudget, windStroke, WIND_FIELD_CREDIT, type WindField } from "@/lib/map/wind-field";
+import { WIND_RETRY_MS, loadWindField, sampleWind, windFrameMs, windParticleBudget, windStroke, WIND_FIELD_CREDIT, type WindField } from "@/lib/map/wind-field";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -131,17 +131,36 @@ export function useWindParticles(params: {
       }
     };
 
-    void loadWindField(constrained, ctrl.signal).then((f) => {
-      if (stopped) return;
-      if (!f) { logger.swallow("wind-particles:load", new Error("wind field unavailable"), "warn"); return; }
-      field = f;
-      canvas.dataset.fieldTime = f.time;
-      raf = requestAnimationFrame(frame);
-    });
+    // Quiet hint shown only while the wind source is unreachable.
+    const hint = document.createElement("div");
+    hint.dataset.testid = "wind-unavailable";
+    hint.setAttribute("role", "status");
+    Object.assign(hint.style, { position: "absolute", left: "50%", top: "12px", transform: "translateX(-50%)", padding: "2px 8px", borderRadius: "4px", font: "11px system-ui, sans-serif", color: "rgba(255,255,255,0.75)", background: "rgba(0,0,0,0.45)", pointerEvents: "none", zIndex: "2", display: "none" });
+    host.appendChild(hint);
+    const setHint = (text: string | null) => { hint.textContent = text ?? ""; hint.style.display = text ? "block" : "none"; };
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let attempt = 0;
+    const load = () => {
+      void loadWindField(constrained, ctrl.signal).then((f) => {
+        if (stopped) return;
+        if (!f || f.stale) {
+          logger.swallow("wind-particles:load", new Error(f ? "wind source down, using saved field" : "wind field unavailable"), "warn");
+          setHint(f ? `Wind data unavailable, showing saved ${f.time.slice(11, 16)} UTC field` : "Wind data unavailable, retrying");
+          if (attempt < WIND_RETRY_MS.length) retryTimer = setTimeout(load, WIND_RETRY_MS[attempt++]);
+          if (!f) return;
+        } else setHint(null);
+        const first = !field;
+        field = f;
+        canvas.dataset.fieldTime = f.time;
+        canvas.dataset.stale = f.stale ? "true" : "false";
+        if (first) raf = requestAnimationFrame(frame);
+      });
+    };
+    load();
 
     return () => {
-      stopped = true; ctrl.abort(); cancelAnimationFrame(raf);
-      canvas.remove();
+      stopped = true; ctrl.abort(); cancelAnimationFrame(raf); clearTimeout(retryTimer);
+      canvas.remove(); hint.remove();
       try { viewer.creditDisplay.removeStaticCredit?.(credit); } catch (e) { logger.swallow("wind-particles:credit-remove", e, "debug"); }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- lookKey captures the look booleans

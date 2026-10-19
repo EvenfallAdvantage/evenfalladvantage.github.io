@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { isHighContrastLook } from "@/lib/map/contact-models";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
-import { estimatedAscent, launchAzimuth, LL2_CREDIT, loadLaunches, REPLAY_SECONDS, typicalInclination, type Launch } from "@/lib/map/launches";
+import { ascentLabel, estimatedAscent, launchAzimuth, LL2_CREDIT, loadLaunches, REPLAY_SECONDS, typicalInclination, type Launch } from "@/lib/map/launches";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -84,11 +84,28 @@ export function startAscentReplay(viewer: any, C: any, launch: Launch, opts: { s
   };
   const path = viewer.entities.add({ id: "launch-replay-path", polyline: { positions: new C.CallbackProperty(shown, false), width: 3, material: new C.PolylineGlowMaterialProperty({ glowPower: 0.25, color: C.Color.ORANGE }) } });
   const ghost = viewer.entities.add({ id: "launch-replay-ghost", polyline: { positions: cart, width: 1, material: new C.PolylineDashMaterialProperty({ color: C.Color.WHITE.withAlpha(0.35), dashLength: 12 }) } });
-  const vehicle = viewer.entities.add({ id: "launch-replay-vehicle", position: new C.CallbackProperty(tip, false), point: { pixelSize: 10, color: C.Color.WHITE, outlineColor: C.Color.ORANGE, outlineWidth: 3 }, label: { text: new C.CallbackProperty(() => `T+${Math.round(f * 540)}s · ${Math.round(Math.sin(f * Math.PI / 2) ** 1.4 * 210)} km`, false), font: "12px monospace", pixelOffset: new C.Cartesian2(0, -18), fillColor: C.Color.WHITE, showBackground: true, backgroundColor: C.Color.BLACK.withAlpha(0.6) } });
+  const vehicle = viewer.entities.add({ id: "launch-replay-vehicle", position: new C.CallbackProperty(tip, false), point: { pixelSize: 10, color: C.Color.WHITE, outlineColor: C.Color.ORANGE, outlineWidth: 3 } });
   // Frame the whole estimated path side-on (camera heading perpendicular to the launch azimuth).
   const az = launchAzimuth(launch.lat, typicalInclination(launch.orbitAbbrev, launch.lat));
   const sphere = C.BoundingSphere.fromPoints(cart);
   viewer.camera.flyToBoundingSphere(sphere, { offset: new C.HeadingPitchRange(C.Math.toRadians(az - 90), C.Math.toRadians(-28), sphere.radius * 2.4), duration: 1.5 });
+  // T+ readout as an HTML tag that follows the tip. A Cesium label with
+  // changing text re-rasterised glyphs and showed missing/overlapping digits.
+  const tag = document.createElement("div");
+  tag.dataset.testid = "launch-replay-label";
+  Object.assign(tag.style, { position: "absolute", left: "0", top: "0", pointerEvents: "none", zIndex: "3", font: "12px ui-monospace, monospace", whiteSpace: "pre", color: "#fff", background: "rgba(0,0,0,0.6)", padding: "1px 5px", borderRadius: "3px", transform: "translate(-50%, -150%)", display: "none" });
+  viewer.container.appendChild(tag);
+  const placeTag = () => {
+    const p = tip();
+    const occ = new C.EllipsoidalOccluder(viewer.scene.globe.ellipsoid, viewer.camera.positionWC);
+    const w = occ.isPointVisible(p) ? C.SceneTransforms.worldToWindowCoordinates(viewer.scene, p) : null;
+    if (!w) { tag.style.display = "none"; return; }
+    const txt = ascentLabel(f);
+    if (tag.textContent !== txt) tag.textContent = txt;
+    tag.style.display = "block";
+    tag.style.left = `${w.x}px`; tag.style.top = `${w.y}px`;
+  };
+  const removePost = viewer.scene.postRender.addEventListener(placeTag);
   let raf = 0, last = 0, stopped = false;
   const step = (t: number) => {
     if (stopped) return;
@@ -103,6 +120,7 @@ export function startAscentReplay(viewer: any, C: any, launch: Launch, opts: { s
   return {
     stop: () => {
       stopped = true; clearTimeout(startTimer); cancelAnimationFrame(raf);
+      removePost(); tag.remove();
       for (const e of [path, ghost, vehicle]) { try { viewer.entities.remove(e); } catch { /* ignore */ } }
       viewer.scene.requestRender();
     },
