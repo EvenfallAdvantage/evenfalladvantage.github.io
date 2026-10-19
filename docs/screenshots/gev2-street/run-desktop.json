@@ -1,0 +1,28 @@
+{
+ "feature": "street",
+ "mode": "desktop",
+ "cctvAckPrompt": false,
+ "paris": {
+  "panoramax": 49,
+  "kartaview": 1
+ },
+ "picked": "street-kartaview-335866377",
+ "parisCard": "Panoramax\n2025-04-05 · facing 296°\n© benoitdd · CC-BY-SA-4.0 · faces and plates blurred by Panoramax\nOpen",
+ "nyc": {
+  "kartaview": 8,
+  "panoramax": 20
+ },
+ "nycCard": "KartaView\n2018-12-10 · facing 206°\n© KartaView contributors · CC BY-SA 4.0 · faces and plates blurred by KartaView\nOpen",
+ "zoomedOut": {},
+ "credits": [],
+ "reqs": [
+  "https://api.panoramax.xyz/api/search?bbox=2.338800%2C48.854406%2C2.358800%2C48.862696&limit=100",
+  "https://api.kartaview.org/2.0/photo/?lat=48.8585507&lng=2.3488000&zoomLevel=18&itemsPerPage=100",
+  "https://panoramax.openstreetmap.fr/derivates/7d/d6/f6/cd/0ce5-4a6a-bdbe-8ac9229ed173/sd.jpg",
+  "https://api.panoramax.xyz/api/search?bbox=-73.990318%2C40.755811%2C-73.980682%2C40.760438&limit=100",
+  "https://api.kartaview.org/2.0/photo/?lat=40.7581247&lng=-73.9855000&zoomLevel=18&itemsPerPage=100",
+  "https://storage9.openstreetcam.org/files/photo/2018/12/10/proc/1313019_30_9be9e_22.jpg"
+ ],
+ "errs": [],
+ "blockedPrefWrites": 3
+}

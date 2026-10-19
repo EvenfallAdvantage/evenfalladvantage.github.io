@@ -49,10 +49,15 @@ sources are currently enabled and any gating reasons.
 | Wikipedia / Wikidata | Region dossier | `*.wikipedia.org`, `query.wikidata.org` |
 | Nominatim | Reverse geocoding, region dossier | `nominatim.openstreetmap.org` |
 | RDAP via rdap.org | WHOIS lookups (RECON tab) | `rdap.org` |
+| Panoramax | Street-level photos (Operations map, Cameras) | `api.panoramax.xyz` STAC search (keyless; licence per photo, mostly CC BY-SA 4.0 / Licence Ouverte 2.0; faces and plates blurred on upload) |
+| KartaView | Street-level photos (Operations map, Cameras) | `api.kartaview.org` (keyless; CC BY-SA 4.0; only photos KartaView reports as BLURRED, processed image) |
+| NOAA/NCEP GFS via PacIOOS ERDDAP | Animated wind particles (Operations map, Wind) | `pae-paha.pacioos.hawaii.edu/erddap` (U.S. Government public domain; keyless, CORS) |
+| NASA GIBS — Black Marble (VIIRS 2016) | City lights on the night side (Operations map, View menu) | `gibs.earthdata.nasa.gov` WMTS `VIIRS_Black_Marble` (NASA data policy, public domain; keyless) |
 
 ### Free with attribution required
 
 - **Launch Library 2 — The Space Devs** — rocket launches, last 30 days (Operations map, Infrastructure → Space), `ll.thespacedevs.com/2.3.0` keyless (15 calls/hour per client; cached 15 min per browser session). Terms permit use and sharing in any form; attribution encouraged and shown. Ascent replay paths are Overwatch's own coarse estimates, not LL2 data.
+- **Mapillary** — street-level photos (Operations map, Cameras), `graph.mapillary.com`; imagery CC BY-SA 4.0, Mapillary terms; needs a free client token in the `NEXT_PUBLIC_MAPILLARY_CLIENT_TOKEN` build secret (skipped when unset); every image is auto-blurred by Mapillary.
 
 The public, user-facing list (exact credit strings + licence links) is
 `/data-sources.html` at the site root (https://www.evenfalladvantage.com/data-sources.html).
@@ -171,6 +176,24 @@ set of active layers.
     30-day query and the estimated-ascent replay idea (failed launches get no
     path; labelled as an estimate) from `src/layers/launches/` (rewritten,
     much simpler profile)
+- Also used in (street-level photos):
+  - `overwatch-src/src/lib/map/street-level.ts` — provider endpoints and
+    record shapes from `src/layers/streetLevel/providers/{panoramax,kartaview,mapillary}/`
+    (rewritten; KartaView blurred-only filter and storage-host check kept)
+- Also used in (animated wind):
+  - `overwatch-src/src/lib/map/wind-field.ts` and
+    `overwatch-src/src/components/tactical-map/hooks/use-wind-particles.ts` —
+    grid layout and bilinear `sampleWind` from `src/layers/wind/model.js`;
+    screen-space particle/trail approach from `src/layers/wind/rendering.js`
+    (rewritten; different data source, ERDDAP instead of GRIB2)
+- Also used in (screen overlays):
+  - `overwatch-src/src/components/tactical-map/split-flap.tsx` — behaviour of
+    `src/splitFlap.js` (timings, cascade cap, textContent-is-truth), rewritten
+    as a React component
+  - `SONAR_EFFECT` / `SCOPE_EFFECT` in
+    `overwatch-src/src/components/tactical-map/effects.ts` — Overwatch GLSL
+    modelled on `src/cyberSonar.js` (period, sector, dimming) and
+    `src/scopeMask.js` (circular feathered aperture)
 
 ```
 MIT License

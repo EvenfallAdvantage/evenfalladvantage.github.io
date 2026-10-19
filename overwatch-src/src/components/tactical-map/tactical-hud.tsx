@@ -8,6 +8,7 @@
  */
 import { useEffect, useState } from "react";
 import type { CesiumRef } from "./hooks/cesium-layer-types";
+import { SplitFlapText } from "./split-flap";
 
 interface Readout { lat: number | null; lng: number | null; altM: number; hdg: number; pitch: number }
 
@@ -91,7 +92,7 @@ export function TacticalHud({ viewerRef, cesiumRef, mode }: { viewerRef: CesiumR
 
       <div className="absolute top-14 left-6 space-y-0.5">
         <div className="tracking-[0.25em] text-cyan-100">OVERWATCH</div>
-        <div className="text-cyan-300/70">MODE {mode}</div>
+        <div className="text-cyan-300/70">MODE <SplitFlapText text={mode} /></div>
       </div>
       <div className="absolute top-14 right-6 text-right space-y-0.5">
         <div className="text-cyan-100">{clock}</div>
