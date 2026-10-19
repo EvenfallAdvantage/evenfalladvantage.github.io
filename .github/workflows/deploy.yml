@@ -65,6 +65,8 @@ jobs:
           NEXT_PUBLIC_CESIUM_ION_COMMERCIAL: ${{ vars.CESIUM_ION_COMMERCIAL == 'true' && 'true' || '' }}
           NEXT_PUBLIC_CESIUM_TOKEN: ${{ vars.CESIUM_ION_COMMERCIAL == 'true' && secrets.NEXT_PUBLIC_CESIUM_TOKEN || '' }}
           NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID: ${{ secrets.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID }}
+          # Mapillary client token (public by design; street-level photos). Unset = Mapillary skipped.
+          NEXT_PUBLIC_MAPILLARY_CLIENT_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPILLARY_CLIENT_TOKEN }}
         run: npm run build
 
       - name: Inject build hash into service worker

@@ -43,6 +43,7 @@ import { QuickDMModal } from "./quick-dm-modal";
 import { IntelDrawer } from "@/components/intel/intel-drawer";
 import { LiveFeedViewer } from "@/components/intel/live-feed-viewer";
 import { CctvViewer } from "@/components/intel/cctv-viewer";
+import { StreetPhotoViewer } from "./street-photo-viewer";
 import { RegionDossierModal } from "@/components/intel/region-dossier-modal";
 import { GlobalStatusBar } from "@/components/intel/global-status-bar";
 import { KeyboardShortcutsModal } from "@/components/intel/keyboard-shortcuts-modal";
@@ -249,6 +250,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // Modals launched from Intel map layers
   const [activeLiveFeed, setActiveLiveFeed] = useState<import("@/lib/intel-types").IntelLiveNewsFeed | null>(null);
   const [activeCctvCamera, setActiveCctvCamera] = useState<import("@/lib/intel-types").CctvCamera | null>(null);
+  const [streetPhoto, setStreetPhoto] = useState<import("@/lib/map/street-level").StreetPhoto | null>(null);
 
   // Region dossier — opened on right-click anywhere on the globe.
   const [regionDossier, setRegionDossier] = useState<{ lat: number; lng: number } | null>(null);
@@ -302,6 +304,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     adjustingOpId: adjustingOp?.id ?? null,
     onOpenLiveFeed: setActiveLiveFeed,
     onOpenCctvCamera: setActiveCctvCamera,
+    onOpenStreetPhoto: setStreetPhoto,
     gibsDay: gibsDay ?? undefined,
     scopeFilters,
   });
@@ -704,6 +707,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         if (shortcutsOpen) { setShortcutsOpen(false); return; }
         if (attributionOpen) { setAttributionOpen(false); return; }
         if (regionDossier) { setRegionDossier(null); return; }
+        if (streetPhoto) { setStreetPhoto(null); return; }
         if (activeCctvCamera) { setActiveCctvCamera(null); return; }
         if (activeLiveFeed) { setActiveLiveFeed(null); return; }
         if (intelDrawerOpen) { setIntelDrawerOpen(false); return; }
@@ -755,6 +759,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     attributionOpen,
     cctvAckOpen,
     regionDossier,
+    streetPhoto,
     activeCctvCamera,
     activeLiveFeed,
     intelDrawerOpen,
@@ -942,6 +947,9 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           onClose={() => setActiveLiveFeed(null)}
         />
       )}
+
+      {/* Street-level photo — opens from street-photo points (Cameras group) */}
+      {streetPhoto && <StreetPhotoViewer photo={streetPhoto} onClose={() => setStreetPhoto(null)} />}
 
       {/* CCTV camera viewer — opens from CCTV map pins */}
       {activeCctvCamera && (
