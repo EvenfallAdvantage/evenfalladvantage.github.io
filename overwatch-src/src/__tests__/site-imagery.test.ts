@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cloudLabel, cmrUrl, hlsTileUrl, imageryDays, parseCmr, pickDefaultDay, siteBox,
 } from "@/lib/map/site-imagery";
-import { decodeInfraLine, decodeInfraRow, densifyLine, infraLimits, INFRA_MAX_CELLS, keepInfraFeature, lineInView, lineStyle, nearestLines } from "@/lib/map/infra-extract";
+import { decodeInfraLine, decodeInfraRow, densifyLine, infraContrastStyle, infraLimits, INFRA_MAX_CELLS, keepInfraFeature, lineInView, lineStyle, nearestLines } from "@/lib/map/infra-extract";
 
 const granule = (start: string, cloud?: string | number) => ({
   umm: {
@@ -122,5 +122,16 @@ describe("infra limits", () => {
     expect(long.at(-1)).toEqual([-97, 30.3]);
     expect(long.length).toBeGreaterThanOrEqual(10);
     for (let i = 1; i < long.length; i++) expect(long[i][1] - long[i - 1][1]).toBeLessThanOrEqual(0.0301);
+  });
+
+  it("draws dark under NVG/thermal and keeps kind colours otherwise", () => {
+    const normal = infraContrastStyle(false);
+    expect(normal.pointFill).toBeNull();
+    expect(normal.lineColor).toBeNull();
+    const nvg = infraContrastStyle(true);
+    expect(nvg.pointFill).toBe("#000000");
+    expect(nvg.lineColor).toBe("#000000");
+    expect(nvg.lineWidthBoost).toBeGreaterThan(0);
+    expect(nvg.pointOutline).toBe("#ffffff");
   });
 });

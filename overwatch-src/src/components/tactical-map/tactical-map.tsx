@@ -318,7 +318,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const modelsShown = useContactModels({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.aircraft, highContrast: highContrastLook });
   // Live AIS ships (Air & Sea), desktop 3D models near the camera.
   const shipsLayer = useShipsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.ships, highContrast: highContrastLook });
-  useInfraLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.osmInfrastructure });
+  useInfraLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.osmInfrastructure, highContrast: highContrastLook });
   useSiteImagery({ viewerRef, cesiumRef, loading, selection: siteImagery });
   const osmBuildingsStatus = useOsmBuildingsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading,
