@@ -48,6 +48,11 @@ export interface LayerVisibility {
   hud: boolean;
   /** Street-level photos (Panoramax, KartaView, Mapillary) in the Cameras group. */
   streetPhotos: boolean;
+  /** Screen overlays (View menu): rotating sonar sweep, circular scope mask. */
+  sonarSweep: boolean;
+  scopeMask: boolean;
+  /** NASA Black Marble city lights on the night side of the globe (View menu). */
+  cityLights: boolean;
   // Live feeds
   aircraft: boolean;
   satelliteOrbits: boolean;
@@ -120,6 +125,9 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   sharpen: false,
   hud: false,
   streetPhotos: false,
+  sonarSweep: false,
+  scopeMask: false,
+  cityLights: false,
   aircraft: false,
   satelliteOrbits: false,
   s2Intel: false,

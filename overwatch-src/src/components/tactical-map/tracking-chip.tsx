@@ -14,6 +14,7 @@ import { nearestWithin, type AircraftTrack } from "@/lib/map/aircraft-motion";
 import { fetchAircraftTrace, splitTraceSegments, TRACE_COVERAGE_HINT, TRACE_CREDIT } from "@/lib/map/aircraft-trace";
 import { compass, nearbyContacts, type ContactLike, type Contact } from "@/lib/map/nearby-contacts";
 import type { CesiumRef, EntityGroupsRef } from "./hooks/cesium-layer-types";
+import { SplitFlapText } from "./split-flap";
 
 const HANDOFF_RADIUS_M = 25_000;
 const HISTORY_ID = "aircraft-track-history";
@@ -107,7 +108,7 @@ export function TrackingChip({ viewerRef, cesiumRef, entityGroupsRef, trackedId,
     <div className="absolute top-14 lg:top-3 left-1/2 -translate-x-1/2 z-30 max-w-[calc(100%-1.5rem)] lg:max-w-[min(40rem,calc(100%-36rem))] pointer-events-auto" data-testid="tracking-chip">
       <div className="flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-mono text-white/90 backdrop-blur-md border border-cyan-400/40 bg-black/60 shadow-lg">
         <Crosshair className="h-3.5 w-3.5 shrink-0 text-cyan-300 animate-pulse" />
-        <span className="truncate min-w-0" title={`Tracking ${label}`}>TRACKING {label}</span>
+        <span className="truncate min-w-0" title={`Tracking ${label}`}>TRACKING <SplitFlapText text={label} /></span>
         {lost && <span className="shrink-0 text-amber-300">· signal lost</span>}
         {history.status === "ok" && (
           <span className="shrink-0 flex items-center gap-1 text-cyan-200/70" title={`${TRACE_CREDIT} · ${history.points} points. ${TRACE_COVERAGE_HINT}`} data-testid="tracking-history">
