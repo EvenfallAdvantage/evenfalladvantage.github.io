@@ -29,7 +29,7 @@ export type FlatKey =
   | "conflictZones" | "gdelt" | "sigintNews" | "news" | "nuclearInfrastructure" | "cctv" | "liveNews"
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
   | "satellite" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
-  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud"
+  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud" | "sonarSweep" | "scopeMask" | "cityLights"
   | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure" | "ships";
 
 /** Minimal shape the registry needs; LayerVisibility satisfies it. */
@@ -117,7 +117,7 @@ export const GROUPS: readonly GroupDef[] = [
 /** Flat keys that panel v2 never draws (dropped, merged or moved). */
 export const V2_RETIRED_KEYS: readonly FlatKey[] = ["eonetWeather", "gdelt", "sigintNews", "liveNews", "radioFrequencies", "earthquakes", "fires"];
 /** Flat keys the classic panel never draws (v2-only merges). */
-export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure", "ships"];
+export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["sonarSweep", "scopeMask", "cityLights", "news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure", "ships"];
 
 export const PRESET_LABELS: Record<PresetId, string> = {
   clean: "Clean",
@@ -228,6 +228,21 @@ export function setBasemap<T extends RegistryState>(s: T, b: BasemapId): T {
     sentinel1: b === "sar",
     sentinel2: b === "daily",
   };
+}
+
+export type OverlayId = "none" | "scope" | "sonar";
+export const OVERLAY_LABELS: Record<OverlayId, string> = { none: "Off", scope: "Scope", sonar: "Sonar" };
+/** Overlays offered on phones (the sonar sweep animates every frame). */
+export const MOBILE_OVERLAYS: readonly OverlayId[] = ["none", "scope"];
+
+export function overlayOf(s: Partial<Pick<RegistryState, "sonarSweep" | "scopeMask">>): OverlayId {
+  if (s.sonarSweep) return "sonar";
+  if (s.scopeMask) return "scope";
+  return "none";
+}
+
+export function setOverlay<T extends RegistryState>(s: T, o: OverlayId): T {
+  return { ...s, sonarSweep: o === "sonar", scopeMask: o === "scope" };
 }
 
 export function lookOf(s: RegistryState): LookId {

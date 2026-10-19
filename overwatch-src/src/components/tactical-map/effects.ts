@@ -405,3 +405,87 @@ export function setBloom(viewer: CesiumNs, on: boolean): void {
   }
   viewer.scene.requestRender();
 }
+
+// ─── Screen overlays (sonar sweep, scope mask) ─────────────────────
+// Overwatch's own GLSL, modelled on gods-eye-view's cyber-sonar sweep
+// (src/cyberSonar.js: 5.2 s period, 24° sector, feathered trailing edge,
+// contacts dimmed between passes) and its circular scope mask
+// (src/scopeMask.js, ui/styles/foundation.css #scope-mask). MIT, see
+// docs/THIRD-PARTY-NOTICES.md. Both are drawn last, after the look stages.
+
+/** Rotating sonar sector with range rings, centred on the screen (the tracked target when tracking). */
+export const SONAR_EFFECT: EffectSpec = {
+  name: "ow_gev_sonar",
+  animated: true,
+  uniforms: { periodSec: 5.2, sectorDeg: 24, rings: 6, dim: 0.84 },
+  fragmentShader: `
+    uniform sampler2D colorTexture;
+    uniform vec2 colorTextureDimensions;
+    uniform float time;
+    uniform float periodSec;
+    uniform float sectorDeg;
+    uniform float rings;
+    uniform float dim;
+    in vec2 v_textureCoordinates;
+
+    void main() {
+      vec2 uv = v_textureCoordinates;
+      vec4 color = texture(colorTexture, uv);
+      vec2 px = (uv - 0.5) * colorTextureDimensions;
+      float r = length(px) / (0.5 * min(colorTextureDimensions.x, colorTextureDimensions.y));
+      float ang = atan(px.x, px.y);                      // 0 = up, clockwise
+      float sweep = fract(time / periodSec) * 6.2831853;
+      float behind = mod(sweep - ang + 6.2831853, 6.2831853);
+      float sector = radians(sectorDeg);
+      float trail = 1.0 - smoothstep(0.0, sector, behind);
+      float edge = 1.0 - smoothstep(0.0, 0.012, behind);
+      float inside = 1.0 - smoothstep(0.98, 1.0, r);
+      float ring = (1.0 - smoothstep(0.0, 0.006, abs(fract(r * rings + 0.5) - 0.5) / rings)) * inside * 0.35;
+      vec3 base = color.rgb * mix(dim, 1.0, trail * inside);
+      vec3 tint = vec3(0.35, 1.0, 0.75);
+      base += tint * (trail * 0.3 + edge * 0.55) * inside;
+      base = mix(base, tint, ring);
+      out_FragColor = vec4(base, color.a);
+    }
+  `,
+};
+
+/** Circular scope aperture: feathered black mask, mil-dot crosshair and a range ring. */
+export const SCOPE_EFFECT: EffectSpec = {
+  name: "ow_gev_scope",
+  animated: false,
+  uniforms: { radius: 0.92, feather: 0.06 },
+  fragmentShader: `
+    uniform sampler2D colorTexture;
+    uniform vec2 colorTextureDimensions;
+    uniform float radius;
+    uniform float feather;
+    in vec2 v_textureCoordinates;
+
+    void main() {
+      vec2 uv = v_textureCoordinates;
+      vec4 color = texture(colorTexture, uv);
+      float half_ = 0.5 * min(colorTextureDimensions.x, colorTextureDimensions.y);
+      vec2 px = (uv - 0.5) * colorTextureDimensions;
+      float r = length(px) / half_;
+      float aperture = 1.0 - smoothstep(radius - feather, radius, r);
+      // Lens falloff toward the rim
+      vec3 c = color.rgb * mix(0.72, 1.0, 1.0 - smoothstep(0.35, radius, r));
+      float w = 1.2 / half_;
+      float cross_ = (1.0 - smoothstep(0.0, w, abs(px.x) / half_)) + (1.0 - smoothstep(0.0, w, abs(px.y) / half_));
+      float gap = smoothstep(0.05, 0.07, r);              // open centre
+      cross_ *= gap * step(r, radius - feather);
+      float dots = 0.0;
+      for (int i = 1; i <= 8; i++) {
+        float d = float(i) * 0.1;
+        dots += (1.0 - smoothstep(0.0, 3.0 * w, length(vec2(abs(px.x) / half_ - d, px.y / half_))));
+        dots += (1.0 - smoothstep(0.0, 3.0 * w, length(vec2(px.x / half_, abs(px.y) / half_ - d))));
+      }
+      float ring = 1.0 - smoothstep(0.0, w, abs(r - (radius - feather - 0.01)));
+      vec3 ink = vec3(0.02);
+      c = mix(c, ink, clamp(cross_ + dots, 0.0, 1.0) * 0.85);
+      c = mix(c, vec3(0.6, 0.9, 0.8), ring * 0.5);
+      out_FragColor = vec4(c * aperture, color.a);
+    }
+  `,
+};

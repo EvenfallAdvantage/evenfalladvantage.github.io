@@ -1,3 +1,4 @@
+import { wantsGlobeLighting } from "@/lib/map/city-lights";
 import { useEffect } from "react";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -53,8 +54,8 @@ export function useNightVision(params: {
       entityGroupsRef.current.buildings?.[0],
       layers.nightVision ? new Cesium.Cesium3DTileStyle({ color: "color('rgba(0, 255, 65, 0.15)')", show: true }) : undefined,
     );
-    viewer.scene.globe.enableLighting = !!layers.nightVision;
+    viewer.scene.globe.enableLighting = wantsGlobeLighting({ nightVision: layers.nightVision, cityLights: layers.cityLights });
     viewer.scene.requestRender();
     // layers.satellite: re-grade when the streets layer is created/swapped.
-  }, [layers.nightVision, layers.satellite, loading, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.nightVision, layers.cityLights, layers.satellite, loading, viewerRef, cesiumRef, entityGroupsRef]);
 }

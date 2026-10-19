@@ -22,9 +22,9 @@ import { ionAssetsEnabled } from "@/lib/map/basemap-sources";
 import type { OsmBuildingsStatus } from "./hooks/use-osm-buildings-layer";
 import { AIRCRAFT_FILTER_LABELS } from "@/lib/map/aircraft-filter";
 import {
-  matchingPreset, GROUPS, PRESET_IDS, PRESET_LABELS, BASEMAP_LABELS, LOOK_LABELS, MOBILE_LOOKS, MOBILE_MAX_DATA_GROUPS,
+  matchingPreset, GROUPS, PRESET_IDS, PRESET_LABELS, BASEMAP_LABELS, LOOK_LABELS, MOBILE_LOOKS, OVERLAY_LABELS, MOBILE_OVERLAYS, overlayOf, setOverlay, MOBILE_MAX_DATA_GROUPS,
   activeDataGroups, applyPreset, basemapOf, lookOf, setBasemap, setGroup, setLook, setSub, subOn,
-  type BasemapId, type GroupId, type LookId, type PresetId,
+  type BasemapId, type GroupId, type LookId, type OverlayId, type PresetId,
 } from "@/lib/map/layer-registry";
 
 const GROUP_ICONS: Record<GroupId, ReactNode> = {
@@ -128,6 +128,7 @@ function PanelBody(props: MapLayersPanelV2Props) {
 
   const basemaps: BasemapId[] = ["satellite", "streets", "dark", "daily", ...(SAR_AVAILABLE ? (["sar"] as BasemapId[]) : [])];
   const looks: readonly LookId[] = constrained ? MOBILE_LOOKS : ["normal", "nvg", "thermal", "noir", "crt"];
+  const overlays: readonly OverlayId[] = constrained ? MOBILE_OVERLAYS : ["none", "scope", "sonar"];
 
   const activePreset = matchingPreset(layers, { constrained, cctvAcked });
 
@@ -281,7 +282,7 @@ function PanelBody(props: MapLayersPanelV2Props) {
       {/* View menu */}
       <div className="pt-1 border-t border-white/10">
         <button onClick={() => setViewOpen((o) => !o)} className="flex w-full items-center gap-2 text-[9px] font-mono text-white/45 uppercase tracking-wider hover:text-white/80" aria-expanded={viewOpen}>
-          <Eye className="h-3 w-3" /> <span className="flex-1 text-left">View · {LOOK_LABELS[lookOf(layers)]}{layers.hud ? " · HUD" : ""}</span>
+          <Eye className="h-3 w-3" /> <span className="flex-1 text-left">View · {LOOK_LABELS[lookOf(layers)]}{overlayOf(layers) !== "none" ? ` · ${OVERLAY_LABELS[overlayOf(layers)]}` : ""}{layers.hud ? " · HUD" : ""}</span>
           {viewOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         </button>
         {viewOpen && (
@@ -293,6 +294,14 @@ function PanelBody(props: MapLayersPanelV2Props) {
                 <label className="flex items-center gap-1.5"><input type="checkbox" checked={layers.bloom} onChange={() => onChange({ ...layers, bloom: !layers.bloom })} className="h-3 w-3" style={{ accentColor: ACCENT }} />Bloom</label>
               </div>
             )}
+            <div className="flex items-center gap-2 text-[11px] text-white/70" data-testid="overlay-picker">
+              <span className="shrink-0">Overlay</span>
+              <div className="flex-1"><Segmented value={overlays.includes(overlayOf(layers)) ? overlayOf(layers) : "none"} options={overlays} labels={OVERLAY_LABELS} onPick={(o) => onChange(setOverlay(layers, o))} /></div>
+            </div>
+            <label className="flex items-center justify-between text-[11px] text-white/70" title="NASA Black Marble (VIIRS) city lights, shown on the night side of the globe">
+              <span>City lights at night</span>
+              <Switch on={layers.cityLights} onToggle={() => onChange({ ...layers, cityLights: !layers.cityLights })} label="City lights at night" />
+            </label>
             <label className="flex items-center justify-between text-[11px] text-white/70">
               <span>Tactical HUD</span>
               <Switch on={layers.hud} onToggle={() => onChange({ ...layers, hud: !layers.hud })} label="Tactical HUD" />

@@ -20,6 +20,7 @@ import { useIncidentsLayer } from "./use-incidents-layer";
 import { useWeatherLayer } from "./use-weather-layer";
 import { useGevEffects } from "./use-gev-effects";
 import { useNightVision, applyGrade, NIGHT_GRADE } from "./use-night-vision";
+import { useCityLights } from "./use-city-lights";
 import { useAircraftLayer } from "./use-aircraft-layer";
 import { useOrbitLayer } from "./use-orbit-layer";
 import { useTrailsLayer } from "./use-trails-layer";
@@ -134,6 +135,7 @@ export function useCesiumLayers(params: {
 
   // ─── Sub-hook: Night vision ──────────────────────────
   useNightVision({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
+  useCityLights({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
 
   // ─── Sub-hook: Live aircraft ─────────────────────────
   // OpenSky has no free historical commercial API; aircraft are hidden in-hook
