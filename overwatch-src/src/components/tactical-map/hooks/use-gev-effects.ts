@@ -20,6 +20,8 @@ function useEffectStage(key: EffectKey, on: boolean, viewerRef: CesiumRef, cesiu
     const groups = entityGroupsRef.current;
     const stage = addEffect(viewer, Cesium, spec);
     groups[`fx_${key}`] = stage;
+    // The performance governor turns optional effects off while it is reducing quality.
+    if (key === "sharpen" && Number(groups.perfLevel ?? 0) > 0) stage.enabled = false;
     const stopPump = spec.animated
       ? setVisibleInterval(() => { if (!viewer.isDestroyed?.()) viewer.scene.requestRender(); }, EFFECT_FRAME_MS)
       : () => {};
@@ -46,6 +48,6 @@ export function useGevEffects(params: {
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || loading) return;
-    setBloom(viewer, !!layers.bloom);
-  }, [layers.bloom, loading, viewerRef]);
+    setBloom(viewer, !!layers.bloom && !(Number(entityGroupsRef.current.perfLevel ?? 0) > 0));
+  }, [layers.bloom, loading, viewerRef, entityGroupsRef]);
 }

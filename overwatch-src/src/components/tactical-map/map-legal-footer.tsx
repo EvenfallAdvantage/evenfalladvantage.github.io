@@ -11,10 +11,12 @@ interface MapLegalFooterProps {
   onOpenSources: () => void;
   /** OSM 3D buildings are on: show their required attribution (never truncated). */
   osmBuildings?: boolean;
+  /** CC BY 4.0 3D aircraft models are on screen: show their credit. */
+  models?: boolean;
 }
 
 /** Persistent bottom strip: emergency-use disclaimer, sources link and provider credits. */
-export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings }: MapLegalFooterProps) {
+export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings, models }: MapLegalFooterProps) {
   return (
     <div
       className="absolute bottom-0 left-0 right-0 z-[5] flex items-center gap-2 px-2 py-0.5 text-[9px] leading-tight text-white/60 pointer-events-none"
@@ -38,6 +40,13 @@ export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings }: MapLe
         Licences
       </a>
       <div ref={creditRef} className="map-credit-container pointer-events-auto ml-auto min-w-0 truncate text-right" />
+      {models && (
+        <a href={`${DATA_SOURCES_URL}#models`} target="_blank" rel="noopener noreferrer" data-testid="models-attribution"
+          className="pointer-events-auto shrink-0 whitespace-nowrap underline hover:text-white"
+          title="3D aircraft models by their creators on Sketchfab, CC BY 4.0, modified (see credits)">
+          3D models: CC BY 4.0 · modified · credits
+        </a>
+      )}
       {osmBuildings && (
         <span className="pointer-events-auto shrink-0 whitespace-nowrap"
           title="Required attribution for the 3D buildings layer (kept at the right edge, clear of the map toolbars)" data-testid="osm-buildings-attribution">
