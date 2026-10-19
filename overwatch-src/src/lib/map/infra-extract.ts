@@ -243,3 +243,26 @@ export function densifyLine(pts: ReadonlyArray<readonly [number, number]>, stepD
   }
   return out;
 }
+
+/**
+ * Infrastructure look per map style. NVG and thermal post-process the frame to
+ * brightness only, so the warm-coloured lines and points vanish into lit terrain:
+ * there they draw dark (black core, light rim) like the 3D models and camera cones.
+ */
+export interface InfraContrastStyle {
+  /** Point fill override (null keeps each kind's colour). */
+  pointFill: string | null;
+  pointOutline: string;
+  pointOutlineWidth: number;
+  /** Line colour override (null keeps the voltage colour). */
+  lineColor: string | null;
+  lineAlpha: number;
+  lineWidthBoost: number;
+  labelFill: string | null;
+  labelOutline: string;
+}
+export function infraContrastStyle(highContrast: boolean): InfraContrastStyle {
+  return highContrast
+    ? { pointFill: "#000000", pointOutline: "#ffffff", pointOutlineWidth: 2, lineColor: "#000000", lineAlpha: 0.95, lineWidthBoost: 1.5, labelFill: "#000000", labelOutline: "#ffffff" }
+    : { pointFill: null, pointOutline: "#000000", pointOutlineWidth: 1, lineColor: null, lineAlpha: 0.85, lineWidthBoost: 0, labelFill: null, labelOutline: "#000000" };
+}
