@@ -79,7 +79,7 @@ export const GROUPS: readonly GroupDef[] = [
       { id: "radar", label: "Radar loop", keys: ["weather"], hint: "NOAA MRMS reflectivity, last hour (US)" },
       { id: "clouds", label: "Clouds", keys: ["clouds"], hint: "Infrared satellite, day and night" },
       { id: "lightning", label: "Lightning", keys: ["lightning"], hint: "NOAA 15-minute strike density" },
-      { id: "wind", label: "Wind", keys: ["wind"], hint: "Observed surface wind barbs (US)" },
+      { id: "wind", label: "Wind", keys: ["wind"], hint: "Animated global wind (NOAA GFS model, 3-hourly) and observed surface wind barbs (US)" },
       { id: "stations", label: "Fire-weather stations", keys: ["raws"] },
     ],
   },
