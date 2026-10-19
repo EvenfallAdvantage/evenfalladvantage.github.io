@@ -21,7 +21,9 @@
  * Contact-type tags are never copied. The output is a derived database
  * under ODbL 1.0; keep the "© OpenStreetMap contributors (ODbL)" credit.
  *
- * Usage: node scripts/build-infra-extract.mjs --gev /tmp/gev/src/data/local_data [--overpass]
+ * Usage: node scripts/build-infra-extract.mjs --gev /tmp/gev/src/data/local_data [--overpass] [--cache <dir>]
+ *   --cache <dir> keeps each Overpass tile's JSON so a re-run only fetches
+ *                 the tiles that failed (public Overpass is often at capacity).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -29,11 +31,15 @@ import path from "node:path";
 const UA = "EvenfallOverwatch-infra-extract/1.0 (+https://www.evenfalladvantage.com)";
 const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
 const CELL = 10;
-const OUT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../public/data/infra");
 
 const args = process.argv.slice(2);
+const OUT = args.includes("--out")
+  ? path.resolve(args[args.indexOf("--out") + 1])
+  : path.resolve(path.dirname(new URL(import.meta.url).pathname), "../public/data/infra");
 const gevDir = args[args.indexOf("--gev") + 1];
 const withOverpass = args.includes("--overpass");
+const cacheDir = args.includes("--cache") ? path.resolve(args[args.indexOf("--cache") + 1]) : null;
+if (cacheDir) fs.mkdirSync(cacheDir, { recursive: true });
 if (!args.includes("--gev") || !gevDir) { console.error("usage: --gev <local_data dir> [--overpass]"); process.exit(2); }
 
 const r5 = (n) => Math.round(n * 1e5) / 1e5;
@@ -100,14 +106,18 @@ for (const r of mil.records) {
 // Overpass (optional, US tiles)
 const pending = [];
 async function overpass(query) {
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     const url = OVERPASS[attempt % OVERPASS.length];
     try {
       const res = await fetch(url, { method: "POST", headers: { "User-Agent": UA, "Content-Type": "application/x-www-form-urlencoded" }, body: "data=" + encodeURIComponent(query), signal: AbortSignal.timeout(200_000) });
-      if (res.ok) return await res.json();
-      console.warn(`overpass ${url} -> ${res.status}`);
+      if (res.ok) {
+        const json = await res.json();
+        // Overpass answers 200 with a "remark" when a query times out part-way.
+        if (!/error|timed out/i.test(String(json.remark ?? ""))) return json;
+        console.warn(`overpass ${url} -> remark: ${json.remark}`);
+      } else console.warn(`overpass ${url} -> ${res.status}`);
     } catch (e) { console.warn(`overpass ${url} -> ${e.message}`); }
-    await new Promise((r) => setTimeout(r, 15_000 * (attempt + 1)));
+    await new Promise((r) => setTimeout(r, 10_000 * (attempt + 1)));
   }
   return null;
 }
@@ -118,8 +128,12 @@ if (withOverpass) {
   for (const [s, w, n, e] of tiles) {
     const bb = `${s},${w},${n},${e}`;
     const q = `[out:json][timeout:180];(nwr["power"="substation"]["voltage"~"^(1[1-9]|[2-9][0-9]|[1-9][0-9]{2})[0-9]{4}"](${bb}););out center tags qt;way["power"="line"]["voltage"~"^([3-9][4-9][0-9]|[4-9][0-9]{2}|[1-9][0-9]{3})[0-9]{3}"](${bb});out geom qt;`;
-    const data = await overpass(q);
+    const cacheFile = cacheDir ? path.join(cacheDir, `power_${bb.replace(/,/g, "_")}.json`) : null;
+    let data = cacheFile && fs.existsSync(cacheFile) ? JSON.parse(fs.readFileSync(cacheFile, "utf8")) : null;
+    const cached = !!data;
+    if (!data) data = await overpass(q);
     if (!data) { pending.push(bb); continue; }
+    if (cacheFile && !cached) fs.writeFileSync(cacheFile, JSON.stringify(data));
     for (const el of data.elements ?? []) {
       const t = el.tags ?? {};
       if (t.power === "substation") {
@@ -133,7 +147,7 @@ if (withOverpass) {
         counts.line++;
       }
     }
-    await new Promise((r) => setTimeout(r, 5_000));
+    if (!cached) await new Promise((r) => setTimeout(r, 5_000));
   }
 }
 
@@ -148,7 +162,7 @@ const index = {
     datacenter: "OpenStreetMap via gods-eye-view (ODbL)",
     dam: "OpenStreetMap via Open Infrastructure Map / gods-eye-view (ODbL)",
     military: `OpenStreetMap via Overture Maps ${mil.release} / gods-eye-view (ODbL)`,
-    power: withOverpass && pending.length === 0 ? "OpenStreetMap via Overpass API (ODbL)" : "pending: Overpass unavailable at build time",
+    power: !withOverpass ? "not built" : pending.length === 0 ? "OpenStreetMap via Overpass API (ODbL), US" : `partial: ${pending.length} US tiles pending (Overpass unavailable)`,
   },
   counts,
   pendingTiles: withOverpass ? pending : ["power layers not built (run with --overpass)"],
