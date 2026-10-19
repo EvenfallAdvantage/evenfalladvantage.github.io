@@ -41,7 +41,8 @@ describe("ship helpers", () => {
     expect(shipHeadingDeg({ heading: 10, cog: 90, sog: 5 })).toBe(10);
     expect(shipHeadingDeg({ heading: null, cog: 90, sog: 5 })).toBe(90);
     expect(shipHeadingDeg({ heading: null, cog: 90, sog: 0 })).toBe(0);
-    expect(shipModelHeadingDeg(300)).toBe(30);
+    expect(shipModelHeadingDeg(300)).toBe(300);
+    expect(shipModelHeadingDeg(-10)).toBe(350);
     expect(shipModelScale(400)).toBeCloseTo(0.1);
     expect(shipModelScale(null)).toBeCloseTo(150 / 4000);
     expect(shipModelScale(2)).toBeCloseTo(150 / 4000);
