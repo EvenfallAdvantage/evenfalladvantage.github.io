@@ -1,0 +1,17 @@
+{
+ "feature": "launches",
+ "mode": "desktop",
+ "ll2": [
+  200
+ ],
+ "launches": 17,
+ "pickXY": {
+  "x": 852.4090168304216,
+  "y": 559.6936652684005
+ },
+ "card": "Falcon Heavy | NROL-97\n2026-10-02 03:54 UTC · Launch Successful\nSpaceX · Falcon Heavy\nLaunch Complex 39A, Kennedy Space Center, FL, USA\nTarget orbit: Unknown\nReplay ascent\n0.5×\n1×\n2×\n4×\nAscent path is a coarse estimate from the pad and target orbit, not telemetry. Launches: Launch Library 2 — The Space Devs.",
+ "replayEntities": 3,
+ "reqs": [],
+ "errs": [],
+ "blockedPrefWrites": 1
+}

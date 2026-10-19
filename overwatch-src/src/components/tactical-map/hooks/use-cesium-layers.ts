@@ -44,6 +44,7 @@ import { useWindLayer } from "./use-wind-layer";
 import { useWindParticles } from "./use-wind-particles";
 import { useMaritimeLayer } from "./use-maritime-layer";
 import { useCctvLayer } from "./use-cctv-layer";
+import { useLaunchesLayer } from "./use-launches-layer";
 import { useStreetLevelLayer } from "./use-street-level-layer";
 import { useGeofencesLayer } from "./use-geofences-layer";
 import { useRawsLayer } from "./use-raws-layer";
@@ -53,6 +54,7 @@ import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
+const NOOP_LAUNCH = () => {};
 const NOOP_PHOTO = () => {};
 
 export function useCesiumLayers(params: {
@@ -78,6 +80,8 @@ export function useCesiumLayers(params: {
   onOpenLiveFeed?: (feed: IntelLiveNewsFeed) => void;
   /** Click-handler for CCTV camera pins. */
   onOpenCctvCamera?: (cam: CctvCamera) => void;
+  /** Click-handler for rocket-launch pad markers. */
+  onOpenLaunch?: (l: import("@/lib/map/launches").Launch) => void;
   /** Click-handler for street-level photo points. */
   onOpenStreetPhoto?: (p: import("@/lib/map/street-level").StreetPhoto) => void;
   /** Day shown by the NASA daily imagery (YYYY-MM-DD); undefined = latest. */
@@ -106,6 +110,7 @@ export function useCesiumLayers(params: {
     adjustingOpId,
     onOpenLiveFeed,
     onOpenCctvCamera,
+    onOpenLaunch,
     onOpenStreetPhoto,
     gibsDay,
     scopeFilters,
@@ -242,6 +247,8 @@ export function useCesiumLayers(params: {
     filter: cameraFilter,
   });
 
+  // ─── Sub-hook: Rocket launches (Infrastructure → Space) ──
+  useLaunchesLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenLaunch: onOpenLaunch ?? NOOP_LAUNCH });
   // ─── Sub-hook: Street-level photos (Cameras group) ──
   useStreetLevelLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenPhoto: onOpenStreetPhoto ?? NOOP_PHOTO });
 

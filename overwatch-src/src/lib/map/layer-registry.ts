@@ -29,7 +29,7 @@ export type FlatKey =
   | "conflictZones" | "gdelt" | "sigintNews" | "news" | "nuclearInfrastructure" | "cctv" | "liveNews"
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
   | "satellite" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
-  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud" | "sonarSweep" | "scopeMask" | "cityLights" | "streetPhotos"
+  | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud" | "sonarSweep" | "scopeMask" | "cityLights" | "streetPhotos" | "rocketLaunches"
   | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure" | "ships";
 
 /** Minimal shape the registry needs; LayerVisibility satisfies it. */
@@ -112,7 +112,7 @@ export const GROUPS: readonly GroupDef[] = [
     subs: [
       { id: "nuclear", label: "Nuclear facilities", keys: ["nuclearInfrastructure"] },
       { id: "osm", label: "Data centres, dams, power & military", keys: ["osmInfrastructure"], hint: "OpenStreetMap extract (ODbL), shown when zoomed in; US high-voltage substations and transmission lines" },
-      { id: "space", label: "Space (satellite orbits)", keys: ["satelliteOrbits"], desktopOnly: true },
+      { id: "space", label: "Space (orbits & launches)", keys: ["satelliteOrbits", "rocketLaunches"], desktopOnly: true, hint: "Satellite orbits (CelesTrak) and the last 30 days of rocket launches (Launch Library 2). Click a launch pad for details and an estimated ascent replay" },
     ],
   },
 ];
@@ -120,7 +120,7 @@ export const GROUPS: readonly GroupDef[] = [
 /** Flat keys that panel v2 never draws (dropped, merged or moved). */
 export const V2_RETIRED_KEYS: readonly FlatKey[] = ["eonetWeather", "gdelt", "sigintNews", "liveNews", "radioFrequencies", "earthquakes", "fires"];
 /** Flat keys the classic panel never draws (v2-only merges). */
-export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["sonarSweep", "scopeMask", "cityLights", "streetPhotos", "news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure", "ships"];
+export const CLASSIC_HIDDEN_KEYS: readonly FlatKey[] = ["sonarSweep", "scopeMask", "cityLights", "streetPhotos", "rocketLaunches", "news", "radioFrequencies", "nwsWarnings", "naturalHazards", "tropical", "clouds", "wind", "gnss", "osmInfrastructure", "ships"];
 
 export const PRESET_LABELS: Record<PresetId, string> = {
   clean: "Clean",
