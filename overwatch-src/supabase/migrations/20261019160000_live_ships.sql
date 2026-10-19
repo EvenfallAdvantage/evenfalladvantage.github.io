@@ -68,7 +68,7 @@ BEGIN
       AND r.lat BETWEEN -90 AND 90 AND r.lon BETWEEN -180 AND 180
       AND NOT (r.lat = 0 AND r.lon = 0)
       AND r.source IN ('aisstream', 'digitraffic')
-    ORDER BY r.mmsi, r.ts DESC NULLS LAST
+    ORDER BY r.mmsi, coalesce(r.ts, now()) DESC
   )
   INSERT INTO public.ships AS s (mmsi, lat, lon, sog, cog, heading, nav_status, name, callsign,
                                  ship_type, length_m, destination, source, updated_at)
