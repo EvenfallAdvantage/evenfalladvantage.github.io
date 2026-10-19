@@ -143,6 +143,13 @@ set of active layers.
   - `overwatch-src/src/lib/map/aircraft-trace.ts` and
     `supabase/functions/opensky-proxy` (`?trace=`) — adsb.lol trace proxy
     pattern from `server/providers/aircraft/tracks.js`
+- Also used in (3D models + performance):
+  - `overwatch-src/src/lib/map/aircraft-class.ts` — port of
+    `src/data/aircraftClass.js` (type-designator sets originally from
+    skylight, https://github.com/cpaczek/skylight, MIT)
+  - `overwatch-src/public/models/*.glb` — CC BY 4.0 models (NOT MIT); credits
+    and modification notes in `overwatch-src/public/models/README.md` and
+    `/data-sources.html#models`
 
 ```
 MIT License

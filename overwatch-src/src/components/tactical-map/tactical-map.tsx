@@ -53,6 +53,9 @@ import { gateCctvEnable, hasCctvAck, recordCctvAck } from "@/lib/map/cctv-ack";
 import { useAuthStore } from "@/stores/auth-store";
 import { TrackingChip } from "./tracking-chip";
 import { MapSearch } from "./map-search";
+import { usePerfGovernor } from "./hooks/use-perf-governor";
+import { useContactModels } from "./hooks/use-contact-models";
+import { isHighContrastLook } from "@/lib/map/contact-models";
 import { escapeHtml } from "@/lib/security";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import { SatPassesPanel } from "./sat-passes-panel";
@@ -296,6 +299,12 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     setLastLayerGeofences(layerGeofences);
     setSiteGeofences(layerGeofences ?? []);
   }
+  // Auto performance governor (all devices) + 3D contact models (desktop only).
+  const { perfLevel, resetPerf } = usePerfGovernor({ viewerRef, entityGroupsRef, loading, bloom: !!activeLayers.bloom });
+  const highContrastLook = isHighContrastLook(activeLayers);
+  // Shared with layers that restyle under NVG/thermal (camera cones read it live).
+  useEffect(() => { entityGroupsRef.current.highContrastLook = highContrastLook; }, [highContrastLook]);
+  const modelsShown = useContactModels({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.aircraft, highContrast: highContrastLook });
   const osmBuildingsStatus = useOsmBuildingsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading,
     enabled: !!activeLayers.osmBuildings,
@@ -825,7 +834,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       <div ref={containerRef} className="w-full h-full" />
 
       {/* Persistent legal footer + Cesium provider credits */}
-      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} osmBuildings={osmBuildingsStatus.state !== "off"} />
+      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} osmBuildings={osmBuildingsStatus.state !== "off"} models={modelsShown} />
 
       {/* Ops Mode bar — top right, above other overlays, so the top-centre
           tracking chip (Phase 1A) can never cover Share / Exit. */}
@@ -962,6 +971,17 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
             </button>
           ) : undefined)}
         />
+      )}
+
+      {perfLevel > 0 && !loading && !error && (
+        <button
+          onClick={resetPerf}
+          data-testid="perf-indicator"
+          title="The map dropped resolution and effects because it was drawing under 30 frames per second. Click to restore full quality."
+          className="absolute bottom-16 left-3 z-20 rounded-full px-2.5 py-1 text-[10px] font-mono text-amber-200/90 bg-black/60 backdrop-blur-sm border border-amber-300/30 hover:bg-black/75"
+        >
+          ⚡ Reduced quality{perfLevel > 1 ? " (low)" : ""} · restore
+        </button>
       )}
 
       {tracked && activeLayers.aircraft && (
