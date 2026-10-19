@@ -3,6 +3,7 @@ import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { MapAnnotation } from "@/lib/supabase/db-annotations";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 export function useAnnotationsLayer(params: {
   viewerRef: CesiumRef;
@@ -91,7 +92,7 @@ export function useAnnotationsLayer(params: {
             // Always render through buildings at venue scale (camera < 500 km).
             // Beyond that, depth-test against the globe so far-side annotations
             // are hidden when viewing the whole earth.
-            disableDepthTestDistance: 500_000,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
           },
         });
         entityGroupsRef.current.annotations.push(entity);

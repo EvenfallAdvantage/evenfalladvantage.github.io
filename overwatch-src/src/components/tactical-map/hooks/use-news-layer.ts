@@ -12,6 +12,7 @@ import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelGdelt, fetchIntelNews } from "@/lib/intel-client";
 import { mergeNews, type MergedNewsItem } from "@/lib/map/news-merge";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 const REFRESH_INTERVAL_MS = 15 * 60_000;
 const iconCache = new Map<string, HTMLCanvasElement>();
@@ -109,7 +110,7 @@ export function useNewsLayer(params: {
             image: buildIcon(riskColor(item.risk)),
             heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
           },
           description: buildPopup(item),
         });

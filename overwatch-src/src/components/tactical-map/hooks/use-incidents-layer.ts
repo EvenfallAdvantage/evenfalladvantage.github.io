@@ -5,6 +5,7 @@ import { escapeHtml } from "@/lib/security";
 import { createPinCanvas, parseIncidentNarrative } from "../pin-canvas";
 import type { IncidentPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 export function useIncidentsLayer(params: {
   viewerRef: CesiumRef;
@@ -45,7 +46,7 @@ export function useIncidentsLayer(params: {
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.
-          disableDepthTestDistance: 500_000,
+          disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
         },
         description: (() => {
           const narrative = parseIncidentNarrative(inc.description ?? "");

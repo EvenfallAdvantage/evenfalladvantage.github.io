@@ -46,6 +46,7 @@ import { useGeofencesLayer } from "./use-geofences-layer";
 import { useRawsLayer } from "./use-raws-layer";
 import { useFrequencyLayer } from "./use-frequency-layer";
 import type { IntelLiveNewsFeed, CctvCamera } from "@/lib/intel-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 export type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -703,7 +704,7 @@ export function useCesiumLayers(params: {
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               scale: linkedIncident ? 0.55 : 0.5,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
             },
             label: {
               text: pin.label || "",
@@ -715,7 +716,7 @@ export function useCesiumLayers(params: {
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               pixelOffset: new Cesium.Cartesian2(0, -32),
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 100000),
             },
             description: desc,

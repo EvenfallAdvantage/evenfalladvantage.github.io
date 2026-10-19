@@ -18,6 +18,7 @@ import {
   S2_LAYERS, S2_DEFAULT_MAX_AGE_HOURS, fetchS2LayerFeatures, buildS2Description,
 } from "../s2-underground";
 import { preloadSymbolsForFeatures } from "../mil-symbols";
+import { nearSideDepthDistance, nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 /** Wrapper so the react-compiler does not flag `Date.now()` as an inline impure call */
 function currentTimestamp() { return Date.now(); }
@@ -164,7 +165,7 @@ export function useS2IntelLayer({
           cluster.label.outlineColor = Cesium.Color.BLACK;
           cluster.label.outlineWidth = 3;
           cluster.label.style = Cesium.LabelStyle.FILL_AND_OUTLINE;
-          cluster.label.disableDepthTestDistance = Number.POSITIVE_INFINITY;
+          cluster.label.disableDepthTestDistance = nearSideDepthDistance(viewer, Cesium);
           cluster.label.pixelOffset = new Cesium.Cartesian2(0, -2);
           // Use a small colored circle as the cluster background
           cluster.point.show = true;
@@ -172,7 +173,7 @@ export function useS2IntelLayer({
           cluster.point.color = Cesium.Color.fromCssColorString("#ef4444").withAlpha(0.85);
           cluster.point.outlineColor = Cesium.Color.WHITE;
           cluster.point.outlineWidth = 1.5;
-          cluster.point.disableDepthTestDistance = Number.POSITIVE_INFINITY;
+          cluster.point.disableDepthTestDistance = nearSideDepthDistance(viewer, Cesium);
           // Hide the default billboard
           cluster.billboard.show = false;
         }
@@ -229,7 +230,7 @@ export function useS2IntelLayer({
               height: 28,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
             };
           } else {
             entityOpts.point = {
@@ -238,7 +239,7 @@ export function useS2IntelLayer({
               outlineColor: Cesium.Color.BLACK,
               outlineWidth: 1.5,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+              disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
             };
           }
 

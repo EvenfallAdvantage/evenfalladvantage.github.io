@@ -6,6 +6,7 @@ import { createPinCanvas } from "../pin-canvas";
 import type { StaffPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 import { classifyStaffFreshness, formatLastSeen } from "@/lib/map/map-ops-window";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 export function useStaffLayer(params: {
   viewerRef: CesiumRef;
@@ -49,7 +50,7 @@ export function useStaffLayer(params: {
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.
-          disableDepthTestDistance: 500_000,
+          disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
         },
         label: {
           text: stale ? `${s.name} · last seen ${lastSeen}` : s.name,
@@ -64,7 +65,7 @@ export function useStaffLayer(params: {
           // Always render through buildings at venue scale (camera < 500 km).
           // Beyond that, depth-test against the globe so far-side pins are
           // hidden when viewing the whole earth.
-          disableDepthTestDistance: 500_000,
+          disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
           distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500000),
         },
         description: `<div style="font-family:monospace;font-size:12px;padding:8px">

@@ -18,6 +18,7 @@ import {
   type NearRadii, type SiteAlert, type SiteArea,
 } from "@/lib/map/site-proximity";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 const REFRESH_MS = 5 * 60_000;
 const AIRCRAFT_CHECK_MS = 30_000;
@@ -120,7 +121,7 @@ export function useSiteWatch(params: {
         name: `Site Watch: ${s.name}`,
         polyline: { positions: C.Cartesian3.fromDegreesArray(circle(s.lat, s.lng, km)), width: 4, material: new C.PolylineGlowMaterialProperty({ glowPower: 0.25, color }), clampToGround: true },
         position: C.Cartesian3.fromDegrees(s.lng, s.lat),
-        label: { text: `⚠ ${s.count}`, font: "bold 12px monospace", fillColor: color, outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -28), disableDepthTestDistance: Number.POSITIVE_INFINITY, heightReference: C.HeightReference.CLAMP_TO_GROUND },
+        label: { text: `⚠ ${s.count}`, font: "bold 12px monospace", fillColor: color, outlineColor: C.Color.BLACK, outlineWidth: 3, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -28), disableDepthTestDistance: nearSideDepthProperty(viewer, C), heightReference: C.HeightReference.CLAMP_TO_GROUND },
         description: `<div style="font-family:monospace;font-size:11px;line-height:1.7;max-width:300px"><b style="color:${s.level === "warning" ? "#ef4444" : "#f59e0b"}">SITE WATCH · ${escapeHtml(s.name)}</b><div>${alerts.filter((a) => a.siteId === id).slice(0, 8).map((a) => `• ${escapeHtml(a.title)}${a.distanceKm ? ` (${a.distanceKm} km)` : " (at site)"}`).join("<br/>")}</div></div>`,
       });
     }

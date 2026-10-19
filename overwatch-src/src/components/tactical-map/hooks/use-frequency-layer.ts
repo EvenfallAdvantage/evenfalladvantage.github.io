@@ -8,6 +8,7 @@ import { isConstrainedDevice, pointBudget, withSuspendedEvents } from "@/lib/map
 import { createPinCanvas } from "../pin-canvas";
 import { getRadioFrequenciesWithLocation } from "@/lib/supabase/db";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
 const FREQ_COLORS: Record<string, string> = {
   state_police: "#3b82f6",
@@ -91,7 +92,7 @@ export function useFrequencyLayer(params: {
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               scale: 0.5,
               heightReference: constrained ? Cesium.HeightReference.NONE : Cesium.HeightReference.RELATIVE_TO_GROUND,
-              disableDepthTestDistance: 500_000,
+              disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
             },
             label: {
               text: `${freqMhz} MHz`,
@@ -103,7 +104,7 @@ export function useFrequencyLayer(params: {
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               pixelOffset: new Cesium.Cartesian2(0, -28),
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
-              disableDepthTestDistance: 500_000,
+              disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
               scale: 0.8,
               // Labels only near the camera; 700+ always-on labels were the main cost.
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, constrained ? 30_000 : 80_000),
