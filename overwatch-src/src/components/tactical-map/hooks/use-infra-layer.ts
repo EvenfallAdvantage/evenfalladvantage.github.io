@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { escapeHtml } from "@/lib/security";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import {
   INFRA_CREDIT, INFRA_KINDS, INFRA_LABEL_DISTANCE_M, infraLimits,
   decodeInfraRow, infraCellsForView, type InfraCell, type InfraFeature, type InfraIndex,
@@ -19,12 +20,7 @@ import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 export const INFRA_BASE = "/overwatch/data/infra";
 const DEBOUNCE_MS = 450;
-/**
- * Points stay readable over terrain out to this distance. TODO(#107): switch
- * to nearSideDepthProperty() from src/lib/map/near-side-depth.ts once #107 is
- * merged (its guard test requires it).
- */
-const INFRA_DEPTH_BYPASS_M = 50_000;
+
 
 let indexPromise: Promise<InfraIndex | null> | null = null;
 const cellCache = new Map<string, Promise<InfraCell | null>>();
@@ -133,7 +129,8 @@ export function useInfraLayer(params: {
                 outlineColor: Cesium.Color.BLACK.withAlpha(0.8),
                 outlineWidth: 1,
                 heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-                disableDepthTestDistance: INFRA_DEPTH_BYPASS_M,
+                // Near side reads over terrain; the globe hides the far side (#107). Shared per viewer.
+                disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
               },
               label: limits.labels ? {
                 text: f.name,

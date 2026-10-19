@@ -108,7 +108,7 @@ const CONE_MAX_DISTANCE_M = 12_000;
  * the facing is unknown. See camera-cone.ts for where the facing comes from.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium module/viewer have no published types
-function coneEntity(Cesium: any, viewer: any, id: string, cam: CctvCamera): Record<string, unknown> | null {
+function coneEntity(Cesium: any, viewer: any, id: string, cam: CctvCamera, contrast: () => boolean): Record<string, unknown> | null {
   const pose = cameraPose(cam);
   if (!pose) return null;
   const arc = coneArc(cam.lat, cam.lng, pose);
@@ -118,7 +118,13 @@ function coneEntity(Cesium: any, viewer: any, id: string, cam: CctvCamera): Reco
     if (Number.isFinite(h)) ground = h;
   } catch (err) { logger.swallow("cesium-layers:cctv-cone-height", err, "debug"); }
   const fan = [cam.lng, cam.lat, ground + CONE_MOUNT_M, ...arc.flatMap(([x, y]) => [x, y, ground + 1])];
-  const color = Cesium.Color.fromCssColorString("#34d399");
+  // Under NVG/thermal (brightness-only looks) the cone turns dark so it reads
+  // against lit terrain; the callback follows the look without rebuilding.
+  const fill = Cesium.Color.fromCssColorString("#34d399").withAlpha(0.28);
+  const fillDark = Cesium.Color.BLACK.withAlpha(0.5);
+  const edge = Cesium.Color.fromCssColorString("#d1fae5").withAlpha(0.95);
+  const edgeDark = Cesium.Color.BLACK.withAlpha(0.95);
+  const pick = (light: unknown, dark: unknown) => new Cesium.CallbackProperty(() => (contrast() ? dark : light), false);
   const show = new Cesium.DistanceDisplayCondition(0, CONE_MAX_DISTANCE_M);
   return {
     id,
@@ -126,7 +132,7 @@ function coneEntity(Cesium: any, viewer: any, id: string, cam: CctvCamera): Reco
     polygon: {
       hierarchy: Cesium.Cartesian3.fromDegreesArrayHeights(fan),
       perPositionHeight: true,
-      material: color.withAlpha(0.28),
+      material: new Cesium.ColorMaterialProperty(pick(fill, fillDark)),
       outline: false,
       distanceDisplayCondition: show,
     },
@@ -136,7 +142,7 @@ function coneEntity(Cesium: any, viewer: any, id: string, cam: CctvCamera): Reco
       // NVG/thermal post-processing, which flattens colour to brightness.
       width: 3.5,
       material: new Cesium.PolylineOutlineMaterialProperty({
-        color: Cesium.Color.fromCssColorString("#d1fae5").withAlpha(0.95),
+        color: pick(edge, edgeDark),
         outlineColor: Cesium.Color.BLACK.withAlpha(0.85),
         outlineWidth: 1,
       }),
@@ -251,7 +257,7 @@ export function useCctvLayer(params: {
               });
           live.set(id, { entity, item });
           if (conesOn && item.kind === "cam") {
-            const cone = coneEntity(Cesium, viewer, id + CONE_SUFFIX, item.cam);
+            const cone = coneEntity(Cesium, viewer, id + CONE_SUFFIX, item.cam, () => !!entityGroups.highContrastLook);
             if (cone) cones.set(id, viewer.entities.add(cone));
           }
         }
