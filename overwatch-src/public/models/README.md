@@ -14,7 +14,7 @@ gods-eye-view's copies). At runtime Overwatch rotates them by 180° to match
 Cesium headings, tints them (colour blend 35 %) and adds a thin cyan outline.
 The map's footer credit links to this attribution.
 
-Shown only on desktop, for aircraft near the camera and the tracked aircraft.
+Shown only on desktop, for aircraft and ships near the camera and the tracked aircraft.
 Loaded lazily on first use; never on phones.
 
 | File | Used for | Original work and creator | Source | Licence | Modifications (by gods-eye-view) |
@@ -25,5 +25,6 @@ Loaded lazily on first use; never on phones.
 | `c172.glb` | Light aircraft and gliders | “Cessna 172” by [e737](https://sketchfab.com/e0057537) | [Sketchfab model](https://sketchfab.com/3d-models/cessna-172-64cddaee5aff470682659a8c08525046) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Optimized for God's Eye View: geometry/material simplification, textures resized to 256 px WebP, orientation/scale vertex-baked to real-world meters (Y-up, nose −X), origin centered. |
 | `citation2.glb` | Business jets | “1990 Cessna Citation, Texture Detailed, Exterior” by [BlenderCommunityHead](https://sketchfab.com/aboodgoudagad) | [Sketchfab model](https://sketchfab.com/3d-models/1990-cessna-citation-texture-detailed-exterior-a78839624fe64900a8352cb23462350a) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Optimized for God's Eye View: geometry/material simplification, textures resized to 256 px WebP, orientation/scale vertex-baked to real-world meters (Y-up, nose −X), origin centered. |
 | `atr72.glb` | Turboprops | “ATR 72 - 600” by [Oyan3D](https://sketchfab.com/oyan3D) | [Sketchfab model](https://sketchfab.com/3d-models/atr-72-600-1e1a7186f7444d288675262fcee44744) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Optimized for God's Eye View: geometry/material simplification, textures removed with dominant material colors baked into PBR factors (flat “abstracted” style), orientation/scale vertex-baked to real-world meters (Y-up, nose −X), origin centered. |
+| `ship.glb` | All vessels (desktop, near the camera) | “Low Poly Cargo Ship” by [Javier_Fernandez](https://sketchfab.com/Javier.Fernandez) | [Sketchfab model](https://sketchfab.com/3d-models/low-poly-cargo-ship-4c22cbaf01c1427f8ab60b3a07b1b32c) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | Optimized and repackaged as a glTF binary for gods-eye-view's vessel visualization. |
 
 These credits do not imply endorsement by the original creators.
