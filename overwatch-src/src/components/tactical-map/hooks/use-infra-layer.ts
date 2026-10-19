@@ -90,6 +90,10 @@ export function useInfraLayer(params: {
     };
     let shown = "";
     let drawGeneration = 0;
+    // Transmission lines live in their own data source: in the points' source (thousands of
+    // ground-clamped points) tilted views dropped every line near the camera.
+    const lineSource = new Cesium.CustomDataSource("osm-infrastructure-lines");
+    viewer.dataSources.add(lineSource);
     const source = new Cesium.CustomDataSource("osm-infrastructure");
     viewer.dataSources.add(source);
     groups.osmInfraSource = source;
@@ -135,8 +139,10 @@ export function useInfraLayer(params: {
       const generation = ++drawGeneration;
       const lineEntities: Array<{ entity: { polyline?: { positions?: unknown } }; pts: Array<[number, number]> }> = [];
       source.entities.suspendEvents();
+      lineSource.entities.suspendEvents();
       try {
         source.entities.removeAll();
+        lineSource.entities.removeAll();
         let n = 0;
         for (const cell of cells) {
           for (const row of cell?.f ?? []) {
@@ -194,7 +200,7 @@ export function useInfraLayer(params: {
           for (const line of drawn) {
             const st = lineStyle(line.kv);
             const label = line.kv > 0 ? `${line.kv} kV transmission line` : "Transmission line";
-            const entity = source.entities.add({
+            const entity = lineSource.entities.add({
               id: `infra-l-${n++}`,
               name: label,
               // Not ground-clamped: clamped (ground-primitive) lines hid the layer's clamped
@@ -218,6 +224,7 @@ export function useInfraLayer(params: {
         setCredit(n > 0);
       } finally {
         source.entities.resumeEvents();
+        lineSource.entities.resumeEvents();
       }
       settleRenders();
       if (lineEntities.length) void liftLines(lineEntities, generation);
@@ -238,7 +245,7 @@ export function useInfraLayer(params: {
         const sampled = await Cesium.sampleTerrain(tp, INFRA_LINE_TERRAIN_LEVEL, cartos);
         if (disposed || generation !== drawGeneration) return;
         let i = 0;
-        source.entities.suspendEvents();
+        lineSource.entities.suspendEvents();
         try {
           dense.forEach((pts, k) => {
             const flat: number[] = [];
@@ -250,7 +257,7 @@ export function useInfraLayer(params: {
             if (pl) pl.positions = Cesium.Cartesian3.fromDegreesArrayHeights(flat);
           });
         } finally {
-          source.entities.resumeEvents();
+          lineSource.entities.resumeEvents();
         }
         viewer.scene.requestRender();
       } catch (err) {
@@ -272,6 +279,7 @@ export function useInfraLayer(params: {
       try { removeMove?.(); } catch (err) { logger.swallow("infra-layer:move", err, "debug"); }
       setCredit(false);
       try { viewer.dataSources.remove(source, true); } catch (err) { logger.swallow("infra-layer:remove", err, "debug"); }
+      try { viewer.dataSources.remove(lineSource, true); } catch (err) { logger.swallow("infra-layer:remove-lines", err, "debug"); }
       groups.osmInfraSource = null;
     };
   }, [enabled, loading, viewerRef, cesiumRef, entityGroupsRef]);
