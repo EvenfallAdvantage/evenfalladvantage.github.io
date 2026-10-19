@@ -49,6 +49,7 @@ sources are currently enabled and any gating reasons.
 | Wikipedia / Wikidata | Region dossier | `*.wikipedia.org`, `query.wikidata.org` |
 | Nominatim | Reverse geocoding, region dossier | `nominatim.openstreetmap.org` |
 | RDAP via rdap.org | WHOIS lookups (RECON tab) | `rdap.org` |
+| NOAA/NCEP GFS via PacIOOS ERDDAP | Animated wind particles (Operations map, Wind) | `pae-paha.pacioos.hawaii.edu/erddap` (U.S. Government public domain; keyless, CORS) |
 
 ### Free with attribution required
 
@@ -162,6 +163,12 @@ set of active layers.
   - `overwatch-src/src/lib/map/site-imagery.ts` — HLS product table, CMR
     query and GIBS URL pattern from `src/layers/recentImagery/` (trimmed to a
     fixed site box)
+- Also used in (animated wind):
+  - `overwatch-src/src/lib/map/wind-field.ts` and
+    `overwatch-src/src/components/tactical-map/hooks/use-wind-particles.ts` —
+    grid layout and bilinear `sampleWind` from `src/layers/wind/model.js`;
+    screen-space particle/trail approach from `src/layers/wind/rendering.js`
+    (rewritten; different data source, ERDDAP instead of GRIB2)
 
 ```
 MIT License

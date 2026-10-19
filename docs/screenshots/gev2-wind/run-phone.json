@@ -1,0 +1,16 @@
+{
+ "feature": "wind",
+ "mode": "phone",
+ "windBefore": false,
+ "windAfter": true,
+ "erddap": [
+  "200"
+ ],
+ "fieldTime": "2026-10-19T18:00:00Z",
+ "credit": true,
+ "reqs": [
+  "https://pae-paha.pacioos.hawaii.edu/erddap/griddap/ncep_global.csv0?ugrd10m%5B(2026-10-19T18%3A00%3A00Z)%5D%5B(-87.5)%3A10%3A(87.5)%5D%5B(0)%3A10%3A(355)%5D,vgr"
+ ],
+ "errs": [],
+ "blockedPrefWrites": 1
+}

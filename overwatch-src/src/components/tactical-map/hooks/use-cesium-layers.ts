@@ -40,6 +40,7 @@ import { useNewsLayer } from "./use-news-layer";
 import { useHazardsLayer } from "./use-hazards-layer";
 import { useCloudsLayer } from "./use-clouds-layer";
 import { useWindLayer } from "./use-wind-layer";
+import { useWindParticles } from "./use-wind-particles";
 import { useMaritimeLayer } from "./use-maritime-layer";
 import { useCctvLayer } from "./use-cctv-layer";
 import { useGeofencesLayer } from "./use-geofences-layer";
@@ -216,6 +217,7 @@ export function useCesiumLayers(params: {
   useCloudsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen });
 
   useWindLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen });
+  useWindParticles({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen });
 
   useSigintNewsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
