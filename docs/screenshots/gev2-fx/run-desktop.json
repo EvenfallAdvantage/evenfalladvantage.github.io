@@ -1,0 +1,11 @@
+{
+ "feature": "fx",
+ "mode": "desktop",
+ "flapMidCells": 4,
+ "flapText": "FLIR",
+ "flapCells": 4,
+ "stages": [],
+ "reqs": [],
+ "errs": [],
+ "blockedPrefWrites": 5
+}

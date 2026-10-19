@@ -46,6 +46,9 @@ export interface LayerVisibility {
   bloom: boolean;
   sharpen: boolean;
   hud: boolean;
+  /** Screen overlays (View menu): rotating sonar sweep, circular scope mask. */
+  sonarSweep: boolean;
+  scopeMask: boolean;
   /** NASA Black Marble city lights on the night side of the globe (View menu). */
   cityLights: boolean;
   // Live feeds
@@ -119,6 +122,8 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   bloom: false,
   sharpen: false,
   hud: false,
+  sonarSweep: false,
+  scopeMask: false,
   cityLights: false,
   aircraft: false,
   satelliteOrbits: false,
