@@ -18,7 +18,11 @@ database are licensed under the [Database Contents License](https://opendatacomm
 Format: `index.json` lists 10° cells; each `c_<lat>_<lng>.json` holds
 `f` rows `[kind, lng, lat, name, extra?]` (`d` data centre, `w` dam,
 `m` military area, `s` substation) and optional `l` lines `[kV, [[lng, lat], …]]`.
-Contact-type tags are never copied.
+Contact-type tags are never copied. Line geometry is simplified
+(Douglas-Peucker, ~150 m tolerance, 4-decimal coordinates) to keep the
+extract small; it is for situational display, not engineering use.
+US tiles that Overpass could not serve at build time are listed in
+`index.json` `pendingTiles` (power is missing there).
 
 Rebuild with `overwatch-src/scripts/build-infra-extract.mjs` (see its header).
 Mapped features do not show current activity or complete coverage.
