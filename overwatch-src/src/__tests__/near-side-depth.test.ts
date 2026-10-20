@@ -168,7 +168,10 @@ describe("guard: no map marker may disable the depth test unconditionally", () =
     const f = files.find((x) => x.endsWith(path.join("tactical-map", "hooks", "use-ships-layer.ts")));
     expect(f).toBeTruthy();
     const src = fs.readFileSync(f!, "utf8");
-    expect((src.match(/disableDepthTestDistance:\s*nearSideDepthProperty\(/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    // Ships are primitives (BillboardCollection/LabelCollection), which take a number, so the
+    // shared per-camera nearSideDepthDistance() is assigned at creation and re-applied on preRender.
+    expect((src.match(/disableDepthTestDistance\s*[:=]\s*nearSideDepth(Property|Distance)\(/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    expect(src).toMatch(/preRender\.addEventListener/);
   });
 
   it("uses nearSideDepthProperty/nearSideDepthDistance instead of Infinity or a fixed distance", () => {

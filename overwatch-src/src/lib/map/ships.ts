@@ -21,14 +21,67 @@ export const SHIP_MAX_SPAN_DEG = 30;
 export const SHIP_SNAP_DEG = 1;
 export const SHIP_POLL_MS = 45_000;
 export const SHIP_POLL_MS_PHONE = 60_000;
-/** Max ships drawn per view. */
-export const SHIP_CAP_DESKTOP = 2000;
-export const SHIP_CAP_PHONE = 500;
+/**
+ * Ships drawn per view, by performance-governor level (0 = full quality).
+ * Ships are GPU billboards in one BillboardCollection (not Entities), so
+ * thousands stay cheap; the governor steps the cap down when frames drop.
+ * 5000 is the ships_in_bbox RPC ceiling.
+ */
+export const SHIP_CAP_BY_LEVEL = { desktop: [5000, 3000, 1500], phone: [1500, 1000, 500] } as const;
+/** Level-0 caps (kept for callers that don't know the governor level). */
+export const SHIP_CAP_DESKTOP = SHIP_CAP_BY_LEVEL.desktop[0];
+export const SHIP_CAP_PHONE = SHIP_CAP_BY_LEVEL.phone[0];
+const lvl = (level: number) => Math.max(0, Math.min(2, Math.floor(Number(level) || 0)));
+export function shipCap(phone: boolean, level = 0): number {
+  return (phone ? SHIP_CAP_BY_LEVEL.phone : SHIP_CAP_BY_LEVEL.desktop)[lvl(level)];
+}
+/**
+ * PostgREST returns at most 1000 rows per request (project max_rows), which
+ * silently cut every busy view to 1000 ships whatever p_limit said. Larger
+ * caps are read as parallel 1000-row pages (Range offsets on the RPC).
+ */
+export const SHIP_RPC_PAGE = 1000;
+/** Inclusive [from, to] row ranges covering `cap` rows in SHIP_RPC_PAGE pages. */
+export function shipPageRanges(cap: number, page = SHIP_RPC_PAGE): Array<[number, number]> {
+  const n = Math.max(0, Math.floor(cap));
+  const out: Array<[number, number]> = [];
+  for (let from = 0; from < n; from += page) out.push([from, Math.min(n, from + page) - 1]);
+  return out;
+}
+/** Merge pages by MMSI (rows can shift between pages while the collector writes): newest fix wins. */
+export function mergeShipPages(pages: ReadonlyArray<readonly Ship[] | null | undefined>): Ship[] {
+  const m = new Map<number, Ship>();
+  for (const pg of pages) for (const s of pg ?? []) { const o = m.get(s.mmsi); if (!o || s.updated_at > o.updated_at) m.set(s.mmsi, s); }
+  return [...m.values()];
+}
+/** Name labels: only the nearest ships when the camera is low, capped by governor level. */
+export const SHIP_LABEL_MAX_CAMERA_M = 60_000;
+export const SHIP_LABEL_CAP_BY_LEVEL = { desktop: [150, 60, 25], phone: [40, 15, 0] } as const;
+export function selectShipLabelIds(camera: { lat: number; lng: number; heightM: number }, ships: readonly Pick<Ship, "mmsi" | "lat" | "lon">[], phone: boolean, level = 0): number[] {
+  const cap = (phone ? SHIP_LABEL_CAP_BY_LEVEL.phone : SHIP_LABEL_CAP_BY_LEVEL.desktop)[lvl(level)];
+  if (cap === 0 || !(camera.heightM <= SHIP_LABEL_MAX_CAMERA_M)) return [];
+  const maxD = Math.max(5_000, camera.heightM * 4);
+  return ships
+    .map((s) => ({ id: s.mmsi, d: distanceM(camera, { lat: s.lat, lng: s.lon }) }))
+    .filter((x) => x.d <= maxD)
+    .sort((a, b) => a.d - b.d)
+    .slice(0, cap)
+    .map((x) => x.id);
+}
 /** 3D ship models (desktop): only near the camera, capped by governor level. */
 export const SHIP_MODEL_NEAR_M = 25_000;
 export const SHIP_MODEL_MAX_CAMERA_M = 60_000;
 export const SHIP_MODEL_CAP_BY_LEVEL = [30, 10, 0] as const;
-export const SHIP_MODEL_URL = "/overwatch/models/ship.glb";
+/**
+ * ship.glb is re-rooted so its origin is the waterline (scripts/ship-glb-waterline.py):
+ * CLAMP_TO_GROUND then floats the hull at sea level, and one clipping plane at
+ * z = 0 in the model's local up axis trims the underwater hull, which otherwise
+ * draws on top of the sea when 3D terrain (and so the depth test) is off.
+ * `?v=2` busts browser/SW caches of the old, centre-origin file.
+ */
+export const SHIP_MODEL_URL = "/overwatch/models/ship.glb?v=2";
+/** Waterline offset baked into ship.glb, in model units (keel is 275 units = ~10 m below at 150 m). */
+export const SHIP_MODEL_WATERLINE_UNITS = 380;
 /**
  * ship.glb's bow is 90° from Cesium heading 0. Live check 2026-10-19 10:05 PT with offset 0:
  * seen from astern, every ship showed its broadside with the bridge (aft) on screen-right,
