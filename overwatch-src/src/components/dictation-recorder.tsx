@@ -89,6 +89,10 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
   useEffect(() => {
     const detected = detectSpeechTier();
     setTier(diarizationEnabled ? "whisper" : detected);
+    // Local-first: once the on-device model is downloaded, prefer it.
+    if (!diarizationEnabled && detected === "native") {
+      import("@/lib/speech/model-cache").then(({ isWhisperCached }) => isWhisperCached()).then((c) => { if (c) setTier("whisper"); }).catch(() => {});
+    }
     return () => {
       // Clear the "keep recording" flag first, or the recognizer's "end"
       // handler restarts it after the page is gone and the mic stays on.
@@ -115,6 +119,18 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       if (next) setTier("whisper");
       return next;
     });
+  }, []);
+
+  const interviewOn = tier === "whisper" && diarizationEnabled && expectedSpeakers === 2;
+  const applyInterviewPreset = useCallback(() => {
+    setTier("whisper");
+    setDiarizationEnabled(true);
+    setExpectedSpeakers(2);
+    setError(null);
+    try {
+      localStorage.setItem("dictation:diarization", "1");
+      localStorage.setItem("dictation:expectedSpeakers", "2");
+    } catch (e) { logger.swallow("dictation:interview-persist", e, "trace"); }
   }, []);
 
   // ─── Timer helpers ──────────────────────────────────
@@ -357,6 +373,19 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
           {tier === "native" && <Mic className="h-2.5 w-2.5" />}
           {describeTier(tier)}
         </Badge>
+        {/* Interview preset: local Whisper + speakers on + 2 speakers. */}
+        <button
+          type="button"
+          onClick={applyInterviewPreset}
+          disabled={isRecording || processingWhisper}
+          data-testid="interview-preset"
+          className={`text-[10px] inline-flex items-center gap-1 px-1.5 py-0.5 rounded border transition-colors ${
+            interviewOn ? "border-primary/40 bg-primary/10 text-primary" : "border-border/40 text-muted-foreground/70 hover:text-muted-foreground hover:border-border"
+          } disabled:cursor-not-allowed disabled:opacity-50`}
+          title="Interview: on-device engine, speaker labels on, 2 speakers"
+        >
+          <Users className="h-2.5 w-2.5" /> Interview
+        </button>
         {/* Diarization toggle. Active state shows a Users badge; clicking
             it during native-tier auto-switches to Whisper (the only tier
             that supports speaker detection — raw audio is required). */}
