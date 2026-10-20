@@ -46,7 +46,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, { height?: number; on
         ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, out.width, out.height); ctx.drawImage(c, 0, 0, out.width, out.height);
         return out.toDataURL("image/png");
       },
-    }), [empty, height]);
+    }), [empty, height, onChange]);
 
     return (
       <div className="relative rounded-xl border-2 border-dashed border-border bg-white" style={{ height }}>
