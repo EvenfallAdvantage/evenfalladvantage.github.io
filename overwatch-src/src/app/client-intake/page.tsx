@@ -117,7 +117,7 @@ function ClientIntakeContent() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="max-w-sm text-center space-y-3">
           <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
-          <h1 className="text-lg font-bold">Invalid Link</h1>
+          <h1 className="text-lg font-bold font-mono uppercase tracking-wide">Invalid Link</h1>
           <p className="text-sm text-muted-foreground">This intake link is invalid or has expired. Please contact your security provider for a new link.</p>
         </div>
       </div>

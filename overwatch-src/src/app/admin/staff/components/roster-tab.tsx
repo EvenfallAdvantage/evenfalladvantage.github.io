@@ -4,12 +4,13 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Users, Search, Loader2, Trash2, ChevronDown,
   Eye, ShieldCheck, AlertOctagon, QrCode,
-  UserPlus, Plus, X, Upload, Download, Check, MailPlus, Mail, RotateCw,
+  UserPlus, Plus, X, Upload, Download, Check, MailPlus, Mail, RotateCw, MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   updateMemberRole, removeMember, getMemberProfileById, getCompanyReadiness,
@@ -599,15 +600,6 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                 : <Plus className="h-3.5 w-3.5" />}
             </Button>
           )}
-          {members.length > 0 && (
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => exportCSV(members, MEMBER_COLUMNS, `roster-${new Date().toISOString().slice(0,10)}`)} title="Download roster as CSV (data backup, payroll handoff, etc.)">
-              <Download className="h-3.5 w-3.5" /> Export CSV
-            </Button>
-          )}
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs shrink-0" onClick={() => csvInputRef.current?.click()}>
-            <Upload className="h-3.5 w-3.5" /> Import CSV
-          </Button>
-          <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVFile} />
           {canManage && unlinkedMembers.length > 0 && (
             <Button
               size="sm"
@@ -623,31 +615,41 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
               Invite Unlinked ({unlinkedMembers.length})
             </Button>
           )}
-          {canManage && members.length > 0 && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-xs shrink-0"
-              onClick={() => setShowBulkEmail(true)}
-              title="Send a one-off broadcast to the whole roster"
+          <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVFile} />
+          {/* Secondary roster actions live in one menu (was 6 buttons in a row) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-xs font-medium hover:bg-muted pointer-coarse:h-10"
+              aria-label="More roster actions"
             >
-              <Mail className="h-3.5 w-3.5" /> Email Roster
-            </Button>
-          )}
-          {canManage && (
-            <>
-              <Button size="sm" variant="outline" className="gap-1.5 text-xs shrink-0" onClick={handleGenerateAllBadges} disabled={bulkGenerating || bulkDownloading}>
-                <QrCode className="h-3.5 w-3.5" />
-                {bulkGenerating ? bulkProgress : "Generate All Badges"}
-              </Button>
-              {Object.keys(rosterBadges).length > 0 && (
-                <Button size="sm" variant="outline" className="gap-1.5 text-xs shrink-0" onClick={handleDownloadAllBadges} disabled={bulkDownloading || bulkGenerating}>
-                  <Download className="h-3.5 w-3.5" />
-                  {bulkDownloading ? bulkProgress : `Download All (${Object.keys(rosterBadges).length})`}
-                </Button>
+              <MoreHorizontal className="h-3.5 w-3.5" /> More
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-52">
+              {members.length > 0 && (
+                <DropdownMenuItem className="gap-2" onClick={() => exportCSV(members, MEMBER_COLUMNS, `roster-${new Date().toISOString().slice(0,10)}`)}>
+                  <Download className="h-4 w-4" /> Export CSV
+                </DropdownMenuItem>
               )}
-            </>
-          )}
+              <DropdownMenuItem className="gap-2" onClick={() => csvInputRef.current?.click()}>
+                <Upload className="h-4 w-4" /> Import CSV
+              </DropdownMenuItem>
+              {canManage && members.length > 0 && (
+                <DropdownMenuItem className="gap-2" onClick={() => setShowBulkEmail(true)}>
+                  <Mail className="h-4 w-4" /> Email Roster
+                </DropdownMenuItem>
+              )}
+              {canManage && (
+                <DropdownMenuItem className="gap-2" onClick={handleGenerateAllBadges} disabled={bulkGenerating || bulkDownloading}>
+                  <QrCode className="h-4 w-4" /> {bulkGenerating ? bulkProgress : "Generate All Badges"}
+                </DropdownMenuItem>
+              )}
+              {canManage && Object.keys(rosterBadges).length > 0 && (
+                <DropdownMenuItem className="gap-2" onClick={handleDownloadAllBadges} disabled={bulkDownloading || bulkGenerating}>
+                  <Download className="h-4 w-4" /> {bulkDownloading ? bulkProgress : `Download All Badges (${Object.keys(rosterBadges).length})`}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

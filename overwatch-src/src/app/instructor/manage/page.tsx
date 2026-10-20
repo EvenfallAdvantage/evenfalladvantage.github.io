@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
+import { usePageHeader } from "@/stores/page-header-store";
 import { getCompanyMembers, getTrainingModules, getAllModuleProgress, getQuizzes } from "@/lib/supabase/db";
 
 type Tab = "staff" | "modules" | "overview";
@@ -79,6 +80,20 @@ export default function TrainingManagerPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const setHeader = usePageHeader((st) => st.setHeader);
+  const clearHeader = usePageHeader((st) => st.clearHeader);
+  useEffect(() => {
+    setHeader(
+      "TRAINING MANAGER",
+      "Track staff training progress and module completion",
+      <ClipboardList className="h-5 w-5" />,
+      <Button size="sm" variant="ghost" className="gap-1" onClick={loadData}>
+        <RefreshCw className="h-3.5 w-3.5" /> Refresh
+      </Button>,
+    );
+    return () => clearHeader();
+  }, [setHeader, clearHeader, loadData]);
+
   // ─── Computed stats ───
   const totalStaff = staff.length;
   const requiredModules = modules.filter((m) => m.is_required);
@@ -129,18 +144,6 @@ export default function TrainingManagerPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight font-mono flex items-center gap-2">
-            <ClipboardList className="h-5 w-5" /> TRAINING MANAGER
-          </h1>
-          <p className="text-xs text-muted-foreground">Track staff training progress and module completion</p>
-        </div>
-        <Button size="sm" variant="ghost" className="gap-1" onClick={loadData}>
-          <RefreshCw className="h-3.5 w-3.5" /> Refresh
-        </Button>
-      </div>
-
       {/* Tabs */}
       <div className="flex gap-1 bg-muted/30 rounded-lg p-1 overflow-x-auto scrollbar-hide">
         {TABS.map((t) => (

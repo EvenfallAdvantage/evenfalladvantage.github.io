@@ -18,19 +18,20 @@ export function IncidentFilters({ search, onSearchChange, filter, onFilterChange
   return (
     <>
       {/* Search + Status Filter */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input className="pl-9" placeholder="Search incidents..." value={search} onChange={e => onSearchChange(e.target.value)} />
         </div>
-        <div className="flex gap-1 flex-wrap">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1">
           {[{ value: "all", label: "All", color: "" }, ...STATUS].map(s => (
             <Button
               key={s.value}
               variant={filter === s.value ? "default" : "outline"}
               size="sm"
               onClick={() => onFilterChange(s.value)}
-              className="text-xs"
+              className="shrink-0 rounded-full text-xs"
+              aria-pressed={filter === s.value}
             >
               {s.label}
             </Button>
@@ -49,7 +50,7 @@ export function IncidentFilters({ search, onSearchChange, filter, onFilterChange
           <Card key={s.label}>
             <CardContent className="p-3 text-center">
               <div className={`text-2xl font-bold font-mono ${s.color}`}>{s.count}</div>
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{s.label}</div>
+              <div className="text-label text-muted-foreground">{s.label}</div>
             </CardContent>
           </Card>
         ))}

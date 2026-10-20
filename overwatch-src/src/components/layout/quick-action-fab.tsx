@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus, X, Zap, ScanLine, Clock, ArrowLeftRight } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
+import { usePageHeader } from "@/stores/page-header-store";
 
 const ACTIONS = [
   { href: "/incidents/?quick=1", label: "Quick report", Icon: Zap, cls: "bg-amber-500" },
@@ -25,7 +26,10 @@ export function QuickActionFab() {
   const open = openFor === pathname;
   const setOpen = (v: boolean | ((o: boolean) => boolean)) => setOpenFor((typeof v === "function" ? v(open) : v) ? pathname : null);
   const [left, setLeft] = useState(() => typeof window !== "undefined" && localStorage.getItem("ow-fab-side") === "left");
-  if (!activeCompanyId || pathname === "/" || HIDE_ON.some((p) => pathname.startsWith(p))) return null;
+  // One orange call-to-action per screen: pages that register their own primary
+  // action (New Task, New Module, Quick Report, ...) show that instead of the FAB.
+  const pageHasAction = usePageHeader((s) => s.actions != null);
+  if (!activeCompanyId || pathname === "/" || pageHasAction || HIDE_ON.some((p) => pathname.startsWith(p))) return null;
 
   const side = left ? "left-4" : "right-4";
   return (
