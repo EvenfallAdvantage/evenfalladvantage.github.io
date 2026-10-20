@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 import { ShieldAlert, Loader2, X, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { SOS_INITIAL, sosReducer, sosProgress, shouldSendLocation, SOS_COUNTDOWN_MS } from "@/lib/sos/sos-machine";
+import { SOS_INITIAL, sosReducer, sosProgress, shouldSendLocation, SOS_COUNTDOWN_MS, SOS_LOCATION_INTERVAL_MS } from "@/lib/sos/sos-machine";
 import { haptic } from "@/lib/sos/alarm";
 
 export function SosButton({ companyId, className }: { companyId: string; className?: string }) {
@@ -62,24 +62,34 @@ export function SosButton({ companyId, className }: { companyId: string; classNa
     let stopped = false;
     setSharing({ points: 0, last: null });
     const mod = import("@/lib/supabase/db-panic");
-    if ("geolocation" in navigator) {
-      watchId = navigator.geolocation.watchPosition(async (pos) => {
-        const t = Date.now();
-        if (stopped || !shouldSendLocation(last, t, startedAt)) return;
-        last = t;
+    // Latest fix from the watch. It is (re)sent every SOS_LOCATION_INTERVAL_MS
+    // even when the officer stands still: watchPosition only fires on a new
+    // position, so a fix dropped by the 10 s gate would otherwise never go out.
+    let latest: { lat: number; lng: number; accuracy: number | null } | null = null;
+    let sending = false;
+    const trySend = async () => {
+      const t = Date.now();
+      if (stopped || sending || !latest || !shouldSendLocation(last, t, startedAt)) return;
+      sending = true; last = t;
+      try {
         const { recordPanicLocation } = await mod;
-        if (await recordPanicLocation(alertId, companyId, { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy })) {
-          points += 1; setSharing({ points, last: t });
-        }
+        if (!stopped && await recordPanicLocation(alertId, companyId, latest)) { points += 1; setSharing({ points, last: t }); }
+      } finally { sending = false; }
+    };
+    if ("geolocation" in navigator) {
+      watchId = navigator.geolocation.watchPosition((pos) => {
+        latest = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+        void trySend();
       }, () => { /* keep alert active without location */ }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
     }
+    const resendTimer = window.setInterval(() => { void trySend(); }, SOS_LOCATION_INTERVAL_MS);
     const statusTimer = window.setInterval(async () => {
       const { getPanicAlertStatus } = await mod;
       const st = await getPanicAlertStatus(alertId);
       if (st === "acknowledged") toast.success("A supervisor acknowledged your SOS.", { id: `sos-ack-${alertId}` });
       if (st === "resolved" || st === "false_alarm") { send({ type: "SAFE" }); }
     }, 10_000);
-    return () => { stopped = true; if (watchId != null) navigator.geolocation.clearWatch(watchId); clearInterval(statusTimer); setSharing(null); };
+    return () => { stopped = true; if (watchId != null) navigator.geolocation.clearWatch(watchId); clearInterval(statusTimer); clearInterval(resendTimer); setSharing(null); };
   }, [alertId, companyId]);
 
   const onDown = useCallback((e: React.PointerEvent) => { e.preventDefault(); haptic(20); send({ type: "HOLD_START", at: Date.now() }); }, []);

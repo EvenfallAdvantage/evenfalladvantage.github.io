@@ -12,8 +12,9 @@ const ACTIONS = [
   { href: "/timeclock/", label: "Clock in / out", Icon: Clock, cls: "bg-sky-600" },
 ];
 
-// Routes where a floating button would cover the content (the 3D map at "/", chat composer, scanners).
-const HIDE_ON = ["/admin/operations", "/admin/map", "/geo-risk", "/chat", "/scan", "/dictate", "/auth", "/login"];
+// Routes where a floating button would cover the content (the 3D map at "/", chat composer, scanners,
+// and the Watch page, whose Clock/Patrols tabs already are these actions and whose Weekly Hours card sat under it).
+const HIDE_ON = ["/timeclock", "/admin/operations", "/admin/map", "/geo-risk", "/chat", "/scan", "/dictate", "/auth", "/login"];
 
 /** Thumb-zone "+" for the three things a guard does most. Phone only; side is switchable. */
 export function QuickActionFab() {

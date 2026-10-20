@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { BellRing, BellOff, Loader2, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/auth-store";
-import { getPushState, enablePush, disablePush, showLocalTestNotification, type PushState } from "@/lib/push/web-push";
+import { getPushState, enablePush, disablePush, showLocalTestNotification, pushErrorMessage, type PushState } from "@/lib/push/web-push";
 
 const COPY: Record<PushState, string> = {
   on: "This device gets SOS, assignment and message alerts even when Overwatch is closed.",
@@ -19,16 +19,18 @@ export function PushSettingsCard() {
   const companyId = useAuthStore((s) => s.activeCompanyId);
   const [state, setState] = useState<PushState | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => { getPushState().then(setState).catch(() => setState("unsupported")); }, []);
 
   async function toggle() {
     setBusy(true);
+    setError(null);
     try {
       const next = state === "on" ? await disablePush() : await enablePush(companyId);
       setState(next);
       if (next === "on") toast.success("Phone alerts are on for this device.");
       else if (next === "denied") toast.error("Notifications are blocked in your browser settings.");
-    } catch { toast.error("Couldn't change phone alerts. Try again."); }
+    } catch (err) { setError(pushErrorMessage(err)); toast.error("Couldn't change phone alerts."); }
     finally { setBusy(false); }
   }
 
@@ -43,6 +45,11 @@ export function PushSettingsCard() {
         <div className="min-w-0 flex-1">
           <p className="font-semibold">Phone alerts {state === "on" && <span className="ml-1 rounded bg-green-500/15 px-1.5 py-0.5 text-[11px] text-green-500">ON</span>}</p>
           <p className="mt-0.5 text-sm text-muted-foreground">{COPY[state]}</p>
+          {error && (
+            <p role="alert" data-testid="push-error" className="mt-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+              Phone alerts didn&apos;t change: {error}
+            </p>
+          )}
         </div>
       </div>
       {canToggle && (

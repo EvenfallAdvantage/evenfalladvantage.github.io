@@ -48,6 +48,9 @@ async function ignoreDuplicate(p: Promise<unknown>): Promise<void> {
   }
 }
 
+/** Window event fired after a drain that synced at least one mutation. detail: { kinds: string[] } */
+export const OFFLINE_SYNCED_EVENT = "ow:offline-synced";
+
 export interface DrainResult {
   attempted: number;
   succeeded: number;
@@ -194,6 +197,7 @@ export async function drainQueue(opts: {
   const result: DrainResult = { attempted: 0, succeeded: 0, failed: 0, errored: 0 };
 
   const pending = await getPending();
+  const syncedKinds = new Set<string>();
   for (const m of pending) {
     if (opts.signal?.aborted) break;
     result.attempted++;
@@ -201,6 +205,7 @@ export async function drainQueue(opts: {
       await dispatch(m);
       await markDone(m.id);
       result.succeeded++;
+      syncedKinds.add(m.kind);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       const next = await bumpAttempt(m.id, msg, maxAttempts);
@@ -213,5 +218,8 @@ export async function drainQueue(opts: {
     }
   }
 
+  if (syncedKinds.size && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(OFFLINE_SYNCED_EVENT, { detail: { kinds: [...syncedKinds] } }));
+  }
   return result;
 }
