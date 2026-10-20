@@ -4,6 +4,7 @@ import { LogIn, Loader2, X, CalendarDays, MapPin, Flag, Briefcase } from "lucide
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatTime, type Shift } from "./timeclock-utils";
+import { useClockFix, LocationStatusBar, ShiftFenceChip } from "./location-check";
 
 interface ClockInModalProps {
   detectedShifts: Shift[];
@@ -28,6 +29,7 @@ export function ClockInModal({
   onQuickClockIn,
   onClose,
 }: ClockInModalProps) {
+  const { fix, locating } = useClockFix();
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="relative w-full max-w-md rounded-2xl border border-border/50 bg-card shadow-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -39,6 +41,8 @@ export function ClockInModal({
             <h3 className="text-lg font-bold font-mono">Clock In</h3>
             <p className="text-xs text-muted-foreground">Select what you&apos;re clocking in for</p>
           </div>
+
+          <LocationStatusBar fix={fix} locating={locating} />
 
           {loadingShifts ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -65,6 +69,7 @@ export function ClockInModal({
                               <MapPin className="h-2.5 w-2.5" /> {sh.events.location}
                             </p>
                           )}
+                          <ShiftFenceChip fix={fix} locating={locating} shift={sh} />
                         </div>
                         {sh.role && <Badge variant="outline" className="text-[9px] shrink-0">{sh.role}</Badge>}
                       </div>

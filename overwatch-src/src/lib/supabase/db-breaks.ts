@@ -146,17 +146,17 @@ export async function checkGeofence(
   const supabase = createClient();
   const { data: event } = await supabase
     .from("events")
-    .select("latitude, longitude, geofence_radius_meters")
+    .select("location_lat, location_lng, geofence_radius_meters")
     .eq("id", eventId)
     .maybeSingle();
 
-  if (!event?.latitude || !event?.longitude || !event?.geofence_radius_meters) {
+  if (event?.location_lat == null || event?.location_lng == null || !event?.geofence_radius_meters) {
     // No geofence configured — always allowed
     return { allowed: true };
   }
 
   const maxDistance = Number(event.geofence_radius_meters);
-  const distance = haversineMeters(lat, lng, Number(event.latitude), Number(event.longitude));
+  const distance = haversineMeters(lat, lng, Number(event.location_lat), Number(event.location_lng));
 
   return {
     allowed: distance <= maxDistance,
