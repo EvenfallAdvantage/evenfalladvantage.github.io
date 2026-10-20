@@ -66,7 +66,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${oswald.variable} ${barlow.variable}`}>
       <head>
         {/*
           NIST 800-171 §3.13 — Content Security Policy
@@ -92,7 +92,7 @@ export default function RootLayout({
         <meta name="referrer" content="strict-origin-when-cross-origin" />
       </head>
       <body
-        className={`${oswald.variable} ${barlow.variable} antialiased overflow-x-hidden`}
+        className="font-sans antialiased overflow-x-hidden"
       >
         <Providers><AppShell>{children}</AppShell></Providers>
       </body>

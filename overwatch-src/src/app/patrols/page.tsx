@@ -1,5 +1,6 @@
 "use client";
 
+import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import { cachedRead, isOffline } from "@/lib/offline/cached-read";
 import { logPatrolScanOffline, isPendingSync } from "@/lib/offline/with-offline";
 import { toast } from "sonner";
@@ -246,20 +247,13 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
         </Card>
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto max-w-full scrollbar-hide">
+        <SubTabList>
           {TABS.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${
-                tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-              }`}
-            >
-              {tab === t.id && <t.icon className="h-3.5 w-3.5 text-primary" />}
+            <SubTab key={t.id} active={tab === t.id} onClick={() => setTab(t.id)} icon={t.icon}>
               {t.label}
-            </button>
+            </SubTab>
           ))}
-        </div>
+        </SubTabList>
 
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>

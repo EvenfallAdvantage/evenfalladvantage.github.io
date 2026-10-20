@@ -1,5 +1,6 @@
 "use client";
 
+import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import React, { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -208,7 +209,7 @@ function AdminStaffPageInner() {
             </label>
           );
         })()}
-        <div className="hidden sm:flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto sm:mx-0 sm:px-1 scrollbar-hide">
+        <SubTabList className="hidden sm:flex" hostAction={false}>
           {([
             { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0, icon: Users },
             { key: "teams" as Tab, label: "Teams", badge: 0, icon: UsersRound },
@@ -222,14 +223,12 @@ function AdminStaffPageInner() {
             { key: "applicants" as Tab, label: "Applicants", badge: counts.newApplicants, icon: UserPlus },
             { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
           ]).map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === t.key ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {tab === t.key && <t.icon className="h-3.5 w-3.5 text-primary" />}
+            <SubTab key={t.key} active={tab === t.key} onClick={() => setTab(t.key)} icon={t.icon}>
               {t.label}
               {t.badge > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-amber-500/20 text-amber-600">{t.badge}</Badge>}
-            </button>
+            </SubTab>
           ))}
-        </div>
+        </SubTabList>
 
         {/* ── Tab Content ── */}
         {tab === "roster" && activeCompanyId && (

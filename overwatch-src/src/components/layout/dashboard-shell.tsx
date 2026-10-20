@@ -8,6 +8,7 @@ import { QuickActionFab } from "./quick-action-fab";
 import { MobileNav } from "./mobile-nav";
 import { GlobalPanicListener } from "@/components/sos/global-panic-listener";
 import { MobilePageAction } from "@/components/mobile-page-action";
+import { usePageHeader } from "@/stores/page-header-store";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SyncIndicator } from "@/components/sync-indicator";
 import { ServiceWorkerRegistration } from "@/components/sw-registration";
@@ -16,6 +17,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 const STORAGE_KEY = "overwatch-sidebar-collapsed";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
+  const inlineActions = usePageHeader((s) => s.inlineActionHosts > 0);
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(STORAGE_KEY) === "true";
@@ -56,9 +58,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         >
           <div className="mx-auto max-w-7xl px-3 py-4 sm:p-6">
             {/* Mobile action button — right-aligned above page content */}
-            <div className="flex justify-end mb-2 sm:hidden">
-              <MobilePageAction />
-            </div>
+            {!inlineActions && (
+              <div className="flex justify-end mb-2 sm:hidden">
+                <MobilePageAction />
+              </div>
+            )}
             <ErrorBoundary>{children}</ErrorBoundary>
           </div>
         </main>

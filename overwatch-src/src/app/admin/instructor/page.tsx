@@ -1,5 +1,6 @@
 "use client";
 
+import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import { useState, useEffect, useCallback } from "react";
 import {
   BookOpen, Plus, Loader2, Users, Calendar,
@@ -94,14 +95,13 @@ export default function InstructorHQPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
+      <SubTabList>
         {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === t.id ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-            {tab === t.id && <t.icon className="h-3.5 w-3.5 text-primary" />} {t.label}
-          </button>
+          <SubTab active={tab === t.id} onClick={() => setTab(t.id)} icon={t.icon} key={t.id}>
+            {t.label}
+          </SubTab>
         ))}
-      </div>
+      </SubTabList>
 
       {tab === "courses" && <CoursesTab triggerNew={triggerNew} />}
       {tab === "classes" && <ClassesTab instructorId={instructorId} triggerNew={triggerNew} seeAll={canSeeAllTrainingClasses(role)} />}

@@ -1,8 +1,8 @@
 "use client";
 
+import { ReportTypeTabs } from "@/components/report-type-tabs";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Mic, Loader2, Save, ChevronDown, ChevronUp, User, Clock, Link2, Users, Type as TypeIcon } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -194,18 +194,7 @@ export default function DictatePage() {
     <PageShell title="REPORTS" subtitle="Voice-to-text report dictation" icon={<Mic className="h-5 w-5" />}>
       <div className="space-y-4">
         {/* Report type tabs */}
-      <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
-        <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
-          <Mic className="h-3.5 w-3.5 text-primary" />
-          Dictate
-        </div>
-        <Link href="/forms" className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
-          Field Reports
-        </Link>
-        <Link href="/incidents" className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
-          Incidents
-        </Link>
-      </div>
+      <ReportTypeTabs active="dictate" />
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>

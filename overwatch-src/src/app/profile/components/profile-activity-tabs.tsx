@@ -58,7 +58,7 @@ export function ProfileActivityTabs({ activeCompanyId }: Props) {
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="shared">
+      <TabsContent value="shared" keepMounted className="min-h-[200px]">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <FolderOpen className="mb-3 h-10 w-10 text-muted-foreground/40" />
@@ -71,7 +71,7 @@ export function ProfileActivityTabs({ activeCompanyId }: Props) {
         </Card>
       </TabsContent>
 
-      <TabsContent value="submissions">
+      <TabsContent value="submissions" keepMounted className="min-h-[200px]">
         <Card>
           <CardContent className="py-4">
             {!tabLoaded.submissions ? (
@@ -102,7 +102,7 @@ export function ProfileActivityTabs({ activeCompanyId }: Props) {
         </Card>
       </TabsContent>
 
-      <TabsContent value="activity">
+      <TabsContent value="activity" keepMounted className="min-h-[200px]">
         <Card>
           <CardContent className="py-4">
             {!tabLoaded.activity ? (

@@ -1,11 +1,11 @@
 "use client";
 
+import { ReportTypeTabs } from "@/components/report-type-tabs";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { AlertTriangle, Plus } from "lucide-react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ListSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
@@ -107,24 +107,7 @@ export default function IncidentsPage() {
   return (
     <div className="space-y-4">
       {/* Report type tabs */}
-      <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
-        <Link
-          href="/dictate"
-          className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0"
-        >
-          Dictate
-        </Link>
-        <Link
-          href="/forms"
-          className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0"
-        >
-          Field Reports
-        </Link>
-        <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm whitespace-nowrap shrink-0">
-          <AlertTriangle className="h-3.5 w-3.5 text-primary" />
-          Incidents
-        </div>
-      </div>
+      <ReportTypeTabs active="incidents" />
 
       {showQuick && activeCompanyId && (
         <QuickIncidentSheet
