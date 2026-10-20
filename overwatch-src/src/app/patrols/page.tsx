@@ -42,7 +42,6 @@ import { TagScanPanel, QrPrintSheet } from "@/components/patrol/tag-scan";
 import { setCheckpointLocation } from "@/lib/supabase/db-checkpoints";
 import { nfcSupported, writeNfcUrl } from "@/lib/patrol/nfc";
 import { checkpointUrl } from "@/lib/patrol/checkpoint-code";
-import { toast } from "sonner";
 import { Printer, Nfc, LocateFixed, ShieldCheck, ShieldAlert } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
