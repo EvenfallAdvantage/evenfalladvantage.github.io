@@ -19,6 +19,9 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { useActiveTeam } from "@/hooks/use-active-team";
 
 import { IncidentCreateForm } from "./components/incident-create-form";
+import { QuickIncidentSheet } from "@/components/incidents/quick-incident-sheet";
+import { loadDraft, hasContent } from "@/lib/incidents/quick-draft";
+import { Zap } from "lucide-react";
 import { IncidentFilters } from "./components/incident-filters";
 import { IncidentList } from "./components/incident-list";
 import { IncidentBoard } from "./components/incident-board";
@@ -32,6 +35,14 @@ export default function IncidentsPage() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [showQuick, setShowQuick] = useState(false);
+  // Deep link (?quick=1) from the nav / home tile opens the quick sheet.
+  useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("quick") === "1") setShowQuick(true);
+  }, []);
+  const [pendingDraft, setPendingDraft] = useState(false);
+  useEffect(() => { if (activeCompanyId) setPendingDraft(hasContent(loadDraft(activeCompanyId))); }, [activeCompanyId, showQuick]);
+  
   const [viewMode, setViewMode] = useState<"list" | "board">("list");
 
   const searchParams = useSearchParams();
@@ -73,9 +84,14 @@ export default function IncidentsPage() {
       "REPORTS",
       "Incident reports and field documentation",
       <AlertTriangle className="h-5 w-5" />,
-      <Button onClick={() => setShowCreate(!showCreate)} className="gap-2 w-full sm:w-auto">
-        <Plus className="h-4 w-4" /> Report Incident
-      </Button>
+      <div className="flex w-full gap-2 sm:w-auto">
+        <Button onClick={() => setShowQuick(true)} className="h-11 flex-1 gap-2 sm:flex-none">
+          <Zap className="h-4 w-4" /> Quick Report
+        </Button>
+        <Button variant="outline" onClick={() => setShowCreate(!showCreate)} className="h-11 flex-1 gap-2 sm:flex-none">
+          <Plus className="h-4 w-4" /> Full Report
+        </Button>
+      </div>
     );
     return () => clearHeader();
   }, [setHeader, clearHeader, showCreate]);
@@ -109,6 +125,20 @@ export default function IncidentsPage() {
           Incidents
         </div>
       </div>
+
+      {showQuick && activeCompanyId && (
+        <QuickIncidentSheet
+          companyId={activeCompanyId}
+          eventId={activeTimesheet?.event_id ?? null}
+          onClose={() => setShowQuick(false)}
+          onCreated={() => { setShowQuick(false); load(); }}
+        />
+      )}
+      {!showQuick && pendingDraft && (
+        <button type="button" onClick={() => setShowQuick(true)} className="flex min-h-11 w-full items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 text-left text-sm text-amber-200">
+          <Zap className="h-4 w-4" /> You have an unsent quick report. Tap to finish it.
+        </button>
+      )}
 
       {/* Create Form */}
       {showCreate && activeCompanyId && (
