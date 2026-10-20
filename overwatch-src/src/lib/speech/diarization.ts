@@ -178,9 +178,14 @@ function voiceDistance(a: AcousticFeatures, b: AcousticFeatures): number {
   return Math.sqrt(df0 * df0 + dc * dc + dr * dr + dz * dz);
 }
 
-/** Above this voice distance a window-local speaker becomes a NEW speaker
+/** Above this voice distance (≈80 Hz pitch gap) a window-local speaker becomes a NEW speaker
  *  (unless the expected-speaker cap is already reached). */
-const NEW_SPEAKER_DISTANCE = 1.5;
+const NEW_SPEAKER_DISTANCE = 2.0;
+/** A time-based link is overridden when the voice is at least this far off
+ *  and another known speaker is at least twice as close. */
+const VOICE_OVERRIDE_DISTANCE = 1.5;
+/** Pitch gap (Hz) under which two voices are treated as the same person in auto mode. */
+const SAME_PITCH_HZ = 25;
 /** Seconds of shared time in the window overlap needed to link by time. */
 const LINK_OVERLAP_S = 0.3;
 
@@ -329,7 +334,7 @@ export async function diarize(
           for (const [g, gv] of voices) {
             if (g === pick || used.has(g) || gv.f.unreliable) continue;
             const d = voiceDistance(v, gv.f);
-            if (dPick > NEW_SPEAKER_DISTANCE && d < dPick / 2) pick = g;
+            if (dPick > VOICE_OVERRIDE_DISTANCE && d < dPick / 2) pick = g;
           }
         }
         // (2) closest voice
@@ -340,7 +345,13 @@ export async function diarize(
             const d = voiceDistance(v, gv.f);
             if (d < bestD) { bestD = d; pick = g; }
           }
-          if (pick && bestD > NEW_SPEAKER_DISTANCE && voices.size < maxSpeakers) pick = null;
+          // Only start a new speaker when the voice is far off AND the pitch
+          // really differs. Phone mic processing (AGC / noise suppression)
+          // shifts spectral shape between turns of the same person, but
+          // barely moves pitch.
+          const pickF0 = pick ? voices.get(pick)!.f.f0 : 0;
+          const pitchClose = pickF0 > 0 && v.f0 > 0 && Math.abs(pickF0 - v.f0) < SAME_PITCH_HZ;
+          if (pick && bestD > NEW_SPEAKER_DISTANCE && !pitchClose && voices.size < maxSpeakers) pick = null;
         }
         // (3) new speaker
         if (!pick) {
