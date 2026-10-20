@@ -26,6 +26,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ListSkeleton } from "@/components/loading-skeleton";
 import { IncidentMediaUpload } from "./incident-media-upload";
+import { IncidentStatements } from "./incident-statements";
 import { toast } from "sonner";
 import {
   updateIncident,
@@ -530,6 +531,7 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
 
                   {/* Evidence / Media */}
                   <IncidentMediaUpload incidentId={inc.id} companyId={activeCompanyId} readOnly={!isAdmin} />
+                  <IncidentStatements incidentId={inc.id} companyId={activeCompanyId} />
 
                   {/* Timeline */}
                   <div>

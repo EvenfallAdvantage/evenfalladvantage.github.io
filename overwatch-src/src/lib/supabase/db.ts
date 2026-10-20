@@ -22,6 +22,7 @@ export * from "./db-panic";
 export * from "./db-invoices";
 export * from "./db-broadcast";
 export * from "./db-incident-media";
+export * from "./db-statements";
 export * from "./db-breaks";
 export * from "./db-dar";
 export * from "./db-client-portal";
