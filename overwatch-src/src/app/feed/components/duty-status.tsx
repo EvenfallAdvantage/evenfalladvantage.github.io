@@ -13,6 +13,7 @@ import {
   getActiveTimesheet, clockIn, clockOut, getRecentTimesheets,
 } from "@/lib/supabase/db";
 import { getActiveShiftsForClockIn } from "@/lib/supabase/db-timesheets";
+import { SelfLocationBar } from "@/components/timeclock/location-check";
 import { parseUTC } from "@/lib/parse-utc";
 import { formatDuration, type Timesheet } from "./shared";
 
@@ -236,6 +237,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
                 <h3 className="text-lg font-bold font-mono">Clock In</h3>
                 <p className="text-xs text-muted-foreground">Select what you&apos;re clocking in for</p>
               </div>
+              <SelfLocationBar />
 
               {loadingShifts ? (
                 <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>

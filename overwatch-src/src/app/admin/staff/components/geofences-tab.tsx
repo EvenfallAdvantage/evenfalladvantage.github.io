@@ -3,15 +3,15 @@
 /**
  * Geofences admin tab (Phase 7).
  *
- * Lists existing geofences with name, team, status. Admins can create new
- * ones by pasting GeoJSON Polygon or by entering a sequence of lat/lng
- * pairs. Edit/delete via the row actions.
- *
- * In-map polygon drawing (click-to-place vertices on Cesium) is a follow-up
- * task tracked in docs/MAP_TOOLS_ROADMAP.md.
+ * Lists existing geofences with name, team, status. Admins draw the fence
+ * by tapping corners on a 2D map (components/geo/polygon-draw-map), or paste
+ * GeoJSON under "Advanced". Active fences show on the 3D Operations map and
+ * are used by verified clock-in when an operation has no post radius.
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { PolygonDrawMap } from "@/components/geo/polygon-draw-map";
+import { ringToPolygon, polygonToRing } from "@/lib/geo/mercator";
 import {
   Target, Plus, Trash2, Edit2, Loader2, MapPinned, Eye, EyeOff, Save, X,
 } from "lucide-react";
@@ -40,18 +40,6 @@ interface GeofencesTabProps {
   canManage: boolean;
 }
 
-const SAMPLE_POLYGON: GeofenceGeometry = {
-  type: "Polygon",
-  coordinates: [
-    [
-      [-74.001, 40.7128],
-      [-74.0, 40.7128],
-      [-74.0, 40.7138],
-      [-74.001, 40.7138],
-      [-74.001, 40.7128],
-    ],
-  ],
-};
 
 export function GeofencesTab({ activeCompanyId, canManage }: GeofencesTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
@@ -70,9 +58,14 @@ export function GeofencesTab({ activeCompanyId, canManage }: GeofencesTabProps) 
   const [fillOpacity, setFillOpacity] = useState("0.20");
   const [strokeWidth, setStrokeWidth] = useState("2");
   const [isActive, setIsActive] = useState(true);
-  const [geometryText, setGeometryText] = useState<string>(
-    JSON.stringify(SAMPLE_POLYGON, null, 2),
-  );
+  const [geometryText, setGeometryText] = useState<string>("");
+  // Map draft ring is kept separately so 1-2 tapped corners survive before
+  // there is a valid polygon to serialise.
+  const [ring, setRing] = useState<[number, number][]>([]);
+  useEffect(() => {
+    if (!geometryText.trim()) return;
+    try { const r = polygonToRing(JSON.parse(geometryText)); if (r.length) setRing(r); } catch { /* typing */ }
+  }, [geometryText]);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -104,7 +97,8 @@ export function GeofencesTab({ activeCompanyId, canManage }: GeofencesTabProps) 
     setFillOpacity("0.20");
     setStrokeWidth("2");
     setIsActive(true);
-    setGeometryText(JSON.stringify(SAMPLE_POLYGON, null, 2));
+    setGeometryText("");
+    setRing([]);
     setEditingId(null);
   }
 
@@ -127,6 +121,7 @@ export function GeofencesTab({ activeCompanyId, canManage }: GeofencesTabProps) 
   }
 
   function parseGeometryOrToast(): GeofenceGeometry | null {
+    if (!geometryText.trim()) { toast.error("Tap the map to place at least 3 corners."); return null; }
     let parsed: unknown;
     try {
       parsed = JSON.parse(geometryText);
@@ -411,28 +406,20 @@ export function GeofencesTab({ activeCompanyId, canManage }: GeofencesTabProps) 
               </div>
             </div>
             <div>
-              <Label htmlFor="gf-geometry" className="text-xs">
-                Geometry (GeoJSON Polygon - [lng, lat] pairs)
-              </Label>
-              <textarea
-                id="gf-geometry"
-                value={geometryText}
-                onChange={(e) => setGeometryText(e.target.value)}
-                rows={10}
-                className="w-full rounded-md border border-input bg-background px-2 py-1 text-xs font-mono"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Use{" "}
-                <a
-                  href="https://geojson.io"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-primary"
-                >
-                  geojson.io
-                </a>{" "}
-                to draw a polygon and copy the geometry object here. Coordinates are [lng, lat] per RFC 7946.
-              </p>
+              <Label className="text-xs">Fence area</Label>
+              <PolygonDrawMap value={ring} onChange={(pts) => { setRing(pts); const g = ringToPolygon(pts); setGeometryText(g ? JSON.stringify(g, null, 2) : ""); }} />
+              <details className="mt-2">
+                <summary className="cursor-pointer text-[11px] text-muted-foreground">Advanced: edit GeoJSON</summary>
+                <Label htmlFor="gf-geometry" className="sr-only">Geometry (GeoJSON Polygon - [lng, lat] pairs)</Label>
+                <textarea
+                  id="gf-geometry"
+                  value={geometryText}
+                  onChange={(e) => setGeometryText(e.target.value)}
+                  rows={8}
+                  className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1 text-xs font-mono"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Coordinates are [lng, lat] per RFC 7946. Holes and MultiPolygon are supported here.</p>
+              </details>
             </div>
             <div className="flex items-center justify-between pt-1">
               <label className="flex items-center gap-2 text-xs">

@@ -13,6 +13,7 @@ import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
 import { formatMemberName } from "@/lib/format-names";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
+import { TimesheetVerifyBadge } from "@/components/timeclock/location-check";
 
 type Sheet = Record<string, unknown> & {
   id: string;
@@ -164,7 +165,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                               {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm">{formatMemberName(u ?? {})}</p>
+                              <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /></p>
                               <p className="text-xs text-muted-foreground">
                                 {parseUTC(t.clock_in).toLocaleDateString()} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </p>

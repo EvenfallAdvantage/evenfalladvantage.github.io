@@ -1,3 +1,4 @@
+import { getQuickFix, type Fix } from "@/lib/geo/position";
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
@@ -32,6 +33,11 @@ export async function clockIn(params?: {
   companyId?: string;
   clockInType?: "shift" | "admin" | "manual";
   notes?: string;
+  /** Offline replay: client id + the time the officer actually tapped Clock In. */
+  id?: string;
+  at?: string;
+  /** GPS fix taken at the tap (skips a second GPS request). */
+  fix?: Fix | null;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
@@ -50,12 +56,32 @@ export async function clockIn(params?: {
     companyId = (sh as any)?.events?.company_id ?? null;
   }
 
+  // Verified path (migration 20261020032000): server time + GPS + geofence verdict.
+  const fix = params?.fix !== undefined ? params.fix : (params?.at ? null : await getQuickFix());
+  if (companyId) {
+    const { data, error } = await supabase.rpc("timesheet_clock_in", {
+      p_company_id: companyId,
+      p_shift_id: params?.shiftId ?? null,
+      p_event_id: params?.eventId ?? null,
+      p_type: params?.clockInType ?? "shift",
+      p_notes: params?.notes ?? null,
+      p_lat: fix?.lat ?? null,
+      p_lng: fix?.lng ?? null,
+      p_accuracy: fix?.accuracy ?? null,
+      p_id: params?.id ?? null,
+      p_client_at: params?.at ?? null,
+    });
+    if (!error) return data;
+    if (!isMissingRpc(error)) throw error;
+  }
+
+  // Legacy path (before the migration): direct insert; the DB guard stamps server time.
   const { data, error } = await supabase
     .from("timesheets")
     .insert({
-      id: crypto.randomUUID(),
+      id: params?.id ?? crypto.randomUUID(),
       user_id: userId,
-      clock_in: new Date().toISOString(),
+      clock_in: params?.at ?? new Date().toISOString(),
       clock_method: "app",
       shift_id: params?.shiftId ?? null,
       event_id: params?.eventId ?? null,
@@ -69,6 +95,11 @@ export async function clockIn(params?: {
 
   if (error) throw error;
   return data;
+}
+
+/** PostgREST "function not found" (migration not applied yet). */
+function isMissingRpc(error: { code?: string; message?: string }): boolean {
+  return error.code === "PGRST202" || error.code === "42883" || /could not find the function/i.test(error.message ?? "");
 }
 
 /**
@@ -86,7 +117,7 @@ export async function getActiveShiftsForClockIn(companyId: string) {
   // Shifts where: start_time is within ±30min of now, OR shift is currently active (started but not ended)
   const { data, error } = await supabase
     .from("shifts")
-    .select("*, events!inner(id, name, location, company_id, timezone)")
+    .select("*, events!inner(id, name, location, company_id, timezone, location_lat, location_lng, geofence_radius_meters)")
     .eq("assigned_user_id", userId)
     .eq("events.company_id", companyId)
     .or(`and(start_time.gte.${windowStart},start_time.lte.${windowEnd}),and(start_time.lte.${now.toISOString()},end_time.gte.${now.toISOString()})`)
@@ -96,11 +127,17 @@ export async function getActiveShiftsForClockIn(companyId: string) {
   return data ?? [];
 }
 
-export async function clockOut(timesheetId: string) {
+export async function clockOut(timesheetId: string, at?: string, fixIn?: Fix | null) {
   const supabase = createClient();
+  const fix = fixIn !== undefined ? fixIn : (at ? null : await getQuickFix());
+  const { data: v, error: e } = await supabase.rpc("timesheet_clock_out", {
+    p_id: timesheetId, p_lat: fix?.lat ?? null, p_lng: fix?.lng ?? null, p_accuracy: fix?.accuracy ?? null, p_client_at: at ?? null,
+  });
+  if (!e) return v;
+  if (!isMissingRpc(e)) throw e;
   const { data, error } = await supabase
     .from("timesheets")
-    .update({ clock_out: new Date().toISOString() })
+    .update({ clock_out: at ?? new Date().toISOString() })
     .eq("id", timesheetId)
     .select()
     .maybeSingle();
