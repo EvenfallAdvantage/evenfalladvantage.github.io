@@ -3,6 +3,7 @@
 import { Clock, Loader2, AlertTriangle, Trash2, ShieldAlert } from "lucide-react";
 import { type Shift, type Member, fmtTime } from "../shared";
 import { MemberSearchSelect } from "./member-search-select";
+import type { AckStatus } from "@/lib/supabase/db-post-orders";
 
 interface ShiftRowProps {
   sh: Shift;
@@ -14,6 +15,8 @@ interface ShiftRowProps {
   onDelete: (shiftId: string) => void;
   onAssign: (shiftId: string, userId: string) => void;
   userCertifications?: Record<string, { hasAbcCert: boolean; abcState: string | null }>;
+  /** undefined = acks not loaded / unsupported; null = not acknowledged. */
+  ack?: AckStatus | null;
 }
 
 /* ── Shift row renderer (shared between list and calendar detail) ── */
@@ -28,6 +31,7 @@ export function ShiftRow({
   onDelete,
   onAssign,
   userCertifications = {},
+  ack,
 }: ShiftRowProps) {
   const filled = !!sh.assigned_user_id;
   const hasConflict = adminConflictIds.has(sh.id);
@@ -45,6 +49,12 @@ export function ShiftRow({
           <span className="text-muted-foreground ml-1.5 sm:ml-2 font-mono">{fmtTime(sh.start_time, eventTimezone)} — {fmtTime(sh.end_time, eventTimezone)}</span>
           {hasConflict && <span className="ml-1 sm:ml-2 text-red-500 font-semibold text-[10px]">CONFLICT</span>}
           {missingAbcCert && <span className="ml-1 sm:ml-2 text-amber-500 font-semibold text-[10px]">Missing ABC Cert</span>}
+          {filled && ack !== undefined && (
+            <span data-testid="shift-ack" className={`ml-1 sm:ml-2 text-[10px] font-semibold ${ack?.is_current ? "text-green-500" : ack ? "text-amber-500" : "text-muted-foreground"}`}
+              title={ack ? `Acknowledged ${new Date(ack.acked_at).toLocaleString()}` : "Post orders not acknowledged yet"}>
+              {ack?.is_current ? "Orders ✓" : ack ? "Orders changed since ack" : "Orders not ack'd"}
+            </span>
+          )}
         </div>
         <button onClick={() => onDelete(sh.id)} disabled={deletingShift === sh.id}
           className="rounded p-0.5 text-muted-foreground/30 hover:text-red-500 hover:bg-red-500/10 shrink-0" title="Delete">

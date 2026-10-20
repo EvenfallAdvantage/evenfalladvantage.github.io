@@ -3,6 +3,8 @@
 import { Calendar } from "lucide-react";
 import { type Shift, type Member, fmtDateLong } from "../shared";
 import { ShiftRow } from "./shift-row";
+import { useEffect, useState } from "react";
+import { getPostOrderAckStatus, type AckStatus } from "@/lib/supabase/db-post-orders";
 
 interface ShiftListViewProps {
   shifts: Shift[];
@@ -29,6 +31,15 @@ export function ShiftListView({
   onAssign,
   userCertifications = {},
 }: ShiftListViewProps) {
+  // Post-order acknowledgements for assigned shifts (undefined = not supported yet).
+  const [acks, setAcks] = useState<Map<string, AckStatus> | null>(null);
+  const idsKey = shifts.filter((s: Shift) => s.assigned_user_id).map((s: Shift) => s.id).join(",");
+  useEffect(() => {
+    let live = true;
+    const ids = idsKey ? idsKey.split(",") : [];
+    getPostOrderAckStatus(ids).then((m) => { if (live) setAcks(m); });
+    return () => { live = false; };
+  }, [idsKey]);
   return (
     <div className="px-3 sm:px-4 py-3 space-y-4">
       {shifts.length === 0 ? (
@@ -57,6 +68,7 @@ export function ShiftListView({
                   onDelete={onDelete}
                   onAssign={onAssign}
                   userCertifications={userCertifications}
+                  ack={acks ? acks.get(sh.id) ?? null : undefined}
                 />
               ))}
             </div>

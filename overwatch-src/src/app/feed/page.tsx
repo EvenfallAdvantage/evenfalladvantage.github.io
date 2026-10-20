@@ -10,8 +10,8 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { OnboardingBanner } from "./components/onboarding-banner";
 import { ActionRequired } from "./components/action-required";
 import { PinnedBriefing } from "./components/pinned-briefing";
-import { UpcomingShift } from "./components/upcoming-shift";
 import { DutyStatus } from "./components/duty-status";
+import { MyPostCard } from "./components/my-post-card";
 import { KpiCards } from "./components/kpi-cards";
 import { QuickActions } from "./components/quick-actions";
 import { IntelCenter } from "./components/intel-center";
@@ -66,9 +66,9 @@ export default function FeedPage() {
         <PinnedBriefing activeCompanyId={validCompanyId} userId={user.id} />
       )}
 
-      {/* Upcoming Shift */}
+      {/* My Post (current or next shift + post orders acknowledgement) */}
       {validCompanyId && (
-        <UpcomingShift activeCompanyId={validCompanyId} />
+        <MyPostCard activeCompanyId={validCompanyId} />
       )}
 
       {/* Duty Status — THE hero widget */}
