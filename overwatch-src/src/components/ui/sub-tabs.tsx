@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ElementType, type ReactNode } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { usePageHeader } from "@/stores/page-header-store";
 import { MobilePageAction } from "@/components/mobile-page-action";
@@ -53,4 +54,15 @@ export function SubTab({ active, onClick, icon: Icon, children, className, disab
       {children}
     </button>
   );
+}
+
+/** A sub-tab that navigates to another route (same look; always renders its icon). */
+export function SubTabLink({ active, href, icon: Icon, children }: { active: boolean; href: string; icon?: ElementType; children: ReactNode }) {
+  const cls = cn(
+    "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0",
+    active ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+  );
+  const icon = Icon && <Icon className={cn("h-3.5 w-3.5 shrink-0 transition-colors", active ? "text-primary" : "text-muted-foreground/70")} />;
+  if (active) return <span role="tab" aria-selected="true" className={cls}>{icon}{children}</span>;
+  return <Link role="tab" aria-selected="false" href={href} className={cls}>{icon}{children}</Link>;
 }
