@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { AppSidebar } from "./app-sidebar";
 import { Topbar } from "./topbar";
+import { QuickActionFab } from "./quick-action-fab";
 import { MobileNav } from "./mobile-nav";
 import { MobilePageAction } from "@/components/mobile-page-action";
 import { ErrorBoundary } from "@/components/error-boundary";
@@ -63,6 +64,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* Mobile bottom nav */}
         <MobileNav />
+
+        {/* Thumb-zone quick actions (phone) */}
+        <QuickActionFab />
 
         {/* Offline sync indicator (only visible when there's something to show) */}
         <SyncIndicator />

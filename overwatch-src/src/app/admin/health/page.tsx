@@ -1,4 +1,5 @@
 "use client";
+import { staticProbeUrl } from "@/lib/health-probe";
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -77,10 +78,12 @@ export default function HealthPage() {
       detail: restResult.ok ? `REST OK (${restResult.ms}ms)` : "PostgREST error",
     };
 
-    // 4. Static assets (fetch a known asset)
+    // 4. Static assets: probe a file that always exists in the export.
+    // (The old probe hit _next/static/chunks/webpack.js, which Next 16 /
+    // Turbopack no longer emits, so it 404'd and reported a false outage.)
     const cdnResult = await pingService(async () => {
-      const resp = await fetch("/overwatch/_next/static/chunks/webpack.js", { method: "HEAD", cache: "no-store" });
-      if (!resp.ok) throw new Error("CDN fetch failed");
+      const resp = await fetch(staticProbeUrl(), { method: "GET", cache: "no-store" });
+      if (!resp.ok) throw new Error(`CDN fetch failed (${resp.status})`);
     });
     updated[2] = {
       ...updated[2],
@@ -239,3 +242,4 @@ export default function HealthPage() {
     </div>
   );
 }
+

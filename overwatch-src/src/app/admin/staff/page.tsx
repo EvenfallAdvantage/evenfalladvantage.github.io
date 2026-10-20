@@ -179,8 +179,36 @@ function AdminStaffPageInner() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-1 scrollbar-hide">
+        {/* Tabs. Phone: grouped picker (11 tabs don't fit a thumb-width strip). */}
+        {(() => {
+          const groups: { label: string; keys: Tab[] }[] = [
+            { label: "People", keys: ["roster", "teams", "onboarding", "applicants", "postings"] },
+            { label: "Time & pay", keys: ["timesheets", "corrections", "leave"] },
+            { label: "Field", keys: ["forms", "public-reports", "geofences"] },
+          ];
+          const meta: Record<Tab, { label: string; badge: number }> = {
+            roster: { label: `Roster (${members.length})`, badge: 0 }, teams: { label: "Teams", badge: 0 },
+            geofences: { label: "Geofences", badge: 0 }, forms: { label: "Reports", badge: counts.pendingForms + counts.openIncidents },
+            "public-reports": { label: "Public Reports", badge: 0 }, timesheets: { label: "Timesheets", badge: counts.pendingTimesheets },
+            corrections: { label: "Corrections", badge: counts.pendingCorrections }, leave: { label: "Leave", badge: counts.pendingLeave },
+            postings: { label: "Postings", badge: counts.activePostings }, applicants: { label: "Applicants", badge: counts.newApplicants },
+            onboarding: { label: "Onboarding", badge: 0 },
+          };
+          return (
+            <label className="block sm:hidden">
+              <span className="sr-only">Section</span>
+              <select value={tab} onChange={(e) => setTab(e.target.value as Tab)} data-testid="staff-section"
+                className="h-12 w-full rounded-xl border border-input bg-background px-3 text-base font-semibold">
+                {groups.map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.keys.map((k) => <option key={k} value={k}>{meta[k].label}{meta[k].badge > 0 ? ` (${meta[k].badge} pending)` : ""}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+          );
+        })()}
+        <div className="hidden sm:flex gap-1 rounded-lg bg-muted/50 p-1 overflow-x-auto sm:mx-0 sm:px-1 scrollbar-hide">
           {([
             { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0, icon: Users },
             { key: "teams" as Tab, label: "Teams", badge: 0, icon: UsersRound },
