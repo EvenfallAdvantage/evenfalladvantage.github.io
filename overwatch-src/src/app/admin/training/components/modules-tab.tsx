@@ -302,9 +302,9 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold">{mod.module_name}</span>
-                        <Badge variant="secondary" className="text-[10px] font-mono">{mod.module_code}</Badge>
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="min-w-0 max-w-full truncate text-sm font-semibold" title={mod.module_name}>{mod.module_name}</span>
+                        <Badge variant="secondary" className="hidden sm:inline-flex text-[10px] font-mono">{mod.module_code}</Badge>
                         {mod.is_required && <Badge className="text-[10px] bg-red-500/10 text-red-500">Required</Badge>}
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">

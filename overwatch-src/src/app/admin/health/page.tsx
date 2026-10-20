@@ -4,6 +4,8 @@ import { staticProbeUrl } from "@/lib/health-probe";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { usePageHeader } from "@/stores/page-header-store";
 import {
   Activity,
   CheckCircle2,
@@ -123,6 +125,22 @@ export default function HealthPage() {
         ? "CHECKING..."
         : "DEGRADED PERFORMANCE";
 
+  const setHeader = usePageHeader((st) => st.setHeader);
+  const clearHeader = usePageHeader((st) => st.clearHeader);
+  useEffect(() => {
+    setHeader(
+      "SYSTEM HEALTH",
+      "Service status and latency",
+      <Activity className="h-5 w-5" />,
+      <Button size="sm" variant="outline" className="gap-1.5" onClick={runChecks} disabled={running}>
+        <RefreshCw className={`h-3.5 w-3.5 ${running ? "animate-spin" : ""}`} />
+        {running ? "Checking..." : "Re-check"}
+      </Button>,
+    );
+    return () => clearHeader();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setHeader, clearHeader, running]);
+
   const statusColor = overallStatus === "ALL SYSTEMS OPERATIONAL"
     ? "text-green-500"
     : overallStatus === "CHECKING..."
@@ -130,26 +148,9 @@ export default function HealthPage() {
       : "text-red-500";
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" /> System Health
-          </h1>
-          <p className={`text-sm font-mono font-semibold mt-1 ${statusColor}`}>
-            {overallStatus}
-          </p>
-        </div>
-        <button
-          onClick={runChecks}
-          disabled={running}
-          className="flex items-center gap-1.5 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-md hover:bg-primary/20 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-3 w-3 ${running ? "animate-spin" : ""}`} />
-          {running ? "Checking..." : "Re-check"}
-        </button>
-      </div>
+    <div className="max-w-4xl space-y-6">
+      {/* Overall status (page title + re-check live in the topbar) */}
+      <p className={`section-title ${statusColor}`}>{overallStatus}</p>
 
       {/* Service Cards */}
       <div className="grid gap-3">

@@ -158,7 +158,7 @@ export default function AdminSettingsPage() {
     <PageShell title={TITLE} subtitle={SUBTITLE} icon={<Settings className="h-5 w-5" />}>
       <div className="hq-config space-y-8">
         {/* Jump bar: the page is long, especially on a phone. */}
-        <nav aria-label="HQ Config sections" className="sticky top-0 z-20 -mx-1 overflow-x-auto bg-background/90 px-1 py-2 backdrop-blur">
+        <nav aria-label="HQ Config sections" className="sticky top-14 sm:top-16 z-20 -mx-1 overflow-x-auto bg-background/90 px-1 py-2 backdrop-blur">
           <ul className="flex gap-2 whitespace-nowrap">
             {HQ_SECTIONS.map((s) => (
               <li key={s.id}>

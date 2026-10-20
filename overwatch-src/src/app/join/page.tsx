@@ -234,7 +234,7 @@ function JoinPageInner() {
           {success ? (
             <div className="flex flex-col items-center gap-3 py-6">
               <CheckCircle2 className="h-12 w-12 text-green-500" />
-              <h2 className="text-lg font-semibold">Joined successfully!</h2>
+              <h2 className="text-lg font-bold font-mono uppercase tracking-wide">Joined successfully</h2>
               <p className="text-center text-sm text-muted-foreground">
                 You&apos;re now a member of <strong>{success}</strong>.
                 Redirecting to dashboard...
@@ -290,7 +290,7 @@ function JoinPageInner() {
             </>
           ) : (
             <>
-              <h2 className="mb-1 text-lg font-semibold">Join a Company</h2>
+              <h2 className="mb-1 text-lg font-bold font-mono uppercase tracking-wide">Join a Company</h2>
               <p className="mb-6 text-sm text-muted-foreground">
                 Enter the company code provided by your manager
               </p>
