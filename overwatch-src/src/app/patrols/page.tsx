@@ -642,6 +642,7 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
                         <span className="flex items-center gap-1"><User className="h-3 w-3" />{formatMemberName(log.users ?? {})}</span>
                         <span>{new Date(log.scanned_at).toLocaleString()}</span>
                       </div>
+                      <ScanBadges log={log} />
                       {log.notes && <p className="text-xs text-muted-foreground mt-0.5 italic">{log.notes}</p>}
                     </div>
                     <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
