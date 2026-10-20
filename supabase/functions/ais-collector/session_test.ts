@@ -82,3 +82,40 @@ Deno.test("collectAisstream: cap closes from our side", async () => {
   assertEquals([r.closed, r.ended_by, r.messages], ["cap", "client:cap", 2]);
   assertEquals(ws.closedWith, [1000, "cap"]);
 });
+
+Deno.test("collectAisstream: SubscriptionConfirmation sets compression_enabled and is not a message", async () => {
+  let t = 0; const ws = new FakeWs();
+  const p = collectAisstream(new ShipBuffer(), "k", 40_000, 1, () => ws, () => t);
+  ws.onopen!();
+  t = 5; ws.onmessage!({ data: JSON.stringify({ MessageType: "SubscriptionConfirmation", Message: { CompressionEnabled: true } }) });
+  t = 10; ws.onmessage!({ data: pos(244650909) });
+  const r = await p;
+  assertEquals([r.compression_enabled, r.messages, r.extensions], [true, 1, "permessage-deflate"]);
+  const s = new StreamSession(0); s.open(1);
+  assertEquals(s.summary(2).compression_enabled, null);
+});
+
+// Real npm:ws client (the default factory) against a local permessage-deflate server.
+// Run with: deno test -A session_test.ts
+Deno.test({
+  name: "defaultWsFactory: negotiates permessage-deflate and decodes compressed binary frames",
+  sanitizeResources: false, sanitizeOps: false,
+  fn: async () => {
+    const { WebSocketServer } = await import("npm:ws@8.18.3");
+    const wss = new WebSocketServer({ port: 0, perMessageDeflate: { threshold: 0 } });
+    await new Promise((r) => wss.on("listening", r));
+    const port = (wss.address() as { port: number }).port;
+    // deno-lint-ignore no-explicit-any
+    wss.on("connection", (c: any) => c.on("message", () => {
+      const enc = new TextEncoder();
+      c.send(enc.encode(JSON.stringify({ MessageType: "SubscriptionConfirmation", Message: { CompressionEnabled: true } })), { binary: true });
+      c.send(enc.encode(pos(244650909)), { binary: true });
+      c.send(enc.encode(pos(244650910)), { binary: true });
+    }));
+    const { defaultWsFactory } = await import("./collect.ts");
+    const buf = new ShipBuffer();
+    const r = await collectAisstream(buf, "k", 5_000, 2, () => defaultWsFactory(`ws://127.0.0.1:${port}`));
+    await new Promise((res) => wss.close(res));
+    assertEquals([r.extensions, r.compression_enabled, r.messages, r.ended_by], ["permessage-deflate", true, 2, "client:cap"]);
+  },
+});

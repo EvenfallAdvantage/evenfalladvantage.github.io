@@ -1,4 +1,7 @@
 // Network collectors for ais-collector (no Supabase imports, testable locally).
+// npm:ws because Deno's built-in WebSocket client cannot negotiate permessage-deflate,
+// and aisstream limits bandwidth on uncompressed connections (from Sept 2026).
+import NodeWebSocket from "npm:ws@8.18.3";
 import {
   AISSTREAM_URL, DIGITRAFFIC_LOCATIONS, DIGITRAFFIC_USER, DIGITRAFFIC_VESSELS, MESSAGE_CAP, STREAM_MS,
   ShipBuffer, StreamSession, decodeFrame, parseAisstream, parseDigitrafficLocations, parseDigitrafficVessels, subscription,
@@ -35,6 +38,9 @@ export const ERROR_CLOSE_GRACE_MS = 1_500;
 // deno-lint-ignore no-explicit-any
 type WsLike = any;
 
+/** ws client with permessage-deflate offered (browser-style on* handlers, close/error events). */
+export const defaultWsFactory = (url: string): WsLike => new NodeWebSocket(url, { perMessageDeflate: true });
+
 export interface AisstreamResult extends SessionSummary {
   /** Back-compat with the old log shape: window | cap | error | close:<code> | connect:… */
   closed: string;
@@ -46,7 +52,7 @@ export interface AisstreamResult extends SessionSummary {
  */
 export function collectAisstream(
   buf: ShipBuffer, apiKey: string, windowMs = STREAM_MS, cap = MESSAGE_CAP,
-  wsFactory: (url: string) => WsLike = (url) => new WebSocket(url),
+  wsFactory: (url: string) => WsLike = defaultWsFactory,
   clock: () => number = Date.now,
 ): Promise<AisstreamResult> {
   return new Promise((resolve) => {
@@ -79,6 +85,8 @@ export function collectAisstream(
       if (!text) return;
       let msg: unknown;
       try { msg = JSON.parse(text); } catch { return; }
+      // deno-lint-ignore no-explicit-any
+      if ((msg as any)?.MessageType === "SubscriptionConfirmation") { sess.confirmation((msg as any)?.Message?.CompressionEnabled); return; }
       // deno-lint-ignore no-explicit-any
       if ((msg as any)?.error) { sess.serverErrorMessage(clock(), (msg as any).error); try { ws.close(); } catch { /* ignore */ } done(); return; }
       const parsed = parseAisstream(msg, new Date().toISOString());

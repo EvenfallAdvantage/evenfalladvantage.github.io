@@ -149,6 +149,8 @@ export interface SessionSummary {
   max_gap_ms: number;
   /** Server error object text from the stream (e.g. bad key), if any. */
   server_error: string | null;
+  /** SubscriptionConfirmation.Message.CompressionEnabled (null = no confirmation seen). */
+  compression_enabled: boolean | null;
   /** Negotiated WebSocket extensions (permessage-deflate or empty). */
   extensions: string | null;
 }
@@ -178,6 +180,7 @@ export class StreamSession {
   error: string | null = null;
   serverError: string | null = null;
   extensions: string | null = null;
+  compressionEnabled: boolean | null = null;
 
   constructor(connectAt: number) { this.t0 = connectAt; }
 
@@ -192,6 +195,9 @@ export class StreamSession {
     this.last = at;
     this.messages++;
   }
+
+  /** aisstream SubscriptionConfirmation (not counted as a message). */
+  confirmation(enabled: unknown) { this.compressionEnabled = typeof enabled === "boolean" ? enabled : null; }
 
   /** The stream sent a JSON error object (e.g. invalid key). */
   serverErrorMessage(at: number, text: unknown) { this.serverError = clip(text); this.finish(at, "subscribe_error"); }
@@ -234,6 +240,7 @@ export class StreamSession {
       max_gap_ms: Math.max(this.gap, tail),
       server_error: this.serverError,
       extensions: this.extensions,
+      compression_enabled: this.compressionEnabled,
     };
   }
 }
