@@ -6,6 +6,7 @@
  * A single tap never sends.
  */
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ShieldAlert, Loader2, X, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -117,6 +118,8 @@ export function SosButton({ companyId, className }: { companyId: string; classNa
         <span className="leading-none">{state.phase === "holding" ? "HOLD" : "SOS"}</span>
       </button>
 
+      {/* Portal: the bottom nav uses backdrop-blur, which would trap position:fixed children. */}
+      {typeof document !== "undefined" && createPortal(<>
       {(state.phase === "countdown" || state.phase === "sending") && (
         <div role="alertdialog" aria-live="assertive" aria-label="SOS countdown" data-testid="sos-countdown"
           className="fixed inset-0 z-[200] flex flex-col items-center justify-end bg-red-950/90 p-6 pb-10 backdrop-blur-sm">
@@ -149,6 +152,7 @@ export function SosButton({ companyId, className }: { companyId: string; classNa
           <button type="button" onClick={imSafe} className="mt-3 h-12 w-full rounded-xl border border-white/70 font-bold active:bg-white/10">I&apos;m safe, cancel SOS</button>
         </div>
       )}
+      </>, document.body)}
     </>
   );
 }
