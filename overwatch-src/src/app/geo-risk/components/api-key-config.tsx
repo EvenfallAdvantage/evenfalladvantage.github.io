@@ -26,7 +26,7 @@ export function ApiKeyConfig() {
         <CardContent className="p-4 space-y-3">
           <h3 className="text-sm font-semibold flex items-center gap-1.5">
             <Key className="h-3.5 w-3.5" /> Sex Offender Overlay
-            {fwKeyConfigured && <Badge variant="outline" className="text-[9px] ml-1 text-green-500 border-green-500/30">Active</Badge>}
+            {fwKeyConfigured && <Badge variant="outline" className="text-[10px] ml-1 text-green-500 border-green-500/30">Active</Badge>}
           </h3>
           <p className="text-[10px] text-muted-foreground">
             To display registered sex offenders on the map, enter your{" "}
@@ -63,7 +63,7 @@ export function ApiKeyConfig() {
         <CardContent className="p-4 space-y-3">
           <h3 className="text-sm font-semibold flex items-center gap-1.5">
             <Key className="h-3.5 w-3.5" /> Crimeometer (National)
-            {cmKeyConfigured && <Badge variant="outline" className="text-[9px] ml-1 text-green-500 border-green-500/30">Active</Badge>}
+            {cmKeyConfigured && <Badge variant="outline" className="text-[10px] ml-1 text-green-500 border-green-500/30">Active</Badge>}
           </h3>
           <p className="text-[10px] text-muted-foreground">
             For nationwide geocoded crime data (fills gaps where city open data isn&apos;t available), enter your{" "}

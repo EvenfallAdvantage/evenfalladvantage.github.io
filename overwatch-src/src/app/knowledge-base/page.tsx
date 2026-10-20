@@ -378,8 +378,8 @@ export default function KnowledgeBasePage() {
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-medium truncate">{d.title}</p>
-                                  {d.required && <Badge className="text-[9px] shrink-0 bg-amber-500/15 text-amber-600 border-0">Required</Badge>}
-                                  {d.file_name && <Badge variant="outline" className="text-[9px] shrink-0">{d.file_name.split(".").pop()?.toUpperCase()}</Badge>}
+                                  {d.required && <Badge className="text-[10px] shrink-0 bg-amber-500/15 text-amber-600 border-0">Required</Badge>}
+                                  {d.file_name && <Badge variant="outline" className="text-[10px] shrink-0">{d.file_name.split(".").pop()?.toUpperCase()}</Badge>}
                                   {d.file_size && <span className="text-[10px] text-muted-foreground shrink-0">{formatSize(d.file_size)}</span>}
                                 </div>
                                 {d.content && !d.file_url && <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{d.content}</p>}
@@ -566,7 +566,7 @@ export default function KnowledgeBasePage() {
                       <div key={u.id} className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-muted/30">
                         <Avatar className="h-7 w-7 shrink-0">
                           <AvatarImage src={u.avatar_url ?? undefined} />
-                          <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
+                          <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
                             {memberInitials(u)}
                           </AvatarFallback>
                         </Avatar>

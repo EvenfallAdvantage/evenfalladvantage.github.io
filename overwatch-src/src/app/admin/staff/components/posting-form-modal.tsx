@@ -36,7 +36,7 @@ export function PostingFormModal({ posting, activeCompanyId, onClose, onSaved }:
       <div className="w-full max-w-lg max-h-[85vh] rounded-2xl border border-border/50 bg-card shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-3 border-b border-border/40 shrink-0">
           <span className="text-sm font-semibold">{posting ? "Edit Posting" : "New Job Posting"}</span>
-          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={onClose}><X className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={onClose}><X className="h-3.5 w-3.5" /></Button>
         </div>
         <div className="flex-1 overflow-auto px-5 py-4 space-y-3">
           <div>

@@ -549,7 +549,7 @@ export function IncidentList({ incidents, members, loading, search, isAdmin, act
                             u.type === "update" ? "text-blue-600" : "";
                           return (
                             <div key={u.id} className={`flex items-start gap-2 text-sm ${tone}`}>
-                              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold mt-0.5 ${isSystem ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
+                              <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold mt-0.5 ${isSystem ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"}`}>
                                 {isSystem
                                   ? "·"
                                   : `${u.users?.first_name?.[0] ?? ""}${u.users?.last_name?.[0] ?? ""}`}

@@ -150,7 +150,7 @@ export default function AcademyPage() {
 
       {/* Course catalog */}
       {showCourses && <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Course Catalog</h2>
+        <h2 className="section-title">Course Catalog</h2>
         <SubTabList hostAction={false}>
           {([
             { id: "courses" as Tab, label: "Courses", icon: BookOpen },

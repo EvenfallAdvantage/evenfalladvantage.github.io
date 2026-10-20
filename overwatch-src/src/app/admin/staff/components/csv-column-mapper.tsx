@@ -31,7 +31,7 @@ export function CSVColumnMapper({ csvHeaders, csvPreviewRows, onConfirm, onCance
         <p className="text-sm font-semibold flex items-center gap-1.5">
           <Table2 className="h-4 w-4" /> Map CSV Columns
         </p>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onCancel}>
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onCancel}>
           <X className="h-3.5 w-3.5" />
         </Button>
       </div>

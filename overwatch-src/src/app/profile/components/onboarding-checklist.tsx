@@ -71,8 +71,8 @@ export function OnboardingChecklist({ mp, onMpChange, activeCompanyId, onboardin
                 <p className={`text-sm ${p.completed ? "line-through text-muted-foreground" : "font-medium"}`}>{task.title}</p>
                 {task.description && <p className="text-[10px] text-muted-foreground">{task.description}</p>}
               </div>
-              {task.is_required && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Required</Badge>}
-              <Badge variant="outline" className="text-[9px] capitalize">{task.category}</Badge>
+              {task.is_required && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Required</Badge>}
+              <Badge variant="outline" className="text-[10px] capitalize">{task.category}</Badge>
             </div>
           );
         })}

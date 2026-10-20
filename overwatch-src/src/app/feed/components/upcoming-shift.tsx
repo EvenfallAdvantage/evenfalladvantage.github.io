@@ -40,7 +40,7 @@ export function UpcomingShift({ activeCompanyId }: UpcomingShiftProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold">Upcoming Shift</h3>
-              <Badge className="text-[9px] bg-blue-500/15 text-blue-400 border-0">{
+              <Badge className="text-[10px] bg-blue-500/15 text-blue-400 border-0">{
                 (() => {
                   const ms = parseUTC(nextShift.start_time).getTime() - now;
                   const hrs = Math.floor(ms / 3600000);
@@ -60,7 +60,7 @@ export function UpcomingShift({ activeCompanyId }: UpcomingShiftProps) {
               </p>
             )}
             {nextShift.role && (
-              <Badge variant="outline" className="text-[9px] mt-1">{nextShift.role}</Badge>
+              <Badge variant="outline" className="text-[10px] mt-1">{nextShift.role}</Badge>
             )}
           </div>
         </div>

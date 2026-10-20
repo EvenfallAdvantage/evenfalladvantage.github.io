@@ -130,7 +130,7 @@ export function StaffProgressTab({ activeCompanyId, modules }: StaffProgressTabP
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-medium truncate">{name || s.users?.email}</p>
-                        <Badge className="text-[9px] bg-muted">{s.role}</Badge>
+                        <Badge className="text-[10px] bg-muted">{s.role}</Badge>
                       </div>
                       {requiredModules.length > 0 && (
                         <div className="flex items-center gap-2 mt-1">
@@ -165,8 +165,8 @@ export function StaffProgressTab({ activeCompanyId, modules }: StaffProgressTabP
                 <div key={q.id} className="flex items-center justify-between p-2 rounded-lg border border-border/30">
                   <p className="text-xs font-medium">{q.title}</p>
                   <div className="flex items-center gap-2">
-                    <Badge className="text-[9px] bg-muted">{q.question_count ?? 0} Q&apos;s</Badge>
-                    <Badge className="text-[9px] bg-primary/10 text-primary">Pass: {q.passing_score}%</Badge>
+                    <Badge className="text-[10px] bg-muted">{q.question_count ?? 0} Q&apos;s</Badge>
+                    <Badge className="text-[10px] bg-primary/10 text-primary">Pass: {q.passing_score}%</Badge>
                   </div>
                 </div>
               ))}

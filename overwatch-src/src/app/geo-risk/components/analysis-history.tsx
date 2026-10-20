@@ -26,7 +26,7 @@ export function AnalysisHistory({ history, onSelect }: Props) {
               <div className="flex items-center gap-2">
                 <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-sm">{h.city}, {h.state}</span>
-                <Badge className={`text-[9px] ${hc.bg} ${hc.text}`}>{h.overallRating}</Badge>
+                <Badge className={`text-[10px] ${hc.bg} ${hc.text}`}>{h.overallRating}</Badge>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold">{h.riskScore}</span>

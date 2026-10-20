@@ -175,7 +175,7 @@ export default function DirectoryPage() {
                      <span className="text-xs text-muted-foreground">Certifications</span>
                      <div className="flex flex-wrap gap-1 mt-0.5">
                        {sel.certifications.map((c) => (
-                         <Badge key={c.id} variant="secondary" className="text-[9px]">
+                         <Badge key={c.id} variant="secondary" className="text-[10px]">
                            {c.cert_type}
                            {c.expiry_date && <span className="ml-1 opacity-70">expires {new Date(c.expiry_date).toLocaleDateString()}</span>}
                            {c.state_issued && <span className="ml-1 opacity-70">({c.state_issued})</span>}
@@ -189,7 +189,7 @@ export default function DirectoryPage() {
                      <span className="text-xs text-muted-foreground">Dietary Restrictions</span>
                      <div className="flex flex-wrap gap-1 mt-0.5">
                        {selected.dietary_restrictions.map((d) => (
-                         <Badge key={d} variant="outline" className="text-[9px]">{d}</Badge>
+                         <Badge key={d} variant="outline" className="text-[10px]">{d}</Badge>
                        ))}
                      </div>
                    </div>

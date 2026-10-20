@@ -187,8 +187,8 @@ export function MemberProfileModal({ profile, onClose, myRole, currentUserId, on
             {viewProfile.users?.phone && !editing && <p className="text-[11px] text-muted-foreground">{viewProfile.users.phone}</p>}
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <Badge variant="outline" className="text-[9px] capitalize">{viewProfile.role}</Badge>
-            <Badge variant={viewProfile.status === "active" ? "default" : "outline"} className="text-[9px] capitalize">{viewProfile.status}</Badge>
+            <Badge variant="outline" className="text-[10px] capitalize">{viewProfile.role}</Badge>
+            <Badge variant={viewProfile.status === "active" ? "default" : "outline"} className="text-[10px] capitalize">{viewProfile.status}</Badge>
           </div>
         </div>
 
@@ -276,7 +276,7 @@ export function MemberProfileModal({ profile, onClose, myRole, currentUserId, on
             ) : (
               <div className="flex flex-wrap gap-1 mt-1">
                 {(viewProfile.work_preferences?.length ?? 0) > 0 ? viewProfile.work_preferences?.map((w: string) => (
-                  <Badge key={w} variant="outline" className="text-[9px]">{w}</Badge>
+                  <Badge key={w} variant="outline" className="text-[10px]">{w}</Badge>
                 )) : (
                   <p className="font-medium text-sm">—</p>
                 )}

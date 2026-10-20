@@ -343,10 +343,10 @@ export default function QuestionBankPage() {
                         </select>
                       </div>
                       <div className="flex gap-1.5">
-                        <Button size="sm" className="h-6 text-xs" onClick={handleUpdate} disabled={editSaving}>
+                        <Button size="sm" className="h-7 text-xs" onClick={handleUpdate} disabled={editSaving}>
                           {editSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setEditingId(null)}>Cancel</Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingId(null)}>Cancel</Button>
                       </div>
                     </div>
                   ) : (
@@ -364,8 +364,8 @@ export default function QuestionBankPage() {
                           </div>
                         )}
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                          <Badge className={`text-[9px] ${DIFF_COLORS[q.difficulty] ?? ""}`}>{q.difficulty}</Badge>
-                          <Badge variant="secondary" className="text-[9px]">{q.question_type.replace("_", " ")}</Badge>
+                          <Badge className={`text-[10px] ${DIFF_COLORS[q.difficulty] ?? ""}`}>{q.difficulty}</Badge>
+                          <Badge variant="secondary" className="text-[10px]">{q.question_type.replace("_", " ")}</Badge>
                           {q.category && (
                             <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                               <Tag className="h-2.5 w-2.5" /> {q.category}

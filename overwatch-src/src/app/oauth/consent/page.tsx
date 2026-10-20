@@ -173,7 +173,7 @@ function ConsentContent() {
           </button>
         </div>
 
-        <p className="text-[9px] text-white/20 text-center mt-4">
+        <p className="text-[10px] text-white/20 text-center mt-4">
           You can revoke access at any time from your profile settings.
         </p>
       </div>

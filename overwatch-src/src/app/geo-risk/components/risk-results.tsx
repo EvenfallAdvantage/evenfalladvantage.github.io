@@ -79,7 +79,7 @@ export function RiskResults({
             <span className="text-sm font-semibold">
               {result.address ? `${result.address}, ` : ""}{result.city}, {result.state}
             </span>
-            <Badge className={`text-[9px] ${GRANULARITY_COLORS[result.granularity].bg} ${GRANULARITY_COLORS[result.granularity].text} ml-auto`}>{GRANULARITY_COLORS[result.granularity].label}</Badge>
+            <Badge className={`text-[10px] ${GRANULARITY_COLORS[result.granularity].bg} ${GRANULARITY_COLORS[result.granularity].text} ml-auto`}>{GRANULARITY_COLORS[result.granularity].label}</Badge>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Building2 className="h-3 w-3" /> {result.facilityType}
@@ -174,13 +174,13 @@ export function RiskResults({
           <p className="text-[10px] text-muted-foreground mb-1 flex items-center gap-1">
             <TrendingUp className="h-3 w-3 text-red-500" /> Violent Crime
           </p>
-          <p className="text-sm font-bold">{result.violentRate} <span className="text-[9px] text-muted-foreground font-normal">per 100k</span></p>
+          <p className="text-sm font-bold">{result.violentRate} <span className="text-[10px] text-muted-foreground font-normal">per 100k</span></p>
         </CardContent></Card>
         <Card className="border-border/40"><CardContent className="p-3">
           <p className="text-[10px] text-muted-foreground mb-1 flex items-center gap-1">
             <TrendingDown className="h-3 w-3 text-amber-500" /> Property Crime
           </p>
-          <p className="text-sm font-bold">{result.propertyRate} <span className="text-[9px] text-muted-foreground font-normal">per 100k</span></p>
+          <p className="text-sm font-bold">{result.propertyRate} <span className="text-[10px] text-muted-foreground font-normal">per 100k</span></p>
         </CardContent></Card>
       </div>
 

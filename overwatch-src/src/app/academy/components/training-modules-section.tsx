@@ -41,7 +41,7 @@ export default function TrainingModulesSection({ modules }: TrainingModulesSecti
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Training Modules</h2>
+          <h2 className="section-title">Training Modules</h2>
           <p className="text-xs text-muted-foreground">
             {completedOw.length}/{modules.length} completed
             {inProgressOw.length > 0 && ` · ${inProgressOw.length} in progress`}
@@ -67,10 +67,10 @@ export default function TrainingModulesSection({ modules }: TrainingModulesSecti
                       <h3 className="text-sm font-semibold leading-tight truncate">{mod.module_name}</h3>
                       {mod.description && <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{mod.description}</p>}
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                        <Badge className={`text-[9px] ${DIFFICULTY_COLORS[mod.difficulty_level] ?? "bg-muted text-muted-foreground"}`}>{mod.difficulty_level}</Badge>
+                        <Badge className={`text-[10px] ${DIFFICULTY_COLORS[mod.difficulty_level] ?? "bg-muted text-muted-foreground"}`}>{mod.difficulty_level}</Badge>
                         <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><Clock className="h-3 w-3" /> {mod.duration_minutes}m</span>
                         {(mod.slide_count ?? 0) > 0 && <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground"><FileText className="h-3 w-3" /> {mod.slide_count} slides</span>}
-                        {mod.is_required && <Badge className="text-[9px] bg-red-500/10 text-red-500">Required</Badge>}
+                        {mod.is_required && <Badge className="text-[10px] bg-red-500/10 text-red-500">Required</Badge>}
                         {mod.linkedQuiz && <span className="flex items-center gap-0.5 text-[10px] text-amber-600"><Target className="h-3 w-3" /> Quiz</span>}
                       </div>
                     </div>

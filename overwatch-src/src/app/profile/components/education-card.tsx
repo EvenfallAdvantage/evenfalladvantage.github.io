@@ -92,13 +92,13 @@ export function EducationCard({ mp, onMpChange }: Props) {
           <CardTitle className="text-sm font-medium flex items-center gap-1.5">
             <GraduationCap className="h-3.5 w-3.5" /> Education
             {(mp.education ?? []).length > 0 && (
-              <Badge variant="secondary" className="text-[9px] ml-1">{(mp.education ?? []).length}</Badge>
+              <Badge variant="secondary" className="text-[10px] ml-1">{(mp.education ?? []).length}</Badge>
             )}
           </CardTitle>
           <div className="flex items-center gap-1">
             {editing === null && (
               <Button
-                variant="ghost" size="sm" className="h-6 px-2 text-[10px] gap-1"
+                variant="ghost" size="sm" className="h-7 px-2 text-[10px] gap-1"
                 onClick={(e) => { e.stopPropagation(); setExpanded(true); setEditing("new"); setForm(EMPTY_EDU); }}
               >
                 <Plus className="h-3 w-3" /> Add
@@ -121,10 +121,10 @@ export function EducationCard({ mp, onMpChange }: Props) {
                     {entry.startYear}{entry.endYear ? ` - ${entry.endYear}` : ""}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setEditing(idx); setForm(entry); }}>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(idx); setForm(entry); }}>
                   <Pencil className="h-3 w-3" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-destructive" onClick={() => deleteEntry(idx)}>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteEntry(idx)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>

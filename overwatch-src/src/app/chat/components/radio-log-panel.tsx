@@ -105,7 +105,7 @@ export function RadioLogPanel() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${entry.direction === "tx" ? "text-emerald-600 border-emerald-500/30" : "text-blue-600 border-blue-500/30"}`}>
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${entry.direction === "tx" ? "text-emerald-600 border-emerald-500/30" : "text-blue-600 border-blue-500/30"}`}>
                       {entry.direction === "tx" ? "TX" : "RX"}
                     </Badge>
                     {entry.mode && (

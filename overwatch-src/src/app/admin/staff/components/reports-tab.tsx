@@ -125,7 +125,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Incident Reports ({incidents.length})
                 </p>
-                <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-6 px-2" onClick={() => exportCSV(incidents, INCIDENT_COLUMNS, `incidents-${new Date().toISOString().slice(0,10)}`)}>
+                <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2" onClick={() => exportCSV(incidents, INCIDENT_COLUMNS, `incidents-${new Date().toISOString().slice(0,10)}`)}>
                   <Download className="h-3 w-3" /> CSV
                 </Button>
               </div>
@@ -149,8 +149,8 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-medium text-sm truncate">{inc.title}</p>
-                            <Badge className={`text-[9px] capitalize ${statusColor}`}>{inc.status}</Badge>
-                            <Badge variant="outline" className={`text-[9px] capitalize ${sevColor}`}>{inc.severity}</Badge>
+                            <Badge className={`text-[10px] capitalize ${statusColor}`}>{inc.status}</Badge>
+                            <Badge variant="outline" className={`text-[10px] capitalize ${sevColor}`}>{inc.severity}</Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {inc.type} · {reporter ? formatMemberName(reporter) : "Unknown"} · {new Date(inc.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
@@ -277,7 +277,7 @@ export function ReportsTab({ activeCompanyId, canManage }: ReportsTabProps) {
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <ClipboardList className="h-3.5 w-3.5 text-primary" /> Field Reports ({formSubmissions.length})
                 </p>
-                <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-6 px-2" onClick={() => {
+                <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2" onClick={() => {
                   const rows = formSubmissions.map((f: FormSub) => {
                     const d = f.data as Record<string, unknown> ?? {};
                     return { submitter: `${f.users?.first_name ?? ""} ${f.users?.last_name ?? ""}`, form: f.forms?.name ?? "", status: f.status, date: new Date(f.created_at).toLocaleString(), ...Object.fromEntries(Object.entries(d).map(([k, v]) => [k, String(v ?? "")])) };

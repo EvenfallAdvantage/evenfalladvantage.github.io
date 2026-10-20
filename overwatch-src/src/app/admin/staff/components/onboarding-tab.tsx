@@ -142,8 +142,8 @@ export function OnboardingTab({ activeCompanyId, canManage }: OnboardingTabProps
               </div>
               {/* Row 2: Badges + Actions */}
               <div className="flex items-center gap-1.5 ml-[34px]">
-                <Badge variant="outline" className="text-[9px] capitalize">{t.category}</Badge>
-                {t.is_required && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Required</Badge>}
+                <Badge variant="outline" className="text-[10px] capitalize">{t.category}</Badge>
+                {t.is_required && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Required</Badge>}
                 {canManage && (
                   <div className="flex items-center gap-0.5 ml-auto">
                     <button onClick={() => handleMoveTask(i, "up")} disabled={i === 0}

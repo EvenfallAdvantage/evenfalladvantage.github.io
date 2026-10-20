@@ -166,7 +166,7 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
                       <Mail className="h-2.5 w-2.5" /> {c.email}
                     </p>
                   </div>
-                  <Badge variant="outline" className="text-[9px]">{c.status}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{c.status}</Badge>
                   <button
                     onClick={() => handleRemove(c)}
                     disabled={removing === c.id}

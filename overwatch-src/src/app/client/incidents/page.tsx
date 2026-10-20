@@ -50,8 +50,8 @@ export default function ClientIncidentsPage() {
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-sm">{inc.title}</h3>
-                    <Badge className={`text-[9px] ${severityColors[inc.severity] ?? ""}`}>{inc.severity}</Badge>
-                    <Badge className={`text-[9px] ${statusColors[inc.status] ?? ""}`}>{inc.status}</Badge>
+                    <Badge className={`text-[10px] ${severityColors[inc.severity] ?? ""}`}>{inc.severity}</Badge>
+                    <Badge className={`text-[10px] ${statusColors[inc.status] ?? ""}`}>{inc.status}</Badge>
                     <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">
                       {inc.type.replace(/_/g, " ")}
                     </span>

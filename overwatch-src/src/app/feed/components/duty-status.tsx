@@ -288,7 +288,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
                                 </p>
                               )}
                             </div>
-                            {sh.role && <Badge variant="outline" className="text-[9px] shrink-0">{sh.role}</Badge>}
+                            {sh.role && <Badge variant="outline" className="text-[10px] shrink-0">{sh.role}</Badge>}
                           </div>
                         </button>
                       ))}

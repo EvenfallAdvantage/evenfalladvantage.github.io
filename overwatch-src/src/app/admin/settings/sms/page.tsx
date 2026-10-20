@@ -270,7 +270,7 @@ export default function SmsConfigPage() {
         {/* Credentials form */}
         <Card>
           <CardContent className="pt-6 space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="section-title">
               Twilio Credentials
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -340,7 +340,7 @@ export default function SmsConfigPage() {
         {/* Test send */}
         <Card>
           <CardContent className="pt-6 space-y-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="section-title">
               Test Send
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -371,7 +371,7 @@ export default function SmsConfigPage() {
         {/* Recent sends */}
         <Card>
           <CardContent className="pt-6 space-y-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <h2 className="section-title">
               Recent Sends
             </h2>
             {recentSends.length === 0 ? (

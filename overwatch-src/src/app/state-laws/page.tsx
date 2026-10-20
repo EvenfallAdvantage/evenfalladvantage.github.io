@@ -109,11 +109,11 @@ export default function StateLawsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={`text-[9px] ${licensed ? "bg-blue-500/15 text-blue-600" : "bg-muted text-muted-foreground"}`}>
+                    <Badge className={`text-[10px] ${licensed ? "bg-blue-500/15 text-blue-600" : "bg-muted text-muted-foreground"}`}>
                       {licensed ? "Licensed" : "No License"}
                     </Badge>
                     {state.useOfForce.includes("Stand your ground") && (
-                      <Badge className="text-[9px] bg-amber-500/15 text-amber-600">SYG</Badge>
+                      <Badge className="text-[10px] bg-amber-500/15 text-amber-600">SYG</Badge>
                     )}
                     {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                   </div>
@@ -162,7 +162,7 @@ export default function StateLawsPage() {
                     </div>
 
                     {/* Disclaimer */}
-                    <p className="text-[9px] text-muted-foreground/60 mt-4 border-t border-border/20 pt-2">
+                    <p className="text-[10px] text-muted-foreground/60 mt-4 border-t border-border/20 pt-2">
                       This information is for educational purposes only. Always verify requirements with your state&apos;s regulatory agency.
                     </p>
                   </CardContent>

@@ -85,7 +85,7 @@ export function CoursesTab({ courses, enrolledCourseIds, courseModules, complete
                         <h4 className="font-semibold text-sm truncate">{course.course_name}</h4>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
                           {course.duration_hours && <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> {course.duration_hours}h</span>}
-                          {course.difficulty_level && <Badge className={`text-[9px] px-1 py-0 ${DIFFICULTY_COLORS[course.difficulty_level] || ""}`}>{course.difficulty_level}</Badge>}
+                          {course.difficulty_level && <Badge className={`text-[10px] px-1 py-0 ${DIFFICULTY_COLORS[course.difficulty_level] || ""}`}>{course.difficulty_level}</Badge>}
                         </div>
                       </div>
                       <div className="text-right shrink-0">{isFree ? <Badge className="bg-green-500/15 text-green-600 text-[10px]">FREE</Badge> : <span className="text-sm font-bold font-mono">${course.price}</span>}</div>

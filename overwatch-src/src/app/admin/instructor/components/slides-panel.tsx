@@ -94,7 +94,7 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
     <div className="border-t border-border/20 px-3 py-2.5 ml-5 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-semibold text-muted-foreground uppercase">Slides</span>
-        <Button size="sm" variant="outline" className="gap-1 text-[10px] h-6 px-2" onClick={() => { setShowNewSlide(true); setEditSlide(null); setPreviewSlide(null); }}><Plus className="h-2.5 w-2.5" /> Add Slide</Button>
+        <Button size="sm" variant="outline" className="gap-1 text-[10px] h-7 px-2" onClick={() => { setShowNewSlide(true); setEditSlide(null); setPreviewSlide(null); }}><Plus className="h-2.5 w-2.5" /> Add Slide</Button>
       </div>
       {slidesLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto" /> : (
         <div className="space-y-1">
@@ -103,7 +103,7 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
               <span className="font-mono text-muted-foreground w-5">{s.slide_number}.</span>
               <span className="flex-1 truncate" onClick={() => { setPreviewSlide(previewSlide?.id === s.id ? null : s); setEditSlide(null); }}>{s.title}</span>
               <div className="flex items-center gap-0.5">
-                {s.slide_type && s.slide_type !== "text" && <Badge className="text-[8px] h-4 px-1">{s.slide_type}</Badge>}
+                {s.slide_type && s.slide_type !== "text" && <Badge className="text-[10px] h-4 px-1">{s.slide_type}</Badge>}
                 <button onClick={() => startEditSlide(s)} className="p-0.5 text-muted-foreground/50 hover:text-[#dd8c33]"><Pencil className="h-3 w-3" /></button>
                 <button onClick={() => handleDeleteSlide(s.id)} className="p-0.5 text-muted-foreground/50 hover:text-red-500"><Trash2 className="h-3 w-3" /></button>
               </div>
@@ -117,8 +117,8 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
           <div className="flex items-center justify-between">
             <h6 className="text-xs font-semibold">{previewSlide.title}</h6>
             <div className="flex gap-1">
-              <Button size="sm" variant="ghost" className="h-6 text-[10px] gap-1" onClick={() => startEditSlide(previewSlide)}><Pencil className="h-2.5 w-2.5" /> Edit</Button>
-              <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => setPreviewSlide(null)}><X className="h-2.5 w-2.5" /></Button>
+              <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1" onClick={() => startEditSlide(previewSlide)}><Pencil className="h-2.5 w-2.5" /> Edit</Button>
+              <Button size="sm" variant="ghost" className="h-7 text-[10px]" onClick={() => setPreviewSlide(null)}><X className="h-2.5 w-2.5" /></Button>
             </div>
           </div>
           {previewSlide.image_url && <NextImage src={previewSlide.image_url} alt="Slide preview" className="rounded max-h-40 object-contain" width={400} height={160} unoptimized />}

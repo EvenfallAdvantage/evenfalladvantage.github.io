@@ -110,7 +110,7 @@ export function CorrectionsTab({ activeCompanyId, canManage }: CorrectionsTabPro
                 )}
               </div>
               {r.reason && <p className="text-[10px] text-muted-foreground/70 italic line-clamp-2">&ldquo;{r.reason}&rdquo;</p>}
-              <p className="text-[9px] text-muted-foreground/50">Submitted {new Date(r.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+              <p className="text-[10px] text-muted-foreground/50">Submitted {new Date(r.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
             </div>
             {/* Row 3: Action buttons */}
             {r.status === "pending" && canManage && (

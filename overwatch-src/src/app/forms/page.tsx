@@ -237,7 +237,7 @@ export default function FormsPage() {
                   <p className="text-sm font-semibold">Form Fields</p>
                   <div className="flex gap-1 flex-wrap justify-end">
                     {FIELD_TYPES.map((ft) => (
-                      <Button key={ft.type} size="sm" variant="outline" className="h-6 text-[10px] px-2 gap-1" onClick={() => addField(ft.type)}>
+                      <Button key={ft.type} size="sm" variant="outline" className="h-7 text-[10px] px-2 gap-1" onClick={() => addField(ft.type)}>
                         <span className="opacity-60">{ft.icon}</span> {ft.label}
                       </Button>
                     ))}
@@ -249,7 +249,7 @@ export default function FormsPage() {
                     <div className="flex-1 space-y-1">
                       <div className="flex gap-2">
                         <Input value={f.label} onChange={(e) => setFields((prev) => prev.map((x) => x.id === f.id ? { ...x, label: e.target.value } : x))} placeholder="Field label" className="h-7 text-xs flex-1" />
-                        <Badge variant="secondary" className="text-[9px] shrink-0">{f.type}</Badge>
+                        <Badge variant="secondary" className="text-[10px] shrink-0">{f.type}</Badge>
                       </div>
                       <div className="flex items-center gap-2">
                         <label className="flex items-center gap-1 text-[10px] text-muted-foreground">

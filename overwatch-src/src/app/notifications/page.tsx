@@ -132,7 +132,7 @@ export default function NotificationsPage() {
                     <p className="mt-1 text-[10px] text-muted-foreground">{timeAgo(n.created_at)}</p>
                   </div>
                   {!n.read && (
-                    <Badge variant="secondary" className="text-[9px] shrink-0">New</Badge>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">New</Badge>
                   )}
                 </div>
               );

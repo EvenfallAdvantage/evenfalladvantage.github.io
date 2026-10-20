@@ -99,7 +99,7 @@ export function DonutChart({ segments }: { segments: { value: number; color: str
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <p className="text-lg font-bold font-mono">{total}</p>
-        <p className="text-[8px] text-muted-foreground">TOTAL</p>
+        <p className="text-[10px] text-muted-foreground">TOTAL</p>
       </div>
     </div>
   );

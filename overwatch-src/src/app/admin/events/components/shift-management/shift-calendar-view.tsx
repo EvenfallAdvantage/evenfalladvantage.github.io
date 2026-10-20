@@ -72,7 +72,7 @@ export function ShiftCalendarView({
     <div>
       <div className="grid grid-cols-7 gap-px mb-1">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => (
-          <div key={d} className="text-center text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/40 py-1">{d}</div>
+          <div key={d} className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40 py-1">{d}</div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-1">
@@ -107,17 +107,17 @@ export function ShiftCalendarView({
               }`}>
               <div className="flex items-center justify-between">
                 <span className={`text-[11px] font-mono font-semibold ${isToday ? "text-primary" : isOpDay ? "" : "text-muted-foreground/30"}`}>{dayNum}</span>
-                {dayShifts.length > 0 && <span className="text-[8px] font-mono text-muted-foreground/60">{totalHrs.toFixed(0)}h</span>}
+                {dayShifts.length > 0 && <span className="text-[10px] font-mono text-muted-foreground/60">{totalHrs.toFixed(0)}h</span>}
               </div>
               {dayShifts.length > 0 && (
                 <div className="mt-0.5 flex flex-wrap gap-0.5">
                   {filled > 0 && (
-                    <span className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[8px] font-bold bg-green-500/15 text-green-600">
+                    <span className="inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-bold bg-green-500/15 text-green-600">
                       <Check className="h-2 w-2" />{filled}
                     </span>
                   )}
                   {open > 0 && (
-                    <span className="inline-flex items-center rounded px-1 py-0.5 text-[8px] font-bold bg-amber-500/15 text-amber-600">
+                    <span className="inline-flex items-center rounded px-1 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-600">
                       {open}
                     </span>
                   )}
@@ -135,7 +135,7 @@ export function ShiftCalendarView({
                         <div className="flex items-center gap-2 px-3 py-2">
                           <Avatar className="h-7 w-7">
                             {s.avatar && <AvatarImage src={s.avatar} />}
-                            <AvatarFallback className="text-[9px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
+                            <AvatarFallback className="text-[10px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="text-xs font-semibold leading-tight">{formatMemberName({ first_name: s.fn, last_name: s.ln, callsign: s.cs })}</p>
@@ -161,11 +161,11 @@ export function ShiftCalendarView({
                               <div key={s.uid} className="flex items-center gap-2 px-3 py-1.5">
                                 <Avatar className="h-6 w-6">
                                   {s.avatar && <AvatarImage src={s.avatar} />}
-                                  <AvatarFallback className="text-[8px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
+                                  <AvatarFallback className="text-[10px] font-bold bg-primary/20 text-primary">{s.ini}</AvatarFallback>
                                 </Avatar>
                                 <div>
                                   <p className="text-[11px] font-semibold leading-tight">{formatMemberName({ first_name: s.fn, last_name: s.ln, callsign: s.cs })}</p>
-                                  <p className="text-[9px] capitalize opacity-70">{s.role}</p>
+                                  <p className="text-[10px] capitalize opacity-70">{s.role}</p>
                                 </div>
                               </div>
                             ))}
@@ -187,9 +187,9 @@ export function ShiftCalendarView({
 
       {/* Legend */}
       <div className="flex items-center gap-4 mt-3 pt-2 border-t border-border/10">
-        <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-green-500/30" /> Fully Staffed</span>
-        <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-amber-500/30" /> Open Slots</span>
-        <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><AlertTriangle className="h-2 w-2 text-red-500" /> Conflict</span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-green-500/30" /> Fully Staffed</span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-sm bg-amber-500/30" /> Open Slots</span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><AlertTriangle className="h-2 w-2 text-red-500" /> Conflict</span>
       </div>
 
       {/* Expanded Day Detail */}

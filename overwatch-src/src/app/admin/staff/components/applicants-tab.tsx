@@ -283,7 +283,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
             <Button
               size="sm"
               variant="destructive"
-              className="h-6 text-[10px] px-2 gap-1"
+              className="h-7 text-[10px] px-2 gap-1"
               onClick={handleBulkDelete}
               disabled={bulkDeleting}
             >
@@ -474,7 +474,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
                     {a.experience && <span className="text-[10px] text-muted-foreground/70"><span className="font-medium">Experience:</span> {a.experience.slice(0, 60)}</span>}
                     {a.source && a.source !== "overwatch" && <span className="text-[10px] text-muted-foreground/70"><span className="font-medium">Source:</span> {a.source}</span>}
                   </div>
-                  <p className="text-[9px] text-muted-foreground/50 mt-0.5">Applied {new Date(a.created_at).toLocaleDateString()}</p>
+                  <p className="text-[10px] text-muted-foreground/50 mt-0.5">Applied {new Date(a.created_at).toLocaleDateString()}</p>
                 </div>
                 <Badge className={`text-[10px] capitalize ${STATUS_COLORS[a.status] ?? "bg-muted text-muted-foreground"}`}>{a.status}</Badge>
                 {canManage && a.status !== "hired" && a.status !== "rejected" && a.status !== "withdrawn" && (
@@ -556,7 +556,7 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
             <div key={int.name} className="rounded-lg border border-border/40 p-3">
               <p className="text-xs font-medium">{int.name}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{int.desc}</p>
-              <Badge variant="outline" className="text-[9px] mt-1.5">{int.status}</Badge>
+              <Badge variant="outline" className="text-[10px] mt-1.5">{int.status}</Badge>
             </div>
           ))}
         </div>

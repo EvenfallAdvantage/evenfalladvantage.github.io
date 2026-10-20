@@ -78,7 +78,7 @@ export function PinnedBriefing({ activeCompanyId, userId }: PinnedBriefingProps)
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+        <h2 className="section-title">
           Pinned Briefing
         </h2>
         <Link href="/updates" className="flex items-center gap-1 text-xs text-primary hover:underline">
@@ -104,7 +104,7 @@ export function PinnedBriefing({ activeCompanyId, userId }: PinnedBriefingProps)
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{formatMemberName(author ?? {})}</span>
                     <span className="text-[10px] text-muted-foreground">{timeAgo(post.created_at)}</span>
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600">PINNED</span>
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600">PINNED</span>
                   </div>
                   {post.title && <p className="mt-0.5 text-sm font-semibold">{post.title}</p>}
                   <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">{post.content}</p>
@@ -128,7 +128,7 @@ export function PinnedBriefing({ activeCompanyId, userId }: PinnedBriefingProps)
                     <div key={cm.id} className="flex items-start gap-2 text-xs">
                       <Avatar className="h-5 w-5 shrink-0">
                         <AvatarImage src={cm.users?.avatar_url ?? undefined} />
-                        <AvatarFallback className="bg-primary/10 text-[8px] font-bold text-primary">
+                        <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
                           {memberInitials(cm.users ?? {})}
                         </AvatarFallback>
                       </Avatar>

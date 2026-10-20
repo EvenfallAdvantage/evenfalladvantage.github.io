@@ -169,7 +169,7 @@ export function ChannelsTab({
                       <Hash className="h-3.5 w-3.5 text-primary" />
                     )}
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground">
+                      <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}
@@ -261,7 +261,7 @@ export function ChannelsTab({
                       <button onClick={() => setEditAvatarFile(null)} className="text-muted-foreground hover:text-red-500"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   )}
-                  <Button size="sm" className="h-6 text-[10px] px-2" onClick={() => handleSaveAvatar(selected.id)} disabled={savingAvatar || (!editAvatarUrl.trim() && !editAvatarFile)}>
+                  <Button size="sm" className="h-7 text-[10px] px-2" onClick={() => handleSaveAvatar(selected.id)} disabled={savingAvatar || (!editAvatarUrl.trim() && !editAvatarFile)}>
                     {savingAvatar ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
                   </Button>
                   <button onClick={() => { setEditingAvatar(null); setEditAvatarUrl(""); setEditAvatarFile(null); }} className="text-muted-foreground hover:text-foreground" aria-label="Close"><X className="h-3.5 w-3.5" /></button>
@@ -288,7 +288,7 @@ export function ChannelsTab({
                       </div>
                     </div>
                   ))}
-                  <Button size="sm" className="h-6 text-[10px] px-3 gap-1" onClick={handleSavePerms} disabled={savingPerms}>
+                  <Button size="sm" className="h-7 text-[10px] px-3 gap-1" onClick={handleSavePerms} disabled={savingPerms}>
                     {savingPerms ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save Permissions"}
                   </Button>
                 </div>
@@ -314,14 +314,14 @@ export function ChannelsTab({
                     <div key={msg.id} className={`group flex gap-2 ${isMe ? "flex-row-reverse" : ""}`}>
                       <Avatar className="h-7 w-7 shrink-0 mt-1">
                         <AvatarImage src={author?.avatar_url ?? undefined} />
-                        <AvatarFallback className="bg-primary/10 text-[9px] font-bold text-primary">
+                        <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
                           {memberInitials(author ?? {})}
                         </AvatarFallback>
                       </Avatar>
                       <div className={`max-w-[70%] flex flex-col ${isMe ? "items-end" : "items-start"}`}>
                         <div className={`flex items-center gap-2 mb-0.5 ${isMe ? "flex-row-reverse" : ""}`}>
                           {!isMe && <span className="text-[10px] font-semibold text-muted-foreground">{formatMemberName(author ?? {})}</span>}
-                          <span className="text-[9px] text-muted-foreground/50">{timeAgo(msg.created_at)}</span>
+                          <span className="text-[10px] text-muted-foreground/50">{timeAgo(msg.created_at)}</span>
                         </div>
                         {replyData && (
                           <div className={`rounded-lg px-2.5 py-1 mb-1 text-[10px] border-l-2 border-primary/40 max-w-full ${isMe ? "bg-primary/20" : "bg-muted/70"}`}>
@@ -362,12 +362,12 @@ export function ChannelsTab({
                         {/* Action bar */}
                         <div className="flex items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => setReplyTo(msg)}
-                            className="flex items-center gap-1 text-[9px] text-muted-foreground/40 hover:text-muted-foreground rounded px-1 py-0.5 hover:bg-accent">
+                            className="flex items-center gap-1 text-[10px] text-muted-foreground/40 hover:text-muted-foreground rounded px-1 py-0.5 hover:bg-accent">
                             <Reply className="h-3 w-3" /> Reply
                           </button>
                           <div className="relative">
                             <button onClick={() => setEmojiPicker(emojiPicker === msg.id ? null : msg.id)}
-                              className="flex items-center gap-1 text-[9px] text-muted-foreground/40 hover:text-muted-foreground rounded px-1 py-0.5 hover:bg-accent">
+                              className="flex items-center gap-1 text-[10px] text-muted-foreground/40 hover:text-muted-foreground rounded px-1 py-0.5 hover:bg-accent">
                               <Smile className="h-3 w-3" /> React
                             </button>
                             {emojiPicker === msg.id && (

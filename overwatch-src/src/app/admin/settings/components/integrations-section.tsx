@@ -209,8 +209,8 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">{group.label}</span>
-                    {activeCount > 0 && <Badge className="text-[9px] bg-green-500/15 text-green-500">{activeCount} active</Badge>}
-                    {configuredCount > 0 && activeCount === 0 && <Badge variant="outline" className="text-[9px]">{configuredCount} configured</Badge>}
+                    {activeCount > 0 && <Badge className="text-[10px] bg-green-500/15 text-green-500">{activeCount} active</Badge>}
+                    {configuredCount > 0 && activeCount === 0 && <Badge variant="outline" className="text-[10px]">{configuredCount} configured</Badge>}
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{group.desc}</p>
                 </div>
@@ -233,7 +233,7 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                               <img src={def.logo} alt="" className="h-5 w-5 object-contain grayscale" />
                             )}
                             <span className="text-sm font-semibold">{def.label}</span>
-                            <Badge variant="outline" className="text-[9px]">Not available yet</Badge>
+                            <Badge variant="outline" className="text-[10px]">Not available yet</Badge>
                           </div>
                           <p className="mt-1 text-[10px] text-muted-foreground">{def.desc}</p>
                           <p className="mt-1 text-[10px] text-muted-foreground">This connection isn&apos;t supported yet. Contact support if you need it.</p>
@@ -254,8 +254,8 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                               <Mail className="h-4 w-4 text-primary" />
                             )}
                             <span className="text-sm font-semibold">{def.label}</span>
-                            {isConfigured && form?.isActive && <Badge className="text-[9px] bg-green-500/15 text-green-500">Active</Badge>}
-                            {isConfigured && !form?.isActive && <Badge variant="outline" className="text-[9px]">Configured</Badge>}
+                            {isConfigured && form?.isActive && <Badge className="text-[10px] bg-green-500/15 text-green-500">Active</Badge>}
+                            {isConfigured && !form?.isActive && <Badge variant="outline" className="text-[10px]">Configured</Badge>}
                           </div>
                           <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                             <input type="checkbox" checked={form?.isActive ?? false}

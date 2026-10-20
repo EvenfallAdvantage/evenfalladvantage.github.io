@@ -199,7 +199,7 @@ export default function HealthPage() {
       {/* Environment Info */}
       <Card className="border-border/40">
         <CardContent className="p-4 space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Environment</h2>
+          <h2 className="section-title">Environment</h2>
           <div className="grid grid-cols-2 gap-2 text-[11px]">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Platform</span>
@@ -220,7 +220,7 @@ export default function HealthPage() {
       {/* Latency Chart (simple bar) */}
       <Card className="border-border/40">
         <CardContent className="p-4 space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Latency (ms)</h2>
+          <h2 className="section-title">Latency (ms)</h2>
           {services.filter((s) => s.latencyMs !== null).map((svc) => {
             const maxMs = Math.max(...services.map((s) => s.latencyMs ?? 0), 1);
             const pct = Math.min(100, ((svc.latencyMs ?? 0) / maxMs) * 100);

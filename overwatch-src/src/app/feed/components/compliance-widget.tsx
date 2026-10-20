@@ -40,9 +40,9 @@ export function ComplianceWidget({ activeCompanyId }: ComplianceWidgetProps) {
             <Shield className="h-3.5 w-3.5" /> Compliance
           </h3>
           {hasIssues ? (
-            <Badge className="bg-amber-500/15 text-amber-500 text-[9px]">Action Needed</Badge>
+            <Badge className="bg-amber-500/15 text-amber-500 text-[10px]">Action Needed</Badge>
           ) : (
-            <Badge className="bg-green-500/15 text-green-500 text-[9px]">All Clear</Badge>
+            <Badge className="bg-green-500/15 text-green-500 text-[10px]">All Clear</Badge>
           )}
         </div>
 
@@ -50,19 +50,19 @@ export function ComplianceWidget({ activeCompanyId }: ComplianceWidgetProps) {
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
             <p className="text-lg font-bold font-mono text-green-500">{summary.fullyCompliant}</p>
-            <p className="text-[8px] text-muted-foreground uppercase">Compliant</p>
+            <p className="text-[10px] text-muted-foreground uppercase">Compliant</p>
           </div>
           <div>
             <p className="text-lg font-bold font-mono text-amber-500">{summary.expiringSoon}</p>
-            <p className="text-[8px] text-muted-foreground uppercase">Expiring</p>
+            <p className="text-[10px] text-muted-foreground uppercase">Expiring</p>
           </div>
           <div>
             <p className="text-lg font-bold font-mono text-red-500">{summary.expired}</p>
-            <p className="text-[8px] text-muted-foreground uppercase">Expired</p>
+            <p className="text-[10px] text-muted-foreground uppercase">Expired</p>
           </div>
           <div>
             <p className="text-lg font-bold font-mono text-muted-foreground">{summary.noCerts}</p>
-            <p className="text-[8px] text-muted-foreground uppercase">No Certs</p>
+            <p className="text-[10px] text-muted-foreground uppercase">No Certs</p>
           </div>
         </div>
 
