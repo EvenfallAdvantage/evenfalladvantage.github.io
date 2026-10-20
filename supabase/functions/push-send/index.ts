@@ -2,10 +2,10 @@
  * push-send: Web Push (VAPID) delivery to members' registered devices.
  *
  * Auth: service-role key only (called by notify-send, never by browsers).
- * Secrets (Supabase > Project Settings > Edge Functions > Secrets), read by NAME:
- *   VAPID_PUBLIC_KEY   – same value as the repo variable NEXT_PUBLIC_VAPID_PUBLIC_KEY
- *   VAPID_PRIVATE_KEY  – never leaves Supabase
- *   VAPID_SUBJECT      – "mailto:developer@evenfalladvantage.com" (or https URL)
+ * VAPID keys are read at runtime from Supabase Vault via the service_role-only
+ * RPC public.get_vapid_keys() (migration 20261020040000_vapid_vault). They were
+ * generated inside Supabase and are never logged or returned. Optional fallback:
+ * Edge Function env VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT.
  * If any is missing the function returns { skipped: "push not configured" } and
  * notify-send falls back to SMS when sms_fallback is set.
  *
@@ -22,14 +22,33 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
+type Vapid = { pub?: string; priv?: string; subject?: string };
+let cached: Vapid | null = null;
+// deno-lint-ignore no-explicit-any
+async function loadVapid(admin: any): Promise<Vapid> {
+  if (cached?.pub && cached.priv && cached.subject) return cached;
+  let v: Vapid = {};
+  try {
+    const { data } = await admin.rpc("get_vapid_keys");
+    const r = (Array.isArray(data) ? data[0] : data) as { public_key?: string; private_key?: string; subject?: string } | null;
+    if (r) v = { pub: r.public_key ?? undefined, priv: r.private_key ?? undefined, subject: r.subject ?? undefined };
+  } catch { /* fall back to env */ }
+  v = {
+    pub: v.pub || Deno.env.get("VAPID_PUBLIC_KEY"),
+    priv: v.priv || Deno.env.get("VAPID_PRIVATE_KEY"),
+    subject: v.subject || Deno.env.get("VAPID_SUBJECT"),
+  };
+  if (v.pub && v.priv && v.subject) cached = v;
+  return v;
+}
+
 Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   if (!serviceKey || req.headers.get("authorization") !== `Bearer ${serviceKey}`) return json(403, { error: "Forbidden - service-role auth required" });
   if (req.method !== "POST") return json(405, { error: "POST only" });
 
-  const pub = Deno.env.get("VAPID_PUBLIC_KEY");
-  const priv = Deno.env.get("VAPID_PRIVATE_KEY");
-  const subject = Deno.env.get("VAPID_SUBJECT");
+  const admin = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { pub, priv, subject } = await loadVapid(admin);
   const empty = { sent: 0, failed: 0, removed: 0, delivered_user_ids: [] as string[] };
   if (!pub || !priv || !subject) return json(200, { ...empty, skipped: "push not configured" });
 
@@ -39,7 +58,6 @@ Deno.serve(async (req) => {
   const url = typeof b.url === "string" && /^https:\/\//.test(b.url) ? b.url : null;
 
   webpush.setVapidDetails(subject, pub, priv);
-  const admin = createClient(Deno.env.get("SUPABASE_URL") ?? "", serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: subs, error } = await admin.from("push_subscriptions").select("id, user_id, endpoint, p256dh, auth").in("user_id", ids);
   if (error) return json(500, { error: "lookup failed" });
 
