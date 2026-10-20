@@ -9,7 +9,7 @@
  * are used by verified clock-in when an operation has no post radius.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { PolygonDrawMap } from "@/components/geo/polygon-draw-map";
 import { ringToPolygon, polygonToRing } from "@/lib/geo/mercator";
 import {
@@ -59,7 +59,13 @@ export function GeofencesTab({ activeCompanyId, canManage }: GeofencesTabProps) 
   const [strokeWidth, setStrokeWidth] = useState("2");
   const [isActive, setIsActive] = useState(true);
   const [geometryText, setGeometryText] = useState<string>("");
-  const ring = useMemo(() => { try { return polygonToRing(JSON.parse(geometryText)); } catch { return []; } }, [geometryText]);
+  // Map draft ring is kept separately so 1-2 tapped corners survive before
+  // there is a valid polygon to serialise.
+  const [ring, setRing] = useState<[number, number][]>([]);
+  useEffect(() => {
+    if (!geometryText.trim()) return;
+    try { const r = polygonToRing(JSON.parse(geometryText)); if (r.length) setRing(r); } catch { /* typing */ }
+  }, [geometryText]);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -92,6 +98,7 @@ export function GeofencesTab({ activeCompanyId, canManage }: GeofencesTabProps) 
     setStrokeWidth("2");
     setIsActive(true);
     setGeometryText("");
+    setRing([]);
     setEditingId(null);
   }
 
@@ -400,7 +407,7 @@ export function GeofencesTab({ activeCompanyId, canManage }: GeofencesTabProps) 
             </div>
             <div>
               <Label className="text-xs">Fence area</Label>
-              <PolygonDrawMap value={ring} onChange={(pts) => { const g = ringToPolygon(pts); setGeometryText(g ? JSON.stringify(g, null, 2) : ""); }} />
+              <PolygonDrawMap value={ring} onChange={(pts) => { setRing(pts); const g = ringToPolygon(pts); setGeometryText(g ? JSON.stringify(g, null, 2) : ""); }} />
               <details className="mt-2">
                 <summary className="cursor-pointer text-[11px] text-muted-foreground">Advanced: edit GeoJSON</summary>
                 <Label htmlFor="gf-geometry" className="sr-only">Geometry (GeoJSON Polygon - [lng, lat] pairs)</Label>
