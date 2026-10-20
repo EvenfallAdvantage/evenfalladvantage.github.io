@@ -1,5 +1,6 @@
 "use client";
 
+import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { useSearchParams } from "next/navigation";
@@ -245,30 +246,22 @@ function TimeClockInner() {
     <>
       <div className="space-y-4">
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
-          <button onClick={() => setWatchTab("clock")}
-            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${watchTab === "clock" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-            {watchTab === "clock" && <Clock className="h-3.5 w-3.5 text-primary" />}
+        <SubTabList>
+          <SubTab active={watchTab === "clock"} onClick={() => setWatchTab("clock")} icon={Clock}>
             Clock
-          </button>
+          </SubTab>
           {isManager && (
-            <button onClick={() => setWatchTab("mass-clock")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${watchTab === "mass-clock" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {watchTab === "mass-clock" && <ScanLine className="h-3.5 w-3.5 text-primary" />}
+            <SubTab active={watchTab === "mass-clock"} onClick={() => setWatchTab("mass-clock")} icon={ScanLine}>
               Mass Clock
-            </button>
+            </SubTab>
           )}
-          <button onClick={() => setWatchTab("tasks")}
-            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${watchTab === "tasks" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-            {watchTab === "tasks" && <ListChecks className="h-3.5 w-3.5 text-primary" />}
+          <SubTab active={watchTab === "tasks"} onClick={() => setWatchTab("tasks")} icon={ListChecks}>
             Tasks
-          </button>
-          <button onClick={() => setWatchTab("patrols")}
-            className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${watchTab === "patrols" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-            {watchTab === "patrols" && <Footprints className="h-3.5 w-3.5 text-primary" />}
+          </SubTab>
+          <SubTab active={watchTab === "patrols"} onClick={() => setWatchTab("patrols")} icon={Footprints}>
             Patrols
-          </button>
-        </div>
+          </SubTab>
+        </SubTabList>
 
         {/* Clock Tab Content */}
         {watchTab === "clock" && <>

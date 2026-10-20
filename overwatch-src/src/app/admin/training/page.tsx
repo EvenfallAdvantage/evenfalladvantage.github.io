@@ -1,5 +1,6 @@
 "use client";
 
+import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import { useEffect, useState } from "react";
 import {
   GraduationCap, Plus, HelpCircle, BookOpen, BarChart3,
@@ -50,20 +51,17 @@ export default function AdminTrainingPage() {
       <div className="space-y-4">
         {/* Tabs */}
         <div>
-          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
-            <button onClick={() => setTab("modules")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === "modules" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {tab === "modules" && <GraduationCap className="h-3.5 w-3.5 text-primary" />}Modules
-            </button>
-            <button onClick={() => setTab("questions")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === "questions" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {tab === "questions" && <HelpCircle className="h-3.5 w-3.5 text-primary" />}Question Bank
-            </button>
-            <button onClick={() => setTab("progress")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${tab === "progress" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {tab === "progress" && <BarChart3 className="h-3.5 w-3.5 text-primary" />}Staff Progress
-            </button>
-          </div>
+          <SubTabList>
+            <SubTab active={tab === "modules"} onClick={() => setTab("modules")} icon={GraduationCap}>
+              Modules
+            </SubTab>
+            <SubTab active={tab === "questions"} onClick={() => setTab("questions")} icon={HelpCircle}>
+              Question Bank
+            </SubTab>
+            <SubTab active={tab === "progress"} onClick={() => setTab("progress")} icon={BarChart3}>
+              Staff Progress
+            </SubTab>
+          </SubTabList>
         </div>
 
         {tab === "modules" && (

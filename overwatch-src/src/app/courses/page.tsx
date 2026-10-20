@@ -1,5 +1,6 @@
 "use client";
 
+import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import {
   Video, BookOpen, Clock, Loader2, CheckCircle2,
@@ -183,16 +184,14 @@ function CoursesContent() {
 
         {/* Tabs */}
         <div>
-          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
-            <button onClick={() => setPageTab("courses")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${pageTab === "courses" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {pageTab === "courses" && <ShoppingCart className="h-3.5 w-3.5 text-primary" />}Courses
-            </button>
-            <button onClick={() => setPageTab("conference")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap shrink-0 ${pageTab === "conference" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {pageTab === "conference" && <Video className="h-3.5 w-3.5 text-primary" />}Conference
-            </button>
-          </div>
+          <SubTabList>
+            <SubTab active={pageTab === "courses"} onClick={() => setPageTab("courses")} icon={ShoppingCart}>
+              Courses
+            </SubTab>
+            <SubTab active={pageTab === "conference"} onClick={() => setPageTab("conference")} icon={Video}>
+              Conference
+            </SubTab>
+          </SubTabList>
         </div>
 
         {pageTab === "courses" && <>

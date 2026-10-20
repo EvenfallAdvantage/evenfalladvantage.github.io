@@ -1,5 +1,6 @@
 "use client";
 
+import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
@@ -162,18 +163,14 @@ export default function TimeOffPage() {
       <div className="space-y-4">
         {/* Admin tabs */}
         {isAdmin && (
-          <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
-            <button onClick={() => setTab("mine")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "mine" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {tab === "mine" && <ClipboardList className="h-3.5 w-3.5 text-primary" />}
+          <SubTabList>
+            <SubTab active={tab === "mine"} onClick={() => setTab("mine")} icon={ClipboardList}>
               My Requests
-            </button>
-            <button onClick={() => setTab("team")}
-              className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === "team" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-background/50"}`}>
-              {tab === "team" && <Users className="h-3.5 w-3.5 text-primary" />}
+            </SubTab>
+            <SubTab active={tab === "team"} onClick={() => setTab("team")} icon={Users}>
               Team Requests {pendingCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-amber-500/20 text-amber-600">{pendingCount}</Badge>}
-            </button>
-          </div>
+            </SubTab>
+          </SubTabList>
         )}
 
         {showCreate && (
