@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { QrCode, Nfc, Loader2, CheckCircle2, AlertTriangle, MapPin, X, Printer, Circle, ShieldCheck, ShieldAlert } from "lucide-react";
-import { logPatrolScan } from "@/lib/supabase/db";
+import { logPatrolScanOffline, isPendingSync } from "@/lib/offline/with-offline";
 import { parseCheckpointPayload, verifyScanPosition, tourProgress, checkpointUrl, type ScanMethod } from "@/lib/patrol/checkpoint-code";
 import { nfcSupported, readNfcOnce } from "@/lib/patrol/nfc";
 
@@ -151,12 +151,13 @@ function ScanConfirmSheet({ companyId, cp, method, routeId, onClose, onLogged }:
   async function log(status: string) {
     setBusy(status);
     try {
-      await logPatrolScan(companyId, cp.id, {
+      const r = await logPatrolScanOffline(companyId, cp.id, {
         routeId: routeId ?? undefined, status, notes: note.trim() || undefined, method,
         lat: fix?.lat ?? null, lng: fix?.lng ?? null, accuracy: fix?.accuracy ?? null, gpsVerified: v.verified, distanceM: v.distance,
       });
       if (navigator.vibrate) navigator.vibrate(60);
-      toast.success(`${cp.name} logged`);
+      if (isPendingSync(r)) toast.success(`${cp.name} saved offline. It will sync when you reconnect.`);
+      else toast.success(`${cp.name} logged`);
       onLogged();
     } catch { toast.error("Couldn't log the scan. Try again."); }
     finally { setBusy(null); }

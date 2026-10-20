@@ -82,6 +82,26 @@ describe("offline clock in / out", () => {
   });
 });
 
+describe("tag scans (QR/NFC/link) offline", () => {
+  it("queues a tag scan with method + GPS fields and replays them with the scan time", async () => {
+    setOnline(false);
+    const r = await logPatrolScanOffline("c1", "cp1", { status: "ok", method: "nfc", lat: 1, lng: 2, accuracy: 8, gpsVerified: true, distanceM: 12, routeId: "r1" });
+    expect(isPendingSync(r)).toBe(true);
+    setOnline(true);
+    await drainQueue();
+    const [co, cp, params] = vi.mocked(logPatrolScan).mock.calls[0];
+    expect([co, cp]).toEqual(["c1", "cp1"]);
+    expect(params).toMatchObject({ method: "nfc", lat: 1, lng: 2, accuracy: 8, gpsVerified: true, distanceM: 12, routeId: "r1", id: (r as { __mutationId: string }).__mutationId });
+    expect(typeof params!.scannedAt).toBe("string");
+  });
+  it("the tag scan screen logs through the offline queue", async () => {
+    const fs = await import("node:fs");
+    const src = fs.readFileSync("src/components/patrol/tag-scan.tsx", "utf8");
+    expect(src).toContain("logPatrolScanOffline(");
+    expect(src).not.toMatch(/\blogPatrolScan\(/);
+  });
+});
+
 describe("queued SOS", () => {
   it("replays panic.trigger through replayQueuedPanicAlert", async () => {
     await enqueue({ kind: "panic.trigger", payload: { id: "p1", companyId: "c1", userId: "u1", lat: 1, lng: 2, accuracy: 5, createdAt: "2026-10-20T06:00:00Z" } });
