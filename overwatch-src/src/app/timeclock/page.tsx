@@ -6,10 +6,10 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Clock, Loader2, ScanLine, ListChecks, Footprints } from "lucide-react";
+import { cachedRead, isOffline, writeCache } from "@/lib/offline/cached-read";
+import { clockInOffline, clockOutOffline, isPendingSync } from "@/lib/offline/with-offline";
 import {
   getActiveTimesheet,
-  clockIn,
-  clockOut,
   getRecentTimesheets,
   getTimesheetsForDateRange,
   getActiveShiftsForClockIn,
@@ -81,10 +81,10 @@ function TimeClockInner() {
 
   const load = useCallback(async () => {
     try {
-      const [ts, history] = await Promise.all([
+      const [ts, history] = await cachedRead(`timeclock:${activeCompanyId ?? "none"}`, () => Promise.all([
         getActiveTimesheet(activeCompanyId ?? undefined),
         getRecentTimesheets(20, activeCompanyId ?? undefined),
-      ]);
+      ]));
       setActive(ts);
       setRecent(history.filter((t: Timesheet) => t.clock_out));
     } catch {
@@ -149,12 +149,27 @@ function TimeClockInner() {
     } catch (e) { logger.swallow("timeclock:location-start", e, "debug"); }
   }
 
+  /**
+   * Clock in live, or queue it with the real tap time when there's no signal.
+   * Returns true when it was queued (caller shows the offline toast, skips reload).
+   */
+  async function doClockIn(params: Parameters<typeof clockInOffline>[0]): Promise<boolean> {
+    const r = await clockInOffline(params);
+    if (!isPendingSync(r)) return false;
+    const optimistic = { id: r.__mutationId, clock_in: new Date().toISOString(), clock_out: null, event_id: params?.eventId ?? null, shift_id: params?.shiftId ?? null } as unknown as Timesheet;
+    writeCache(`timeclock:${activeCompanyId ?? "none"}`, [optimistic, recent]);
+    setActive(optimistic);
+    setShowClockInModal(false);
+    toast.success("Clocked in offline. It will sync with the time you tapped.");
+    return true;
+  }
+
   async function handleClockIn() {
     if (!companyId) return;
     setLoadingShifts(true);
     setShowClockInModal(true);
     try {
-      const shifts = await getActiveShiftsForClockIn(companyId);
+      const shifts = await cachedRead(`shifts-now:${companyId}`, () => getActiveShiftsForClockIn(companyId));
       setDetectedShifts(shifts);
     } catch {
       setDetectedShifts([]);
@@ -167,16 +182,14 @@ function TimeClockInner() {
     setActing(true);
     setShowClockInModal(false);
     try {
-      await clockIn({
+      const queued = await doClockIn({
         shiftId: shift.id,
         eventId: shift.events?.id ?? shift.event_id,
         companyId: activeCompanyId ?? undefined,
         clockInType: "shift",
       });
-      await startLocationIfEnabled();
-      await load();
-      toast.success("Clocked in");
-    } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); }
+      if (!queued) { await startLocationIfEnabled(); await load(); toast.success("Clocked in"); }
+    } catch (err) { console.error("Clock in failed:", err); toast.error(isOffline() ? "No connection and couldn't save offline." : "Clock in failed"); }
     finally { setActing(false); setDetectedShifts([]); }
   }
 
@@ -185,22 +198,18 @@ function TimeClockInner() {
     setActing(true);
     setShowClockInModal(false);
     try {
-      await clockIn({ clockInType: "admin", notes: adminNotes.trim(), companyId: activeCompanyId ?? undefined });
-      await startLocationIfEnabled();
-      await load();
-      toast.success("Clocked in (admin)");
-    } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); }
+      const queued = await doClockIn({ clockInType: "admin", notes: adminNotes.trim(), companyId: activeCompanyId ?? undefined });
+      if (!queued) { await startLocationIfEnabled(); await load(); toast.success("Clocked in (admin)"); }
+    } catch (err) { console.error("Clock in failed:", err); toast.error(isOffline() ? "No connection and couldn't save offline." : "Clock in failed"); }
     finally { setActing(false); setAdminNotes(""); setDetectedShifts([]); }
   }
 
   async function handleQuickClockIn() {
     setActing(true);
     try {
-      await clockIn({ companyId: activeCompanyId ?? undefined });
-      await startLocationIfEnabled();
-      await load();
-      toast.success("Clocked in");
-    } catch (err) { console.error("Clock in failed:", err); toast.error("Clock in failed"); }
+      const queued = await doClockIn({ companyId: activeCompanyId ?? undefined });
+      if (!queued) { await startLocationIfEnabled(); await load(); toast.success("Clocked in"); }
+    } catch (err) { console.error("Clock in failed:", err); toast.error(isOffline() ? "No connection and couldn't save offline." : "Clock in failed"); }
     finally { setActing(false); }
   }
 
@@ -209,9 +218,12 @@ function TimeClockInner() {
     setActing(true);
     try {
       if (locationStopRef.current) { locationStopRef.current(); locationStopRef.current = null; }
-      await clockOut(active.id);
-      await load();
-      toast.success("Clocked out");
+      const r = await clockOutOffline(active.id);
+      if (isPendingSync(r)) {
+        writeCache(`timeclock:${activeCompanyId ?? "none"}`, [null, recent]);
+        setActive(null);
+        toast.success("Clocked out offline. It will sync with the time you tapped.");
+      } else { await load(); toast.success("Clocked out"); }
     } catch (err) { console.error("Clock out failed:", err); toast.error("Clock out failed"); } finally { setActing(false); }
   }
 

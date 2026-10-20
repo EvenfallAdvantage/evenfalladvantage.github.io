@@ -13,6 +13,8 @@ export function logDbReadError(context: string, error: unknown): void {
   console.error(`[DB] ${context}:`, message);
 
   // Only toast in browser (not during SSR/build)
+  // Offline: the sync indicator already says so; field pages fall back to cached data.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
   if (typeof window !== "undefined") {
     toast.error(`Failed to load ${context}`, {
       description: "Please try refreshing the page.",
