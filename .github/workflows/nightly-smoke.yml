@@ -1,0 +1,52 @@
+name: Nightly smoke (ZZTEST)
+
+# Logs in as the ZZTEST Field QA account and opens every signed-in route on
+# desktop + phone against the live app. All Supabase writes are blocked in the
+# browser, so it changes nothing. Needs two repo secrets set by the owner:
+#   ZZTEST_EMAIL, ZZTEST_PASSWORD
+on:
+  schedule:
+    - cron: "30 11 * * *"   # 11:30 UTC = 4:30 AM PDT / 3:30 AM PST
+  workflow_dispatch:
+    inputs:
+      routes:
+        description: "Optional space-separated routes (default: all)"
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - name: Install Playwright (Chromium only)
+        working-directory: overwatch-src/e2e
+        run: |
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.64.1
+          npx playwright install --with-deps chromium
+      - name: Run smoke
+        working-directory: overwatch-src/e2e
+        env:
+          ZZTEST_EMAIL: ${{ secrets.ZZTEST_EMAIL }}
+          ZZTEST_PASSWORD: ${{ secrets.ZZTEST_PASSWORD }}
+          SMOKE_ROUTES: ${{ github.event.inputs.routes }}
+          SMOKE_OUT: smoke-out
+        run: node smoke.mjs
+      - name: Upload screenshots + results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ github.run_id }}
+          path: overwatch-src/e2e/smoke-out
+          retention-days: 14
