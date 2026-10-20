@@ -21,7 +21,10 @@ export interface NotificationRequest {
   action_url?: string;
   /** Send SMS only to recipients a push notification did not reach. */
   sms_fallback?: boolean;
+  /** The record this is about; lets staff notify one peer about it. */
+  ref?: NotifyRef;
 }
+export interface NotifyRef { type: "dm" | "swap" | "task"; id: string }
 export interface WelcomeRequest {
   company_id: string;
   kind: "welcome";
@@ -58,7 +61,14 @@ export function parseNotifyRequest(raw: unknown): NotifyRequest | string {
     action_url = b.action_url;
   }
   const sms_fallback = b.sms_fallback === true && channels.includes("push") && !channels.includes("sms");
-  return { company_id: b.company_id, kind: "notification", channels, user_ids: ids, title: b.title.trim(), body: b.body as string | undefined, action_url, sms_fallback };
+  let ref: NotifyRef | undefined;
+  if (b.ref !== undefined) {
+    const r = b.ref as Record<string, unknown> | null;
+    if (!r || (r.type !== "dm" && r.type !== "swap" && r.type !== "task") || typeof r.id !== "string" || !UUID.test(r.id)) return "ref must be {type: dm|swap|task, id: uuid}";
+    if (ids.length !== 1) return "ref allows a single recipient";
+    ref = { type: r.type, id: r.id };
+  }
+  return { company_id: b.company_id, kind: "notification", channels, user_ids: ids, title: b.title.trim(), body: b.body as string | undefined, action_url, sms_fallback, ref };
 }
 
 /**
@@ -66,12 +76,15 @@ export function parseNotifyRequest(raw: unknown): NotifyRequest | string {
  *  - welcome: manager and above (the people who hire).
  *  - notification: any member may notify managers+ (e.g. a staff time
  *    correction request to admins); notifying staff-level members needs
- *    lead or above. Every recipient must be a member of the same company.
+ *    lead or above, OR a verified `ref` (refVerified): the caller's own DM to
+ *    that person, the swap they claimed from them, or a task they assigned to
+ *    them. Every recipient must be a member of the same company.
  */
 export function authorize(
   req: NotifyRequest,
   callerRole: string | null,
   recipientRoles: Record<string, string | undefined>,
+  refVerified = false,
 ): string | null {
   const r = rank(callerRole);
   if (!r) return "Not a member of this company";
@@ -79,7 +92,7 @@ export function authorize(
   for (const id of req.user_ids) {
     const role = recipientRoles[id];
     if (!role) return "Every recipient must be a member of this company";
-    if (r < ROLE_RANK.lead && rank(role) < ROLE_RANK.manager) return "You can only notify managers and above";
+    if (r < ROLE_RANK.lead && rank(role) < ROLE_RANK.manager && !refVerified) return "You can only notify managers and above";
   }
   return null;
 }
@@ -132,4 +145,23 @@ export function smsRecipientIds(
 /** Web push payload (kept small: some push services cap at 4 KB). */
 export function pushPayload(title: string, body: string | undefined, url: string | null, tag?: string) {
   return JSON.stringify({ title: title.slice(0, 120), body: (body ?? "").slice(0, 300), url: url ?? undefined, tag });
+}
+
+/** Max age of the referenced record: an alert must follow the action. */
+export const REF_MAX_AGE_MS = 10 * 60_000;
+
+/** Pure check of a looked-up ref row against caller + recipient. */
+export function refMatches(
+  ref: NotifyRef,
+  row: Record<string, unknown> | null,
+  callerId: string,
+  recipientId: string,
+  companyId: string,
+  now = Date.now(),
+): boolean {
+  if (!row) return false;
+  const fresh = (v: unknown) => { const t = Date.parse(String(v ?? "").replace(" ", "T") + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(v ?? "")) ? "" : "Z")); return Number.isFinite(t) && now - t < REF_MAX_AGE_MS; };
+  if (ref.type === "dm") return row.from_user_id === callerId && row.to_user_id === recipientId && row.company_id === companyId && fresh(row.created_at);
+  if (ref.type === "swap") return row.replacement_id === callerId && row.requester_id === recipientId && row.company_id === companyId && fresh(row.updated_at);
+  return row.assigned_to === recipientId && row.company_id === companyId && row.created_by === callerId && fresh(row.updated_at);
 }

@@ -144,6 +144,18 @@ export async function sendDM(
 
   if (error) { console.error("[DM] Send failed:", error); return null; }
 
+  // Phone alert for the recipient (rate-limited per recipient).
+  void (async () => {
+    const { notifyEvent, shouldPushDm, previewText, myShortName } = await import("@/lib/services/event-notify");
+    if (!shouldPushDm(toUserId)) return;
+    await notifyEvent({
+      companyId, userId: toUserId, type: "dm", actionUrl: "/chat",
+      title: `Message from ${await myShortName()}`,
+      body: fileUrl && !content ? "Sent an attachment" : previewText(content),
+      ref: { type: "dm", id: data.id },
+    });
+  })();
+
   return {
     id: data.id,
     companyId: data.company_id,

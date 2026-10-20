@@ -14,7 +14,7 @@
 
 import { createNotification } from "@/lib/supabase/db";
 import { logger } from "@/lib/logger";
-import { notifyMembers, type NotifyChannel } from "./notify-client";
+import { notifyMembers, type NotifyChannel, type NotifyRef } from "./notify-client";
 
 export interface DispatchParams {
   userId: string;
@@ -29,6 +29,8 @@ export interface DispatchParams {
   critical?: boolean;
   /** Also send an email. */
   emailFallback?: boolean;
+  /** See notifyMembers(): the record this notification is about. */
+  ref?: NotifyRef;
   /** @deprecated Ignored. The server looks up the member's phone. */
   phone?: string;
   /** @deprecated Ignored. The server looks up the member's email. */
@@ -76,7 +78,7 @@ export async function dispatch(params: DispatchParams, remote = true): Promise<D
 
   const { channels, smsFallback } = channelsFor(params);
   if (remote && channels.length) {
-    const r = await notifyMembers({ companyId: params.companyId, userIds: [params.userId], channels, smsFallback, title: params.title, body: params.body, actionUrl: params.actionUrl });
+    const r = await notifyMembers({ companyId: params.companyId, userIds: [params.userId], channels, smsFallback, title: params.title, body: params.body, actionUrl: params.actionUrl, ref: params.ref });
     result.push = r.push.sent > 0;
     if (!r.ok) logger.swallow("dispatch:notify-send", new Error(r.error ?? "notify-send failed"), "warn");
     result.email = r.email.sent > 0;

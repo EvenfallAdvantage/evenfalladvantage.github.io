@@ -82,6 +82,7 @@ export async function claimSwapRequest(swapId: string): Promise<boolean> {
     console.error("[ShiftSwap] Claim failed:", error.message);
     return false;
   }
+  void notifySwapClaimed(swapId).catch(() => {});
   return true;
 }
 
@@ -119,6 +120,7 @@ export async function approveSwapRequest(swapId: string): Promise<boolean> {
     console.error("[ShiftSwap] Status update failed:", updateErr.message);
     return false;
   }
+  void notifySwapDecision(swapId, true).catch(() => {});
   return true;
 }
 
@@ -131,6 +133,7 @@ export async function rejectSwapRequest(swapId: string): Promise<boolean> {
     .from("shift_swap_requests")
     .update({ status: "rejected", updated_at: new Date().toISOString() })
     .eq("id", swapId);
+  if (!error) void notifySwapDecision(swapId, false).catch(() => {});
   return !error;
 }
 
@@ -329,4 +332,46 @@ export async function getPendingSwapApprovals(companyId: string): Promise<ShiftS
         createdAt: r.created_at,
       };
     });
+}
+
+// ─── Phone alerts ─────────────────────────────────────────
+
+async function swapContext(swapId: string) {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("shift_swap_requests")
+    .select("id, requester_id, replacement_id, shifts(start_time, role, events(company_id, name))")
+    .eq("id", swapId)
+    .maybeSingle();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const d = data as any;
+  if (!d) return null;
+  const ev = d.shifts?.events;
+  const when = d.shifts?.start_time ? new Date(String(d.shifts.start_time).replace(" ", "T") + (/[zZ]|[+-]\d\d:?\d\d$/.test(d.shifts.start_time) ? "" : "Z")).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  return { requesterId: d.requester_id as string, replacementId: d.replacement_id as string | null, companyId: ev?.company_id as string, label: `${ev?.name ?? "Shift"}${when ? ` · ${when}` : ""}` };
+}
+
+/** Notify the requester (and managers) that someone claimed their swap. */
+export async function notifySwapClaimed(swapId: string): Promise<void> {
+  const { notifyEvent, myShortName } = await import("@/lib/services/event-notify");
+  const c = await swapContext(swapId);
+  if (!c?.companyId) return;
+  const who = await myShortName();
+  await notifyEvent({ companyId: c.companyId, userId: c.requesterId, type: "shift_swap", actionUrl: "/schedule?tab=swaps", title: `${who} will cover your shift`, body: `${c.label}. Waiting on manager approval.`, ref: { type: "swap", id: swapId } });
+  const supabase = createClient();
+  const { data: mgrs } = await supabase.from("company_memberships").select("user_id").eq("company_id", c.companyId).eq("status", "active").in("role", ["owner", "admin", "manager"]);
+  for (const m of (mgrs ?? []) as { user_id: string }[]) {
+    await notifyEvent({ companyId: c.companyId, userId: m.user_id, type: "shift_swap", actionUrl: "/schedule?tab=swaps", title: "Shift swap needs approval", body: `${who} offered to cover ${c.label}.` });
+  }
+}
+
+/** Notify both officers that a manager approved or rejected the swap. */
+export async function notifySwapDecision(swapId: string, approved: boolean): Promise<void> {
+  const { notifyEvent } = await import("@/lib/services/event-notify");
+  const c = await swapContext(swapId);
+  if (!c?.companyId) return;
+  const title = approved ? "Shift swap approved" : "Shift swap declined";
+  for (const uid of [c.requesterId, c.replacementId].filter(Boolean) as string[]) {
+    await notifyEvent({ companyId: c.companyId, userId: uid, type: "shift_swap", actionUrl: "/schedule?tab=swaps", title, body: c.label });
+  }
 }

@@ -268,7 +268,16 @@ export async function createTask(
     .select(TASK_SELECT)
     .maybeSingle();
   if (error) throw error;
-  return data ? mapTaskRow(data as TaskRow) : null;
+  const task = data ? mapTaskRow(data as TaskRow) : null;
+  if (task && params.assignedToId && params.assignedToId !== userId) void notifyTaskAssigned(companyId, task.id, params.assignedToId, params.title, params.dueAt ?? null);
+  return task;
+}
+
+/** Phone alert to a task's new assignee. Never throws. */
+async function notifyTaskAssigned(companyId: string, taskId: string, assigneeId: string, title: string, dueAt: string | null): Promise<void> {
+  const { notifyEvent, previewText } = await import("@/lib/services/event-notify");
+  const due = dueAt ? ` · due ${new Date(dueAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "";
+  await notifyEvent({ companyId, userId: assigneeId, type: "task", actionUrl: "/tasks", title: "New task assigned to you", body: `${previewText(title, 100)}${due}`, ref: { type: "task", id: taskId } });
 }
 
 export async function updateTask(
@@ -314,7 +323,13 @@ export async function updateTask(
     .select(TASK_SELECT)
     .maybeSingle();
   if (error) throw error;
-  return data ? mapTaskRow(data as TaskRow) : null;
+  const task = data ? mapTaskRow(data as TaskRow) : null;
+  if (task && updates.assignedToId) {
+    const me = await ensureInternalUser();
+    const row = data as unknown as { company_id?: string };
+    if (updates.assignedToId !== me && row.company_id) void notifyTaskAssigned(row.company_id, task.id, updates.assignedToId, task.title, task.dueAt ?? null);
+  }
+  return task;
 }
 
 export async function setTaskStatus(
