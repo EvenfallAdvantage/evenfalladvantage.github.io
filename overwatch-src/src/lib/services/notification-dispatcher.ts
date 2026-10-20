@@ -42,12 +42,20 @@ export interface DispatchResult {
   email: boolean;
 }
 
-/** Channels + SMS mode for notify-send (exported for tests). */
-export function channelsFor(p: { urgent?: boolean; critical?: boolean; emailFallback?: boolean }): { channels: NotifyChannel[]; smsFallback: boolean } {
-  const channels: NotifyChannel[] = ["push"];
+/**
+ * Channels + SMS mode for notify-send (exported for tests). Push is only used
+ * when the site was built with a VAPID public key; without it, behaviour is
+ * the pre-push behaviour (urgent = SMS, no network call for plain in-app).
+ */
+export function channelsFor(
+  p: { urgent?: boolean; critical?: boolean; emailFallback?: boolean },
+  pushEnabled = !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+): { channels: NotifyChannel[]; smsFallback: boolean } {
+  const channels: NotifyChannel[] = pushEnabled ? ["push"] : [];
   if (p.emailFallback) channels.push("email");
-  if (p.critical) channels.push("sms");
-  return { channels, smsFallback: !!p.urgent && !p.critical };
+  const wantsSms = !!p.urgent || !!p.critical;
+  if (wantsSms && (p.critical || !pushEnabled)) channels.push("sms");
+  return { channels, smsFallback: pushEnabled && !!p.urgent && !p.critical };
 }
 
 export async function dispatch(params: DispatchParams, remote = true): Promise<DispatchResult> {
@@ -66,8 +74,8 @@ export async function dispatch(params: DispatchParams, remote = true): Promise<D
     logger.swallow("dispatch:in-app", err, "warn");
   }
 
-  if (remote) {
-    const { channels, smsFallback } = channelsFor(params);
+  const { channels, smsFallback } = channelsFor(params);
+  if (remote && channels.length) {
     const r = await notifyMembers({ companyId: params.companyId, userIds: [params.userId], channels, smsFallback, title: params.title, body: params.body, actionUrl: params.actionUrl });
     result.push = r.push.sent > 0;
     if (!r.ok) logger.swallow("dispatch:notify-send", new Error(r.error ?? "notify-send failed"), "warn");
@@ -89,7 +97,7 @@ export async function dispatchToMany(
   const results = await Promise.all(users.map((u) =>
     dispatch({ ...params, userId: u.userId, companyId }, false)));
   const { channels, smsFallback } = channelsFor(params);
-  for (let i = 0; i < users.length; i += 100) {
+  for (let i = 0; channels.length && i < users.length; i += 100) {
     const batch = users.slice(i, i + 100);
     const r = await notifyMembers({ companyId, userIds: batch.map((u) => u.userId), channels, smsFallback, title: params.title, body: params.body, actionUrl: params.actionUrl });
     if (!r.ok) logger.swallow("dispatch-many:notify-send", new Error(r.error ?? "notify-send failed"), "warn");

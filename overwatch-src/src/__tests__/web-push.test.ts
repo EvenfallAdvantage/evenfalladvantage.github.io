@@ -25,10 +25,15 @@ describe("web push client", () => {
 
 describe("dispatcher channels", () => {
   it("push always; urgent = SMS fallback; critical = SMS always", () => {
-    expect(channelsFor({})).toEqual({ channels: ["push"], smsFallback: false });
-    expect(channelsFor({ urgent: true })).toEqual({ channels: ["push"], smsFallback: true });
-    expect(channelsFor({ critical: true })).toEqual({ channels: ["push", "sms"], smsFallback: false });
-    expect(channelsFor({ emailFallback: true }).channels).toEqual(["push", "email"]);
+    expect(channelsFor({}, true)).toEqual({ channels: ["push"], smsFallback: false });
+    expect(channelsFor({ urgent: true }, true)).toEqual({ channels: ["push"], smsFallback: true });
+    expect(channelsFor({ critical: true }, true)).toEqual({ channels: ["push", "sms"], smsFallback: false });
+    expect(channelsFor({ emailFallback: true }, true).channels).toEqual(["push", "email"]);
+  });
+  it("without a VAPID key keeps the old behaviour", () => {
+    expect(channelsFor({}, false)).toEqual({ channels: [], smsFallback: false });
+    expect(channelsFor({ urgent: true, emailFallback: true }, false)).toEqual({ channels: ["email", "sms"], smsFallback: false });
+    expect(channelsFor({ critical: true }, false)).toEqual({ channels: ["sms"], smsFallback: false });
   });
 });
 
