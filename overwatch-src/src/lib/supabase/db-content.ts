@@ -646,3 +646,17 @@ export async function createNotification(params: {
   });
   if (error) throw error;
 }
+
+/** Every Field Manual document in the company (for search + offline). */
+export async function getAllKBDocuments(companyId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("kb_documents")
+    .select("id, folder_id, title, type, content, file_url, file_name, file_size, mime_type, required, sort_order, kb_folders!inner(name, company_id)")
+    .eq("kb_folders.company_id", companyId)
+    .order("title", { ascending: true })
+    .limit(1000);
+  if (error) { logDbReadError("knowledge base search", error); return []; }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return ((data ?? []) as any[]).map((d) => ({ ...d, folder_name: d.kb_folders?.name ?? null }));
+}
