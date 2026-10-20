@@ -35,6 +35,7 @@
 
 import { logger } from "@/lib/logger";
 import { loadTransformers } from "./transformers-loader";
+import { extractFeatures, type AcousticFeatures } from "./acoustic-features";
 
 const MODEL_ID = "onnx-community/pyannote-segmentation-3.0";
 
@@ -72,6 +73,9 @@ export type DiarizationSegment = {
   end: number;
   /** Mean confidence from the underlying model (0-1). */
   confidence?: number;
+  /** True when pyannote heard two people at once here (crosstalk). The
+   *  same time span is emitted once per overlapping speaker. */
+  overlap?: boolean;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -132,11 +136,24 @@ export async function loadDiarization(onProgress?: ProgressCallback): Promise<vo
 }
 
 /**
- * Run pyannote on a single window of audio (≤10s at 16kHz mono).
- * Returns segments with window-local speaker ids and times relative to
- * the START of the window.
+ * pyannote/segmentation-3.0 is a POWERSET model: each frame's class is a
+ * set of active (window-local) speakers, NOT a speaker id.
+ *   0 = nobody (silence), 1..3 = one speaker, 4..6 = two at once.
+ * Treating the class index as a speaker id (the old behaviour) turned every
+ * pause into its own "speaker", so the trailing word of a sentence (whose
+ * Whisper timestamp runs into the pause) got the pause's label and showed
+ * up as a separate speaker.
  */
-async function diarizeWindow(window: Float32Array): Promise<DiarizationSegment[]> {
+const POWERSET: number[][] = [[], [0], [1], [2], [0, 1], [0, 2], [1, 2]];
+
+type WindowSeg = { local: number[]; start: number; end: number; confidence: number };
+
+/**
+ * Run pyannote on a single window of audio (≤10s at 16kHz mono).
+ * Returns voiced regions with their window-local speaker set and times
+ * relative to the START of the window. Silence is dropped.
+ */
+async function diarizeWindow(window: Float32Array): Promise<WindowSeg[]> {
   if (!modelInstance || !processorInstance) {
     throw new Error("Diarization model not loaded");
   }
@@ -145,12 +162,41 @@ async function diarizeWindow(window: Float32Array): Promise<DiarizationSegment[]
   const result: Array<Array<{ id: number; start: number; end: number; confidence: number }>> =
     processorInstance.post_process_speaker_diarization(logits, window.length);
   const raw = result[0] ?? [];
-  return raw.map(r => ({
-    speaker: String(r.id),
-    start: r.start,
-    end: r.end,
-    confidence: r.confidence,
-  }));
+  return raw
+    .map(r => ({ local: POWERSET[r.id] ?? [], start: r.start, end: r.end, confidence: r.confidence }))
+    .filter(r => r.local.length > 0);
+}
+
+/** Feature distance used to link window-local speakers to global ones. */
+function voiceDistance(a: AcousticFeatures, b: AcousticFeatures): number {
+  // Pitch is the most stable cue across a recording; spectral shape moves
+  // a lot with what is being said, so it gets a much wider scale.
+  const df0 = a.f0 > 0 && b.f0 > 0 ? (a.f0 - b.f0) / 40 : 0;
+  const dc = (a.centroid - b.centroid) / 1500;
+  const dr = (a.rolloff - b.rolloff) / 3000;
+  const dz = (a.zcr - b.zcr) / 0.1;
+  return Math.sqrt(df0 * df0 + dc * dc + dr * dr + dz * dz);
+}
+
+/** Above this voice distance a window-local speaker becomes a NEW speaker
+ *  (unless the expected-speaker cap is already reached). */
+const NEW_SPEAKER_DISTANCE = 1.5;
+/** Seconds of shared time in the window overlap needed to link by time. */
+const LINK_OVERLAP_S = 0.3;
+
+function voiceOf(audio: Float32Array, spans: { start: number; end: number }[]): AcousticFeatures {
+  const parts: Float32Array[] = [];
+  let total = 0;
+  for (const s of spans) {
+    const a = Math.max(0, Math.floor(s.start * DIARIZATION_SAMPLE_RATE));
+    const b = Math.min(audio.length, Math.floor(s.end * DIARIZATION_SAMPLE_RATE));
+    if (b > a) { parts.push(audio.subarray(a, b)); total += b - a; }
+    if (total > DIARIZATION_SAMPLE_RATE * 6) break;
+  }
+  const buf = new Float32Array(total);
+  let o = 0;
+  for (const p of parts) { buf.set(p, o); o += p.length; }
+  return extractFeatures(buf);
 }
 
 /**
@@ -196,6 +242,13 @@ export interface DiarizeOptions {
 /**
  * Diarize a full-length audio buffer.
  *
+ * Audio is processed in 10 s windows with 2 s overlap. Window-local speaker
+ * ids are arbitrary per window, so each local speaker is linked to a global
+ * speaker by (1) shared time in the overlap zone, else (2) the closest voice
+ * fingerprint (pitch + spectral shape), else (3) a new speaker. Each window
+ * only contributes its "core" span (overlap split down the middle) so two
+ * windows never vote on the same instant.
+ *
  * @param audio 16kHz mono Float32 samples (same shape as Whisper input)
  * @param onProgress Optional callback for download/inference progress
  * @param options Optional knobs (expectedSpeakers, etc.)
@@ -214,49 +267,120 @@ export async function diarize(
   const sampleRate = DIARIZATION_SAMPLE_RATE;
   const windowSamples = WINDOW_S * sampleRate;
   const strideSamples = STRIDE_S * sampleRate;
+  const halfOverlapS = (WINDOW_S - STRIDE_S) / 2;
+  const durationS = audio.length / sampleRate;
+  const maxSpeakers = options.expectedSpeakers && options.expectedSpeakers > 0 ? options.expectedSpeakers : Infinity;
+
   const all: DiarizationSegment[] = [];
+  const voices = new Map<string, { f: AcousticFeatures; n: number }>();
+  let nextGlobal = 0;
+  /** Previous window's FULL (untrimmed) solo segments, for overlap-zone linking. */
+  let prevFull: { speaker: string; start: number; end: number }[] = [];
 
-  // Short clips fit in a single window — fast path.
-  if (audio.length <= windowSamples) {
-    try {
-      const segs = await diarizeWindow(audio);
-      return postProcess(segs.map(s => ({ ...s })), options.expectedSpeakers);
-    } catch (err) {
-      logger.swallow("diarization:single-window", err, "warn");
-      return [];
-    }
-  }
-
-  // Long clips — slide windows with overlap and remap local times.
-  const totalWindows = Math.max(1, Math.ceil((audio.length - windowSamples) / strideSamples) + 1);
+  const totalWindows = audio.length <= windowSamples
+    ? 1
+    : Math.max(1, Math.ceil((audio.length - windowSamples) / strideSamples) + 1);
   let windowIndex = 0;
-  for (let offsetSamples = 0; offsetSamples + 1 < audio.length; offsetSamples += strideSamples) {
+  for (let offsetSamples = 0; offsetSamples < audio.length; offsetSamples += strideSamples) {
     const end = Math.min(offsetSamples + windowSamples, audio.length);
     const slice = audio.subarray(offsetSamples, end);
-    // Pyannote expects exactly windowSamples; pad with zeros if shorter
     let inputSlice = slice;
-    if (slice.length < windowSamples) {
+    if (slice.length < windowSamples && totalWindows > 1) {
       inputSlice = new Float32Array(windowSamples);
       inputSlice.set(slice, 0);
     }
+    const offsetS = offsetSamples / sampleRate;
+    const isFirst = offsetSamples === 0;
+    const isLast = end >= audio.length;
+    const coreStart = isFirst ? 0 : offsetS + halfOverlapS;
+    const coreEnd = isLast ? durationS : offsetS + WINDOW_S - halfOverlapS;
     try {
-      const segs = await diarizeWindow(inputSlice);
-      const offsetS = offsetSamples / sampleRate;
-      // Re-anchor window-local times to recording-global times. We also
-      // namespace the local speaker id by window so cross-window IDs
-      // collide intentionally — they get unified by the merge pass below
-      // when temporally adjacent. If two adjacent windows independently
-      // assigned the SAME local id (e.g. both saw "speaker 0"), they
-      // probably ARE the same person, and the merge keeps it that way.
+      const segs = (await diarizeWindow(inputSlice)).map(s => ({
+        ...s,
+        start: offsetS + s.start,
+        end: Math.min(offsetS + s.end, durationS),
+      })).filter(s => s.end > s.start);
+
+      // Link each window-local speaker to a global id.
+      const locals = [...new Set(segs.flatMap(s => s.local))];
+      const map = new Map<number, string>();
+      const used = new Set<string>();
+      // Order: most airtime first so the strongest evidence links first.
+      const air = (l: number) => segs.filter(s => s.local.length === 1 && s.local[0] === l).reduce((t, s) => t + s.end - s.start, 0);
+      locals.sort((a, b) => air(b) - air(a));
+      for (const l of locals) {
+        const solo = segs.filter(s => s.local.length === 1 && s.local[0] === l);
+        // (1) shared time with already-placed global segments (overlap zone)
+        const shared = new Map<string, number>();
+        for (const s of solo) {
+          for (const g of prevFull) {
+            const o = Math.min(s.end, g.end) - Math.max(s.start, g.start);
+            if (o > 0) shared.set(g.speaker, (shared.get(g.speaker) ?? 0) + o);
+          }
+        }
+        let pick: string | null = null;
+        let best = LINK_OVERLAP_S;
+        for (const [g, o] of shared) if (!used.has(g) && o >= best) { best = o; pick = g; }
+        const v = solo.length ? voiceOf(audio, solo) : null;
+        // A time link loses to the voice when the voice clearly disagrees
+        // (pyannote's window edges can briefly put the wrong person there).
+        if (pick && v && !v.unreliable && voices.get(pick) && !voices.get(pick)!.f.unreliable) {
+          const dPick = voiceDistance(v, voices.get(pick)!.f);
+          for (const [g, gv] of voices) {
+            if (g === pick || used.has(g) || gv.f.unreliable) continue;
+            const d = voiceDistance(v, gv.f);
+            if (dPick > NEW_SPEAKER_DISTANCE && d < dPick / 2) pick = g;
+          }
+        }
+        // (2) closest voice
+        if (!pick && v && !v.unreliable) {
+          let bestD = Infinity;
+          for (const [g, gv] of voices) {
+            if (used.has(g)) continue;
+            const d = voiceDistance(v, gv.f);
+            if (d < bestD) { bestD = d; pick = g; }
+          }
+          if (pick && bestD > NEW_SPEAKER_DISTANCE && voices.size < maxSpeakers) pick = null;
+        }
+        // (3) new speaker
+        if (!pick) {
+          if (voices.size >= maxSpeakers && voices.size > 0) {
+            pick = [...voices.keys()].find(g => !used.has(g)) ?? [...voices.keys()][0];
+          } else {
+            pick = String(nextGlobal++);
+          }
+        }
+        used.add(pick);
+        map.set(l, pick);
+        if (v && !v.unreliable) {
+          const cur = voices.get(pick);
+          if (!cur) voices.set(pick, { f: v, n: 1 });
+          else {
+            const n = cur.n + 1;
+            cur.f = {
+              f0: (cur.f.f0 * cur.n + v.f0) / n,
+              centroid: (cur.f.centroid * cur.n + v.centroid) / n,
+              rolloff: (cur.f.rolloff * cur.n + v.rolloff) / n,
+              zcr: (cur.f.zcr * cur.n + v.zcr) / n,
+              unreliable: false,
+            };
+            cur.n = n;
+          }
+        } else if (!voices.has(pick)) {
+          voices.set(pick, { f: { f0: 0, centroid: 0, rolloff: 0, zcr: 0, unreliable: true }, n: 0 });
+        }
+      }
+
+      prevFull = segs.filter(s => s.local.length === 1).map(s => ({ speaker: map.get(s.local[0])!, start: s.start, end: s.end }));
+
+      // Keep only this window's core span.
       for (const s of segs) {
-        const trueEnd = Math.min(offsetS + s.end, audio.length / sampleRate);
-        if (trueEnd - (offsetS + s.start) < MIN_SEG_DURATION_S) continue;
-        all.push({
-          speaker: s.speaker,
-          start: offsetS + s.start,
-          end: trueEnd,
-          confidence: s.confidence,
-        });
+        const a = Math.max(s.start, coreStart);
+        const b = Math.min(s.end, coreEnd);
+        if (b <= a) continue;
+        for (const l of s.local) {
+          all.push({ speaker: map.get(l)!, start: a, end: b, confidence: s.confidence, ...(s.local.length > 1 ? { overlap: true } : {}) });
+        }
       }
     } catch (err) {
       logger.swallow(`diarization:window-${windowIndex}`, err, "warn");
@@ -267,7 +391,7 @@ export async function diarize(
       progress: Math.round((windowIndex / totalWindows) * 100),
       message: `Identifying speakers... ${windowIndex}/${totalWindows}`,
     });
-    if (end >= audio.length) break;
+    if (isLast) break;
   }
 
   return postProcess(all, options.expectedSpeakers);
@@ -280,8 +404,11 @@ export async function diarize(
  * (0, 1, 2 instead of arbitrary internal IDs).
  */
 function postProcess(segments: DiarizationSegment[], expectedSpeakers?: number): DiarizationSegment[] {
+  // Crosstalk markers are kept as-is (short overlaps are still meaningful);
+  // only solo segments go through sliver-dropping and merging.
+  const overlaps = segments.filter(s => s.overlap);
   // Drop slivers
-  const filtered = segments.filter(s => s.end - s.start >= MIN_SEG_DURATION_S);
+  const filtered = segments.filter(s => !s.overlap && s.end - s.start >= MIN_SEG_DURATION_S);
 
   // Merge same-speaker adjacent
   let merged = mergeAdjacent(filtered);
@@ -302,7 +429,10 @@ function postProcess(segments: DiarizationSegment[], expectedSpeakers?: number):
       remap.set(seg.speaker, String(nextId++));
     }
   }
-  return merged.map(s => ({ ...s, speaker: remap.get(s.speaker) ?? s.speaker }));
+  return [...merged, ...overlaps]
+    .filter(s => remap.has(s.speaker))
+    .map(s => ({ ...s, speaker: remap.get(s.speaker)! }))
+    .sort((a, b) => a.start - b.start);
 }
 
 /**

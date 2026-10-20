@@ -90,7 +90,14 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     const detected = detectSpeechTier();
     setTier(diarizationEnabled ? "whisper" : detected);
     return () => {
-      if (recognitionRef.current) { try { recognitionRef.current.stop(); } catch (e) { logger.swallow("dictation:recognition-stop-cleanup", e); } }
+      // Clear the "keep recording" flag first, or the recognizer's "end"
+      // handler restarts it after the page is gone and the mic stays on.
+      recordingRef.current = false;
+      if (recognitionRef.current) {
+        const ref = recognitionRef.current;
+        recognitionRef.current = null;
+        try { ref.stop(); } catch (e) { logger.swallow("dictation:recognition-stop-cleanup", e); }
+      }
       if (mediaRecorderRef.current?.state === "recording") { try { mediaRecorderRef.current.stop(); } catch (e) { logger.swallow("dictation:media-stop-cleanup", e, "trace"); } }
       if (timerRef.current) clearInterval(timerRef.current);
     };
