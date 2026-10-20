@@ -1,5 +1,7 @@
 "use client";
 
+import { createIncidentEnhancedOffline, isPendingSync } from "@/lib/offline/with-offline";
+
 import { useState, useEffect } from "react";
 import {
   AlertTriangle,
@@ -15,7 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  createIncidentEnhanced,
   updateIncident,
   loadStoryboard,
   saveStoryboard,
@@ -182,7 +183,7 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
         } catch (e) { console.error("Failed to save incident pin:", e); }
       }
 
-      const inc = await createIncidentEnhanced(activeCompanyId, {
+      const created = await createIncidentEnhancedOffline(activeCompanyId, {
         title: newTitle,
         description: buildDescription(),
         type: newType,
@@ -194,6 +195,12 @@ export function IncidentCreateForm({ activeCompanyId, activeTimesheet, onCreated
         customFields: pickFieldValues(visibleFields, customFields),
       });
 
+      if (isPendingSync(created)) {
+        onCreated();
+        toast.success("No signal. Report saved on this phone and will send automatically.");
+        return;
+      }
+      const inc = created;
       // Update incident with storyboard references if pin was saved
       if (inc?.id && savedStoryboardId && savedPinId) {
         try {

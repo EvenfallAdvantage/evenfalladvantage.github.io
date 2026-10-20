@@ -1,5 +1,9 @@
 "use client";
 
+import { cachedRead, isOffline } from "@/lib/offline/cached-read";
+import { logPatrolScanOffline, isPendingSync } from "@/lib/offline/with-offline";
+import { toast } from "sonner";
+
 import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { timeAgo } from "@/lib/utils";
 import { formatMemberName } from "@/lib/format-names";
@@ -31,7 +35,6 @@ import {
   getPatrolRoutes,
   createPatrolRoute,
   deletePatrolRoute,
-  logPatrolScan,
   getPatrolLogs,
 } from "@/lib/supabase/db";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -94,11 +97,11 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
   const load = useCallback(async () => {
     if (!activeCompanyId) return;
     try {
-      const [cp, rt, lg] = await Promise.all([
+      const [cp, rt, lg] = await cachedRead(`patrols:${activeCompanyId}`, () => Promise.all([
         getCheckpoints(activeCompanyId),
         getPatrolRoutes(activeCompanyId),
         getPatrolLogs(activeCompanyId, 50),
-      ]);
+      ]));
       setCheckpoints(cp);
       setRoutes(rt);
       setLogs(lg);
@@ -123,17 +126,20 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
     if (!selectedCheckpoint || !activeCompanyId) return;
     setScanning(true);
     try {
-      const result = await logPatrolScan(activeCompanyId, selectedCheckpoint, {
+      const result = await logPatrolScanOffline(activeCompanyId, selectedCheckpoint, {
         routeId: selectedRoute || undefined,
         notes: buildScanNotes(),
         status: scanStatus,
       });
-      setLastScan(result);
+      if (isPendingSync(result)) {
+        toast.success("Scan saved offline. It will sync with the time you scanned.");
+        setLastScan({ id: result.__mutationId, checkpoint_id: selectedCheckpoint, status: scanStatus, scanned_at: new Date().toISOString(), __pendingSync: true } as unknown as PatrolLog);
+      } else setLastScan(result);
       setScanNote(""); setScanStatus("ok");
       setScanWeather(""); setScanLighting(""); setDoorStatus("");
       setScanObservations([]); setShowScanDetails(false);
-      await load();
-    } catch { /* */ } finally { setScanning(false); }
+      if (!isOffline()) await load();
+    } catch { toast.error("Scan failed. Try again."); } finally { setScanning(false); }
   }
 
   async function handleCreateCheckpoint() {

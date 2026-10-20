@@ -96,19 +96,21 @@ export async function deletePatrolRoute(routeId: string) {
 
 export async function logPatrolScan(companyId: string, checkpointId: string, params?: {
   routeId?: string; notes?: string; status?: string;
+  /** Client id + time captured at scan, so an offline replay keeps the real time and can't duplicate. */
+  id?: string; scannedAt?: string;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
   const supabase = createClient();
   const { data, error } = await supabase.from("patrol_logs").insert({
-    id: crypto.randomUUID(),
+    id: params?.id ?? crypto.randomUUID(),
     company_id: companyId,
     checkpoint_id: checkpointId,
     user_id: userId,
     route_id: params?.routeId ?? null,
     notes: params?.notes ?? null,
     status: params?.status ?? "ok",
-    scanned_at: new Date().toISOString(),
+    scanned_at: params?.scannedAt ?? new Date().toISOString(),
     created_at: new Date().toISOString(),
   }).select().maybeSingle();
   if (error) throw error;

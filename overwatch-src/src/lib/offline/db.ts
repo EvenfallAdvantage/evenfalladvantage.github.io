@@ -37,7 +37,11 @@ export type MutationKind =
   | "task.comment"
   | "task.checklist.add"
   | "task.checklist.toggle"
-  | "public_report.submit";
+  | "public_report.submit"
+  | "patrol.scan"
+  | "timesheet.clock_in"
+  | "timesheet.clock_out"
+  | "panic.trigger";
 
 /**
  * Generic shape: each kind's payload mirrors the arguments of the matching

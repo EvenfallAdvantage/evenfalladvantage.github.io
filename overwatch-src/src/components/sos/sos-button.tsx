@@ -36,9 +36,14 @@ export function SosButton({ companyId, className }: { companyId: string; classNa
     firedRef.current = true;
     (async () => {
       try {
-        const { triggerPanicAlert } = await import("@/lib/supabase/db-panic");
-        const id = await triggerPanicAlert(companyId);
-        if (id) { send({ type: "SENT", alertId: id }); haptic(300); toast.success("SOS sent. Supervisors are being alerted.", { duration: 8000 }); }
+        const { triggerPanicAlertDetailed } = await import("@/lib/supabase/db-panic");
+        const { id, queued } = await triggerPanicAlertDetailed(companyId);
+        if (id && queued) {
+          send({ type: "SENT", alertId: id }); haptic(300);
+          toast.error("NO SIGNAL: SOS saved and will send the moment you reconnect. Call 911 if you can.", {
+            duration: 30000, action: { label: "Call 911", onClick: () => { window.location.href = "tel:911"; } },
+          });
+        } else if (id) { send({ type: "SENT", alertId: id }); haptic(300); toast.success("SOS sent. Supervisors are being alerted.", { duration: 8000 }); }
         else { send({ type: "SEND_FAILED" }); toast.error("SOS failed to send. Call your supervisor or 911."); }
       } catch {
         send({ type: "SEND_FAILED" }); toast.error("SOS failed to send. Call your supervisor or 911.");

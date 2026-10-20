@@ -82,7 +82,7 @@ export async function clockIn(params?: {
       id: params?.id ?? crypto.randomUUID(),
       user_id: userId,
       clock_in: params?.at ?? new Date().toISOString(),
-      clock_method: "app",
+      clock_method: params?.at ? "app_offline" : "app",
       shift_id: params?.shiftId ?? null,
       event_id: params?.eventId ?? null,
       company_id: companyId,
