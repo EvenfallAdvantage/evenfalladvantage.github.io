@@ -31,6 +31,7 @@ import { RecentWatchLog } from "@/components/timeclock/recent-watch-log";
 import { ShiftDetailModal } from "@/components/timeclock/shift-detail-modal";
 import { BreakTracker } from "@/components/timeclock/break-tracker";
 import { ClockInModal } from "@/components/timeclock/clock-in-modal";
+import { DarSignoffModal } from "@/components/dar-signoff-modal";
 import { logger } from "@/lib/logger";
 
 const ScanPage = dynamic(() => import("@/app/scan/page"), { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
@@ -73,6 +74,7 @@ function TimeClockInner() {
   const [selectedEntry, setSelectedEntry] = useState<Timesheet | null>(null);
   // Smart clock-in state
   const [showClockInModal, setShowClockInModal] = useState(false);
+  const [darTimesheetId, setDarTimesheetId] = useState<string | null>(null);
   const [detectedShifts, setDetectedShifts] = useState<Shift[]>([]);
   const [loadingShifts, setLoadingShifts] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
@@ -224,7 +226,7 @@ function TimeClockInner() {
         writeCache(`timeclock:${activeCompanyId ?? "none"}`, [null, recent]);
         setActive(null);
         toast.success("Clocked out offline. It will sync with the time you tapped.");
-      } else { await load(); toast.success("Clocked out"); }
+      } else { const sheetId = active.id; await load(); toast.success("Clocked out"); setDarTimesheetId(sheetId); }
     } catch (err) { console.error("Clock out failed:", err); toast.error("Clock out failed"); } finally { setActing(false); }
   }
 
@@ -293,6 +295,15 @@ function TimeClockInner() {
         <ShiftDetailModal entry={selectedEntry} companyId={companyId} onClose={() => setSelectedEntry(null)} />
       )}
 
+      <DarSignoffModal
+        key={darTimesheetId ?? "none"}
+        open={!!darTimesheetId}
+        onClose={() => setDarTimesheetId(null)}
+        timesheetId={darTimesheetId}
+        companyId={activeCompanyId}
+        userId={authUser?.id ?? null}
+        defaultName={`${authUser?.firstName ?? ""} ${authUser?.lastName ?? ""}`.trim()}
+      />
       {showClockInModal && (
         <ClockInModal
           detectedShifts={detectedShifts} loadingShifts={loadingShifts} acting={acting}
