@@ -98,11 +98,14 @@ export async function logPatrolScan(companyId: string, checkpointId: string, par
   routeId?: string; notes?: string; status?: string;
   /** Client id + time captured at scan, so an offline replay keeps the real time and can't duplicate. */
   id?: string; scannedAt?: string;
+  method?: "qr" | "nfc" | "link" | "manual";
+  lat?: number | null; lng?: number | null; accuracy?: number | null;
+  gpsVerified?: boolean | null; distanceM?: number | null;
 }) {
   const userId = await ensureInternalUser();
   if (!userId) throw new Error("Not authenticated");
   const supabase = createClient();
-  const { data, error } = await supabase.from("patrol_logs").insert({
+  const row = {
     id: params?.id ?? crypto.randomUUID(),
     company_id: companyId,
     checkpoint_id: checkpointId,
@@ -110,9 +113,18 @@ export async function logPatrolScan(companyId: string, checkpointId: string, par
     route_id: params?.routeId ?? null,
     notes: params?.notes ?? null,
     status: params?.status ?? "ok",
+    scan_lat: params?.lat ?? null,
+    scan_lng: params?.lng ?? null,
+    gps_verified: params?.gpsVerified ?? null,
     scanned_at: params?.scannedAt ?? new Date().toISOString(),
     created_at: new Date().toISOString(),
-  }).select().maybeSingle();
+  };
+  const extra = params?.method ? { scan_method: params.method, scan_accuracy_m: params.accuracy ?? null, scan_distance_m: params.distanceM ?? null } : {};
+  let { data, error } = await supabase.from("patrol_logs").insert({ ...row, ...extra }).select().maybeSingle();
+  // Before migration 20261020034000 the scan_method columns don't exist: retry without them.
+  if (error && params?.method && (error.code === "PGRST204" || error.code === "42703")) {
+    ({ data, error } = await supabase.from("patrol_logs").insert(row).select().maybeSingle());
+  }
   if (error) throw error;
   return data;
 }
@@ -127,4 +139,10 @@ export async function getPatrolLogs(companyId: string, limit = 50) {
     .limit(limit);
   if (error) { logDbReadError("patrol logs", error); return []; }
   return data ?? [];
+}
+
+/** Pin a checkpoint to the admin's current GPS position (used for scan verification). */
+export async function setCheckpointLocation(checkpointId: string, lat: number, lng: number) {
+  const { error } = await createClient().from("checkpoints").update({ lat, lng }).eq("id", checkpointId);
+  if (error) throw error;
 }

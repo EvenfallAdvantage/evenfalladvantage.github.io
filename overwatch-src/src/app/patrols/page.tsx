@@ -38,6 +38,11 @@ import {
   getPatrolLogs,
 } from "@/lib/supabase/db";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { TagScanPanel, QrPrintSheet } from "@/components/patrol/tag-scan";
+import { setCheckpointLocation } from "@/lib/supabase/db-checkpoints";
+import { nfcSupported, writeNfcUrl } from "@/lib/patrol/nfc";
+import { checkpointUrl } from "@/lib/patrol/checkpoint-code";
+import { Printer, Nfc, LocateFixed, ShieldCheck, ShieldAlert } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Checkpoint = any;
@@ -93,6 +98,8 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
   const [rtDesc, setRtDesc] = useState("");
   const [rtFreq, setRtFreq] = useState("60");
   const [rtCheckpoints, setRtCheckpoints] = useState<string[]>([]);
+  const [showQrSheet, setShowQrSheet] = useState(false);
+  const [showManual, setShowManual] = useState(false);
 
   const load = useCallback(async () => {
     if (!activeCompanyId) return;
@@ -130,6 +137,7 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
         routeId: selectedRoute || undefined,
         notes: buildScanNotes(),
         status: scanStatus,
+        method: "manual",
       });
       if (isPendingSync(result)) {
         toast.success("Scan saved offline. It will sync with the time you scanned.");
@@ -250,8 +258,16 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
             {/* SCAN TAB */}
             {tab === "scan" && (
               <div className="space-y-4">
+                {activeCompanyId && (
+                  <TagScanPanel companyId={activeCompanyId} checkpoints={checkpoints} routes={routes} logs={logs} onLogged={load} />
+                )}
+                <button type="button" onClick={() => setShowManual((v) => !v)} aria-expanded={showManual} style={{ minHeight: 44 }}
+                  className="w-full rounded-lg border border-dashed border-border px-3 text-left text-xs text-muted-foreground">
+                  {showManual ? "Hide manual entry" : "No tag? Log a checkpoint manually"}
+                </button>
+                {showManual && (
                 <Card>
-                  <CardHeader><CardTitle className="text-base flex items-center gap-2"><ScanLine className="h-5 w-5 text-emerald-500" /> Log Checkpoint Scan</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-base flex items-center gap-2"><ScanLine className="h-5 w-5 text-emerald-500" /> Manual Checkpoint Entry</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div>
                       <label htmlFor="patrol-checkpoint" className="text-xs font-medium text-muted-foreground">Checkpoint *</label>
@@ -392,6 +408,7 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
                     )}
                   </CardContent>
                 </Card>
+                )}
 
                 {/* Recent Scans */}
                 <div>
@@ -417,6 +434,7 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
                             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeAgo(log.scanned_at)}</span>
                             {log.checkpoints?.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{log.checkpoints.location}</span>}
                           </div>
+                          <ScanBadges log={log} />
                           {log.notes && <p className="text-xs text-muted-foreground mt-0.5 italic">{log.notes}</p>}
                         </div>
                       </div>
@@ -430,6 +448,12 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
             {/* CHECKPOINTS TAB */}
             {tab === "checkpoints" && (
               <div className="space-y-4">
+                {checkpoints.length > 0 && (
+                  <Button variant="outline" onClick={() => setShowQrSheet(true)} className="h-11 w-full gap-2">
+                    <Printer className="h-4 w-4" /> Print QR sheet ({checkpoints.length})
+                  </Button>
+                )}
+                {showQrSheet && <QrPrintSheet checkpoints={checkpoints} companyName={activeCompany?.companyName} onClose={() => setShowQrSheet(false)} />}
                 {isAdmin && (
                   <Card>
                     <CardHeader><CardTitle className="text-base">Add Checkpoint</CardTitle></CardHeader>
@@ -460,7 +484,29 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
                             <span className="text-[10px] font-mono text-muted-foreground/60">{cp.qr_code}</span>
                           </div>
                           {cp.description && <p className="text-xs text-muted-foreground mt-0.5">{cp.description}</p>}
+                          <span className={`mt-1 inline-flex items-center gap-1 text-[10px] ${(cp.lat ?? cp.location_lat) != null ? "text-emerald-500" : "text-muted-foreground"}`}>
+                            <LocateFixed className="h-3 w-3" />{(cp.lat ?? cp.location_lat) != null ? "GPS pinned" : "No GPS pin. Scans can't be location-verified."}
+                          </span>
                         </div>
+                        {isAdmin && (
+                          <div className="flex flex-col gap-1">
+                            <Button variant="ghost" size="sm" className="h-11 gap-1 text-xs" aria-label={`Pin GPS for ${cp.name} here`} onClick={() => {
+                              if (!navigator.geolocation) { toast.error("No GPS on this device"); return; }
+                              navigator.geolocation.getCurrentPosition(async (p) => {
+                                if (p.coords.accuracy > 50 && !await confirm({ description: `GPS accuracy is only ±${Math.round(p.coords.accuracy)} m. Pin anyway?` })) return;
+                                try { await setCheckpointLocation(cp.id, p.coords.latitude, p.coords.longitude); toast.success(`${cp.name} pinned here`); await load(); }
+                                catch { toast.error("Couldn't save the pin"); }
+                              }, () => toast.error("Couldn't get your location"), { enableHighAccuracy: true, timeout: 10000 });
+                            }}><LocateFixed className="h-4 w-4" />Pin here</Button>
+                            {nfcSupported() && (
+                              <Button variant="ghost" size="sm" className="h-11 gap-1 text-xs" onClick={async () => {
+                                toast.info("Hold a blank NFC tag to the back of the phone…");
+                                try { await writeNfcUrl(checkpointUrl(window.location.origin, cp.qr_code)); toast.success("Tag written"); }
+                                catch (e) { toast.error((e as Error)?.message || "Couldn't write tag"); }
+                              }}><Nfc className="h-4 w-4" />Write tag</Button>
+                            )}
+                          </div>
+                        )}
                         {isAdmin && (
                           <Button variant="ghost" size="sm" className="text-red-500" onClick={async () => {
                             const referencingRoutes = routes.filter((rt: PatrolRoute) =>
@@ -595,6 +641,7 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
                         <span className="flex items-center gap-1"><User className="h-3 w-3" />{formatMemberName(log.users ?? {})}</span>
                         <span>{new Date(log.scanned_at).toLocaleString()}</span>
                       </div>
+                      <ScanBadges log={log} />
                       {log.notes && <p className="text-xs text-muted-foreground mt-0.5 italic">{log.notes}</p>}
                     </div>
                     <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${
@@ -619,5 +666,17 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
       </div>
       <ConfirmDialog />
     </PatrolsBoundary>
+  );
+}
+
+function ScanBadges({ log }: { log: PatrolLog }) {
+  const m = log.scan_method as string | undefined;
+  if (!m && log.gps_verified == null) return null;
+  return (
+    <span className="mt-0.5 inline-flex flex-wrap gap-1 text-[10px]" data-testid="scan-badges">
+      {m && <span className={`rounded px-1.5 py-0.5 ${m === "manual" ? "bg-amber-500/15 text-amber-400" : "bg-sky-500/15 text-sky-400"}`}>{m === "manual" ? "Manual" : m.toUpperCase()}</span>}
+      {log.gps_verified === true && <span className="inline-flex items-center gap-0.5 rounded bg-emerald-500/15 px-1.5 py-0.5 text-emerald-400"><ShieldCheck className="h-3 w-3" />On spot</span>}
+      {log.gps_verified === false && <span className="inline-flex items-center gap-0.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-amber-400"><ShieldAlert className="h-3 w-3" />Off spot{log.scan_distance_m != null ? ` · ${log.scan_distance_m} m` : ""}</span>}
+    </span>
   );
 }
