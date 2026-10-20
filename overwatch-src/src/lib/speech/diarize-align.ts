@@ -53,6 +53,10 @@ function assignSpeaker(
   previousSpeaker: string | null,
 ): string {
   if (segments.length === 0) return "0";
+  // Crosstalk markers (two speakers at once) don't say who owns a word;
+  // use solo segments when any exist.
+  const solo = segments.filter(s => !s.overlap);
+  if (solo.length > 0) segments = solo;
 
   let bestSpeaker = segments[0].speaker;
   let bestOverlap = -Infinity;
@@ -116,6 +120,9 @@ function assignSpeaker(
  *   enables acoustic re-matching for higher accuracy at boundary words.
  *   Omit to fall back to pure time-based alignment.
  */
+/** Per-word acoustic re-matching (see stage 2). Off by default. */
+const ACOUSTIC_REMATCH = false;
+
 export function alignWordsToSpeakers(
   words: WhisperWord[],
   segments: DiarizationSegment[],
@@ -140,47 +147,128 @@ export function alignWordsToSpeakers(
   // per-speaker profiles built from confidently-assigned words. Catches
   // the most common alignment bug: boundary words wrongly attributed to
   // the adjacent speaker because pyannote's segment edges aren't perfect.
-  const finalAssignments = audio
+  //
+  // Disabled by default: with the powerset fix in diarization.ts the time
+  // labels are already right, and on test interviews the per-word pitch /
+  // spectral re-match flipped correct words (distinct-voice interview: 5
+  // wrong words with it, 1 without). Sentence smoothing below handles the
+  // boundary-word case instead. Kept behind a flag for experiments.
+  const finalAssignments = audio && ACOUSTIC_REMATCH
     ? acousticRematch(initialAssignments, segments, audio)
     : initialAssignments;
 
-  // Stage 3: group consecutive same-speaker words into turns
+  // Stage 3: sentence smoothing. Speaker changes snap to sentence ends or
+  // real pauses; a sentence is never split between speakers unless the
+  // change happens at crosstalk (an interruption).
+  const smoothed = smoothBySentence(finalAssignments, segments);
+
+  // Stage 4: group consecutive same-speaker words into turns
   const turns: SpeakerTurn[] = [];
-  let groupSpeaker: string | null = null;
-  let groupText: string[] = [];
-  let groupStart = 0;
-  let groupEnd = 0;
-  for (const { word, speaker } of finalAssignments) {
-    if (speaker !== groupSpeaker) {
-      if (groupSpeaker !== null && groupText.length > 0) {
-        turns.push({
-          speaker: groupSpeaker,
-          text: groupText.join(" ").replace(/\s+/g, " ").trim(),
-          start: groupStart,
-          end: groupEnd,
-        });
-      }
-      groupSpeaker = speaker;
-      groupText = [word.text];
-      groupStart = word.start;
-      groupEnd = word.end;
+  for (const { word, speaker } of smoothed) {
+    const last = turns[turns.length - 1];
+    if (last && last.speaker === speaker) {
+      last.text = (last.text + " " + word.text).replace(/\s+/g, " ").trim();
+      last.end = word.end;
     } else {
-      groupText.push(word.text);
-      groupEnd = word.end;
+      turns.push({ speaker, text: word.text.trim(), start: word.start, end: word.end });
     }
   }
-  if (groupSpeaker !== null && groupText.length > 0) {
-    turns.push({
-      speaker: groupSpeaker,
-      text: groupText.join(" ").replace(/\s+/g, " ").trim(),
-      start: groupStart,
-      end: groupEnd,
-    });
-  }
 
-  // Stage 4: flicker absorption — handles A-B-A patterns where B is
-  // brief (typically a noise misclassification).
-  return absorbFlickerTurns(turns);
+  // Stage 5: flicker absorption, re-merge, then mark interruptions.
+  return markInterruptions(mergeSameSpeaker(absorbFlickerTurns(turns)), segments);
+}
+
+/** Pause (s) between words that counts as a sentence break even without punctuation. */
+const SENTENCE_PAUSE_S = 0.6;
+/** How close (s) a speaker change must be to crosstalk to allow a mid-sentence split. */
+const CROSSTALK_SLACK_S = 0.5;
+
+function nearCrosstalk(t: number, segments: DiarizationSegment[]): boolean {
+  return segments.some(s => s.overlap && t >= s.start - CROSSTALK_SLACK_S && t <= s.end + CROSSTALK_SLACK_S);
+}
+
+/**
+ * Give every sentence a single speaker (duration-weighted vote of its words).
+ * Fixes "last word of the sentence goes to the next speaker": Whisper's
+ * final-word timestamp often runs into the following pause/turn, so the
+ * time-based label of that one word is unreliable while the rest of the
+ * sentence is not. Exception: when the label change inside a sentence sits
+ * on crosstalk and both sides have ≥2 words, keep the split (interruption).
+ */
+function smoothBySentence(
+  assigned: { word: WhisperWord; speaker: string }[],
+  segments: DiarizationSegment[],
+): { word: WhisperWord; speaker: string }[] {
+  const out: { word: WhisperWord; speaker: string }[] = [];
+  let sentence: { word: WhisperWord; speaker: string }[] = [];
+  const flush = () => {
+    if (sentence.length === 0) return;
+    // Split into runs of same speaker
+    const runs: { word: WhisperWord; speaker: string }[][] = [];
+    for (const a of sentence) {
+      const r = runs[runs.length - 1];
+      if (r && r[0].speaker === a.speaker) r.push(a); else runs.push([a]);
+    }
+    // Keep interruption boundaries; vote within each piece.
+    const pieces: { word: WhisperWord; speaker: string }[][] = [[]];
+    for (let i = 0; i < runs.length; i++) {
+      const cur = pieces[pieces.length - 1];
+      if (i > 0 && cur.length >= 2 && runs[i].length >= 2 && nearCrosstalk(runs[i][0].word.start, segments)) {
+        pieces.push([...runs[i]]);
+      } else {
+        cur.push(...runs[i]);
+      }
+    }
+    for (const p of pieces) {
+      const vote = new Map<string, number>();
+      for (const a of p) vote.set(a.speaker, (vote.get(a.speaker) ?? 0) + Math.max(0.05, a.word.end - a.word.start));
+      let win = p[0].speaker; let best = -1;
+      for (const [sp, v] of vote) if (v > best) { best = v; win = sp; }
+      for (const a of p) out.push({ word: a.word, speaker: win });
+    }
+    sentence = [];
+  };
+  for (let i = 0; i < assigned.length; i++) {
+    const a = assigned[i];
+    const next = assigned[i + 1];
+    sentence.push(a);
+    const endsSentence = /[.?!]["')\]]*$/.test(a.word.text);
+    const pause = next ? next.word.start - a.word.end >= SENTENCE_PAUSE_S : true;
+    if (endsSentence || pause || !next) flush();
+  }
+  flush();
+  return out;
+}
+
+/** Merge consecutive turns that ended up with the same speaker. */
+function mergeSameSpeaker(turns: SpeakerTurn[]): SpeakerTurn[] {
+  const out: SpeakerTurn[] = [];
+  for (const t of turns) {
+    const last = out[out.length - 1];
+    if (last && last.speaker === t.speaker) {
+      last.text = (last.text + " " + t.text).replace(/\s+/g, " ").trim();
+      last.end = Math.max(last.end, t.end);
+    } else out.push({ ...t });
+  }
+  return out;
+}
+
+/**
+ * Where one speaker takes over during crosstalk, end the cut-off turn with
+ * an em dash (if it had no sentence-ending punctuation) and prefix the
+ * next turn with "[crosstalk]". No words are added or removed.
+ */
+function markInterruptions(turns: SpeakerTurn[], segments: DiarizationSegment[]): SpeakerTurn[] {
+  if (!segments.some(s => s.overlap)) return turns;
+  for (let i = 1; i < turns.length; i++) {
+    const prev = turns[i - 1];
+    const cur = turns[i];
+    const hit = segments.some(s => s.overlap && s.start <= cur.start + CROSSTALK_SLACK_S && s.end >= prev.end - CROSSTALK_SLACK_S - 1);
+    if (!hit) continue;
+    if (!/[.?!]$/.test(prev.text)) prev.text = prev.text.replace(/[,;:]$/, "") + "—";
+    if (!cur.text.startsWith("[crosstalk]")) cur.text = "[crosstalk] " + cur.text;
+  }
+  return turns;
 }
 
 /**
