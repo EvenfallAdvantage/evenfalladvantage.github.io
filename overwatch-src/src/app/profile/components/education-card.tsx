@@ -121,10 +121,10 @@ export function EducationCard({ mp, onMpChange }: Props) {
                     {entry.startYear}{entry.endYear ? ` - ${entry.endYear}` : ""}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setEditing(idx); setForm(entry); }}>
+                <Button variant="ghost" size="sm" aria-label="Edit entry" className="h-7 w-7 p-0" onClick={() => { setEditing(idx); setForm(entry); }}>
                   <Pencil className="h-3 w-3" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteEntry(idx)}>
+                <Button variant="ghost" size="sm" aria-label="Delete entry" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteEntry(idx)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>

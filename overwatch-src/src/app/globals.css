@@ -241,6 +241,22 @@ button, [role="button"], a[href] {
   }
 }
 
+/* Keyboard focus: a visible ring on interactive elements (zero specificity,
+   so components with their own focus styles still win). */
+:where(a, button, [role="tab"], [role="button"], [role="switch"], summary, input, select, textarea):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Large text / field mode (Profile → Display). lib/field-mode.ts */
+html.ow-field-mode { font-size: 112.5%; }
+html.ow-field-mode .text-\[8px\], html.ow-field-mode .text-\[9px\],
+html.ow-field-mode .text-\[10px\], html.ow-field-mode .text-\[11px\],
+html.ow-field-mode .text-\[12px\] { font-size: 13px !important; line-height: 1.35; }
+html.ow-field-mode { --muted-foreground: oklch(0.40 0.02 240); }
+html.ow-field-mode.dark, html.ow-field-mode .dark { --muted-foreground: oklch(0.78 0.02 240); }
+html.ow-field-mode [class*="text-muted-foreground/"] { color: var(--muted-foreground) !important; }
+
 /* Reduced motion: respect user preference for vestibular disorders */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

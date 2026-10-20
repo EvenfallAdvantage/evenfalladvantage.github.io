@@ -14,6 +14,7 @@ import { GuardCardWarning } from "./components/guard-card-warning";
 import { OnboardingChecklist } from "./components/onboarding-checklist";
 import { PersonalProfileCard } from "./components/personal-profile-card";
 import { NotificationPreferencesCard } from "./components/notification-preferences-card";
+import { DisplayCard } from "./components/display-card";
 import { RadioStatesCard } from "./components/radio-states-card";
 import { EducationCard } from "./components/education-card";
 import { WorkHistoryCard } from "./components/work-history-card";
@@ -118,6 +119,8 @@ export default function ProfilePage() {
                 activeCompanyId={activeCompanyId}
               />
             )}
+
+            <DisplayCard />
 
             {activeCompanyId && (
               <RadioStatesCard activeCompanyId={activeCompanyId} />

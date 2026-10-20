@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { FIELD_MODE_BOOT } from "@/lib/field-mode";
 import { Oswald, Barlow } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { AppShell } from "@/components/app-shell";
@@ -68,6 +69,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={`${oswald.variable} ${barlow.variable}`}>
       <head>
+        {/* Field mode (large text) before first paint; see lib/field-mode.ts */}
+        <script dangerouslySetInnerHTML={{ __html: FIELD_MODE_BOOT }} />
         {/*
           NIST 800-171 §3.13 — Content Security Policy
 

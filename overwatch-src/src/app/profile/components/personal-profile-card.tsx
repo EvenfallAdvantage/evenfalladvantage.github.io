@@ -105,7 +105,7 @@ export function PersonalProfileCard({ user, onUserChange, mp, onMpChange, mpLoad
           <p className="text-[10px] text-muted-foreground mt-0.5">Synced across all your companies</p>
         </div>
         {!editing && !editingCompany && (
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={startEdit}>
+          <Button variant="ghost" size="sm" aria-label="Edit profile" className="h-7 w-7 p-0" onClick={startEdit}>
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         )}

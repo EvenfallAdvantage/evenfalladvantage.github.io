@@ -123,10 +123,10 @@ export function WorkHistoryCard({ mp, onMpChange }: Props) {
                   </p>
                   {entry.description && <p className="text-xs text-muted-foreground mt-0.5">{entry.description}</p>}
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 shrink-0" onClick={() => { setEditing(idx); setForm(entry); }}>
+                <Button variant="ghost" size="sm" aria-label="Edit entry" className="h-7 w-7 p-0 shrink-0" onClick={() => { setEditing(idx); setForm(entry); }}>
                   <Pencil className="h-3 w-3" />
                 </Button>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive shrink-0" onClick={() => deleteEntry(idx)}>
+                <Button variant="ghost" size="sm" aria-label="Delete entry" className="h-7 w-7 p-0 text-destructive shrink-0" onClick={() => deleteEntry(idx)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
