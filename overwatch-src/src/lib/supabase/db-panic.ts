@@ -105,7 +105,7 @@ export async function triggerPanicAlert(companyId: string): Promise<string | nul
               title: "SOS ALERT",
               body: "A team member has triggered an emergency alert. Respond immediately.",
               type: "panic_alert",
-              actionUrl: `/admin/events?panic=${id}`,
+              actionUrl: `/feed/?panic=${id}`,
               urgent: true,
             }
           ).catch(() => {});
@@ -212,4 +212,105 @@ export async function getPanicAlertHistory(companyId: string, limit = 50): Promi
     escalated: a.escalated ?? false,
     createdAt: a.created_at,
   }));
+}
+
+// ─── SOS hardening (live location, self-cancel, escalation, realtime) ───
+
+/**
+ * Sender marks their own active alert as a false alarm ("I'm safe").
+ * Needs the `panic_update_own` policy from migration 20261019200000_sos_hardening.
+ */
+export async function cancelOwnPanicAlert(alertId: string): Promise<boolean> {
+  const userId = await ensureInternalUser();
+  if (!userId) return false;
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("panic_alerts")
+    .update({ status: "false_alarm", updated_at: new Date().toISOString() })
+    .eq("id", alertId)
+    .eq("user_id", userId)
+    .in("status", ["active", "acknowledged"]);
+  return !error;
+}
+
+/** Append one live-location point for an active alert (sender only). */
+export async function recordPanicLocation(
+  alertId: string, companyId: string, pos: { lat: number; lng: number; accuracy: number | null },
+): Promise<boolean> {
+  const userId = await ensureInternalUser();
+  if (!userId) return false;
+  const supabase = createClient();
+  const { error } = await supabase.from("panic_alert_locations").insert({
+    alert_id: alertId, company_id: companyId, user_id: userId,
+    lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy,
+  });
+  if (error) logDbReadError("panic:location", error);
+  return !error;
+}
+
+export interface PanicTrailPoint { lat: number; lng: number; accuracy: number | null; recordedAt: string }
+
+/** Latest live-location points for an alert, newest first. */
+export async function getPanicTrail(alertId: string, limit = 30): Promise<PanicTrailPoint[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("panic_alert_locations")
+    .select("lat, lng, accuracy, recorded_at")
+    .eq("alert_id", alertId)
+    .order("recorded_at", { ascending: false })
+    .limit(limit);
+  if (error) { logDbReadError("panic:trail", error); return []; }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []).map((p: any) => ({ lat: p.lat, lng: p.lng, accuracy: p.accuracy, recordedAt: p.recorded_at }));
+}
+
+/** Status of one alert (sender polls this to learn it was acknowledged). */
+export async function getPanicAlertStatus(alertId: string): Promise<AlertStatus | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from("panic_alerts").select("status").eq("id", alertId).maybeSingle();
+  if (error) { logDbReadError("panic:status", error); return null; }
+  return (data as { status?: AlertStatus } | null)?.status ?? null;
+}
+
+/**
+ * Escalate an alert nobody acknowledged. The `.eq("escalated", false)` guard
+ * makes this first-writer-wins when several supervisors are online; only the
+ * client whose update matched a row sends the owner/admin notification.
+ */
+export async function escalatePanicAlert(alertId: string, companyId: string): Promise<boolean> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("panic_alerts")
+    .update({ escalated: true, updated_at: new Date().toISOString() })
+    .eq("id", alertId)
+    .eq("status", "active")
+    .eq("escalated", false)
+    .select("id");
+  if (error || !data?.length) return false;
+  const { dispatchToMany } = await import("@/lib/services/notification-dispatcher");
+  const { data: owners } = await supabase
+    .from("company_memberships").select("user_id")
+    .eq("company_id", companyId).in("role", ["owner", "admin"]);
+  if (owners?.length) {
+    await dispatchToMany(companyId, (owners as { user_id: string }[]).map((m) => ({ userId: m.user_id })), {
+      title: "SOS ESCALATED",
+      body: "An SOS alert has not been acknowledged for over a minute. Respond now.",
+      type: "panic_alert", actionUrl: `/feed/?panic=${alertId}`, urgent: true,
+    }).catch(() => {});
+  }
+  return true;
+}
+
+/**
+ * Realtime subscription to panic_alerts for a company. Needs panic_alerts in
+ * the supabase_realtime publication (same migration); callers also poll, so
+ * this is an accelerator, not a dependency.
+ */
+export function subscribePanicAlerts(companyId: string, onChange: () => void): () => void {
+  const supabase = createClient();
+  const ch = supabase
+    .channel(`panic-${companyId}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "panic_alerts", filter: `company_id=eq.${companyId}` }, () => onChange())
+    .subscribe();
+  return () => { supabase.removeChannel(ch); };
 }
