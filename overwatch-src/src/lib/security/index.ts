@@ -268,6 +268,7 @@ export const MIN_PASSWORD_LENGTH = 12;
 // ---------------------------------------------------------------------------
 
 export type SecurityEventType =
+  | "schedule.guard_card_override"
   | "auth.login.success"
   | "auth.login.failed"
   | "auth.logout"

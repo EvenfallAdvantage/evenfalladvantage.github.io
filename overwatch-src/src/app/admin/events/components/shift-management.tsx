@@ -10,6 +10,10 @@ import {
   smartFillShifts, getEventUserCertifications,
 } from "@/lib/supabase/db";
 import { toast } from "sonner";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { getGuardCardExpiries } from "@/lib/supabase/db-compliance";
+import { guardCardStatus } from "@/lib/compliance/guard-card";
+import { logSecurityEvent } from "@/lib/security/audit";
 import { type Shift, fmtTime } from "./shared";
 import type { ShiftManagementProps } from "./shift-management/types";
 import { useShiftDerivedData } from "./shift-management/use-shift-helpers";
@@ -33,6 +37,8 @@ export function ShiftManagement({
   onConflictWarning,
   eventTimezone,
 }: ShiftManagementProps) {
+  const { confirm, ConfirmDialog } = useConfirmDialog();
+
   /* ── Panel visibility state ── */
   const [showBuilder, setShowBuilder] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
@@ -79,6 +85,25 @@ export function ShiftManagement({
     }
     const sh = shifts.find((s: Shift) => s.id === shiftId);
     if (sh) {
+      // Guard card check (company_memberships.guard_card_expiry)
+      try {
+        const exp = (await getGuardCardExpiries(companyId, [userId])).get(userId) ?? null;
+        const card = guardCardStatus(exp, sh.start_time);
+        const who = sortedMembers.find((m) => m.user_id === userId);
+        const name = who ? `${who.users?.first_name ?? ""} ${who.users?.last_name ?? ""}`.trim() || "This officer" : "This officer";
+        if (card === "expired") {
+          const ok = await confirm({
+            title: "Guard card expired",
+            description: `${name}'s guard card expired ${exp ? new Date(exp).toLocaleDateString() : ""}, before this shift starts. Assigning them anyway is logged in the audit trail.`,
+            confirmLabel: "Assign anyway",
+            variant: "destructive",
+          });
+          if (!ok) return;
+          void logSecurityEvent({ event_type: "schedule.guard_card_override", outcome: "success", company_id: companyId, metadata: { shift_id: shiftId, user_id: userId, guard_card_expiry: exp } });
+        } else if (card === "expiring") {
+          toast.warning(`${name}'s guard card expires ${exp ? new Date(exp).toLocaleDateString() : "soon"}.`);
+        }
+      } catch (err) { console.error("Guard card check failed:", err); }
       try {
         const conflicts = await getConflictingShifts(userId, sh.start_time, sh.end_time, shiftId);
         if (conflicts.length > 0) {
@@ -143,6 +168,7 @@ export function ShiftManagement({
 
   return (
     <>
+      <ConfirmDialog />
       {/* Action Buttons */}
       <div className="px-3 sm:px-4 py-2 flex flex-wrap items-center gap-2 border-b border-border/20">
         <Button size="sm" variant={showBuilder ? "default" : "outline"} className="h-7 gap-1.5 text-xs"

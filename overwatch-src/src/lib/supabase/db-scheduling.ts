@@ -94,6 +94,11 @@ export async function smartFillShifts(
 
   if (!members?.length) return [];
 
+  // Guard card expiry: never auto-assign someone whose card is expired at shift start.
+  const { getGuardCardExpiries } = await import("./db-compliance");
+  const { guardCardStatus } = await import("@/lib/compliance/guard-card");
+  const cardExpiry = await getGuardCardExpiries(companyId);
+
   // Get event availability RSVPs.
   const { data: availability } = await supabase
     .from("event_availability")
@@ -195,6 +200,11 @@ export async function smartFillShifts(
           reasons.push(`${restHours.toFixed(1)}h rest`);
         }
       }
+
+      // Guard card
+      const card = guardCardStatus(cardExpiry.get(userId) ?? null, shift.start_time);
+      if (card === "expired") { score -= 1000; reasons.push("Guard card expired"); }
+      else if (card === "expiring") { reasons.push("Guard card expiring soon"); }
 
       // Role preference (leads/breakers slightly preferred for coverage)
       if (m.role === "lead") score += 5;

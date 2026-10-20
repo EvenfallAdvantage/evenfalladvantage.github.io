@@ -184,3 +184,15 @@ export async function checkShiftQualification(
   const missing = requiredCertTypes.filter(t => !validTypes.has(t));
   return { qualified: missing.length === 0, missing };
 }
+
+// ─── Guard card (license) expiry ──────────────────────────
+
+/** guard_card_expiry per user for a company (only users that have one). */
+export async function getGuardCardExpiries(companyId: string, userIds?: string[]): Promise<Map<string, string | null>> {
+  const supabase = createClient();
+  let q = supabase.from("company_memberships").select("user_id, guard_card_expiry").eq("company_id", companyId);
+  if (userIds?.length) q = q.in("user_id", userIds);
+  const { data, error } = await q;
+  if (error) { logDbReadError("guard card expiries", error); return new Map(); }
+  return new Map((data ?? []).map((r: { user_id: string; guard_card_expiry: string | null }) => [r.user_id, r.guard_card_expiry]));
+}
