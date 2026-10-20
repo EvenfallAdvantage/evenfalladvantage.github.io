@@ -97,7 +97,7 @@ export function QuickIncidentSheet({ companyId, eventId, onClose, onCreated }: P
             {QUICK_TYPES.map((t) => (
               <button key={t.key} type="button" aria-pressed={d.type === t.key}
                 onClick={() => setD((x) => ({ ...x, type: t.key, severity: x.type === t.key ? x.severity : defaultSeverity(t.key) }))}
-                className={`min-h-14 rounded-xl border px-3 text-left text-sm font-medium transition-colors ${d.type === t.key ? "border-primary bg-primary/15 text-foreground" : "border-border/60 bg-card"}`}>
+                style={{ minHeight: 56 }} className={`rounded-xl border px-3 text-left text-sm font-medium transition-colors ${d.type === t.key ? "border-primary bg-primary/15 text-foreground" : "border-border/60 bg-card"}`}>
                 {t.label}
               </button>
             ))}
@@ -105,7 +105,7 @@ export function QuickIncidentSheet({ companyId, eventId, onClose, onCreated }: P
           <div className="mt-3 grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Severity">
             {SEV.map((s) => (
               <button key={s.v} type="button" role="radio" aria-checked={d.severity === s.v} onClick={() => setD((x) => ({ ...x, severity: s.v }))}
-                className={`min-h-11 rounded-lg text-xs font-semibold ${d.severity === s.v ? `${s.cls} text-white` : "bg-muted/40 text-muted-foreground"}`}>{s.label}</button>
+                style={{ minHeight: 44 }} className={`rounded-lg text-xs font-semibold ${d.severity === s.v ? `${s.cls} text-white` : "bg-muted/40 text-muted-foreground"}`}>{s.label}</button>
             ))}
           </div>
         </section>
@@ -114,7 +114,7 @@ export function QuickIncidentSheet({ companyId, eventId, onClose, onCreated }: P
           <input ref={camRef} type="file" accept="image/*" capture="environment" multiple className="hidden"
             onChange={(e) => { const f = Array.from(e.target.files ?? []); if (f.length) setPhotos((p) => [...p, ...f]); e.target.value = ""; }} />
           <div className="flex gap-2">
-            <button type="button" onClick={() => camRef.current?.click()} className="flex min-h-14 flex-1 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card text-sm font-medium">
+            <button type="button" onClick={() => camRef.current?.click()} style={{ minHeight: 56 }} className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border/60 bg-card text-sm font-medium">
               <Camera className="h-5 w-5" />{photos.length ? `${photos.length} photo${photos.length > 1 ? "s" : ""}` : "Take photo"}
             </button>
           </div>
