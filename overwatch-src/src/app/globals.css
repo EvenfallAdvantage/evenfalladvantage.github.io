@@ -227,6 +227,20 @@ button, [role="button"], a[href] {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* One-handed phone use (touch screens only) */
+@media (pointer: coarse) {
+  /* 16px+ text in fields stops iOS zooming the page on focus */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: max(16px, 1em); }
+  select { min-height: 44px; }
+  /* Horizontal tab strips: taller targets + an edge fade that hints "scroll for more" */
+  .overflow-x-auto.scrollbar-hide > button, .overflow-x-auto.scrollbar-hide > a { min-height: 40px; }
+  .overflow-x-auto.scrollbar-hide {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    scroll-padding-inline: 16px;
+  }
+}
+
 /* Reduced motion: respect user preference for vestibular disorders */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
