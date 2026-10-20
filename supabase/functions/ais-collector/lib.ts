@@ -126,3 +126,114 @@ export function decodeFrame(data: unknown): string | null {
   if (data instanceof Uint8Array) return new TextDecoder().decode(data);
   return null;
 }
+
+// ─── Session diagnostics (close reasons) ────────────────────────────────────
+
+/** How a stream session ended. "client:*" = we closed it; anything else came from the server or the network. */
+export type SessionEnd = "client:window" | "client:cap" | "server_close" | "error" | "connect_failed" | "subscribe_error";
+
+export interface SessionSummary {
+  ended_by: SessionEnd;
+  close_code: number | null;
+  close_reason: string | null;
+  was_clean: boolean | null;
+  error: string | null;
+  /** ms from connect() to onopen (null = never opened). */
+  connect_ms: number | null;
+  /** ms from onopen (or connect when it never opened) to the end of the session. */
+  session_ms: number;
+  messages: number;
+  first_msg_ms: number | null;
+  last_msg_ms: number | null;
+  /** Longest silence between messages (or open → first message), ms. */
+  max_gap_ms: number;
+  /** Server error object text from the stream (e.g. bad key), if any. */
+  server_error: string | null;
+  /** Negotiated WebSocket extensions (permessage-deflate or empty). */
+  extensions: string | null;
+}
+
+const clip = (s: unknown, n = 160): string | null => {
+  if (s == null) return null;
+  const t = String(s).replace(/\s+/g, " ").trim();
+  return t ? t.slice(0, n) : null;
+};
+
+/**
+ * Records the life of one aisstream session from WebSocket events. Pure:
+ * every method takes the event time, so tests drive it with fake clocks.
+ * The API key never passes through here.
+ */
+export class StreamSession {
+  private t0: number;
+  private opened: number | null = null;
+  private first: number | null = null;
+  private last: number | null = null;
+  private gap = 0;
+  private end: { at: number; by: SessionEnd } | null = null;
+  messages = 0;
+  code: number | null = null;
+  reason: string | null = null;
+  clean: boolean | null = null;
+  error: string | null = null;
+  serverError: string | null = null;
+  extensions: string | null = null;
+
+  constructor(connectAt: number) { this.t0 = connectAt; }
+
+  get ended(): boolean { return this.end !== null; }
+
+  open(at: number, extensions?: string | null) { this.opened = at; this.extensions = clip(extensions ?? "", 80) ?? ""; }
+
+  message(at: number) {
+    const prev = this.last ?? this.opened ?? this.t0;
+    this.gap = Math.max(this.gap, at - prev);
+    if (this.first === null) this.first = at;
+    this.last = at;
+    this.messages++;
+  }
+
+  /** The stream sent a JSON error object (e.g. invalid key). */
+  serverErrorMessage(at: number, text: unknown) { this.serverError = clip(text); this.finish(at, "subscribe_error"); }
+
+  /** We are closing (window elapsed or cap reached). Must be called before ws.close(). */
+  clientClose(at: number, why: "window" | "cap") { this.finish(at, why === "cap" ? "client:cap" : "client:window"); }
+
+  onError(at: number, detail: unknown) {
+    this.error = clip(detail) ?? "error event (no detail)";
+    if (this.opened === null) this.finish(at, "connect_failed");
+  }
+
+  onClose(at: number, code: number | undefined, reason: string | undefined, wasClean: boolean | undefined) {
+    this.code = Number.isFinite(code) ? Number(code) : null;
+    this.reason = clip(reason);
+    this.clean = typeof wasClean === "boolean" ? wasClean : null;
+    // A close after our own close() keeps "client:*"; otherwise the error (if any) or the server ended it.
+    this.finish(at, this.error ? "error" : "server_close");
+  }
+
+  /** Error with no close event within the grace period. */
+  errorTimeout(at: number) { this.finish(at, this.opened === null ? "connect_failed" : "error"); }
+
+  private finish(at: number, by: SessionEnd) { if (!this.end) this.end = { at, by }; }
+
+  summary(now: number): SessionSummary {
+    const endAt = this.end?.at ?? now;
+    const start = this.opened ?? this.t0;
+    // Count the silence from the last message to the end too (a stall shows up here).
+    const tail = Math.max(0, endAt - (this.last ?? start));
+    return {
+      ended_by: this.end?.by ?? "client:window",
+      close_code: this.code, close_reason: this.reason, was_clean: this.clean,
+      error: this.error,
+      connect_ms: this.opened === null ? null : this.opened - this.t0,
+      session_ms: Math.max(0, endAt - start),
+      messages: this.messages,
+      first_msg_ms: this.first === null ? null : this.first - start,
+      last_msg_ms: this.last === null ? null : this.last - start,
+      max_gap_ms: Math.max(this.gap, tail),
+      server_error: this.serverError,
+      extensions: this.extensions,
+    };
+  }
+}

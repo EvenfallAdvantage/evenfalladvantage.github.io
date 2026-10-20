@@ -45,10 +45,13 @@ async function run() {
     const key = env("AISSTREAM_API_KEY");
     const [dt, as] = await Promise.all([
       collectDigitraffic(buf).catch((e) => ({ positions: 0, vessels: 0, error: String(e).slice(0, 80) })),
-      key ? collectAisstream(buf, key) : Promise.resolve({ messages: 0, closed: "no-key" }),
+      key ? collectAisstream(buf, key) : Promise.resolve(null),
     ]);
     const w = await write(buf);
-    console.log("[ais-collector] done", { ms: Date.now() - t0, digitraffic: dt, aisstream: as, ships: buf.pos.size, ...w });
+    // One JSON line per stream session, queryable in function logs (no key, no IPs).
+    if (as) console.log("[ais-collector] session " + JSON.stringify(as));
+    const aisstream = as ? { messages: as.messages, closed: as.closed } : { messages: 0, closed: "no-key" };
+    console.log("[ais-collector] done", { ms: Date.now() - t0, digitraffic: dt, aisstream, ships: buf.pos.size, ...w });
   } finally {
     running = false;
   }
