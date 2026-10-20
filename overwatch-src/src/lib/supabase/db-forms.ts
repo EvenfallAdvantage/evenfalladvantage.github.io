@@ -236,3 +236,50 @@ export async function deleteFormSubmission(submissionId: string) {
     .eq("id", submissionId);
   if (error) throw error;
 }
+
+// ─── Dictations linked to an incident (NEXT_TEN #6) ───────
+
+export const DICTATION_FORM_NAMES = ["__dictation__", "Dictation (System)"];
+
+export interface LinkedDictation {
+  id: string;
+  transcript: string;
+  segments?: { speaker: number | string; text: string }[];
+  personType: string | null;
+  personName: string | null;
+  recordedBy: string | null;
+  recordedAt: string;
+}
+
+/** Saved dictations whose `linkedIncidentId` is this incident (RLS decides which the viewer sees). */
+export async function getIncidentDictations(companyId: string, incidentId: string): Promise<LinkedDictation[]> {
+  const supabase = createClient();
+  const { data: forms, error: fErr } = await supabase
+    .from("forms").select("id").eq("company_id", companyId).in("name", DICTATION_FORM_NAMES);
+  if (fErr) { logDbReadError("dictation forms", fErr); return []; }
+  const ids = ((forms ?? []) as { id: string }[]).map((f) => f.id);
+  if (!ids.length) return [];
+  const { data, error } = await supabase
+    .from("form_submissions")
+    .select("id, data, created_at")
+    .in("form_id", ids)
+    .eq("data->>linkedIncidentId", incidentId)
+    .order("created_at", { ascending: true });
+  if (error) { logDbReadError("incident dictations", error); return []; }
+  return ((data ?? []) as { id: string; data: Record<string, unknown> | null; created_at: string }[]).map(mapDictation);
+}
+
+export function mapDictation(r: { id: string; data: Record<string, unknown> | null; created_at: string }): LinkedDictation {
+  const d = r.data ?? {};
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+  const segs = Array.isArray(d.segments) ? (d.segments as { speaker: number | string; text: string }[]).filter((s) => s && typeof s.text === "string") : undefined;
+  return {
+    id: r.id,
+    transcript: str(d.transcript) ?? "",
+    segments: segs && segs.length ? segs : undefined,
+    personType: str(d.personType),
+    personName: str(d.personName),
+    recordedBy: str(d.recordedBy),
+    recordedAt: str(d.recordedAt) ?? r.created_at,
+  };
+}
