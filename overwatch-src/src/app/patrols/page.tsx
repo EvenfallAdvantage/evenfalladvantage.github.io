@@ -7,6 +7,8 @@ import { toast } from "sonner";
 
 import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { timeAgo } from "@/lib/utils";
+import { parseUTC } from "@/lib/parse-utc";
+import { routeRoundStatus } from "@/lib/patrol/route-status";
 import { formatMemberName } from "@/lib/format-names";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
@@ -589,6 +591,10 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
                       const cp = checkpoints.find((c: Checkpoint) => c.id === id);
                       return cp?.name ?? "?";
                     });
+                    const lastScan = logs
+                      .filter((l: PatrolLog) => (l as PatrolLog & { route_id?: string | null }).route_id === rt.id)
+                      .reduce<Date | null>((m, l) => { const d = parseUTC(l.scanned_at); return !m || d > m ? d : m; }, null);
+                    const st = routeRoundStatus(rt.frequency_min, lastScan);
                     return (
                       <Card key={rt.id}>
                         <CardContent className="flex items-center gap-3 p-4">
@@ -599,6 +605,9 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
                             <div className="font-semibold text-sm">{rt.name}</div>
                             <div className="text-[11px] text-muted-foreground">
                               {cpNames.length} checkpoints · Every {rt.frequency_min}min
+                              {st.kind === "ok" && <span className="ml-1.5 text-emerald-600">· Next round in {st.dueInMin}m</span>}
+                              {st.kind === "due" && <span className="ml-1.5 font-semibold text-amber-600">· Round due ({st.minsAgo}m since last scan)</span>}
+                              {st.kind === "overdue" && <span className="ml-1.5 font-semibold text-red-600">· Overdue ({st.minsAgo}m since last scan)</span>}
                             </div>
                             <div className="flex flex-wrap gap-1 mt-1">
                               {cpNames.map((name: string, i: number) => (
