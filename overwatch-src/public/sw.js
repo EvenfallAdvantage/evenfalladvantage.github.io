@@ -285,3 +285,34 @@ function withTimeout(promise, ms) {
     );
   });
 }
+
+// ─── Web push (VAPID) ─────────────────────────────────────────────────────
+// Payload from push-send: { title, body, url?, tag? }. SOS alerts stay on screen.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { title: "Overwatch", body: event.data ? event.data.text() : "" }; }
+  const title = data.title || "Overwatch";
+  const sos = /SOS/i.test(title);
+  event.waitUntil(self.registration.showNotification(title, {
+    body: data.body || "",
+    tag: data.tag || (sos ? "overwatch-sos" : undefined),
+    renotify: sos,
+    requireInteraction: sos,
+    vibrate: sos ? [400, 150, 400, 150, 400] : [120],
+    icon: `${BASE_PATH}/images/icon-192.png`,
+    badge: `${BASE_PATH}/images/icon-192.png`,
+    data: { url: data.url || `${BASE_PATH}/feed/` },
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || `${BASE_PATH}/feed/`;
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const w of wins) {
+      if (w.url.includes(BASE_PATH) && "focus" in w) { await w.focus(); if ("navigate" in w) await w.navigate(target).catch(() => {}); return; }
+    }
+    await self.clients.openWindow(target);
+  })());
+});

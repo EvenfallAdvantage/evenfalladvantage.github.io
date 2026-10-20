@@ -12,6 +12,7 @@ import { useCompanyQuery } from "@/hooks/use-company-query";
 import { getQueryClient } from "@/lib/query-client";
 import Link from "next/link";
 import { PageShell } from "@/components/layout/page-shell";
+import { PushSettingsCard } from "@/components/push/push-settings-card";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Notif = any;
@@ -82,6 +83,7 @@ export default function NotificationsPage() {
   return (
     <PageShell title="NOTIFICATIONS" subtitle="Important updates, events, and assignments" icon={<Bell className="h-5 w-5" />}>
       <div className="space-y-6">
+        <PushSettingsCard />
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}

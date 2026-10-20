@@ -122,7 +122,7 @@ export async function triggerPanicAlertDetailed(companyId: string): Promise<{ id
               body: "A team member has triggered an emergency alert. Respond immediately.",
               type: "panic_alert",
               actionUrl: `/feed/?panic=${id}`,
-              urgent: true,
+              critical: true,
             }
           ).catch(() => {});
         }
@@ -311,7 +311,7 @@ export async function escalatePanicAlert(alertId: string, companyId: string): Pr
     await dispatchToMany(companyId, (owners as { user_id: string }[]).map((m) => ({ userId: m.user_id })), {
       title: "SOS ESCALATED",
       body: "An SOS alert has not been acknowledged for over a minute. Respond now.",
-      type: "panic_alert", actionUrl: `/feed/?panic=${alertId}`, urgent: true,
+      type: "panic_alert", actionUrl: `/feed/?panic=${alertId}`, critical: true,
     }).catch(() => {});
   }
   return true;
@@ -347,7 +347,7 @@ export async function replayQueuedPanicAlert(p: { id: string; companyId: string;
     await dispatchToMany(p.companyId, (data as { user_id: string }[]).map((m) => ({ userId: m.user_id })), {
       title: "SOS ALERT (sent after signal loss)",
       body: `Triggered ${new Date(p.createdAt).toLocaleTimeString()} while the officer had no connection. Respond immediately.`,
-      type: "panic_alert", actionUrl: `/feed/?panic=${p.id}`, urgent: true,
+      type: "panic_alert", actionUrl: `/feed/?panic=${p.id}`, critical: true,
     }).catch(() => {});
   }
 }

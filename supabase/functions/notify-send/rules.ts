@@ -9,7 +9,7 @@ export const ROLE_RANK: Record<string, number> = {
 export const rank = (role: string | null | undefined) => ROLE_RANK[role ?? ""] ?? 0;
 
 export const MAX_RECIPIENTS = 100;
-export type Channel = "email" | "sms";
+export type Channel = "email" | "sms" | "push";
 
 export interface NotificationRequest {
   company_id: string;
@@ -19,6 +19,8 @@ export interface NotificationRequest {
   title: string;
   body?: string;
   action_url?: string;
+  /** Send SMS only to recipients a push notification did not reach. */
+  sms_fallback?: boolean;
 }
 export interface WelcomeRequest {
   company_id: string;
@@ -42,8 +44,8 @@ export function parseNotifyRequest(raw: unknown): NotifyRequest | string {
     return { company_id: b.company_id, kind: "welcome", to_email: b.to_email.trim(), first_name: first };
   }
   if (b.kind !== "notification") return "kind must be notification or welcome";
-  const channels = Array.isArray(b.channels) ? [...new Set(b.channels.filter((c): c is Channel => c === "email" || c === "sms"))] : [];
-  if (!channels.length) return "channels must include email and/or sms";
+  const channels = Array.isArray(b.channels) ? [...new Set(b.channels.filter((c): c is Channel => c === "email" || c === "sms" || c === "push"))] : [];
+  if (!channels.length) return "channels must include email, sms and/or push";
   const ids = Array.isArray(b.user_ids) ? [...new Set(b.user_ids.filter((x): x is string => typeof x === "string" && UUID.test(x)))] : [];
   if (!ids.length) return "user_ids required";
   if (ids.length > MAX_RECIPIENTS) return `At most ${MAX_RECIPIENTS} recipients`;
@@ -55,7 +57,8 @@ export function parseNotifyRequest(raw: unknown): NotifyRequest | string {
     if (typeof b.action_url !== "string" || !/^\/(?!\/)[\w\-./?=&#%]*$/.test(b.action_url)) return "action_url must be an app path like /admin/staff";
     action_url = b.action_url;
   }
-  return { company_id: b.company_id, kind: "notification", channels, user_ids: ids, title: b.title.trim(), body: b.body as string | undefined, action_url };
+  const sms_fallback = b.sms_fallback === true && channels.includes("push") && !channels.includes("sms");
+  return { company_id: b.company_id, kind: "notification", channels, user_ids: ids, title: b.title.trim(), body: b.body as string | undefined, action_url, sms_fallback };
 }
 
 /**
@@ -110,4 +113,23 @@ export function welcomeEmail(p: { firstName?: string; companyName: string; joinC
   <p><a href="${escapeHtml(p.appUrl)}" style="color:#2563eb;">Open Overwatch</a></p>
 </div>`,
   };
+}
+
+/**
+ * Who gets an SMS. "sms" channel: everyone with a phone. sms_fallback: only
+ * recipients a push did not reach. Otherwise nobody.
+ */
+export function smsRecipientIds(
+  req: Pick<NotificationRequest, "channels" | "sms_fallback">,
+  recipientIds: string[],
+  pushDelivered: Set<string>,
+): string[] {
+  if (req.channels.includes("sms")) return recipientIds;
+  if (req.sms_fallback) return recipientIds.filter((id) => !pushDelivered.has(id));
+  return [];
+}
+
+/** Web push payload (kept small: some push services cap at 4 KB). */
+export function pushPayload(title: string, body: string | undefined, url: string | null, tag?: string) {
+  return JSON.stringify({ title: title.slice(0, 120), body: (body ?? "").slice(0, 300), url: url ?? undefined, tag });
 }

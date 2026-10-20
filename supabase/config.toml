@@ -264,6 +264,19 @@ entrypoint = "./functions/email-save-credentials/index.ts"
 # --- SMS (Phase 4) -------------------------------------
 # Service-role-only generic SMS dispatcher. Called by other functions and the
 # admin UI via wrapper functions; never user-facing.
+# Web push delivery (VAPID). Service-role only, called by notify-send.
+# Keys are read from Vault via public.get_vapid_keys() (service_role only); env VAPID_* is an optional fallback.
+[functions.push-send]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/push-send/index.ts"
+
+# Retired one-time VAPID initializer; stub that always returns 410. Delete from the dashboard.
+[functions.vapid-init]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/vapid-init/index.ts"
+
 [functions.sms-send]
 enabled = true
 verify_jwt = false
