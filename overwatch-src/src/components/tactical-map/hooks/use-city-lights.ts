@@ -11,6 +11,8 @@
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { viewDarkness } from "@/lib/map/sun";
+
+const CLOSE_TAPER_M = 150_000;
 import { GLOBE_BLEND_MIN_HEIGHT_M, aboveBasemapIndex, BLACK_MARBLE_CREDIT, BLACK_MARBLE_MAX_LEVEL, BLACK_MARBLE_URL } from "@/lib/map/city-lights";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -67,9 +69,12 @@ export function useCityLights(params: { viewerRef: CesiumRef; cesiumRef: CesiumR
       const ms = C.JulianDate.toDate(viewer.clock.currentTime).getTime();
       // Only where the whole view is dark: sample the centre and four points
       // around it scaled to the view size (no lights on any day-side ground).
-      const a = viewDarkness(ms, lat, lon, cam.height);
+      const aSun = viewDarkness(ms, lat, lon, cam.height);
       // Below the lighting fade distance Cesium ignores dayAlpha/nightAlpha and
       // draws the layer at plain alpha, so drive alpha itself (and hide when ~0).
+      // Black Marble is ~500 m/px and saturates over big cities; at street
+      // zoom full opacity reads as a white sheet between buildings, so taper it.
+      const a = aSun * Math.min(1, Math.max(0.15, cam.height / CLOSE_TAPER_M));
       const show = a > 0.01;
       if (l.dayAlpha !== 1 || l.nightAlpha !== 1 || Math.abs(l.alpha - a) > 0.01 || l.show !== show) {
         l.dayAlpha = 1; l.nightAlpha = 1; l.alpha = a; l.show = show; viewer.scene.requestRender();
