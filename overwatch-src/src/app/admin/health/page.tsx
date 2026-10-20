@@ -79,7 +79,7 @@ export default function HealthPage() {
     };
 
     // 4. Static assets: probe a file that always exists in the export.
-    // (The old probe hit _next/static/chunks/webpack.js, which Next 16 /
+    // (The old probe hit the legacy webpack runtime chunk, which Next 16 /
     // Turbopack no longer emits, so it 404'd and reported a false outage.)
     const cdnResult = await pingService(async () => {
       const resp = await fetch(staticProbeUrl(), { method: "GET", cache: "no-store" });

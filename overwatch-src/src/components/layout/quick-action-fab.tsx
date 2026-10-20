@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus, X, Zap, ScanLine, Clock, ArrowLeftRight } from "lucide-react";
@@ -19,10 +19,11 @@ const HIDE_ON = ["/admin/operations", "/admin/map", "/geo-risk", "/chat", "/scan
 export function QuickActionFab() {
   const pathname = usePathname() || "";
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
-  const [open, setOpen] = useState(false);
-  const [left, setLeft] = useState(false);
-  useEffect(() => { setLeft(localStorage.getItem("ow-fab-side") === "left"); }, []);
-  useEffect(() => { setOpen(false); }, [pathname]);
+  // Menu is "open for this path" so navigating closes it without an effect.
+  const [openFor, setOpenFor] = useState<string | null>(null);
+  const open = openFor === pathname;
+  const setOpen = (v: boolean | ((o: boolean) => boolean)) => setOpenFor((typeof v === "function" ? v(open) : v) ? pathname : null);
+  const [left, setLeft] = useState(() => typeof window !== "undefined" && localStorage.getItem("ow-fab-side") === "left");
   if (!activeCompanyId || pathname === "/" || HIDE_ON.some((p) => pathname.startsWith(p))) return null;
 
   const side = left ? "left-4" : "right-4";
