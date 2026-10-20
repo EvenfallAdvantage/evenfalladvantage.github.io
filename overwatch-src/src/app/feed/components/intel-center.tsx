@@ -84,7 +84,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1.5">
+        <h2 className="section-title flex items-center gap-1.5">
           <Activity className="h-3.5 w-3.5" /> Intel Center
         </h2>
         <Badge className="bg-primary/10 text-primary text-[10px]">
@@ -103,7 +103,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
                 </div>
               </div>
               <p className={`text-lg font-bold font-mono ${kpi.color}`}>{kpi.value}</p>
-              <p className="text-[8px] text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{kpi.label}</p>
             </CardContent>
           </Card>
         ))}
@@ -116,7 +116,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><UserPlus className="h-3.5 w-3.5 text-cyan-500" /> Hiring Pipeline</h3>
-              <Link href="/admin/staff"><Badge variant="outline" className="text-[9px] cursor-pointer hover:bg-accent">View All</Badge></Link>
+              <Link href="/admin/staff"><Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-accent">View All</Badge></Link>
             </div>
             {pipeline && pipeline.total > 0 ? (
               <div className="space-y-2">
@@ -136,7 +136,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
                     </div>
                   </div>
                 ))}
-                <p className="text-[9px] text-muted-foreground text-center pt-1">{pipeline.total} total applicants</p>
+                <p className="text-[10px] text-muted-foreground text-center pt-1">{pipeline.total} total applicants</p>
               </div>
             ) : (
               <div className="text-center py-3">
@@ -152,25 +152,25 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><Plug className="h-3.5 w-3.5 text-green-500" /> Integrations</h3>
-              <Link href="/admin/settings"><Badge variant="outline" className="text-[9px] cursor-pointer hover:bg-accent">Settings</Badge></Link>
+              <Link href="/admin/settings"><Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-accent">Settings</Badge></Link>
             </div>
             {intHealth && intHealth.configured > 0 ? (
               <div className="space-y-2">
                 <div className="flex items-center justify-center gap-4 py-1">
                   <div className="text-center">
                     <p className="text-xl font-bold font-mono text-green-500">{intHealth.active}</p>
-                    <p className="text-[8px] text-muted-foreground uppercase">Active</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">Active</p>
                   </div>
                   <div className="h-6 w-px bg-border/40" />
                   <div className="text-center">
                     <p className="text-xl font-bold font-mono text-muted-foreground">{intHealth.configured}</p>
-                    <p className="text-[8px] text-muted-foreground uppercase">Configured</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">Configured</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1 justify-center pt-1">
                   {intHealth.providers.map(p => (
                     <Badge key={p.provider} variant={p.active ? "default" : "outline"}
-                      className={`text-[8px] ${p.active ? "bg-green-500/15 text-green-500 border-green-500/30" : "text-muted-foreground"}`}>
+                      className={`text-[10px] ${p.active ? "bg-green-500/15 text-green-500 border-green-500/30" : "text-muted-foreground"}`}>
                       <CircleDot className={`h-2 w-2 mr-0.5 ${p.active ? "text-green-500" : "text-muted-foreground/40"}`} />
                       {PROVIDER_LABELS[p.provider] ?? p.provider}
                     </Badge>
@@ -191,7 +191,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-emerald-500" /> Payroll Readiness</h3>
-              <Badge variant="outline" className={`text-[9px] ${payroll && payroll.readyPct >= 100 ? "text-green-500 border-green-500/30" : "text-amber-500 border-amber-500/30"}`}>
+              <Badge variant="outline" className={`text-[10px] ${payroll && payroll.readyPct >= 100 ? "text-green-500 border-green-500/30" : "text-amber-500 border-amber-500/30"}`}>
                 {payroll?.readyPct ?? 100}% ready
               </Badge>
             </div>
@@ -208,7 +208,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
                     <p className="text-[7px] text-muted-foreground uppercase">Pending</p>
                   </div>
                 </div>
-                <p className="text-[9px] text-muted-foreground text-center">{payroll.totalHours}h total (last 14 days)</p>
+                <p className="text-[10px] text-muted-foreground text-center">{payroll.totalHours}h total (last 14 days)</p>
               </div>
             ) : (
               <div className="text-center py-3">
@@ -230,7 +230,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
             </div>
             <MiniBarChart data={intel.weeklyHours} color="#f59e0b" />
             <div className="flex justify-between mt-1">
-              {intel.dayLabels.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
+              {intel.dayLabels.map((d) => <span key={d} className="text-[10px] text-muted-foreground">{d}</span>)}
             </div>
           </CardContent>
         </Card>
@@ -263,7 +263,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
             </div>
             <MiniBarChart data={intel.weeklyIncidents} color="#ef4444" />
             <div className="flex justify-between mt-1">
-              {intel.dayLabels.map((d) => <span key={d} className="text-[8px] text-muted-foreground">{d}</span>)}
+              {intel.dayLabels.map((d) => <span key={d} className="text-[10px] text-muted-foreground">{d}</span>)}
             </div>
           </CardContent>
         </Card>
@@ -307,7 +307,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
                   </div>
                 ))}
                 {ownerIntel.onboarding.length > 4 && (
-                  <p className="text-[9px] text-muted-foreground text-center">+{ownerIntel.onboarding.length - 4} more</p>
+                  <p className="text-[10px] text-muted-foreground text-center">+{ownerIntel.onboarding.length - 4} more</p>
                 )}
               </div>
             ) : (
@@ -344,7 +344,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
         </Card>
       </div>
 
-      <p className="text-[9px] text-center text-muted-foreground/50">
+      <p className="text-[10px] text-center text-muted-foreground/50">
         All data is queried live from your organization&apos;s database. Last refreshed {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.
       </p>
     </div>

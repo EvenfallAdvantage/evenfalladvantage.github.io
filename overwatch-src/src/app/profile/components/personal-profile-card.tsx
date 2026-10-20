@@ -251,7 +251,7 @@ export function PersonalProfileCard({ user, onUserChange, mp, onMpChange, mpLoad
                     <span className="text-muted-foreground text-xs">Work Preferences</span>
                     <div className="flex flex-wrap gap-1 mt-0.5">
                       {mp.work_preferences.map((w: string) => (
-                        <Badge key={w} variant="outline" className="text-[9px]">{w}</Badge>
+                        <Badge key={w} variant="outline" className="text-[10px]">{w}</Badge>
                       ))}
                     </div>
                   </div>
@@ -265,7 +265,7 @@ export function PersonalProfileCard({ user, onUserChange, mp, onMpChange, mpLoad
                     <span className="text-muted-foreground text-xs">Dietary Restrictions</span>
                     <div className="flex flex-wrap gap-1 mt-0.5">
                       {mp.dietary_restrictions.map((d: string) => (
-                        <Badge key={d} variant="outline" className="text-[9px]">{d}</Badge>
+                        <Badge key={d} variant="outline" className="text-[10px]">{d}</Badge>
                       ))}
                     </div>
                   </div>

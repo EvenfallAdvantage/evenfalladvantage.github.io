@@ -168,7 +168,7 @@ export default function TimeOffPage() {
               My Requests
             </SubTab>
             <SubTab active={tab === "team"} onClick={() => setTab("team")} icon={Users}>
-              Team Requests {pendingCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-amber-500/20 text-amber-600">{pendingCount}</Badge>}
+              Team Requests {pendingCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-amber-500/20 text-amber-600">{pendingCount}</Badge>}
             </SubTab>
           </SubTabList>
         )}

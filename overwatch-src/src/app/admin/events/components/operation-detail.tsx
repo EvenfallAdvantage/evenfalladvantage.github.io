@@ -306,7 +306,7 @@ export function OperationDetail({
         >
           <ScrollText className="h-3 w-3 text-muted-foreground" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Post Orders</span>
-          {postOrders && <Badge variant="secondary" className="text-[9px] ml-1">{postOrders.length} chars</Badge>}
+          {postOrders && <Badge variant="secondary" className="text-[10px] ml-1">{postOrders.length} chars</Badge>}
           <ChevronDown className={`h-3 w-3 ml-auto text-muted-foreground transition-transform ${postOrdersOpen ? "" : "-rotate-90"}`} />
         </button>
         {postOrdersOpen && (

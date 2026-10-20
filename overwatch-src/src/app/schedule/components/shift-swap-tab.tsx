@@ -174,7 +174,7 @@ function SwapCard({
           </p>
         )}
       </div>
-      <Badge className={`text-[9px] ${statusColors[swap.status] ?? ""}`}>{swap.status}</Badge>
+      <Badge className={`text-[10px] ${statusColors[swap.status] ?? ""}`}>{swap.status}</Badge>
       <div className="flex items-center gap-1">
         {type === "claim" && swap.status === "open" && (
           <Button size="sm" className="h-7 gap-1 text-xs" onClick={() => onClaim?.(swap.id)} disabled={isActing}>

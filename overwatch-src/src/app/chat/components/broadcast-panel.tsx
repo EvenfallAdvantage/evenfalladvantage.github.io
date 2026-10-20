@@ -132,7 +132,7 @@ export function BroadcastPanel({ activeCompanyId }: BroadcastPanelProps) {
               <div key={b.id} className="rounded-lg border border-border/40 bg-card/50 p-3 space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{b.title}</span>
-                  <Badge className={`text-[9px] ${b.urgency === "critical" ? "bg-red-500/15 text-red-500" : b.urgency === "urgent" ? "bg-amber-500/15 text-amber-500" : "bg-muted text-muted-foreground"}`}>
+                  <Badge className={`text-[10px] ${b.urgency === "critical" ? "bg-red-500/15 text-red-500" : b.urgency === "urgent" ? "bg-amber-500/15 text-amber-500" : "bg-muted text-muted-foreground"}`}>
                     {b.urgency}
                   </Badge>
                 </div>

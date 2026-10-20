@@ -189,7 +189,7 @@ export default function SecurityDashboardPage() {
         {superAdmin && (
         <div className="lg:col-span-2 rounded-xl border border-border/50 bg-card">
           <div className="border-b border-border/50 px-4 py-3">
-            <h2 className="text-sm font-semibold flex items-center gap-2">
+            <h2 className="section-title flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-green-500" /> Security Controls
             </h2>
             <p className="text-[10px] text-muted-foreground mt-0.5">{SECURITY_CONTROLS.length} active controls</p>
@@ -214,7 +214,7 @@ export default function SecurityDashboardPage() {
         <div className={`rounded-xl border border-border/50 bg-card ${superAdmin ? "lg:col-span-3" : ""}`}>
           <div className="border-b border-border/50 px-4 py-3 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold flex items-center gap-2">
+              <h2 className="section-title flex items-center gap-2">
                 <Activity className="h-4 w-4 text-blue-400" /> Audit Log
               </h2>
               <p className="text-[10px] text-muted-foreground mt-0.5">Last 100 security events</p>

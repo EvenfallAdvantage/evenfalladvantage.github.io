@@ -332,8 +332,8 @@ export default function QuizzesPage() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs leading-tight">{bq.question_text}</p>
                                 <div className="flex gap-1 mt-0.5">
-                                  <span className="text-[9px] text-muted-foreground">{bq.difficulty}</span>
-                                  {bq.category && <span className="text-[9px] text-muted-foreground">· {bq.category}</span>}
+                                  <span className="text-[10px] text-muted-foreground">{bq.difficulty}</span>
+                                  {bq.category && <span className="text-[10px] text-muted-foreground">· {bq.category}</span>}
                                 </div>
                               </div>
                             </label>
@@ -341,11 +341,11 @@ export default function QuizzesPage() {
                         </div>
                       )}
                       <div className="flex gap-1.5">
-                        <Button size="sm" className="h-6 text-xs gap-1" onClick={handleImport} disabled={selectedBankIds.size === 0 || importing}>
+                        <Button size="sm" className="h-7 text-xs gap-1" onClick={handleImport} disabled={selectedBankIds.size === 0 || importing}>
                           {importing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
                           Import {selectedBankIds.size > 0 ? `(${selectedBankIds.size})` : ""}
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setShowImport(false)}>Cancel</Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowImport(false)}>Cancel</Button>
                       </div>
                     </div>
                   )}

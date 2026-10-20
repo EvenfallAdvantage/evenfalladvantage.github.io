@@ -320,3 +320,24 @@ main#main-content {
     font-size: 16px;
   }
 }
+
+/* ── Overwatch type roles (polish 2/3) ───────────────────────────────────
+   Matches the tactical map HUD: Oswald, uppercase, tracked, muted.
+   section-title: section/card group headings on every non-map page.
+   text-label:    small meta labels (stat captions, column headers).      */
+@utility section-title {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+@utility text-label {
+  font-family: var(--font-heading);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

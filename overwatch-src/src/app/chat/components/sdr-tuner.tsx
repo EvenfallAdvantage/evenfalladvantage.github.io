@@ -310,7 +310,7 @@ export function SdrTuner() {
                 <Radar className="h-3 w-3" /> ADSB Tracking
               </span>
               <div className="flex items-center gap-2">
-                <span className={`text-[8px] font-mono uppercase ${sdr.adsbRunning ? "text-green-500" : "text-muted-foreground/50"}`}>
+                <span className={`text-[10px] font-mono uppercase ${sdr.adsbRunning ? "text-green-500" : "text-muted-foreground/50"}`}>
                   {sdr.adsbRunning ? "Active" : "Inactive"}
                 </span>
                 {sdr.deviceAssignment.adsb !== null ? (
@@ -323,7 +323,7 @@ export function SdrTuner() {
                     {sdr.adsbRunning ? "Stop" : "Start"}
                   </Button>
                 ) : (
-                  <span className="text-[9px] text-muted-foreground/50">No device assigned</span>
+                  <span className="text-[10px] text-muted-foreground/50">No device assigned</span>
                 )}
               </div>
             </div>
@@ -358,10 +358,10 @@ export function SdrTuner() {
                     {t.status === "done" && <CheckCircle className="h-3 w-3 text-green-500 shrink-0" />}
                     {t.status === "pending" && <Clock className="h-3 w-3 text-amber-500 shrink-0 animate-pulse" />}
                     {t.status === "error" && <XCircle className="h-3 w-3 text-red-500 shrink-0" />}
-                    <span className="text-[9px] font-mono text-muted-foreground/50">
+                    <span className="text-[10px] font-mono text-muted-foreground/50">
                       {formatRelativeTime(t.timestamp)}
                     </span>
-                    <span className="text-[9px] font-mono text-muted-foreground/50">
+                    <span className="text-[10px] font-mono text-muted-foreground/50">
                       {t.durationMs > 0 ? `${(t.durationMs / 1000).toFixed(1)}s` : ""}
                     </span>
                   </div>

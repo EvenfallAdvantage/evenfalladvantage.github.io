@@ -74,13 +74,13 @@ export function ActivityFeed({ eventId, visible }: ActivityFeedProps) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-semibold truncate">{item.userName}</span>
-                    <span className="text-[9px] text-muted-foreground/60">{item.detail}</span>
+                    <span className="text-[10px] text-muted-foreground/60">{item.detail}</span>
                   </div>
                   {item.meta?.severity && (
-                    <Badge variant="secondary" className="text-[8px] h-4 mt-0.5 capitalize">{item.meta.severity}</Badge>
+                    <Badge variant="secondary" className="text-[10px] h-4 mt-0.5 capitalize">{item.meta.severity}</Badge>
                   )}
                 </div>
-                <span className="text-[9px] text-muted-foreground/50 shrink-0 font-mono">
+                <span className="text-[10px] text-muted-foreground/50 shrink-0 font-mono">
                   {new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>

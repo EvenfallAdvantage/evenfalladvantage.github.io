@@ -781,7 +781,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold flex items-center gap-1.5"><Upload className="h-4 w-4" /> CSV Import Preview</p>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setShowImport(false)}><X className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setShowImport(false)}><X className="h-3.5 w-3.5" /></Button>
           </div>
           {importErrors.length > 0 && (
             <div className="rounded-lg bg-destructive/10 p-2 text-xs space-y-0.5">
@@ -809,8 +809,8 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                         <td className="px-2 py-1">{formatMemberName(r)}</td>
                         <td className="px-2 py-1 text-muted-foreground">{r.email}</td>
                         <td className="px-2 py-1 text-muted-foreground">{r.phone ?? "—"}</td>
-                        <td className="px-2 py-1"><Badge variant="outline" className="text-[9px]">{r.role ?? "staff"}</Badge></td>
-                        <td className="px-2 py-1"><Badge variant="outline" className="text-[9px] capitalize">{r.status ?? "new"}</Badge></td>
+                        <td className="px-2 py-1"><Badge variant="outline" className="text-[10px]">{r.role ?? "staff"}</Badge></td>
+                        <td className="px-2 py-1"><Badge variant="outline" className="text-[10px] capitalize">{r.status ?? "new"}</Badge></td>
                       </tr>
                     ))}
                   </tbody>

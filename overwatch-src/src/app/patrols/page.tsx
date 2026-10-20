@@ -568,7 +568,7 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
                                     : "border-border hover:border-primary/30"
                                 }`}
                               >
-                                {selected && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white text-[9px] font-bold">{idx + 1}</span>}
+                                {selected && <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold">{idx + 1}</span>}
                                 <MapPin className="h-3 w-3" />
                                 {cp.name}
                               </button>

@@ -58,14 +58,14 @@ export default function ChatPage() {
         </Link>
         <SubTab active={tab === "channels"} onClick={() => setTab("channels")} icon={Hash}>
           Channels
-          {ch.internal.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{ch.internal.length}</Badge>}
+          {ch.internal.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-primary/20 text-primary">{ch.internal.length}</Badge>}
         </SubTab>
         <SubTab active={tab === "messages"} onClick={() => setTab("messages")} icon={Mail}>
           Messages
         </SubTab>
         <SubTab active={tab === "external"} onClick={() => setTab("external")} icon={ExternalLink}>
           External Groups
-          {ch.external.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{ch.external.length}</Badge>}
+          {ch.external.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-primary/20 text-primary">{ch.external.length}</Badge>}
         </SubTab>
         <SubTab active={tab === "scanner"} onClick={() => setTab("scanner")} icon={Radio}>
           Scanner

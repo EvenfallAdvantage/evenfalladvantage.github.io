@@ -391,7 +391,7 @@ export function PublicReportsTab({ activeCompanyId, canManage }: PublicReportsTa
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   QR for {links.find((l) => l.id === qrLinkId)?.label}
                 </p>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setQrLinkId(null); setQrDataUrl(null); }}>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { setQrLinkId(null); setQrDataUrl(null); }}>
                   <X className="h-3 w-3" />
                 </Button>
               </div>

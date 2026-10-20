@@ -144,7 +144,7 @@ export function ClassesTab({ instructorId, triggerNew, seeAll = false }: Classes
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <h4 className="font-semibold text-sm">{cls.class_name}</h4>
-                      {isCancelled && <Badge className="text-[9px] bg-red-500/15 text-red-500">Cancelled</Badge>}
+                      {isCancelled && <Badge className="text-[10px] bg-red-500/15 text-red-500">Cancelled</Badge>}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 text-[10px] text-muted-foreground">
                       <span><Calendar className="h-2.5 w-2.5 inline mr-0.5" />{cls.scheduled_date}</span>
@@ -171,12 +171,12 @@ export function ClassesTab({ instructorId, triggerNew, seeAll = false }: Classes
                                 <div key={e.student_id} className="flex items-center gap-2 rounded border border-border/30 px-3 py-1.5 text-xs">
                                   <span className="flex-1">{e.student?.first_name} {e.student?.last_name}</span>
                                   {att ? (
-                                    <Badge className={`text-[9px] ${att.status === "present" ? "bg-green-500/15 text-green-600" : att.status === "late" ? "bg-amber-500/15 text-amber-600" : "bg-red-500/15 text-red-600"}`}>{att.status}</Badge>
+                                    <Badge className={`text-[10px] ${att.status === "present" ? "bg-green-500/15 text-green-600" : att.status === "late" ? "bg-amber-500/15 text-amber-600" : "bg-red-500/15 text-red-600"}`}>{att.status}</Badge>
                                   ) : (
                                     <div className="flex gap-1">
-                                      <button onClick={() => handleMarkAttendance(cls.id, e.student_id, "present")} className="rounded px-1.5 py-0.5 text-[9px] bg-green-500/10 text-green-600 hover:bg-green-500/20" title="Present"><UserCheck className="h-3 w-3" /></button>
-                                      <button onClick={() => handleMarkAttendance(cls.id, e.student_id, "late")} className="rounded px-1.5 py-0.5 text-[9px] bg-amber-500/10 text-amber-600 hover:bg-amber-500/20" title="Late"><Clock className="h-3 w-3" /></button>
-                                      <button onClick={() => handleMarkAttendance(cls.id, e.student_id, "absent")} className="rounded px-1.5 py-0.5 text-[9px] bg-red-500/10 text-red-600 hover:bg-red-500/20" title="Absent"><UserX className="h-3 w-3" /></button>
+                                      <button onClick={() => handleMarkAttendance(cls.id, e.student_id, "present")} className="rounded px-1.5 py-0.5 text-[10px] bg-green-500/10 text-green-600 hover:bg-green-500/20" title="Present"><UserCheck className="h-3 w-3" /></button>
+                                      <button onClick={() => handleMarkAttendance(cls.id, e.student_id, "late")} className="rounded px-1.5 py-0.5 text-[10px] bg-amber-500/10 text-amber-600 hover:bg-amber-500/20" title="Late"><Clock className="h-3 w-3" /></button>
+                                      <button onClick={() => handleMarkAttendance(cls.id, e.student_id, "absent")} className="rounded px-1.5 py-0.5 text-[10px] bg-red-500/10 text-red-600 hover:bg-red-500/20" title="Absent"><UserX className="h-3 w-3" /></button>
                                     </div>
                                   )}
                                 </div>

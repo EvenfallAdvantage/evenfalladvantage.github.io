@@ -45,7 +45,7 @@ function MeterBar({ value, max = 100 }: { value: number; max?: number }) {
       <div className="h-2.5 rounded-full bg-border/40 overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-700 ease-out ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      {pct >= 75 && <p className="text-[9px] text-red-500 font-medium animate-pulse">Warning: Subject is near breaking point!</p>}
+      {pct >= 75 && <p className="text-[10px] text-red-500 font-medium animate-pulse">Warning: Subject is near breaking point!</p>}
     </div>
   );
 }
@@ -264,7 +264,7 @@ export default function ScenariosPage() {
                   <div className="absolute top-3 right-3">
                     <div className="flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-2 py-1">
                       <Volume2 className="h-3 w-3 text-white/70" />
-                      <span className="text-[9px] text-white/70 font-mono">AUDIO</span>
+                      <span className="text-[10px] text-white/70 font-mono">AUDIO</span>
                     </div>
                   </div>
                 )}
@@ -281,7 +281,7 @@ export default function ScenariosPage() {
                   </div>
                   <div>
                     <span className="text-xs font-semibold">Subject</span>
-                    <Badge className={`ml-2 text-[9px] ${stateStyle.bg} ${stateStyle.text}`}>{step.state}</Badge>
+                    <Badge className={`ml-2 text-[10px] ${stateStyle.bg} ${stateStyle.text}`}>{step.state}</Badge>
                   </div>
                 </div>
               )}
@@ -370,23 +370,23 @@ export default function ScenariosPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-sm font-semibold">{scenario.title}</h3>
                           {!previewImg && completed && (
-                            <Badge className="bg-green-500/15 text-green-600 text-[9px]">Completed</Badge>
+                            <Badge className="bg-green-500/15 text-green-600 text-[10px]">Completed</Badge>
                           )}
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-0.5">{scenario.description}</p>
                         <div className="flex items-center gap-2 mt-1.5">
                           {scenario.subjectId && (
-                            <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
                               <ImageIcon className="h-2.5 w-2.5" /> Visual
                             </span>
                           )}
                           {hasAudioContent && (
-                            <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
                               <Volume2 className="h-2.5 w-2.5" /> Audio
                             </span>
                           )}
                           {result && (
-                            <span className="text-[9px] text-muted-foreground">
+                            <span className="text-[10px] text-muted-foreground">
                               {result.success ? `Best: ${result.steps} steps` : "Last: failed"}
                             </span>
                           )}

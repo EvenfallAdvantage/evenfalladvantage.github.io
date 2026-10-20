@@ -264,7 +264,7 @@ export default function DictatePage() {
                       />
                     );
                   })}
-                  <p className="text-[9px] text-muted-foreground/60 px-1 pt-1">
+                  <p className="text-[10px] text-muted-foreground/60 px-1 pt-1">
                     Click a bubble to edit its text. Click the speaker label to relabel.
                   </p>
                 </div>
@@ -311,7 +311,7 @@ export default function DictatePage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium text-sm truncate">{data.personType ?? "Dictation"}{data.personName ? ` — ${data.personName}` : ""}</span>
                             <Badge variant="secondary" className="text-[10px]">{data.personType ?? "Unknown"}</Badge>
-                            {linkedInc && <Badge className="text-[9px] bg-amber-500/15 text-amber-600 gap-1"><Link2 className="h-2.5 w-2.5" /> {linkedInc.title}</Badge>}
+                            {linkedInc && <Badge className="text-[10px] bg-amber-500/15 text-amber-600 gap-1"><Link2 className="h-2.5 w-2.5" /> {linkedInc.title}</Badge>}
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground">
                             <span className="flex items-center gap-1"><User className="h-3 w-3" />{formatMemberName(s.users ?? {})}</span>

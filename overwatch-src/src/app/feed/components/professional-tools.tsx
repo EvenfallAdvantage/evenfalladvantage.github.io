@@ -11,7 +11,7 @@ interface ProfessionalToolsProps {
 export function ProfessionalTools({ hiddenTabs }: ProfessionalToolsProps) {
   return (
     <div>
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+      <h2 className="mb-3 section-title">
         Professional Tools
       </h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -25,7 +25,7 @@ export function ProfessionalTools({ hiddenTabs }: ProfessionalToolsProps) {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold truncate">{tool.title}</p>
-                    <p className="text-[9px] text-muted-foreground truncate">{tool.desc}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{tool.desc}</p>
                   </div>
                 </div>
               </CardContent>

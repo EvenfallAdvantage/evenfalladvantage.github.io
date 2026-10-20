@@ -225,7 +225,7 @@ function CourseDetailInner() {
                           </svg>
                         </div>
                       ) : (
-                        <div className="h-5 w-5 rounded-full border-2 border-border flex items-center justify-center text-[9px] font-bold text-muted-foreground">
+                        <div className="h-5 w-5 rounded-full border-2 border-border flex items-center justify-center text-[10px] font-bold text-muted-foreground">
                           {idx + 1}
                         </div>
                       )}

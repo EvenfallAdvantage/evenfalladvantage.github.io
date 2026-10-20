@@ -193,8 +193,8 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <h4 className="font-semibold text-sm">{c.course_name}</h4>
-                      <Badge className="text-[9px]">{c.course_code}</Badge>
-                      {!c.is_active && <Badge className="text-[9px] bg-red-500/15 text-red-500">Inactive</Badge>}
+                      <Badge className="text-[10px]">{c.course_code}</Badge>
+                      {!c.is_active && <Badge className="text-[10px] bg-red-500/15 text-red-500">Inactive</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{c.description || "No description"}</p>
                     <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
@@ -260,8 +260,8 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
                                   <div className="flex items-center gap-2">
                                     <span className="font-mono text-muted-foreground w-5">{cm.module_order}.</span>
                                     <span className="font-medium">{mod.module_name}</span>
-                                    <Badge className="text-[8px] h-4">{mod.module_code}</Badge>
-                                    {cm.is_required && <Badge className="text-[8px] h-4 bg-amber-500/15 text-amber-600">Required</Badge>}
+                                    <Badge className="text-[10px] h-4">{mod.module_code}</Badge>
+                                    {cm.is_required && <Badge className="text-[10px] h-4 bg-amber-500/15 text-amber-600">Required</Badge>}
                                   </div>
                                   <div className="flex items-center gap-2 ml-7 mt-0.5 text-[10px] text-muted-foreground">
                                     {mod.duration_minutes && <span><Clock className="h-2.5 w-2.5 inline mr-0.5" />{mod.duration_minutes}m</span>}

@@ -385,10 +385,10 @@ export default function CertificationsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-semibold">{cert.cert_type}</span>
                           {cert.category && cert.category !== "general" && (
-                            <Badge className="text-[9px] bg-muted">{cert.category}</Badge>
+                            <Badge className="text-[10px] bg-muted">{cert.category}</Badge>
                           )}
-                          {isExpired && <Badge className="text-[9px] bg-red-500/15 text-red-600">Expired</Badge>}
-                          {isExpiring && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Expiring Soon</Badge>}
+                          {isExpired && <Badge className="text-[10px] bg-red-500/15 text-red-600">Expired</Badge>}
+                          {isExpiring && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Expiring Soon</Badge>}
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground mt-1">
                           {cert.issue_date && <span>Issued: {fmtDate(cert.issue_date)}</span>}

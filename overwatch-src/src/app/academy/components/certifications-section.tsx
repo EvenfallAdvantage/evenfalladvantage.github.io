@@ -174,7 +174,7 @@ export default function CertificationsSection({ owCerts, onCertsChange }: Certif
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-medium truncate">{c.name}</p>
-                      <Badge className={`text-[8px] px-1.5 py-0 ${sourceColors[c.source]}`}>{sourceLabels[c.source]}</Badge>
+                      <Badge className={`text-[10px] px-1.5 py-0 ${sourceColors[c.source]}`}>{sourceLabels[c.source]}</Badge>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
                       {c.issueDate && <span>Issued: {new Date(c.issueDate).toLocaleDateString()}</span>}
@@ -183,9 +183,9 @@ export default function CertificationsSection({ owCerts, onCertsChange }: Certif
                       {c.extra && <span>{c.extra}</span>}
                     </div>
                   </div>
-                  {isExpired ? <Badge className="text-[9px] bg-red-500/15 text-red-600">{c.status === "revoked" ? "Revoked" : "Expired"}</Badge>
-                    : isExpiringSoon ? <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Expiring</Badge>
-                    : <Badge className="text-[9px] bg-green-500/15 text-green-600">Active</Badge>}
+                  {isExpired ? <Badge className="text-[10px] bg-red-500/15 text-red-600">{c.status === "revoked" ? "Revoked" : "Expired"}</Badge>
+                    : isExpiringSoon ? <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Expiring</Badge>
+                    : <Badge className="text-[10px] bg-green-500/15 text-green-600">Active</Badge>}
                   {c.canDelete && (
                     <button onClick={() => handleDeleteCert(c.id)} disabled={deletingCert === c.id}
                       className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete">

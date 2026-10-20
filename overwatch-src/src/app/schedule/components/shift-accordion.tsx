@@ -50,11 +50,11 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
         {open && shifts.length > 1 && (
           <div className="flex gap-0.5 rounded bg-muted/50 p-0.5 ml-auto">
             <button onClick={() => setView("list")}
-              className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${view === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${view === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
               <List className="h-2.5 w-2.5 inline mr-0.5" />List
             </button>
             <button onClick={() => setView("calendar")}
-              className={`rounded px-1.5 py-0.5 text-[9px] font-medium transition-colors ${view === "calendar" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+              className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors ${view === "calendar" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
               <CalendarDays className="h-2.5 w-2.5 inline mr-0.5" />Cal
             </button>
           </div>
@@ -82,8 +82,8 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
                           <ScrollText className="h-3 w-3" />
                         </button>
                       )}
-                      {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
-                      <Badge className={`text-[9px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
+                      {conflictIds.has(sh.id) && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
+                      <Badge className={`text-[10px] ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
                         {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
                       </Badge>
                     </div>
@@ -91,7 +91,7 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
                   {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-5 mt-0.5">Role: {sh.role}</div>}
                   {poOpen && shiftPostOrders && (
                     <div className="ml-5 mt-1.5 rounded border border-primary/15 bg-primary/[0.02] p-2">
-                      <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
                         <ScrollText className="h-2.5 w-2.5" /> Post Orders
                       </p>
                       <pre className="whitespace-pre-wrap text-[10px] text-muted-foreground font-mono leading-relaxed">{shiftPostOrders}</pre>
@@ -108,7 +108,7 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
             <div className="mt-2">
               <div className="grid grid-cols-7 gap-px mb-0.5">
                 {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-                  <div key={`${d}-${i}`} className="text-center text-[8px] font-semibold uppercase tracking-wider text-muted-foreground/40 py-0.5">{d}</div>
+                  <div key={`${d}-${i}`} className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40 py-0.5">{d}</div>
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-0.5">
@@ -173,14 +173,14 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
                               <ScrollText className="h-2.5 w-2.5" />
                             </button>
                           )}
-                          <Badge className={`text-[8px] ml-auto ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
+                          <Badge className={`text-[10px] ml-auto ${highlight ? "bg-green-500/15 text-green-600" : statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>
                             {highlight ? "Today" : sh.assigned_user_id ? "Confirmed" : "Open"}
                           </Badge>
                         </div>
                         {sh.role && <div className="text-muted-foreground/60 text-[10px] ml-4 mt-0.5">Role: {sh.role}</div>}
                         {calPoOpen && calPostOrders && (
                           <div className="ml-4 mt-1.5 rounded border border-primary/15 bg-primary/[0.02] p-2">
-                            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
                               <ScrollText className="h-2.5 w-2.5" /> Post Orders
                             </p>
                             <pre className="whitespace-pre-wrap text-[10px] text-muted-foreground font-mono leading-relaxed">{calPostOrders}</pre>

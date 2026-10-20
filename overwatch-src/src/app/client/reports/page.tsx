@@ -112,16 +112,16 @@ export default function ClientReportsPage() {
                           <p className="text-[11px] text-muted-foreground">{dar.eventName} — {dar.date}</p>
                         </div>
                         <div className="flex gap-2">
-                          <Badge variant="outline" className="text-[9px]">
+                          <Badge variant="outline" className="text-[10px]">
                             <Clock className="h-2.5 w-2.5 mr-0.5" /> {dar.totalHours}h
                           </Badge>
                           {dar.patrolCount > 0 && (
-                            <Badge variant="outline" className="text-[9px]">
+                            <Badge variant="outline" className="text-[10px]">
                               <MapPin className="h-2.5 w-2.5 mr-0.5" /> {dar.patrolCount} patrols
                             </Badge>
                           )}
                           {dar.incidentCount > 0 && (
-                            <Badge className="text-[9px] bg-amber-500/15 text-amber-500">
+                            <Badge className="text-[10px] bg-amber-500/15 text-amber-500">
                               <Shield className="h-2.5 w-2.5 mr-0.5" /> {dar.incidentCount} incidents
                             </Badge>
                           )}

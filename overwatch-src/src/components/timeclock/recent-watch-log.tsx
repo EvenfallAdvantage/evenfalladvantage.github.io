@@ -12,7 +12,7 @@ interface RecentWatchLogProps {
 export function RecentWatchLog({ recent, onSelectEntry }: RecentWatchLogProps) {
   return (
     <div>
-      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+      <h2 className="mb-3 flex items-center gap-2 section-title">
         <History className="h-4 w-4" /> Recent Watch Log
       </h2>
       {recent.length === 0 ? (

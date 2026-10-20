@@ -516,7 +516,7 @@ export function CreateWizard({ activeCompanyId, companyName, companyTimezone, in
                   <div className="flex flex-wrap gap-1 mt-1">
                     {COMPANY_ROLES.map(r => (
                       <button key={r} type="button" onClick={() => toggleArr(intakeEaRole, setIntakeEaRole, r)}
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-medium border transition-colors ${intakeEaRole.includes(r) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:border-border"}`}>
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-medium border transition-colors ${intakeEaRole.includes(r) ? "border-primary bg-primary/10 text-primary" : "border-border/40 text-muted-foreground hover:border-border"}`}>
                         {intakeEaRole.includes(r) && <Check className="h-2 w-2 inline mr-0.5" />}{r}
                       </button>
                     ))}

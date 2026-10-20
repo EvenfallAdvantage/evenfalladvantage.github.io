@@ -78,7 +78,7 @@ export function BadgePreviewModal({
             {/* Brand band */}
             <div className="py-3 px-4 text-center" style={{ backgroundColor: bc }}>
               <p className="text-white font-bold text-sm">{companyName}</p>
-              <p className="text-white/60 text-[9px] tracking-[3px] mt-0.5">SECURITY &middot; ACCESS BADGE</p>
+              <p className="text-white/60 text-[10px] tracking-[3px] mt-0.5">SECURITY &middot; ACCESS BADGE</p>
             </div>
 
             {/* Photo + name */}
@@ -109,12 +109,12 @@ export function BadgePreviewModal({
                 </div>
               )}
               <p className="mt-2 font-mono text-[11px] text-zinc-400">{badge.badge_number}</p>
-              <p className="text-[9px] text-zinc-300 mt-0.5">SCAN TO CLOCK IN / OUT</p>
+              <p className="text-[10px] text-zinc-300 mt-0.5">SCAN TO CLOCK IN / OUT</p>
             </div>
 
             {/* Footer */}
             <div className="bg-zinc-50 py-2 text-center border-t border-zinc-100" style={{ borderBottom: `3px solid ${bc}` }}>
-              <p className="text-[8px] text-zinc-400 tracking-wider">OVERWATCH &middot; {companyName.toUpperCase()}</p>
+              <p className="text-[10px] text-zinc-400 tracking-wider">OVERWATCH &middot; {companyName.toUpperCase()}</p>
             </div>
           </div>
         </div>

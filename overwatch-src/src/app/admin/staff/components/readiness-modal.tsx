@@ -47,7 +47,7 @@ export function ReadinessModal({ data, onClose }: ReadinessModalProps) {
             const hasProf = data.data.profileMissing.length > 0;
             const ok = !hasReq && !hasProf;
             return (
-              <Badge className={`text-[9px] ${ok ? "bg-green-500/15 text-green-600" : hasReq ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}>
+              <Badge className={`text-[10px] ${ok ? "bg-green-500/15 text-green-600" : hasReq ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600"}`}>
                 {ok ? "All Clear" : hasReq ? "Action Required" : "Incomplete"}
               </Badge>
             );

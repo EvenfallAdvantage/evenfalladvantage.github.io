@@ -225,7 +225,7 @@ function AdminStaffPageInner() {
           ]).map(t => (
             <SubTab key={t.key} active={tab === t.key} onClick={() => setTab(t.key)} icon={t.icon}>
               {t.label}
-              {t.badge > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-amber-500/20 text-amber-600">{t.badge}</Badge>}
+              {t.badge > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-amber-500/20 text-amber-600">{t.badge}</Badge>}
             </SubTab>
           ))}
         </SubTabList>

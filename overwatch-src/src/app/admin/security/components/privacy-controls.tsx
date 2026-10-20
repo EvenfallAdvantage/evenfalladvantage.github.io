@@ -178,7 +178,7 @@ export function PrivacyControls() {
         <CardContent className="pt-6 space-y-4">
           <div className="flex items-center gap-2">
             <FileJson className="h-4 w-4 text-blue-500" />
-            <h2 className="text-sm font-semibold">My Data (GDPR Articles 15 / 20)</h2>
+            <h2 className="section-title">My Data (GDPR Articles 15 / 20)</h2>
           </div>
           <p className="text-xs text-muted-foreground">
             Download a JSON archive of all your personal data across timesheets, incidents,

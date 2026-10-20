@@ -37,11 +37,11 @@ export function OvertimeWidget({ activeCompanyId }: OvertimeWidgetProps) {
             <TrendingUp className="h-3.5 w-3.5" /> Overtime Watch
           </h3>
           {over.length > 0 ? (
-            <Badge className="bg-red-500/15 text-red-500 text-[9px]">{over.length} Over OT</Badge>
+            <Badge className="bg-red-500/15 text-red-500 text-[10px]">{over.length} Over OT</Badge>
           ) : approaching.length > 0 ? (
-            <Badge className="bg-amber-500/15 text-amber-500 text-[9px]">{approaching.length} Approaching</Badge>
+            <Badge className="bg-amber-500/15 text-amber-500 text-[10px]">{approaching.length} Approaching</Badge>
           ) : (
-            <Badge className="bg-green-500/15 text-green-500 text-[9px]">Normal</Badge>
+            <Badge className="bg-green-500/15 text-green-500 text-[10px]">Normal</Badge>
           )}
         </div>
 
@@ -60,7 +60,7 @@ export function OvertimeWidget({ activeCompanyId }: OvertimeWidgetProps) {
                   {h.totalHours.toFixed(1)}h
                 </span>
                 {h.overtimeHours > 0 && (
-                  <span className="text-[9px] text-red-400 font-mono">+{h.overtimeHours.toFixed(1)} OT</span>
+                  <span className="text-[10px] text-red-400 font-mono">+{h.overtimeHours.toFixed(1)} OT</span>
                 )}
               </div>
             ))}

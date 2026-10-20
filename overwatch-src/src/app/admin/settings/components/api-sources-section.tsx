@@ -316,13 +316,13 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 <code className="text-[11px] font-mono flex-1 truncate" style={{ letterSpacing: 0 }}>
                   {revealedVisible ? revealedKey.plaintext : revealedKey.plaintext.slice(0, 12) + "•".repeat(20)}
                 </code>
-                <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-6 sm:w-6" onClick={() => setRevealedVisible(v => !v)} aria-label="Toggle visibility">
+                <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-7 sm:w-6" onClick={() => setRevealedVisible(v => !v)} aria-label="Toggle visibility">
                   {revealedVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                 </Button>
-                <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-6 sm:w-6" onClick={() => copyTo(revealedKey.plaintext, "Key copied")} aria-label="Copy key">
+                <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-7 sm:w-6" onClick={() => copyTo(revealedKey.plaintext, "Key copied")} aria-label="Copy key">
                   <Copy className="h-3 w-3" />
                 </Button>
-                <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-6 sm:w-6" onClick={() => { setRevealedKey(null); setRevealedVisible(false); }} aria-label="Dismiss">
+                <Button size="sm" variant="ghost" className="h-11 w-11 p-0 sm:h-7 sm:w-6" onClick={() => { setRevealedKey(null); setRevealedVisible(false); }} aria-label="Dismiss">
                   <X className="h-3 w-3" />
                 </Button>
               </div>
@@ -400,11 +400,11 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                         </div>
                       </div>
                       {isRevoked ? (
-                        <Badge variant="outline" className="text-[9px] border-red-500/40 text-red-400">revoked</Badge>
+                        <Badge variant="outline" className="text-[10px] border-red-500/40 text-red-400">revoked</Badge>
                       ) : isExpired ? (
-                        <Badge variant="outline" className="text-[9px]">expired</Badge>
+                        <Badge variant="outline" className="text-[10px]">expired</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[9px] border-green-500/40 text-green-500">active</Badge>
+                        <Badge variant="outline" className="text-[10px] border-green-500/40 text-green-500">active</Badge>
                       )}
                       {!isRevoked && (
                         <button onClick={() => handleRevoke(row)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded text-muted-foreground/60 hover:text-amber-500 transition-colors sm:h-7 sm:w-7" title="Revoke" aria-label={`Revoke ${row.name}`}>

@@ -215,8 +215,8 @@ export default function TrainingManagerPage() {
                         {q.description && <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{q.description}</p>}
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge className="text-[9px] bg-muted">{q.question_count ?? 0} Q&apos;s</Badge>
-                        <Badge className="text-[9px] bg-primary/10 text-primary">Pass: {q.passing_score}%</Badge>
+                        <Badge className="text-[10px] bg-muted">{q.question_count ?? 0} Q&apos;s</Badge>
+                        <Badge className="text-[10px] bg-primary/10 text-primary">Pass: {q.passing_score}%</Badge>
                       </div>
                     </div>
                   ))}
@@ -259,7 +259,7 @@ export default function TrainingManagerPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium truncate">{name || s.user?.email}</p>
-                          <Badge className="text-[9px] bg-muted">{s.role}</Badge>
+                          <Badge className="text-[10px] bg-muted">{s.role}</Badge>
                         </div>
                         <p className="text-[10px] text-muted-foreground">{s.user?.email}</p>
                         {requiredModules.length > 0 && (
@@ -309,8 +309,8 @@ export default function TrainingManagerPage() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-semibold">{m.module_name}</h3>
-                        {m.is_required && <Badge className="text-[9px] bg-red-500/15 text-red-600">Required</Badge>}
-                        <Badge className="text-[9px] bg-muted">{m.slide_count} slides</Badge>
+                        {m.is_required && <Badge className="text-[10px] bg-red-500/15 text-red-600">Required</Badge>}
+                        <Badge className="text-[10px] bg-muted">{m.slide_count} slides</Badge>
                       </div>
                       <span className={`text-xs font-mono font-bold ${mc.pct === 100 ? "text-green-500" : mc.pct > 0 ? "text-amber-500" : "text-muted-foreground"}`}>
                         {mc.pct}%

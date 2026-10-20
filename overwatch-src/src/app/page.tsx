@@ -659,7 +659,7 @@ function HomePageInner() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={int.src} alt={int.alt} className="h-full w-full object-cover" />
                 </div>
-                <span className="text-[9px] sm:text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">{int.name}</span>
+                <span className="text-[10px] sm:text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">{int.name}</span>
               </a>
             ))}
           </div>
@@ -783,7 +783,7 @@ function HomePageInner() {
                   <span className="text-[#dd8c33]/50 group-hover:text-[#dd8c33]/80 transition-colors">{badge.icon}</span>
                   <span className="flex flex-col leading-none">
                     <span className="text-[10px] font-bold font-mono tracking-wider">{badge.label}</span>
-                    <span className="text-[8px] text-white/50 group-hover:text-white/60">{badge.sub}</span>
+                    <span className="text-[10px] text-white/50 group-hover:text-white/60">{badge.sub}</span>
                   </span>
                 </a>
               ))}

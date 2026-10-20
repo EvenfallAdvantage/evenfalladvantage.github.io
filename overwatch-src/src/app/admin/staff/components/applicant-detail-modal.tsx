@@ -56,9 +56,9 @@ export function ApplicantDetailModal({
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm truncate">{display.first_name} {display.last_name}</p>
             <div className="flex items-center gap-2 mt-0.5">
-              <Badge className={`text-[9px] capitalize ${STATUS_COLORS[display.status] ?? "bg-muted text-muted-foreground"}`}>{display.status}</Badge>
+              <Badge className={`text-[10px] capitalize ${STATUS_COLORS[display.status] ?? "bg-muted text-muted-foreground"}`}>{display.status}</Badge>
               {display.source && display.source !== "overwatch" && (
-                <Badge variant="outline" className="text-[9px]">{display.source}</Badge>
+                <Badge variant="outline" className="text-[10px]">{display.source}</Badge>
               )}
             </div>
           </div>
@@ -161,7 +161,7 @@ export function ApplicantDetailModal({
                     <div key={idx} className="flex items-center gap-2 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
                       <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       <span className="text-xs font-medium truncate flex-1">{doc.name}</span>
-                      <Badge variant="outline" className="text-[9px] shrink-0">{doc.type}</Badge>
+                      <Badge variant="outline" className="text-[10px] shrink-0">{doc.type}</Badge>
                       {doc.fileUrl && (
                         <button
                           className="text-[10px] text-primary hover:underline shrink-0"

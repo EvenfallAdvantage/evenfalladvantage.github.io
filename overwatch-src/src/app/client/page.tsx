@@ -66,7 +66,7 @@ export default function ClientDashboard() {
             {/* Recent Operations */}
             {activeOps.length > 0 && (
               <div className="space-y-3">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active Operations</h2>
+                <h2 className="section-title">Active Operations</h2>
                 {activeOps.slice(0, 5).map((op: { id: string; name: string; status: string; start_date: string; end_date: string }) => (
                   <Card key={op.id}>
                     <CardContent className="p-4 flex items-center gap-4">

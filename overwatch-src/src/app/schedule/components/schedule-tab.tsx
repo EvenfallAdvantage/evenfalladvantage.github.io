@@ -132,7 +132,7 @@ export function ScheduleTab({
         {(eventDocs[ev.id] ?? []).length > 0 && (
           <div className="mt-2 ml-14 flex flex-wrap gap-1 border-t border-border/10 pt-2">
             {(eventDocs[ev.id] ?? []).map((d: OperationDocument) => (
-              <span key={d.id} className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold ${
+              <span key={d.id} className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold ${
                 d.doc_type === "warno" ? "bg-primary/10 text-primary" :
                 d.doc_type === "opord" ? "bg-green-500/10 text-green-600" :
                 d.doc_type === "frago" ? "bg-amber-500/10 text-amber-600" :
@@ -175,17 +175,17 @@ export function ScheduleTab({
         {highlight && (
           <div className="mt-2 ml-14 flex flex-wrap gap-1.5 border-t border-primary/10 pt-2">
             <Link href="/timeclock">
-              <Button size="sm" variant="outline" className="h-6 gap-1 text-[10px] px-2">
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-[10px] px-2">
                 <Clock className="h-3 w-3" /> Clock In
               </Button>
             </Link>
             <Link href="/forms">
-              <Button size="sm" variant="outline" className="h-6 gap-1 text-[10px] px-2">
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-[10px] px-2">
                 <ClipboardList className="h-3 w-3" /> File Report
               </Button>
             </Link>
             <Link href="/incidents">
-              <Button size="sm" variant="outline" className="h-6 gap-1 text-[10px] px-2">
+              <Button size="sm" variant="outline" className="h-7 gap-1 text-[10px] px-2">
                 <Flag className="h-3 w-3" /> Report Incident
               </Button>
             </Link>
@@ -247,7 +247,7 @@ export function ScheduleTab({
                     {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                   </div>
                   <div className="flex items-center gap-1">
-                    {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
+                    {conflictIds.has(sh.id) && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
                     <Badge className="text-[10px] capitalize bg-green-500/15 text-green-600">Today</Badge>
                   </div>
                 </CardContent>
@@ -260,7 +260,7 @@ export function ScheduleTab({
 
       {/* ── Upcoming Operations (with nested shifts) ── */}
       <div>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Upcoming Operations</h2>
+        <h2 className="mb-3 section-title">Upcoming Operations</h2>
         {upcomingEvents.length === 0 && currentEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
             <CalendarDays className="mb-3 h-10 w-10 text-muted-foreground/40" />
@@ -281,7 +281,7 @@ export function ScheduleTab({
       {/* ── Unlinked Shifts (not connected to any operation) ── */}
       {orphanUpcomingShifts.length > 0 && (
         <div>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">Unlinked Shifts</h2>
+          <h2 className="mb-3 section-title">Unlinked Shifts</h2>
           <div className="space-y-2">
             {orphanUpcomingShifts.map((sh: Shift) => {
               const shTz: string | undefined = sh.events?.timezone ?? undefined;
@@ -299,7 +299,7 @@ export function ScheduleTab({
                     {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                   </div>
                   <div className="flex items-center gap-1">
-                    {conflictIds.has(sh.id) && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
+                    {conflictIds.has(sh.id) && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Conflict</Badge>}
                     <Badge className={`text-[10px] capitalize ${statusColor(sh.assigned_user_id ? "confirmed" : "open")}`}>{sh.assigned_user_id ? "Confirmed" : "Open"}</Badge>
                   </div>
                 </CardContent>

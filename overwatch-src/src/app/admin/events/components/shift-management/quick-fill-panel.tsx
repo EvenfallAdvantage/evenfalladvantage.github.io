@@ -167,7 +167,7 @@ export function QuickFillPanel({
           ))}
           <div className="flex gap-1">
             <Input value={newPost} onChange={(e) => setNewPost(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addPost()} placeholder="e.g. Front Gate" className="h-6 w-32 text-xs" />
-            <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={addPost} disabled={!newPost.trim()} aria-label="Add post"><Plus className="h-3 w-3" /></Button>
+            <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={addPost} disabled={!newPost.trim()} aria-label="Add post"><Plus className="h-3 w-3" /></Button>
           </div>
         </div>
       </div>

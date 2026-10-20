@@ -87,7 +87,7 @@ export function IncidentLinkedTasks({
           <Button
             variant="ghost"
             size="sm"
-            className="ml-auto h-6 text-xs gap-1"
+            className="ml-auto h-7 text-xs gap-1"
             onClick={() => setShowQuickAdd(true)}
           >
             <Plus className="h-3 w-3" /> Add task

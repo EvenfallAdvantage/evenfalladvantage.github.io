@@ -103,7 +103,7 @@ export function KpiCards({ activeCompanyId }: KpiCardsProps) {
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+        <h2 className="section-title">
           Operational Status
         </h2>
         <button

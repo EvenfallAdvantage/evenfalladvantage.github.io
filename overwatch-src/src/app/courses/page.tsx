@@ -240,9 +240,9 @@ function CoursesContent() {
                       <div className="space-y-1">
                         <h3 className="text-sm font-bold leading-tight">{course.title}</h3>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <Badge className={`text-[9px] ${diffColor}`}>{course.difficulty_level}</Badge>
-                          {course.is_required && <Badge className="text-[9px] bg-amber-500/15 text-amber-600">Required</Badge>}
-                          {owned && <Badge className="text-[9px] bg-green-500/15 text-green-600">Purchased</Badge>}
+                          <Badge className={`text-[10px] ${diffColor}`}>{course.difficulty_level}</Badge>
+                          {course.is_required && <Badge className="text-[10px] bg-amber-500/15 text-amber-600">Required</Badge>}
+                          {owned && <Badge className="text-[10px] bg-green-500/15 text-green-600">Purchased</Badge>}
                         </div>
                       </div>
                       <div className="text-right shrink-0">

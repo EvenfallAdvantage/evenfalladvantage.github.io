@@ -78,7 +78,7 @@ export default function ConnectionCards({ companyId, canManage, providers, initi
                 <img src={def.logo} alt="" className="h-5 w-5 object-contain" />
               )}
               <span className="text-sm font-semibold">{def.label}</span>
-              <Badge variant={kind === "disconnected" ? "outline" : undefined} className={`text-[9px] ${BADGE_CLASS[kind]}`}>{BADGE_LABEL[kind]}</Badge>
+              <Badge variant={kind === "disconnected" ? "outline" : undefined} className={`text-[10px] ${BADGE_CLASS[kind]}`}>{BADGE_LABEL[kind]}</Badge>
               {row?.external_account_name && <span className="text-[10px] text-muted-foreground">{row.external_account_name}</span>}
             </div>
             <p className="text-[10px] text-muted-foreground">{def.desc}</p>

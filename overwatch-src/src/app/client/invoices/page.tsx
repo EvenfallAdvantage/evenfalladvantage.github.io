@@ -54,7 +54,7 @@ export default function ClientInvoicesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-sm font-mono">{inv.invoiceNumber}</p>
-                        <Badge className={`text-[9px] ${statusColors[inv.status] ?? ""} capitalize`}>
+                        <Badge className={`text-[10px] ${statusColors[inv.status] ?? ""} capitalize`}>
                           {StatusIcon && <StatusIcon className="h-2.5 w-2.5 mr-0.5" />}
                           {inv.status}
                         </Badge>

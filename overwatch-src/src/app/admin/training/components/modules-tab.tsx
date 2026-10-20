@@ -304,8 +304,8 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
                     <>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{mod.module_name}</span>
-                        <Badge variant="secondary" className="text-[9px] font-mono">{mod.module_code}</Badge>
-                        {mod.is_required && <Badge className="text-[9px] bg-red-500/10 text-red-500">Required</Badge>}
+                        <Badge variant="secondary" className="text-[10px] font-mono">{mod.module_code}</Badge>
+                        {mod.is_required && <Badge className="text-[10px] bg-red-500/10 text-red-500">Required</Badge>}
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
                         <Clock className="h-3 w-3" /> {mod.duration_minutes}m
@@ -356,10 +356,10 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
                                 className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm min-h-[80px] font-mono" />
                               <Input value={editSlideImage} onChange={(e) => setEditSlideImage(e.target.value)} placeholder="Image URL (optional)" className="h-7 text-sm" />
                               <div className="flex gap-1.5">
-                                <Button size="sm" className="h-6 text-xs" onClick={() => handleUpdateSlide(slide.id)} disabled={savingSlide}>
+                                <Button size="sm" className="h-7 text-xs" onClick={() => handleUpdateSlide(slide.id)} disabled={savingSlide}>
                                   {savingSlide ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
                                 </Button>
-                                <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setEditingSlide(null)}>Cancel</Button>
+                                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingSlide(null)}>Cancel</Button>
                               </div>
                             </div>
                           ) : (
@@ -374,16 +374,16 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
                           )}
                           {editingSlide !== slide.id && (
                             <div className="flex items-center gap-0.5 shrink-0">
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleMoveSlide(slide.id, "up")} disabled={idx === 0}>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleMoveSlide(slide.id, "up")} disabled={idx === 0}>
                                 <ArrowUp className="h-3 w-3" />
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleMoveSlide(slide.id, "down")} disabled={idx === slides.length - 1}>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleMoveSlide(slide.id, "down")} disabled={idx === slides.length - 1}>
                                 <ArrowDown className="h-3 w-3" />
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => startEditSlide(slide)}>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => startEditSlide(slide)}>
                                 <Pencil className="h-3 w-3" />
                               </Button>
-                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500" onClick={() => handleDeleteSlide(slide.id)}>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500" onClick={() => handleDeleteSlide(slide.id)}>
                                 <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>

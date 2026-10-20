@@ -180,7 +180,7 @@ export default function UpdatesPage() {
           <Link href="/chat"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
             Channels
-            {channelCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{channelCount}</Badge>}
+            {channelCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-primary/20 text-primary">{channelCount}</Badge>}
           </Link>
           <Link href="/chat?tab=messages"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
@@ -189,7 +189,7 @@ export default function UpdatesPage() {
           <Link href="/chat?tab=external"
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
             External Groups
-            {externalCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[9px] bg-primary/20 text-primary">{externalCount}</Badge>}
+            {externalCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-primary/20 text-primary">{externalCount}</Badge>}
           </Link>
         </div>
 
