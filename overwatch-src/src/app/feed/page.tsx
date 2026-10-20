@@ -17,7 +17,6 @@ import { QuickActions } from "./components/quick-actions";
 import { IntelCenter } from "./components/intel-center";
 import { ComplianceWidget } from "./components/compliance-widget";
 import { OvertimeWidget } from "./components/overtime-widget";
-import { PanicAlertBanner } from "./components/panic-alert-banner";
 import { ProfessionalTools } from "./components/professional-tools";
 import { AnalyticsView } from "@/components/analytics/analytics-view";
 import { formatMemberName } from "@/lib/format-names";
@@ -52,10 +51,7 @@ export default function FeedPage() {
 
   return (
     <div className="space-y-6">
-      {/* Active SOS alerts — leadership only, top priority */}
-      {isLeadership && validCompanyId && (
-        <PanicAlertBanner activeCompanyId={validCompanyId} />
-      )}
+      {/* Active SOS alerts now show on every page (components/sos/global-panic-listener). */}
 
       {/* No-company onboarding banner */}
       <OnboardingBanner user={user} />

@@ -6,6 +6,7 @@ import { AppSidebar } from "./app-sidebar";
 import { Topbar } from "./topbar";
 import { QuickActionFab } from "./quick-action-fab";
 import { MobileNav } from "./mobile-nav";
+import { GlobalPanicListener } from "@/components/sos/global-panic-listener";
 import { MobilePageAction } from "@/components/mobile-page-action";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SyncIndicator } from "@/components/sync-indicator";
@@ -61,6 +62,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <ErrorBoundary>{children}</ErrorBoundary>
           </div>
         </main>
+
+        {/* SOS alerts for supervisors on every page */}
+        <GlobalPanicListener />
 
         {/* Mobile bottom nav */}
         <MobileNav />
