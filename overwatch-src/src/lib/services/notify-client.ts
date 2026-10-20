@@ -5,15 +5,16 @@
  */
 import { createClient } from "@/lib/supabase/client";
 
-export type NotifyChannel = "email" | "sms";
+export type NotifyChannel = "email" | "sms" | "push";
 export interface NotifySendResult {
   ok: boolean;
   email: { sent: number; failed: number };
   sms: { sent: number; failed: number; skipped?: string };
+  push: { sent: number; failed: number; skipped?: string };
   error?: string;
 }
 
-const EMPTY = { email: { sent: 0, failed: 0 }, sms: { sent: 0, failed: 0 } };
+const EMPTY = { email: { sent: 0, failed: 0 }, sms: { sent: 0, failed: 0 }, push: { sent: 0, failed: 0 } };
 
 async function callNotifySend(payload: Record<string, unknown>): Promise<NotifySendResult> {
   const supabase = createClient();
@@ -29,7 +30,7 @@ async function callNotifySend(payload: Record<string, unknown>): Promise<NotifyS
     });
     const body = (await res.json().catch(() => ({}))) as Partial<NotifySendResult> & { error?: string };
     if (!res.ok) return { ok: false, ...EMPTY, error: body.error ?? `HTTP ${res.status}` };
-    return { ok: true, email: body.email ?? EMPTY.email, sms: body.sms ?? EMPTY.sms };
+    return { ok: true, email: body.email ?? EMPTY.email, sms: body.sms ?? EMPTY.sms, push: body.push ?? EMPTY.push };
   } catch (e) {
     return { ok: false, ...EMPTY, error: e instanceof Error ? e.message : String(e) };
   }
@@ -40,6 +41,8 @@ export function notifyMembers(params: {
   companyId: string;
   userIds: string[];
   channels: NotifyChannel[];
+  /** SMS only to members a push did not reach. */
+  smsFallback?: boolean;
   title: string;
   body?: string;
   /** App-relative path, e.g. "/admin/staff". */
@@ -54,6 +57,7 @@ export function notifyMembers(params: {
     title: params.title,
     body: params.body,
     action_url: params.actionUrl?.startsWith("/") ? params.actionUrl : undefined,
+    sms_fallback: params.smsFallback || undefined,
   });
 }
 

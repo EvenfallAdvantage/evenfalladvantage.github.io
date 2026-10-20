@@ -264,6 +264,13 @@ entrypoint = "./functions/email-save-credentials/index.ts"
 # --- SMS (Phase 4) -------------------------------------
 # Service-role-only generic SMS dispatcher. Called by other functions and the
 # admin UI via wrapper functions; never user-facing.
+# Web push delivery (VAPID). Service-role only, called by notify-send.
+# Secrets (Supabase > Edge Functions > Secrets): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT.
+[functions.push-send]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/push-send/index.ts"
+
 [functions.sms-send]
 enabled = true
 verify_jwt = false

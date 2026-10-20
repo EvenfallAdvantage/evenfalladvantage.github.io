@@ -22,7 +22,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logAudit } from "../_shared/audit.ts";
-import { authorize, notificationEmailHtml, parseNotifyRequest, smsText, welcomeEmail } from "./rules.ts";
+import { authorize, notificationEmailHtml, parseNotifyRequest, smsRecipientIds, smsText, welcomeEmail } from "./rules.ts";
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req.headers.get("origin"));
@@ -84,7 +84,11 @@ Deno.serve(async (req) => {
         body: JSON.stringify(body),
       });
 
-    const result = { email: { sent: 0, failed: 0 }, sms: { sent: 0, failed: 0, skipped: undefined as string | undefined } };
+    const result = {
+      email: { sent: 0, failed: 0 },
+      sms: { sent: 0, failed: 0, skipped: undefined as string | undefined },
+      push: { sent: 0, failed: 0, skipped: undefined as string | undefined },
+    };
 
     if (parsed.kind === "welcome") {
       const { data: co } = await admin.from("companies").select("name, join_code").eq("id", parsed.company_id).maybeSingle();
@@ -101,13 +105,24 @@ Deno.serve(async (req) => {
           if (res.ok) result.email.sent = to.length; else result.email.failed = to.length;
         }
       }
-      if (parsed.channels.includes("sms")) {
+      const pushDelivered = new Set<string>();
+      if (parsed.channels.includes("push") && recipients.length) {
+        const res = await call("push-send", { user_ids: recipients.map((r) => r.id), title: parsed.title, body: parsed.body, url: link });
+        const pr = (await res.json().catch(() => ({}))) as { sent?: number; failed?: number; delivered_user_ids?: string[]; skipped?: string };
+        if (res.ok) {
+          result.push.sent = pr.sent ?? 0; result.push.failed = pr.failed ?? 0; result.push.skipped = pr.skipped;
+          (pr.delivered_user_ids ?? []).forEach((id) => pushDelivered.add(id));
+        } else result.push.failed = recipients.length;
+      }
+      const smsIds = new Set(smsRecipientIds(parsed, recipients.map((r) => r.id), pushDelivered));
+      if (smsIds.size) {
         const { data: smsCfg } = await admin.from("integrations_config").select("is_active").eq("company_id", parsed.company_id).eq("provider", "sms").maybeSingle();
         if (!(smsCfg as { is_active?: boolean } | null)?.is_active) {
           result.sms.skipped = "Company SMS is not set up";
         } else {
           const text = smsText(parsed.title, parsed.body);
           for (const r of recipients) {
+            if (!smsIds.has(r.id)) continue;
             if (!r.phone || !/^\+\d{6,15}$/.test(r.phone)) continue;
             const res = await call("sms-send", { company_id: parsed.company_id, to: r.phone, body: text, purpose: "other" });
             if (res.ok) result.sms.sent++; else result.sms.failed++;

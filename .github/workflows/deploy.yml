@@ -67,6 +67,8 @@ jobs:
           NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID: ${{ secrets.NEXT_PUBLIC_SENTINEL_HUB_INSTANCE_ID }}
           # Mapillary client token (public by design; street-level photos). Unset = Mapillary skipped.
           NEXT_PUBLIC_MAPILLARY_CLIENT_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPILLARY_CLIENT_TOKEN }}
+          # Web push VAPID PUBLIC key (public by design). Unset = push toggle hidden, SMS/email unchanged.
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
         run: npm run build
 
       - name: Inject build hash into service worker
