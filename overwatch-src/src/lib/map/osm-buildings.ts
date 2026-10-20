@@ -323,3 +323,31 @@ export function tileFraction(t: TileXY, lon: number, lat: number): { u: number; 
   const f = lonLatToTileFloat(lon, lat, t.z);
   return { u: f.x - t.x, v: f.y - t.y };
 }
+
+/**
+ * Scale the budget with the performance governor (0 = full, 1 = reduced,
+ * 2 = low): fewer tiles and buildings, and a lower zoom-in threshold.
+ */
+export function governedBudget(b: BuildingBudget, perfLevel: number): BuildingBudget {
+  if (!(perfLevel >= 1)) return b;
+  const k = perfLevel >= 2 ? 0.45 : 0.7;
+  return {
+    maxAltitudeM: Math.round(b.maxAltitudeM * (perfLevel >= 2 ? 0.75 : 0.9)),
+    maxTilesInView: Math.max(1, Math.round(b.maxTilesInView * k)),
+    maxTilesCached: Math.max(2, Math.round(b.maxTilesCached * k)),
+    maxBuildingsPerTile: Math.round(b.maxBuildingsPerTile * k),
+    maxConcurrentFetches: Math.max(1, Math.round(b.maxConcurrentFetches * (perfLevel >= 2 ? 0.5 : 1))),
+  };
+}
+
+/** Visual mode the buildings are drawn for. */
+export type BuildingLook = "normal" | "dark" | "nvg" | "thermal";
+export function buildingLookOf(l: { nvgGoggles?: boolean; flirThermal?: boolean; nightVision?: boolean }): BuildingLook {
+  return l.flirThermal ? "thermal" : l.nvgGoggles ? "nvg" : l.nightVision ? "dark" : "normal";
+}
+/** Shader mode number for a look. */
+export const LOOK_MODE: Record<BuildingLook, number> = { normal: 0, dark: 0, nvg: 1, thermal: 2 };
+/** Base colours: warm stone by day, slate on the dark basemap, mid-grey for NVG gain. */
+export const LOOK_COLOR: Record<BuildingLook, string> = { normal: "#d2cbbd", dark: "#4a5666", nvg: "#8a8f94", thermal: "#ffffff" };
+/** Roof-edge outlines help under NVG/thermal where the gain flattens shading. */
+export const lookWantsEdges = (l: BuildingLook) => l === "nvg" || l === "thermal";

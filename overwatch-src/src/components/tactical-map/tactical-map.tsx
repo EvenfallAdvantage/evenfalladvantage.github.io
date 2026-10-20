@@ -5,6 +5,8 @@ import { logger } from "@/lib/logger";
 import { Loader2 } from "lucide-react";
 import { loadCesium } from "./cesium-config";
 import { MapLayersPanel, type LayerVisibility, defaultLayersFor } from "./map-layers-panel";
+import { buildingLookOf } from "@/lib/map/osm-buildings";
+import { useRooftopWeather } from "./hooks/use-rooftop-weather";
 import { MapLayersPanelV2 } from "./map-layers-panel-v2";
 import { allGroups, applyPreset, classicLayers, defaultPresetFor, effectiveLayers, expandSharedLayers, flattenForClassic, matchingPreset, migrateLayers } from "@/lib/map/layer-registry";
 import { readPanelV2Choice, resolvePanelV2, writePanelV2Choice } from "@/lib/map/panel-flag";
@@ -330,9 +332,15 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     viewerRef, cesiumRef, entityGroupsRef, loading,
     enabled: !!activeLayers.osmBuildings,
     terrain: !!activeLayers.terrain,
-    // Dark basemap, or NVG (its gain blows light buildings out to flat green).
-    dark: !!activeLayers.nightVision || !!activeLayers.nvgGoggles,
+    // Normal (sun-shaded), dark basemap, NVG (mid-grey + roof edges) or thermal (warmth by height).
+    look: buildingLookOf(activeLayers),
     constrained,
+  });
+  useRooftopWeather({
+    viewerRef, cesiumRef, loading,
+    buildingsOn: osmBuildingsStatus.state === "on",
+    radar: !!activeLayers.weather, clouds: !!activeLayers.clouds,
+    buildingCount: osmBuildingsStatus.buildings,
   });
   const siteWatch = useSiteWatch({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: panelV2 && layers.siteWatch !== false, sites, radii });
   const [sitePillOpen, setSitePillOpen] = useState(false);

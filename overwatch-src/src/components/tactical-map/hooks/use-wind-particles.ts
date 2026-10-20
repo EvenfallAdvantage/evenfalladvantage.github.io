@@ -18,12 +18,14 @@
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
+import { hasHeightRasters, occludedByBuildings } from "@/lib/map/building-heightfield";
 import { WIND_RETRY_MS, loadWindField, sampleWind, windFrameMs, windParticleBudget, windStroke, WIND_FIELD_CREDIT, type WindField } from "@/lib/map/wind-field";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 interface Particle { lon: number; lat: number; age: number; max: number; px: number; py: number; ok: boolean }
 
+const BUILDING_OCCLUSION_MAX_M = 4000;
 const MAX_AGE = 90;
 
 export function useWindParticles(params: {
@@ -72,9 +74,12 @@ export function useWindParticles(params: {
       p.lat = Math.asin(s0 + Math.random() * (s1 - s0)) * 180 / Math.PI;
       p.age = 0; p.max = MAX_AGE * (0.5 + Math.random() * 0.5); p.ok = false;
     };
+    // Below ~4 km with 3D buildings loaded, particles behind a building are hidden.
+    let bCam: { lon: number; lat: number; heightAboveGround: number } | null = null;
     const project = (p: Particle, occluder: { isPointVisible: (c: unknown) => boolean }): { x: number; y: number } | null => {
       C.Cartesian3.fromDegrees(p.lon, p.lat, 0, undefined, scratch);
       if (!occluder.isPointVisible(scratch)) return null;
+      if (bCam && occludedByBuildings(p.lon, p.lat, bCam)) return null;
       const w = C.SceneTransforms.worldToWindowCoordinates(viewer.scene, scratch);
       return w ? { x: w.x, y: w.y } : null;
     };
@@ -106,6 +111,12 @@ export function useWindParticles(params: {
       while (particles.length < budget) { const p = { lon: 0, lat: 0, age: 0, max: MAX_AGE, px: 0, py: 0, ok: false }; spawn(p); p.age = Math.random() * p.max; particles.push(p); }
       if (particles.length > budget) particles.length = budget;
       const occluder = new C.EllipsoidalOccluder(viewer.scene.globe.ellipsoid, cam.positionWC);
+      bCam = null;
+      if (hasHeightRasters()) {
+        const cc = cam.positionCartographic;
+        const agl = cc.height - (viewer.scene.globe.getHeight(cc) ?? 0);
+        if (agl < BUILDING_OCCLUSION_MAX_M) bCam = { lon: C.Math.toDegrees(cc.longitude), lat: C.Math.toDegrees(cc.latitude), heightAboveGround: Math.max(1, agl) };
+      }
       // step in degrees scales with the view so motion reads at any zoom
       const span = Math.max(0.05, Math.min(360, rect.e - rect.w));
       const k = span * 0.00012;

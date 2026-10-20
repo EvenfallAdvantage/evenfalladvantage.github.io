@@ -22,3 +22,10 @@ export function aboveBasemapIndex(layerCount: number, baseIndices: readonly numb
   const valid = baseIndices.filter((i) => i >= 0 && i < layerCount);
   return valid.length ? Math.max(...valid) + 1 : Math.min(1, layerCount);
 }
+
+/**
+ * Above this camera height (Cesium's default lighting fade-in distance) the
+ * globe's own per-pixel day/night blend places the lights; below it Cesium
+ * treats the view as lit, so the layer follows the sun at the view centre.
+ */
+export const GLOBE_BLEND_MIN_HEIGHT_M = 2.0e7;
