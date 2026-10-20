@@ -49,6 +49,12 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
     () => allTimesheets.filter((t: Sheet) => t.clock_out),
     [allTimesheets],
   );
+  // Open (still clocked-in) sheets, shown separately so a supervisor can see a
+  // live outside-the-fence clock-in before the officer clocks out.
+  const openSheets = useMemo(
+    () => allTimesheets.filter((t: Sheet) => !t.clock_out),
+    [allTimesheets],
+  );
   const [approving, setApproving] = useState<string | null>(null);
   const [collapsedOps, setCollapsedOps] = useState<Set<string>>(new Set());
   const [syncingGusto, setSyncingGusto] = useState(false);
@@ -117,15 +123,42 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
           </Button>
         )}
       </div>
+      {!loading && openSheets.length > 0 && (
+        <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-3" data-testid="timesheets-open">
+          <p className="mb-2 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wider text-green-600">
+            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" /> On the clock now · {openSheets.length}
+          </p>
+          <div className="space-y-1">
+            {openSheets.map((t: Sheet) => {
+              const u = t.users;
+              const op = t.events?.name ?? t.shifts?.events?.name ?? null;
+              return (
+                <div key={t.id} className="flex items-center gap-3 rounded-lg border border-border/30 bg-background/50 px-4 py-2.5 flex-wrap">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-500/10 text-xs font-bold text-green-600">
+                    {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /></p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {op ? `${op} · ` : ""}In since {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                  <span className="font-mono text-sm font-semibold">{((Date.now() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1)}h</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-      ) : timesheets.length === 0 ? (
+      ) : timesheets.length === 0 ? (openSheets.length > 0 ? null : (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
           <Clock className="mb-3 h-10 w-10 text-muted-foreground/40" />
           <p className="text-sm font-medium">No timesheets yet</p>
           <p className="mt-1 max-w-xs text-xs text-muted-foreground">Timesheets will appear here as your team clocks in and out.</p>
         </div>
-      ) : (() => {
+      )) : (() => {
         const grouped: Record<string, Sheet[]> = {};
         timesheets.forEach((t: Sheet) => {
           const key = t.events?.name ?? t.shifts?.events?.name ?? "Other";

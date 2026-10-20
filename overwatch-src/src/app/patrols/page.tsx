@@ -42,6 +42,7 @@ import { TagScanPanel, QrPrintSheet } from "@/components/patrol/tag-scan";
 import { setCheckpointLocation } from "@/lib/supabase/db-checkpoints";
 import { nfcSupported, writeNfcUrl } from "@/lib/patrol/nfc";
 import { checkpointUrl } from "@/lib/patrol/checkpoint-code";
+import { OFFLINE_SYNCED_EVENT } from "@/lib/offline/sync";
 import { Printer, Nfc, LocateFixed, ShieldCheck, ShieldAlert } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,6 +117,15 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
   }, [activeCompanyId]);
 
   useEffect(() => { load(); }, [load]);
+  // Offline scans sync in the background on reconnect; refresh the list then.
+  useEffect(() => {
+    const onSynced = (e: Event) => {
+      const kinds = (e as CustomEvent<{ kinds?: string[] }>).detail?.kinds ?? [];
+      if (kinds.some((k) => k.startsWith("patrol"))) void load();
+    };
+    window.addEventListener(OFFLINE_SYNCED_EVENT, onSynced);
+    return () => window.removeEventListener(OFFLINE_SYNCED_EVENT, onSynced);
+  }, [load]);
 
   function buildScanNotes() {
     const parts: string[] = [];
