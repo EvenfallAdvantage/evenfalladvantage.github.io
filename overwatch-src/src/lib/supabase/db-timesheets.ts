@@ -1,4 +1,5 @@
 import { getQuickFix, type Fix } from "@/lib/geo/position";
+import { parseUTC } from "@/lib/parse-utc";
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
@@ -125,6 +126,37 @@ export async function getActiveShiftsForClockIn(companyId: string) {
 
   if (error) { logDbReadError("active shifts for clock-in", error); return []; }
   return data ?? [];
+}
+
+/**
+ * Shifts just outside the ±30 min clock-in window: ended in the last 4 h
+ * (late clock-in) or starting in the next 8 h (early clock-in). The modal
+ * offers these instead of a "No active shifts" dead end. The resulting
+ * timesheet is a normal pending timesheet with a note, so a supervisor
+ * approves or corrects it like any other.
+ */
+export async function getNearbyShiftsForClockIn(companyId: string, now: Date = new Date()) {
+  const userId = await ensureInternalUser();
+  if (!userId) return [];
+  const supabase = createClient();
+  const iso = (ms: number) => new Date(now.getTime() + ms).toISOString();
+  const H = 60 * 60 * 1000;
+  const { data, error } = await supabase
+    .from("shifts")
+    .select("*, events!inner(id, name, location, company_id, timezone, location_lat, location_lng, geofence_radius_meters)")
+    .eq("assigned_user_id", userId)
+    .eq("events.company_id", companyId)
+    .or(`and(end_time.gte.${iso(-4 * H)},end_time.lt.${now.toISOString()}),and(start_time.gt.${iso(30 * 60 * 1000)},start_time.lte.${iso(8 * H)})`)
+    .order("start_time", { ascending: true })
+    .limit(4);
+  if (error) { logDbReadError("nearby shifts for clock-in", error); return []; }
+  return data ?? [];
+}
+
+/** "late" when the shift already ended, "early" when it hasn't started (outside the 30 min window). */
+export function shiftEdgeKind(shift: { start_time: string; end_time: string }, now: Date = new Date()): "late" | "early" {
+  // DB timestamps can arrive without a zone suffix; parseUTC treats them as UTC.
+  return parseUTC(shift.end_time).getTime() < now.getTime() ? "late" : "early";
 }
 
 export async function clockOut(timesheetId: string, at?: string, fixIn?: Fix | null) {

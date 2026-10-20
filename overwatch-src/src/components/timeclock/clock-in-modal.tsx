@@ -1,6 +1,8 @@
 "use client";
 
-import { LogIn, Loader2, X, CalendarDays, MapPin, Flag, Briefcase } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LogIn, Loader2, X, CalendarDays, MapPin, Flag, Briefcase, Clock } from "lucide-react";
+import { getNearbyShiftsForClockIn, shiftEdgeKind } from "@/lib/supabase/db-timesheets";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatTime, type Shift } from "./timeclock-utils";
@@ -12,7 +14,10 @@ interface ClockInModalProps {
   acting: boolean;
   adminNotes: string;
   onAdminNotesChange: (notes: string) => void;
-  onShiftClockIn: (shift: Shift) => void;
+  /** `notes` is set for a late/early clock-in outside the normal window. */
+  onShiftClockIn: (shift: Shift, notes?: string) => void;
+  /** Company to look up nearby (just-ended / later-today) shifts for. */
+  companyId?: string | null;
   onAdminClockIn: () => void;
   onQuickClockIn: () => void;
   onClose: () => void;
@@ -28,8 +33,16 @@ export function ClockInModal({
   onAdminClockIn,
   onQuickClockIn,
   onClose,
+  companyId,
 }: ClockInModalProps) {
   const { fix, locating } = useClockFix();
+  const [nearby, setNearby] = useState<Shift[]>([]);
+  useEffect(() => {
+    if (loadingShifts || detectedShifts.length > 0 || !companyId) return;
+    let alive = true;
+    getNearbyShiftsForClockIn(companyId).then((r) => { if (alive) setNearby(r as Shift[]); }).catch(() => {});
+    return () => { alive = false; };
+  }, [loadingShifts, detectedShifts.length, companyId]);
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="relative w-full max-w-md rounded-2xl border border-border/50 bg-card shadow-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -78,11 +91,42 @@ export function ClockInModal({
                 </div>
               )}
 
-              {detectedShifts.length === 0 && (
+              {detectedShifts.length === 0 && nearby.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your shifts today</p>
+                  {nearby.map((sh) => {
+                    const kind = shiftEdgeKind(sh);
+                    const label = kind === "late"
+                      ? `Ended ${formatTime(sh.end_time)}. Clock in late`
+                      : `Starts ${formatTime(sh.start_time)}. Clock in early`;
+                    const note = kind === "late"
+                      ? `Late clock-in: shift ended ${formatTime(sh.end_time)}`
+                      : `Early clock-in: shift starts ${formatTime(sh.start_time)}`;
+                    return (
+                      <button key={sh.id} onClick={() => onShiftClockIn(sh, note)} disabled={acting}
+                        className="w-full rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-left hover:bg-amber-500/10 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15">
+                            <Clock className="h-5 w-5 text-amber-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold">{sh.events?.name ?? "Shift"}</p>
+                            <p className="text-xs text-muted-foreground">{formatTime(sh.start_time)} — {formatTime(sh.end_time)}</p>
+                            <p className="text-xs font-medium text-amber-500 mt-1">{label}</p>
+                            <p className="text-[11px] text-muted-foreground">Your supervisor reviews it with your timesheet.</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {detectedShifts.length === 0 && nearby.length === 0 && (
                 <div className="rounded-xl border border-border/40 bg-muted/20 p-4 text-center">
                   <CalendarDays className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-muted-foreground">No active shifts found</p>
-                  <p className="text-[10px] text-muted-foreground/60 mt-1">You don&apos;t have a shift starting within 30 minutes</p>
+                  <p className="text-sm font-medium text-muted-foreground">No shifts right now</p>
+                  <p className="text-xs text-muted-foreground mt-1">Nothing scheduled for you in the last 4 hours or the next 8.</p>
                 </div>
               )}
 
@@ -114,7 +158,7 @@ export function ClockInModal({
 
               {/* Quick clock-in fallback */}
               <button onClick={onQuickClockIn} disabled={acting}
-                className="w-full text-center text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors py-1">
+                className="w-full text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors py-2 min-h-[44px]">
                 or clock in without linking to an operation →
               </button>
             </div>

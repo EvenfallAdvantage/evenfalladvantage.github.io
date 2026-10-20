@@ -179,7 +179,7 @@ function TimeClockInner() {
     }
   }
 
-  async function handleShiftClockIn(shift: Shift) {
+  async function handleShiftClockIn(shift: Shift, notes?: string) {
     setActing(true);
     setShowClockInModal(false);
     try {
@@ -188,6 +188,7 @@ function TimeClockInner() {
         eventId: shift.events?.id ?? shift.event_id,
         companyId: activeCompanyId ?? undefined,
         clockInType: "shift",
+        ...(notes ? { notes } : {}),
       });
       if (!queued) { await startLocationIfEnabled(); await load(); toast.success("Clocked in"); }
     } catch (err) { console.error("Clock in failed:", err); toast.error(isOffline() ? "No connection and couldn't save offline." : "Clock in failed"); }
@@ -299,6 +300,7 @@ function TimeClockInner() {
           adminNotes={adminNotes} onAdminNotesChange={setAdminNotes}
           onShiftClockIn={handleShiftClockIn} onAdminClockIn={handleAdminClockIn} onQuickClockIn={handleQuickClockIn}
           onClose={() => { setShowClockInModal(false); setAdminNotes(""); }}
+          companyId={companyId}
         />
       )}
     </>
