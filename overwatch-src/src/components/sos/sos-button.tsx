@@ -69,7 +69,8 @@ export function SosButton({ companyId, className }: { companyId: string; classNa
     let sending = false;
     const trySend = async () => {
       const t = Date.now();
-      if (stopped || sending || !latest || !shouldSendLocation(last, t, startedAt)) return;
+      // 250 ms slack: the 10 s timer can tick a hair early and would skip a whole cycle.
+      if (stopped || sending || !latest || !shouldSendLocation(last, t + 250, startedAt)) return;
       sending = true; last = t;
       try {
         const { recordPanicLocation } = await mod;

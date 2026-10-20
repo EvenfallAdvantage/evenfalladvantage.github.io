@@ -33,3 +33,9 @@ describe("SOS stationary re-send gate", () => {
     expect(sent).toBe(7);
   });
 });
+
+describe("pushErrorMessage ordering", () => {
+  it("treats 'Registration failed - permission denied' (incognito) as a push-service refusal", () => {
+    expect(pushErrorMessage(new Error("Registration failed - permission denied"))).toMatch(/push service refused/);
+  });
+});

@@ -94,8 +94,8 @@ export function pushErrorMessage(err: unknown): string {
   const raw = String((err as { message?: string } | null)?.message ?? err ?? "").trim();
   const m = raw.toLowerCase();
   let why: string;
-  if (name === "NotAllowedError" || m.includes("permission")) why = "Notifications aren't allowed for this site on this device.";
-  else if (name === "AbortError" || m.includes("push service") || m.includes("registration failed")) why = "This browser's push service refused the request. Private/incognito windows and some browsers can't receive push.";
+  if (name === "AbortError" || m.includes("push service") || m.includes("registration failed")) why = "This browser's push service refused the request. Private/incognito windows and some browsers can't receive push.";
+  else if (name === "NotAllowedError" || m.includes("permission")) why = "Notifications aren't allowed for this site on this device.";
   else if (m.includes("subscription incomplete")) why = "The browser returned an incomplete subscription.";
   else if (m.includes("fetch") || m.includes("network")) why = "No connection to Overwatch. Check your signal and try again.";
   else why = "Something went wrong saving this device.";
