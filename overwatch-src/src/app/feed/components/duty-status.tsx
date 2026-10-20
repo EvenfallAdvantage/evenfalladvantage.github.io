@@ -10,12 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  getActiveTimesheet, clockIn, clockOut, getRecentTimesheets,
+  getActiveTimesheet, getRecentTimesheets,
 } from "@/lib/supabase/db";
 import { getActiveShiftsForClockIn } from "@/lib/supabase/db-timesheets";
 import { SelfLocationBar } from "@/components/timeclock/location-check";
+import { cachedRead, isOffline, writeCache } from "@/lib/offline/cached-read";
+import { clockInOffline, clockOutOffline, isPendingSync } from "@/lib/offline/with-offline";
+import { toast } from "sonner";
 import { parseUTC } from "@/lib/parse-utc";
 import { formatDuration, type Timesheet } from "./shared";
+
+/** Thrown after an offline clock-in so callers skip the live reload. */
+class OfflineHandled extends Error {}
 
 interface DutyStatusProps {
   activeCompanyId: string | null;
@@ -38,10 +44,11 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
 
   const load = useCallback(async () => {
     try {
-      const [ts, history] = await Promise.all([
+      const key = `duty:${activeCompanyId ?? "none"}`;
+      const [ts, history] = await cachedRead(key, () => Promise.all([
         getActiveTimesheet(activeCompanyId ?? undefined),
         getRecentTimesheets(3, activeCompanyId ?? undefined),
-      ]);
+      ]));
       setActive(ts);
       setRecentShifts(history.filter((t: Timesheet) => t.clock_out));
     } catch {
@@ -90,12 +97,28 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
       return sum + (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime());
     }, 0);
 
+  /** Clock in live, or queue it (with the real tap time) when there's no signal. */
+  async function doClockIn(params: Parameters<typeof clockInOffline>[0]) {
+    const r = await clockInOffline(params);
+    if (isPendingSync(r)) {
+      const optimistic = { id: r.__mutationId, clock_in: new Date().toISOString(), clock_out: null, ...params } as unknown as Timesheet;
+      writeCache(`duty:${activeCompanyId ?? "none"}`, [optimistic, recentShifts]);
+      setActive(optimistic);
+      toast.success("Clocked in offline. It will sync with the time you tapped.");
+      throw new OfflineHandled();
+    }
+  }
+
   async function handleClock() {
     if (active) {
       setActing(true);
       try {
-        await clockOut(active.id);
-        await load();
+        const r = await clockOutOffline(active.id);
+        if (isPendingSync(r)) {
+          writeCache(`duty:${activeCompanyId ?? "none"}`, [null, recentShifts]);
+          setActive(null);
+          toast.success("Clocked out offline. It will sync with the time you tapped.");
+        } else await load();
         onReload?.();
       } catch (err) {
         console.error("Clock out failed:", err);
@@ -106,7 +129,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
       setLoadingShifts(true);
       setShowClockInModal(true);
       try {
-        const shifts = await getActiveShiftsForClockIn(activeCompanyId!);
+        const shifts = await cachedRead(`shifts-now:${activeCompanyId}`, () => getActiveShiftsForClockIn(activeCompanyId!));
         setDetectedShifts(shifts);
       } catch {
         setDetectedShifts([]);
@@ -121,7 +144,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
     setActing(true);
     setShowClockInModal(false);
     try {
-      await clockIn({
+      await doClockIn({
         shiftId: shift.id,
         eventId: shift.events?.id ?? shift.event_id,
         companyId: activeCompanyId ?? undefined,
@@ -130,7 +153,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
       await load();
       onReload?.();
     } catch (err) {
-      console.error("Clock in failed:", err);
+      if (!(err instanceof OfflineHandled)) { console.error("Clock in failed:", err); toast.error(isOffline() ? "No connection and couldn't save offline." : "Clock in failed. Try again."); }
     } finally {
       setActing(false);
       setDetectedShifts([]);
@@ -142,11 +165,11 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
     setActing(true);
     setShowClockInModal(false);
     try {
-      await clockIn({ clockInType: "admin", notes: adminNotes.trim(), companyId: activeCompanyId ?? undefined });
+      await doClockIn({ clockInType: "admin", notes: adminNotes.trim(), companyId: activeCompanyId ?? undefined });
       await load();
       onReload?.();
     } catch (err) {
-      console.error("Clock in failed:", err);
+      if (!(err instanceof OfflineHandled)) { console.error("Clock in failed:", err); toast.error(isOffline() ? "No connection and couldn't save offline." : "Clock in failed. Try again."); }
     } finally {
       setActing(false);
       setAdminNotes("");
@@ -158,11 +181,11 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
     setActing(true);
     setShowClockInModal(false);
     try {
-      await clockIn({ companyId: activeCompanyId ?? undefined });
+      await doClockIn({ companyId: activeCompanyId ?? undefined });
       await load();
       onReload?.();
     } catch (err) {
-      console.error("Clock in failed:", err);
+      if (!(err instanceof OfflineHandled)) { console.error("Clock in failed:", err); toast.error(isOffline() ? "No connection and couldn't save offline." : "Clock in failed. Try again."); }
     } finally {
       setActing(false);
     }

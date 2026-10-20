@@ -36,6 +36,17 @@ import {
   submitPublicReport,
 } from "@/lib/supabase/db";
 import { logger } from "@/lib/logger";
+import { logPatrolScan } from "@/lib/supabase/db-checkpoints";
+import { clockIn, clockOut } from "@/lib/supabase/db-timesheets";
+import { replayQueuedPanicAlert } from "@/lib/supabase/db-panic";
+
+/** Replays carry the original client id; a unique violation means an earlier attempt already landed. */
+async function ignoreDuplicate(p: Promise<unknown>): Promise<void> {
+  try { await p; } catch (e) {
+    if ((e as { code?: string })?.code === "23505") return;
+    throw e;
+  }
+}
 
 export interface DrainResult {
   attempted: number;
@@ -137,6 +148,26 @@ async function dispatch(mutation: QueuedMutation): Promise<void> {
         payload: Parameters<typeof submitPublicReport>[2];
       };
       await submitPublicReport(p.linkId, p.companyId, p.payload);
+      return;
+    }
+    case "patrol.scan": {
+      const p = payload as { companyId: string; checkpointId: string; params: Parameters<typeof logPatrolScan>[2] };
+      await ignoreDuplicate(logPatrolScan(p.companyId, p.checkpointId, p.params));
+      return;
+    }
+    case "timesheet.clock_in": {
+      const p = payload as { params: Parameters<typeof clockIn>[0] };
+      await ignoreDuplicate(clockIn(p.params));
+      return;
+    }
+    case "timesheet.clock_out": {
+      const p = payload as { timesheetId: string; at: string };
+      await clockOut(p.timesheetId, p.at);
+      return;
+    }
+    case "panic.trigger": {
+      const p = payload as Parameters<typeof replayQueuedPanicAlert>[0];
+      await replayQueuedPanicAlert(p);
       return;
     }
     default: {

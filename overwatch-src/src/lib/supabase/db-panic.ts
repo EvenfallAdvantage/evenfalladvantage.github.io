@@ -42,8 +42,17 @@ export interface PanicAlert {
  * Returns the alert ID on success.
  */
 export async function triggerPanicAlert(companyId: string): Promise<string | null> {
+  return (await triggerPanicAlertDetailed(companyId)).id;
+}
+
+/**
+ * Same as triggerPanicAlert, but reports whether the alert was QUEUED because
+ * the phone has no connection. A queued alert is sent (same id, original
+ * time and GPS) by the offline sync as soon as the connection returns.
+ */
+export async function triggerPanicAlertDetailed(companyId: string): Promise<{ id: string | null; queued: boolean }> {
   const userId = await ensureInternalUser();
-  if (!userId) return null;
+  if (!userId) return { id: null, queued: false };
 
   // Try to get current position (timeout 5s — don't block the alert)
   let lat: number | null = null;
@@ -84,8 +93,15 @@ export async function triggerPanicAlert(companyId: string): Promise<string | nul
     });
 
   if (error) {
+    const msg = String(error.message ?? "").toLowerCase();
+    const offline = (typeof navigator !== "undefined" && !navigator.onLine) || msg.includes("fetch") || msg.includes("network") || msg.includes("load failed");
+    if (offline) {
+      const { enqueue } = await import("@/lib/offline/queue");
+      await enqueue({ kind: "panic.trigger", label: "SOS alert", payload: { id, companyId, userId, lat, lng, accuracy, createdAt: new Date().toISOString() } });
+      return { id, queued: true };
+    }
     console.error("[Panic] Failed to create alert:", error.message);
-    return null;
+    return { id: null, queued: false };
   }
 
   // Fire notifications to all managers via dynamic import (don't block)
@@ -113,7 +129,7 @@ export async function triggerPanicAlert(companyId: string): Promise<string | nul
       });
   }).catch(() => {});
 
-  return id;
+  return { id, queued: false };
 }
 
 // ─── Acknowledge / Resolve ────────────────────────────────
@@ -313,4 +329,25 @@ export function subscribePanicAlerts(companyId: string, onChange: () => void): (
     .on("postgres_changes", { event: "*", schema: "public", table: "panic_alerts", filter: `company_id=eq.${companyId}` }, () => onChange())
     .subscribe();
   return () => { supabase.removeChannel(ch); };
+}
+
+/** Offline replay of a queued SOS (called by lib/offline/sync). Idempotent by id. */
+export async function replayQueuedPanicAlert(p: { id: string; companyId: string; userId: string; lat: number | null; lng: number | null; accuracy: number | null; createdAt: string }): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from("panic_alerts").insert({
+    id: p.id, user_id: p.userId, company_id: p.companyId, lat: p.lat, lng: p.lng, accuracy: p.accuracy,
+    status: "active", acknowledged_by: null, acknowledged_at: null, escalated: false,
+    created_at: p.createdAt, updated_at: new Date().toISOString(),
+  });
+  if (error && (error as { code?: string }).code !== "23505") throw new Error(error.message);
+  if (error) return; // already delivered on an earlier attempt
+  const { dispatchToMany } = await import("@/lib/services/notification-dispatcher");
+  const { data } = await supabase.from("company_memberships").select("user_id").eq("company_id", p.companyId).in("role", ["owner", "admin", "manager"]);
+  if (data?.length) {
+    await dispatchToMany(p.companyId, (data as { user_id: string }[]).map((m) => ({ userId: m.user_id })), {
+      title: "SOS ALERT (sent after signal loss)",
+      body: `Triggered ${new Date(p.createdAt).toLocaleTimeString()} while the officer had no connection. Respond immediately.`,
+      type: "panic_alert", actionUrl: `/feed/?panic=${p.id}`, urgent: true,
+    }).catch(() => {});
+  }
 }

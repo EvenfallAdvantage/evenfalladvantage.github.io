@@ -10,6 +10,7 @@ import { seedInternalUserId, clearInternalUserCache } from "@/lib/supabase/db-he
 import { useAuthStore } from "@/stores/auth-store";
 import { logger } from "@/lib/logger";
 import type { SessionUser, CompanyContext } from "@/types";
+import { readCache, writeCache, isOffline, clearFieldCache } from "@/lib/offline/cached-read";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, clearSession } = useAuthStore();
@@ -18,6 +19,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadProfile = useCallback(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async (authUser: any) => {
+      // No signal: use the last profile this device loaded, so field pages
+      // (clock, patrol, report, SOS) still work offline.
+      const cachedProfile = readCache<SessionUser>(`profile:${authUser.id}`);
+      if (isOffline() && cachedProfile) {
+        seedInternalUserId(cachedProfile.id);
+        setUser(cachedProfile);
+        return;
+      }
       // Try loading real profile from database
       try {
         let profile = await fetchUserProfile(authUser.id);
@@ -102,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
 
           seedInternalUserId(profile.user.id);
-          setUser({
+          const sessionUser: SessionUser = {
             id: profile.user.id,
             email: profile.user.email ?? authUser.email ?? null,
             phone: profile.user.phone ?? authUser.phone ?? null,
@@ -113,14 +122,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isPlatformAdmin: profile.user.is_platform_admin ?? false,
             companies,
             activeCompanyId: null,
-          });
+          };
+          writeCache(`profile:${authUser.id}`, sessionUser);
+          setUser(sessionUser);
           return;
         }
     } catch (e) {
       logger.swallow("auth-provider:load-profile-fallback", e, "debug");
     }
 
-      // Fallback: use Supabase auth metadata
+      // Fallback: last cached profile (flaky signal), else Supabase auth metadata
+      if (cachedProfile) { seedInternalUserId(cachedProfile.id); setUser(cachedProfile); return; }
       setUser(mapSupabaseUser(authUser));
     },
     [setUser]
@@ -134,11 +146,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // lock and cause contention / 5-second timeout warnings.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: string, session: { user: { id: string; email?: string; user_metadata?: Record<string, string> } } | null) => {
+    } = supabase.auth.onAuthStateChange((event: string, session: { user: { id: string; email?: string; user_metadata?: Record<string, string> } } | null) => {
       if (session?.user) {
         loadProfile(session.user);
       } else {
         clearInternalUserCache();
+        if (event === "SIGNED_OUT") clearFieldCache();
         clearSession();
       }
     });

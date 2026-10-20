@@ -53,6 +53,7 @@ const PRECACHE_PAGES = [
   `${BASE_PATH}/patrols/`,
   `${BASE_PATH}/incidents/`,
   `${BASE_PATH}/tasks/`,
+  `${BASE_PATH}/notifications/`,
 ];
 
 const PRECACHE_ASSETS = [

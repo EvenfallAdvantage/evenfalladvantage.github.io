@@ -15,6 +15,7 @@
 
 import {
   createIncident,
+  createIncidentEnhanced,
   updateIncident,
   setIncidentStatus,
   addIncidentUpdate,
@@ -24,6 +25,8 @@ import {
   addTaskComment,
   submitPublicReport,
 } from "@/lib/supabase/db";
+import { logPatrolScan } from "@/lib/supabase/db-checkpoints";
+import { clockIn, clockOut } from "@/lib/supabase/db-timesheets";
 import { enqueue } from "./queue";
 import type { MutationKind } from "./db";
 
@@ -61,16 +64,18 @@ async function tryOrQueue<T>(
   payload: any,
   liveCall: () => Promise<T>,
   optimisticLabel?: string,
+  /** Reuse the record's own id as the queue id (lets the UI act on the optimistic row). */
+  mutationId?: string,
 ): Promise<T | OptimisticRecord> {
   if (isOffline()) {
-    const id = await enqueue({ kind, payload, label: optimisticLabel });
+    const id = await enqueue({ id: mutationId, kind, payload, label: optimisticLabel });
     return { __pendingSync: true, __mutationId: id };
   }
   try {
     return await liveCall();
   } catch (err) {
     if (looksLikeNetworkError(err)) {
-      const id = await enqueue({ kind, payload, label: optimisticLabel });
+      const id = await enqueue({ id: mutationId, kind, payload, label: optimisticLabel });
       return { __pendingSync: true, __mutationId: id };
     }
     throw err;
@@ -185,6 +190,35 @@ export function submitPublicReportOffline(
 }
 
 // ─── Helpers ───────────────────────────────────────────────
+
+// ─── Field actions (patrol scan, clock in/out) ──────────────
+// Each captures a client id and the real tap time up front, so a replay
+// hours later records when it actually happened and can't double-insert.
+
+export function logPatrolScanOffline(companyId: string, checkpointId: string, params: Omit<NonNullable<Parameters<typeof logPatrolScan>[2]>, "id" | "scannedAt"> = {}) {
+  const full = { ...params, id: crypto.randomUUID(), scannedAt: new Date().toISOString() };
+  return tryOrQueue("patrol.scan", { companyId, checkpointId, params: full }, () => logPatrolScan(companyId, checkpointId, full), "Checkpoint scan", full.id);
+}
+
+export function clockInOffline(params: Omit<NonNullable<Parameters<typeof clockIn>[0]>, "id" | "at"> = {}) {
+  const full = { ...params, id: crypto.randomUUID(), at: new Date().toISOString() };
+  // Online: no client time, so the server stamps the time and the GPS fix is taken
+  // (verified clock, migration 20261020032000). Only the queued replay carries `at`.
+  const { at: _at, ...live } = full; void _at;
+  return tryOrQueue("timesheet.clock_in", { params: full }, () => clockIn(live), "Clock in", full.id);
+}
+
+export function clockOutOffline(timesheetId: string) {
+  const at = new Date().toISOString();
+  return tryOrQueue("timesheet.clock_out", { timesheetId, at }, () => clockOut(timesheetId), "Clock out");
+}
+
+export function createIncidentEnhancedOffline(
+  companyId: string,
+  params: Parameters<typeof createIncidentEnhanced>[1],
+) {
+  return tryOrQueue("incident.create", { companyId, params, enhanced: true }, () => createIncidentEnhanced(companyId, params), params.title);
+}
 
 export function isPendingSync<T>(
   v: T | OptimisticRecord,
