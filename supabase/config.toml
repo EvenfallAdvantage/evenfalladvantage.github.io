@@ -324,6 +324,13 @@ verify_jwt = true
 enabled = true
 verify_jwt = true
 
+# Cron-driven alert delivery (guard cards, overdue patrols). Auth: x-integrations-cron-secret
+# (Vault 'integrations_cron_secret'), called by public.kick_notify_system() via pg_net.
+[functions.notify-system]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/notify-system/index.ts"
+
 [functions.notify-send]
 enabled = true
 verify_jwt = true

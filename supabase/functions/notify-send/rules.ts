@@ -23,6 +23,8 @@ export interface NotificationRequest {
   sms_fallback?: boolean;
   /** The record this is about; lets staff notify one peer about it. */
   ref?: NotifyRef;
+  /** Notification type (dispatch `type`); used to honour the recipient's mutes. */
+  type?: string;
 }
 export interface NotifyRef { type: "dm" | "swap" | "task"; id: string }
 export interface WelcomeRequest {
@@ -68,7 +70,12 @@ export function parseNotifyRequest(raw: unknown): NotifyRequest | string {
     if (ids.length !== 1) return "ref allows a single recipient";
     ref = { type: r.type, id: r.id };
   }
-  return { company_id: b.company_id, kind: "notification", channels, user_ids: ids, title: b.title.trim(), body: b.body as string | undefined, action_url, sms_fallback, ref };
+  let type: string | undefined;
+  if (b.type !== undefined) {
+    if (typeof b.type !== "string" || !/^[a-z_]{1,40}$/.test(b.type)) return "type must be a short lowercase word";
+    type = b.type;
+  }
+  return { company_id: b.company_id, kind: "notification", channels, user_ids: ids, title: b.title.trim(), body: b.body as string | undefined, action_url, sms_fallback, ref, type };
 }
 
 /**
@@ -164,4 +171,42 @@ export function refMatches(
   if (ref.type === "dm") return row.from_user_id === callerId && row.to_user_id === recipientId && row.company_id === companyId && fresh(row.created_at);
   if (ref.type === "swap") return row.replacement_id === callerId && row.requester_id === recipientId && row.company_id === companyId && fresh(row.updated_at);
   return row.assigned_to === recipientId && row.company_id === companyId && row.created_by === callerId && fresh(row.updated_at);
+}
+
+/**
+ * Alert categories an officer can mute (Notifications -> Phone & email alerts).
+ * A mute stops push / email / SMS only; the in-app notification is still made.
+ * Safety alerts (SOS, overdue patrol + escalation) map to null: never muted.
+ * Must match the CHECK on public.notification_mutes.muted_types.
+ */
+export const MUTABLE_CATEGORIES = ["dm", "swap", "task", "schedule", "guard_card"] as const;
+export type MuteCategory = typeof MUTABLE_CATEGORIES[number];
+
+export function muteCategory(type: string | undefined, refType?: NotifyRef["type"]): MuteCategory | null {
+  const t = type ?? (refType === "swap" ? "shift_swap" : refType);
+  switch (t) {
+    case "dm": case "message": case "chat": return "dm";
+    case "shift_swap": case "swap": return "swap";
+    case "task": case "task_assigned": return "task";
+    case "schedule": case "shift": case "shift_assigned": case "shift_change": case "shift_reminder": case "shift_coverage": return "schedule";
+    case "guard_card": return "guard_card";
+    default: return null;
+  }
+}
+
+/** Recipients that still get push/email/SMS after their mutes. */
+export function unmutedRecipientIds(
+  recipientIds: string[],
+  category: MuteCategory | null,
+  mutes: Record<string, readonly string[] | undefined>,
+): string[] {
+  if (!category) return recipientIds;
+  return recipientIds.filter((id) => !(mutes[id] ?? []).includes(category));
+}
+
+/** Channels the cron-driven notify-system uses per notification type. */
+export function systemChannels(type: string): Channel[] {
+  if (type === "guard_card") return ["push", "email"];
+  if (type === "patrol_overdue" || type === "patrol_overdue_escalation") return ["push"];
+  return [];
 }

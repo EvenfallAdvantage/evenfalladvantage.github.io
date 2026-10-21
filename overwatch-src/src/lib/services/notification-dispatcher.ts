@@ -78,7 +78,7 @@ export async function dispatch(params: DispatchParams, remote = true): Promise<D
 
   const { channels, smsFallback } = channelsFor(params);
   if (remote && channels.length) {
-    const r = await notifyMembers({ companyId: params.companyId, userIds: [params.userId], channels, smsFallback, title: params.title, body: params.body, actionUrl: params.actionUrl, ref: params.ref });
+    const r = await notifyMembers({ companyId: params.companyId, userIds: [params.userId], channels, smsFallback, title: params.title, body: params.body, actionUrl: params.actionUrl, ref: params.ref, type: params.type });
     result.push = r.push.sent > 0;
     if (!r.ok) logger.swallow("dispatch:notify-send", new Error(r.error ?? "notify-send failed"), "warn");
     result.email = r.email.sent > 0;
@@ -101,7 +101,7 @@ export async function dispatchToMany(
   const { channels, smsFallback } = channelsFor(params);
   for (let i = 0; channels.length && i < users.length; i += 100) {
     const batch = users.slice(i, i + 100);
-    const r = await notifyMembers({ companyId, userIds: batch.map((u) => u.userId), channels, smsFallback, title: params.title, body: params.body, actionUrl: params.actionUrl });
+    const r = await notifyMembers({ companyId, userIds: batch.map((u) => u.userId), channels, smsFallback, title: params.title, body: params.body, actionUrl: params.actionUrl, type: params.type });
     if (!r.ok) logger.swallow("dispatch-many:notify-send", new Error(r.error ?? "notify-send failed"), "warn");
     batch.forEach((_, j) => { results[i + j].push = r.push.sent > 0; results[i + j].email = r.email.sent > 0; results[i + j].sms = r.sms.sent > 0; });
   }

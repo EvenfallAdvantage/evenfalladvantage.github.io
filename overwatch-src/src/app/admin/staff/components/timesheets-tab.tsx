@@ -15,6 +15,13 @@ import { formatMemberName } from "@/lib/format-names";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 import { TimesheetVerifyBadge } from "@/components/timeclock/location-check";
+import { clockInFlag } from "@/lib/supabase/db-timesheets";
+
+function ClockInFlagBadge({ notes }: { notes?: string | null }) {
+  const f = clockInFlag(notes);
+  if (!f) return null;
+  return <Badge className="ml-1 text-[10px] bg-amber-500/15 text-amber-600" title={notes ?? undefined}>{f === "late" ? "Late clock-in" : "Early clock-in"}</Badge>;
+}
 import { DarSignoffView } from "@/components/timeclock/dar-signoff-view";
 import { getSignedTimesheetIds } from "@/lib/supabase/db-dar";
 
@@ -150,7 +157,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                     {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} />{isLikelyAccidental(t) && <Badge className="ml-1 text-[10px] bg-muted text-muted-foreground" title="Under a minute; probably a test or mis-tap. Not counted as pending.">Under 1 min · likely accidental</Badge>}</p>
+                    <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} />{isLikelyAccidental(t) && <Badge className="ml-1 text-[10px] bg-muted text-muted-foreground" title="Under a minute; probably a test or mis-tap. Not counted as pending.">Under 1 min · likely accidental</Badge>}</p>
                     <p className="text-xs text-muted-foreground truncate">
                       {op ? `${op} · ` : ""}In since {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
@@ -210,7 +217,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                               {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /></p>
+                              <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} /></p>
                               <p className="text-xs text-muted-foreground">
                                 {parseUTC(t.clock_in).toLocaleDateString()} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </p>

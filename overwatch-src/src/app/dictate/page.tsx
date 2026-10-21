@@ -14,6 +14,7 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { getIncidents, getForms, createForm, submitForm, getFormSubmissions } from "@/lib/supabase/db";
 import { formatMemberName } from "@/lib/format-names";
 import { parseInlineTranscript, type SpeakerTurn } from "@/lib/speech/diarize-align";
+import { renameSpeaker, speakerIds, speakerLabel, toCanonicalLabels, turnsToNamedText, type SpeakerNames } from "@/lib/speech/speaker-names";
 
 type Incident = Record<string, unknown> & {
   id: string;
@@ -27,6 +28,8 @@ type Submission = Record<string, unknown> & {
     /** New: structured speaker turns (present on dictations created with
      * speaker detection enabled). Older rows have only `transcript`. */
     segments?: SpeakerTurn[];
+    /** Officer-chosen speaker names (id -> name), e.g. {"0": "Officer Lee"}. */
+    speakerNames?: SpeakerNames;
     personType?: string;
     personName?: string;
     linkedIncidentId?: string;
@@ -74,6 +77,15 @@ export default function DictatePage() {
   /** When editing a specific bubble, holds the index of the turn being
    * edited (rest are read-only). null = no bubble in edit mode. */
   const [editingTurnIdx, setEditingTurnIdx] = useState<number | null>(null);
+  /** Names for "Speaker 1/2/…" chosen by the officer after recording. */
+  const [speakerNames, setSpeakerNames] = useState<SpeakerNames>({});
+
+  /** Rename a speaker everywhere in the transcript (bubbles + text). */
+  function handleRenameSpeaker(id: string, name: string) {
+    const next = renameSpeaker(speakerNames, id, name);
+    setSpeakerNames(next);
+    if (speakerTurns) setTranscript(turnsToNamedText(speakerTurns, next));
+  }
 
   const transcriptRef = useRef<HTMLTextAreaElement>(null);
 
@@ -109,6 +121,7 @@ export default function DictatePage() {
         // turns by the running transcript length is unnecessary since
         // recorder calls onTranscript once per recording session.
         setSpeakerTurns(turns);
+        setTranscript(turnsToNamedText(turns, speakerNames));
         setEditMode("bubbles");
       }
     } else {
@@ -137,7 +150,7 @@ export default function DictatePage() {
   function handleSwitchToBubbles() {
     const trimmed = transcript.trim();
     if (!trimmed) { setEditMode("bubbles"); return; }
-    const parsed = parseInlineTranscript(trimmed);
+    const parsed = parseInlineTranscript(toCanonicalLabels(trimmed, speakerNames));
     setSpeakerTurns(parsed);
     setEditMode("bubbles");
     setEditingTurnIdx(null);
@@ -149,7 +162,7 @@ export default function DictatePage() {
     if (!speakerTurns) return;
     const next = speakerTurns.map((t, i) => (i === idx ? { ...t, ...patch } : t));
     setSpeakerTurns(next);
-    setTranscript(next.map(t => `[Speaker ${Number(t.speaker) + 1}] ${t.text}`).join("\n"));
+    setTranscript(turnsToNamedText(next, speakerNames));
   }
 
   /** Remove an empty turn — e.g. after the user clears its text. */
@@ -157,7 +170,7 @@ export default function DictatePage() {
     if (!speakerTurns) return;
     const next = speakerTurns.filter((_, i) => i !== idx);
     setSpeakerTurns(next.length > 0 ? next : null);
-    setTranscript(next.map(t => `[Speaker ${Number(t.speaker) + 1}] ${t.text}`).join("\n"));
+    setTranscript(turnsToNamedText(next, speakerNames));
     if (next.length === 0) setEditMode("plain");
   }
 
@@ -174,12 +187,13 @@ export default function DictatePage() {
       await submitForm({ formId: dictationForm.id, data: {
         transcript: transcript.trim(),
         ...(turnsToSave ? { segments: turnsToSave } : {}),
+        ...(Object.keys(speakerNames).length ? { speakerNames } : {}),
         personType, personName: personName.trim() || null,
         linkedIncidentId: linkedIncidentId || null, recordedAt: new Date().toISOString(),
         recordedBy: `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim(),
       }});
       setTranscript(""); setInterimText(""); setPersonName(""); setLinkedIncidentId(""); setPersonType("Reporting Party");
-      setSpeakerTurns(null); setEditMode("plain"); setEditingTurnIdx(null);
+      setSpeakerTurns(null); setEditMode("plain"); setEditingTurnIdx(null); setSpeakerNames({});
       setTranscripts(await getFormSubmissions(dictationForm.id));
       toast.success("Transcript saved");
     } catch (err) { console.error("Save dictation failed:", err); toast.error("Failed to save transcript"); }
@@ -246,6 +260,7 @@ export default function DictatePage() {
               {editMode === "bubbles" && speakerTurns && speakerTurns.length > 0 ? (
                 /* Speaker-bubble view */
                 <div className="space-y-2 rounded-md border border-input bg-background/40 p-2 max-h-[400px] overflow-y-auto">
+                  <SpeakerNamesBar ids={speakerIds(speakerTurns)} names={speakerNames} onRename={handleRenameSpeaker} />
                   {speakerTurns.map((turn, idx) => {
                     const speakerNum = Number(turn.speaker) + 1;
                     const isEditing = editingTurnIdx === idx;
@@ -255,6 +270,7 @@ export default function DictatePage() {
                         idx={idx}
                         turn={turn}
                         speakerNum={speakerNum}
+                        speakerName={speakerLabel(turn.speaker, speakerNames)}
                         isEditing={isEditing}
                         onStartEdit={() => setEditingTurnIdx(idx)}
                         onStopEdit={() => setEditingTurnIdx(null)}
@@ -286,7 +302,7 @@ export default function DictatePage() {
               {transcript.trim() && (
                 <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => {
                   setTranscript(""); setInterimText("");
-                  setSpeakerTurns(null); setEditMode("plain"); setEditingTurnIdx(null);
+                  setSpeakerTurns(null); setEditMode("plain"); setEditingTurnIdx(null); setSpeakerNames({});
                 }}>Clear</Button>
               )}
             </div>
@@ -323,7 +339,7 @@ export default function DictatePage() {
                       {isExpanded && (
                         <div className="border-t border-border/50 px-4 py-3 bg-muted/10">
                           {data.segments && data.segments.length > 0 ? (
-                            <SavedTranscriptBubbles segments={data.segments} />
+                            <SavedTranscriptBubbles segments={data.segments} names={data.speakerNames} />
                           ) : (
                             <p className="text-sm whitespace-pre-wrap text-foreground/90">{data.transcript ?? "No transcript content"}</p>
                           )}
@@ -375,11 +391,12 @@ function colorsFor(speakerIdx: number) {
 
 /** A single editable speaker turn in the live-recording view. */
 function SpeakerBubble({
-  idx, turn, speakerNum, isEditing, onStartEdit, onStopEdit, onChange, onChangeSpeaker, onRemove,
+  idx, turn, speakerNum, speakerName, isEditing, onStartEdit, onStopEdit, onChange, onChangeSpeaker, onRemove,
 }: {
   idx: number;
   turn: SpeakerTurn;
   speakerNum: number;
+  speakerName: string;
   isEditing: boolean;
   onStartEdit: () => void;
   onStopEdit: () => void;
@@ -407,8 +424,8 @@ function SpeakerBubble({
         onBlur={commitSpeaker}
         onKeyDown={e => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
         className={`w-12 text-[10px] font-mono font-bold uppercase tracking-wider rounded bg-transparent px-1 py-0.5 ${colors.text} focus:outline-none focus:ring-1 focus:ring-current text-center`}
-        title="Speaker number (relabel by typing a different number)"
-        aria-label={`Speaker ${speakerNum}`}
+        title={`${speakerName}: speaker number (relabel this turn by typing a different number)`}
+        aria-label={`${speakerName} (speaker ${speakerNum})`}
       />
       {isEditing ? (
         <textarea
@@ -445,7 +462,7 @@ function SpeakerBubble({
 }
 
 /** Read-only speaker bubbles for the saved-transcripts list. */
-function SavedTranscriptBubbles({ segments }: { segments: SpeakerTurn[] }) {
+function SavedTranscriptBubbles({ segments, names }: { segments: SpeakerTurn[]; names?: SpeakerNames }) {
   return (
     <div className="space-y-1.5">
       {segments.map((turn, idx) => {
@@ -454,7 +471,7 @@ function SavedTranscriptBubbles({ segments }: { segments: SpeakerTurn[] }) {
         return (
           <div key={idx} className={`flex gap-2 items-start rounded-md px-2 py-1.5 ring-1 ${colors.bg} ${colors.ring}`}>
             <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${colors.text} shrink-0 mt-0.5`}>
-              SPKR&nbsp;{speakerNum}
+              {names?.[turn.speaker] ? speakerLabel(turn.speaker, names) : <>SPKR&nbsp;{speakerNum}</>}
             </span>
             <p className="flex-1 text-sm whitespace-pre-wrap text-foreground/90">{turn.text}</p>
           </div>
@@ -464,3 +481,23 @@ function SavedTranscriptBubbles({ segments }: { segments: SpeakerTurn[] }) {
   );
 }
 
+
+/** Rename detected speakers ("Speaker 1" -> "Officer Lee"); applies to the whole transcript. */
+function SpeakerNamesBar({ ids, names, onRename }: { ids: string[]; names: SpeakerNames; onRename: (id: string, name: string) => void }) {
+  if (ids.length < 1) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 px-1 pb-1" data-testid="speaker-names">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Name speakers</span>
+      {ids.map((id) => {
+        const colors = colorsFor(Number(id));
+        return (
+          <input key={`${id}:${names[id] ?? ""}`} defaultValue={names[id] ?? ""} placeholder={`Speaker ${Number(id) + 1}`}
+            maxLength={40} aria-label={`Name for Speaker ${Number(id) + 1}`} data-testid={`speaker-name-${id}`}
+            onBlur={(e) => { if ((e.target.value.trim()) !== (names[id] ?? "")) onRename(id, e.target.value); }}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+            className={`h-9 w-36 rounded-md border border-border/50 bg-background px-2 text-sm ${colors.text}`} />
+        );
+      })}
+    </div>
+  );
+}
