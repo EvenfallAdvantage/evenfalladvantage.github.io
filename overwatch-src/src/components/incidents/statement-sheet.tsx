@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { X, Loader2, ChevronLeft, PenLine, Eraser, UserX } from "lucide-react";
+import { DictationRecorder } from "@/components/dictation-recorder";
 import { SignaturePad, type SignaturePadHandle } from "@/components/ui/signature-pad";
 import { createIncidentStatement } from "@/lib/supabase/db";
 import { PERSON_ROLES, ATTESTATION, roleLabel, validateDraft, type StatementDraft } from "@/lib/statements/statement";
@@ -90,6 +91,10 @@ export function StatementSheet({ incidentId, companyId, onClose, onSaved }: { in
           <textarea rows={8} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-base"
             placeholder={d.declined ? "Optional: what they said when declining" : "Their account, in their words. * (Note: a phone keyboard mic may send audio to a cloud service.)"}
             value={d.statement} onChange={set("statement")} />
+          {/* Dictation appends to the statement. On-device only once #149 is merged (merge #149 first). */}
+          <div data-testid="statement-dictation">
+            <DictationRecorder onTranscript={(text, isFinal) => { if (isFinal && text.trim()) setD((x) => ({ ...x, statement: x.statement ? `${x.statement.trimEnd()} ${text.trim()}` : text.trim() })); }} />
+          </div>
         </div>
       ) : (
         <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4" data-testid="statement-readback">
