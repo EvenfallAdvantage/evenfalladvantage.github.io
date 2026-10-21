@@ -22,7 +22,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logAudit } from "../_shared/audit.ts";
-import { authorize, notificationEmailHtml, parseNotifyRequest, smsRecipientIds, smsText, welcomeEmail } from "./rules.ts";
+import { authorize, refMatches, notificationEmailHtml, parseNotifyRequest, smsRecipientIds, smsText, welcomeEmail } from "./rules.ts";
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req.headers.get("origin"));
@@ -68,7 +68,26 @@ Deno.serve(async (req) => {
       recipients = ((mems ?? []) as any[]).map((m) => ({ id: m.users.id, email: m.users.email ?? null, phone: m.users.phone ?? null, role: m.role }));
     }
     const roles = Object.fromEntries(recipients.map((r) => [r.id, r.role]));
-    const denied = authorize(parsed, callerRole, roles);
+    // A staff member may alert one peer about a record they just acted on.
+    let refVerified = false;
+    if (parsed.kind === "notification" && parsed.ref && myId) {
+      const ref = parsed.ref;
+      let row: Record<string, unknown> | null = null;
+      if (ref.type === "dm") {
+        const { data } = await admin.from("direct_messages").select("from_user_id, to_user_id, company_id, created_at").eq("id", ref.id).maybeSingle();
+        row = data as Record<string, unknown> | null;
+      } else if (ref.type === "swap") {
+        const { data } = await admin.from("shift_swap_requests").select("requester_id, replacement_id, updated_at, shifts!inner(events!inner(company_id))").eq("id", ref.id).maybeSingle();
+        // deno-lint-ignore no-explicit-any
+        const d = data as any;
+        row = d ? { ...d, company_id: d.shifts?.events?.company_id } : null;
+      } else {
+        const { data } = await admin.from("tasks").select("assigned_to, created_by, company_id, updated_at").eq("id", ref.id).maybeSingle();
+        row = data as Record<string, unknown> | null;
+      }
+      refVerified = refMatches(ref, row, myId, parsed.user_ids[0], parsed.company_id);
+    }
+    const denied = authorize(parsed, callerRole, roles, refVerified);
     if (denied) {
       await logAudit(admin, { event_type: "notify.send", user_id: myId ?? null, company_id: parsed.company_id, outcome: "blocked", metadata: { reason: denied, kind: parsed.kind } });
       return json(403, { error: denied });

@@ -47,6 +47,9 @@ export function notifyMembers(params: {
   body?: string;
   /** App-relative path, e.g. "/admin/staff". */
   actionUrl?: string;
+  /** The record this is about. Lets a staff member notify one peer about it
+   *  (their DM, the swap they claimed, a task they assigned); the server checks it. */
+  ref?: NotifyRef;
 }): Promise<NotifySendResult> {
   if (!params.channels.length || !params.userIds.length) return Promise.resolve({ ok: true, ...EMPTY });
   return callNotifySend({
@@ -58,8 +61,11 @@ export function notifyMembers(params: {
     body: params.body,
     action_url: params.actionUrl?.startsWith("/") ? params.actionUrl : undefined,
     sms_fallback: params.smsFallback || undefined,
+    ref: params.ref,
   });
 }
+
+export interface NotifyRef { type: "dm" | "swap" | "task"; id: string }
 
 /** Post-hire welcome email (server builds the content; managers+ only). */
 export function sendWelcomeEmail(params: { companyId: string; toEmail: string; firstName?: string }): Promise<NotifySendResult> {
