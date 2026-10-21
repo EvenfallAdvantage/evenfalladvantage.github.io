@@ -44,6 +44,14 @@ for (const phone of [false, true]) {
     viewport: phone ? { width: 390, height: 844 } : { width: 1400, height: 900 }, isMobile: phone, hasTouch: phone,
     timezoneId: "America/Los_Angeles", geolocation: { latitude: 34.0537, longitude: -118.2428 }, permissions: ["geolocation"],
   });
+  // Optional Cloudflare WAF bypass for CI runners (GitHub IPs get the "Just a moment..."
+  // bot challenge). SMOKE_CF_HEADER = "Header-Name: value", stored as a repo secret and
+  // matched by a Cloudflare custom "Skip" rule. Only sent to the site's own host.
+  const cfHeader = process.env.SMOKE_CF_HEADER?.match(/^\s*([\w-]+)\s*:\s*(.+?)\s*$/);
+  if (cfHeader) {
+    const host = new URL(BASE).host;
+    await ctx.route((u) => u.host === host, (r) => r.continue({ headers: { ...r.request().headers(), [cfHeader[1].toLowerCase()]: cfHeader[2] } }));
+  }
   const blocked = [];
   await ctx.route(/supabase\.co\/(rest|functions|storage)/, (r) => {
     const q = r.request(), m = q.method();
@@ -74,7 +82,7 @@ for (const phone of [false, true]) {
     await page.screenshot({ path: `${OUT}/${tag}-login-failure.png`, fullPage: true }).catch(() => {});
     const diag = await page.evaluate(() => ({ title: document.title, text: document.body?.innerText?.replace(/\s+/g, " ").slice(0, 600) ?? "" })).catch(() => ({}));
     summary.results[`${tag}:login`] = { url: page.url(), status: navStatus, ...diag, pageErrors: [...new Set(errs)].slice(0, 10) };
-    summary.failures.push(`${tag}: login form never appeared (HTTP ${navStatus}, title "${diag.title ?? ""}")`);
+    summary.failures.push(`${tag}: login form never appeared (HTTP ${navStatus}, title "${diag.title ?? ""}")` + (/just a moment|security verification/i.test(`${diag.title} ${diag.text}`) ? " - blocked by Cloudflare bot challenge; set SMOKE_CF_HEADER + a Cloudflare Skip rule" : ""));
     console.error(`${tag}: url=${page.url()} status=${navStatus} title=${JSON.stringify(diag.title ?? "")}`);
     console.error(`${tag}: body=${JSON.stringify(diag.text ?? "")}`);
     await browser.close();
