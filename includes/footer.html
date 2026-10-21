@@ -91,6 +91,11 @@
             document.getElementById('cookie-banner').style.display = 'none';
         }
         (function initCookieBanner() {
+            // Honor Global Privacy Control (CPRA): treat GPC as an opt-out and don't ask.
+            if (navigator.globalPrivacyControl === true) {
+                localStorage.setItem('ea_cookie_consent', 'declined');
+                return;
+            }
             if (!localStorage.getItem('ea_cookie_consent')) {
                 document.getElementById('cookie-banner').style.display = 'flex';
             }
