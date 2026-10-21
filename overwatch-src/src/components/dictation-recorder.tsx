@@ -34,12 +34,10 @@ interface DictationRecorderProps {
    */
   onTranscript: (text: string, isFinal: boolean, turns?: SpeakerTurn[]) => void;
   disabled?: boolean;
-  /** Force the on-device Whisper engine and hide the browser (cloud) option. */
-  localOnly?: boolean;
 }
 
-export function DictationRecorder({ onTranscript, disabled, localOnly }: DictationRecorderProps) {
-  const [tier, setTier] = useState<SpeechTier>(localOnly ? "whisper" : "native");
+export function DictationRecorder({ onTranscript, disabled }: DictationRecorderProps) {
+  const [tier, setTier] = useState<SpeechTier>("native");
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -90,7 +88,7 @@ export function DictationRecorder({ onTranscript, disabled, localOnly }: Dictati
   // raw audio buffer that diarization needs).
   useEffect(() => {
     const detected = detectSpeechTier();
-    setTier(diarizationEnabled || localOnly ? "whisper" : detected);
+    setTier(diarizationEnabled ? "whisper" : detected);
     return () => {
       // Clear the "keep recording" flag first, or the recognizer's "end"
       // handler restarts it after the page is gone and the mic stays on.
@@ -412,7 +410,7 @@ export function DictationRecorder({ onTranscript, disabled, localOnly }: Dictati
             use local AI instead
           </button>
         )}
-        {tier === "whisper" && !diarizationEnabled && !localOnly && getSpeechRecognitionCtor() && (
+        {tier === "whisper" && !diarizationEnabled && getSpeechRecognitionCtor() && (
           <button
             onClick={() => { setTier("native"); setError(null); }}
             className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground underline"
