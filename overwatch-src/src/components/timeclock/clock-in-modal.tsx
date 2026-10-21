@@ -6,6 +6,17 @@ import { getNearbyShiftsForClockIn, shiftEdgeKind } from "@/lib/supabase/db-time
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatTime, type Shift } from "./timeclock-utils";
+
+/** "Today", "Tomorrow", "Yesterday" or a short date, in the device's zone. */
+function formatShiftDay(iso: string, now = new Date()): string {
+  const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : `${iso.replace(" ", "T")}Z`);
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(d) - day(now)) / 86_400_000);
+  if (diff === 0) return "today";
+  if (diff === 1) return "tomorrow";
+  if (diff === -1) return "yesterday";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 import { useClockFix, LocationStatusBar, ShiftFenceChip } from "./location-check";
 
 interface ClockInModalProps {
@@ -93,15 +104,16 @@ export function ClockInModal({
 
               {detectedShifts.length === 0 && nearby.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your shifts today</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your other shifts</p>
                   {nearby.map((sh) => {
                     const kind = shiftEdgeKind(sh);
+                    const when = (iso: string) => `${formatShiftDay(iso)} ${formatTime(iso)}`;
                     const label = kind === "late"
-                      ? `Ended ${formatTime(sh.end_time)}. Clock in late`
-                      : `Starts ${formatTime(sh.start_time)}. Clock in early`;
+                      ? `Ended ${when(sh.end_time)}. Clock in late`
+                      : `Starts ${when(sh.start_time)}. Clock in early`;
                     const note = kind === "late"
-                      ? `Late clock-in: shift ended ${formatTime(sh.end_time)}`
-                      : `Early clock-in: shift starts ${formatTime(sh.start_time)}`;
+                      ? `Late clock-in: shift ended ${when(sh.end_time)}`
+                      : `Early clock-in: shift starts ${when(sh.start_time)}`;
                     return (
                       <button key={sh.id} onClick={() => onShiftClockIn(sh, note)} disabled={acting}
                         className="w-full rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-left hover:bg-amber-500/10 transition-colors">
@@ -113,7 +125,7 @@ export function ClockInModal({
                             <p className="text-sm font-semibold">{sh.events?.name ?? "Shift"}</p>
                             <p className="text-xs text-muted-foreground">{formatTime(sh.start_time)} — {formatTime(sh.end_time)}</p>
                             <p className="text-xs font-medium text-amber-500 mt-1">{label}</p>
-                            <p className="text-[11px] text-muted-foreground">Your supervisor reviews it with your timesheet.</p>
+                            <p className="text-[11px] text-muted-foreground">Allowed. It&apos;s flagged for your supervisor on your timesheet.</p>
                           </div>
                         </div>
                       </button>
@@ -126,7 +138,7 @@ export function ClockInModal({
                 <div className="rounded-xl border border-border/40 bg-muted/20 p-4 text-center">
                   <CalendarDays className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
                   <p className="text-sm font-medium text-muted-foreground">No shifts right now</p>
-                  <p className="text-xs text-muted-foreground mt-1">Nothing scheduled for you in the last 4 hours or the next 8.</p>
+                  <p className="text-xs text-muted-foreground mt-1">You have no past or upcoming shifts assigned.</p>
                 </div>
               )}
 

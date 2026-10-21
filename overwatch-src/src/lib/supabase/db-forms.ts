@@ -245,6 +245,8 @@ export interface LinkedDictation {
   id: string;
   transcript: string;
   segments?: { speaker: number | string; text: string }[];
+  /** Officer-chosen speaker names (id -> name). */
+  speakerNames?: Record<string, string>;
   personType: string | null;
   personName: string | null;
   recordedBy: string | null;
@@ -277,6 +279,9 @@ export function mapDictation(r: { id: string; data: Record<string, unknown> | nu
     id: r.id,
     transcript: str(d.transcript) ?? "",
     segments: segs && segs.length ? segs : undefined,
+    speakerNames: d.speakerNames && typeof d.speakerNames === "object" && !Array.isArray(d.speakerNames)
+      ? Object.fromEntries(Object.entries(d.speakerNames as Record<string, unknown>).filter(([, v]) => typeof v === "string" && v.trim()).map(([k, v]) => [k, (v as string).slice(0, 40)]))
+      : undefined,
     personType: str(d.personType),
     personName: str(d.personName),
     recordedBy: str(d.recordedBy),

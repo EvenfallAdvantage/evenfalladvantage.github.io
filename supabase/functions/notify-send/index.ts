@@ -22,7 +22,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { logAudit } from "../_shared/audit.ts";
-import { authorize, refMatches, notificationEmailHtml, parseNotifyRequest, smsRecipientIds, smsText, welcomeEmail } from "./rules.ts";
+import { authorize, refMatches, muteCategory, unmutedRecipientIds, notificationEmailHtml, parseNotifyRequest, smsRecipientIds, smsText, welcomeEmail } from "./rules.ts";
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req.headers.get("origin"));
@@ -116,6 +116,16 @@ Deno.serve(async (req) => {
       const res = await call("email-send", { company_id: parsed.company_id, to: [{ email: parsed.to_email }], subject: msg.subject, html: msg.html, purpose: "welcome" });
       if (res.ok) result.email.sent = 1; else result.email.failed = 1;
     } else {
+      // Honour each recipient's mutes for this type (push/email/SMS only).
+      const category = muteCategory(parsed.type, parsed.ref?.type);
+      if (category && recipients.length) {
+        const { data: mrows } = await admin.from("notification_mutes").select("user_id, muted_types").in("user_id", recipients.map((r) => r.id));
+        const mutes = Object.fromEntries(((mrows ?? []) as { user_id: string; muted_types: string[] }[]).map((m) => [m.user_id, m.muted_types]));
+        const keep = new Set(unmutedRecipientIds(recipients.map((r) => r.id), category, mutes));
+        const before = recipients.length;
+        recipients = recipients.filter((r) => keep.has(r.id));
+        (result as Record<string, unknown>).muted = before - recipients.length;
+      }
       const link = parsed.action_url && appUrl ? `${appUrl}${parsed.action_url}` : null;
       if (parsed.channels.includes("email")) {
         const to = recipients.filter((r) => r.email).map((r) => ({ email: r.email as string }));

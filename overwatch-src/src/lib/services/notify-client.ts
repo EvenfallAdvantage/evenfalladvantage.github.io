@@ -50,6 +50,8 @@ export function notifyMembers(params: {
   /** The record this is about. Lets a staff member notify one peer about it
    *  (their DM, the swap they claimed, a task they assigned); the server checks it. */
   ref?: NotifyRef;
+  /** Notification type; the server skips recipients who muted it. */
+  type?: string;
 }): Promise<NotifySendResult> {
   if (!params.channels.length || !params.userIds.length) return Promise.resolve({ ok: true, ...EMPTY });
   return callNotifySend({
@@ -62,6 +64,7 @@ export function notifyMembers(params: {
     action_url: params.actionUrl?.startsWith("/") ? params.actionUrl : undefined,
     sms_fallback: params.smsFallback || undefined,
     ref: params.ref,
+    type: params.type && /^[a-z_]{1,40}$/.test(params.type) ? params.type : undefined,
   });
 }
 

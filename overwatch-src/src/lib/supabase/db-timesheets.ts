@@ -129,28 +129,34 @@ export async function getActiveShiftsForClockIn(companyId: string) {
 }
 
 /**
- * Shifts just outside the ±30 min clock-in window: ended in the last 4 h
- * (late clock-in) or starting in the next 8 h (early clock-in). The modal
- * offers these instead of a "No active shifts" dead end. The resulting
- * timesheet is a normal pending timesheet with a note, so a supervisor
- * approves or corrects it like any other.
+ * Shifts outside the ±30 min clock-in window, with NO time limit: the officer's
+ * most recent already-ended shifts (late clock-in) and next upcoming shifts
+ * (early clock-in). The modal offers these instead of a "No active shifts"
+ * dead end. The timesheet is saved with a "Late clock-in:" / "Early clock-in:"
+ * note, which admins see as a flag on Timesheets (clockInFlag below).
  */
 export async function getNearbyShiftsForClockIn(companyId: string, now: Date = new Date()) {
   const userId = await ensureInternalUser();
   if (!userId) return [];
   const supabase = createClient();
-  const iso = (ms: number) => new Date(now.getTime() + ms).toISOString();
-  const H = 60 * 60 * 1000;
-  const { data, error } = await supabase
-    .from("shifts")
-    .select("*, events!inner(id, name, location, company_id, timezone, location_lat, location_lng, geofence_radius_meters)")
-    .eq("assigned_user_id", userId)
-    .eq("events.company_id", companyId)
-    .or(`and(end_time.gte.${iso(-4 * H)},end_time.lt.${now.toISOString()}),and(start_time.gt.${iso(30 * 60 * 1000)},start_time.lte.${iso(8 * H)})`)
-    .order("start_time", { ascending: true })
-    .limit(4);
-  if (error) { logDbReadError("nearby shifts for clock-in", error); return []; }
-  return data ?? [];
+  const sel = "*, events!inner(id, name, location, company_id, timezone, location_lat, location_lng, geofence_radius_meters)";
+  const [past, next] = await Promise.all([
+    supabase.from("shifts").select(sel).eq("assigned_user_id", userId).eq("events.company_id", companyId)
+      .lt("end_time", now.toISOString()).order("end_time", { ascending: false }).limit(2),
+    supabase.from("shifts").select(sel).eq("assigned_user_id", userId).eq("events.company_id", companyId)
+      .gt("start_time", new Date(now.getTime() + 30 * 60 * 1000).toISOString()).order("start_time", { ascending: true }).limit(2),
+  ]);
+  if (past.error) logDbReadError("past shifts for clock-in", past.error);
+  if (next.error) logDbReadError("upcoming shifts for clock-in", next.error);
+  return [...(past.data ?? []).reverse(), ...(next.data ?? [])];
+}
+
+/** Admin flag for a timesheet created by a late/early clock-in (from its note). */
+export function clockInFlag(notes: string | null | undefined): "late" | "early" | null {
+  if (!notes) return null;
+  if (/^\s*late clock-in\b/i.test(notes)) return "late";
+  if (/^\s*early clock-in\b/i.test(notes)) return "early";
+  return null;
 }
 
 /** "late" when the shift already ended, "early" when it hasn't started (outside the 30 min window). */

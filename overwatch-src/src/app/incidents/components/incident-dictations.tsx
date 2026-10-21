@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Mic, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { getIncidentDictations, type LinkedDictation } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
+import { speakerLabel } from "@/lib/speech/speaker-names";
 
 /** Dictation transcripts linked to this incident from the Dictate page. */
 export function IncidentDictations({ incidentId, companyId }: { incidentId: string; companyId: string }) {
@@ -40,7 +41,7 @@ export function IncidentDictations({ incidentId, companyId }: { incidentId: stri
                 {open === d.id && (
                   <div className="space-y-1 border-t border-border/30 px-3 py-2 text-sm">
                     {d.segments
-                      ? d.segments.map((s, i) => <p key={i}><span className="mr-1 text-xs font-semibold text-primary">Speaker {Number(s.speaker) + 1}:</span>{s.text}</p>)
+                      ? d.segments.map((s, i) => <p key={i}><span className="mr-1 text-xs font-semibold text-primary">{speakerLabel(String(s.speaker), d.speakerNames)}:</span>{s.text}</p>)
                       : <p className="whitespace-pre-wrap">{d.transcript}</p>}
                   </div>
                 )}
