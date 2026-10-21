@@ -12,6 +12,7 @@ import { createTimeChangeRequest } from "@/lib/supabase/db";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { dispatch } from "@/lib/services/notification-dispatcher";
 import { useAuthStore } from "@/stores/auth-store";
+import { DarSignoffView } from "./dar-signoff-view";
 
 interface ShiftDetailModalProps {
   entry: Timesheet;
@@ -155,6 +156,8 @@ export function ShiftDetailModal({ entry, companyId, onClose }: ShiftDetailModal
               <p className="text-xs bg-muted/30 rounded-md px-3 py-2">{entry.notes}</p>
             </div>
           )}
+
+          {entry.clock_out && <DarSignoffView timesheetId={entry.id} />}
 
           {entry.clock_method && (
             <div className="flex items-center justify-between text-sm">

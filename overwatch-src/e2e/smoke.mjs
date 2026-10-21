@@ -25,7 +25,9 @@ export const ROUTES = (process.env.SMOKE_ROUTES || [
   "site-assessment", "invoices", "careers", "health",
   "admin/staff", "admin/events", "admin/analytics", "admin/settings", "admin/security", "admin/training",
   "admin/health", "admin/instructor", "admin/questions",
-].join(" ")).split(/\s+/).filter(Boolean);
+].join(" ")).split(/\s+/).filter(Boolean)
+  // "reports" is not a route (GitHub Pages 404); the sidebar's Reports is /incidents.
+  .map((r) => (r === "reports" ? "incidents" : r));
 
 const ERROR_TEXT = /something went wrong|error loading|failed to load|application error|unhandled runtime error/i;
 // Known noise we don't fail on (GPU in headless, extension-less push, etc.).
@@ -70,7 +72,8 @@ for (const phone of [false, true]) {
     } catch (e) { errs.push(`nav ${String(e).slice(0, 120)}`); }
     await page.waitForTimeout(2000);
     const text = (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, " ");
-    const errorText = text.match(new RegExp(`.{0,60}(${ERROR_TEXT.source}).{0,60}`, "i"))?.[0] ?? null;
+    const notFound = /^\s*404\b/.test(text) || /File not found|This page could not be found/i.test(text);
+    const errorText = notFound ? "404 not found" : text.match(new RegExp(`.{0,60}(${ERROR_TEXT.source}).{0,60}`, "i"))?.[0] ?? null;
     const pageErrors = [...new Set(errs)].filter((e) => !IGNORE.test(e));
     await page.screenshot({ path: `${OUT}/${tag}-${route.replace(/\//g, "_")}.png` });
     summary.results[`${tag}:${route}`] = { ms: Date.now() - t0, url: page.url().replace(BASE, ""), pageErrors, errorText };

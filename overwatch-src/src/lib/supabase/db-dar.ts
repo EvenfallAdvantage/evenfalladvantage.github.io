@@ -246,6 +246,21 @@ export async function getDarSignoff(timesheetId: string): Promise<DarSignoff | n
   return { id: d.id, timesheetId: d.timesheet_id, summary: d.summary, signedName: d.signed_name, signedAt: d.signed_at };
 }
 
+/**
+ * Which of these timesheets have a signed DAR (one query, for list badges).
+ * RLS decides visibility: officers see their own, company admins/managers see the company's.
+ */
+export async function getSignedTimesheetIds(timesheetIds: string[]): Promise<Set<string>> {
+  if (!timesheetIds.length) return new Set();
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("dar_signoffs")
+    .select("timesheet_id")
+    .in("timesheet_id", timesheetIds.slice(0, 500));
+  if (error || !data) return new Set();
+  return new Set((data as { timesheet_id: string }[]).map((d) => d.timesheet_id));
+}
+
 /** Plain-text DAR lines for the sign-off screen. */
 export function darSummaryLines(r: DailyActivityReport): string[] {
   const lines = [`${r.totalHours.toFixed(1)} h on duty`, `${r.patrolCount} checkpoint scan${r.patrolCount === 1 ? "" : "s"}`, `${r.incidentCount} incident${r.incidentCount === 1 ? "" : "s"} filed`];
