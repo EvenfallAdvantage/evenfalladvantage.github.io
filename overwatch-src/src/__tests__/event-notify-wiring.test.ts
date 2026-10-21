@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-const dispatch = vi.fn(async () => ({ inApp: true, push: true }));
+const dispatch = vi.fn(async (_arg: unknown) => ({ inApp: true, push: true }));
 vi.mock("@/lib/services/notification-dispatcher", () => ({ dispatch }));
 vi.mock("@/lib/supabase/db-helpers", async (orig) => ({ ...(await orig() as object), ensureInternalUser: async () => "me" }));
 const row = { id: "33333333-3333-4333-8333-333333333333", from_user_id: "me", to_user_id: "peer", content: "ZZTEST ping", file_url: null, created_at: "2026-10-20T20:00:00Z", read: false };
