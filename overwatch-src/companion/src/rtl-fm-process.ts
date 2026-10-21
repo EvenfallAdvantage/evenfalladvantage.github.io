@@ -1,13 +1,14 @@
 import { spawn, ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { RTL_FM_EXE, LIBRTLSDR_DLL } from "./_embedded-bins";
 
 function extractEmbeddedBinaries(): string {
-  const tmpDir = resolve(tmpdir(), "sdr-companion-rtlsdr");
-  if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
+  // Fresh private dir per run (mkdtemp, 0700) so another local user cannot
+  // pre-plant rtl_*.exe / librtlsdr.dll in a predictable temp path.
+  const tmpDir = mkdtempSync(resolve(tmpdir(), "sdr-companion-"));
   const exePath = resolve(tmpDir, "rtl_fm.exe");
   const dllPath = resolve(tmpDir, "librtlsdr.dll");
   writeFileSync(exePath, Buffer.from(RTL_FM_EXE, "base64"));

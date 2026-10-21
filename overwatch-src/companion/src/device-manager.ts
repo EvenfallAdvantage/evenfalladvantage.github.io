@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { RTL_SDR_EXE, LIBRTLSDR_DLL } from "./_embedded-bins";
 
@@ -20,8 +20,9 @@ export interface DeviceAssignment {
 }
 
 function extractEmbeddedSdr(): string {
-  const tmpDir = resolve(tmpdir(), "sdr-companion-rtlsdr");
-  if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
+  // Fresh private dir per run (mkdtemp, 0700) so another local user cannot
+  // pre-plant rtl_*.exe / librtlsdr.dll in a predictable temp path.
+  const tmpDir = mkdtempSync(resolve(tmpdir(), "sdr-companion-"));
   const exePath = resolve(tmpDir, "rtl_sdr.exe");
   const dllPath = resolve(tmpDir, "librtlsdr.dll");
   writeFileSync(exePath, Buffer.from(RTL_SDR_EXE, "base64"));
