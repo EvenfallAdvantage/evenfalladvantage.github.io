@@ -11,7 +11,7 @@ import {
   ChevronRight, Zap, Lock, Globe,
   X, Phone, Mail, ArrowRight, Loader2,
   UserPlus, QrCode, Crosshair, AlertTriangle, FileText, Award, Eye, EyeOff,
-  Map, Satellite, Hexagon, Wifi,
+  Map, Satellite, Hexagon, Wifi, Mic, BellRing, Siren,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { TOSModal, TOS_VERSION } from "@/components/terms-of-service";
@@ -32,33 +32,37 @@ import { logSecurityEvent, checkLoginAttempts, recordFailedAttempt, clearLoginAt
 import { logger } from "@/lib/logger";
 
 const FEATURES = [
-  { icon: Crosshair, title: "Patrol Operations", desc: "QR checkpoint scanning, geofenced patrol routes, GPS-verified activity logs, real-time officer tracking, and auto-generated daily activity reports" },
-  { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out, mass badge scanning, CA-compliant break tracking, geofence enforcement, and multi-provider payroll sync" },
+  { icon: Crosshair, title: "Patrol Operations", desc: "QR checkpoint scanning, geofenced patrol routes, GPS-verified activity logs, real-time officer tracking, and overdue-patrol alerts" },
+  { icon: Clock, title: "Time & Attendance", desc: "GPS-verified clock in/out, mass badge scanning, CA-compliant break tracking, geofence enforcement, flagged early/late clock-ins, and hours export for payroll" },
   { icon: AlertTriangle, title: "Incident Command", desc: "Real-time incident reporting with severity tiers, photo/video SHA-256 chain-of-custody, SOS panic alerts, and broadcast acknowledgment tracking" },
-  { icon: Radio, title: "Encrypted Comms", desc: "AES-256 encrypted team channels with WhatsApp/Signal bridging, direct messaging, broadcast alerts with read receipts, and location sharing" },
+  { icon: Radio, title: "Team Comms", desc: "Company-only team channels and direct messages over TLS, broadcast alerts with read receipts, and location sharing" },
   { icon: GraduationCap, title: "Academy LMS", desc: "Interactive slideshow courses, timed quizzes with question banks, certification tracking with expiry alerts, and compliance dashboards" },
   { icon: Zap, title: "De-escalation Sims", desc: "Branching dialogue scenarios with emotional tension meters, performance scoring, and multi-outcome tracking" },
   { icon: Shield, title: "Site Assessment", desc: "7-section security evaluations with risk matrix scoring, auto-generated recommendations, multi-page PDF reports, and CSV exports" },
   { icon: MapPin, title: "Geo-Risk Intel", desc: "FBI UCR crime data for any US location with composite risk scoring, threat heat mapping, and historical trend analysis" },
-  { icon: UserPlus, title: "Hire-to-Deploy Pipeline", desc: "Public apply form, CSV bulk import, Checkr background checks, DocuSign e-sign, Airtable sync, applicant-to-roster conversion, and auto-onboarding" },
+  { icon: UserPlus, title: "Hire-to-Deploy Pipeline", desc: "Public apply form, CSV bulk import, applicant-to-roster conversion, and auto-onboarding. Connect your own Airtable, Checkr or DocuSign account" },
   { icon: Users, title: "Smart Scheduling", desc: "Shift templates with recurrence, auto-fill with availability/cert/OT constraints, shift swap marketplace, overtime detection, and automated schedule generation" },
   { icon: QrCode, title: "Asset & Equipment", desc: "QR-coded asset tracking with checkout/checkin logs, assignment history, and batch management across multiple sites" },
   { icon: Globe, title: "State Laws DB", desc: "All 50 states — licensing, training hours, use-of-force doctrine, citizen's arrest, weapons regs, statutes, and regulatory agency links" },
-  { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, compliance tracking, overtime alerts, incident analytics, weekly trends, auto-generated DARs, and PDF/CSV export" },
-  { icon: FileText, title: "Invoicing System", desc: "Persistent invoicing with bill rates, timesheet-to-invoice generation, status tracking, and client portal for payment visibility" },
-  { icon: BookOpen, title: "Client Portal", desc: "Authenticated read-only portal for clients — view operations, incidents, invoices, and DARs with one-click access" },
-  { icon: Award, title: "Certifications Hub", desc: "Guard card and license tracking with expiry alerts, compliance dashboard, shift qualification gating, and auto-generated PDF certificates" },
+  { icon: BarChart3, title: "Analytics & Reports", desc: "KPI dashboards, compliance tracking, overtime alerts, incident analytics, weekly trends, Shift Notes, and PDF/CSV export" },
+  { icon: FileText, title: "Invoicing", desc: "Invoices from bill rates and timesheets, status tracking, and client portal visibility" },
+  { icon: BookOpen, title: "Client Portal", desc: "Authenticated read-only portal for clients — view operations, incidents, invoices, and Shift Notes with one-click access" },
+  { icon: Award, title: "Certifications Hub", desc: "Guard card and license tracking with automatic expiry reminders, compliance dashboard, shift qualification gating, and auto-generated PDF certificates" },
   { icon: Map, title: "Tactical Map", desc: "Cesium 3D globe with venue site map overlays, geo-fenced boundaries, Time Machine replay, entity clustering, real-time tracking, and storyboard pin planning" },
   { icon: Satellite, title: "Global Intelligence", desc: "22 real-time OSINT feeds: satellite imagery, aircraft/ADS-B, maritime AIS, CCTV, weather radar, SIGINT, conflict zones, and disaster monitoring" },
   { icon: Hexagon, title: "Geofences & Venues", desc: "Draw geo-fenced venue boundaries on the 3D globe, 3-point rubber-sheet site map alignment, GPS geolocation enforcement for clock-in and patrol verification" },
+  { icon: Mic, title: "Shift Notes & Dictation", desc: "Dictate shift notes and reports hands-free. Speech is transcribed on the device, with speaker labels you can rename" },
+  { icon: Siren, title: "SOS & Overdue Alerts", desc: "One-tap SOS and automatic overdue-patrol alerts that always reach supervisors and can't be muted" },
+  { icon: BellRing, title: "Alert Controls", desc: "Per-type alert mutes for routine notifications, saved per user, with escalation for critical events" },
+  { icon: GraduationCap, title: "Instructor HQ", desc: "Run classes, rosters, quizzes and certificates for your training programs from one instructor workspace" },
   { icon: Wifi, title: "Offline PWA", desc: "Full offline support with service worker caching, IndexedDB mutation queue, background sync engine, and optimistic UI — no connectivity required" },
 ];
 
-const STATS = [
+const getStats = () => [
   { value: "25+", label: "Operations Modules" },
-  { value: "50", label: "States Updated 2026" },
-  { value: "14", label: "Integrations" },
-  { value: "24/7", label: "Operational Uptime" },
+  { value: "50", label: "State Law Profiles" },
+  { value: String(INTEGRATIONS_COUNT), label: "Connect-Your-Own Integrations" },
+  { value: "Offline", label: "Field-Ready PWA" },
 ];
 
 /** Friendly message for phone OTP failures (incl. "no account" when shouldCreateUser=false). */
@@ -152,10 +156,10 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
 
         {/* Tabs */}
         <div className="flex gap-1 mb-4 rounded-lg bg-white/5 p-1">
-          <button onClick={() => { setTab("email"); setError(""); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${tab === "email" ? "bg-[#dd8c33] text-white shadow" : "text-white/50 hover:text-white"}`}>
+          <button onClick={() => { setTab("email"); setError(""); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${tab === "email" ? "bg-[#dd8c33] text-[#0b1422] shadow" : "text-white/50 hover:text-white"}`}>
             <Mail className="h-3.5 w-3.5" /> Email
           </button>
-          <button onClick={() => { setTab("phone"); setError(""); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${tab === "phone" ? "bg-[#dd8c33] text-white shadow" : "text-white/50 hover:text-white"}`}>
+          <button onClick={() => { setTab("phone"); setError(""); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${tab === "phone" ? "bg-[#dd8c33] text-[#0b1422] shadow" : "text-white/50 hover:text-white"}`}>
             <Phone className="h-3.5 w-3.5" /> Phone
           </button>
         </div>
@@ -166,14 +170,14 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
               <label className="text-xs font-medium text-white/60 block mb-1">Phone number</label>
               <div className="flex gap-2">
                 <span className="flex h-9 items-center rounded-lg border border-white/10 bg-white/5 px-3 text-xs text-white/50">US +1</span>
-                <input type="tel" inputMode="tel" placeholder="(555) 123-4567" value={phone} onChange={e => setPhone(formatPhone(e.target.value))} required
+                <input type="tel" inputMode="tel" aria-label="Phone number" placeholder="(555) 123-4567" value={phone} onChange={e => setPhone(formatPhone(e.target.value))} required
                   className="flex-1 h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/30" />
               </div>
               <p className="text-[10px] text-white/30 mt-1">For accounts with a verified phone number. We&apos;ll text you a code.</p>
             </div>
             {error && <p className="text-xs text-red-400">{error}</p>}
             <button type="submit" disabled={loading || !phone}
-              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-[#0b1422] font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />} Verify
             </button>
           </form>
@@ -181,33 +185,33 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
           <form onSubmit={handleEmailLogin} className="space-y-3">
             <div>
               <label className="text-xs font-medium text-white/60 block mb-1">Email</label>
-              <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"
+              <input type="email" aria-label="Email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"
                 className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/30" />
             </div>
             <div>
               <label className="text-xs font-medium text-white/60 block mb-1">Password</label>
               <div className="relative">
-                <input type={showLoginPw ? "text" : "password"} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password"
+                <input type={showLoginPw ? "text" : "password"} aria-label="Password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required autoComplete="current-password"
                   className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 pr-9 text-sm text-white outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/30" />
-                <button type="button" onClick={() => setShowLoginPw(!showLoginPw)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                <button type="button" onClick={() => setShowLoginPw(!showLoginPw)} aria-label={showLoginPw ? "Hide password" : "Show password"} className="absolute right-1 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center text-white/30 hover:text-white/60">
                   {showLoginPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
             </div>
             {error && <p className="text-xs text-red-400">{error}</p>}
             <button type="submit" disabled={loading || !email || !password}
-              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-[#0b1422] font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />} Sign In
             </button>
             <div className="text-right">
-              <Link href="/auth/reset" onClick={onClose} className="text-[10px] text-white/40 hover:text-[#dd8c33] transition-colors">Forgot password?</Link>
+              <Link href="/auth/reset" onClick={onClose} className="inline-block py-1 text-xs text-white/60 hover:text-[#dd8c33] transition-colors">Forgot password?</Link>
             </div>
           </form>
         )}
 
         <div className="mt-4 text-center space-y-2">
           <p className="text-xs text-white/40">Don&apos;t have an account? <button onClick={() => { onClose(); onSwitchToRegister(); }} className="text-[#dd8c33] hover:underline font-medium">Create one</button></p>
-          <p className="text-xs text-white/30"><button onClick={() => { onClose(); onSwitchToJoin(); }} className="hover:text-white/50">Have a company code? Join here</button></p>
+          <p className="text-xs text-white/30"><button onClick={() => { onClose(); onSwitchToJoin(); }} className="py-1 min-h-[24px] hover:text-white/80">Have a company code? Join here</button></p>
         </div>
       </div>
     </div>
@@ -331,31 +335,31 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-xs font-medium text-white/60 block mb-1">First name</label>
-                <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} required
+                <input type="text" aria-label="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required
                   className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
               </div>
               <div>
                 <label className="text-xs font-medium text-white/60 block mb-1">Last name</label>
-                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} required
+                <input type="text" aria-label="Last name" value={lastName} onChange={e => setLastName(e.target.value)} required
                   className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
               </div>
             </div>
             <div>
               <label className="text-xs font-medium text-white/60 block mb-1">Email</label>
-              <input type="email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"
+              <input type="email" aria-label="Email" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email"
                 className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
             </div>
             <div>
               <label className="text-xs font-medium text-white/60 block mb-1">Phone (optional)</label>
-              <input type="tel" inputMode="tel" placeholder="(555) 123-4567" value={phone} onChange={e => setRegPhone(formatPhone(e.target.value))}
+              <input type="tel" inputMode="tel" aria-label="Phone (optional)" placeholder="(555) 123-4567" value={phone} onChange={e => setRegPhone(formatPhone(e.target.value))}
                 className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
             </div>
             <div>
               <label className="text-xs font-medium text-white/60 block mb-1">Password</label>
               <div className="relative">
-                <input type={showPw ? "text" : "password"} placeholder="Min 12 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={12} autoComplete="new-password"
+                <input type={showPw ? "text" : "password"} aria-label="Password" placeholder="Min 12 characters" value={password} onChange={e => setPassword(e.target.value)} required minLength={12} autoComplete="new-password"
                   className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 pr-9 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? "Hide password" : "Show password"} className="absolute right-1 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center text-white/30 hover:text-white/60">
                   {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
@@ -369,9 +373,9 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
             <div>
               <label className="text-xs font-medium text-white/60 block mb-1">Confirm Password</label>
               <div className="relative">
-                <input type={showConfirmPw ? "text" : "password"} placeholder="Re-enter password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={12} autoComplete="new-password"
+                <input type={showConfirmPw ? "text" : "password"} aria-label="Confirm password" placeholder="Re-enter password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={12} autoComplete="new-password"
                   className={`w-full h-9 rounded-lg border bg-white/5 px-3 pr-9 text-sm text-white outline-none placeholder:text-white/30 ${!passwordsMatch ? "border-red-500/50 focus:border-red-500/70" : "border-white/10 focus:border-[#dd8c33]/50"}`} />
-                <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)} aria-label={showConfirmPw ? "Hide password" : "Show password"} className="absolute right-1 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center text-white/30 hover:text-white/60">
                   {showConfirmPw ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
@@ -391,7 +395,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
               </>
             )}
             <button type="submit" disabled={!infoValid || loading || (!!joinCode && !tosAccepted)}
-              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-[#0b1422] font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : joinCode ? "Create Account & Join" : <>Continue <ArrowRight className="h-4 w-4" /></>}
             </button>
             <div className="text-center">
@@ -404,7 +408,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
               <>
                 <div>
                   <label className="text-xs font-medium text-white/60 block mb-1">Company code</label>
-                  <input type="text" placeholder="e.g. K7WQ4M9TXR" value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value.toUpperCase())} required
+                  <input type="text" aria-label="Company code" placeholder="e.g. K7WQ4M9TXR" value={joinCodeInput} onChange={e => setJoinCodeInput(e.target.value.toUpperCase())} required
                     className="w-full h-10 rounded-lg border border-[#dd8c33]/30 bg-[#dd8c33]/10 px-3 text-sm text-white font-mono text-center tracking-widest outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
                   <p className="text-[10px] text-white/30 mt-1">Enter the code provided by your manager or company admin.</p>
                 </div>
@@ -421,7 +425,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
                   <button type="button" onClick={() => { setUseJoinCode(false); setJoinCodeInput(""); }}
                     className="flex-1 h-10 rounded-lg border border-white/10 text-white/60 text-sm hover:bg-white/5 transition-colors">Back</button>
                   <button type="submit" disabled={loading || !joinCodeInput || !tosAccepted}
-                    className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
+                    className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-[#0b1422] font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Join Company <ArrowRight className="h-4 w-4" /></>}
                   </button>
                 </div>
@@ -430,7 +434,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
               <>
                 <div>
                   <label className="text-xs font-medium text-white/60 block mb-1">Company name</label>
-                  <input type="text" placeholder="e.g. Apex Security Services" value={companyName} onChange={e => setCompanyName(e.target.value)} required
+                  <input type="text" aria-label="Company name" placeholder="e.g. Apex Security Services" value={companyName} onChange={e => setCompanyName(e.target.value)} required
                     className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white outline-none focus:border-[#dd8c33]/50 placeholder:text-white/30" />
                   <p className="text-[10px] text-white/30 mt-1">This creates a new company. To join an existing one, use a company code.</p>
                 </div>
@@ -447,7 +451,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
                   <button type="button" onClick={() => setStep("info")}
                     className="flex-1 h-10 rounded-lg border border-white/10 text-white/60 text-sm hover:bg-white/5 transition-colors">Back</button>
                   <button type="submit" disabled={loading || !companyName || !tosAccepted}
-                    className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
+                    className="flex-1 flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-[#0b1422] font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors">
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Deploy <ArrowRight className="h-4 w-4" /></>}
                   </button>
                 </div>
@@ -477,9 +481,9 @@ const INTEGRATIONS_LOGOS = [
   { name: "Airtable", src: "/overwatch/images/integrations/airtable.jpeg", alt: "Airtable", url: "https://airtable.com" },
   { name: "Fillout", src: "/overwatch/images/integrations/fillout.png", alt: "Fillout", url: "https://www.fillout.com" },
   { name: "Paychex", src: "/overwatch/images/integrations/paychex.jpeg", alt: "Paychex Flex", url: "https://www.paychex.com" },
-  { name: "Stripe", src: "/overwatch/images/integrations/stripe.jpeg", alt: "Stripe", url: "https://stripe.com" },
-  { name: "Supabase", src: "/overwatch/images/integrations/supabase.jpeg", alt: "Supabase", url: "https://supabase.com" },
 ];
+
+const INTEGRATIONS_COUNT = INTEGRATIONS_LOGOS.length;
 
 function FeatureCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -499,26 +503,31 @@ function FeatureCarousel() {
 
   return (
     <div className="sm:hidden -mx-6 px-6">
-      <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div ref={scrollRef} tabIndex={0} role="region" aria-label="Feature highlights" className="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide" style={{ WebkitOverflowScrolling: "touch" }}>
         {FEATURES.map((f) => (
           <div key={f.title} className="flex-none w-[260px] snap-start rounded-2xl border border-white/5 bg-white/[0.02] p-5">
             <f.icon className="h-7 w-7 text-[#dd8c33]/80 mb-3" />
             <h3 className="text-sm font-bold mb-1">{f.title}</h3>
-            <p className="text-[11px] text-white/40 leading-relaxed">{f.desc}</p>
+            <p className="text-[11px] text-white/70 leading-relaxed">{f.desc}</p>
           </div>
         ))}
       </div>
-      <div className="flex justify-center gap-1.5 mt-2">
+      <div className="flex justify-center gap-0.5 mt-2">
         {FEATURES.map((_, i) => (
           <button
             key={i}
+            type="button"
+            aria-label={`Show feature ${i + 1} of ${FEATURES.length}: ${FEATURES[i].title}`}
+            aria-current={i === activeIdx ? "true" : undefined}
+            className="flex h-6 min-w-6 items-center justify-center"
             onClick={() => {
               scrollRef.current?.scrollTo({ left: i * (260 + 12), behavior: "smooth" });
             }}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === activeIdx ? "w-6 bg-[#dd8c33]" : "w-3 bg-white/15"
-            }`}
-          />
+          >
+            <span className={`block h-1.5 rounded-full transition-all duration-300 ${
+              i === activeIdx ? "w-6 bg-[#dd8c33]" : "w-3 bg-white/40"
+            }`} />
+          </button>
         ))}
       </div>
     </div>
@@ -557,6 +566,7 @@ function HomePageInner() {
 
   return (
     <div className="min-h-screen bg-[#0b1422] text-white overflow-x-hidden">
+      <link rel="canonical" href="https://www.evenfalladvantage.com/overwatch/" />
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0b1422]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
@@ -565,10 +575,10 @@ function HomePageInner() {
             <span className="font-mono text-xl sm:text-3xl font-bold tracking-tight leading-none">OVERWATCH</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <button onClick={() => setLoginOpen(true)} className="text-xs sm:text-sm text-white/60 hover:text-white transition-colors px-2 sm:px-3 py-1.5">
+            <button onClick={() => setLoginOpen(true)} className="text-xs sm:text-sm text-white/70 hover:text-white transition-colors px-2 sm:px-3 min-h-[36px]">
               Sign In
             </button>
-            <button onClick={() => setRegisterOpen(true)} className="text-xs sm:text-sm font-medium bg-[#dd8c33] text-white px-3 sm:px-4 py-1.5 rounded-lg hover:bg-[#c47a2a] transition-colors whitespace-nowrap">
+            <button onClick={() => setRegisterOpen(true)} className="text-xs sm:text-sm font-medium bg-[#dd8c33] text-[#0b1422] px-3 sm:px-4 min-h-[36px] rounded-lg hover:bg-[#c47a2a] transition-colors whitespace-nowrap">
               Get Started
             </button>
           </div>
@@ -588,7 +598,7 @@ function HomePageInner() {
 
         <div className="relative z-20 mx-auto max-w-4xl px-6 text-center pointer-events-none">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dd8c33]/20 bg-[#dd8c33]/10 px-4 py-1.5 text-xs text-[#dd8c33]" style={{ textShadow: '0 0 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-            <Lock className="h-3 w-3" /> Military-Grade Security Workforce Platform
+            <Lock className="h-3 w-3" /> Security Workforce Platform
           </div>
           <h1 className="text-5xl sm:text-7xl font-bold tracking-tight font-mono leading-[1.1] mb-6">
             <span className="text-white">COMMAND</span>
@@ -600,7 +610,7 @@ function HomePageInner() {
             into one tactical platform built for security professionals.
           </p>
           <div className="flex items-center justify-center gap-3 sm:gap-4">
-            <button onClick={() => setRegisterOpen(true)} className="pointer-events-auto inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
+            <button onClick={() => setRegisterOpen(true)} className="pointer-events-auto inline-flex items-center gap-2 bg-[#dd8c33] text-[#0b1422] font-semibold px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
               Deploy Now <ChevronRight className="h-4 w-4" />
             </button>
             <button onClick={() => setLoginOpen(true)} className="pointer-events-auto inline-flex items-center gap-2 border border-[#dd8c33]/30 text-white/80 px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl hover:bg-[#dd8c33]/10 transition-all text-sm">
@@ -613,10 +623,10 @@ function HomePageInner() {
       {/* Stats Bar */}
       <section className="relative z-40 border-y border-white/5 bg-[#0b1422]">
         <div className="mx-auto max-w-5xl px-6 py-10 grid grid-cols-2 sm:grid-cols-4 gap-8">
-          {STATS.map((s) => (
+          {getStats().map((s) => (
             <div key={s.label} className="text-center">
               <p className="text-3xl font-bold font-mono bg-gradient-to-r from-[#dd8c33] to-[#f0a84a] bg-clip-text text-transparent">{s.value}</p>
-              <p className="text-xs text-white/40 mt-1 uppercase tracking-wider">{s.label}</p>
+              <p className="text-xs text-white/70 mt-1 uppercase tracking-wider">{s.label}</p>
             </div>
           ))}
         </div>
@@ -628,7 +638,7 @@ function HomePageInner() {
         <div className="relative mx-auto max-w-6xl px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight mb-4">FULL-SPECTRUM OPERATIONS</h2>
-            <p className="text-white/40 max-w-xl mx-auto">Everything your security operation needs — from applicant intake to field deployment — in one platform.</p>
+            <p className="text-white/70 max-w-xl mx-auto">Everything your security operation needs — from applicant intake to field deployment — in one platform.</p>
           </div>
           {/* Desktop: grid layout */}
           <div className="hidden sm:grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -636,7 +646,7 @@ function HomePageInner() {
               <div key={f.title} className="group relative rounded-2xl border border-white/5 bg-white/[0.02] p-6 hover:border-[#dd8c33]/20 hover:bg-[#dd8c33]/5 transition-all">
                 <f.icon className="h-8 w-8 text-[#dd8c33]/80 mb-4" />
                 <h3 className="text-sm font-bold mb-1">{f.title}</h3>
-                <p className="text-xs text-white/40 leading-relaxed">{f.desc}</p>
+                <p className="text-xs text-white/70 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -649,17 +659,17 @@ function HomePageInner() {
       <section className="relative z-10 py-16 border-t border-white/5 bg-[#0b1422]">
         <div className="mx-auto max-w-5xl px-6">
           <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">INTEGRATES WITH YOUR STACK</h2>
-            <p className="text-white/40 max-w-lg mx-auto text-sm">Connect Overwatch with the tools your team already uses — or go fully native.</p>
+            <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">CONNECT YOUR OWN TOOLS</h2>
+            <p className="text-white/60 max-w-lg mx-auto text-sm">Bring your own account for the services your team already uses. Each connection is set up by your admin with your own credentials; availability varies by provider.</p>
           </div>
           <div className="grid grid-cols-5 sm:grid-cols-7 gap-4 sm:gap-6 justify-items-center max-w-3xl mx-auto">
             {INTEGRATIONS_LOGOS.map((int) => (
-              <a key={int.name} href={int.url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group">
+              <a key={int.name} href={int.url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 group min-h-[44px] min-w-[44px]" aria-label={`${int.alt} (opens in new tab)`}>
                 <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl border border-white/5 group-hover:border-[#dd8c33]/30 transition-all overflow-hidden" style={int.bg ? { backgroundColor: int.bg } : undefined}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={int.src} alt={int.alt} className="h-full w-full object-cover" />
                 </div>
-                <span className="text-[10px] sm:text-[10px] text-white/30 font-medium group-hover:text-white/50 transition-colors">{int.name}</span>
+                <span className="text-[11px] text-white/60 font-medium group-hover:text-white/80 transition-colors">{int.name}</span>
               </a>
             ))}
           </div>
@@ -673,7 +683,7 @@ function HomePageInner() {
           <div className="relative mx-auto max-w-5xl px-6">
             <div className="text-center mb-10">
               <h2 className="text-2xl sm:text-3xl font-bold font-mono tracking-tight mb-3">TRUSTED BY SECURITY PROFESSIONALS</h2>
-              <p className="text-white/40 max-w-lg mx-auto text-sm">Companies already using Overwatch to command their operations.</p>
+              <p className="text-white/70 max-w-lg mx-auto text-sm">Companies already using Overwatch to command their operations.</p>
             </div>
             <div className="relative overflow-hidden" style={{ maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
               <div className="flex animate-[scroll_30s_linear_infinite] gap-10 w-max">
@@ -710,9 +720,9 @@ function HomePageInner() {
       <section className="py-20 border-t border-white/5">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tight mb-4">READY TO DEPLOY?</h2>
-          <p className="text-white/40 mb-8 max-w-lg mx-auto">Join security companies already using Overwatch to manage their workforce, training, and operations.</p>
+          <p className="text-white/70 mb-8 max-w-lg mx-auto">Join security companies already using Overwatch to manage their workforce, training, and operations.</p>
           <div className="flex items-center justify-center gap-4">
-            <button onClick={() => setRegisterOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-white font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
+            <button onClick={() => setRegisterOpen(true)} className="inline-flex items-center gap-2 bg-[#dd8c33] text-[#0b1422] font-semibold px-8 py-3 rounded-xl hover:bg-[#c47a2a] transition-all text-sm">
               Create Free Account <ChevronRight className="h-4 w-4" />
             </button>
           </div>
@@ -727,73 +737,58 @@ function HomePageInner() {
           <div className="grid gap-8 grid-cols-2 sm:grid-cols-3 mb-10">
             {/* Platform links */}
             <div className="flex flex-col items-center sm:items-start gap-2.5">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Platform</h4>
-              <button onClick={() => setLoginOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Sign In</button>
-              <button onClick={() => setRegisterOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Create Account</button>
-              <button onClick={() => setJoinOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Join a Company</button>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-1">Platform</h4>
+              <button onClick={() => setLoginOpen(true)} className="text-xs text-white/70 hover:text-[#dd8c33] transition-colors min-h-[24px] py-1">Sign In</button>
+              <button onClick={() => setRegisterOpen(true)} className="text-xs text-white/70 hover:text-[#dd8c33] transition-colors min-h-[24px] py-1">Create Account</button>
+              <button onClick={() => setJoinOpen(true)} className="text-xs text-white/70 hover:text-[#dd8c33] transition-colors min-h-[24px] py-1">Join a Company</button>
             </div>
 
             {/* Legal links */}
             <div className="flex flex-col items-center sm:items-start gap-2.5">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Legal</h4>
-              <button onClick={() => setTosOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Terms of Service</button>
-              <button onClick={() => setPrivacyOpen(true)} className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Privacy Policy</button>
-              <a href="mailto:contact@evenfalladvantage.com" className="text-xs text-white/40 hover:text-[#dd8c33] transition-colors">Contact</a>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-1">Legal</h4>
+              <button onClick={() => setTosOpen(true)} className="text-xs text-white/70 hover:text-[#dd8c33] transition-colors min-h-[24px] py-1">Terms of Service</button>
+              <button onClick={() => setPrivacyOpen(true)} className="text-xs text-white/70 hover:text-[#dd8c33] transition-colors min-h-[24px] py-1">Privacy Policy</button>
+              <a href="mailto:contact@evenfalladvantage.com" className="text-xs text-white/70 hover:text-[#dd8c33] transition-colors min-h-[24px] py-1">Contact</a>
             </div>
 
             {/* Branding — desktop only, subtle */}
             <div className="hidden sm:flex flex-col items-start gap-2.5">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/50 mb-1">Powered By</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-white/70 mb-1">Powered By</h4>
               <a href="https://www.evenfalladvantage.com" target="_blank" rel="noopener noreferrer">
                 <Image src="/overwatch/images/logo.png" alt="Evenfall Advantage" width={120} height={36} className="w-[100px] h-auto opacity-40 hover:opacity-70 transition-opacity" />
               </a>
             </div>
           </div>
 
-          {/* Compliance Badges */}
+          {/* Trust facts: only claims we can back with evidence (see docs/compliance). */}
           <div className="border-t border-white/5 pt-6 pb-4">
-            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+            <ul aria-label="Security practices" className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
               {[
-                { label: "SOC 2", sub: "Type I Ready", href: "https://www.aicpa-cima.com/topic/audit-assurance/audit-and-assurance-greater-than-soc-2", icon: (
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                )},
-                { label: "CCPA", sub: "Compliant", href: "https://oag.ca.gov/privacy/ccpa", icon: (
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-                )},
-                { label: "AES-256", sub: "Encrypted", href: "https://en.wikipedia.org/wiki/Advanced_Encryption_Standard", icon: (
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                )},
-                { label: "TLS 1.2+", sub: "Enforced", href: "https://en.wikipedia.org/wiki/Transport_Layer_Security", icon: (
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                )},
-                { label: "WCAG", sub: "2.2 AA", href: "https://www.w3.org/WAI/standards-guidelines/wcag/", icon: (
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-                )},
-                { label: "99.5%", sub: "Uptime SLA", href: "https://en.wikipedia.org/wiki/Service-level_agreement", icon: (
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                )},
+                { label: "Encrypted", sub: "in transit (TLS)" },
+                { label: "Encrypted", sub: "at rest" },
+                { label: "Row-level", sub: "data isolation" },
+                { label: "Built toward", sub: "SOC 2" },
+                { label: "Export & delete", sub: "your data" },
+                { label: "On-device", sub: "dictation" },
               ].map((badge) => (
-                <a
-                  key={badge.label}
-                  href={badge.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-white/30 hover:text-white/50 hover:border-white/10 hover:bg-white/[0.04] transition-all group"
+                <li
+                  key={badge.label + badge.sub}
+                  className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-1.5 text-white/80"
                 >
-                  <span className="text-[#dd8c33]/50 group-hover:text-[#dd8c33]/80 transition-colors">{badge.icon}</span>
+                  <Lock className="h-4 w-4 text-[#dd8c33]" aria-hidden="true" />
                   <span className="flex flex-col leading-none">
                     <span className="text-[10px] font-bold font-mono tracking-wider">{badge.label}</span>
-                    <span className="text-[10px] text-white/50 group-hover:text-white/60">{badge.sub}</span>
+                    <span className="text-[10px] text-white/70">{badge.sub}</span>
                   </span>
-                </a>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
           {/* Bottom bar */}
           <div className="border-t border-white/5 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[10px] text-white/50 font-mono">&copy; {new Date().getFullYear()} Evenfall Advantage LLC. All rights reserved.</p>
-            <p className="text-[10px] text-white/50 font-mono">Built with purpose. Deployed with precision.</p>
+            <p className="text-[10px] text-white/70 font-mono">&copy; {new Date().getFullYear()} Evenfall Advantage LLC. All rights reserved.</p>
+            <p className="text-[10px] text-white/70 font-mono">Built with purpose. Deployed with precision.</p>
           </div>
         </div>
       </footer>

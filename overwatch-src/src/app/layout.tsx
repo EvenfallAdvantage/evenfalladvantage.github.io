@@ -18,12 +18,13 @@ const barlow = Barlow({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.evenfalladvantage.com"),
   title: {
-    default: "Overwatch",
+    default: "Overwatch — Security Workforce Management Platform",
     template: "%s | Overwatch",
   },
   description:
-    "Professional workforce management for security companies. LMS training, payments, geo-risk intel, de-escalation sims, site assessments, invoicing, certifications, and 50-state law database. Powered by Evenfall Advantage LLC.",
+    "Workforce and field operations for security companies: scheduling, time clock, patrols, incidents, Shift Notes with on-device dictation, SOS alerts, training, certifications, and a 50-state law database. By Evenfall Advantage LLC.",
   keywords: [
     "security workforce management", "guard training LMS", "security company software",
     "site security assessment", "geo risk analysis", "security certifications",
@@ -47,6 +48,14 @@ export const metadata: Metadata = {
     description: "Unified workforce management, training, and field operations platform built for security professionals.",
     type: "website",
     siteName: "Overwatch by Evenfall Advantage",
+    url: "/overwatch/",
+    images: [{ url: "/overwatch/images/icon-512.png", width: 512, height: 512, alt: "Overwatch" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Overwatch — Command Your Force",
+    description: "Unified workforce management, training, and field operations platform built for security professionals.",
+    images: ["/overwatch/images/icon-512.png"],
   },
 };
 
