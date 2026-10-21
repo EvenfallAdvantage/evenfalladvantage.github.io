@@ -55,13 +55,39 @@ for (const phone of [false, true]) {
   let errs = [];
   page.on("pageerror", (e) => errs.push(`pageerror ${String(e).slice(0, 200)}`));
 
-  await page.goto(`${BASE}/?auth=login`);
-  await page.waitForSelector("input[type=password]", { timeout: 120_000 });
+  // Same route + selectors as the working local login (/?auth=login, input[type=password]).
+  // Retry once, and on failure save a screenshot + page diagnostics (never the credentials)
+  // to $SMOKE_OUT so the CI artifact shows what the runner actually got.
+  let loginReady = false, navStatus = null;
+  for (let attempt = 1; attempt <= 2 && !loginReady; attempt++) {
+    try {
+      const resp = await page.goto(`${BASE}/?auth=login`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+      navStatus = resp?.status() ?? null;
+      await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+      await page.waitForSelector("input[type=password]", { timeout: 60_000 });
+      loginReady = true;
+    } catch (e) {
+      console.error(`${tag}: login form not found (attempt ${attempt}): ${String(e).split("\n")[0]}`);
+    }
+  }
+  if (!loginReady) {
+    await page.screenshot({ path: `${OUT}/${tag}-login-failure.png`, fullPage: true }).catch(() => {});
+    const diag = await page.evaluate(() => ({ title: document.title, text: document.body?.innerText?.replace(/\s+/g, " ").slice(0, 600) ?? "" })).catch(() => ({}));
+    summary.results[`${tag}:login`] = { url: page.url(), status: navStatus, ...diag, pageErrors: [...new Set(errs)].slice(0, 10) };
+    summary.failures.push(`${tag}: login form never appeared (HTTP ${navStatus}, title "${diag.title ?? ""}")`);
+    console.error(`${tag}: url=${page.url()} status=${navStatus} title=${JSON.stringify(diag.title ?? "")}`);
+    console.error(`${tag}: body=${JSON.stringify(diag.text ?? "")}`);
+    await browser.close();
+    continue;
+  }
   await page.fill("input[type=email]", EMAIL);
   await page.fill("input[type=password]", PASSWORD);
   await page.press("input[type=password]", "Enter");
   await page.waitForTimeout(8000);
-  if (await page.locator("input[type=password]").count()) { summary.failures.push(`${tag}: login failed`); await browser.close(); continue; }
+  if (await page.locator("input[type=password]").count()) {
+    await page.screenshot({ path: `${OUT}/${tag}-login-rejected.png` }).catch(() => {});
+    summary.failures.push(`${tag}: login failed`); await browser.close(); continue;
+  }
 
   for (const route of ROUTES) {
     errs = [];

@@ -50,3 +50,4 @@ jobs:
           name: smoke-${{ github.run_id }}
           path: overwatch-src/e2e/smoke-out
           retention-days: 14
+          if-no-files-found: warn
