@@ -445,12 +445,12 @@ export default function FormsPage() {
           </div>
         ) : (
           <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {forms.map((form: Form) => (
               <div key={form.id} onClick={() => selectForm(form)}
-                className="rounded-xl border border-border/50 bg-card p-4 cursor-pointer transition-all hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5">
+                className="min-w-0 rounded-xl border border-border/50 bg-card p-4 cursor-pointer transition-all hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/10">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/10">
                     <ClipboardList className="h-5 w-5 text-rose-500" />
                   </div>
                   <div className="min-w-0 flex-1">
