@@ -95,9 +95,9 @@ export default function ProfilePage() {
           onProgressChange={setOnboardingProgress}
         />
 
-        <div className="grid gap-6 md:grid-cols-[280px_1fr]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-[280px_minmax(0,1fr)]">
           {/* Sidebar: Personal + Company Details */}
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <PersonalProfileCard
               user={user}
               onUserChange={handleUserChange}
