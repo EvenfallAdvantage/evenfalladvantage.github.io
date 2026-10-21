@@ -21,13 +21,13 @@ export function DarSignoffView({ timesheetId, showEmpty = false }: { timesheetId
     return () => { alive = false; };
   }, [timesheetId]);
 
-  if (state.loading) return <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Loading report…</div>;
+  if (state.loading) return <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Loading shift notes…</div>;
   const s = state.signoff;
-  if (!s) return showEmpty ? <p className="text-xs text-muted-foreground">Report not signed yet.</p> : null;
+  if (!s) return showEmpty ? <p className="text-xs text-muted-foreground">No shift notes yet.</p> : null;
   return (
     <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm" data-testid="dar-signoff">
       <div className="flex items-center gap-1.5 font-medium text-emerald-500">
-        <FileSignature className="h-4 w-4" /> Signed report
+        <FileSignature className="h-4 w-4" /> Shift Notes
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
         Signed by <span className="font-medium text-foreground">{s.signedName}</span> · {new Date(s.signedAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
@@ -35,7 +35,7 @@ export function DarSignoffView({ timesheetId, showEmpty = false }: { timesheetId
       {s.summary ? (
         <p className="mt-2 whitespace-pre-wrap rounded-md bg-muted/30 px-3 py-2 text-xs">{s.summary}</p>
       ) : (
-        <p className="mt-2 text-xs italic text-muted-foreground">No summary written.</p>
+        <p className="mt-2 text-xs italic text-muted-foreground">No notes written.</p>
       )}
     </div>
   );

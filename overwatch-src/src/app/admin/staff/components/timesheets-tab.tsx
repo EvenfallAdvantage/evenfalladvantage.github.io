@@ -219,8 +219,8 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                               <button type="button" onClick={() => setOpenReport(openReport === t.id ? null : t.id)}
                                 aria-expanded={openReport === t.id}
                                 className="inline-flex items-center gap-1 rounded bg-emerald-500/15 px-2 py-1 text-[10px] font-medium text-emerald-500 hover:bg-emerald-500/25"
-                                title="View the officer's signed report">
-                                <FileSignature className="h-3 w-3" /> Signed
+                                title="View the officer's signed shift notes" aria-label="Shift notes">
+                                <FileSignature className="h-3 w-3" /> <span className="hidden sm:inline">Shift Notes</span><span className="sm:hidden">Notes</span>
                               </button>
                             )}
                             <span className="font-mono text-sm font-semibold">{hrs}h</span>
