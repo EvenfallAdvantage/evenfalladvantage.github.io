@@ -4,6 +4,8 @@ name: Nightly smoke (ZZTEST)
 # desktop + phone against the live app. All Supabase writes are blocked in the
 # browser, so it changes nothing. Needs two repo secrets set by the owner:
 #   ZZTEST_EMAIL, ZZTEST_PASSWORD
+# Optional: SMOKE_CF_HEADER ("Header-Name: value") matched by a Cloudflare
+# WAF Skip rule, because GitHub runner IPs get Cloudflare's bot challenge.
 on:
   schedule:
     - cron: "30 11 * * *"   # 11:30 UTC = 4:30 AM PDT / 3:30 AM PST
@@ -40,6 +42,7 @@ jobs:
         env:
           ZZTEST_EMAIL: ${{ secrets.ZZTEST_EMAIL }}
           ZZTEST_PASSWORD: ${{ secrets.ZZTEST_PASSWORD }}
+          SMOKE_CF_HEADER: ${{ secrets.SMOKE_CF_HEADER }}
           SMOKE_ROUTES: ${{ github.event.inputs.routes }}
           SMOKE_OUT: smoke-out
         run: node smoke.mjs
@@ -50,3 +53,4 @@ jobs:
           name: smoke-${{ github.run_id }}
           path: overwatch-src/e2e/smoke-out
           retention-days: 14
+          if-no-files-found: warn

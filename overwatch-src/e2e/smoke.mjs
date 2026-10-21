@@ -44,6 +44,14 @@ for (const phone of [false, true]) {
     viewport: phone ? { width: 390, height: 844 } : { width: 1400, height: 900 }, isMobile: phone, hasTouch: phone,
     timezoneId: "America/Los_Angeles", geolocation: { latitude: 34.0537, longitude: -118.2428 }, permissions: ["geolocation"],
   });
+  // Optional Cloudflare WAF bypass for CI runners (GitHub IPs get the "Just a moment..."
+  // bot challenge). SMOKE_CF_HEADER = "Header-Name: value", stored as a repo secret and
+  // matched by a Cloudflare custom "Skip" rule. Only sent to the site's own host.
+  const cfHeader = process.env.SMOKE_CF_HEADER?.match(/^\s*([\w-]+)\s*:\s*(.+?)\s*$/);
+  if (cfHeader) {
+    const host = new URL(BASE).host;
+    await ctx.route((u) => u.host === host, (r) => r.continue({ headers: { ...r.request().headers(), [cfHeader[1].toLowerCase()]: cfHeader[2] } }));
+  }
   const blocked = [];
   await ctx.route(/supabase\.co\/(rest|functions|storage)/, (r) => {
     const q = r.request(), m = q.method();
@@ -55,13 +63,39 @@ for (const phone of [false, true]) {
   let errs = [];
   page.on("pageerror", (e) => errs.push(`pageerror ${String(e).slice(0, 200)}`));
 
-  await page.goto(`${BASE}/?auth=login`);
-  await page.waitForSelector("input[type=password]", { timeout: 120_000 });
+  // Same route + selectors as the working local login (/?auth=login, input[type=password]).
+  // Retry once, and on failure save a screenshot + page diagnostics (never the credentials)
+  // to $SMOKE_OUT so the CI artifact shows what the runner actually got.
+  let loginReady = false, navStatus = null;
+  for (let attempt = 1; attempt <= 2 && !loginReady; attempt++) {
+    try {
+      const resp = await page.goto(`${BASE}/?auth=login`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+      navStatus = resp?.status() ?? null;
+      await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+      await page.waitForSelector("input[type=password]", { timeout: 60_000 });
+      loginReady = true;
+    } catch (e) {
+      console.error(`${tag}: login form not found (attempt ${attempt}): ${String(e).split("\n")[0]}`);
+    }
+  }
+  if (!loginReady) {
+    await page.screenshot({ path: `${OUT}/${tag}-login-failure.png`, fullPage: true }).catch(() => {});
+    const diag = await page.evaluate(() => ({ title: document.title, text: document.body?.innerText?.replace(/\s+/g, " ").slice(0, 600) ?? "" })).catch(() => ({}));
+    summary.results[`${tag}:login`] = { url: page.url(), status: navStatus, ...diag, pageErrors: [...new Set(errs)].slice(0, 10) };
+    summary.failures.push(`${tag}: login form never appeared (HTTP ${navStatus}, title "${diag.title ?? ""}")` + (/just a moment|security verification/i.test(`${diag.title} ${diag.text}`) ? " - blocked by Cloudflare bot challenge; set SMOKE_CF_HEADER + a Cloudflare Skip rule" : ""));
+    console.error(`${tag}: url=${page.url()} status=${navStatus} title=${JSON.stringify(diag.title ?? "")}`);
+    console.error(`${tag}: body=${JSON.stringify(diag.text ?? "")}`);
+    await browser.close();
+    continue;
+  }
   await page.fill("input[type=email]", EMAIL);
   await page.fill("input[type=password]", PASSWORD);
   await page.press("input[type=password]", "Enter");
   await page.waitForTimeout(8000);
-  if (await page.locator("input[type=password]").count()) { summary.failures.push(`${tag}: login failed`); await browser.close(); continue; }
+  if (await page.locator("input[type=password]").count()) {
+    await page.screenshot({ path: `${OUT}/${tag}-login-rejected.png` }).catch(() => {});
+    summary.failures.push(`${tag}: login failed`); await browser.close(); continue;
+  }
 
   for (const route of ROUTES) {
     errs = [];
