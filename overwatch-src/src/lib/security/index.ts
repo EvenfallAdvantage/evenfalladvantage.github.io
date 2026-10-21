@@ -218,7 +218,10 @@ export function safeHttpUrl(url: string | null | undefined): string | null {
 export function stripTags(str: string): string {
   // Remove tags, then any stray angle brackets, so nested/malformed tags
   // (e.g. "<scr<script>ipt>") can't leave markup behind.
-  return String(str ?? "").replace(/<[^>]*>/g, "").replace(/[<>]/g, "");
+  let out = String(str ?? "");
+  let prev: string;
+  do { prev = out; out = out.replace(/<[^>]*>/g, ""); } while (out !== prev);
+  return out.replace(/[<>]/g, "");
 }
 
 /** Make a string safe inside <![CDATA[ ... ]]>. */

@@ -330,7 +330,7 @@ function CoursesContent() {
               </div>
               <Card className="border-border/40 overflow-hidden">
                 <div className="aspect-video bg-black relative">
-                  <iframe src={/^https:\/\//i.test(roomUrl.trim()) ? roomUrl.trim() : "about:blank"} allow="camera; microphone; fullscreen; display-capture"
+                  <iframe src={safeRoomSrc(roomUrl)} allow="camera; microphone; fullscreen; display-capture"
                     className="w-full h-full border-0" title="Training Session" />
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                     <Button size="sm" variant={muted ? "destructive" : "secondary"} className="h-9 w-9 p-0 rounded-full"
@@ -419,6 +419,11 @@ function CoursesContent() {
       </div>
     </PageShell>
   );
+}
+
+/** https meeting links only; anything else (javascript:, data:) renders a blank frame. */
+function safeRoomSrc(raw: string): string {
+  try { const u = new URL(raw.trim()); return u.protocol === "https:" ? u.href : "about:blank"; } catch { return "about:blank"; }
 }
 
 export default function CoursesPage() {

@@ -173,9 +173,13 @@ function formatAddress(a: { email: string; name?: string }): { mail: string; nam
 
 function stripHtml(html: string): string {
   // Plain-text alternative body only (never rendered as HTML).
-  return html
-    .replace(/<(style|script)\b[\s\S]*?<\/\1\s*>/gi, "")
-    .replace(/<[^>]*>/g, " ")
+  let text = html;
+  let prev: string;
+  do {
+    prev = text;
+    text = text.replace(/<(style|script)\b[\s\S]*?<\/\1\s*>/gi, "").replace(/<[^>]*>/g, " ");
+  } while (text !== prev);
+  return text
     .replace(/[<>]/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&lt;/g, "<")

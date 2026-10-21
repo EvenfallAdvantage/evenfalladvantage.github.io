@@ -42,7 +42,10 @@ export function safeHttpUrl(url: string | null | undefined): string | null {
  * nested/malformed tag (e.g. "<scr<script>ipt>") can't survive as markup.
  */
 export function stripTagsToText(html: string): string {
-  return String(html ?? "").replace(/<[^>]*>/g, " ").replace(/[<>]/g, "").replace(/[ \t]{2,}/g, " ").trim();
+  let out = String(html ?? "");
+  let prev: string;
+  do { prev = out; out = out.replace(/<[^>]*>/g, " "); } while (out !== prev);
+  return out.replace(/[<>]/g, "").replace(/[ \t]{2,}/g, " ").trim();
 }
 
 /** Make a string safe inside <![CDATA[ ... ]]> (split any "]]>" terminator). */
