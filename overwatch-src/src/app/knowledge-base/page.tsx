@@ -6,8 +6,10 @@ import { formatMemberName, memberInitials } from "@/lib/format-names";
 import {
   BookOpen, FolderOpen, FileText, Plus, Loader2, Trash2,
   Upload, X, Download, CheckCircle2, Circle, Image as ImageIcon,
-  File, Users, ChevronUp, ChevronDown,
+  File, Users, ChevronUp, ChevronDown, Pin, PinOff,
 } from "lucide-react";
+import { KBSearchAndPins } from "./kb-search-pins";
+import { isPinned, pinDoc, unpinDoc, pinnedFileUrl, getPins, type PinnedDoc } from "@/lib/kb/pins";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +101,31 @@ export default function KnowledgeBasePage() {
 
   // Viewer modal
   const [viewDoc, setViewDoc] = useState<Doc | null>(null);
+  const [pinsVersion, setPinsVersion] = useState(0);
+  const [pins, setPins] = useState<PinnedDoc[]>([]);
+  useEffect(() => { if (activeCompanyId) setPins(getPins(activeCompanyId)); }, [activeCompanyId, pinsVersion]);
+  const [viewBlobUrl, setViewBlobUrl] = useState<string | null>(null);
+  const [pinning, setPinning] = useState(false);
+  // Pinned files open from the on-device copy (works with no signal).
+  useEffect(() => {
+    let url: string | null = null; let live = true;
+    if (viewDoc?.file_url && activeCompanyId && isPinned(activeCompanyId, viewDoc.id)) {
+      pinnedFileUrl(viewDoc.file_url).then((u) => { url = u; if (live) setViewBlobUrl(u); else if (u) URL.revokeObjectURL(u); });
+    }
+    return () => { live = false; setViewBlobUrl(null); if (url) URL.revokeObjectURL(url); };
+  }, [viewDoc, activeCompanyId, pinsVersion]);
+  async function togglePin(d: Doc) {
+    if (!activeCompanyId) return;
+    setPinning(true);
+    try {
+      if (isPinned(activeCompanyId, d.id)) { await unpinDoc(activeCompanyId, d.id); toast.success("Unpinned"); }
+      else {
+        const pin = await pinDoc(activeCompanyId, { ...d, folder_name: d.folder_name ?? selectedFolder?.name ?? null });
+        toast.success(pin.file_url && !pin.fileCached ? "Pinned (text only; file too large or unavailable)" : "Pinned for offline");
+      }
+      setPinsVersion((v) => v + 1);
+    } finally { setPinning(false); }
+  }
 
   // Read tracking
   const [readDocIds, setReadDocIds] = useState<Set<string>>(new Set());
@@ -258,6 +285,9 @@ export default function KnowledgeBasePage() {
           </div>
         )}
 
+        {activeCompanyId && (
+          <KBSearchAndPins companyId={activeCompanyId} onOpen={(d) => setViewDoc(d)} pins={pins} />
+        )}
         {loading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : folders.length === 0 ? (
@@ -425,8 +455,8 @@ export default function KnowledgeBasePage() {
               ) : (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
                   <BookOpen className="mb-3 h-10 w-10 text-muted-foreground/40" />
-                  <p className="text-sm font-medium">Select a folder</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Choose a folder from the sidebar to view documents</p>
+                  <p className="text-sm font-medium">Select a folder or search</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Pick a folder, or search every document above. Pin the ones you need offline.</p>
                 </div>
               )}
             </div>
@@ -450,6 +480,12 @@ export default function KnowledgeBasePage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                  {activeCompanyId && (
+                    <Button variant="outline" size="sm" className="h-9" disabled={pinning} onClick={() => togglePin(viewDoc)}
+                      aria-label={isPinned(activeCompanyId, viewDoc.id) ? "Unpin from offline" : "Pin for offline"} data-testid="kb-pin">
+                      {pinning ? <Loader2 className="h-4 w-4 animate-spin" /> : isPinned(activeCompanyId, viewDoc.id) ? <><PinOff className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Unpin</span></> : <><Pin className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Pin offline</span></>}
+                    </Button>
+                  )}
                   {viewDoc.file_url && (
                     <a href={viewDoc.file_url} download={viewDoc.file_name || viewDoc.title} target="_blank" rel="noopener noreferrer">
                       <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8">
@@ -481,13 +517,13 @@ export default function KnowledgeBasePage() {
               {(() => {
                 const viewable = isViewableType(viewDoc.mime_type);
                 if (viewDoc.file_url && viewable === "pdf") {
-                  return <iframe src={viewDoc.file_url} className="w-full h-full min-h-[70vh]" title={viewDoc.title} />;
+                  return <iframe src={viewBlobUrl ?? viewDoc.file_url} className="w-full h-full min-h-[70vh]" title={viewDoc.title} />;
                 }
                 if (viewDoc.file_url && viewable === "image") {
                   return (
                     <div className="flex items-center justify-center p-8 bg-muted/20">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={viewDoc.file_url} alt={viewDoc.title} className="max-w-full max-h-[70vh] rounded-lg object-contain" />
+                      <img src={viewBlobUrl ?? viewDoc.file_url} alt={viewDoc.title} className="max-w-full max-h-[70vh] rounded-lg object-contain" />
                     </div>
                   );
                 }
