@@ -88,7 +88,7 @@ export function StatementSheet({ incidentId, companyId, onClose, onSaved }: { in
             <span className="flex items-center gap-2 text-sm"><UserX className="h-4 w-4" />Declined to give a statement</span>
           </label>
           <textarea rows={8} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-base"
-            placeholder={d.declined ? "Optional: what they said when declining" : "Their account, in their words. Tap the mic on the keyboard to dictate. *"}
+            placeholder={d.declined ? "Optional: what they said when declining" : "Their account, in their words. * (Note: a phone keyboard mic may send audio to a cloud service.)"}
             value={d.statement} onChange={set("statement")} />
         </div>
       ) : (

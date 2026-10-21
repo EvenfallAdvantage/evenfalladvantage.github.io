@@ -119,7 +119,7 @@ export function QuickIncidentSheet({ companyId, eventId, onClose, onCreated }: P
             </button>
           </div>
           <textarea value={d.note} onChange={(e) => setD((x) => ({ ...x, note: e.target.value }))} rows={3}
-            placeholder="What did you see? Tap the mic on your keyboard to dictate."
+            placeholder="What did you see? (A phone keyboard mic may send audio to a cloud service.)"
             className="mt-2 w-full rounded-xl border border-input bg-background px-3 py-2 text-base" />
           <input value={d.locationText} onChange={(e) => setD((x) => ({ ...x, locationText: e.target.value }))}
             placeholder="Where (e.g. east gate). GPS is attached automatically"

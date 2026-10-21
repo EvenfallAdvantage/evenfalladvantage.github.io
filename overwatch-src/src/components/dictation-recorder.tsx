@@ -4,26 +4,11 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Mic, Square, AlertTriangle, Cpu, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { detectSpeechTier, describeTier, type SpeechTier } from "@/lib/speech";
+import { describeTier } from "@/lib/speech";
+import { getSpeechModelCacheState, onMeteredConnection, predownloadSpeechModels } from "@/lib/speech/model-cache";
 import type { WhisperProgress } from "@/lib/speech/whisper-engine";
 import type { SpeakerTurn } from "@/lib/speech/diarize-align";
 import { logger } from "@/lib/logger";
-
-/* ── Web Speech API type stubs ── */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SpeechRecognitionInstance = any;
-
-function getSpeechRecognitionCtor(): (new () => SpeechRecognitionInstance) | null {
-  if (typeof window === "undefined") return null;
-  return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
-}
-
-const NATIVE_ERROR_MESSAGES: Record<string, string> = {
-  "not-allowed": "Microphone access was denied. Please allow microphone permission in your browser settings and try again.",
-  "audio-capture": "No microphone was found. Please connect a microphone and try again.",
-  "service-not-allowed": "Speech recognition service is not allowed. This may be due to browser settings or extensions blocking the service.",
-  "network": "Could not connect to the speech recognition service. Falling back to local Whisper AI...",
-};
 
 interface DictationRecorderProps {
   /**
@@ -34,10 +19,17 @@ interface DictationRecorderProps {
    */
   onTranscript: (text: string, isFinal: boolean, turns?: SpeakerTurn[]) => void;
   disabled?: boolean;
+  /** @deprecated No-op: dictation is always on-device now. Kept so older call sites compile. */
+  localOnly?: boolean;
 }
 
 export function DictationRecorder({ onTranscript, disabled }: DictationRecorderProps) {
-  const [tier, setTier] = useState<SpeechTier>("native");
+  /** Dictation is ALWAYS on-device (Whisper). The browser/Google Web Speech
+   *  engine is intentionally not used anywhere. */
+  const tier = "whisper" as const;
+  /** null = not checked yet; true = model must be downloaded before recording. */
+  const [needsModel, setNeedsModel] = useState<boolean | null>(null);
+  const [downloadPct, setDownloadPct] = useState<number | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -77,53 +69,33 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     }
   });
 
-  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const recordingRef = useRef(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // Detect best tier on mount. If the user previously enabled
-  // diarization, force-select the Whisper tier (only Whisper has the
-  // raw audio buffer that diarization needs).
+  // On mount: check whether the on-device model is downloaded yet. If not,
+  // the Start button becomes a "download (~80 MB) and start" prompt.
   useEffect(() => {
-    const detected = detectSpeechTier();
-    setTier(diarizationEnabled ? "whisper" : detected);
-    // Local-first: once the on-device model is downloaded, prefer it.
-    if (!diarizationEnabled && detected === "native") {
-      import("@/lib/speech/model-cache").then(({ isWhisperCached }) => isWhisperCached()).then((c) => { if (c) setTier("whisper"); }).catch(() => {});
-    }
+    let live = true;
+    getSpeechModelCacheState().then((st) => { if (live) setNeedsModel(st === "missing" || st === "partial"); }).catch(() => { if (live) setNeedsModel(false); });
     return () => {
-      // Clear the "keep recording" flag first, or the recognizer's "end"
-      // handler restarts it after the page is gone and the mic stays on.
-      recordingRef.current = false;
-      if (recognitionRef.current) {
-        const ref = recognitionRef.current;
-        recognitionRef.current = null;
-        try { ref.stop(); } catch (e) { logger.swallow("dictation:recognition-stop-cleanup", e); }
-      }
+      live = false;
       if (mediaRecorderRef.current?.state === "recording") { try { mediaRecorderRef.current.stop(); } catch (e) { logger.swallow("dictation:media-stop-cleanup", e, "trace"); } }
       if (timerRef.current) clearInterval(timerRef.current);
     };
-    // diarizationEnabled is intentionally not in deps: this runs once on mount.
-    // Subsequent toggles are handled by toggleDiarization() below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Toggle diarization on/off. Forces Whisper tier when enabling. */
+  /** Toggle on-device speaker detection. */
   const toggleDiarization = useCallback(() => {
     setDiarizationEnabled((prev) => {
       const next = !prev;
       try { localStorage.setItem("dictation:diarization", next ? "1" : "0"); } catch (e) { logger.swallow("dictation:diarization-persist", e, "trace"); }
-      // Enabling diarization requires the Whisper tier (raw audio access).
-      if (next) setTier("whisper");
       return next;
     });
   }, []);
 
-  const interviewOn = tier === "whisper" && diarizationEnabled && expectedSpeakers === 2;
+  const interviewOn = diarizationEnabled && expectedSpeakers === 2;
   const applyInterviewPreset = useCallback(() => {
-    setTier("whisper");
     setDiarizationEnabled(true);
     setExpectedSpeakers(2);
     setError(null);
@@ -147,84 +119,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
     return `${m}:${sec.toString().padStart(2, "0")}`;
   }
 
-  // ─── Tier 1: Native Web Speech API ──────────────────
-  const stopNative = useCallback(() => {
-    recordingRef.current = false;
-    if (recognitionRef.current) {
-      const ref = recognitionRef.current;
-      recognitionRef.current = null;
-      try { ref.stop(); } catch (e) { logger.swallow("dictation:recognition-stop", e, "trace"); }
-    }
-    setIsRecording(false);
-    stopTimer();
-  }, []);
-
-  const startNative = useCallback(() => {
-    setError(null);
-    const Ctor = getSpeechRecognitionCtor();
-    if (!Ctor) {
-      // Fallback to whisper if native isn't available at runtime
-      setTier("whisper");
-      return;
-    }
-
-    const recognition = new Ctor();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.addEventListener("result", (event: any) => {
-      let interimTranscript = "";
-      let finalTranscript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) finalTranscript += transcript;
-        else interimTranscript += transcript;
-      }
-      if (finalTranscript) onTranscript(finalTranscript, true);
-      else if (interimTranscript) onTranscript(interimTranscript, false);
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recognition.addEventListener("error", (event: any) => {
-      console.warn("[Dictation] Native error:", event.error);
-      if (event.error === "no-speech" || event.error === "aborted") return;
-
-      // On network error, auto-fallback to Whisper
-      if (event.error === "network") {
-        console.info("[Dictation] Native speech failed, falling back to Whisper WASM");
-        stopNative();
-        setTier("whisper");
-        setError("Browser speech recognition unavailable. Switched to local Whisper AI — click Start Recording to try again.");
-        return;
-      }
-
-      const msg = NATIVE_ERROR_MESSAGES[event.error] ?? `Speech recognition error: ${event.error}`;
-      setError(msg);
-      setIsRecording(false);
-      recordingRef.current = false;
-      stopTimer();
-    });
-
-    recognition.addEventListener("end", () => {
-      if (recordingRef.current && recognitionRef.current) {
-        try { recognition.start(); } catch (e) { logger.swallow("dictation:recognition-restart", e, "trace"); }
-      }
-    });
-
-    recognitionRef.current = recognition;
-    recordingRef.current = true;
-    try {
-      recognition.start();
-      setIsRecording(true);
-      startTimer();
-    } catch {
-      setError("Failed to start speech recognition. Please try again.");
-    }
-  }, [onTranscript, stopNative]);
-
-  // ─── Tier 2: Whisper WASM via MediaRecorder ─────────
+  // ─── On-device Whisper via MediaRecorder ────────────
   const startWhisper = useCallback(async () => {
     setError(null);
 
@@ -353,15 +248,22 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
   }, [onTranscript, diarizationEnabled, expectedSpeakers]);
 
   // ─── Unified start/stop ─────────────────────────────
-  const handleStart = useCallback(() => {
-    if (tier === "native") startNative();
-    else startWhisper();
-  }, [tier, startNative, startWhisper]);
+  const handleStart = useCallback(() => { void startWhisper(); }, [startWhisper]);
+  const handleStop = useCallback(() => { void stopWhisper(); }, [stopWhisper]);
 
-  const handleStop = useCallback(() => {
-    if (tier === "native") stopNative();
-    else stopWhisper();
-  }, [tier, stopNative, stopWhisper]);
+  /** Download the on-device models, then start recording right away. */
+  const downloadThenStart = useCallback(async () => {
+    setError(null); setDownloadPct(0);
+    try {
+      await predownloadSpeechModels((pct) => setDownloadPct(pct));
+      setNeedsModel(false);
+      setDownloadPct(null);
+      void startWhisper();
+    } catch (e) {
+      setDownloadPct(null);
+      setError(`Couldn't download the speech model: ${e instanceof Error ? e.message : "network error"}. Try again on Wi-Fi.`);
+    }
+  }, [startWhisper]);
 
   // ─── Render ─────────────────────────────────────────
   return (
@@ -369,8 +271,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       {/* Engine badge */}
       <div className="flex items-center gap-2 flex-wrap">
         <Badge variant="outline" className="text-[10px] gap-1 font-mono text-muted-foreground">
-          {tier === "whisper" && <Cpu className="h-2.5 w-2.5" />}
-          {tier === "native" && <Mic className="h-2.5 w-2.5" />}
+          <Cpu className="h-2.5 w-2.5" />
           {describeTier(tier)}
         </Badge>
         {/* Interview preset: local Whisper + speakers on + 2 speakers. */}
@@ -387,8 +288,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
           <Users className="h-2.5 w-2.5" /> Interview
         </button>
         {/* Diarization toggle. Active state shows a Users badge; clicking
-            it during native-tier auto-switches to Whisper (the only tier
-            that supports speaker detection — raw audio is required). */}
+            runs pyannote on-device after transcription. */}
         <button
           onClick={toggleDiarization}
           disabled={isRecording || processingWhisper}
@@ -400,9 +300,7 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
           title={
             diarizationEnabled
               ? "Speaker detection ON — turns 'Whose voice is this?' into [Speaker 1]/[Speaker 2] labels"
-              : tier === "native"
-                ? "Enable speaker detection (will switch to local AI engine — required for audio access)"
-                : "Enable speaker detection"
+              : "Enable speaker detection"
           }
         >
           <Users className="h-2.5 w-2.5" /> {diarizationEnabled ? "Speakers ON" : "Detect speakers"}
@@ -431,22 +329,6 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
             <option value={6}>6 speakers</option>
           </select>
         )}
-        {tier === "native" && (
-          <button
-            onClick={() => setTier("whisper")}
-            className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground underline"
-          >
-            use local AI instead
-          </button>
-        )}
-        {tier === "whisper" && !diarizationEnabled && getSpeechRecognitionCtor() && (
-          <button
-            onClick={() => { setTier("native"); setError(null); }}
-            className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground underline"
-          >
-            try browser native
-          </button>
-        )}
       </div>
 
       {/* Controls + unified status (single banner for download, transcribe,
@@ -454,8 +336,17 @@ export function DictationRecorder({ onTranscript, disabled }: DictationRecorderP
       <div className="flex items-center gap-3">
         {isRecording ? (
           <Button size="sm" variant="destructive" className="gap-2" onClick={handleStop} disabled={disabled || processingWhisper} aria-label="Stop recording">
-            <Square className="h-3.5 w-3.5" /> Stop{tier === "whisper" ? " & Transcribe" : " Recording"}
+            <Square className="h-3.5 w-3.5" /> Stop &amp; Transcribe
           </Button>
+        ) : needsModel ? (
+          <div className="w-full space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs" data-testid="model-download-prompt">
+            <p className="font-medium text-foreground">Download the private speech model to dictate</p>
+            <p className="text-muted-foreground">Dictation runs entirely on this device; your audio never leaves it. The model is about 80 MB and downloads once.</p>
+            {onMeteredConnection() && <p className="font-medium text-amber-500">You seem to be on cellular data. Wi-Fi is recommended.</p>}
+            <Button size="sm" className="h-11 gap-2" onClick={downloadThenStart} disabled={disabled || downloadPct !== null} data-testid="model-download-start">
+              {downloadPct !== null ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Downloading… {downloadPct}%</> : <><Mic className="h-3.5 w-3.5" />Download (~80 MB) and start recording</>}
+            </Button>
+          </div>
         ) : (
           <Button size="sm" className="gap-2" onClick={handleStart} disabled={disabled || processingWhisper} aria-label="Start recording">
             {processingWhisper ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mic className="h-3.5 w-3.5" />}
