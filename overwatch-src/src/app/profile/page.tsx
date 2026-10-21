@@ -17,6 +17,7 @@ import { NotificationPreferencesCard } from "./components/notification-preferenc
 import { DisplayCard } from "./components/display-card";
 import { SpeechModelCard } from "./components/speech-model-card";
 import { SignatureCard } from "./components/signature-card";
+import { MfaCard } from "@/components/security/mfa-card";
 import { RadioStatesCard } from "./components/radio-states-card";
 import { EducationCard } from "./components/education-card";
 import { WorkHistoryCard } from "./components/work-history-card";
@@ -124,6 +125,7 @@ export default function ProfilePage() {
 
             <DisplayCard />
             <SignatureCard />
+            <MfaCard />
             <SpeechModelCard />
 
             {activeCompanyId && (

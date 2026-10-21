@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import { AuthGuard } from "@/components/auth-guard";
+import { MfaGate } from "@/components/security/mfa-gate";
 
 // Loaded on demand so public routes (landing, login, apply, careers...) don't
 // download the sidebar/topbar/nav and their data modules on first load.
@@ -36,7 +37,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthGuard>
-      <DashboardShell>{children}</DashboardShell>
+      <MfaGate>
+        <DashboardShell>{children}</DashboardShell>
+      </MfaGate>
     </AuthGuard>
   );
 }
