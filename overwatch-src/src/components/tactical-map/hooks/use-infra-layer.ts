@@ -24,6 +24,15 @@ const DEBOUNCE_MS = 450;
 /** Renders requested after a refresh (SETTLE_RENDERS × SETTLE_INTERVAL_MS ≈ 3 s). */
 const SETTLE_RENDERS = 12;
 const SETTLE_INTERVAL_MS = 250;
+/**
+ * Terrain level sampled once per drawn view for the points. Points used to be
+ * CLAMP_TO_GROUND: with ~2,000 points + ~1,500 labels in a city view, Cesium
+ * re-ran a CPU ray/triangle pick for every clamped point on every terrain tile
+ * that loaded, freezing the main thread for 10+ s (operations map freeze).
+ */
+export const INFRA_POINT_TERRAIN_LEVEL = 11;
+/** Points float this far above the sampled ground. */
+export const INFRA_POINT_LIFT_M = 5;
 
 
 let indexPromise: Promise<InfraIndex | null> | null = null;
@@ -145,6 +154,7 @@ export function useInfraLayer(params: {
       shown = key;
       const generation = ++drawGeneration;
       const lineEntities: Array<{ entity: { polyline?: { positions?: unknown } }; pts: Array<[number, number]> }> = [];
+      const pointEntities: Array<{ entity: { position?: unknown }; lng: number; lat: number }> = [];
       source.entities.suspendEvents();
       lineSource.entities.suspendEvents();
       try {
@@ -155,7 +165,7 @@ export function useInfraLayer(params: {
           for (const row of cell?.f ?? []) {
             const f = decodeInfraRow(row);
             if (!f || !keepInfraFeature(f, limits, height)) continue;
-            source.entities.add({
+            const pointEntity = source.entities.add({
               id: `infra-${f.kind}-${n++}`,
               name: f.name,
               position: Cesium.Cartesian3.fromDegrees(f.lng, f.lat, 0),
@@ -164,7 +174,7 @@ export function useInfraLayer(params: {
                 color: pointFill ?? colors[f.kind],
                 outlineColor: pointOutline,
                 outlineWidth: look.pointOutlineWidth,
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+                // Absolute height (lifted onto sampled terrain below), not CLAMP_TO_GROUND: see INFRA_POINT_TERRAIN_LEVEL.
                 // Near side reads over terrain; the globe hides the far side (#107). Shared per viewer.
                 disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
               },
@@ -177,11 +187,11 @@ export function useInfraLayer(params: {
                 outlineWidth: 2,
                 style: Cesium.LabelStyle.FILL_AND_OUTLINE,
                 pixelOffset: new Cesium.Cartesian2(0, -12),
-                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
                 distanceDisplayCondition: labelShow,
               } : undefined,
               description: popup(f, index.built),
             });
+            pointEntities.push({ entity: pointEntity, lng: f.lng, lat: f.lat });
           }
         }
         // Transmission lines (ODbL, US): only when zoomed in, capped per view.
@@ -236,6 +246,33 @@ export function useInfraLayer(params: {
       }
       settleRenders();
       if (lineEntities.length) void liftLines(lineEntities, generation);
+      if (pointEntities.length) void liftPoints(pointEntities, generation);
+    };
+
+    // With 3D terrain on, sample the ground once per drawn view and set each point's height.
+    const liftPoints = async (
+      items: Array<{ entity: { position?: unknown }; lng: number; lat: number }>,
+      generation: number,
+    ) => {
+      const tp = viewer.terrainProvider;
+      if (!tp || tp instanceof Cesium.EllipsoidTerrainProvider) return;
+      const cartos = items.map((it) => Cesium.Cartographic.fromDegrees(it.lng, it.lat));
+      try {
+        const sampled = await Cesium.sampleTerrain(tp, INFRA_POINT_TERRAIN_LEVEL, cartos);
+        if (disposed || generation !== drawGeneration) return;
+        source.entities.suspendEvents();
+        try {
+          items.forEach((it, k) => {
+            const h = sampled[k]?.height;
+            it.entity.position = Cesium.Cartesian3.fromDegrees(it.lng, it.lat, (Number.isFinite(h) ? h : 0) + INFRA_POINT_LIFT_M);
+          });
+        } finally {
+          source.entities.resumeEvents();
+        }
+        viewer.scene.requestRender();
+      } catch (err) {
+        logger.swallow("infra-layer:point-terrain", err, "debug");
+      }
     };
 
     // With 3D terrain on, lines on the ellipsoid sink under hills and mountains. Sample the
@@ -278,6 +315,8 @@ export function useInfraLayer(params: {
       timer = setTimeout(() => { timer = null; void refresh(); }, DEBOUNCE_MS);
     };
     const removeMove = viewer.camera.moveEnd.addEventListener(schedule);
+    // 3D terrain toggled: redraw so points and lines are re-lifted (or dropped back to the ellipsoid).
+    const removeTerrain = viewer.scene.terrainProviderChanged?.addEventListener?.(() => { shown = ""; schedule(); });
     void refresh();
 
     return () => {
@@ -285,6 +324,7 @@ export function useInfraLayer(params: {
       if (timer) clearTimeout(timer);
       if (settle) clearInterval(settle);
       try { removeMove?.(); } catch (err) { logger.swallow("infra-layer:move", err, "debug"); }
+      try { removeTerrain?.(); } catch (err) { logger.swallow("infra-layer:terrain-listener", err, "debug"); }
       setCredit(false);
       try { viewer.dataSources.remove(source, true); } catch (err) { logger.swallow("infra-layer:remove", err, "debug"); }
       try { viewer.dataSources.remove(lineSource, true); } catch (err) { logger.swallow("infra-layer:remove-lines", err, "debug"); }
