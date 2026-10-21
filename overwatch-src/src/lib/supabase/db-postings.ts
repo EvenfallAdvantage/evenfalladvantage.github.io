@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
 import { getPublicCompany } from "./db-public-company";
+import { cdataSafe, stripTags } from "@/lib/security";
 
 export type EmploymentType = "full-time" | "part-time" | "contract" | "temporary" | "internship";
 export type PostingStatus = "draft" | "active" | "paused" | "closed";
@@ -230,7 +231,7 @@ export function generateJobFeedXML(
       ${p.location ? `<city><![CDATA[${p.location}]]></city>` : ""}
       ${p.employment_type ? `<jobtype>${p.employment_type}</jobtype>` : ""}
       ${p.compensation_range && p.show_compensation ? `<salary><![CDATA[${p.compensation_range}]]></salary>` : ""}
-      <description><![CDATA[${p.description_html.replace(/<[^>]*>/g, "")}]]></description>
+      <description><![CDATA[${cdataSafe(stripTags(p.description_html))}]]></description>
     </job>`).join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>

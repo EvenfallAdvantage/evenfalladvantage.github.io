@@ -216,7 +216,19 @@ export function safeHttpUrl(url: string | null | undefined): string | null {
 
 /** Strip all HTML tags */
 export function stripTags(str: string): string {
-  return str.replace(/<[^>]*>/g, "");
+  // Remove tags, then any stray angle brackets, so nested/malformed tags
+  // (e.g. "<scr<script>ipt>") can't leave markup behind.
+  return String(str ?? "").replace(/<[^>]*>/g, "").replace(/[<>]/g, "");
+}
+
+/** Make a string safe inside <![CDATA[ ... ]]>. */
+export function cdataSafe(str: string): string {
+  return String(str ?? "").replace(/]]>/g, "]]]]><![CDATA[>");
+}
+
+/** JSON for an inline <script type="application/ld+json">: escape "<" so "</script>" in data can't close the tag. */
+export function jsonForScript(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c").replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
 }
 
 // sanitizeHtml() lives in ./sanitize-html so pages that only need the helpers

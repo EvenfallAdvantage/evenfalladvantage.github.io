@@ -36,3 +36,16 @@ export function safeHttpUrl(url: string | null | undefined): string | null {
     return null;
   }
 }
+
+/**
+ * Plain text from HTML: drop tags, then remove any stray angle brackets so a
+ * nested/malformed tag (e.g. "<scr<script>ipt>") can't survive as markup.
+ */
+export function stripTagsToText(html: string): string {
+  return String(html ?? "").replace(/<[^>]*>/g, " ").replace(/[<>]/g, "").replace(/[ \t]{2,}/g, " ").trim();
+}
+
+/** Make a string safe inside <![CDATA[ ... ]]> (split any "]]>" terminator). */
+export function cdataSafe(s: string): string {
+  return String(s ?? "").replace(/]]>/g, "]]]]><![CDATA[>");
+}

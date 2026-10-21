@@ -172,14 +172,15 @@ function formatAddress(a: { email: string; name?: string }): { mail: string; nam
 }
 
 function stripHtml(html: string): string {
+  // Plain-text alternative body only (never rendered as HTML).
   return html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<[^>]+>/g, " ")
+    .replace(/<(style|script)\b[\s\S]*?<\/\1\s*>/gi, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[<>]/g, "")
     .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&") // last, so "&amp;lt;" decodes to "&lt;" not "<"
     .replace(/\s+/g, " ")
     .trim();
 }

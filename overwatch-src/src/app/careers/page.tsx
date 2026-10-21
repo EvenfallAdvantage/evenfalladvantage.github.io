@@ -10,6 +10,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/auth-store";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
+import { jsonForScript, stripTags } from "@/lib/security";
 
 /** Friendly empty state; managers get a link to set the page up. */
 function CareersEmpty() {
@@ -103,10 +104,10 @@ function CareersInner() {
         )}
       </div>
       <div className="border-t border-border/20 py-6 text-center text-[11px] text-muted-foreground/50">Powered by <strong>OVERWATCH</strong> by {company.name}</div>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonForScript({
         "@context": "https://schema.org", "@type": "ItemList",
         itemListElement: postings.map((p, i) => ({ "@type": "ListItem", position: i + 1, item: {
-          "@type": "JobPosting", title: p.title, description: p.description_html.replace(/<[^>]*>/g, ""),
+          "@type": "JobPosting", title: p.title, description: stripTags(p.description_html),
           datePosted: p.published_at || p.created_at,
           hiringOrganization: { "@type": "Organization", name: company.name, ...(company.logo_url ? { logo: company.logo_url } : {}) },
           ...(p.location ? { jobLocation: { "@type": "Place", address: p.location } } : {}),

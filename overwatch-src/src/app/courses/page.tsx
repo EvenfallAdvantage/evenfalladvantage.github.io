@@ -90,7 +90,7 @@ function CoursesContent() {
     const s = secs % 60;
     return `${h > 0 ? h + ":" : ""}${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
-  function startSession() { if (!roomUrl.trim()) return; setSessionState("live"); setDuration(0); }
+  function startSession() { if (!/^https:\/\//i.test(roomUrl.trim())) { toast.error("Enter an https:// meeting link"); return; } setSessionState("live"); setDuration(0); }
   function endSession() { setSessionState("ended"); if (timerRef.current) clearInterval(timerRef.current); }
   function resetSession() { setSessionState("setup"); setDuration(0); setRoomUrl(""); }
   function copyStudentLink() {
@@ -330,7 +330,7 @@ function CoursesContent() {
               </div>
               <Card className="border-border/40 overflow-hidden">
                 <div className="aspect-video bg-black relative">
-                  <iframe src={roomUrl} allow="camera; microphone; fullscreen; display-capture"
+                  <iframe src={/^https:\/\//i.test(roomUrl.trim()) ? roomUrl.trim() : "about:blank"} allow="camera; microphone; fullscreen; display-capture"
                     className="w-full h-full border-0" title="Training Session" />
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                     <Button size="sm" variant={muted ? "destructive" : "secondary"} className="h-9 w-9 p-0 rounded-full"
