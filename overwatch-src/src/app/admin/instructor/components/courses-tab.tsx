@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Plus, Loader2, Save, X, Pencil, ChevronDown, ChevronUp, Clock, Trash2,
 } from "lucide-react";
@@ -84,9 +85,9 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
     if (!nCode.trim() || !nName.trim()) return; setSaving(true);
     try {
       const r = await createLegacyCourse({ course_code: nCode.trim(), course_name: nName.trim(), description: nDesc.trim() || undefined, price: parseFloat(nPrice) || 0, duration_hours: parseFloat(nHours) || undefined, difficulty_level: nDiff });
-      if (!r.success) { alert(legacyWriteErrorMessage("create the course", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("create the course", r.error)); return; }
       setShowNew(false); setNCode(""); setNName(""); setNDesc(""); setNPrice("0"); setNHours(""); await loadCourses();
-    } catch { alert("Failed to create course"); } finally { setSaving(false); }
+    } catch { toast.error("Failed to create course"); } finally { setSaving(false); }
   }
   function startEditCourse(c: LegacyCourse) {
     setEditId(c.id); setECode(c.course_code); setEName(c.course_name); setEDesc(c.description ?? "");
@@ -96,9 +97,9 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
     if (!editId) return; setSaving(true);
     try {
       const r = await updateLegacyCourse(editId, { course_code: eCode.trim(), course_name: eName.trim(), description: eDesc.trim(), price: parseFloat(ePrice) || 0, duration_hours: parseFloat(eHours) || undefined, is_active: eActive });
-      if (!r.success) { alert(legacyWriteErrorMessage("save the course", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("save the course", r.error)); return; }
       setEditId(null); await loadCourses();
-    } catch { alert("Failed to update course"); } finally { setSaving(false); }
+    } catch { toast.error("Failed to update course"); } finally { setSaving(false); }
   }
   async function handleDeleteCourse(c: LegacyCourse) {
     const ok = await confirm({
@@ -111,7 +112,7 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
     setDeletingId(c.id);
     try {
       const r = await deleteLegacyCourse(c.id);
-      if (!r.success) { alert(legacyWriteErrorMessage("delete the course", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("delete the course", r.error)); return; }
       if (xCourseId === c.id) setXCourseId(null);
       await loadCourses();
     } finally { setDeletingId(null); }
@@ -120,10 +121,10 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
     if (!nmCode.trim() || !nmName.trim()) return; setSavingMod(true);
     try {
       const r = await createLegacyModule({ module_code: nmCode.trim(), module_name: nmName.trim(), description: nmDesc.trim() || undefined, duration_minutes: parseInt(nmDur) || 30, default_course_id: xCourseId ?? undefined });
-      if (!r.success) { alert(legacyWriteErrorMessage("create the module", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("create the module", r.error)); return; }
       setShowNewModule(false); setNmCode(""); setNmName(""); setNmDesc(""); setNmDur("30");
       if (xCourseId) setCourseModules(await getLegacyCourseModules(xCourseId));
-    } catch { alert("Failed to create module"); } finally { setSavingMod(false); }
+    } catch { toast.error("Failed to create module"); } finally { setSavingMod(false); }
   }
   function startEditModule(m: LegacyModule) {
     setEditModId(m.id); setEmName(m.module_name); setEmDesc(m.description || "");
@@ -133,10 +134,10 @@ export function CoursesTab({ triggerNew }: CoursesTabProps) {
     if (!editModId) return; setSavingModEdit(true);
     try {
       const r = await updateLegacyModule(editModId, { module_name: emName.trim(), description: emDesc.trim(), duration_minutes: parseInt(emDur) || undefined, difficulty_level: emDiff });
-      if (!r.success) { alert(legacyWriteErrorMessage("save the module", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("save the module", r.error)); return; }
       setEditModId(null);
       if (xCourseId) setCourseModules(await getLegacyCourseModules(xCourseId));
-    } catch { alert("Failed to update module"); } finally { setSavingModEdit(false); }
+    } catch { toast.error("Failed to update module"); } finally { setSavingModEdit(false); }
   }
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Loader2, ChevronDown, ChevronUp, CheckCircle2, Award,
 } from "lucide-react";
@@ -56,10 +57,10 @@ export function StudentsTab({ instructorId }: StudentsTabProps) {
         certificate_type: certType, certificate_name: certName.trim(),
         state_issued: certState.trim() || undefined,
       });
-      if (!r.success) { alert(trainingWriteErrorMessage("issue the certificate", r.error)); return; }
+      if (!r.success) { toast.error(trainingWriteErrorMessage("issue the certificate", r.error)); return; }
       setShowCert(null); setCertName(""); setCertState("");
-      alert("Certificate issued successfully!");
-    } catch { alert("Failed to issue certificate"); }
+      toast.success("Certificate issued successfully!");
+    } catch { toast.error("Failed to issue certificate"); }
     finally { setIssuingCert(false); }
   }
 

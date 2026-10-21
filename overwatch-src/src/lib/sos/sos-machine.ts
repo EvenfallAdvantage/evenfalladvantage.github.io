@@ -55,6 +55,11 @@ export function sosReducer(s: SosState, e: SosEvent): SosState {
   }
 }
 
+/** A release before the hold completed (show a "hold to send" hint). */
+export function isEarlyRelease(s: SosState, at: number): boolean {
+  return s.phase === "holding" && s.startedAt != null && at - s.startedAt < SOS_HOLD_MS;
+}
+
 /** 0..1 progress of the hold or countdown (for the ring / bar). */
 export function sosProgress(s: SosState, now: number): number {
   if (s.startedAt == null) return 0;

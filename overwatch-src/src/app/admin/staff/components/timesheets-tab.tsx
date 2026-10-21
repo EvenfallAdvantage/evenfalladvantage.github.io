@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { isLikelyAccidental, countsAsPending } from "@/lib/timesheets/accidental";
 import Link from "next/link";
 import {
   Clock, Loader2, ChevronDown, ChevronUp, Flag, Download, Trash2,
@@ -138,7 +139,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                     {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /></p>
+                    <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} />{isLikelyAccidental(t) && <Badge className="ml-1 text-[10px] bg-muted text-muted-foreground" title="Under a minute; probably a test or mis-tap. Not counted as pending.">Under 1 min · likely accidental</Badge>}</p>
                     <p className="text-xs text-muted-foreground truncate">
                       {op ? `${op} · ` : ""}In since {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
@@ -172,7 +173,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
               const items = grouped[opName];
               const isCollapsed = collapsedOps.has(opName);
               const totalHrs = items.reduce((sum: number, t: Sheet) => sum + (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000, 0).toFixed(1);
-              const unapproved = items.filter((t: Sheet) => !t.approved).length;
+              const unapproved = items.filter((t: Sheet) => countsAsPending(t)).length;
               return (
                 <div key={opName} className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
                   <button onClick={() => toggleOp(opName)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors">

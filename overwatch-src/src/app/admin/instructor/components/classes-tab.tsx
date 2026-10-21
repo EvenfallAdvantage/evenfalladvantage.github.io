@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import {
   Loader2, Save, Calendar, Users, Clock, XCircle, ChevronDown, ChevronUp,
   UserCheck, UserX,
@@ -60,8 +61,8 @@ export function ClassesTab({ instructorId, triggerNew, seeAll = false }: Classes
   useEffect(() => { load(); }, [load]);
 
   async function handleCreate() {
-    if (!ncName.trim() || !ncDate || !ncStart || !ncEnd) { alert("Class name, date, start and end time are required."); return; }
-    if (!instructorId) { alert("Your Overwatch profile isn't loaded yet. Reload the page and try again."); return; }
+    if (!ncName.trim() || !ncDate || !ncStart || !ncEnd) { toast.error("Class name, date, start and end time are required."); return; }
+    if (!instructorId) { toast.error("Your Overwatch profile isn't loaded yet. Reload the page and try again."); return; }
     setSaving(true);
     try {
       const r = await createLegacyClass({
@@ -69,10 +70,10 @@ export function ClassesTab({ instructorId, triggerNew, seeAll = false }: Classes
         scheduled_date: ncDate, start_time: ncStart, end_time: ncEnd,
         location: ncLocation.trim() || undefined, max_students: parseInt(ncMax) || 20,
       });
-      if (!r.success) { alert(legacyWriteErrorMessage("create the class", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("create the class", r.error)); return; }
       setShowNew(false); setNcName(""); setNcType("training"); setNcDate(""); setNcLocation("");
       await load();
-    } catch { alert("Failed to create class"); }
+    } catch { toast.error("Failed to create class"); }
     finally { setSaving(false); }
   }
 
@@ -89,14 +90,14 @@ export function ClassesTab({ instructorId, triggerNew, seeAll = false }: Classes
 
   async function handleMarkAttendance(classId: string, studentId: string, status: "present" | "absent" | "late") {
     const r = await markAttendance(classId, studentId, status);
-    if (!r.success) alert(legacyWriteErrorMessage("save attendance", r.error));
+    if (!r.success) toast.error(legacyWriteErrorMessage("save attendance", r.error));
     setAttendance(await getClassAttendance(classId));
   }
 
   async function handleCancelClass(classId: string) {
     if (!await confirm({ description: "Cancel this class?", variant: "destructive" })) return;
     const r = await updateLegacyClass(classId, { status: "cancelled" });
-    if (!r.success) { alert(legacyWriteErrorMessage("cancel the class", r.error)); return; }
+    if (!r.success) { toast.error(legacyWriteErrorMessage("cancel the class", r.error)); return; }
     await load();
   }
 

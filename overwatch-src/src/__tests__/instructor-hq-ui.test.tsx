@@ -26,6 +26,7 @@ import { QuestionsEditor } from "@/app/admin/instructor/components/questions-edi
 import { AssessmentsTab } from "@/app/admin/instructor/components/assessments-tab";
 
 const alertSpy = vi.fn();
+vi.mock("sonner", () => ({ toast: { error: (m: string) => alertSpy(m), success: (m: string) => alertSpy(m) } }));
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("alert", alertSpy);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import {
   Plus, Loader2, Save, X, Pencil, Trash2, FileText, Image as ImageIcon, Type, Video,
 } from "lucide-react";
@@ -67,25 +68,25 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
     if (!nsTitle.trim()) return; setSavingSlide(true);
     try {
       const r = await createLegacySlide({ module_id: moduleId, title: nsTitle.trim(), content_html: nsContent.trim() || undefined, slide_number: slides.length + 1, slide_type: nsType || "text", image_url: nsImage.trim() || undefined });
-      if (!r.success) { alert(trainingWriteErrorMessage("create the slide", r.error)); return; }
+      if (!r.success) { toast.error(trainingWriteErrorMessage("create the slide", r.error)); return; }
       setShowNewSlide(false); setNsTitle(""); setNsContent(""); setNsType("text"); setNsImage("");
       setSlides(await getLegacySlides(moduleId));
-    } catch { alert("Failed to create slide"); } finally { setSavingSlide(false); }
+    } catch { toast.error("Failed to create slide"); } finally { setSavingSlide(false); }
   }
 
   async function handleUpdateSlide() {
     if (!editSlide) return; setSavingSlideEdit(true);
     try {
       const r = await updateLegacySlide(editSlide.id, { title: esTitle.trim(), content_html: esContent, slide_type: esType, image_url: esImage.trim() || undefined });
-      if (!r.success) { alert(trainingWriteErrorMessage("save the slide", r.error)); return; }
+      if (!r.success) { toast.error(trainingWriteErrorMessage("save the slide", r.error)); return; }
       setEditSlide(null); setSlides(await getLegacySlides(moduleId));
-    } catch { alert("Failed to update slide"); } finally { setSavingSlideEdit(false); }
+    } catch { toast.error("Failed to update slide"); } finally { setSavingSlideEdit(false); }
   }
 
   async function handleDeleteSlide(slideId: string) {
     if (!await confirm({ description: "Delete this slide?", variant: "destructive" })) return;
     const r = await deleteLegacySlide(slideId);
-    if (!r.success) { alert(trainingWriteErrorMessage("delete the slide", r.error)); return; }
+    if (!r.success) { toast.error(trainingWriteErrorMessage("delete the slide", r.error)); return; }
     if (editSlide?.id === slideId) setEditSlide(null);
     setSlides(await getLegacySlides(moduleId));
   }

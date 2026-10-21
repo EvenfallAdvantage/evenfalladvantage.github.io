@@ -1,6 +1,7 @@
 "use client";
 
 import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
+import { countsAsPending } from "@/lib/timesheets/accidental";
 import React, { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -128,7 +129,7 @@ function AdminStaffPageInner() {
 
       // Load badge counts (non-blocking)
       Promise.all([
-        getCompanyTimesheets(activeCompanyId).then(ts => ts.filter((t: { clock_out: string | null; approved: boolean }) => t.clock_out && !t.approved).length).catch(() => 0),
+        getCompanyTimesheets(activeCompanyId).then(ts => ts.filter((t: { clock_in: string | null; clock_out: string | null; approved: boolean }) => countsAsPending(t)).length).catch(() => 0),
         getAllTimeOffRequests(activeCompanyId).then(r => r.filter((x: { status: string }) => x.status === "pending").length).catch(() => 0),
         getAllFormSubmissions(activeCompanyId).then(f => f.filter((x: { status: string }) => x.status !== "reviewed").length).catch(() => 0),
         getIncidents(activeCompanyId).then(i => i.filter((x: { status: string }) => x.status === "open" || x.status === "investigating").length).catch(() => 0),
