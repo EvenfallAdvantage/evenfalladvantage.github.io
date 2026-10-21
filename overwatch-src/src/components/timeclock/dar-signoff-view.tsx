@@ -32,6 +32,10 @@ export function DarSignoffView({ timesheetId, showEmpty = false }: { timesheetId
       <p className="mt-1 text-xs text-muted-foreground">
         Signed by <span className="font-medium text-foreground">{s.signedName}</span> · {new Date(s.signedAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
       </p>
+      {s.signaturePng && (
+        // eslint-disable-next-line @next/next/no-img-element -- data URL snapshot
+        <img src={s.signaturePng} alt={`Signature of ${s.signedName}`} className="mt-2 h-16 max-w-full rounded-md bg-white object-contain p-1" data-testid="dar-signature" />
+      )}
       {s.summary ? (
         <p className="mt-2 whitespace-pre-wrap rounded-md bg-muted/30 px-3 py-2 text-xs">{s.summary}</p>
       ) : (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { FileSignature, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { generateDAR, signDAR, darSummaryLines, type DailyActivityReport } from "@/lib/supabase/db-dar";
 import { parseUTC } from "@/lib/parse-utc";
+import { SignaturePad, type SignaturePadHandle } from "@/components/signature-pad";
+import { getMySignature, saveMySignature } from "@/lib/signature/signature";
 
 /**
  * Shown right after an online clock-out: the officer reviews the generated
@@ -27,6 +29,16 @@ export function DarSignoffModal({ open, onClose, timesheetId, companyId, userId,
   const [name, setName] = useState(defaultName);
   const [certify, setCertify] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Saved signature pre-fills; otherwise the officer may draw one (optional).
+  const [savedSig, setSavedSig] = useState<string | null>(null);
+  const [sigMode, setSigMode] = useState<"saved" | "draw" | "none">("none");
+  const [saveToProfile, setSaveToProfile] = useState(true);
+  const pad = useRef<SignaturePadHandle>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    getMySignature().then((s) => { setSavedSig(s); if (s) setSigMode("saved"); }).catch(() => {});
+  }, [open]);
 
   useEffect(() => {
     if (!open || !timesheetId) return;
@@ -37,7 +49,10 @@ export function DarSignoffModal({ open, onClose, timesheetId, companyId, userId,
   async function sign() {
     if (!timesheetId || !companyId || !userId) return;
     setSaving(true);
-    const r = await signDAR({ companyId, timesheetId, userId, summary, signedName: name, report });
+    const drawn = sigMode === "draw" ? pad.current?.toDataUrl() ?? null : null;
+    const signaturePng = sigMode === "saved" ? savedSig : drawn;
+    if (drawn && saveToProfile) await saveMySignature(drawn).catch(() => ({ ok: false }));
+    const r = await signDAR({ companyId, timesheetId, userId, summary, signedName: name, report, signaturePng });
     setSaving(false);
     if (r.ok) { toast.success("Shift notes signed"); onClose(); return; }
     if (r.reason === "already_signed") { toast.info("Shift notes for this shift are already signed"); onClose(); return; }
@@ -74,6 +89,27 @@ export function DarSignoffModal({ open, onClose, timesheetId, companyId, userId,
             <Textarea id="dar-summary" value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={4000} rows={4} placeholder="Quiet shift, all doors secured at close…" />
             <label className="block text-sm font-medium" htmlFor="dar-name">Sign with your name</label>
             <input id="dar-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm" />
+            <div className="space-y-2" data-testid="shift-notes-signature">
+              <span className="block text-sm font-medium">Signature</span>
+              {sigMode === "saved" && savedSig ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- data URL */}
+                  <img src={savedSig} alt="Your saved signature" className="h-20 w-full rounded-md border border-input bg-white object-contain" />
+                  <button type="button" className="min-h-11 text-xs text-primary underline" onClick={() => setSigMode("draw")}>Draw a different signature</button>
+                </>
+              ) : sigMode === "draw" ? (
+                <>
+                  <SignaturePad ref={pad} height={140} />
+                  <label className="flex min-h-11 items-center gap-2 text-xs">
+                    <input type="checkbox" className="h-4 w-4" checked={saveToProfile} onChange={(e) => setSaveToProfile(e.target.checked)} />
+                    {savedSig ? "Replace the signature saved on my profile" : "Save this signature to my profile"}
+                  </label>
+                  {savedSig && <button type="button" className="min-h-11 text-xs text-primary underline" onClick={() => setSigMode("saved")}>Use my saved signature</button>}
+                </>
+              ) : (
+                <button type="button" className="min-h-11 text-xs text-primary underline" onClick={() => setSigMode("draw")}>Add a drawn signature (optional)</button>
+              )}
+            </div>
             <label className="flex min-h-11 items-start gap-2 text-sm">
               <input type="checkbox" className="mt-1 h-4 w-4" checked={certify} onChange={(e) => setCertify(e.target.checked)} />
               <span>I confirm these shift notes are accurate to the best of my knowledge.</span>
