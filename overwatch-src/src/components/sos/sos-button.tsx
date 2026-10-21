@@ -10,7 +10,7 @@ import { createPortal } from "react-dom";
 import { ShieldAlert, Loader2, X, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { SOS_INITIAL, sosReducer, sosProgress, shouldSendLocation, SOS_COUNTDOWN_MS, SOS_LOCATION_INTERVAL_MS } from "@/lib/sos/sos-machine";
+import { SOS_INITIAL, isEarlyRelease, sosReducer, sosProgress, shouldSendLocation, SOS_COUNTDOWN_MS, SOS_LOCATION_INTERVAL_MS } from "@/lib/sos/sos-machine";
 import { haptic } from "@/lib/sos/alarm";
 
 export function SosButton({ companyId, className }: { companyId: string; className?: string }) {
@@ -94,7 +94,13 @@ export function SosButton({ companyId, className }: { companyId: string; classNa
   }, [alertId, companyId]);
 
   const onDown = useCallback((e: React.PointerEvent) => { e.preventDefault(); haptic(20); send({ type: "HOLD_START", at: Date.now() }); }, []);
-  const onUp = useCallback(() => send({ type: "HOLD_END", at: Date.now() }), []);
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; });
+  const onUp = useCallback(() => {
+    const at = Date.now();
+    if (isEarlyRelease(stateRef.current, at)) toast("Press and hold SOS to send an alert.", { id: "sos-hold-hint", duration: 3500 });
+    send({ type: "HOLD_END", at });
+  }, []);
 
   async function imSafe() {
     if (!state.alertId) return;

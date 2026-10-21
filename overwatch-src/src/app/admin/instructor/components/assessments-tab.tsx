@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { Loader2, Pencil, Save, X, ListChecks, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,12 +62,12 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
         module_id: naModuleId || undefined,
         passing_score: parseInt(naPassing) || 70,
       });
-      if (!r.success) { alert(legacyWriteErrorMessage("create the assessment", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("create the assessment", r.error)); return; }
       setShowNew(false); setNaName(""); setNaModuleId(""); setNaPassing("70");
       await load();
       // Go straight to writing the questions for the new assessment.
       if (r.id) setQuestionsId(r.id);
-    } catch { alert("Failed to create assessment"); }
+    } catch { toast.error("Failed to create assessment"); }
     finally { setSaving(false); }
   }
 
@@ -85,9 +86,9 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
         module_id: eaModuleId || null,
         passing_score: parseInt(eaPassing) || 70,
       });
-      if (!r.success) { alert(legacyWriteErrorMessage("save the assessment", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("save the assessment", r.error)); return; }
       setEditId(null); await load();
-    } catch { alert("Failed to update"); }
+    } catch { toast.error("Failed to update"); }
     finally { setSaving(false); }
   }
 
@@ -105,7 +106,7 @@ export function AssessmentsTab({ triggerNew }: AssessmentsTabProps) {
     setDeletingId(a.id);
     try {
       const r = await deleteLegacyAssessment(a.id);
-      if (!r.success) { alert(legacyWriteErrorMessage("delete the assessment", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("delete the assessment", r.error)); return; }
       if (questionsId === a.id) setQuestionsId(null);
       if (editId === a.id) setEditId(null);
       await load();

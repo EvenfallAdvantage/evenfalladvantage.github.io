@@ -7,6 +7,25 @@ import { Loader2, Briefcase, MapPin, Clock, DollarSign, ChevronDown, ChevronUp, 
 import { Button } from "@/components/ui/button";
 import { getActivePostingsBySlug, type JobPosting } from "@/lib/supabase/db-postings";
 import Image from "next/image";
+import Link from "next/link";
+import { useAuthStore } from "@/stores/auth-store";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
+
+/** Friendly empty state; managers get a link to set the page up. */
+function CareersEmpty() {
+  const active = useAuthStore((st) => st.getActiveCompany());
+  const canSetUp = !!active && hasMinRole((active.role ?? "staff") as CompanyRole, "manager");
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center" data-testid="careers-empty">
+      <Briefcase className="h-12 w-12 text-muted-foreground/40 mb-4" />
+      <h1 className="text-lg font-semibold mb-2">No open positions here yet</h1>
+      <p className="max-w-sm text-sm text-muted-foreground">This careers page isn&apos;t set up, or the link is incomplete. Check the link you were sent, or ask the company for their careers page.</p>
+      {canSetUp && (
+        <Link href="/admin/staff?tab=postings" className="mt-5 inline-flex h-11 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground">Set up your careers page</Link>
+      )}
+    </div>
+  );
+}
 
 function CareersInner() {
   const searchParams = useSearchParams();
@@ -29,7 +48,7 @@ function CareersInner() {
   }, [slug]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
-  if (!company) return <div className="min-h-screen flex flex-col items-center justify-center p-6"><Briefcase className="h-12 w-12 text-muted-foreground/30 mb-4" /><h1 className="text-lg font-semibold mb-2">Company Not Found</h1><p className="text-sm text-muted-foreground">No careers page exists for this company.</p></div>;
+  if (!company) return <CareersEmpty />;
 
   const bc = company.brand_color || "#d59b3c";
   const applyUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/overwatch/apply?c=${company.id}`;

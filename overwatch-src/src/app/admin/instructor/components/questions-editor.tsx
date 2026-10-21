@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Loader2, Plus, Save, Trash2, X, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,7 @@ export function QuestionsEditor({ assessmentId, assessmentName, onClose, onSaved
       setLoading(true);
       const r = await getLegacyAssessmentQuestions(assessmentId);
       if (cancelled) return;
-      if (!r.success) alert(legacyWriteErrorMessage("load the questions", r.error));
+      if (!r.success) toast.error(legacyWriteErrorMessage("load the questions", r.error));
       setQuestions(r.questions.length ? r.questions.map((q) => ({ ...q, explanation: q.explanation ?? "" })) : [blankQuestion()]);
       setLoading(false);
     })();
@@ -65,7 +66,7 @@ export function QuestionsEditor({ assessmentId, assessmentName, onClose, onSaved
     setSaving(true);
     try {
       const r = await saveLegacyAssessmentQuestions(assessmentId, questions);
-      if (!r.success) { alert(legacyWriteErrorMessage("save the questions", r.error)); return; }
+      if (!r.success) { toast.error(legacyWriteErrorMessage("save the questions", r.error)); return; }
       onSaved();
     } finally { setSaving(false); }
   }
